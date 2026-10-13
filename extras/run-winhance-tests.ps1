@@ -45,12 +45,19 @@ $totalFailed = 0
 $totalSkipped = 0
 $failedProjects = @()
 
-# In -UIOnly mode, mirror the (potentially long) MSBuild output into a log file next to this script.
-# The repo is an SMB share, so the agent reads it at extras/uitest-results.txt without needing the
-# SSH stdout to survive intact - same trick run-catalog-harness.ps1 uses for its results file.
-$uiLogFile = if ($UIOnly) { Join-Path $PSScriptRoot "uitest-results.txt" } else { $null }
-function Add-UILog($text) {
-    if ($uiLogFile -and $text) { $text | Out-File -FilePath $uiLogFile -Append -Encoding utf8 }
+# Mirror the full output into a log file. The repo is an SMB share, so the agent reads the log
+# without needing the SSH stdout to survive intact - same trick run-catalog-harness.ps1 uses. It has
+# to, because SSH drops every xUnit failure message: the agent otherwise sees only "[FAIL]" and the
+# test name. docs\ is the gitignored side of the tree, which is where a run artefact belongs.
+$logFile = if ($UIOnly) { Join-Path $PSScriptRoot "uitest-results.txt" } else { Join-Path $solutionDir "docs\test-results.txt" }
+function Add-Log($text) {
+    if ($text) { $text | Out-File -FilePath $logFile -Append -Encoding utf8 }
+}
+
+# A count off one of the "Test Run Successful." block's own lines; absent means zero (it omits a zero row).
+function Get-SummaryCount($text, $label) {
+    $m = [regex]::Match($text, "(?m)^\s*${label}:\s+(\d+)\s*$")
+    if ($m.Success) { [int]$m.Groups[1].Value } else { 0 }
 }
 
 function Run-TestProject {
@@ -71,14 +78,28 @@ function Run-TestProject {
         $outArg = "--output `"$projOut`""
     }
 
-    $cmd = "dotnet test `"$ProjectPath`" --verbosity quiet $outArg $ExtraArgs"
-    $output = Invoke-Expression $cmd 2>&1 | Out-String
+    # The console logger is what prints a failed test's assertion message; --verbosity only controls
+    # MSBuild, so without it the log records "Failed: 1" and not one word about which test or why.
+    $cmd = "dotnet test `"$ProjectPath`" --verbosity quiet --logger `"console;verbosity=normal`" $outArg $ExtraArgs"
+    # $ErrorActionPreference is Stop for the script, which turns a native command's stderr into a
+    # TERMINATING error, which would kill the runner before it could parse, print or log anything.
+    # Scope Continue to the call so stderr is just more output.
+    $output = & { $ErrorActionPreference = "Continue"; Invoke-Expression $cmd 2>&1 } | Out-String
+    Add-Log "### $Name"
+    Add-Log $output
 
-    # Parse results from output
+    # Parse results from output. The console logger prints a "Test Run Successful." block instead of the
+    # one-line "Passed! - Failed: 0, ..." summary, so read that block first and keep the line as a fallback.
+    $totalMatch  = [regex]::Match($output, '(?m)^Total tests:\s+(\d+)\s*$')
     $resultMatch = [regex]::Match($output, 'Failed:\s+(\d+),\s+Passed:\s+(\d+),\s+Skipped:\s+(\d+)')
     $passedMatch = [regex]::Match($output, 'Passed!\s+-\s+Failed:\s+(\d+),\s+Passed:\s+(\d+),\s+Skipped:\s+(\d+)')
 
-    if ($passedMatch.Success) {
+    if ($totalMatch.Success) {
+        $failed  = Get-SummaryCount $output "Failed"
+        $passed  = Get-SummaryCount $output "Passed"
+        $skipped = Get-SummaryCount $output "Skipped"
+    }
+    elseif ($passedMatch.Success) {
         $failed  = [int]$passedMatch.Groups[1].Value
         $passed  = [int]$passedMatch.Groups[2].Value
         $skipped = [int]$passedMatch.Groups[3].Value
@@ -155,12 +176,12 @@ function Invoke-UITestProject {
     Write-Host "  Building UI Tests with MSBuild..." -ForegroundColor Cyan
     Write-Host ("=" * 60) -ForegroundColor DarkGray
     Write-Host "  msbuild: $msbuildPath" -ForegroundColor DarkGray
-    Add-UILog "msbuild: $msbuildPath"
-    Add-UILog "project: $uiProjectPath"
+    Add-Log "msbuild: $msbuildPath"
+    Add-Log "project: $uiProjectPath"
 
     $buildOutput = & $msbuildPath $uiProjectPath /p:Configuration=Debug /p:Platform=x64 /verbosity:minimal -restore 2>&1 | Out-String
     $buildCode = $LASTEXITCODE
-    Add-UILog $buildOutput
+    Add-Log $buildOutput
     if ($buildCode -ne 0) {
         Write-Host "  BUILD FAILED - Winhance.UI or Winhance.UI.Tests does not compile" -ForegroundColor Red
         Write-Host $buildOutput -ForegroundColor DarkGray
@@ -189,7 +210,7 @@ function Invoke-UITestProject {
     }
     if (-not $uiTestDll) {
         Write-Host "  UI Tests: build verified (test assembly not located; not run)" -ForegroundColor Green
-        Add-UILog "test assembly not found under: $($dllRoots -join '; ')"
+        Add-Log "test assembly not found under: $($dllRoots -join '; ')"
         return "buildonly"
     }
 
@@ -198,13 +219,13 @@ function Invoke-UITestProject {
     $vstestConsolePath = Join-Path $vsInstallPath "Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe"
     if (-not (Test-Path $vstestConsolePath)) {
         Write-Host "  UI Tests: build verified (vstest.console.exe not found; not run)" -ForegroundColor Green
-        Add-UILog "vstest.console.exe not found at $vstestConsolePath"
+        Add-Log "vstest.console.exe not found at $vstestConsolePath"
         return "buildonly"
     }
 
     Write-Host "  Attempting to run UI tests..." -ForegroundColor Cyan
     $runOutput = & $vstestConsolePath $uiTestDll /Platform:x64 2>&1 | Out-String
-    Add-UILog $runOutput
+    Add-Log $runOutput
 
     # Two summary shapes, because two runners emit them:
     #   vstest.console.exe : "Test Run Failed." / "Total tests: N" / "Passed: N" / "Failed: N"
@@ -306,7 +327,7 @@ function Resolve-UIResult {
                 Write-Host "  FAILED: MSBuild not found - install Visual Studio with the '.NET desktop" -ForegroundColor Red
                 Write-Host "          development' workload AND the MSVC x64 build tools." -ForegroundColor Red
                 Write-Host "          The WinUI test project cannot be built by the .NET SDK alone." -ForegroundColor Red
-                Add-UILog "MSBuild not found - Visual Studio with the MSVC toolset is required."
+                Add-Log "MSBuild not found - Visual Studio with the MSVC toolset is required."
                 $script:totalFailed += 1
                 $script:failedProjects += "UI Tests (no MSBuild)"
                 return $false
@@ -335,10 +356,11 @@ Write-Host ("=" * 60) -ForegroundColor Cyan
 
 $startTime = Get-Date
 
+"# Winhance test gate: $(Get-Date -Format o)" | Out-File -FilePath $logFile -Encoding utf8
+Write-Host "  log:     $logFile" -ForegroundColor Cyan
+
 if ($UIOnly) {
-    "# Winhance UI test gate (-UIOnly): $(Get-Date -Format o)" | Out-File -FilePath $uiLogFile -Encoding utf8
     Write-Host "  mode:    UI only (build Winhance.UI.Tests -> compiles Winhance.UI)" -ForegroundColor Cyan
-    Write-Host "  log:     $uiLogFile" -ForegroundColor Cyan
 
     $uiOk = Resolve-UIResult -Result (Invoke-UITestProject) -MSBuildRequired $true
 

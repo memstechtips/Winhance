@@ -1,7 +1,5 @@
-using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
@@ -10,7 +8,7 @@ using Winhance.UI.Features.Optimize.ViewModels;
 namespace Winhance.UI.Features.Common.Controls;
 
 // Owns the overlay knob's hover animation: the icon is named here, which x:Name inside a DataTemplate would not allow.
-public sealed partial class SettingToggleSwitch : UserControl, INotifyPropertyChanged
+public sealed partial class SettingToggleSwitch : SettingBoundControl
 {
     // Matches the native ToggleSwitch's knob-grow on pointer-over.
     private const double HoverScale = 1.15;
@@ -19,17 +17,6 @@ public sealed partial class SettingToggleSwitch : UserControl, INotifyPropertyCh
     public SettingToggleSwitch()
     {
         InitializeComponent();
-        Unloaded += (_, _) => Detach();
-    }
-
-    public static readonly DependencyProperty SettingProperty = DependencyProperty.Register(
-        nameof(Setting), typeof(SettingItemViewModel), typeof(SettingToggleSwitch),
-        new PropertyMetadata(null, OnSettingChanged));
-
-    public SettingItemViewModel? Setting
-    {
-        get => (SettingItemViewModel?)GetValue(SettingProperty);
-        set => SetValue(SettingProperty, value);
     }
 
     public bool IsOn { get; private set; }
@@ -47,39 +34,12 @@ public sealed partial class SettingToggleSwitch : UserControl, INotifyPropertyCh
     public string OverlayText { get; private set; } = string.Empty;
     public string OverlayTooltip { get; private set; } = string.Empty;
 
-    private SettingItemViewModel? _observed;
-
-    private static void OnSettingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        var control = (SettingToggleSwitch)d;
-        control.Detach();
-        control._observed = e.NewValue as SettingItemViewModel;
-        if (control._observed is { } vm)
-            vm.PropertyChanged += control.OnSettingPropertyChanged;
-        control.Refresh();
-    }
-
-    private void Detach()
-    {
-        if (_observed is { } vm)
-            vm.PropertyChanged -= OnSettingPropertyChanged;
-        _observed = null;
-    }
-
-    // A null PropertyName means "everything", which the view model raises on a language change; the
-    // named ones are what actually move a toggle's rendering.
-    private void OnSettingPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName is null
-            or nameof(SettingItemViewModel.IsSelected)
+    protected override bool RefreshesOn(string propertyName)
+        => propertyName is nameof(SettingItemViewModel.IsSelected)
             or nameof(SettingItemViewModel.Outcome)
-            or nameof(SettingItemViewModel.Name))
-        {
-            Refresh();
-        }
-    }
+            or nameof(SettingItemViewModel.Name);
 
-    private void Refresh()
+    protected override void Refresh()
     {
         if (Setting is not { } vm)
             return;
@@ -132,16 +92,5 @@ public sealed partial class SettingToggleSwitch : UserControl, INotifyPropertyCh
             storyboard.Children.Add(animation);
         }
         storyboard.Begin();
-    }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    private void Notify(params string[] names)
-    {
-        var handler = PropertyChanged;
-        if (handler is null)
-            return;
-        foreach (var name in names)
-            handler(this, new PropertyChangedEventArgs(name));
     }
 }

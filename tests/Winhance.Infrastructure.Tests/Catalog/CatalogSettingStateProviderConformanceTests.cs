@@ -135,7 +135,6 @@ public class CatalogSettingStateProviderConformanceTests
     // REGAINS an anchor fails, forcing this pin's conscious removal.
     private static readonly IReadOnlyDictionary<string, string> NoWindowsDefaultByDesign = new Dictionary<string, string>
     {
-        ["explorer-customization-short-date"] = "locale: format materialized per-locale at OOBE (B3 locale class)",
         ["explorer-customization-number-decimal"] = "locale: separator materialized per-locale at OOBE (B3 locale class)",
         ["explorer-customization-measurement-system"] = "locale: en-US ships Imperial, most others Metric (B3 locale class)",
         ["explorer-customization-currency-decimal"] = "locale: separator materialized per-locale at OOBE (B3 locale class)",
@@ -358,6 +357,31 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
+    public async Task An_answer_file_toggle_opens_on_its_recommended_state_over_its_windows_default()
+    {
+        var setting = AnswerFileOnly("setup-toggle",
+            Writes(LocKey.Common.Enabled, StateRole.Recommended),
+            Writes(LocKey.Common.Disabled, StateRole.WindowsDefault));
+
+        var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { setting });
+
+        Assert.True(states["setup-toggle"].IsEnabled);
+    }
+
+    [Fact]
+    public async Task An_answer_file_selection_opens_on_its_recommended_index_over_its_windows_default()
+    {
+        var setting = AnswerFileOnly("setup-selection",
+            Writes(TestKeys.Of("First"), StateRole.WindowsDefault),
+            Writes(TestKeys.Of("Second"), StateRole.Recommended),
+            Writes(TestKeys.Of("Third")));
+
+        var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { setting });
+
+        Assert.Equal(1, states["setup-selection"].CurrentValue);
+    }
+
+    [Fact]
     public async Task An_answer_file_selection_opens_on_its_windows_default_index()
     {
         var setting = AnswerFileOnly("setup-selection",
@@ -558,6 +582,41 @@ public class CatalogSettingStateProviderConformanceTests
         Assert.True(state.Success);
         Assert.Equal(@"D:\Pictures\Holiday", state.CurrentValue);
         Assert.False(state.IsEnabled, "a box has no Windows-default anchor to be modified from");
+    }
+
+    // An answer-file-only card is normally detected only for ReadOnly targets that seed it from this PC. A keyed
+    // one has no such target and still needs a list: its options come from the option provider, which answers for
+    // media this PC has never seen. Missing either half leaves the card on screen with an empty drop-down.
+    [Fact]
+    public async Task An_answer_file_keyed_selection_is_detected_for_its_options_and_carries_them_to_the_card()
+    {
+        var setting = Catalog["autounattend-setup-language"];
+        Assert.True(setting.IsAnswerFileOnly);
+        Assert.Equal(ControlKind.KeyedSelection, setting.Control);
+        Assert.DoesNotContain(setting.Targets.OfType<RegTarget>(), t => t.ReadOnly);
+
+        var offered = new List<DynamicOption> { new("English (United Kingdom)", "en-GB") };
+        IReadOnlyCollection<Setting>? asked = null;
+
+        var detection = new Mock<ICatalogDetectionService>();
+        detection
+            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .Callback<IReadOnlyCollection<Setting>>(input => asked = input)
+            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>
+            {
+                [setting.Id] = new CatalogDetectionResult { Options = offered },
+            });
+
+        var version = new Mock<IWindowsVersionService>();
+        version.Setup(v => v.GetWindowsBuildNumber()).Returns(26200);
+        version.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
+        var provider = new CatalogSettingStateProvider(detection.Object, new ComboBoxResolver(version.Object), version.Object);
+
+        var states = await provider.GetStatesAsync(new[] { setting });
+
+        Assert.NotNull(asked);
+        Assert.Contains(asked!, s => s.Id == setting.Id);
+        Assert.Equal(offered, states[setting.Id].DynamicOptions);
     }
 
     private static async Task<Winhance.Core.Features.Common.Models.SettingStateResult> MapViaProvider(

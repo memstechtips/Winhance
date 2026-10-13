@@ -1,9 +1,11 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.Core.Features.Common.Extensions;
+using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.ViewModels;
 
@@ -96,6 +98,8 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         _scope = scope;
         _modeService = modeService;
         _featureViewModels = featureViewModels.ToList();
+        foreach (var vm in _featureViewModels)
+            vm.PropertyChanged += OnFeaturePropertyChanged;
 
         _viewModelBySectionKey = new Dictionary<string, ISettingsFeatureViewModel>();
 
@@ -112,6 +116,8 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         if (_disposed) return;
         _disposed = true;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        foreach (var vm in _featureViewModels)
+            vm.PropertyChanged -= OnFeaturePropertyChanged;
 
         // Each item holds subscriptions to the badge/review services and to every setting it
         // observes; leaving them attached would keep this page's cards recomputing forever.
@@ -161,7 +167,14 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         OnPropertyChanged(nameof(SearchPlaceholder));
     }
 
-    public async Task InitializeAsync()
+    // A feature filters its cards on a later dispatcher turn, so the answer here changes after SearchText has raised.
+    private void OnFeaturePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ISettingsFeatureViewModel.HasVisibleSettings))
+            OnPropertyChanged(nameof(HasNoSearchResults));
+    }
+
+    public virtual async Task InitializeAsync()
     {
         if (_isInitialized)
             return;
@@ -228,15 +241,13 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         return null;
     }
 
-    public string GetSectionDisplayName(string sectionKey)
-    {
-        var section = SectionDefinitions.FirstOrDefault(s => s.Key == sectionKey);
-        if (section != null)
-        {
-            return GetSectionViewModel(sectionKey)?.DisplayName ?? section.DisplayName;
-        }
-        return "Overview";
-    }
+    public virtual bool TakesQuickActions(SettingItemViewModel setting) => true;
+
+    // Its cards are filtered as the user types, so the search box does not also suggest them.
+    protected virtual ISettingsFeatureViewModel? SectionOnScreen => GetSectionViewModel(CurrentSectionKey);
+
+    private string GetSectionDisplayName(string sectionKey) =>
+        GetSectionViewModel(sectionKey)?.DisplayName ?? "Overview";
 
     private void UpdateSearchSuggestions(string searchText)
     {
@@ -245,7 +256,7 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         if (string.IsNullOrWhiteSpace(searchText) || searchText.Length < 2)
             return;
 
-        var currentViewModel = GetSectionViewModel(CurrentSectionKey);
+        var currentViewModel = SectionOnScreen;
 
         foreach (var section in SectionDefinitions)
         {

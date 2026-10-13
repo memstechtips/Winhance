@@ -71,6 +71,18 @@ public class TextBoxShapeTests
     }
 
     [Fact]
+    public void A_box_whose_text_only_fills_its_scripts_is_answer_file_only()
+    {
+        var setting = TextSetting() with
+        {
+            Targets = [],
+            CustomStateScripts = [new ScriptEffect("Move-Folders '{{value}}'", RunContext.User)],
+        };
+
+        setting.IsAnswerFileOnly.Should().BeTrue();
+    }
+
+    [Fact]
     public void A_text_setting_is_a_text_box_in_the_config_file()
     {
         ConfigFileMapper.InputTypeFor(TextSetting()).Should().Be(InputType.TextBox);

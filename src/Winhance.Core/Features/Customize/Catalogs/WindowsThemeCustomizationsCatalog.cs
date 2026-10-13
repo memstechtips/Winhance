@@ -10,7 +10,6 @@ namespace Winhance.Core.Features.Customize.Catalogs;
 public static class WindowsThemeCustomizationsCatalog
 {
     public const string FeatureId = FeatureIds.WindowsTheme;
-    public const string FeatureName = "Windows Theme";
 
     public static IReadOnlyList<Setting> All { get; } = new Setting[]
     {
@@ -317,9 +316,10 @@ public static class WindowsThemeCustomizationsCatalog
                 {
                     Label = LocKey.Setting.ThemeWallpaperFit.Option0,
                     Roles = new[] { StateRole.WindowsDefault },
+                    // No ResetSet: deleting TileWallpaper is not the same as writing "0". Windows reads a
+                    // missing value as tiled, and this state carries the WindowsDefault role, so the delete
+                    // fired on every apply - including onto the empty profile an answer file writes into.
                     Set = new Dictionary<string, StateValue> { ["WallpaperStyle"] = Of("10"), ["TileWallpaper"] = Of("0").OrAbsent() },
-                    // WallpaperStyle is a value a clean machine carries, so only the tile flag is deleted.
-                    ResetSet = new Dictionary<string, StateValue> { ["TileWallpaper"] = Absent },
                 },
                 new SettingState
                 {
@@ -408,70 +408,40 @@ public static class WindowsThemeCustomizationsCatalog
                 new RegTarget("SlideshowDirectoryPath1", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers" }, "SlideshowDirectoryPath1", RegistryValueKind.String) { ReadOnly = true },
             },
             // The answer file has no element for the folder id Windows records, so this script sets the album on the
-            // new install. It reads the interval, shuffle and position the sibling cards have already written.
+            // new install. It reads the interval, shuffle and position the sibling cards have already written, and
+            // calls the same interop the app does - Add-WinhanceDesktopType carries that file into the script.
             CustomStateScripts = new[]
             {
                 new ScriptEffect(@"$album = '{{value}}'
 $slideshowKey = Get-ItemProperty -Path 'HKCU:\Control Panel\Personalization\Desktop Slideshow' -ErrorAction SilentlyContinue
 $desktopKey = Get-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -ErrorAction SilentlyContinue
 $interval = if ($slideshowKey.Interval) { [int]$slideshowKey.Interval } else { 1800000 }
-$shuffle = if ($slideshowKey.Shuffle -eq 1) { 1 } else { 0 }
-$position = switch (""$($desktopKey.WallpaperStyle)"") { '0' { 0 } '2' { 2 } '6' { 3 } '22' { 5 } default { 4 } }
-if (""$($desktopKey.TileWallpaper)"" -eq '1') { $position = 1 }
-Add-Type -TypeDefinition @'
-using System;
-using System.Runtime.InteropServices;
-namespace Winhance.Desktop {
-    [ComImport, Guid(""43826D1E-E718-42EE-BC55-A1E261C37BFE""), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    public interface IShellItem { }
-    [ComImport, Guid(""B63EA76D-1F85-456F-A19C-48159EFA858B""), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    public interface IShellItemArray { }
-    [ComImport, Guid(""B92B56A9-8B55-4E14-9A89-0199BBB6F93B""), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    public interface IDesktopWallpaper {
-        void SetWallpaper([MarshalAs(UnmanagedType.LPWStr)] string monitorID, [MarshalAs(UnmanagedType.LPWStr)] string wallpaper);
-        [return: MarshalAs(UnmanagedType.LPWStr)] string GetWallpaper([MarshalAs(UnmanagedType.LPWStr)] string monitorID);
-        [return: MarshalAs(UnmanagedType.LPWStr)] string GetMonitorDevicePathAt(uint monitorIndex);
-        uint GetMonitorDevicePathCount();
-        void GetMonitorRECT([MarshalAs(UnmanagedType.LPWStr)] string monitorID, IntPtr displayRect);
-        void SetBackgroundColor(uint color);
-        uint GetBackgroundColor();
-        void SetPosition(int position);
-        int GetPosition();
-        void SetSlideshow(IShellItemArray items);
-        IShellItemArray GetSlideshow();
-        void SetSlideshowOptions(int options, uint slideshowTick);
-        void GetSlideshowOptions(out int options, out uint slideshowTick);
-        void AdvanceSlideshow([MarshalAs(UnmanagedType.LPWStr)] string monitorID, int direction);
-        int GetStatus();
-        void Enable(int enable);
-    }
-    [ComImport, Guid(""C2CF3110-460E-4FC1-B9D0-8A1C0C9CC4BD"")]
-    public class DesktopWallpaper { }
-    public static class Shell {
-        static Guid itemId = new Guid(""43826D1E-E718-42EE-BC55-A1E261C37BFE"");
-        static Guid arrayId = new Guid(""B63EA76D-1F85-456F-A19C-48159EFA858B"");
-        [DllImport(""shell32.dll"", CharSet = CharSet.Unicode, ExactSpelling = true)]
-        static extern int SHCreateItemFromParsingName(string path, IntPtr bindContext, ref Guid riid, out IShellItem item);
-        [DllImport(""shell32.dll"", ExactSpelling = true)]
-        static extern int SHCreateShellItemArrayFromShellItem(IShellItem item, ref Guid riid, out IShellItemArray items);
-        public static IShellItemArray Album(string folder) {
-            IShellItem folderItem;
-            Marshal.ThrowExceptionForHR(SHCreateItemFromParsingName(folder, IntPtr.Zero, ref itemId, out folderItem));
-            IShellItemArray items;
-            Marshal.ThrowExceptionForHR(SHCreateShellItemArrayFromShellItem(folderItem, ref arrayId, out items));
-            return items;
-        }
-    }
-}
-'@
-$desktop = [Winhance.Desktop.IDesktopWallpaper](New-Object Winhance.Desktop.DesktopWallpaper)
+$shuffle = $slideshowKey.Shuffle -eq 1
+Add-WinhanceDesktopType
+$position = [Winhance.Desktop.DesktopBackground]::Position(""$($desktopKey.WallpaperStyle)"", ""$($desktopKey.TileWallpaper)"")
 try {
-    $desktop.SetSlideshow([Winhance.Desktop.Shell]::Album($album))
-    $desktop.SetSlideshowOptions($shuffle, $interval)
-    $desktop.SetPosition($position)
+    [Winhance.Desktop.DesktopBackground]::Slideshow($album, $position, $interval, $shuffle)
     Write-Log ""Desktop background set: slideshow of $album"" ""SUCCESS""
 } catch {
     Write-Log ""Desktop background slideshow failed: $($_.Exception.Message)"" ""ERROR""
+    # One picture rather than none: the album's first, or the Windows picture matching the theme this file
+    # just applied, so a failure here cannot leave a light desktop under a dark shell.
+    $first = Get-ChildItem -LiteralPath $album -File -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -First 1
+    if ($first) {
+        $path = $first.FullName
+    } else {
+        $personalize = Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -ErrorAction SilentlyContinue
+        if ($personalize.SystemUsesLightTheme -eq 0) { $path = 'C:\Windows\Web\Wallpaper\Windows\img19.jpg' }
+        else { $path = 'C:\Windows\Web\Wallpaper\Windows\img0.jpg' }
+    }
+    try {
+        [Winhance.Desktop.DesktopBackground]::Picture($path, $position)
+        Write-Log ""Desktop background set to $path instead"" ""SUCCESS""
+    } catch {
+        Set-RegistryValue -Path 'HKCU:\Control Panel\Desktop' -Name 'WallPaper' -Type 'String' -Value $path -Description 'The desktop background picture'
+        Set-RegistryValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers' -Name 'BackgroundType' -Type 'DWord' -Value 0 -Description 'The desktop background picture'
+        Write-Log ""Desktop background recorded as $path; it shows at the next sign-in"" ""WARNING""
+    }
 }", RunContext.User),
             },
             UiParentId = "theme-wallpaper",

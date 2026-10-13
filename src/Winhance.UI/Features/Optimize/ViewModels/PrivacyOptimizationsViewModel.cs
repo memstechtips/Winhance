@@ -9,8 +9,6 @@ public partial class PrivacyOptimizationsViewModel : BaseSettingsFeatureViewMode
 {
     public override string ModuleId => FeatureIds.Privacy;
 
-    protected override string GetDisplayNameKey() => "Feature_Privacy_Name";
-
     public PrivacyOptimizationsViewModel(
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,

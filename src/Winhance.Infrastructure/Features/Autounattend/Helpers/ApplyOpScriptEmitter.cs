@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.WimUtil.Models;
 using Winhance.Infrastructure.Features.Common.Helpers;
 using static Winhance.Infrastructure.Features.Autounattend.Helpers.PowerShellScriptUtilities;
 using Winhance.Core.Features.Common.Localization;
@@ -20,7 +21,8 @@ internal sealed record EmitResult(
     IReadOnlyDictionary<string, string> UserPassByFeature,
     IReadOnlyList<PowerCfgRow> PowerRows,
     PowerPlanChoice? PowerPlan,
-    IReadOnlyList<string> Warnings);
+    IReadOnlyList<string> Warnings,
+    string SignInAfterSetup);
 
 // Runs every chosen setting through the SAME resolver + plan builder the live app applies with, then writes one
 // PowerShell statement per ApplyOp. The autounattend therefore cannot drift from the apply engine: a new op kind
@@ -37,6 +39,11 @@ internal sealed class ApplyOpScriptEmitter
     private static readonly Regex s_systemHiveHeaderRegex = new(
         @"^\s*\[(HKEY_LOCAL_MACHINE|HKEY_CLASSES_ROOT|HKEY_USERS|HKEY_CURRENT_CONFIG)\\",
         RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
+
+    // A write under a service the new PC does not have would create a key for a service that cannot run.
+    private static readonly Regex s_serviceKeyRegex = new(
+        @"^HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\([^\\]+)$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     internal static bool MixesHives(string content) =>
         s_hkcuHeaderRegex.IsMatch(content) && s_systemHiveHeaderRegex.IsMatch(content);
@@ -65,7 +72,8 @@ internal sealed class ApplyOpScriptEmitter
         IReadOnlyDictionary<string, IReadOnlyList<Setting>> byFeature,
         WinBuild build,
         string systemIndent,
-        string userIndent)
+        string userIndent,
+        string signInIndent = "            ")
     {
         var catalog = byFeature.Values.SelectMany(x => x).ToList();
         var byId = new Dictionary<string, Setting>();
@@ -134,15 +142,21 @@ internal sealed class ApplyOpScriptEmitter
             EmitOps(ops, setting, choice.Value, text, systemIndent, userIndent, rows, warnings);
         }
 
-        // Every answer-file setting, chosen or not: the XML writers fall back to the WindowsDefault state for an
+        // Every answer-file setting, chosen or not: the XML writers fall back to the seed state for an
         // unchosen one, and that state's script has to agree with the file.
         var chosenById = new Dictionary<string, ChoiceValue>(StringComparer.Ordinal);
         foreach (var choice in set.Settings)
             chosenById[SettingIdAliases.Normalize(choice.SettingId)] = choice.Value;
+        var externalAppIds = string.Join(",", set.ExternalApps.Select(a => a.Id));
+        var apps = set.ExternalApps.Count > 0 || OwnInstaller.From(set).Count > 0 ? AppsToInstall.Some : AppsToInstall.None;
+        var signIn = new StringBuilder();
         foreach (var (featureId, settings) in byFeature)
         {
             foreach (var setting in settings.Where(s => s.IsAnswerFileOnly))
-                EmitAnswerFileScripts(setting, chosenById.GetValueOrDefault(setting.Id), featureId, TextFor, systemIndent, userIndent);
+            {
+                EmitAnswerFileScripts(
+                    setting, chosenById.GetValueOrDefault(setting.Id), externalAppIds, apps, featureId, TextFor, signIn, systemIndent, userIndent, signInIndent);
+            }
         }
 
         var systemPass = new Dictionary<string, string>();
@@ -163,7 +177,7 @@ internal sealed class ApplyOpScriptEmitter
                 userPass[featureId] = text.User.ToString();
         }
 
-        return new EmitResult(systemPass, userPass, rows, powerPlan, warnings);
+        return new EmitResult(systemPass, userPass, rows, powerPlan, warnings, signIn.ToString());
     }
 
     // Ops arrive in plan order - the registry/task/powercfg ops per target in Targets order, then the state's
@@ -220,10 +234,19 @@ internal sealed class ApplyOpScriptEmitter
                     }
                     break;
 
+                // The adapters only exist on the new install, so the setting's script finds them there. Addresses are
+                // checked by now; a template is user text, so it goes in escaped.
+                case DnsSetOp d:
+                    var servers = string.Join(", ", d.Servers.Select(server =>
+                        $"@{{a='{server.Address}'; f={server.DohFlags}; t='{EscapePowerShellString(server.Template) ?? string.Empty}'}}"));
+                    foreach (var script in setting.CustomStateScripts)
+                        AppendScriptEffect(text, systemIndent, userIndent, setting, script with { Script = script.Script.Replace("{{servers}}", servers) }, logDesc);
+                    break;
+
                 case EffectOp { Effect: ScriptEffect s }:
                     // The script arrives ready to run: a state's is baked with its option's variables, and a
-                    // custom state's left the resolver with its placeholders already filled. The live engine
-                    // runs it verbatim, so no placeholder pass happens here either.
+                    // custom state's carries none. The live engine runs it verbatim, so no placeholder pass
+                    // happens here either.
                     AppendScriptEffect(text, systemIndent, userIndent, setting, s, logDesc);
                     break;
 
@@ -295,26 +318,68 @@ internal sealed class ApplyOpScriptEmitter
     {
         if (path.StartsWith("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase))
             AppendRegistryOp(text.User, userIndent, op, desc);
+        else if (s_serviceKeyRegex.Match(path) is { Success: true } service)
+            AppendServiceOp(text.System, systemIndent, path, service.Groups[1].Value, op, desc);
         else
             AppendRegistryOp(text.System, systemIndent, op, desc);
+    }
+
+    private static void AppendServiceOp(StringBuilder sb, string indent, string path, string service, ApplyOp op, string desc)
+    {
+        sb.AppendLine($"{indent}if (Test-Path '{EscapedPath(path)}') {{");
+        AppendRegistryOp(sb, indent + "    ", op, desc);
+        if (op is RegistryWriteOp or RegistryDeleteOp)
+        {
+            sb.AppendLine($"{indent}}} else {{");
+            sb.AppendLine($"{indent}    Write-Log '{desc} | skipped, this PC has no {EscapePowerShellString(service)} service' \"INFO\"");
+        }
+        sb.AppendLine($"{indent}}}");
     }
 
     private void EmitAnswerFileScripts(
         Setting setting,
         ChoiceValue? value,
+        string externalAppIds,
+        AppsToInstall apps,
         string featureId,
         Func<string, FeatureText> textFor,
+        StringBuilder signIn,
         string systemIndent,
-        string userIndent)
+        string userIndent,
+        string signInIndent)
     {
-        var scripts = AutounattendRenderContext.ChosenState(setting, value)?.Effects.OfType<ScriptEffect>().ToList();
+        // A text box has no state to carry an effect: its scripts run only when the box holds text, which fills {{value}}.
+        IEnumerable<ScriptEffect>? effects;
+        string? entered = null;
+        if (setting.Control == ControlKind.TextBox)
+        {
+            entered = value is ChoiceValue.Text typed ? typed.Value : setting.TextBox!.Default;
+            effects = string.IsNullOrEmpty(entered) ? null : setting.CustomStateScripts;
+        }
+        else
+        {
+            effects = SelectionSet.ChosenState(setting, value)?.Effects.OfType<ScriptEffect>();
+        }
+
+        var scripts = effects?
+            .Where(script => script.When == AppsToInstall.Either || script.When == apps)
+            .ToList();
         if (scripts is not { Count: > 0 })
             return;
 
         var text = textFor(featureId);
         var logDesc = EscapeForDoubleQuotedString(Describe(setting));
+        // The ids and the typed text land inside single-quoted PowerShell literals.
+        var ids = EscapePowerShellString(externalAppIds)!;
+        var typedText = EscapePowerShellString(entered) ?? string.Empty;
         foreach (var script in scripts)
-            AppendScriptEffect(text, systemIndent, userIndent, setting, script, logDesc);
+        {
+            var filled = script with { Script = script.Script.Replace("{{external-app-ids}}", ids).Replace("{{value}}", typedText) };
+            if (filled.Run == RunContext.SignInAfterSetup)
+                AppendScript(signIn, signInIndent, setting, filled.Script, logDesc);
+            else
+                AppendScriptEffect(text, systemIndent, userIndent, setting, filled, logDesc);
+        }
     }
 
     private void AppendScriptEffect(
@@ -510,6 +575,12 @@ internal sealed class ApplyOpScriptEmitter
         sb.AppendLine($"{indent}$processedCount = 0");
         sb.AppendLine($"{indent}foreach ($task in $scheduledTasks) {{");
         sb.AppendLine($"{indent}    try {{");
+        // The file may be built on a PC with tasks this Windows build no longer ships.
+        sb.AppendLine($"{indent}        $null = & cmd.exe /c \"schtasks /Query /TN `\"$($task.TN)`\"\" 2>&1");
+        sb.AppendLine($"{indent}        if ($LASTEXITCODE -ne 0) {{");
+        sb.AppendLine($"{indent}            Write-Log \"$($task.Desc) | skipped, this PC has no $($task.TN) task\" \"INFO\"");
+        sb.AppendLine($"{indent}            continue");
+        sb.AppendLine($"{indent}        }}");
         sb.AppendLine($"{indent}        $result = & cmd.exe /c \"schtasks /Change /TN `\"$($task.TN)`\" $($task.Action)\" 2>&1");
         sb.AppendLine($"{indent}        if ($LASTEXITCODE -eq 0) {{");
         sb.AppendLine($"{indent}            Write-Log \"$($task.Desc)\" \"SUCCESS\"");

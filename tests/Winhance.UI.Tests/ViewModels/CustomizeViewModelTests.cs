@@ -40,7 +40,7 @@ public class CustomizeViewModelTests
     {
         var moduleIds = new[]
         {
-            FeatureIds.ExplorerCustomization,
+            FeatureIds.Explorer,
             FeatureIds.StartMenu,
             FeatureIds.Taskbar,
             FeatureIds.WindowsTheme,
@@ -115,7 +115,7 @@ public class CustomizeViewModelTests
     public void Sections_ContainsExplorerSection()
     {
         CustomizeViewModel.Sections
-            .Should().Contain(s => s.Key == "Explorer" && s.ModuleId == FeatureIds.ExplorerCustomization);
+            .Should().Contain(s => s.Key == "Explorer" && s.ModuleId == FeatureIds.Explorer);
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public class CustomizeViewModelTests
             _mockModeService.Object);
 
         vm.ExplorerViewModel.Should().NotBeNull();
-        vm.ExplorerViewModel.ModuleId.Should().Be(FeatureIds.ExplorerCustomization);
+        vm.ExplorerViewModel.ModuleId.Should().Be(FeatureIds.Explorer);
     }
 
     [Fact]

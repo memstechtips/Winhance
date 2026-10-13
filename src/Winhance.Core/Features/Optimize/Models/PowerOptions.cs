@@ -32,7 +32,7 @@ public static class PowerOptions
         new (LocKey Label, int Value)[] { (LocKey.Template.LidActionsOption0, 0), (LocKey.Template.LidActionsOption1, 1), (LocKey.Template.LidActionsOption2, 2), (LocKey.Template.LidActionsOption3, 3) };
 
     public static readonly (LocKey Label, int Value)[] MediaSharing =
-        new (LocKey Label, int Value)[] { (LocKey.Template.MediaSharingOption0, 0), (LocKey.Template.MediaSharingOption1, 1) };
+        new (LocKey Label, int Value)[] { (LocKey.Template.MediaSharingOption0, 0), (LocKey.Template.MediaSharingOption1, 1), (LocKey.Template.MediaSharingOption2, 2) };
 
     public static readonly (LocKey Label, int Value)[] OnOff =
         new (LocKey Label, int Value)[] { (LocKey.Template.OnOffOption0, 0), (LocKey.Template.OnOffOption1, 1) };

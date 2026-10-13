@@ -16,8 +16,8 @@ internal static class AutounattendDocument
     // Windows SIM writes component children in schema order; writers add them in whatever order they run.
     private static readonly string[] ComponentChildOrder =
     [
-        "SetupUILanguage", "InputLocale", "SystemLocale", "UserLocale",
-        "UserData", "ImageInstall", "DiskConfiguration", "RunSynchronous", "RunAsynchronous",
+        "SetupUILanguage", "InputLocale", "SystemLocale", "UILanguage", "UILanguageFallback", "UserLocale",
+        "UserData", "DiskConfiguration", "ImageInstall", "RunSynchronous", "RunAsynchronous",
         "ComputerName", "TimeZone", "ProductKey", "OOBE", "UserAccounts", "AutoLogon", "FirstLogonCommands",
     ];
 
@@ -73,9 +73,6 @@ internal static class AutounattendDocument
 
     public static void SetSetting(this XElement parent, string name, string value) =>
         Append(parent, name).Value = value;
-
-    public static void SetOobe(this XElement shellSetup, string name, string value) =>
-        shellSetup.ElementPath("OOBE/" + name).Value = value;
 
     public static void AddRunSynchronousCommand(this XElement component, string path, string? description = null)
     {

@@ -7,8 +7,14 @@ namespace Winhance.Infrastructure.Tests.Autounattend;
 
 public class ScriptPreambleSectionTests
 {
-    private static readonly string[] EngineHelperFunctions =
-        ["Set-RegistryCompositeValue", "Set-RegistryStringFlag", "Unlock-RegistryKey", "Lock-RegistryKey", "Open-RegistryKeyForAcl"];
+    private static string HelpersCalledBy(string script)
+    {
+        var sb = new StringBuilder();
+        ScriptPreambleSection.AppendHelperFunctions(sb, script);
+        return sb.ToString();
+    }
+
+    private static int DefinedFunctions(string output) => output.Split("\nfunction ").Length - 1;
 
     [Fact]
     public void AppendHeader_ContainsSynopsisBlock()
@@ -83,118 +89,89 @@ public class ScriptPreambleSectionTests
         output.Should().Contain("System Customizations");
     }
 
-    [Fact]
-    public void AppendHelperFunctions_ContainsGetTargetUser()
+    [Theory]
+    [InlineData("Get-TargetUser")]
+    [InlineData("Get-UserSID")]
+    [InlineData("Set-RegistryValue")]
+    [InlineData("Remove-RegistryValue")]
+    [InlineData("Remove-RegistryKey")]
+    [InlineData("New-RegistryKey")]
+    [InlineData("Set-BinaryBit")]
+    [InlineData("Set-BinaryByte")]
+    [InlineData("Set-RegistryCompositeValue")]
+    [InlineData("Set-RegistryStringFlag")]
+    [InlineData("Open-RegistryKeyForAcl")]
+    [InlineData("Unlock-RegistryKey")]
+    [InlineData("Lock-RegistryKey")]
+    [InlineData("Start-ProcessAsUser")]
+    public void AppendHelperFunctions_ACallWritesThatHelperOnce(string name)
     {
-        var sb = new StringBuilder();
+        var output = HelpersCalledBy($"{name} -Path 'HKCU:\\Software\\Winhance' -Description 'test'");
 
-        ScriptPreambleSection.AppendHelperFunctions(sb);
+        output.Split($"function {name} {{").Should().HaveCount(2, $"{name} must be defined exactly once");
+    }
 
-        var output = sb.ToString();
-        output.Should().Contain("function Get-TargetUser");
+    // PowerShell ends a here-string only on a line whose first character is the terminator, and this helper
+    // carries a whole C# file inside one.
+    [Fact]
+    public void AppendHelperFunctions_DesktopTypeHelper_ClosesItsHereStringAtColumnZero()
+    {
+        var output = HelpersCalledBy("Add-WinhanceDesktopType");
+
+        output.Should().Contain("function Add-WinhanceDesktopType {")
+            .And.Contain("namespace Winhance.Desktop")
+            .And.Contain("\n'@")
+            .And.NotContain("\n '@");
     }
 
     [Fact]
-    public void AppendHelperFunctions_ContainsGetUserSID()
+    public void AppendHelperFunctions_WritesOnlyTheHelpersTheScriptCalls()
     {
-        var sb = new StringBuilder();
+        var output = HelpersCalledBy("Set-RegistryValue -Path 'HKLM:\\SOFTWARE\\Winhance' -Name 'V' -Type 'DWord' -Value 1 -Description 'test'");
 
-        ScriptPreambleSection.AppendHelperFunctions(sb);
-
-        sb.ToString().Should().Contain("function Get-UserSID");
+        output.Should().Contain("function Set-RegistryValue {");
+        DefinedFunctions(output).Should().Be(1);
     }
 
     [Fact]
-    public void AppendHelperFunctions_ContainsSetRegistryValue()
+    public void AppendHelperFunctions_ALockCall_AlsoWritesTheHelperItCalls_InDeclaredOrder()
     {
-        var sb = new StringBuilder();
+        var output = HelpersCalledBy("Lock-RegistryKey -Path 'HKLM:\\SYSTEM\\Winhance' -Description 'test'");
 
-        ScriptPreambleSection.AppendHelperFunctions(sb);
-
-        sb.ToString().Should().Contain("function Set-RegistryValue");
+        DefinedFunctions(output).Should().Be(2);
+        output.IndexOf("function Open-RegistryKeyForAcl {", StringComparison.Ordinal)
+            .Should().BeGreaterThanOrEqualTo(0)
+            .And.BeLessThan(output.IndexOf("function Lock-RegistryKey {", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void AppendHelperFunctions_ContainsRemoveRegistryValue()
+    public void AppendHelperFunctions_MatchesACallInAnyCase_ButNotInsideALongerName()
     {
-        var sb = new StringBuilder();
+        var output = HelpersCalledBy("unlock-registrykey -Path 'HKLM:\\SYSTEM\\Winhance' -Description 'test'");
 
-        ScriptPreambleSection.AppendHelperFunctions(sb);
+        output.Should().Contain("function Unlock-RegistryKey {")
+            .And.Contain("function Open-RegistryKeyForAcl {")
+            .And.NotContain("function Lock-RegistryKey {");
+    }
 
-        sb.ToString().Should().Contain("function Remove-RegistryValue");
+    [Theory]
+    [InlineData("Set-RegistryValueX -Path 'HKLM:\\SOFTWARE\\Winhance'")]
+    [InlineData("function Set-RegistryValue { param($Path) }")]
+    [InlineData("Write-Log \"nothing to do\" \"INFO\"")]
+    public void AppendHelperFunctions_WritesNothingForAScriptThatCallsNoHelper(string script)
+    {
+        HelpersCalledBy(script).Should().BeEmpty();
     }
 
     [Fact]
-    public void AppendHelperFunctions_ContainsRemoveRegistryKey()
+    public void AppendHelperFunctions_StartProcessAsUser_CarriesItsWin32Interop()
     {
-        var sb = new StringBuilder();
+        var output = HelpersCalledBy("$success = Start-ProcessAsUser -CommandLine $cmdLine");
 
-        ScriptPreambleSection.AppendHelperFunctions(sb);
-
-        sb.ToString().Should().Contain("function Remove-RegistryKey");
-    }
-
-    [Fact]
-    public void AppendHelperFunctions_ContainsNewRegistryKey()
-    {
-        var sb = new StringBuilder();
-
-        ScriptPreambleSection.AppendHelperFunctions(sb);
-
-        sb.ToString().Should().Contain("function New-RegistryKey");
-    }
-
-    [Fact]
-    public void AppendHelperFunctions_ContainsSetBinaryBit()
-    {
-        var sb = new StringBuilder();
-
-        ScriptPreambleSection.AppendHelperFunctions(sb);
-
-        sb.ToString().Should().Contain("function Set-BinaryBit");
-    }
-
-    [Fact]
-    public void AppendHelperFunctions_ContainsSetBinaryByte()
-    {
-        var sb = new StringBuilder();
-
-        ScriptPreambleSection.AppendHelperFunctions(sb);
-
-        sb.ToString().Should().Contain("function Set-BinaryByte");
-    }
-
-    [Fact]
-    public void AppendHelperFunctions_ContainsStartProcessAsUser()
-    {
-        var sb = new StringBuilder();
-
-        ScriptPreambleSection.AppendHelperFunctions(sb);
-
-        sb.ToString().Should().Contain("function Start-ProcessAsUser");
-    }
-
-    [Fact]
-    public void AppendStartProcessAsUser_ContainsWin32Interop()
-    {
-        var sb = new StringBuilder();
-
-        ScriptPreambleSection.AppendStartProcessAsUser(sb);
-
-        var output = sb.ToString();
-        output.Should().Contain("DllImport");
-        output.Should().Contain("advapi32.dll");
-        output.Should().Contain("CreateProcessAsUserW");
-    }
-
-    [Fact]
-    public void AppendStartProcessAsUser_ContainsSessionDetection()
-    {
-        var sb = new StringBuilder();
-
-        ScriptPreambleSection.AppendStartProcessAsUser(sb);
-
-        sb.ToString().Should().Contain("WTSGetActiveConsoleSessionId");
+        output.Should().Contain("DllImport")
+            .And.Contain("advapi32.dll")
+            .And.Contain("CreateProcessAsUserW")
+            .And.Contain("WTSGetActiveConsoleSessionId");
     }
 
     [Fact]
@@ -217,37 +194,5 @@ public class ScriptPreambleSectionTests
         ScriptPreambleSection.AppendCompletionBlock(sb);
 
         sb.ToString().Should().Contain("================");
-    }
-
-    [Fact]
-    public void AllPreambleSections_CombinedOutput_IsNonEmpty()
-    {
-        var sb = new StringBuilder();
-
-        ScriptPreambleSection.AppendHeader(sb);
-        ScriptPreambleSection.AppendLoggingSetup(sb);
-        ScriptPreambleSection.AppendHelperFunctions(sb);
-
-        sb.Length.Should().BeGreaterThan(0);
-        sb.ToString().Should().Contain("param(");
-        sb.ToString().Should().Contain("function Write-Log");
-        sb.ToString().Should().Contain("function Set-RegistryValue");
-    }
-
-    // The apply engine's composite / string-flag / key-lock writes have no PowerShell counterpart in the old
-    // emitters; these four helpers are what ApplyOpScriptEmitter calls for them.
-    [Fact]
-    public void AppendHelperFunctions_DefinesCompositeFlagAndLockHelpers()
-    {
-        var sb = new StringBuilder();
-
-        ScriptPreambleSection.AppendHelperFunctions(sb);
-
-        var output = sb.ToString();
-        foreach (var name in EngineHelperFunctions)
-        {
-            output.Should().Contain($"function {name} {{", name);
-            output.Split($"function {name} {{").Length.Should().Be(2, $"{name} must be defined exactly once");
-        }
     }
 }

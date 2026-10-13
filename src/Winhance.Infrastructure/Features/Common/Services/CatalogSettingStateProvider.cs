@@ -26,9 +26,10 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
     // A Setting is already the canonical merged entry, so no alias normalization; dedupes by Id defensively.
     public async Task<Dictionary<string, SettingStateResult>> GetStatesAsync(IReadOnlyList<Setting> settings)
     {
-        // An answer-file setting is detected only for its ReadOnly targets, which seed the card from this PC.
+        // An answer-file setting is detected only for its ReadOnly targets, which seed the card from this PC, or
+        // for its option list, which the provider answers without reading this PC at all.
         var detectionInput = settings
-            .Where(s => !s.IsAnswerFileOnly || s.Targets.OfType<RegTarget>().Any(t => t.ReadOnly))
+            .Where(s => !s.IsAnswerFileOnly || s.Options is not null || s.Targets.OfType<RegTarget>().Any(t => t.ReadOnly))
             .GroupBy(s => s.Id)
             .Select(g => g.First())
             .ToList();
@@ -50,7 +51,7 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
 
     private SettingStateResult Map(Setting catalogSetting, CatalogDetectionResult? r, WinBuild build)
     {
-        if (catalogSetting.IsAnswerFileOnly) return AnswerFileDefault(catalogSetting, build, r);
+        if (catalogSetting.IsAnswerFileOnly) return AnswerFileSeed(catalogSetting, r);
 
         if (r is null)
         {
@@ -69,7 +70,6 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
             AcValue = r.AcValue,
             DcValue = r.DcValue,
             Readings = r.Readings,
-            DnsServers = r.DnsServers,
         };
 
         if (catalogSetting.Options is not null)
@@ -137,7 +137,7 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
         }
     }
 
-    private static SettingStateResult AnswerFileDefault(Setting setting, WinBuild build, CatalogDetectionResult? detected)
+    private static SettingStateResult AnswerFileSeed(Setting setting, CatalogDetectionResult? detected)
     {
         var result = new SettingStateResult { Success = true };
         if (TwoState.Is(setting.Control))
@@ -148,16 +148,31 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
                 var label when label == TwoState.OffLabel(setting.Control).Value => false,
                 _ => null,
             };
-            return result with { IsEnabled = fromThisPc ?? TwoState.GetDefault(setting, build) ?? false };
+            return result with { IsEnabled = fromThisPc ?? (setting.SeedState?.Label == TwoState.OnLabel(setting.Control)) };
         }
         return setting.Control switch
         {
-            ControlKind.Selection => result with { CurrentValue = RecommendedSettingsResolver.GetDefaultIndex(setting, build) ?? 0 },
+            // The same shape the live keyed branch returns: the card is drawn from the provider's list either way.
+            // A null selection is right here - nothing on this PC answers what the installation media carries.
+            ControlKind.KeyedSelection => result with
+            {
+                CurrentValue = 0,
+                DynamicOptions = detected?.Options,
+                DynamicSelection = detected?.StateLabel,
+            },
+            ControlKind.Selection => result with { CurrentValue = SeedIndex(setting) },
             ControlKind.TextBox => result with { CurrentValue = SeededText(setting, detected?.Readings) },
             ControlKind.List when setting.List!.Seed is { } seed =>
                 result with { CurrentValue = SeededList(setting, seed, detected?.Readings) },
             _ => result,
         };
+    }
+
+    private static int SeedIndex(Setting setting)
+    {
+        for (int i = 0; i < setting.States.Count; i++)
+            if (setting.States[i].Label == setting.SeedState?.Label) return i;
+        return 0;
     }
 
     private static ChoiceValue.List SeededList(

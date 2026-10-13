@@ -64,6 +64,9 @@ public class TechnicalDetailKeysCoverageTests
             TechnicalDetailKeys.ChipPartOfValue,
             TechnicalDetailKeys.ChipSubKey,
             TechnicalDetailKeys.CodeWhenSetTo,
+            TechnicalDetailKeys.CodeWhenSetToWithApps,
+            TechnicalDetailKeys.CodeWhenSetToWithoutApps,
+            TechnicalDetailKeys.CodeWhenSetToAfterSetup,
         ];
 
         var dir = LocalizationDir();

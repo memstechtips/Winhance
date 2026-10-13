@@ -11,7 +11,6 @@ namespace Winhance.Core.Features.Optimize.Catalogs;
 public static class PowerOptimizationsCatalog
 {
     public const string FeatureId = FeatureIds.Power;
-    public const string FeatureName = "Power";
 
     public static IReadOnlyList<Setting> All { get; } = new Setting[]
     {

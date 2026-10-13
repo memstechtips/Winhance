@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.UI.Xaml.Controls;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -19,6 +20,7 @@ public class SettingViewModelFactoryTests
 {
     private readonly Mock<ISettingApplicationService> _mockSettingApplicationService = new();
     private readonly Mock<ILogService> _mockLogService = new();
+    private readonly Mock<IPowerSettingsQueryService> _mockPower = new();
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<IRegeditLauncher> _mockRegeditLauncher = new();
@@ -39,6 +41,10 @@ public class SettingViewModelFactoryTests
             .Returns((string key) => key);
         // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
         _mockLocalizationService.MirrorTryGetString();
+
+        _mockPower
+            .Setup(p => p.GetPossibleValuesAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(Array.Empty<PowerSettingOption>());
 
         _mockDispatcherService
             .Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
@@ -69,7 +75,8 @@ public class SettingViewModelFactoryTests
             _mockLocalizationService.Object,
             _mockUserPreferencesService.Object,
             _mockNewBadgeService.Object,
-            _mockEnricher.Object);
+            _mockEnricher.Object,
+            _mockPower.Object);
     }
 
     [Fact]
@@ -81,6 +88,20 @@ public class SettingViewModelFactoryTests
         var result = await _sut.CreateAsync(setting, state, null, null, null);
 
         result.Should().NotBeNull();
+    }
+
+    // The two Clean Start Menu actions share a name, so the label is the only way to tell them apart.
+    [Theory]
+    [InlineData("start-menu-clean-10", InfoBarSeverity.Warning)]
+    [InlineData("start-menu-clean-11", InfoBarSeverity.Informational)]
+    public async Task CreateAsync_ActionCard_ShowsItsWindowsLabel_WarningOnlyWhenItDoesNotFitThisPc(string id, InfoBarSeverity severity)
+    {
+        var state = new SettingStateResult { Success = true };
+
+        var result = await _sut.CreateAsync(SettingCatalog.ById[id], state, null, null, "label", new WinBuild(26100, 1));
+
+        result.StatusBannerMessage.Should().Be("label");
+        result.StatusBannerSeverity.Should().Be(severity);
     }
 
     [Fact]
@@ -332,8 +353,8 @@ public class SettingViewModelFactoryTests
 
         var result = await _sut.CreateAsync(setting, state, null, null, null);
 
-        result.ListAddLabel.Should().Be("AutounattendAccounts_Add");
-        result.ListRemoveLabel.Should().Be("AutounattendAccounts_Remove");
+        result.ListAddLabel.Should().Be("List_Add");
+        result.ListRemoveLabel.Should().Be("List_Remove");
         result.SavePasswordsLabel.Should().Be("AutounattendAccounts_SavePasswords");
     }
 
@@ -363,6 +384,45 @@ public class SettingViewModelFactoryTests
 
     // Synthetic catalog Setting fixtures. The factory reads the passed Setting; these hand-built Settings
     // carry exactly the fields CreateAsync reads (Control -> InputType, Display, Availability, Numeric, States).
+    // Windows names its own power values and lists only the ones this PC has; the card follows it, except while
+    // Builder is authoring for a machine whose hardware this one cannot speak for.
+    private static Setting PowerSetting() => new()
+    {
+        Id = "power-test",
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+        Targets = [new PowerCfgTarget("Power", "54533251-82be-4824-96c1-47b60b740d00", "be337238-0d82-4146-a960-4f3749d470c7", PowerModeSupport.Separate)],
+        States =
+        [
+            new() { Label = TestKeys.Of("Disabled"), Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(0) } },
+            new() { Label = TestKeys.Of("Enabled"), Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(1) } },
+            new() { Label = TestKeys.Of("Aggressive"), Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(2) } },
+        ],
+    };
+
+    private void PcOffers(params PowerSettingOption[] options) =>
+        _mockPower.Setup(p => p.GetPossibleValuesAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(options);
+
+    [Fact]
+    public async Task CreateAsync_PowerSetting_TakesNamesFromWindowsAndDropsWhatThisPcLacks()
+    {
+        PcOffers(new PowerSettingOption(0, "Disabled"), new PowerSettingOption(1, "Enabled"));
+
+        var viewModel = await _sut.CreateAsync(PowerSetting(), new SettingStateResult { Success = true }, null, null, null);
+
+        viewModel.ComboBoxOptions.Select(o => o.DisplayText).Should().Equal("Disabled", "Enabled");
+    }
+
+    [Fact]
+    public async Task CreateAsync_InAuthoringMode_KeepsEveryPowerState()
+    {
+        PcOffers(new PowerSettingOption(0, "Disabled"), new PowerSettingOption(1, "Enabled"));
+        _mockApplicationModeService.SetupGet(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+
+        var viewModel = await _sut.CreateAsync(PowerSetting(), new SettingStateResult { Success = true }, null, null, null);
+
+        viewModel.ComboBoxOptions.Should().HaveCount(3);
+    }
+
     private static Setting CreateToggleSetting(
         string id, string? name = null, string? description = null,
         string? groupName = null, bool requiresAdvancedUnlock = false) =>
@@ -407,7 +467,7 @@ public class SettingViewModelFactoryTests
             List = new([
                 new("name", FieldKind.Text, TestKeys.Of("Field_Name"),
                     Rule: new TextRule("^.+$", UpperCase: false, TestKeys.Of("That is not a usable name."))),
-            ]),
+            ], Add: TestKeys.Of("List_Add"), Remove: TestKeys.Of("List_Remove")),
         };
 
     [Fact]
@@ -491,6 +551,19 @@ public class SettingViewModelFactoryTests
         colors.BrowseRowHeader.Should().Be("Setting_theme-wallpaper-color_Custom");
         pictures.ChildCornerRadius.Should().Be(new Microsoft.UI.Xaml.CornerRadius(0));
         pictures.BrowseRowCornerRadius.Should().Be(new Microsoft.UI.Xaml.CornerRadius(0, 0, 4, 4));
+    }
+
+    [Fact]
+    public async Task BrowseForOption_OffersEveryPictureWindowsCanShow()
+    {
+        var pictures = await _sut.CreateAsync(
+            TileSelectionSetting(), new SettingStateResult { Success = true }, null, null, null);
+
+        pictures.BrowseForOption();
+
+        _mockFilePickerService.Verify(
+            p => p.PickFile(It.Is<string[]>(f => f[1].Contains("*.heic")), It.IsAny<string?>()),
+            Times.Once);
     }
 
     private static Setting CreateSelectionSetting(string id) =>

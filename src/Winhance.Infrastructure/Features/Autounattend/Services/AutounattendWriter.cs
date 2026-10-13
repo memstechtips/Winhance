@@ -1,5 +1,7 @@
+using System.Text.Json;
 using Winhance.Core.Features.Autounattend.Interfaces;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
@@ -37,9 +39,17 @@ internal sealed class AutounattendWriter : IAutounattendWriter
         var byFeature = _registry.GetAll(scope);
 
         _log.Log(LogLevel.Info, $"Generating autounattend.xml from {set.Settings.Count} setting choices and {set.WindowsApps.Count} Windows apps");
-        var script = await _scriptBuilder.BuildAsync(set, byFeature).ConfigureAwait(false);
+        var script = await _scriptBuilder.BuildAsync(set, byFeature, scope.TargetBuild).ConfigureAwait(false);
+        // The pictures already travel as File elements, so the carried copy leaves them out. The passwords are
+        // already in the file for Setup, so the copy keeps them for the next reopen.
+        var config = ConfigFileMapper.ToFile(
+            set with { Files = [], Settings = [.. set.Settings.Select(WithPasswords)] }, byFeature);
+        config.TargetBuild = scope.TargetBuild?.Build;
         var context = new AutounattendRenderContext(
-            script, _version.GetCurrentVersion().Version.TrimStart('v'), set);
+            script, _version.GetCurrentVersion().Version.TrimStart('v'), set)
+        {
+            Config = JsonSerializer.Serialize(config, ConfigFileConstants.JsonOptions),
+        };
         var xml = AutounattendDocumentBuilder.Serialize(AutounattendDocumentBuilder.Build(context));
 
         try
@@ -58,4 +68,7 @@ internal sealed class AutounattendWriter : IAutounattendWriter
         _log.Log(LogLevel.Info, $"Autounattend.xml generated successfully: {outputPath}");
         return outputPath;
     }
+
+    private static SettingChoice WithPasswords(SettingChoice choice) =>
+        choice.Value is ChoiceValue.List list ? choice with { Value = list with { SavePasswords = true } } : choice;
 }

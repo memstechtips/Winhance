@@ -10,6 +10,7 @@ using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
@@ -292,13 +293,8 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         return false;
     }
 
-    protected abstract string GetDisplayNameKey();
-
-    private string GetDisplayName()
-    {
-        var key = GetDisplayNameKey();
-        return _localizationService.GetString(key);
-    }
+    // A feature's name key is its id: FeatureNameKeys_FollowTheirFeatureId fails the gate if one ever does not.
+    private string GetDisplayName() => _localizationService.GetString($"Feature_{ModuleId}_Name");
 
     private async void OnLanguageChanged(object? sender, EventArgs e)
     {
@@ -474,7 +470,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 token.ThrowIfCancellationRequested();
 
                 bool featureMatches = string.IsNullOrWhiteSpace(value) ||
-                    DisplayName.Contains(value, StringComparison.OrdinalIgnoreCase);
+                    (SearchMatchesFeatureName && DisplayName.Contains(value, StringComparison.OrdinalIgnoreCase));
 
                 _dispatcherService.RunOnUIThread(() =>
                 {
@@ -659,15 +655,24 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     // In Builder mode the card's own state change (OnSettingStateChanged) is the only signal: an authored edit
     // raises no SettingAppliedEvent and both refresh paths skip that mode. Recomputing the whole list is one
     // pass over a few dozen cards, so nothing works out which cards could have changed.
-    private void RefreshDeclaredGates()
+    protected void RefreshDeclaredGates()
     {
         if (Settings is null)
             return;
 
         foreach (var setting in Settings)
         {
-            setting.ParentIsEnabled = IsGateSatisfied(setting.Setting?.EnabledWhen);
-            setting.ParentIsVisible = IsGateSatisfied(setting.Setting?.VisibleWhen);
+            bool gateOpen = IsGateSatisfied(setting.Setting?.EnabledWhen);
+            setting.ParentIsEnabled = gateOpen;
+            setting.ParentIsVisible = IsShownOnPage(setting)
+                && (IsGateSatisfied(setting.Setting?.VisibleWhen) || ShownForReview(setting));
+
+            var decided = DecidedState(setting, gateOpen);
+            if (setting.DecidedState != decided)
+            {
+                setting.DecidedState = decided;
+                setting.ApplyAuthoredOverlay();
+            }
         }
 
         RefreshLastChild();
@@ -675,6 +680,12 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         OnPropertyChanged(nameof(HasVisibleSettings));
         OnPropertyChanged(nameof(IsVisibleInSearch));
     }
+
+    // A page can hide a card for something only the page knows, such as where its session started.
+    protected virtual bool IsShownOnPage(SettingItemViewModel setting) => true;
+
+    // On a page of several features, text inside a feature's name shows that whole feature.
+    protected virtual bool SearchMatchesFeatureName => true;
 
     private void RefreshLastChild()
     {
@@ -687,6 +698,30 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             if (_settingsById.TryGetValue(parentId, out var parent))
                 parent.HasVisibleChildren = last is not null;
         }
+    }
+
+    // A gate reads this machine's value for the gating card, so a card the imported file wants to change can sit
+    // behind a gate the file's own value would open. The review counts every card it diffs, and Apply waits for
+    // each one to be reviewed, so a hidden card with a diff leaves the review uncompletable.
+    private static bool ShownForReview(SettingItemViewModel setting) =>
+        setting.IsInReviewMode && (setting.HasReviewDiff || setting.HasReviewAction);
+
+    // A greyed card is not the user's to answer, and when the card that greyed it also DECIDES it
+    // (Controls), that decision is what gets written - so it is what the card must show, instead of
+    // whatever the user last picked while the gate was open. Read through EnabledWhen rather than over every
+    // Controls in the catalog: a master's preset children (visual-effects-mode) stay independently editable
+    // and declare no gate, so they are untouched.
+    private LocKey? DecidedState(SettingItemViewModel setting, bool gateOpen)
+    {
+        if (gateOpen || setting.Setting?.EnabledWhen is not { } gate)
+            return null;
+
+        if (!_settingsById.TryGetValue(gate.OtherId, out var other)
+            || other.CurrentStateLabel is not { } label
+            || other.Setting?.States.FirstOrDefault(s => s.Label.Value == label)?.Controls is not { } controls)
+            return null;
+
+        return controls.TryGetValue(setting.SettingId, out var decided) ? decided : null;
     }
 
     // The two early "open" answers are deliberate: a setting this feature has not loaded, or one whose state
@@ -707,8 +742,13 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     private void OnSettingStateChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(SettingItemViewModel.IsSelected) or nameof(SettingItemViewModel.SelectedValue))
+        if (e.PropertyName is nameof(SettingItemViewModel.IsSelected)
+            or nameof(SettingItemViewModel.SelectedValue)
+            or nameof(SettingItemViewModel.HasReviewDiff)
+            or nameof(SettingItemViewModel.HasReviewAction))
+        {
             RefreshDeclaredGates();
+        }
     }
 
     // Every per-card index this feature holds is derived from Settings, and nothing else holds per-card
@@ -766,9 +806,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         if (Settings == null || Settings.Count == 0)
             return;
 
-        var otherGroupName = _localizationService.TryGetString("SettingGroup_Other", out var localizedOther)
+        var otherGroupName = _localizationService.TryGetString("SettingGroup_General", out var localizedOther)
             ? localizedOther
-            : "Other";
+            : "General";
 
         var groupOrder = new List<string>();
         var groupedDict = new Dictionary<string, List<SettingItemViewModel>>();

@@ -9,7 +9,6 @@ namespace Winhance.Core.Features.Customize.Catalogs;
 public static class TimeRegionLanguageCatalog
 {
     public const string FeatureId = FeatureIds.TimeRegionLanguage;
-    public const string FeatureName = "Time, region and language";
 
     // Every target is REG_SZ: Windows stores the code pages, the GeoId and iFirstDayOfWeek as strings.
     public static IReadOnlyList<Setting> All { get; } = new Setting[]
@@ -48,9 +47,6 @@ public static class TimeRegionLanguageCatalog
             },
             Apply = new() { Restart = new RestartProcess("intl") },
             Options = new(OptionSource.RegionalFormats),
-            // Windows keeps nine more values here that .NET has no counterpart for in Windows' own numbering (iDigits,
-            // iLZero, iCountry, iPaperSize, iCalendarType, sLanguage, sNativeDigits, NumShape, sPositiveSign); they
-            // keep the machine's value.
             Targets = new Target[]
             {
                 new RegTarget("LocaleName", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "LocaleName", RegistryValueKind.String),
@@ -84,6 +80,15 @@ public static class TimeRegionLanguageCatalog
                 new RegTarget("iTLZero", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "iTLZero", RegistryValueKind.String) { From = OptionValue.HourLeadingZero },
                 new RegTarget("iTimePrefix", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "iTimePrefix", RegistryValueKind.String) { From = OptionValue.TimeMarkerPosition },
                 new RegTarget("iFirstWeekOfYear", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "iFirstWeekOfYear", RegistryValueKind.String) { From = OptionValue.FirstWeekOfYear },
+                new RegTarget("iDigits", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "iDigits", RegistryValueKind.String) { From = OptionValue.DecimalDigits },
+                new RegTarget("iLZero", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "iLZero", RegistryValueKind.String) { From = OptionValue.LeadingZero },
+                new RegTarget("iCountry", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "iCountry", RegistryValueKind.String) { From = OptionValue.CountryCode },
+                new RegTarget("iPaperSize", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "iPaperSize", RegistryValueKind.String) { From = OptionValue.PaperSize },
+                new RegTarget("iCalendarType", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "iCalendarType", RegistryValueKind.String) { From = OptionValue.CalendarType },
+                new RegTarget("sLanguage", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "sLanguage", RegistryValueKind.String) { From = OptionValue.AbbreviatedLanguage },
+                new RegTarget("sNativeDigits", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "sNativeDigits", RegistryValueKind.String) { From = OptionValue.NativeDigits },
+                new RegTarget("NumShape", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "NumShape", RegistryValueKind.String) { From = OptionValue.DigitSubstitution },
+                new RegTarget("sPositiveSign", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "sPositiveSign", RegistryValueKind.String) { From = OptionValue.PositiveSign },
                 new AutounattendElement("format-element", "oobeSystem", "Microsoft-Windows-International-Core", "UserLocale"),
             },
         },
@@ -105,6 +110,32 @@ public static class TimeRegionLanguageCatalog
             {
                 new RegTarget("Nation", new[] { @"HKEY_CURRENT_USER\Control Panel\International\Geo" }, "Nation", RegistryValueKind.String) { From = OptionValue.GeoId },
                 new RegTarget("Name", new[] { @"HKEY_CURRENT_USER\Control Panel\International\Geo" }, "Name", RegistryValueKind.String),
+            },
+        },
+        new()
+        {
+            Id = "region-display-language",
+            Display = new()
+            {
+                Name = LocKey.Setting.RegionDisplayLanguage.Name,
+                Description = LocKey.Setting.RegionDisplayLanguage.Description,
+                GroupName = LocKey.SettingGroup.LanguageAndKeyboard,
+                Icon = MaterialIcons.FormatSize,
+                AddedInVersion = "26.09.22",
+                IsSubjectivePreference = true,
+            },
+            // The packs this PC has. Winhance switches between them and never downloads one, so a machine with
+            // one language installed has nothing to choose and the card says so instead of offering a dead list.
+            Options = new(OptionSource.DisplayLanguages)
+            {
+                Path = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\MUI\UILanguages",
+                SingleOptionWarning = LocKey.Setting.RegionDisplayLanguage.Warning,
+            },
+            Targets = new Target[]
+            {
+                // REG_MULTI_SZ has no single-value write, so the service applies this one through a .reg effect.
+                new RegTarget("PreferredUILanguages", new[] { @"HKEY_CURRENT_USER\Control Panel\Desktop" }, "PreferredUILanguages", RegistryValueKind.MultiString) { ReadOnly = true },
+                new AutounattendElement("ui-language-element", "oobeSystem", "Microsoft-Windows-International-Core", "UILanguage"),
             },
         },
         new()
@@ -163,37 +194,17 @@ public static class TimeRegionLanguageCatalog
                 IsSubjectivePreference = true,
             },
             Apply = new() { Restart = new RestartProcess("intl") },
+            // Keyed rather than five fixed states: region-format writes whatever Windows writes for the chosen
+            // locale, and five fixed states would leave de-DE (dd.MM.yyyy) or hi-IN (dd-MM-yyyy) reading
+            // "Not recognized" right after a successful apply. The labels are the patterns themselves.
+            Options = new(OptionSource.LocaleValues)
+            {
+                Value = OptionValue.ShortDate,
+                Keys = ["M/d/yyyy", "dd/MM/yyyy", "yyyy-MM-dd", "yyyy/MM/dd", "dd MMM yyyy"],
+            },
             Targets = new Target[]
             {
                 new RegTarget("sShortDate", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "sShortDate", RegistryValueKind.String),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Setting.ExplorerCustomizationShortDate.Option0,
-                    Set = new Dictionary<string, StateValue> { ["sShortDate"] = Of("M/d/yyyy").OrAbsent() },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Setting.ExplorerCustomizationShortDate.Option1,
-                    Set = new Dictionary<string, StateValue> { ["sShortDate"] = Of("dd/MM/yyyy") },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Setting.ExplorerCustomizationShortDate.Option2,
-                    Set = new Dictionary<string, StateValue> { ["sShortDate"] = Of("yyyy-MM-dd") },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Setting.ExplorerCustomizationShortDate.Option3,
-                    Set = new Dictionary<string, StateValue> { ["sShortDate"] = Of("yyyy/MM/dd") },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Setting.ExplorerCustomizationShortDate.Option4,
-                    Set = new Dictionary<string, StateValue> { ["sShortDate"] = Of("dd MMM yyyy") },
-                },
             },
         },
         new()

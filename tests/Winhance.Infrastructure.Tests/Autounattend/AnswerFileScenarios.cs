@@ -44,7 +44,7 @@ internal static class AnswerFileScenarios
         new("autounattend-network-page", new ChoiceValue.Toggle(false)),
         new("autounattend-privacy", new ChoiceValue.Option(0)),
         new("autounattend-netfx3", new ChoiceValue.Toggle(true)),
-        new("autounattend-desktop-shortcut", new ChoiceValue.Toggle(true)),
+        new("autounattend-desktop-shortcut", new ChoiceValue.Option(1)),
     ];
 
     public static IReadOnlyList<AnswerFileScenario> All { get; } =
@@ -90,7 +90,17 @@ internal static class AnswerFileScenarios
                 Choice("autounattend-edition", new ChoiceValue.Option(14)),
                 Choice("autounattend-product-key", new ChoiceValue.Text(string.Empty)))),
 
-        new("shortcut-off", Set(Choice("autounattend-desktop-shortcut", new ChoiceValue.Toggle(false)))),
+        new("shortcut-off", Set(Choice("autounattend-desktop-shortcut", new ChoiceValue.Option(0)))),
+
+        // The only scenario that writes DiskConfiguration, so this fixture is where the partition layout, the
+        // ids it hands ImageInstall and the whole file around them can be read at once.
+        new(
+            "wipe-the-disk",
+            Set(
+                Choice("autounattend-disk", new ChoiceValue.Option(1)),
+                Choice("autounattend-disk-number", new ChoiceValue.Text("0")),
+                Choice("autounattend-disk-system-size", new ChoiceValue.Text("300")),
+                Choice("autounattend-disk-recovery-size", new ChoiceValue.Text("1000")))),
 
         new(
             "generic-pro-n",

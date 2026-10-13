@@ -37,7 +37,9 @@ internal sealed class DismImageInfoReader : IDismImageInfoReader
                 return DismApi.MarshalArray<DismApi.DISM_IMAGE_INFO>(imageInfo, count)
                     .Select(info => new DismImageEntry(
                         (int)info.ImageIndex,
-                        Marshal.PtrToStringUni(info.ImageName) ?? string.Empty))
+                        Marshal.PtrToStringUni(info.ImageName) ?? string.Empty,
+                        (int)info.Build,
+                        Marshal.PtrToStringUni(info.EditionId) ?? string.Empty))
                     .ToArray();
             }
             finally

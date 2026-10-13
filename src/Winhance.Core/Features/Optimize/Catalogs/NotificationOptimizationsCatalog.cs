@@ -9,7 +9,6 @@ namespace Winhance.Core.Features.Optimize.Catalogs;
 public static class NotificationOptimizationsCatalog
 {
     public const string FeatureId = FeatureIds.Notifications;
-    public const string FeatureName = "Notifications";
 
     public static IReadOnlyList<Setting> All { get; } = new Setting[]
     {

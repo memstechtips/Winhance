@@ -16,6 +16,7 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
     private readonly TimeSpan _cacheTimeout = TimeSpan.FromSeconds(2);
     private readonly object _cacheLock = new();
     private readonly Dictionary<string, (int? min, int? max)> _capabilityCache = new();
+    private readonly Dictionary<string, IReadOnlyList<PowerSettingOption>> _possibleValueCache = new(StringComparer.Ordinal);
 
     public async Task<List<PowerPlan>> GetAvailablePowerPlansAsync()
     {
@@ -119,6 +120,81 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
         }
     }
 
+    // Windows answers a min/max for a setting that takes a RANGE and nothing for one that takes a list, and that
+    // is the discriminator this has to use: for a range setting the possible-setting walk never ends - every index
+    // answers success, echoing the index back under the setting's own name ("Turn off display after"). Measured on
+    // 24H2 across all 41 power cards: the 15 that report a range are exactly the 15 whose walk runs away.
+    public async Task<IReadOnlyList<PowerSettingOption>> GetPossibleValuesAsync(string subgroupGuid, string settingGuid)
+    {
+        var cacheKey = subgroupGuid + "/" + settingGuid;
+        lock (_cacheLock)
+        {
+            if (_possibleValueCache.TryGetValue(cacheKey, out var cached))
+                return cached;
+        }
+
+        var (min, max) = await GetPowerSettingCapabilitiesAsync(new PowerCfgSetting
+        {
+            SubgroupGuid = subgroupGuid,
+            SettingGuid = settingGuid,
+            RecommendedValueAC = null,
+            RecommendedValueDC = null,
+            DefaultValueAC = null,
+            DefaultValueDC = null,
+        }).ConfigureAwait(false);
+
+        IReadOnlyList<PowerSettingOption> options = min is null && max is null
+            ? await Task.Run(() => ReadPossibleOptions(Guid.Parse(subgroupGuid), Guid.Parse(settingGuid))).ConfigureAwait(false)
+            : Array.Empty<PowerSettingOption>();
+
+        lock (_cacheLock)
+        {
+            _possibleValueCache[cacheKey] = options;
+        }
+        return options;
+    }
+
+    // Walked by NAME, not by value: PowerReadPossibleValue answers a number from a different space than the index
+    // powercfg writes (the power button's five choices are indices 0-4 and values 0, 2, 3, 6, 8) and fails outright
+    // for settings whose names Windows does have, such as the wireless adapter's power mode. The cap is a guard - no
+    // power setting has anywhere near that many choices - so a Windows that stops saying no cannot hang the caller.
+    private IReadOnlyList<PowerSettingOption> ReadPossibleOptions(Guid subgroup, Guid setting)
+    {
+        const uint maxChoices = 64;
+        var options = new List<PowerSettingOption>();
+        for (uint index = 0; index < maxChoices; index++)
+        {
+            if (ReadPossibleName(subgroup, setting, index) is not { } name)
+                break;
+            options.Add(new PowerSettingOption((int)index, name));
+        }
+        return options;
+    }
+
+    // The name Windows shows for one choice, in the language Windows is installed in; null once the index runs past
+    // the list, which is what ends the walk.
+    private unsafe string? ReadPossibleName(Guid subgroup, Guid setting, uint index)
+    {
+        uint size = 0;
+        if (PInvoke.PowerReadPossibleFriendlyName(null, subgroup, setting, index, null, ref size) != WIN32_ERROR.ERROR_SUCCESS
+            || size == 0)
+        {
+            return null;
+        }
+
+        IntPtr buffer = Marshal.AllocHGlobal((int)size);
+        try
+        {
+            return PInvoke.PowerReadPossibleFriendlyName(null, subgroup, setting, index, (byte*)buffer, ref size) == WIN32_ERROR.ERROR_SUCCESS
+                ? Marshal.PtrToStringUni(buffer)
+                : null;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+    }
+
     private unsafe string GetPowerPlanName(Guid schemeGuid)
     {
         uint bufferSize = 0;
@@ -149,6 +225,7 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
         {
             _cachedPlans = null;
             _capabilityCache.Clear();
+            _possibleValueCache.Clear();
         }
     }
 

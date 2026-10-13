@@ -3,6 +3,7 @@ using Winhance.Core.Features.Autounattend;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.Common.Localization;
+using Winhance.Infrastructure.Features.Autounattend.Helpers;
 
 namespace Winhance.Infrastructure.Features.Autounattend.Writers;
 
@@ -50,6 +51,19 @@ internal sealed class AccountWriter : IAutounattendElementWriter
                 new XElement(U + "Enabled", "true"),
                 new XElement(U + "LogonCount", "1"),
                 new XElement(U + "Username", Field(signsIn, "name")));
+        }
+
+        // No unattend element expires a password, so net.exe sets the flag once the account exists. Windows ignores
+        // that flag while the password never expires, which is how Setup creates an account, so that comes off first.
+        // The command runs at the first sign-in after Setup: the account signing in then is asked at its next
+        // sign-in, any other at its first.
+        foreach (var account in accounts.Rows.Where(row => Field(row, "change-password") == "true"))
+        {
+            var name = Field(account, "name");
+            var quoted = "'" + PowerShellScriptUtilities.EscapePowerShellString(name) + "'";
+            shellSetup.AddFirstLogonCommand(
+                $"powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command \"Set-LocalUser -Name {quoted} -PasswordNeverExpires $false; net.exe user {quoted} /logonpasswordchg:yes\"",
+                $"Asks {name} for a New Password at Sign-In");
         }
 
         if (accounts.Rows.Any(row => Field(row, "password").Length > 0)

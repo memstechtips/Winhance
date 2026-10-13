@@ -10,5 +10,5 @@ public interface IConfigAppSelectionService
     Task SelectExternalAppsFromConfigAsync(ConfigSection externalAppsSection);
     Task ProcessExternalAppsInstallationAsync(ConfigSection externalAppsSection);
     Task ProcessExternalAppsRemovalAsync(ConfigSection externalAppsSection);
-    Task ProcessExternalAppsFromUserSelectionAsync(List<string> selectedAppIds);
+    Task ProcessExternalAppsFromUserSelectionAsync(List<string> selectedAppIds, bool remove);
 }

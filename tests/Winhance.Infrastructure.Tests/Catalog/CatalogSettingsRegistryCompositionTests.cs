@@ -64,6 +64,27 @@ public class CatalogSettingsRegistryCompositionTests
         Assert.Null(reg.GetFeatureIdForSetting("definitely-not-a-real-setting-id"));
     }
 
+    // A file authored on a 24H2 PC for 26H2 media must see what 26H2 has, not what the authoring PC has.
+    [Fact]
+    public async Task Target_build_replaces_this_pcs_build_in_the_os_gate()
+    {
+        var version = new Mock<IWindowsVersionService>();
+        version.Setup(v => v.GetWindowsBuildNumber()).Returns(26100);
+        version.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
+        var hardware = new Mock<IHardwareDetectionService>();
+        var existence = new Mock<ICatalogPowerExistenceFilter>();
+        existence.Setup(e => e.FilterAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync((IReadOnlyList<Setting> s) => s);
+        var reg = new CatalogSettingsRegistry(version.Object, hardware.Object, existence.Object);
+        await reg.InitializeAsync();
+        var for26H2 = CatalogScope.CurrentMachine with { TargetBuild = WindowsReleases.TargetOf(26300) };
+
+        Assert.Null(reg.GetById("start-all-apps-view"));
+        Assert.NotNull(reg.GetById("start-menu-layout"));
+        Assert.NotNull(reg.GetById("start-all-apps-view", for26H2));
+        Assert.Null(reg.GetById("start-menu-layout", for26H2));
+    }
+
     [Fact]
     public async Task Scope_param_relaxes_only_the_os_gate_defaulting_to_current_os()
     {

@@ -3,6 +3,7 @@ using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Catalogs;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.SoftwareApps.Services;
@@ -12,6 +13,14 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class ExternalAppsServiceTests
 {
+    private static readonly ItemDefinition WinGetApp = new()
+    {
+        Id = "ext-app",
+        Name = "External App",
+        Description = "An external app",
+        WinGetPackageId = ["Publisher.ExtApp"]
+    };
+
     private readonly Mock<ILogService> _logService = new();
     private readonly Mock<IWinGetPackageInstaller> _winGetPackageInstaller = new();
     private readonly Mock<IWinGetDetectionService> _winGetDetectionService = new();
@@ -695,6 +704,89 @@ public class ExternalAppsServiceTests
     }
 
     [Fact]
+    public async Task InstallAppForAllUsersAsync_MachineWideSucceeds_SkipsTheDefaultScope()
+    {
+        var sut = CreateSut();
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("Publisher.ExtApp", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("exe");
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageForAllUsersAsync(
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Succeeded());
+
+        var result = await sut.InstallAppForAllUsersAsync(WinGetApp);
+
+        result.Success.Should().BeTrue();
+        _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task InstallAppForAllUsersAsync_MachineWideFails_TriesTheDefaultScopeForTheSameId()
+    {
+        var sut = CreateSut();
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("Publisher.ExtApp", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("exe");
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageForAllUsersAsync(
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "No machine-scope installer"));
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Succeeded());
+
+        var result = await sut.InstallAppForAllUsersAsync(WinGetApp);
+
+        result.Success.Should().BeTrue();
+        _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
+            "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_NeverAsksForAMachineWideInstall()
+    {
+        var sut = CreateSut();
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("Publisher.ExtApp", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("exe");
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Succeeded());
+
+        await sut.InstallAppAsync(WinGetApp);
+
+        _winGetPackageInstaller.Verify(x => x.InstallPackageForAllUsersAsync(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task InstallAppForAllUsersAsync_PortableInstaller_SkipsTheMachineWideAttempt()
+    {
+        var sut = CreateSut();
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("Publisher.ExtApp", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("portable");
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Succeeded());
+
+        var result = await sut.InstallAppForAllUsersAsync(WinGetApp);
+
+        result.Success.Should().BeTrue();
+        _winGetPackageInstaller.Verify(x => x.InstallPackageForAllUsersAsync(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task UninstallAppAsync_Success_ReturnsSuccess()
     {
         var sut = CreateSut();
@@ -833,6 +925,102 @@ public class ExternalAppsServiceTests
         sut.InvalidateStatusCache();
 
         _appStatusDiscoveryService.Verify(x => x.InvalidateCache(), Times.Once);
+    }
+
+    [Fact]
+    public async Task SearchPackagesAsync_LeavesOutWingetAppsTheCatalogAlreadyLists()
+    {
+        var sut = CreateSut();
+        var catalogPackageId = ExternalAppDefinitions.GetExternalApps().Items
+            .First(item => item.WinGetPackageId is { Length: > 0 }).WinGetPackageId![0];
+        _winGetDetectionService
+            .Setup(x => x.SearchPackagesAsync("player", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new WinGetPackageMatch(catalogPackageId.ToUpperInvariant(), "Already curated"),
+                new WinGetPackageMatch("Contoso.Player", "Contoso Player"),
+            });
+
+        var result = (await sut.SearchPackagesAsync("player")).Items;
+
+        result.Should().ContainSingle();
+        result[0].Id.Should().Be("winget-Contoso.Player");
+        result[0].Name.Should().Be("Contoso Player");
+        result[0].WinGetPackageId.Should().Equal("Contoso.Player");
+    }
+
+    [Fact]
+    public async Task SearchPackagesAsync_AddsOnlyTheChocolateyPackagesWingetAndTheCatalogLack()
+    {
+        var sut = CreateSut();
+        var catalogChocoId = ExternalAppDefinitions.GetExternalApps().Items.First(item => item.ChocoPackageId is not null).ChocoPackageId!;
+        _chocolateyService.Setup(x => x.IsChocolateyInstalledAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _chocolateyService.Setup(x => x.SearchPackagesAsync("note", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { "fabrikamnotesplus", "Contoso-Notes", catalogChocoId, "contoso-diary" });
+        _winGetDetectionService.Setup(x => x.SearchPackagesAsync("note", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { new WinGetPackageMatch("Fabrikam.Pad", "Fabrikam Notes+"), new WinGetPackageMatch("Contoso.ContosoNotes", "Contoso Writer") });
+
+        var result = await sut.SearchPackagesAsync("note");
+
+        result.SearchedChocolatey.Should().BeTrue();
+        result.Items.Select(i => i.Id).Should().Equal("winget-Fabrikam.Pad", "winget-Contoso.ContosoNotes", "choco-contoso-diary");
+        result.Items[2].ChocoPackageId.Should().Be("contoso-diary");
+    }
+
+    [Fact]
+    public async Task SearchPackagesAsync_LeavesOutPackagesWhoseIdASavedFileCouldNotCarry()
+    {
+        var sut = CreateSut();
+        _chocolateyService.Setup(x => x.IsChocolateyInstalledAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _chocolateyService.Setup(x => x.SearchPackagesAsync("tools", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ChocoIdsWithOneUnsaveable);
+        _winGetDetectionService.Setup(x => x.SearchPackagesAsync("tools", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { new WinGetPackageMatch("Contoso.Black&White", "Black & White"), new WinGetPackageMatch("Contoso.Tools", "Contoso Tools") });
+
+        var result = await sut.SearchPackagesAsync("tools");
+
+        result.Items.Select(i => i.Id).Should().Equal("winget-Contoso.Tools", "choco-fabrikam-kit");
+        result.Items.Should().OnlyContain(i => PackageSearchItem.FromId(i.Id) != null);
+    }
+
+    [Fact]
+    public async Task SearchPackagesAsync_SkipsChocolateyWhenItIsNotInstalled()
+    {
+        var sut = CreateSut();
+        _winGetDetectionService.Setup(x => x.SearchPackagesAsync("note", It.IsAny<CancellationToken>())).ReturnsAsync(Array.Empty<WinGetPackageMatch>());
+
+        var result = await sut.SearchPackagesAsync("note");
+
+        result.SearchedChocolatey.Should().BeFalse();
+        _chocolateyService.Verify(x => x.SearchPackagesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    private static readonly string[] ChocoIdsWithOneUnsaveable = ["fabrikam tools", "fabrikam-kit"];
+    private static readonly string[] MissingFromWinGet = ["gone.app", "Gone.Too", "Gone.Choco", "Gone.Store", "Gone.Search"];
+
+    [Fact]
+    public async Task GetUnavailableAppIdsAsync_NamesOnlyAppsWithNoSourceLeft()
+    {
+        var sut = CreateSut();
+        ItemDefinition App(string id, string[] winget, string? choco = null, string? store = null) => new()
+        {
+            Id = id, Name = id, Description = id, WinGetPackageId = winget, ChocoPackageId = choco, MsStoreId = store,
+        };
+        var items = new[]
+        {
+            App("gone", ["Gone.App"]),
+            App("one-of-two-gone", ["Gone.Too", "Still.Here"]),
+            App("has-choco", ["Gone.Choco"], choco: "gone-choco"),
+            App("has-store", ["Gone.Store"], store: "9ABC"),
+            App("winget-Gone.Search", ["Gone.Search"]),
+        };
+        _winGetDetectionService
+            .Setup(x => x.FindMissingPackageIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MissingFromWinGet);
+
+        var result = await sut.GetUnavailableAppIdsAsync(items);
+
+        result.Should().Equal("gone");
     }
 
     [Fact]

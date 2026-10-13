@@ -8,9 +8,11 @@ namespace Winhance.UI.Features.Common.TemplateSelectors;
 public partial class ListFieldTemplateSelector : DataTemplateSelector
 {
     public DataTemplate? TextTemplate { get; set; }
+    public DataTemplate? MultiLineTextTemplate { get; set; }
     public DataTemplate? PasswordTemplate { get; set; }
     public DataTemplate? SelectionTemplate { get; set; }
     public DataTemplate? CheckBoxTemplate { get; set; }
+    public DataTemplate? FileTemplate { get; set; }
 
     protected override DataTemplate? SelectTemplateCore(object item)
     {
@@ -19,10 +21,11 @@ public partial class ListFieldTemplateSelector : DataTemplateSelector
 
         var template = field.Kind switch
         {
-            FieldKind.Text => TextTemplate,
+            FieldKind.Text => field.MultiLine ? MultiLineTextTemplate : TextTemplate,
             FieldKind.Password => PasswordTemplate,
             FieldKind.Selection => SelectionTemplate,
             FieldKind.CheckBox => CheckBoxTemplate,
+            FieldKind.File => FileTemplate,
             _ => throw new InvalidOperationException(
                 $"Field '{field.Key}' is a {field.Kind}, which a list row has no control for."),
         };

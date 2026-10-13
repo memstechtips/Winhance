@@ -9,13 +9,13 @@ public static class FeatureDefinitions
         new(FeatureIds.WindowsTheme, "Windows Theme", "Customize", "WindowsThemeIconPath"),
         new(FeatureIds.Taskbar, "Taskbar", "Customize", "TaskbarIconPath"),
         new(FeatureIds.StartMenu, "Start Menu", "Customize", "StartMenuIconPath"),
-        new(FeatureIds.ExplorerCustomization, "Explorer", "Customize", "ExplorerIconPath"),
+        new(FeatureIds.Explorer, "Explorer", "Customize", "ExplorerIconPath"),
         new(FeatureIds.TimeRegionLanguage, "Time, region and language", "Customize", "TimeRegionLanguageIconSymbol"),
 
         new(FeatureIds.Privacy, "Privacy & Security", "Optimize", "PrivacyIconPath"),
         new(FeatureIds.Power, "Power", "Optimize", "PowerIconPath"),
         new(FeatureIds.GamingPerformance, "Gaming & Performance", "Optimize", "GamingIconPath"),
-        new(FeatureIds.Update, "Windows Update", "Optimize", "UpdateIconSymbol"),
+        new(FeatureIds.Update, "Update", "Optimize", "UpdateIconSymbol"),
         new(FeatureIds.Notifications, "Notifications", "Optimize", "NotificationIconPath"),
         new(FeatureIds.Sound, "Sound", "Optimize", "SoundIconSymbol"),
 

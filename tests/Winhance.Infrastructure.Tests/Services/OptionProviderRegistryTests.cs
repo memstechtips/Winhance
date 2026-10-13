@@ -20,6 +20,8 @@ public class OptionProviderRegistryTests
         OptionSource.Countries => "US",
         OptionSource.Pictures => @"C:\Windows\Web\Wallpaper\Windows\img0.jpg",
         OptionSource.Colors => "#FF8C00",
+        OptionSource.LocaleValues => "dd/MM/yyyy",
+        OptionSource.DisplayLanguages => "en-US",
         _ => throw new ArgumentOutOfRangeException(nameof(source), source, "A new option list needs a sample key here."),
     };
 

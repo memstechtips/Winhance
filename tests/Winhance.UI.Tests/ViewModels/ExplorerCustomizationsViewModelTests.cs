@@ -72,7 +72,7 @@ public class ExplorerCustomizationsViewModelTests
     {
         var vm = CreateViewModel();
 
-        vm.ModuleId.Should().Be(FeatureIds.ExplorerCustomization);
+        vm.ModuleId.Should().Be(FeatureIds.Explorer);
     }
 
     [Fact]

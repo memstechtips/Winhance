@@ -11,13 +11,15 @@ public sealed class SelectionSetBuilder : ISelectionSetBuilder
     private readonly IAppSelectionSource _apps;
     private readonly IApplicationModeService _mode;
     private readonly ICatalogScopeProvider _scopeProvider;
+    private readonly ICatalogSettingsRegistry _registry;
 
-    public SelectionSetBuilder(ISettingSnapshotSource snapshot, IAppSelectionSource apps, IApplicationModeService mode, ICatalogScopeProvider scopeProvider)
+    public SelectionSetBuilder(ISettingSnapshotSource snapshot, IAppSelectionSource apps, IApplicationModeService mode, ICatalogScopeProvider scopeProvider, ICatalogSettingsRegistry registry)
     {
         _snapshot = snapshot;
         _apps = apps;
         _mode = mode;
         _scopeProvider = scopeProvider;
+        _registry = registry;
     }
 
     public CatalogScope CurrentScope => _scopeProvider.Current;
@@ -42,6 +44,19 @@ public sealed class SelectionSetBuilder : ISelectionSetBuilder
         // Exclusion is absence. Applied after the append so an appended edit obeys it too, and here rather than in
         // ConfigFileMapper so both writers see one list and ConfigFileWriter's logged count still describes the file.
         settings.RemoveAll(c => !_mode.IsIncluded(c.SettingId));
+
+        // An Action - Clean Start Menu, Clean Taskbar - is the one kind with no value on the machine to capture
+        // and none to leave out, so its include tick IS the choice: ticked means the file runs it. Whatever the
+        // snapshot or a button press said about one is dropped first, so inclusion is the only thing deciding.
+        var actions = _registry.GetAll(CurrentScope).Values
+            .SelectMany(byFeature => byFeature)
+            .Where(setting => setting.Control == ControlKind.Action)
+            .ToList();
+        settings.RemoveAll(c => actions.Any(a => a.Id == c.SettingId));
+        settings.AddRange(actions
+            .Where(setting => _mode.IsIncluded(setting.Id))
+            .Select(setting => new SettingChoice(setting.Id, new ChoiceValue.Toggle(true))));
+
         return new SelectionSet(settings, await _apps.CheckedWindowsAppsAsync(), await _apps.CheckedExternalAppsAsync());
     }
 }

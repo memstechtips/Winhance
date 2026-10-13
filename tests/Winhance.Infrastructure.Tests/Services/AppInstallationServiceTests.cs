@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -14,6 +15,16 @@ public class AppInstallationServiceTests
 {
     private static readonly string[] App1PackageId = ["Publisher.App1"];
 
+    private static readonly ItemDefinition WinGetApp = new()
+    {
+        Id = "ext-app",
+        Name = "Test External App",
+        Description = "An external app",
+        WinGetPackageId = ["Publisher.ExtApp"]
+    };
+
+    private static readonly StagedInstaller StagedApp = new("Test External App", @"C:\ProgramData\Winhance\Unattend\Apps\ext-app\x64");
+
     private readonly Mock<ILegacyCapabilityService> _capabilityService = new();
     private readonly Mock<IOptionalFeatureService> _featureService = new();
     private readonly Mock<IServicingSession> _servicingSession = new();
@@ -25,6 +36,8 @@ public class AppInstallationServiceTests
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
     private readonly Mock<IFileSystemService> _fileSystemService = new();
     private readonly Mock<IChangeHistoryService> _changeHistoryService = new();
+    private readonly Mock<IStagedAppInstaller> _stagedAppInstaller = new();
+    private readonly Mock<IUserPreferencesService> _preferences = new();
     private IReadOnlyList<string>? _statements;
     private string? _label;
 
@@ -39,7 +52,9 @@ public class AppInstallationServiceTests
         _scheduledTaskService.Object,
         _taskProgressService.Object,
         _fileSystemService.Object,
-        _changeHistoryService.Object);
+        _changeHistoryService.Object,
+        _stagedAppInstaller.Object,
+        _preferences.Object);
 
     [Fact]
     public async Task InstallAppAsync_WindowsStoreApp_RoutesToWindowsAppsService()
@@ -98,6 +113,52 @@ public class AppInstallationServiceTests
             x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Once);
         _windowsAppsService.Verify(
             x => x.InstallAppAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_ExternalApp_WithAllUsersPreference_InstallsForAllUsers()
+    {
+        var sut = CreateSut();
+        _preferences.Setup(p => p.GetPreference(UserPreferenceKeys.InstallAppsForAllUsers, false)).Returns(true);
+        _bloatRemovalService
+            .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
+            .ReturnsAsync(true);
+        _externalAppsService
+            .Setup(x => x.InstallAppForAllUsersAsync(WinGetApp, It.IsAny<IProgress<TaskProgressDetail>?>()))
+            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+
+        var result = await sut.InstallAppAsync(WinGetApp);
+
+        result.Success.Should().BeTrue();
+        _externalAppsService.Verify(
+            x => x.InstallAppAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_ChocoOnlyApp_RoutesToExternalAppsService()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "external-app-cdburnerxp",
+            Name = "CDBurnerXP",
+            Description = "Only Chocolatey carries it",
+            ChocoPackageId = "cdburnerxp"
+        };
+
+        _bloatRemovalService
+            .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
+            .ReturnsAsync(true);
+
+        _externalAppsService
+            .Setup(x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()))
+            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+
+        var result = await sut.InstallAppAsync(item);
+
+        result.Success.Should().BeTrue();
+        _externalAppsService.Verify(
+            x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Once);
     }
 
     [Fact]
@@ -322,6 +383,129 @@ public class AppInstallationServiceTests
 
         _changeHistoryService.Verify(
             x => x.LogAppChange(It.IsAny<string>(), It.IsAny<AppChangeKind>()), Times.Never);
+    }
+
+    private void ArrangeStagedInstall(bool succeeds)
+    {
+        _stagedAppInstaller.Setup(x => x.Find(WinGetApp)).Returns(StagedApp);
+        _stagedAppInstaller
+            .Setup(x => x.InstallAsync(StagedApp, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(succeeds);
+    }
+
+    private void ArrangeOnlineInstallForAllUsers(ItemDefinition app) => _externalAppsService
+        .Setup(x => x.InstallAppForAllUsersAsync(app, It.IsAny<IProgress<TaskProgressDetail>?>()))
+        .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+
+    private void VerifyOnlineInstallForAllUsers(ItemDefinition app, Times times) => _externalAppsService.Verify(
+        x => x.InstallAppForAllUsersAsync(app, It.IsAny<IProgress<TaskProgressDetail>?>()), times);
+
+    [Fact]
+    public async Task InstallOnNewPcAsync_StagedInstallSucceeds_SkipsTheOnlineRoute()
+    {
+        var sut = CreateSut();
+        ArrangeStagedInstall(succeeds: true);
+
+        var result = await sut.InstallOnNewPcAsync(WinGetApp);
+
+        result.Success.Should().BeTrue();
+        VerifyOnlineInstallForAllUsers(WinGetApp, Times.Never());
+        _changeHistoryService.Verify(x => x.LogAppChange("Test External App", AppChangeKind.Installed), Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallOnNewPcAsync_StagedInstallFails_InstallsOnlineForAllUsers()
+    {
+        var sut = CreateSut();
+        ArrangeStagedInstall(succeeds: false);
+        ArrangeOnlineInstallForAllUsers(WinGetApp);
+
+        var result = await sut.InstallOnNewPcAsync(WinGetApp);
+
+        result.Success.Should().BeTrue();
+        VerifyOnlineInstallForAllUsers(WinGetApp, Times.Once());
+    }
+
+    [Fact]
+    public async Task InstallOnNewPcAsync_NothingStaged_InstallsOnlineForAllUsers()
+    {
+        var sut = CreateSut();
+        ArrangeOnlineInstallForAllUsers(WinGetApp);
+
+        var result = await sut.InstallOnNewPcAsync(WinGetApp);
+
+        result.Success.Should().BeTrue();
+        VerifyOnlineInstallForAllUsers(WinGetApp, Times.Once());
+        _externalAppsService.Verify(
+            x => x.InstallAppAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Never);
+        _changeHistoryService.Verify(x => x.LogAppChange("Test External App", AppChangeKind.Installed), Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallOnNewPcAsync_ChocolateyOnlyApp_ReachesTheExternalAppsService()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "choco-only-app",
+            Name = "Choco Only App",
+            Description = "Only a Chocolatey package",
+            ChocoPackageId = "chocoonlyapp"
+        };
+        ArrangeOnlineInstallForAllUsers(item);
+
+        var result = await sut.InstallOnNewPcAsync(item);
+
+        result.Success.Should().BeTrue();
+        VerifyOnlineInstallForAllUsers(item, Times.Once());
+    }
+
+    [Fact]
+    public async Task InstallOnNewPcAsync_AppxAppMachineWideFails_FallsBackToTheStoreRoute()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "windows-app-test",
+            Name = "Test Windows App",
+            Description = "A windows store app",
+            WinGetPackageId = ["Publisher.WinApp"],
+            AppxPackageName = ["Microsoft.WinApp"]
+        };
+        _externalAppsService
+            .Setup(x => x.InstallAppForAllUsersAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()))
+            .ReturnsAsync(OperationResult<bool>.Failed("no machine installer"));
+        _windowsAppsService
+            .Setup(x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()))
+            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+
+        var result = await sut.InstallOnNewPcAsync(item);
+
+        result.Success.Should().BeTrue();
+        VerifyOnlineInstallForAllUsers(item, Times.Once());
+        _windowsAppsService.Verify(x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallOnNewPcAsync_AppxAppMachineWideSucceeds_NeverTakesTheStoreRoute()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "windows-app-test",
+            Name = "Test Windows App",
+            Description = "A windows store app",
+            WinGetPackageId = ["Publisher.WinApp"],
+            AppxPackageName = ["Microsoft.WinApp"]
+        };
+        _externalAppsService
+            .Setup(x => x.InstallAppForAllUsersAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()))
+            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+
+        var result = await sut.InstallOnNewPcAsync(item);
+
+        result.Success.Should().BeTrue();
+        _windowsAppsService.Verify(x => x.InstallAppAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Never);
     }
 
     private void ArrangeServicingSession(bool launched = true)

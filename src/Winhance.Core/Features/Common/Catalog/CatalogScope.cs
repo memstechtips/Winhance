@@ -3,10 +3,12 @@ namespace Winhance.Core.Features.Common.Catalog;
 // Which catalog settings a caller wants to see. CurrentMachine = the OS-build gate, the hardware gate and the
 // powercfg-existence gate all apply. Each flag relaxes one gate; relaxing hardware also relaxes existence for
 // hardware-gated settings (a battery GUID that is absent on a desktop cannot pass existence but can be authored).
+// TargetBuild moves the OS-build gate from this PC's build to the Windows a Builder file is made for.
 public readonly record struct CatalogScope(
     bool IncludeOtherOsVersions,
     bool IncludeOtherHardware,
-    bool IncludeAnswerFileOnly = false)
+    bool IncludeAnswerFileOnly = false,
+    WinBuild? TargetBuild = null)
 {
     public static readonly CatalogScope CurrentMachine = new(false, false);
 }

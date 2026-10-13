@@ -19,8 +19,6 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel,
 
     public override string ModuleId => FeatureIds.Power;
 
-    protected override string GetDisplayNameKey() => "Feature_Power_Name";
-
     public IRelayCommand<DynamicOption> DeletePowerPlanCommand { get; }
 
     public PowerOptimizationsViewModel(

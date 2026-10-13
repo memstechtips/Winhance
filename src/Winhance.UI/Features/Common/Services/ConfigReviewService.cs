@@ -22,6 +22,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     private readonly ILocalizationService _localizationService;
     private readonly IWindowsVersionService _windowsVersionService;
     private readonly IOptionProviderRegistry _optionProviders;
+    private readonly IFileStore _fileStore;
     private readonly ConcurrentDictionary<string, ConfigReviewDiff> _diffs = new();
     private readonly ConcurrentDictionary<string, int> _configItemCounts = new();
     private readonly ConcurrentDictionary<string, byte> _featuresInConfig = new();
@@ -46,7 +47,8 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         ICatalogSettingStateProvider settingStateProvider,
         ILocalizationService localizationService,
         IWindowsVersionService windowsVersionService,
-        IOptionProviderRegistry optionProviders)
+        IOptionProviderRegistry optionProviders,
+        IFileStore fileStore)
     {
         _logService = logService;
         _catalogSettingsRegistry = catalogSettingsRegistry;
@@ -54,6 +56,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         _localizationService = localizationService;
         _windowsVersionService = windowsVersionService;
         _optionProviders = optionProviders;
+        _fileStore = fileStore;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
     }
@@ -508,12 +511,15 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             // This service reads no RawValues; the provider resolves CurrentValue/IsEnabled/DynamicSelection/AcValue/DcValue/Readings.
             var batchStates = await _settingStateProvider.GetStatesAsync(settingList);
 
-            // Mirror the settings-page render predicate so the review never counts/diffs a setting the user
-            // cannot see (which would leave the review uncompleteable). The page skips a setting whose live
-            // state the provider could not resolve (SettingsLoadingService: !state.Success) and drops an
-            // orphaned sub-setting whose UiParentId parent is not itself rendered (a sub-setting lives only
-            // inside its parent's expander). Both sides use the same strict GetByFeature scope, so only these
-            // two exclusions differ. UiParentId nesting is one level in the catalog.
+            // Skip what the settings page cannot render, so the review never counts a setting the user cannot
+            // see (which would leave the review uncompleteable). The page skips a setting whose live state the
+            // provider could not resolve (SettingsLoadingService: !state.Success) and drops an orphaned
+            // sub-setting whose UiParentId parent is not itself rendered (a sub-setting lives only inside its
+            // parent's expander). Both sides use the same strict GetByFeature scope. The page's third exclusion,
+            // a Setting.VisibleWhen gate reading this machine's value, is NOT mirrored: the page force-shows a
+            // gated card that carries a diff (BaseSettingsFeatureViewModel.ShownForReview), because mirroring it
+            // here would drop the gated values of a kind change the user is about to approve. UiParentId nesting
+            // is one level in the catalog.
             var detectedIds = new HashSet<string>(
                 settingList
                     .Where(s => !(batchStates.TryGetValue(s.Id, out var st) && !st.Success))
@@ -631,6 +637,11 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
                 if (live is not null
                     && _optionProviders.For(setting.Options!.Source).SameOption(setting, new DynamicOption(saved.Label, saved.Key), live))
+                    return (false, string.Empty, string.Empty, null, null);
+
+                if (live is not null
+                    && configItem.File is { Base64.Length: > 0 } carried
+                    && await _fileStore.IsSameFileAsync(live.Value, carried.Base64).ConfigureAwait(false))
                     return (false, string.Empty, string.Empty, null, null);
 
                 // Neither side may be empty: the card's banner and approve control need both, and a blank side leaves

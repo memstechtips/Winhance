@@ -4,8 +4,10 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.WimUtil.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
+using Winhance.UI.Features.WimUtil.Models;
 using Xunit;
 
 namespace Winhance.UI.Tests.Services;
@@ -28,6 +30,8 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     private readonly Mock<IPolicyCleanupService> _mockPolicyCleanupService = new();
     private readonly Mock<IChangeHistoryService> _mockChangeHistoryService = new();
     private readonly Mock<IHardwareFilterService> _mockHardwareFilter = new();
+    private readonly Mock<ITargetWindowsService> _mockTargetWindows = new();
+    private readonly WimUtilSession _wimUtilSession = new();
 
     private ConfigReviewOrchestrationService? _service;
 
@@ -46,6 +50,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             .Returns(Mock.Of<IDisposable>());
 
         _mockHardwareFilter.Setup(h => h.ResetAsync()).Returns(Task.CompletedTask);
+        _mockTargetWindows.Setup(t => t.ResetAsync()).Returns(Task.CompletedTask);
     }
 
     private ConfigReviewOrchestrationService CreateService()
@@ -66,7 +71,9 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             _mockVmCoordinator.Object,
             _mockPolicyCleanupService.Object,
             _mockChangeHistoryService.Object,
-            _mockHardwareFilter.Object);
+            _mockHardwareFilter.Object,
+            _mockTargetWindows.Object,
+            _wimUtilSession);
         return _service;
     }
 
@@ -165,7 +172,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     }
 
     [Fact]
-    public void OnApplicationModeChanged_LeavingBuilder_ResetsTheHardwareFilter()
+    public void OnApplicationModeChanged_LeavingBuilder_ResetsTheHardwareFilterAndTargetWindows()
     {
         // Authoring for hardware this PC does not have is Builder-only; anywhere else those settings
         // would read as applicable and apply to nothing.
@@ -176,6 +183,22 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
 
         _mockHardwareFilter.Verify(h => h.ResetAsync(), Times.Once);
+        _mockTargetWindows.Verify(t => t.ResetAsync(), Times.Once);
+    }
+
+    [Fact]
+    public void OnApplicationModeChanged_LeavingBuilder_ForgetsTheMediaTheWimUtilSessionWasBuilding()
+    {
+        _wimUtilSession.WorkingDirectory = @"C:\WinhanceWIM";
+        _wimUtilSession.Editions = [new ImageEdition(1, "Windows 11 Pro", "Professional")];
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        CreateService();
+
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Normal);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        _wimUtilSession.WorkingDirectory.Should().BeNull();
+        _wimUtilSession.Editions.Should().BeEmpty();
     }
 
     [Fact]
@@ -210,6 +233,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
 
         _mockHardwareFilter.Verify(h => h.ResetAsync(), Times.Never);
+        _mockTargetWindows.Verify(t => t.ResetAsync(), Times.Never);
     }
 
     [Fact]
@@ -577,7 +601,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             {
                 Features = new Dictionary<string, ConfigSection>
                 {
-                    ["ExplorerCustomization"] = new ConfigSection
+                    ["Explorer"] = new ConfigSection
                     {
                         Items = new List<ConfigurationItem>
                         {
@@ -596,7 +620,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             new ConfigReviewDiff
             {
                 SettingId = "explorer-customization-thispc-folder-desktop",
-                FeatureModuleId = "ExplorerCustomization",
+                FeatureModuleId = "Explorer",
                 ConfigItem = listedUnderTheOldId,
                 IsReviewed = true,
                 IsApproved = true
@@ -611,11 +635,73 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockConfigExecutionService.Verify(
             e => e.ApplyConfigurationWithOptionsAsync(
                 It.Is<WinhanceConfigFile>(c =>
-                    c.Customize.Features["ExplorerCustomization"].Items.Count == 1
-                    && c.Customize.Features["ExplorerCustomization"].Items[0] == listedUnderTheOldId),
-                It.Is<List<string>>(sections => sections.Contains("Customize_ExplorerCustomization")),
+                    c.Customize.Features["Explorer"].Items.Count == 1
+                    && c.Customize.Features["Explorer"].Items[0] == listedUnderTheOldId),
+                It.Is<List<string>>(sections => sections.Contains("Customize_Explorer")),
                 It.IsAny<ImportOptions>()),
             Times.Once);
+    }
+
+    // One approved setting as well, so the apply runs whether or not an app action was picked.
+    private void GivenReviewWithCheckedExternalApps(bool install, bool remove)
+    {
+        var config = new WinhanceConfigFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem> { new ConfigurationItem { Id = "s1", Name = "S1" } }
+                    }
+                }
+            }
+        };
+
+        _mockConfigReviewModeService.Setup(r => r.IsInReviewMode).Returns(true);
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(config);
+        _mockConfigReviewDiffService.Setup(d => d.GetApprovedDiffs()).Returns(new List<ConfigReviewDiff>
+        {
+            new ConfigReviewDiff { SettingId = "s1", FeatureModuleId = "Privacy", IsReviewed = true, IsApproved = true }
+        });
+        _mockConfigImportState.Setup(s => s.TakeNotApplied()).Returns(Array.Empty<string>());
+        _mockDialogService
+            .Setup(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+        _mockVmCoordinator.Setup(v => v.HasSelectedWindowsApps).Returns(false);
+        _mockVmCoordinator.Setup(v => v.HasSelectedExternalApps).Returns(true);
+        _mockVmCoordinator.Setup(v => v.IsExternalAppsInstallAction).Returns(install);
+        _mockVmCoordinator.Setup(v => v.IsExternalAppsRemoveAction).Returns(remove);
+        _mockVmCoordinator.Setup(v => v.GetSelectedExternalAppIds()).Returns(new List<string> { "ext1" });
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task ApplyReviewedConfigAsync_ExternalApps_RunTheActionTheUserPicked(bool install, bool remove)
+    {
+        GivenReviewWithCheckedExternalApps(install, remove);
+
+        await CreateService().ApplyReviewedConfigAsync();
+
+        _mockConfigAppSelectionService.Verify(
+            s => s.ProcessExternalAppsFromUserSelectionAsync(
+                It.Is<List<string>>(ids => ids.Single() == "ext1"), remove),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplyReviewedConfigAsync_ExternalAppsCheckedWithNoActionPicked_TouchesNoApps()
+    {
+        GivenReviewWithCheckedExternalApps(install: false, remove: false);
+
+        await CreateService().ApplyReviewedConfigAsync();
+
+        _mockVmCoordinator.Verify(v => v.GetSelectedExternalAppIds(), Times.Never);
+        _mockConfigAppSelectionService.Verify(
+            s => s.ProcessExternalAppsFromUserSelectionAsync(It.IsAny<List<string>>(), It.IsAny<bool>()),
+            Times.Never);
     }
 
     [Fact]

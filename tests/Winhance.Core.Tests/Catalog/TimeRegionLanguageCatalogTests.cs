@@ -15,12 +15,13 @@ public class TimeRegionLanguageCatalogTests
         "region-time-zone",
         "region-format",
         "region-home-location",
+        "region-display-language",
         "region-keyboard-layout",
         "region-system-locale",
     ];
 
     [Fact]
-    public void The_five_keyed_settings_are_in_the_live_catalog_under_their_own_feature()
+    public void The_keyed_settings_are_in_the_live_catalog_under_their_own_feature()
     {
         foreach (var id in KeyedIds)
         {
@@ -84,8 +85,21 @@ public class TimeRegionLanguageCatalogTests
                 ("iTLZero", OptionValue.HourLeadingZero),
                 ("iTimePrefix", OptionValue.TimeMarkerPosition),
                 ("iFirstWeekOfYear", OptionValue.FirstWeekOfYear),
+                // Windows' own locale data answers these nine; .NET's numbering disagrees on several.
+                ("iDigits", OptionValue.DecimalDigits),
+                ("iLZero", OptionValue.LeadingZero),
+                ("iCountry", OptionValue.CountryCode),
+                ("iPaperSize", OptionValue.PaperSize),
+                ("iCalendarType", OptionValue.CalendarType),
+                ("sLanguage", OptionValue.AbbreviatedLanguage),
+                ("sNativeDigits", OptionValue.NativeDigits),
+                ("NumShape", OptionValue.DigitSubstitution),
+                ("sPositiveSign", OptionValue.PositiveSign),
             ],
             ["region-home-location"] = [("Nation", OptionValue.GeoId), ("Name", OptionValue.Key)],
+            // Empty on purpose: PreferredUILanguages is REG_MULTI_SZ, which the plain value write cannot express,
+            // so the whole apply is the service's .reg effect and the one target exists only to read the current one.
+            ["region-display-language"] = [],
             ["region-keyboard-layout"] = [("Preload1", OptionValue.Key)],
             ["region-system-locale"] =
             [
@@ -114,6 +128,22 @@ public class TimeRegionLanguageCatalogTests
             targets.OfType<RegTarget>().Should().NotBeEmpty(id);
             targets.Where(t => t is not RegTarget).Should().AllBeOfType<AutounattendElement>(id);
         }
+    }
+
+    // The card stays a live one: its option list is read off this PC, so it must not fall into the answer-file-only
+    // bucket that skips detection and apply, and the target it reads must stay ReadOnly so the plain write is skipped.
+    [Fact]
+    public void The_display_language_reads_this_PC_and_applies_through_a_reg_file()
+    {
+        var setting = SettingCatalog.ById["region-display-language"];
+
+        setting.IsAnswerFileOnly.Should().BeFalse();
+        setting.Options!.Path.Should().NotBeNullOrEmpty("the list is the packs this PC has, not every language");
+        setting.Options.SingleOptionWarning.Should().NotBeNull("a PC with one language installed needs the reason");
+        setting.Targets.OfType<RegTarget>().Should().ContainSingle()
+            .Which.ReadOnly.Should().BeTrue();
+        setting.Targets.OfType<AutounattendElement>().Should().ContainSingle()
+            .Which.Path.Should().Be("UILanguage");
     }
 
     [Fact]
@@ -162,10 +192,15 @@ public class TimeRegionLanguageCatalogTests
         foreach (var id in moved)
         {
             SettingCatalog.ByFeature[FeatureIds.TimeRegionLanguage].Should().Contain(s => s.Id == id, id);
-            SettingCatalog.ByFeature[FeatureIds.ExplorerCustomization].Should().NotContain(s => s.Id == id, id);
+            SettingCatalog.ByFeature[FeatureIds.Explorer].Should().NotContain(s => s.Id == id, id);
             SettingCatalog.ById[id].Display.GroupName.Should().Be(LocKey.SettingGroup.Formats, id);
-            SettingCatalog.ById[id].Control.Should().Be(ControlKind.Selection, id);
         }
+
+        // Short date is keyed on the pattern itself because region-format writes patterns no fixed list covers;
+        // the other five have small closed value sets, so they stay fixed states with translated labels.
+        SettingCatalog.ById["explorer-customization-short-date"].Control.Should().Be(ControlKind.KeyedSelection);
+        foreach (var id in moved.Where(id => id != "explorer-customization-short-date"))
+            SettingCatalog.ById[id].Control.Should().Be(ControlKind.Selection, id);
 
         SettingCatalog.ById["explorer-customization-first-day-of-week"].States.Select(s => s.Label)
             .Should().Equal(Enumerable.Range(0, 7)

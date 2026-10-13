@@ -1,5 +1,5 @@
+using System.Diagnostics;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
@@ -52,14 +52,122 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
         }
     }
 
-    public async Task<PackageInstallResult> InstallPackageAsync(string packageId, string? source = null, string? displayName = null, string? installerOverride = null, CancellationToken cancellationToken = default)
+    public Task<PackageInstallResult> InstallPackageAsync(string packageId, string? source = null, string? displayName = null, string? installerOverride = null, CancellationToken cancellationToken = default)
+        => InstallCoreAsync(packageId, InstallArguments(packageId, source, installerOverride, forAllUsers: false), displayName, WinGetOperation.Install, cancellationToken);
+
+    public Task<PackageInstallResult> InstallPackageForAllUsersAsync(string packageId, string? source, string? displayName, string? installerOverride, CancellationToken cancellationToken)
+        => InstallCoreAsync(packageId, InstallArguments(packageId, source, installerOverride, forAllUsers: true), displayName, WinGetOperation.Install, cancellationToken);
+
+    public async Task<PackageInstallResult> UpgradePackageAsync(string packageId, string? source, string? displayName, CancellationToken cancellationToken)
     {
+        if (IsAppInstaller(packageId))
+            await ReleaseWinGetServerAsync(cancellationToken).ConfigureAwait(false);
+        return await InstallCoreAsync(packageId, UpgradeArguments(packageId, source), displayName, WinGetOperation.Upgrade, cancellationToken).ConfigureAwait(false);
+    }
+
+    internal static bool IsAppInstaller(string packageId)
+        => packageId.Equals("Microsoft.AppInstaller", StringComparison.OrdinalIgnoreCase)
+            || packageId.Equals("9NBLGGH4NNS1", StringComparison.OrdinalIgnoreCase);
+
+    // The next winget lookup reconnects on its own once the update has registered.
+    private async Task ReleaseWinGetServerAsync(CancellationToken cancellationToken)
+    {
+        _comSession.Release();
+        for (int i = 0; i < 20 && IsWinGetServerRunning(); i++)
+            await Task.Delay(500, cancellationToken).ConfigureAwait(false);
+        _logService.LogInformation(IsWinGetServerRunning()
+            ? "WinGet COM server still running; App Installer may only stage its update"
+            : "Released the WinGet COM server before updating App Installer");
+    }
+
+    private static bool IsWinGetServerRunning()
+    {
+        var processes = Process.GetProcessesByName("WindowsPackageManagerServer");
+        foreach (var process in processes)
+            process.Dispose();
+        return processes.Length > 0;
+    }
+
+    // --exact so an id like Git.Git never upgrades Git.GitLFS instead.
+    internal static string UpgradeArguments(string packageId, string? source)
+    {
+        var arguments = $"upgrade --id {packageId} --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity";
+        return string.IsNullOrEmpty(source) ? arguments : arguments + $" --source {source}";
+    }
+
+    internal static string InstallArguments(string packageId, string? source, string? installerOverride, bool forAllUsers)
+    {
+        var arguments = $"install --id {packageId} --silent --accept-package-agreements --accept-source-agreements --force --disable-interactivity";
+        if (!string.IsNullOrEmpty(source))
+            arguments += $" --source {source}";
+        if (!string.IsNullOrWhiteSpace(installerOverride))
+            arguments += $" --override \"{installerOverride}\"";
+        if (forAllUsers)
+            arguments += " --scope machine";
+        return arguments;
+    }
+
+    // --skip-dependencies: the staged installer runs on its own on the new PC, so dependency installers would never
+    // run. An app that needs them fails its staged install and the online route installs it with them.
+    internal static string DownloadArguments(string packageId, string architecture, bool forAllUsers, string destinationFolder)
+    {
+        var arguments = $"download --id {packageId} --exact --source winget --architecture {architecture} --download-directory \"{destinationFolder}\" --skip-dependencies --accept-package-agreements --accept-source-agreements --disable-interactivity";
+        return forAllUsers ? arguments + " --scope machine" : arguments;
+    }
+
+    public async Task<bool> DownloadPackageAsync(string packageId, string architecture, bool forAllUsers, string destinationFolder, string? displayName, CancellationToken cancellationToken)
+    {
+        var arguments = DownloadArguments(packageId, architecture, forAllUsers, destinationFolder);
+        var exePath = WinGetCliRunner.GetBundledWinGetExePath();
+        var output = new WinGetOutputStream(
+            WinGetOperation.Download, displayName ?? packageId, _taskProgressService, _localization, _logService);
+        output.WriteHeader(exePath ?? "winget", arguments);
+
+        try
+        {
+            var result = await WinGetCliRunner.RunAsync(
+                arguments,
+                onOutputLine: output.HandleOutputLine,
+                onErrorLine: output.HandleErrorLine,
+                cancellationToken: cancellationToken,
+                timeoutMs: WinGetCliRunner.InstallTimeoutMs,
+                exePathOverride: exePath,
+                // null keeps winget in this elevated process; under OTS it would run as the signed-in standard user.
+                interactiveUserService: null,
+                onProgressLine: output.ForwardProgressLine).ConfigureAwait(false);
+
+            output.WriteFooter(result, WinGetCliRunner.InstallTimeoutMs, idleTimeoutMs: 0);
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (result.ExitCode == 0)
+                return true;
+
+            var text = string.IsNullOrWhiteSpace(result.StandardError) ? result.StandardOutput : result.StandardError;
+            var tail = text.Length > 500 ? text[^500..] : text;
+            _logService?.LogWarning($"winget download of {packageId} ({architecture}) failed with exit code 0x{result.ExitCode:X8}: {tail.Trim()}");
+            return false;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logService?.LogWarning($"winget download of {packageId} ({architecture}) failed: {ex.Message}");
+            return false;
+        }
+    }
+
+    private async Task<PackageInstallResult> InstallCoreAsync(string packageId, string arguments, string? displayName, WinGetOperation operation, CancellationToken cancellationToken)
+    {
+        var isUpgrade = operation == WinGetOperation.Upgrade;
         if (string.IsNullOrWhiteSpace(packageId))
             throw new ArgumentException("Package ID cannot be null or empty", nameof(packageId));
 
         displayName ??= packageId;
 
-        _taskProgressService?.UpdateProgress(10, _localization.GetString("Progress_WinGet_CheckingPrerequisites", displayName));
+        _taskProgressService?.UpdateProgress(10, _localization.GetString(isUpgrade ? "Progress_Updating" : "Progress_WinGet_CheckingPrerequisites", displayName));
 
         if (!await IsWinGetInstalledAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -69,158 +177,24 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
 
         try
         {
-            _taskProgressService?.UpdateProgress(20, _localization.GetString("Progress_WinGet_StartingInstallation", displayName));
-
-            var arguments = $"install --id {packageId} --silent --accept-package-agreements --accept-source-agreements --force --disable-interactivity";
-            if (!string.IsNullOrEmpty(source))
-                arguments += $" --source {source}";
-            if (!string.IsNullOrWhiteSpace(installerOverride))
-                arguments += $" --override \"{installerOverride}\"";
+            _taskProgressService?.UpdateProgress(20, _localization.GetString(isUpgrade ? "Progress_Updating" : "Progress_WinGet_StartingInstallation", displayName));
 
             var wingetExe = WinGetCliRunner.GetWinGetExePath(_interactiveUserService) ?? "winget";
-
-            _logService?.LogInformation($"Running: {wingetExe} {arguments}");
-
-            var startTime = DateTime.Now;
-            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-            {
-                TerminalOutput = $"Command: {wingetExe} {arguments}"
-            });
-            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-            {
-                TerminalOutput = $"Start Time: \"{startTime:yyyy/MM/dd HH:mm:ss}\""
-            });
-            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-            {
-                TerminalOutput = "---"
-            });
-
-            var lastProgressReport = DateTime.MinValue;
-
-            var lastLoggedPhase = (WinGetProgressParser.WinGetPhase?)null;
-
-            void HandleOutputLine(string line)
-            {
-                try
-                {
-                    // When ConPTY is active, winget's first progress bar render uses \r\n.
-                    // The \r fires onProgressLine (transient), then \n fires onOutputLine
-                    // (permanent) for the same content. Skip the permanent duplicate here
-                    // so the terminal doesn't show a frozen ghost progress bar.
-                    if (IsProgressBarLine(line))
-                        return;
-
-                    var displayLine = WinGetProgressParser.TranslateLine(line);
-
-                    var progress = WinGetProgressParser.ParseLine(line);
-                    if (progress != null)
-                    {
-                        if (progress.Phase != lastLoggedPhase
-                            && progress.Phase is WinGetProgressParser.WinGetPhase.Found
-                                or WinGetProgressParser.WinGetPhase.Installing
-                                or WinGetProgressParser.WinGetPhase.Complete
-                                or WinGetProgressParser.WinGetPhase.Error)
-                        {
-                            lastLoggedPhase = progress.Phase;
-                            if (displayLine != null)
-                                _logService?.LogInformation(displayLine);
-                        }
-
-                        var progressPercent = progress.Phase switch
-                        {
-                            WinGetProgressParser.WinGetPhase.Found => 30,
-                            WinGetProgressParser.WinGetPhase.Downloading => 30 + (int)((progress.Percent ?? 0) * 0.4),
-                            WinGetProgressParser.WinGetPhase.Installing => 70 + (int)((progress.Percent ?? 0) * 0.25),
-                            WinGetProgressParser.WinGetPhase.Complete => 100,
-                            _ => 50
-                        };
-
-                        var statusText = progress.Phase switch
-                        {
-                            WinGetProgressParser.WinGetPhase.Found => _localization.GetString("Progress_WinGet_FoundPackage", displayName),
-                            WinGetProgressParser.WinGetPhase.Downloading => _localization.GetString("Progress_Downloading", displayName),
-                            WinGetProgressParser.WinGetPhase.Installing => _localization.GetString("Progress_Installing", displayName),
-                            WinGetProgressParser.WinGetPhase.Complete => _localization.GetString("Progress_WinGet_InstalledSuccess", displayName),
-                            _ => _localization.GetString("Progress_Processing", displayName)
-                        };
-
-                        var now = DateTime.UtcNow;
-                        if (progress.Phase == WinGetProgressParser.WinGetPhase.Complete
-                            || (now - lastProgressReport).TotalMilliseconds >= 250)
-                        {
-                            lastProgressReport = now;
-                            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-                            {
-                                Progress = progressPercent,
-                                StatusText = statusText,
-                                TerminalOutput = progress.Percent.HasValue && progress.Phase != WinGetProgressParser.WinGetPhase.Complete
-                                    ? null : (displayLine ?? line),
-                            });
-                        }
-                    }
-                    else if (displayLine != null)
-                    {
-                        _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-                        {
-                            TerminalOutput = displayLine
-                        });
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
-                }
-            }
-
-            void HandleErrorLine(string line)
-            {
-                _logService?.LogWarning($"winget stderr: {line}");
-                // Surface stderr in the terminal too — winget's actual error text
-                // is useless to users (and to bug reports) if it only hits the log file.
-                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-                {
-                    TerminalOutput = line
-                });
-            }
+            var output = new WinGetOutputStream(
+                operation, displayName, _taskProgressService, _localization, _logService);
+            output.WriteHeader(wingetExe, arguments);
 
             var result = await WinGetCliRunner.RunAsync(
                 arguments,
-                onOutputLine: HandleOutputLine,
-                onErrorLine: HandleErrorLine,
+                onOutputLine: output.HandleOutputLine,
+                onErrorLine: output.HandleErrorLine,
                 cancellationToken: cancellationToken,
                 timeoutMs: WinGetCliRunner.InstallTimeoutMs,
                 idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
                 interactiveUserService: _interactiveUserService,
-                onProgressLine: line => WinGetProgressParser.Forward(line, _taskProgressService, _logService)).ConfigureAwait(false);
+                onProgressLine: output.ForwardProgressLine).ConfigureAwait(false);
 
-            var endTime = DateTime.Now;
-            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-            {
-                TerminalOutput = "---"
-            });
-
-            // A bare -1 (0xFFFFFFFF) is Winhance's own kill, not a winget verdict —
-            // say so, or support transcripts read like a winget bug (see issue #675).
-            var terminationNote = WinGetCliRunner.DescribeTermination(
-                result, timeoutMs: WinGetCliRunner.InstallTimeoutMs, idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
-                localization: _localization);
-            if (terminationNote != null)
-            {
-                _logService?.LogWarning(terminationNote);
-                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-                {
-                    TerminalOutput = terminationNote
-                });
-            }
-
-            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-            {
-                TerminalOutput = $"End Time: \"{endTime:yyyy/MM/dd HH:mm:ss}\""
-            });
-            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-            {
-                TerminalOutput = $"Process return value: \"{result.ExitCode}\" (0x{result.ExitCode:X8})"
-            });
+            output.WriteFooter(result, WinGetCliRunner.InstallTimeoutMs, WinGetCliRunner.InstallIdleTimeoutMs);
 
             // If the user cancelled while the process was running, throw before
             // checking the exit code so the OperationCanceledException handler fires
@@ -229,7 +203,7 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
 
             if (WinGetExitCodes.IsSuccess(result.ExitCode))
             {
-                _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_WinGet_InstalledSuccess", displayName));
+                _taskProgressService?.UpdateProgress(100, _localization.GetString(isUpgrade ? "Progress_UpdatedSuccess" : "Progress_WinGet_InstalledSuccess", displayName));
                 return PackageInstallResult.Succeeded();
             }
 
@@ -278,138 +252,32 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                 arguments += $" --source {source}";
 
             var wingetExe = WinGetCliRunner.GetWinGetExePath(_interactiveUserService) ?? "winget";
+            var output = new WinGetOutputStream(
+                WinGetOperation.Uninstall, displayName, _taskProgressService, _localization, _logService);
 
-            _logService?.LogInformation($"Running: {wingetExe} {arguments}");
-
-            var startTime = DateTime.Now;
-            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+            async Task<WinGetCliRunner.WinGetCliResult> RunUninstallAsync(bool asShellUser)
             {
-                TerminalOutput = $"Command: {wingetExe} {arguments}"
-            });
-            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-            {
-                TerminalOutput = $"Start Time: \"{startTime:yyyy/MM/dd HH:mm:ss}\""
-            });
-            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-            {
-                TerminalOutput = "---"
-            });
-
-            var lastProgressReport = DateTime.MinValue;
-
-            var lastLoggedPhase = (WinGetProgressParser.WinGetPhase?)null;
-
-            var result = await WinGetCliRunner.RunAsync(
-                arguments,
-                onOutputLine: line =>
-                {
-                    try
-                    {
-                        if (IsProgressBarLine(line))
-                            return;
-
-                        var displayLine = WinGetProgressParser.TranslateLine(line);
-
-                        var progress = WinGetProgressParser.ParseLine(line);
-                        if (progress != null)
-                        {
-                            if (progress.Phase != lastLoggedPhase
-                                && progress.Phase is WinGetProgressParser.WinGetPhase.Found
-                                    or WinGetProgressParser.WinGetPhase.Uninstalling
-                                    or WinGetProgressParser.WinGetPhase.Complete
-                                    or WinGetProgressParser.WinGetPhase.Error)
-                            {
-                                lastLoggedPhase = progress.Phase;
-                                if (displayLine != null)
-                                    _logService?.LogInformation(displayLine);
-                            }
-
-                            var progressPercent = progress.Phase switch
-                            {
-                                WinGetProgressParser.WinGetPhase.Found => 30,
-                                WinGetProgressParser.WinGetPhase.Uninstalling => 60,
-                                WinGetProgressParser.WinGetPhase.Complete => 100,
-                                _ => 50
-                            };
-
-                            var statusText = progress.Phase switch
-                            {
-                                WinGetProgressParser.WinGetPhase.Found => _localization.GetString("Progress_WinGet_FoundPackage", displayName),
-                                WinGetProgressParser.WinGetPhase.Uninstalling => _localization.GetString("Progress_Uninstalling", displayName),
-                                WinGetProgressParser.WinGetPhase.Complete => _localization.GetString("Progress_WinGet_UninstalledSuccess", displayName),
-                                _ => _localization.GetString("Progress_Processing", displayName)
-                            };
-
-                            // Throttle progress updates to avoid flooding the UI (allow Complete through unconditionally)
-                            var now = DateTime.UtcNow;
-                            if (progress.Phase == WinGetProgressParser.WinGetPhase.Complete
-                                || (now - lastProgressReport).TotalMilliseconds >= 250)
-                            {
-                                lastProgressReport = now;
-                                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-                                {
-                                    Progress = progressPercent,
-                                    StatusText = statusText,
-                                    TerminalOutput = progress.Percent.HasValue && progress.Phase != WinGetProgressParser.WinGetPhase.Complete
-                                        ? null : (displayLine ?? line),
-                                });
-                            }
-                        }
-                        else if (displayLine != null)
-                        {
-                            // Non-parsed text lines: send to UI terminal only (skip log to avoid noise)
-                            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-                            {
-                                TerminalOutput = displayLine
-                            });
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
-                    }
-                },
-                onErrorLine: line =>
-                {
-                    _logService?.LogWarning($"winget stderr: {line}");
-                    _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-                    {
-                        TerminalOutput = line
-                    });
-                },
-                cancellationToken: cancellationToken,
-                timeoutMs: WinGetCliRunner.InstallTimeoutMs,
-                idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
-                interactiveUserService: _interactiveUserService,
-                onProgressLine: line => WinGetProgressParser.Forward(line, _taskProgressService, _logService)).ConfigureAwait(false);
-
-            var endTime = DateTime.Now;
-            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-            {
-                TerminalOutput = "---"
-            });
-
-            // A bare -1 (0xFFFFFFFF) is Winhance's own kill, not a winget verdict (see issue #675)
-            var terminationNote = WinGetCliRunner.DescribeTermination(
-                result, timeoutMs: WinGetCliRunner.InstallTimeoutMs, idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
-                localization: _localization);
-            if (terminationNote != null)
-            {
-                _logService?.LogWarning(terminationNote);
-                _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-                {
-                    TerminalOutput = terminationNote
-                });
+                output.WriteHeader(wingetExe, arguments);
+                var run = await WinGetCliRunner.RunAsync(
+                    arguments,
+                    onOutputLine: output.HandleOutputLine,
+                    onErrorLine: output.HandleErrorLine,
+                    cancellationToken: cancellationToken,
+                    timeoutMs: WinGetCliRunner.InstallTimeoutMs,
+                    idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
+                    interactiveUserService: _interactiveUserService,
+                    onProgressLine: output.ForwardProgressLine,
+                    asShellUser: asShellUser).ConfigureAwait(false);
+                output.WriteFooter(run, WinGetCliRunner.InstallTimeoutMs, WinGetCliRunner.InstallIdleTimeoutMs);
+                return run;
             }
 
-            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+            var result = await RunUninstallAsync(asShellUser: false).ConfigureAwait(false);
+            if (result.ExitCode == WinGetExitCodes.NoAdminUninstallForUserScope)
             {
-                TerminalOutput = $"End Time: \"{endTime:yyyy/MM/dd HH:mm:ss}\""
-            });
-            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-            {
-                TerminalOutput = $"Process return value: \"{result.ExitCode}\" (0x{result.ExitCode:X8})"
-            });
+                _logService?.LogInformation($"{packageId} is installed for the signed-in user only - retrying the uninstall unelevated");
+                result = await RunUninstallAsync(asShellUser: true).ConfigureAwait(false);
+            }
 
             if (WinGetExitCodes.IsSuccess(result.ExitCode))
             {
@@ -540,17 +408,6 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
             // If the check fails, assume it's gone to avoid blocking
             return false;
         }
-    }
-
-    // These arrive as permanent output when ConPTY re-emits a \r\n-terminated progress bar, but are already handled by onProgressLine.
-    private static bool IsProgressBarLine(string line)
-    {
-        foreach (char c in line)
-        {
-            if (c >= '\u2588' && c <= '\u258F') return true;
-            if (c == '\u2591') return true;
-        }
-        return false;
     }
 
     private string GetInstallErrorMessageCli(string packageId, InstallFailureReason reason, int exitCode)

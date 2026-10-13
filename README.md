@@ -74,7 +74,9 @@ It really does make a big difference, and is very much appreciated. Thanks<br>
 
 ### Unattend ⚙️
 - Build an autounattend.xml answer file from your selections in Builder Mode
-- Choices that only live in the answer file: Windows edition and product key, processor architectures, the hardware check bypass, the accounts Setup creates, which Setup screens appear, the privacy questions, the computer name, .NET Framework 3.5, and the Install Winhance shortcut on the desktop
+- Choices that only live in the answer file: Windows edition and product key, processor architectures, the hardware check bypass, the accounts Setup creates, which Setup screens appear, the privacy questions, the computer name, .NET Framework 3.5, and how Winhance gets onto the new PC (a desktop shortcut or an automatic install after setup)
+- Add PowerShell of your own: one script that runs as the system while Windows finishes setting up, one that runs for each person who signs in. Winhance carries them inside Winhancements.ps1 and logs what they did, and a broken script cannot stop the rest of the file
+- Apps checked under External Software are installed by Winhance on the new PC after setup, for every account where the app allows it. With WIMUtil their installers, and installers of your own, go on the ISO so they install offline
 - Time zone, regional format, keyboard layout and system locale come from the Customize page's Time, region and language section and ride into the answer file with the rest of your selections
 - Every Optimize and Customize setting you include rides along too: the box on each section card includes or excludes a whole section.
 - Drop the file into WIMUtil for a custom ISO, or onto the root of a bootable USB

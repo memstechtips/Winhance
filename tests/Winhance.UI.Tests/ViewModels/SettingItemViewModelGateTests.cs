@@ -109,6 +109,26 @@ public class SettingItemViewModelGateTests
     }
 
     [Fact]
+    public async Task A_gated_child_the_review_wants_to_change_is_drawn_while_the_review_runs()
+    {
+        var parent = Card(ParentId, states: ParentStates);
+        var child = Card("gate-child", WhenParentIs("Slideshow"));
+        await FeatureWith(parent, child);
+        parent.SelectedValue = 0;
+        child.EffectiveIsVisible.Should().BeFalse();
+
+        child.IsInReviewMode = true;
+        child.HasReviewDiff = true;
+
+        child.EffectiveIsVisible.Should().BeTrue(
+            because: "Apply waits for every diffed card to be reviewed, and a hidden card never can be");
+
+        child.ClearReviewState();
+
+        child.EffectiveIsVisible.Should().BeFalse(because: "the gate owns the card again once the review ends");
+    }
+
+    [Fact]
     public async Task Moving_the_parent_onto_the_named_state_draws_it_again()
     {
         var parent = Card(ParentId, states: ParentStates);

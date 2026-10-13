@@ -1,3 +1,5 @@
+using Winhance.Core.Features.Common.Enums;
+
 namespace Winhance.Core.Features.Common.Catalog;
 
 public static class CatalogValidator
@@ -9,6 +11,12 @@ public static class CatalogValidator
 
         foreach (var k in setting.Targets.GroupBy(t => t.Key).Where(g => g.Count() > 1).Select(g => g.Key))
             errors.Add(new CatalogValidationError(id, $"Duplicate target key '{k}'."));
+
+        // HKCR is a merged view with no PowerShell drive, so the answer file cannot write it. A write through it lands
+        // in HKLM\SOFTWARE\Classes unless the user has their own copy of the key, so name that path directly.
+        foreach (var path in setting.Targets.OfType<RegTarget>().SelectMany(t => t.Paths)
+                     .Where(p => p.StartsWith("HKEY_CLASSES_ROOT", StringComparison.OrdinalIgnoreCase) || p.StartsWith("HKCR", StringComparison.OrdinalIgnoreCase)))
+            errors.Add(new CatalogValidationError(id, $"Registry path '{path}' goes through HKEY_CLASSES_ROOT; use HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes."));
 
         var fallbackCount = setting.States.Count(s => s.IsFallback);
         if (fallbackCount > 1)
@@ -41,14 +49,18 @@ public static class CatalogValidator
         // carry a partial (or empty) representative Set — it's exempt from the "missing" check. Any
         // state referencing an UNKNOWN key is always a typo, fallback or not. The whole block is
         // skipped when a custom Detector handles detection, or there are no targets. A keyed selection's
-        // state names one option by its key alone, so it is exempt from the "missing" check too.
+        // state names one option by its key alone, so it is exempt from the "missing" check too. A key no state
+        // sets and only a field edits (a DNS server's encryption) cannot tell two states apart, so it is exempt.
         if (setting.Detector is null && setting.Targets.Count > 0)
         {
             var targetKeys = setting.Targets.Select(t => t.Key).ToHashSet();
+            var fieldOnlyKeys = setting.Fields.SelectMany(row => row).Select(f => f.Key)
+                .Where(key => setting.States.All(st => !st.Set.ContainsKey(key)))
+                .ToHashSet();
             foreach (var s in setting.States.Where(s => s.Set.Count > 0))
             {
                 var stateKeys = s.Set.Keys.ToHashSet();
-                var missing = targetKeys.Except(stateKeys).ToList();
+                var missing = targetKeys.Except(stateKeys).Except(fieldOnlyKeys).ToList();
                 var extra = stateKeys.Except(targetKeys).ToList();
                 if (missing.Count > 0 && !s.IsFallback && !setting.IsAnswerFileOnly && setting.Control != ControlKind.KeyedSelection)
                     errors.Add(new CatalogValidationError(id, $"State '{s.Label}' is missing target key(s): {string.Join(", ", missing)}."));
@@ -77,10 +89,15 @@ public static class CatalogValidator
             errors.Add(new CatalogValidationError(id,
                 "Setting-level Effects are only for stateless Actions: a setting with Effects must have no States, Targets, or Detector."));
 
-        if (setting.Effects.Count == 0 && setting.States.Count == 0
+        if (setting.Effects.Count == 0 && setting.States.Count == 0 && setting.CustomStateScripts.Count == 0
             && setting.Targets.Count == 0 && setting.Detector is null && setting.Options is null)
             errors.Add(new CatalogValidationError(id,
                 "Setting detects nothing and does nothing: a 0-state, 0-target, detector-less setting must carry at least one setting-level Effect."));
+
+        if (setting.Fields.Count > 0 && setting.Control != ControlKind.Selection)
+            errors.Add(new CatalogValidationError(id, "Fields spell out a Selection's presets; only a Selection may carry them."));
+        foreach (var field in setting.Fields.SelectMany(row => row).Where(f => setting.Targets.All(t => t.Key != f.Key)))
+            errors.Add(new CatalogValidationError(id, $"Field '{field.Key}' names no target; each field edits the target with its key."));
 
         if (setting.Control == ControlKind.KeyedSelection)
         {
@@ -100,8 +117,11 @@ public static class CatalogValidator
             if (setting.Numeric is not null)
                 errors.Add(new CatalogValidationError(id,
                     "A keyed selection may not declare a Numeric range; it would be silently ignored."));
-            // A power plan is activated rather than written, so its list declares no written target.
-            if (list.Source != OptionSource.PowerPlans && !setting.Targets.OfType<RegTarget>().Any(t => !t.ReadOnly))
+            // A power plan is activated and a display language is written as REG_MULTI_SZ through the provider's
+            // .reg file, so neither has a value target to write; an answer-file-only card writes nothing here at all.
+            bool writesNoValue = list.Source is OptionSource.PowerPlans or OptionSource.DisplayLanguages
+                || setting.IsAnswerFileOnly;
+            if (!writesNoValue && !setting.Targets.OfType<RegTarget>().Any(t => !t.ReadOnly))
                 errors.Add(new CatalogValidationError(id,
                     "A keyed selection must write the chosen option to at least one registry target that is not ReadOnly."));
 
@@ -109,12 +129,20 @@ public static class CatalogValidator
             if (listsSubkeys && (string.IsNullOrEmpty(list.Path) || string.IsNullOrEmpty(list.LabelValue)))
                 errors.Add(new CatalogValidationError(id,
                     $"A {list.Source} list reads its options from registry subkeys, so it must name their Path and LabelValue."));
-            if (!listsSubkeys && (list.Path is not null || list.LabelValue is not null))
+            // A DisplayLanguages Path is optional and decides what the list is: with one, the packs this PC has;
+            // without one, every language .NET knows. Either way the label is the culture's own name.
+            if (list.Source == OptionSource.DisplayLanguages && list.LabelValue is not null)
+                errors.Add(new CatalogValidationError(id,
+                    "A DisplayLanguages list labels each option from its culture, so a LabelValue would be silently ignored."));
+            if (!listsSubkeys && list.Source != OptionSource.DisplayLanguages && (list.Path is not null || list.LabelValue is not null))
                 errors.Add(new CatalogValidationError(id,
                     $"A {list.Source} list does not read registry subkeys; its Path and LabelValue would be silently ignored."));
-            if (list.Keys.Count > 0 && list.Source != OptionSource.Colors)
+            if (list.Keys.Count > 0 && list.Source is not (OptionSource.Colors or OptionSource.LocaleValues))
                 errors.Add(new CatalogValidationError(id,
-                    $"Only a Colors list declares fixed Keys; a {list.Source} list would silently ignore them."));
+                    $"Only a Colors or LocaleValues list declares fixed Keys; a {list.Source} list would silently ignore them."));
+            if ((list.Source == OptionSource.LocaleValues) != (list.Value is not null))
+                errors.Add(new CatalogValidationError(id,
+                    "A LocaleValues list must name the Value it offers, and only that source reads one."));
         }
         else
         {
@@ -128,8 +156,8 @@ public static class CatalogValidator
             bool slideshow = setting.Targets.OfType<DesktopSlideshowTarget>().Any();
             if (setting.States.Count > 0)
                 errors.Add(new CatalogValidationError(id, $"A TextBox setting may not declare states; found {setting.States.Count}."));
-            if (!setting.Targets.Any(t => t is AutounattendTarget) && !slideshow)
-                errors.Add(new CatalogValidationError(id, "A TextBox setting must declare at least one target to write to."));
+            if (!setting.Targets.Any(t => t is AutounattendTarget) && !slideshow && setting.CustomStateScripts.Count == 0)
+                errors.Add(new CatalogValidationError(id, "A TextBox setting must declare at least one target to write to, or the CustomStateScripts its text fills."));
             if (setting.Targets.Any(t => t is not AutounattendTarget && t is not DesktopSlideshowTarget && t is not RegTarget { ReadOnly: true }))
                 errors.Add(new CatalogValidationError(id, "A TextBox setting writes to the answer file or the desktop slideshow; every target must be an answer-file target, a desktop slideshow, or a ReadOnly registry target that seeds it."));
             if (setting.Targets.OfType<DesktopSlideshowTarget>().Count() > 1)
@@ -149,6 +177,15 @@ public static class CatalogValidator
                 errors.Add(new CatalogValidationError(id, $"TextBox.SeedKey names '{seedKey}', which is not a ReadOnly registry target on this setting."));
         }
 
+        foreach (var script in setting.Targets.OfType<AutounattendScript>())
+        {
+            if (setting.Control != ControlKind.List)
+                errors.Add(new CatalogValidationError(id, "Only a List setting carries the user's own scripts into the answer file."));
+            // The script goes to the system section or the user section; the sign-in hook is for a card's own effects.
+            if (script.Run == RunContext.SignInAfterSetup)
+                errors.Add(new CatalogValidationError(id, "A user script runs in the system pass or the user pass, not at the sign-in after Setup."));
+        }
+
         // Checks the property, not Control: an option list or a Numeric wins the derivation over a TextBox.
         if (setting.TextBox is not null && (setting.Numeric is not null || setting.Options is not null))
             errors.Add(new CatalogValidationError(id, "A TextBox setting may not declare a Numeric range or an option list; it would be silently ignored."));
@@ -157,13 +194,15 @@ public static class CatalogValidator
         {
             if (setting.States.Count > 0)
                 errors.Add(new CatalogValidationError(id, $"A List setting may not declare states; found {setting.States.Count}."));
-            if (setting.Targets.OfType<AutounattendElement>().Count() != 1
-                || setting.Targets.Any(t => t is not AutounattendElement && t is not RegTarget { ReadOnly: true }))
-                errors.Add(new CatalogValidationError(id, "A List setting declares exactly one answer-file element, plus ReadOnly registry targets for its seed."));
+            if (setting.Targets.Count(t => t is AutounattendElement or AutounattendScript or AutounattendMedia) != 1
+                || setting.Targets.Any(t => t is not (AutounattendElement or AutounattendScript or AutounattendMedia or RegTarget { ReadOnly: true })))
+                errors.Add(new CatalogValidationError(id, "A List setting declares exactly one answer-file element, script section or media target, plus ReadOnly registry targets for its seed."));
             if (setting.List!.Fields.Count == 0)
                 errors.Add(new CatalogValidationError(id, "A List setting must declare at least one field to type into."));
             foreach (var k in setting.List.Fields.GroupBy(f => f.Key).Where(g => g.Count() > 1).Select(g => g.Key))
                 errors.Add(new CatalogValidationError(id, $"Duplicate field key '{k}'."));
+            foreach (var f in setting.List.Fields.Where(f => (f.Kind == FieldKind.File) != (f.Filter is not null)))
+                errors.Add(new CatalogValidationError(id, $"Field '{f.Key}': a File field names the filter its picker opens with, and only a File field does."));
             if (setting.List.Seed is { } seed)
                 foreach (var key in seed.Values)
                     if (!SeedsFrom(setting, key))
@@ -173,15 +212,28 @@ public static class CatalogValidator
         if (setting.List is not null && (setting.TextBox is not null || setting.Numeric is not null || setting.Options is not null))
             errors.Add(new CatalogValidationError(id, "A List setting may not declare a TextBox rule, a Numeric range or an option list; the list would be silently ignored."));
 
+        if (setting.CheckList is not null)
+        {
+            if (setting.States.Count > 0)
+                errors.Add(new CatalogValidationError(id, $"A CheckList setting may not declare states; found {setting.States.Count}."));
+            if (setting.TextBox is not null || setting.Numeric is not null || setting.Options is not null || setting.List is not null)
+                errors.Add(new CatalogValidationError(id, "A CheckList setting may not declare a TextBox rule, a Numeric range, an option list or a List; the check list would win and the rest be ignored."));
+            if (setting.Targets.Count != 1 || setting.Targets[0] is not AutounattendMedia)
+                errors.Add(new CatalogValidationError(id, "A CheckList setting declares exactly one media target; its ticks are applied to the installation media."));
+        }
+
+        // The media is changed by WIMUtil, so a setting that changes it writes nothing else.
+        if (setting.Targets.OfType<AutounattendMedia>().Any() && setting.Targets.Any(t => t is not AutounattendMedia))
+            errors.Add(new CatalogValidationError(id, "A setting with a media target may not also write the answer file or this PC."));
+
         // A selection that borrows Checked or Unchecked would read as a check box to every two-state consumer.
         if (setting.Control != ControlKind.CheckBox
             && setting.States.Any(s => s.Label == TwoState.OnLabel(ControlKind.CheckBox) || s.Label == TwoState.OffLabel(ControlKind.CheckBox)))
             errors.Add(new CatalogValidationError(id,
                 "Checked/Unchecked may only appear as the exact CheckBox pair."));
 
-        if (setting.IsAnswerFileOnly && setting.States.Count > 0
-            && setting.States.Count(s => s.HasRole(RoleKind.WindowsDefault)) != 1)
-            errors.Add(new CatalogValidationError(id, "An answer-file-only setting needs exactly one WindowsDefault state to seed from."));
+        if (setting.IsAnswerFileOnly && setting.States.Count > 0 && setting.SeedState is null)
+            errors.Add(new CatalogValidationError(id, "An answer-file-only setting needs a Recommended or WindowsDefault state to seed from."));
 
         // A keyed selection may mix them: its key is the same string on both sides (a time-zone id, a culture name).
         bool anyUnattend = setting.Targets.Any(t => t is AutounattendTarget)
@@ -189,6 +241,12 @@ public static class CatalogValidator
             || setting.States.Any(s => s.Effects.Any(e => e is AutounattendCommand or AutounattendFirstLogonCommand));
         if (anyUnattend && !setting.IsAnswerFileOnly && setting.Control != ControlKind.KeyedSelection)
             errors.Add(new CatalogValidationError(id, "Setting mixes an answer-file mechanism with a machine mechanism."));
+
+        // The live apply runs every ScriptEffect in-process, where there is no answer file and no sign-in after Setup.
+        var scripts = setting.Effects.Concat(setting.States.SelectMany(s => s.Effects)).OfType<ScriptEffect>().Concat(setting.CustomStateScripts);
+        if (!setting.IsAnswerFileOnly && scripts.Any(s => s.When != AppsToInstall.Either || s.Run == RunContext.SignInAfterSetup))
+            errors.Add(new CatalogValidationError(id,
+                "Only an answer-file-only setting may give a script an apps condition or run it at the sign-in after Setup; the live apply ignores both."));
 
         // On any other live setting a ReadOnly target is one the apply silently skips.
         foreach (var reg in setting.Targets.OfType<RegTarget>())

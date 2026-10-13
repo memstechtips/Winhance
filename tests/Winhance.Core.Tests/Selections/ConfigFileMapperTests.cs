@@ -415,7 +415,7 @@ public class ConfigFileMapperTests
         var t = Toggle("t"); var s = Selection("s"); var w = Toggle("w");
         var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
         {
-            [FeatureIds.ExplorerCustomization] = new[] { t },
+            [FeatureIds.Explorer] = new[] { t },
             [FeatureIds.Privacy] = new[] { s },
             [FeatureIds.Autounattend] = new[] { w },
         };
@@ -431,7 +431,7 @@ public class ConfigFileMapperTests
 
         var file = ConfigFileMapper.ToFile(set, byFeature);
 
-        file.Customize.Features[FeatureIds.ExplorerCustomization].Items.Should().ContainSingle(i => i.Id == "t" && i.IsSelected == true && i.Name == "t");
+        file.Customize.Features[FeatureIds.Explorer].Items.Should().ContainSingle(i => i.Id == "t" && i.IsSelected == true && i.Name == "t");
         file.Optimize.Features[FeatureIds.Privacy].Items.Should().ContainSingle(i => i.Id == "s" && i.SelectedIndex == 1);
         file.Autounattend.Features[FeatureIds.Autounattend].Items.Should().ContainSingle(i => i.Id == "w");
         file.WindowsApps.Items.Should().ContainSingle(i => i.Id == "app1" && i.AppxPackageName!.Single() == "Pkg" && i.IsSelected == true);

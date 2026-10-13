@@ -9,8 +9,6 @@ public partial class UpdateOptimizationsViewModel : BaseSettingsFeatureViewModel
 {
     public override string ModuleId => FeatureIds.Update;
 
-    protected override string GetDisplayNameKey() => "Feature_Update_Name";
-
     public UpdateOptimizationsViewModel(
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,

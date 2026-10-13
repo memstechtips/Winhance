@@ -7,6 +7,28 @@ public static class AvailabilityCompatibility
     private static readonly WinBuild Windows11Boundary = new(22000);
     private static readonly WinBuild Windows10Ceiling = new(21999, int.MaxValue);
 
+    // The title-bar filter turned off and Builder's "All Windows versions" both come through here, so the two views
+    // label settings the same way. Every other scope shows only settings that fit its build, so nothing to say. A
+    // setting that fits this PC is still labelled with what it needs, or a Windows 10 card and its Windows 11 twin
+    // look identical.
+    public static string? ForScope(Availability availability, CatalogScope scope, WinBuild liveBuild)
+    {
+        if (!scope.IncludeOtherOsVersions)
+            return null;
+
+        return DeriveCompatibilityMessage(availability, liveBuild)
+            ?? (availability.Builds is [var only] ? DeriveCompatibilityMessage(availability, JustOutside(only)) : null);
+    }
+
+    // Past the bound that says the most: above a bounded Max ("26120 or lower"), else below Min ("26100.7171 or higher").
+    private static WinBuild JustOutside(BuildRange r)
+    {
+        if (r.Max.Build != int.MaxValue)
+            return r.Max.Revision == int.MaxValue ? new(r.Max.Build + 1) : new(r.Max.Build, r.Max.Revision + 1);
+
+        return r.Min.Revision > 0 ? new(r.Min.Build, r.Min.Revision - 1) : new(r.Min.Build - 1, int.MaxValue);
+    }
+
     public static string? DeriveCompatibilityMessage(Availability availability, WinBuild build)
     {
         var builds = availability.Builds;

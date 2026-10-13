@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:commonControls="using:Winhance.UI.Features.Common.Controls"
+    xmlns:selectors="using:Winhance.UI.Features.Common.TemplateSelectors"
     xmlns:viewModels="using:Winhance.UI.Features.Autounattend.ViewModels"
     Loaded="OnLoaded"
     Unloaded="OnUnloaded"
@@ -34,11 +35,103 @@
             </controls:SettingsCard>
         </DataTemplate>
 
-        <DataTemplate x:Key="IncludedGroupRowTemplate" x:DataType="viewModels:IncludedRowViewModel">
+        <!-- The child cards stay square: the Optimize and Customize group rows always follow this row. -->
+        <DataTemplate x:Key="IncludedExternalAppsRowTemplate" x:DataType="viewModels:ExternalAppsRowViewModel">
             <StackPanel>
                 <controls:SettingsCard
-                    IsClickEnabled="True"
-                    Click="{x:Bind ToggleExpander}"
+                    IsTabStop="False"
+                    AutomationProperties.LocalizedControlType="setting"
+                    Header="{x:Bind Name, Mode=OneWay}"
+                    Description="{x:Bind Description, Mode=OneWay}"
+                    HeaderIcon="{x:Bind IconResourceKey, Converter={StaticResource SectionIconConverter}}"
+                    BorderThickness="1,0,1,1"
+                    Padding="94,8,52,8"
+                    MinHeight="0"
+                    CornerRadius="{x:Bind CornerRadius, Mode=OneWay}">
+                    <TextBlock
+                        Text="{x:Bind CountText, Mode=OneWay}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        VerticalAlignment="Center"/>
+                </controls:SettingsCard>
+                <controls:SettingsCard
+                    Visibility="{x:Bind IsWarning, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    IsTabStop="False"
+                    ContentAlignment="Vertical"
+                    HorizontalContentAlignment="Stretch"
+                    BorderThickness="1,0,1,1"
+                    Padding="94,8,52,8"
+                    MinHeight="0"
+                    CornerRadius="0">
+                    <commonControls:QuietInfoBar
+                        IsOpen="{x:Bind IsWarning, Mode=OneWay}"
+                        Severity="Warning"
+                        Message="{x:Bind WarningText}"
+                        IsClosable="False"/>
+                </controls:SettingsCard>
+                <StackPanel Visibility="{x:Bind HasInstallerCards, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <controls:SettingsCard
+                        IsTabStop="False"
+                        ContentAlignment="Vertical"
+                        HorizontalContentAlignment="Stretch"
+                        BorderThickness="1,0,1,1"
+                        Padding="94,8,52,8"
+                        MinHeight="0"
+                        CornerRadius="0">
+                        <!-- AnimatedIcon.State: the check glyph would otherwise mirror this card's hover state. -->
+                        <CheckBox
+                            Content="{x:Bind StageOnMediaLabel, Mode=OneWay}"
+                            IsChecked="{x:Bind StageOnMedia, Mode=TwoWay}"
+                            AnimatedIcon.State="Normal"/>
+                    </controls:SettingsCard>
+                    <controls:SettingsCard
+                        IsTabStop="False"
+                        AutomationProperties.LocalizedControlType="setting"
+                        Header="{x:Bind OwnInstallersName, Mode=OneWay}"
+                        BorderThickness="1,0,1,1"
+                        Padding="94,8,52,8"
+                        MinHeight="0"
+                        CornerRadius="0">
+                        <controls:SettingsCard.Description>
+                            <TextBlock
+                                Text="{x:Bind OwnInstallersDescription, Mode=OneWay}"
+                                TextWrapping="Wrap"
+                                Style="{StaticResource CaptionTextBlockStyle}"/>
+                        </controls:SettingsCard.Description>
+                        <Button
+                            Content="{x:Bind AddOwnInstallerLabel, Mode=OneWay}"
+                            Click="{x:Bind AddOwnInstaller}"/>
+                    </controls:SettingsCard>
+                    <controls:SettingsCard
+                        Visibility="{x:Bind HasOwnInstallers, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        IsTabStop="False"
+                        ContentAlignment="Vertical"
+                        HorizontalContentAlignment="Stretch"
+                        BorderThickness="1,0,1,1"
+                        Padding="94,8,52,8"
+                        MinHeight="0"
+                        CornerRadius="0">
+                        <ItemsControl ItemsSource="{x:Bind OwnInstallerRows, Mode=OneWay}" ItemTemplate="{StaticResource ListRowTemplate}" IsTabStop="False">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Spacing="8"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </controls:SettingsCard>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+        <selectors:IncludedRowTemplateSelector
+            x:Key="IncludedRowTemplateSelector"
+            FeatureTemplate="{StaticResource IncludedFeatureRowTemplate}"
+            ExternalAppsTemplate="{StaticResource IncludedExternalAppsRowTemplate}"/>
+
+        <DataTemplate x:Key="IncludedGroupRowTemplate" x:DataType="viewModels:IncludedRowViewModel">
+            <StackPanel>
+                <commonControls:ClickableSettingsCard
+                    Invoked="{x:Bind ToggleExpander}"
                     IsTabStop="True"
                     AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
                     AutomationProperties.LocalizedControlType="setting"
@@ -49,10 +142,10 @@
                     MinHeight="0"
                     CornerRadius="{x:Bind CornerRadius, Mode=OneWay}">
                     <!-- Hide the built-in chevron IsClickEnabled adds; the row draws its own below. -->
-                    <controls:SettingsCard.Resources>
+                    <commonControls:ClickableSettingsCard.Resources>
                         <x:Double x:Key="SettingsCardActionIconMaxSize">0</x:Double>
                         <Thickness x:Key="SettingsCardActionIconMargin">0</Thickness>
-                    </controls:SettingsCard.Resources>
+                    </commonControls:ClickableSettingsCard.Resources>
                     <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
                         <TextBlock
                             Text="{x:Bind CountText, Mode=OneWay}"
@@ -72,10 +165,10 @@
                                 Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                         </Grid>
                     </StackPanel>
-                </controls:SettingsCard>
+                </commonControls:ClickableSettingsCard>
                 <ItemsControl
                     ItemsSource="{x:Bind Children}"
-                    ItemTemplate="{StaticResource IncludedFeatureRowTemplate}"
+                    ItemTemplateSelector="{StaticResource IncludedRowTemplateSelector}"
                     Visibility="{x:Bind IsExpanded, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -91,12 +184,12 @@
     <commonControls:SettingsListView
         x:Name="SettingsList"
         IsLoading="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+        HasNoSearchResults="{x:Bind HasNoSearchResults, Mode=OneWay}"
         Footer="{x:Bind Footer, Mode=OneWay}">
         <commonControls:SettingsListView.Header>
             <StackPanel Margin="0,0,0,8">
-                <controls:SettingsCard
-                    IsClickEnabled="True"
-                    Click="{x:Bind ViewModel.ToggleIncludedExpander}"
+                <commonControls:ClickableSettingsCard
+                    Invoked="{x:Bind ViewModel.ToggleIncludedExpander}"
                     IsTabStop="True"
                     AutomationProperties.Name="{x:Bind ViewModel.IncludedTitle, Mode=OneWay}"
                     AutomationProperties.LocalizedControlType="setting"
@@ -105,16 +198,16 @@
                     Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
                     CornerRadius="{x:Bind ViewModel.IncludedCornerRadius, Mode=OneWay}"
                     Padding="{StaticResource SettingsCardPadding}">
-                    <controls:SettingsCard.Resources>
+                    <commonControls:ClickableSettingsCard.Resources>
                         <x:Double x:Key="SettingsCardActionIconMaxSize">0</x:Double>
                         <Thickness x:Key="SettingsCardActionIconMargin">0</Thickness>
-                    </controls:SettingsCard.Resources>
-                    <controls:SettingsCard.Description>
+                    </commonControls:ClickableSettingsCard.Resources>
+                    <commonControls:ClickableSettingsCard.Description>
                         <TextBlock
                             Text="{x:Bind ViewModel.IncludedDescription, Mode=OneWay}"
                             TextWrapping="Wrap"
                             Style="{StaticResource CaptionTextBlockStyle}"/>
-                    </controls:SettingsCard.Description>
+                    </commonControls:ClickableSettingsCard.Description>
                     <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
                         <TextBlock
                             Text="{x:Bind ViewModel.IncludedCountText, Mode=OneWay}"
@@ -134,7 +227,7 @@
                                 Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                         </Grid>
                     </StackPanel>
-                </controls:SettingsCard>
+                </commonControls:ClickableSettingsCard>
                 <ItemsControl
                     ItemsSource="{x:Bind ViewModel.IncludedGroups, Mode=OneWay}"
                     ItemTemplate="{StaticResource IncludedGroupRowTemplate}"

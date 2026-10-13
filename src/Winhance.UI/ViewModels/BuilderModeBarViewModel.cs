@@ -18,6 +18,8 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
     private readonly ILocalizationService _localizationService;
     private readonly IDialogService _dialogService;
     private readonly IHardwareFilterService _hardwareFilter;
+    private readonly ITargetWindowsService _targetWindows;
+    private readonly ICatalogScopeProvider _scope;
     private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
     private readonly ILogService _logService;
 
@@ -31,7 +33,7 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         _localizationService.GetStringOrDefault("Builder_Mode_Title", "Builder Mode");
 
     public string BuilderModeDescriptionText =>
-        _localizationService.GetStringOrDefault("Builder_Mode_Description", "You're authoring a file from these settings — nothing here changes this PC. Choose a target, set your options, then Save.");
+        _localizationService.GetStringOrDefault("Builder_Mode_Description", "Build a config or answer file from your choices. Nothing changes on this PC.");
 
     public string BuilderConfigTargetText =>
         _localizationService.GetStringOrDefault("Builder_Mode_Target_Config", "Config");
@@ -44,6 +46,16 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
     public string ShowOtherHardwareText => _localizationService.GetString("Builder_Mode_ShowOtherHardware");
 
     public string ShowOtherHardwareTooltip => _localizationService.GetString("Builder_Mode_ShowOtherHardware_Tooltip");
+
+    public IReadOnlyList<WindowsRelease> TargetReleases => WindowsReleases.All;
+
+    public int? TargetBuild => _targetWindows.Build;
+
+    public string TargetWindowsText => NameOf(_targetWindows.Build);
+
+    public string TargetWindowsTooltip => _localizationService.GetString("Builder_Mode_TargetWindows_Tooltip");
+
+    public string AllVersionsText => _localizationService.GetString("Builder_Mode_TargetWindows_AllVersions");
 
     public string BuilderSaveButtonText =>
         IsAutounattendTarget
@@ -60,6 +72,8 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         ILocalizationService localizationService,
         IDialogService dialogService,
         IHardwareFilterService hardwareFilter,
+        ITargetWindowsService targetWindows,
+        ICatalogScopeProvider scope,
         ICatalogSettingsRegistry catalogSettingsRegistry,
         ILogService logService)
     {
@@ -69,12 +83,15 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         _localizationService = localizationService;
         _dialogService = dialogService;
         _hardwareFilter = hardwareFilter;
+        _targetWindows = targetWindows;
+        _scope = scope;
         _catalogSettingsRegistry = catalogSettingsRegistry;
         _logService = logService;
 
         _applicationModeService.ModeChanged += OnModeChanged;
         _localizationService.LanguageChanged += OnLanguageChanged;
         _hardwareFilter.FilterStateChanged += OnHardwareFilterChanged;
+        _targetWindows.Changed += OnTargetWindowsChanged;
     }
 
     public void Dispose()
@@ -84,6 +101,7 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         _applicationModeService.ModeChanged -= OnModeChanged;
         _localizationService.LanguageChanged -= OnLanguageChanged;
         _hardwareFilter.FilterStateChanged -= OnHardwareFilterChanged;
+        _targetWindows.Changed -= OnTargetWindowsChanged;
         GC.SuppressFinalize(this);
     }
 
@@ -108,6 +126,16 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         }).FireAndForget(_logService);
     }
 
+    private void OnTargetWindowsChanged(object? sender, EventArgs e)
+    {
+        _dispatcherService.RunOnUIThreadAsync(() =>
+        {
+            OnPropertyChanged(nameof(TargetBuild));
+            OnPropertyChanged(nameof(TargetWindowsText));
+            return Task.CompletedTask;
+        }).FireAndForget(_logService);
+    }
+
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         OnPropertyChanged(nameof(BuilderModeTitleText));
@@ -118,11 +146,17 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(BuilderCancelButtonText));
         OnPropertyChanged(nameof(ShowOtherHardwareText));
         OnPropertyChanged(nameof(ShowOtherHardwareTooltip));
+        OnPropertyChanged(nameof(TargetWindowsText));
+        OnPropertyChanged(nameof(TargetWindowsTooltip));
+        OnPropertyChanged(nameof(AllVersionsText));
     }
 
     public async Task SetShowOtherHardwareAsync(bool show)
     {
-        if (!show && !await ConfirmNarrowingAsync())
+        if (!show && !await ConfirmNarrowingAsync(
+                _scope.Current with { IncludeOtherHardware = false },
+                _localizationService.GetString("Dialog_NarrowHardware_Title"),
+                count => _localizationService.GetString("Dialog_NarrowHardware_Message", count)))
         {
             // IsChecked binds OneWay, so nothing has moved the checkbox back off the state the user declined.
             OnPropertyChanged(nameof(ShowOtherHardware));
@@ -132,18 +166,39 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         await _hardwareFilter.SetAsync(!show);
     }
 
+    public async Task SetTargetWindowsAsync(int? build)
+    {
+        if (build is { } narrowedTo && !await ConfirmNarrowingAsync(
+                _scope.Current with { IncludeOtherOsVersions = false, TargetBuild = WindowsReleases.TargetOf(narrowedTo) },
+                _localizationService.GetString("Dialog_NarrowWindows_Title"),
+                count => _localizationService.GetString("Dialog_NarrowWindows_Message", count, NameOf(narrowedTo))))
+        {
+            OnPropertyChanged(nameof(TargetBuild));
+            return;
+        }
+
+        await _targetWindows.SetAsync(build);
+    }
+
+    private string NameOf(int? build) => build switch
+    {
+        null => AllVersionsText,
+        { } b when WindowsReleases.ForBuild(b) is { } release => release.Name,
+        { } b => _localizationService.GetString("Builder_Mode_TargetWindows_Build", b),
+    };
+
     // The edits survive the narrowing either way - the writers just resolve the catalog under the narrowed
     // scope at Save, so anything absent from it silently misses the file.
-    private async Task<bool> ConfirmNarrowingAsync()
+    private async Task<bool> ConfirmNarrowingAsync(CatalogScope narrowed, string title, Func<int, string> message)
     {
         int outOfScope = _applicationModeService.GetBuilderEdits()
-            .Count(edit => _catalogSettingsRegistry.GetById(edit.SettingId, CatalogScope.CurrentMachine with { IncludeAnswerFileOnly = true }) is null);
+            .Count(edit => _catalogSettingsRegistry.GetById(edit.SettingId, narrowed) is null);
         if (outOfScope == 0) return true;
 
         var request = new ConfirmationRequest
         {
-            Title = _localizationService.GetString("Dialog_NarrowHardware_Title"),
-            Message = _localizationService.GetString("Dialog_NarrowHardware_Message", outOfScope),
+            Title = title,
+            Message = message(outOfScope),
         };
 
         return (await _dialogService.ShowConfirmationAsync(request)).Confirmed;
@@ -182,10 +237,16 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
     private async Task CancelAsync()
     {
         var title = _localizationService.GetStringOrDefault("Builder_Mode_Cancel_Confirmation_Title", "Leave Builder Mode");
-        var message = _localizationService.GetStringOrDefault("Builder_Mode_Cancel_Confirmation", "Leave Builder mode? Your authored selections will be discarded (nothing was applied to this PC).");
+        var message = _localizationService.GetStringOrDefault("Builder_Mode_Cancel_Confirmation", "Leave Builder mode? Your selections here will be discarded. Nothing was applied to your system.");
 
         var confirmed = (await _dialogService.ShowConfirmationAsync(
-            new ConfirmationRequest { Message = message, Title = title })).Confirmed;
+            new ConfirmationRequest
+            {
+                Message = message,
+                Title = title,
+                ConfirmButtonText = _localizationService.GetString("Button_Leave"),
+                CancelButtonText = _localizationService.GetString("Button_Stay"),
+            })).Confirmed;
         if (confirmed)
         {
             _applicationModeService.EnterNormalMode();

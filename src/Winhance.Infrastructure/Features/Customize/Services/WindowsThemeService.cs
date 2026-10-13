@@ -3,9 +3,11 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Windows.Win32.Graphics.Gdi;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Customize.Interfaces;
+using Winhance.Desktop;
 
 namespace Winhance.Infrastructure.Features.Customize.Services;
 
@@ -26,13 +28,6 @@ internal sealed class WindowsThemeService : IWindowsThemeService, IOptionProvide
     private const int CachePathOffset = 24;
 
     private const string FolderIdAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-    // Every picture type the Windows background picker offers. A config is someone else's file: nothing else lands.
-    private static readonly HashSet<string> PictureExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".jpg", ".jpeg", ".jpe", ".jfif", ".png", ".bmp", ".dib", ".gif", ".tif", ".tiff", ".wdp", ".jxr", ".webp",
-        ".heic", ".heif", ".hif", ".avif",
-    };
 
     private readonly ILogService _log;
     private readonly IWindowsRegistryService _registry;
@@ -91,10 +86,11 @@ internal sealed class WindowsThemeService : IWindowsThemeService, IOptionProvide
             return StartSlideshow(folder);
     }
 
-    // The id outlives the slideshow it was set for, so it is only this PC's album while BackgroundType is 2.
+    // The id outlives the slideshow it was set for, so it is only this PC's album while BackgroundType is 2. A
+    // slideshow set through IDesktopWallpaper, as Winhance and the answer file set it, records no id at all.
     public string? CurrentAlbum(Setting setting, IDetectionContext context) =>
         RegTargetReader.Read(setting, "BackgroundType", context) is int kind && kind == 2
-            ? AlbumPath(RegTargetReader.Read(setting, "SlideshowDirectoryPath1", context) as string, context)
+            ? AlbumPath(RegTargetReader.Read(setting, "SlideshowDirectoryPath1", context) as string, context) ?? _slideshow.Folder()
             : null;
 
     // Only the pictures the setting itself ships are on the new install. One an OEM put under C:\Windows, or one an
@@ -132,7 +128,7 @@ internal sealed class WindowsThemeService : IWindowsThemeService, IOptionProvide
     // A key need not be one this PC offers: a config from another machine can name a picture or colour it never had.
     public bool Accepts(Setting setting, string key) => setting.Options!.Source switch
     {
-        OptionSource.Pictures => IsPicture(key),
+        OptionSource.Pictures => PictureFileConstants.IsPicture(key),
         OptionSource.Colors => RegistryColorFromHex(key) is not null,
         var other => throw new ArgumentOutOfRangeException(nameof(setting), other, "Not a desktop background list."),
     };
@@ -239,7 +235,8 @@ internal sealed class WindowsThemeService : IWindowsThemeService, IOptionProvide
     {
         lock (_slideshowGate)
         {
-            var album = AlbumPath(ReadLive("theme-wallpaper-album", "SlideshowDirectoryPath1") as string, _detection.Create());
+            var album = AlbumPath(ReadLive("theme-wallpaper-album", "SlideshowDirectoryPath1") as string, _detection.Create())
+                ?? _slideshow.Folder();
 
             if (album is not null)
                 return StartSlideshow(album);
@@ -330,8 +327,6 @@ internal sealed class WindowsThemeService : IWindowsThemeService, IOptionProvide
     private static RegTarget Target(string settingId, string key) =>
         RegTargetReader.Target(SettingCatalog.Find(settingId) ?? throw new InvalidOperationException($"'{settingId}' is not in the catalog."), key);
 
-    internal static bool IsPicture(string path) => PictureExtensions.Contains(Path.GetExtension(path));
-
     // The copy Windows shows a Settings picture or a slideshow slide from.
     private static bool IsTranscodedCopy(string path) =>
         path.EndsWith("TranscodedWallpaper", StringComparison.OrdinalIgnoreCase);
@@ -347,17 +342,8 @@ internal sealed class WindowsThemeService : IWindowsThemeService, IOptionProvide
         return path.Length > 0 ? path : null;
     }
 
-    // Registry pair WallpaperStyle + TileWallpaper to DESKTOP_WALLPAPER_POSITION; the two numberings do not line up.
-    internal static int WallpaperPosition(string? wallpaperStyle, string? tileWallpaper) => (wallpaperStyle, tileWallpaper) switch
-    {
-        (_, "1") => 1,
-        ("0", _) => 0,
-        ("2", _) => 2,
-        ("6", _) => 3,
-        ("10", _) => 4,
-        ("22", _) => 5,
-        _ => 4,
-    };
+    internal static int WallpaperPosition(string? wallpaperStyle, string? tileWallpaper) =>
+        DesktopBackground.Position(wallpaperStyle ?? string.Empty, tileWallpaper ?? string.Empty);
 
     internal static string? HexFromRegistryColor(string? text) =>
         ChannelsFromRegistry(text) is { } color ? $"#{color.R:X2}{color.G:X2}{color.B:X2}" : null;

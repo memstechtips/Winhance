@@ -52,9 +52,9 @@ public class LocalizationUntranslatedValueTests
     // translators did with the same words elsewhere in the same file.
     private static readonly string[] UntranslatableKeys =
     [
-        // The app's own name, and the Windows power scheme it creates. PowerPlanActivationService and
-        // PowerService find that scheme by comparing its name to the literal "Winhance Power Plan", so a
-        // translated label would name a plan powercfg never shows.
+        // The app's own name, and the Windows power scheme it creates. PowerPlanActivationService names that
+        // scheme with the English literal whatever the UI language, so a translated label would name a plan
+        // powercfg never shows.
         "App_Title",
         "PowerPlan_WinhancePowerPlan_Name",
 
@@ -96,6 +96,9 @@ public class LocalizationUntranslatedValueTests
         "Builder_Mode_Target_Autounattend",
         "Feature_Autounattend_Name",
 
+        // A product name and the file extension it runs; the other script types translate their words.
+        "AutounattendUserScripts_Type_PowerShell",
+
         // Resolver brand plus its IP address. Options 0, 2 and 3 of the same setting are prose
         // ("Automatic (DHCP)", "Cloudflare Malware Blocking (1.1.1.2)") and are translated everywhere, so a
         // prefix rule over this family would exempt strings that do need translating.
@@ -103,9 +106,6 @@ public class LocalizationUntranslatedValueTests
         "Setting_gaming-dns-server_Option_4",
         "Setting_gaming-dns-server_Option_5",
         "Setting_gaming-dns-server_Option_6",
-        "Setting_gaming-dns-server_Option_7",
-        "Setting_gaming-dns-server_Option_8",
-        "Setting_gaming-dns-server_Option_9",
 
         // A magnitude and its unit symbol. Listed one by one rather than by prefix because Option_0 of the
         // same setting is the word "Default", which ten locales did translate and the rest owe.
@@ -124,6 +124,9 @@ public class LocalizationUntranslatedValueTests
         // exemption is not hiding a missed label.
         "Setting_gaming-performance-mouse-hover-time_Option_4",
         "Setting_taskbar-extended-hover-time_Option_4",
+
+        // A number and the percent sign: every locale file already writes its other percentages as "{0}%".
+        "Zoom_Indicator_Format",
 
         // Placeholders and their punctuation, with no word in either. French, Japanese and both Chinese
         // files adjust the spacing or use a fullwidth colon, which is typography rather than translation.

@@ -8,6 +8,9 @@ public interface IVersionService
 
     Task<VersionInfo> CheckForUpdateAsync(CancellationToken cancellationToken = default);
 
+    // An empty Version when GitHub could not be reached.
+    Task<VersionInfo> GetLatestReleaseAsync(CancellationToken cancellationToken = default);
+
     Task DownloadAndInstallUpdateAsync(CancellationToken cancellationToken = default);
 
     // The caller should exit the application immediately after calling this.

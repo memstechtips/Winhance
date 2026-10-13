@@ -1,6 +1,6 @@
 namespace Winhance.Infrastructure.Features.WimUtil.Services;
 
-internal readonly record struct DismImageEntry(int Index, string Name);
+internal readonly record struct DismImageEntry(int Index, string Name, int Build = 0, string EditionId = "");
 
 internal interface IDismImageInfoReader
 {

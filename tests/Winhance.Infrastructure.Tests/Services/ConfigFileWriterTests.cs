@@ -24,7 +24,7 @@ public class ConfigFileWriterTests
         _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>())).Returns(new Dictionary<string, IReadOnlyList<Setting>>
         {
             [FeatureIds.Privacy] = new[] { ParityFixtures.Toggle("t") },
-            [FeatureIds.ExplorerCustomization] = new[] { ParityFixtures.Selection("s") },
+            [FeatureIds.Explorer] = new[] { ParityFixtures.Selection("s") },
         });
 
         _files
@@ -77,6 +77,24 @@ public class ConfigFileWriterTests
         _written.Should().Contain("\"Id\": \"t\"").And.Contain("\"IsSelected\": true");
         _written.Should().Contain("\"Id\": \"s\"").And.Contain("\"SelectedIndex\": 1");
         _written.Should().NotContain("PowerSettings", "the frozen JsonOptions omit null members");
+    }
+
+    [Fact]
+    public async Task WriteAsync_RecordsThePcItWasSavedOn()
+    {
+        await Sut().WriteAsync(Selections(), CatalogScope.CurrentMachine, OutputPath);
+
+        _written.Should().Contain($"\"ComputerName\": \"{Environment.MachineName}\"");
+    }
+
+    [Fact]
+    public async Task WriteAsync_RecordsTheTargetBuild_AndLeavesItOutForEveryVersion()
+    {
+        await Sut().WriteAsync(Selections(), CatalogScope.CurrentMachine with { TargetBuild = WindowsReleases.TargetOf(26200) }, OutputPath);
+        _written.Should().Contain("\"TargetBuild\": 26200");
+
+        await Sut().WriteAsync(Selections(), new CatalogScope(IncludeOtherOsVersions: true, IncludeOtherHardware: false), OutputPath);
+        _written.Should().NotContain("TargetBuild");
     }
 
     [Fact]

@@ -202,6 +202,17 @@ public class WindowsThemeServiceTests
     }
 
     [Fact]
+    public void A_slideshow_the_shell_set_with_no_recorded_album_restarts_the_album_the_shell_reports()
+    {
+        Kind(2);
+        _slideshow.Setup(s => s.Folder()).Returns(Album);
+
+        _sut.RefreshDesktop().Should().BeTrue();
+
+        _slideshow.Verify(s => s.Set(Album, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<bool>()), Times.Once);
+    }
+
+    [Fact]
     public void A_slideshow_with_no_recorded_album_starts_nothing_and_says_so()
     {
         Kind(2);

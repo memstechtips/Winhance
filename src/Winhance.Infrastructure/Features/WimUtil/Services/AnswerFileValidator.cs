@@ -356,8 +356,8 @@ internal sealed class AnswerFileValidator(IFileSystemService files, IPowerShellR
         root.Elements().Where(e => e.Name.LocalName == "Extensions")
             .SelectMany(e => e.Elements().Where(f => f.Name.LocalName == "File"));
 
-    // What the extractor writes is InnerText.Trim() with the XML parser's LF line endings, so the
-    // carried content is checked in that form.
+    // The extractor writes InnerText.Trim() with every line ending as CRLF. No check here reads the endings; the
+    // content is brought to LF only to split it into lines.
     private static void CheckExtensions(XElement root, Findings findings, Dictionary<string, string> scripts)
     {
         var extensions = root.Elements().Where(e => e.Name.LocalName == "Extensions").ToList();

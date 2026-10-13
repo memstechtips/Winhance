@@ -4,6 +4,12 @@ public class WinhanceConfigFile
 {
     public string Version { get; set; } = "2.0";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Saved configs only, so a user with several PCs can tell them apart; an answer file leaves it out.
+    public string? ComputerName { get; set; }
+
+    // The Windows build Builder made the file for, so a reopen shows the same settings. Absent means every version.
+    public int? TargetBuild { get; set; }
     public ConfigSection WindowsApps { get; set; } = new ConfigSection();
     public ConfigSection ExternalApps { get; set; } = new ConfigSection();
     public FeatureGroupSection Customize { get; set; } = new FeatureGroupSection();

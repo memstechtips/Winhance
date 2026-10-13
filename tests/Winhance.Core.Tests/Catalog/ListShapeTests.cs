@@ -59,7 +59,8 @@ public class ListShapeTests
     [Fact]
     public void A_field_declares_which_control_draws_it()
     {
-        Enum.GetValues<FieldKind>().Should().Equal(FieldKind.Text, FieldKind.Password, FieldKind.Selection, FieldKind.CheckBox);
+        Enum.GetValues<FieldKind>().Should().Equal(
+            FieldKind.Text, FieldKind.Password, FieldKind.Selection, FieldKind.CheckBox, FieldKind.File);
     }
 
     [Fact]
@@ -67,9 +68,10 @@ public class ListShapeTests
     {
         var fields = SettingCatalog.Find("autounattend-accounts")!.List!.Fields;
 
-        fields.Select(f => f.Key).Should().Equal("name", "display-name", "group", "password", "obscure", "auto-logon");
+        fields.Select(f => f.Key).Should().Equal("name", "display-name", "group", "password", "obscure", "auto-logon", "change-password");
         fields.Select(f => f.Kind).Should().Equal(
-            FieldKind.Text, FieldKind.Text, FieldKind.Selection, FieldKind.Password, FieldKind.CheckBox, FieldKind.CheckBox);
+            FieldKind.Text, FieldKind.Text, FieldKind.Selection, FieldKind.Password, FieldKind.CheckBox, FieldKind.CheckBox,
+            FieldKind.CheckBox);
 
         var autoLogon = fields.Single(f => f.Key == "auto-logon");
         autoLogon.OneRowOnly.Should().BeTrue();

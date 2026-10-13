@@ -5,5 +5,5 @@ namespace Winhance.Core.Features.Autounattend.Interfaces;
 
 public interface IWinhancementsScriptBuilder
 {
-    Task<string> BuildAsync(SelectionSet set, IReadOnlyDictionary<string, IReadOnlyList<Setting>> byFeature);
+    Task<string> BuildAsync(SelectionSet set, IReadOnlyDictionary<string, IReadOnlyList<Setting>> byFeature, WinBuild? targetBuild = null);
 }

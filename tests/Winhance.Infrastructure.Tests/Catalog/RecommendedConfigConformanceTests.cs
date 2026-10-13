@@ -62,6 +62,9 @@ public class RecommendedConfigConformanceTests
         // apply/review time (CatalogSettingsRegistry membership), NOT at authoring time. A missing recommendation fails.
         foreach (var setting in SettingCatalog.All)
         {
+            // An answer-file setting's Recommended state is where a new file starts; nothing applies it to a PC.
+            if (setting.IsAnswerFileOnly)
+                continue;
             if (!RecommendedSettingsResolver.HasRecommendedValue(setting, Build))
                 continue;
             if (presentCanonicalIds.Contains(setting.Id))

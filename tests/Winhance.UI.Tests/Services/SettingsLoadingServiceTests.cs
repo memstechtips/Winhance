@@ -470,11 +470,27 @@ public class SettingsLoadingServiceTests
         return new Setting { Id = id, Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("Test") } };
     }
 
-    private static SettingItemViewModel CreateMockSettingItemViewModel(string settingId, ISettingsFeatureViewModel? parent = null)
+    // A card that survives a scope change keeps its old label unless the refresh re-derives it.
+    [Fact]
+    public async Task RefreshScopeDerivedStateAsync_LabelsASurvivorWhileEveryVersionIsShown_AndClearsItAfter()
+    {
+        _mockLocalization.Setup(l => l.GetString(It.IsAny<string>())).Returns((string k) => k);
+        var vm = CreateMockSettingItemViewModel("win11-only", availability: new Availability { Builds = new[] { BuildRange.Windows11 } });
+
+        _mockScopeProvider.Setup(p => p.Current).Returns(new CatalogScope(true, false));
+        await _sut.RefreshScopeDerivedStateAsync([vm]);
+        vm.StatusBannerMessage.Should().Be("Compatibility_Windows11Only");
+
+        _mockScopeProvider.Setup(p => p.Current).Returns(CatalogScope.CurrentMachine);
+        await _sut.RefreshScopeDerivedStateAsync([vm]);
+        vm.HasStatusBanner.Should().BeFalse();
+    }
+
+    private static SettingItemViewModel CreateMockSettingItemViewModel(string settingId, ISettingsFeatureViewModel? parent = null, Availability? availability = null)
     {
         var config = new SettingItemViewModelConfig
         {
-            Setting = new Setting { Id = settingId, Display = new() { Name = TestKeys.Of(settingId), Description = TestKeys.Of("Test") } },
+            Setting = new Setting { Id = settingId, Display = new() { Name = TestKeys.Of(settingId), Description = TestKeys.Of("Test") }, Availability = availability ?? Availability.Everywhere },
             ParentFeatureViewModel = parent,
             SettingId = settingId,
             Name = settingId,

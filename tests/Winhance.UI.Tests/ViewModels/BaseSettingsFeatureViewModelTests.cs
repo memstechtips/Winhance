@@ -22,11 +22,9 @@ namespace Winhance.UI.Tests.ViewModels;
 public class TestableSettingsFeatureViewModel : BaseSettingsFeatureViewModel
 {
     public const string TestModuleId = "TestModule";
-    public const string TestDisplayNameKey = "Feature_Test_Name";
+    public const string TestDisplayNameKey = "Feature_TestModule_Name";
 
     public override string ModuleId => TestModuleId;
-
-    protected override string GetDisplayNameKey() => TestDisplayNameKey;
 
     public TestableSettingsFeatureViewModel(
         ISettingsLoadingService settingsLoadingService,
@@ -129,7 +127,10 @@ public class BaseSettingsFeatureViewModelTests
         string[]? stateLabels = null,
         // Roles on the FIRST state label. A card carries badge data - and so a badge row worth asserting on -
         // only when one of its states declares Recommended or WindowsDefault.
-        StateRole[]? firstStateRoles = null)
+        StateRole[]? firstStateRoles = null,
+        // Controls, index-aligned to stateLabels: the child state each of this card's states decides for another
+        // card. Null entries for the states that decide nothing.
+        IReadOnlyDictionary<string, LocKey>?[]? controlsByState = null)
     {
         var config = new SettingItemViewModelConfig
         {
@@ -147,6 +148,7 @@ public class BaseSettingsFeatureViewModelTests
                     {
                         Label = TestKeys.Of(label),
                         Roles = index == 0 ? firstStateRoles ?? Array.Empty<StateRole>() : Array.Empty<StateRole>(),
+                        Controls = controlsByState is not null && index < controlsByState.Length ? controlsByState[index] : null,
                     })
                     .ToArray(),
             },
@@ -711,6 +713,26 @@ public class BaseSettingsFeatureViewModelTests
     }
 
     [Fact]
+    public async Task SearchText_InsideTheFeatureName_ShowsEveryCardOfTheFeature()
+    {
+        var vm = CreateViewModel();
+        var card = CreateSettingItem("s1", "Setting 1");
+        card.IsVisible = false;
+        vm.Settings.Add(card);
+        var filtered = new TaskCompletionSource();
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(vm.IsVisibleInSearch))
+                filtered.TrySetResult();
+        };
+
+        vm.SearchText = "TestModule";
+        await filtered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        card.IsVisible.Should().BeTrue();
+    }
+
+    [Fact]
     public void ApplySearchFilter_SetsSearchText()
     {
         var vm = CreateViewModel();
@@ -901,11 +923,11 @@ public class BaseSettingsFeatureViewModelTests
     }
 
     [Fact]
-    public async Task LoadSettingsAsync_SettingsWithEmptyGroupName_FallsBackToOtherGroup()
+    public async Task LoadSettingsAsync_SettingsWithEmptyGroupName_FallsBackToGeneralGroup()
     {
         var vm = CreateViewModel();
 
-        _mockLocalizationService.MissingKey("SettingGroup_Other");
+        _mockLocalizationService.MissingKey("SettingGroup_General");
 
         var settings = CreateSettingsCollection(
             ("s1", "Setting 1", ""));
@@ -920,16 +942,16 @@ public class BaseSettingsFeatureViewModelTests
         await vm.LoadSettingsAsync();
 
         vm.GroupedSettings.Should().HaveCount(1);
-        vm.GroupedSettings[0].Key.Should().Be("Other");
+        vm.GroupedSettings[0].Key.Should().Be("General");
     }
 
     [Fact]
-    public async Task LoadSettingsAsync_OtherGroupTranslationLooksLikeAMissMarker_IsStillUsed()
+    public async Task LoadSettingsAsync_GeneralGroupTranslationLooksLikeAMissMarker_IsStillUsed()
     {
         // A translation is allowed to be bracketed. The old code recognised a miss by the shape of
         // the string, so it threw this away and showed English instead.
         var vm = CreateViewModel();
-        _mockLocalizationService.PresentKey("SettingGroup_Other", "[Sonstige]");
+        _mockLocalizationService.PresentKey("SettingGroup_General", "[Allgemein]");
 
         var settings = CreateSettingsCollection(
             ("s1", "Setting 1", ""));
@@ -944,7 +966,7 @@ public class BaseSettingsFeatureViewModelTests
         await vm.LoadSettingsAsync();
 
         vm.GroupedSettings.Should().HaveCount(1);
-        vm.GroupedSettings[0].Key.Should().Be("[Sonstige]");
+        vm.GroupedSettings[0].Key.Should().Be("[Allgemein]");
     }
 
     [Fact]
@@ -1547,6 +1569,53 @@ public class BaseSettingsFeatureViewModelTests
         master.SelectedValue = 1;
 
         child.ParentIsEnabled.Should().BeTrue();
+    }
+
+    // A gate only greys a card; it says nothing about what the card should then read. Where the gating card's
+    // state also DECIDES the greyed one (Controls), the card shows that decision, because it is what a Builder
+    // save writes into the answer file - the OOBE-network card under a Microsoft account is the live case.
+    [Fact]
+    public async Task LoadSettingsAsync_GreyedCard_ShowsTheStateTheGatingCardDecided()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("master", "Master", isSelected: false, stateLabels: ToggleStates,
+                controlsByState: [null, new Dictionary<string, LocKey> { ["child"] = TestKeys.Of("Dark Mode") }]),
+            CreateSettingItem("child", "Child", inputType: InputType.Selection, selectedValue: 0,
+                stateLabels: LightDarkModes, enabledWhen: new StateGate("master", EnabledOnly)),
+        });
+
+        await vm.LoadSettingsAsync();
+
+        vm.Settings[1].ParentIsEnabled.Should().BeFalse();
+        vm.Settings[1].SelectedValue.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task LoadSettingsAsync_GateOpens_HandsTheCardBackToTheUser()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _mockApplicationModeService
+            .Setup(m => m.GetBuilderEdit("child"))
+            .Returns(new SettingChoice("child", new ChoiceValue.Option(0)));
+        var vm = CreateViewModel();
+        var master = CreateSettingItem("master", "Master", isSelected: false, stateLabels: ToggleStates,
+            controlsByState: [null, new Dictionary<string, LocKey> { ["child"] = TestKeys.Of("Dark Mode") }]);
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            master,
+            CreateSettingItem("child", "Child", inputType: InputType.Selection, selectedValue: 0,
+                stateLabels: LightDarkModes, enabledWhen: new StateGate("master", EnabledOnly)),
+        });
+        await vm.LoadSettingsAsync();
+        vm.Settings[1].SelectedValue.Should().Be(1);
+
+        master.IsSelected = true;
+
+        vm.Settings[1].ParentIsEnabled.Should().BeTrue();
+        vm.Settings[1].SelectedValue.Should().Be(0, "the user's own edit is what an editable card reads");
     }
 
     [Fact]

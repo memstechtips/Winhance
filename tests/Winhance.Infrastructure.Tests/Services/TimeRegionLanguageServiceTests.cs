@@ -14,6 +14,7 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
+[Collection(ProcessCultureCollection.Name)]
 public class TimeRegionLanguageServiceTests
 {
     private const string Zones = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Time Zones";
@@ -40,6 +41,8 @@ public class TimeRegionLanguageServiceTests
         "sShortTime", "iFirstDayOfWeek", "iMeasure", "sMonDecimalSep", "sMonThousandSep", "sCurrency", "sNegativeSign",
         "sGrouping", "sMonGrouping", "iCurrDigits", "iCurrency", "iNegCurr", "iNegNumber", "s1159", "s2359", "sDate",
         "sTime", "sYearMonth", "iDate", "iTime", "iTLZero", "iTimePrefix", "iFirstWeekOfYear",
+        "iDigits", "iLZero", "iCountry", "iPaperSize", "iCalendarType", "sLanguage", "sNativeDigits", "NumShape",
+        "sPositiveSign",
     ];
 
     private static readonly string[] PatternValueNames =
@@ -79,6 +82,8 @@ public class TimeRegionLanguageServiceTests
 
     private static Setting SystemLocale => SettingCatalog.Find("region-system-locale")!;
 
+    private static Setting ShortDate => SettingCatalog.Find("explorer-customization-short-date")!;
+
     private static IReadOnlyDictionary<string, StateValue>? SetFor(Setting setting, string key) =>
         KeyedOptions.SetFor(setting, key, Service);
 
@@ -113,10 +118,6 @@ public class TimeRegionLanguageServiceTests
 
     private static string GeoIdOf(string isoCode) =>
         new RegionInfo(isoCode).GeoId.ToString(CultureInfo.InvariantCulture);
-
-    private static string Invariant(int number) => number.ToString(CultureInfo.InvariantCulture);
-
-    private static string Spaced(string text) => text.Replace('\u202f', ' ').Replace('\u00a0', ' ');
 
     private static IReadOnlyList<ApplyOp>? PlanFor(string settingId, string key) =>
         ApplyRequestResolver.Resolve(settingId, enable: true, value: key, resetToDefault: false, options: Providers);
@@ -383,13 +384,13 @@ public class TimeRegionLanguageServiceTests
         set["sMonGrouping"].WritePayload.Should().Be("3;0");
         set["iCurrDigits"].WritePayload.Should().Be("2");
         set["iCurrency"].WritePayload.Should().Be("0");
-        set["iNegCurr"].WritePayload.Should().Be(Invariant(culture.NumberFormat.CurrencyNegativePattern));
+        set["iNegCurr"].WritePayload!.ToString().Should().MatchRegex("^([0-9]|1[0-5])$");
         set["iNegNumber"].WritePayload.Should().Be("1");
         set["s1159"].WritePayload.Should().Be("AM");
         set["s2359"].WritePayload.Should().Be("PM");
         set["sDate"].WritePayload.Should().Be("/");
         set["sTime"].WritePayload.Should().Be(":");
-        set["sYearMonth"].WritePayload.Should().Be(Spaced(culture.DateTimeFormat.YearMonthPattern));
+        set["sYearMonth"].WritePayload!.ToString().Should().Contain("MMMM").And.Contain("yyyy");
         set["iDate"].WritePayload.Should().Be("0");
         set["iTime"].WritePayload.Should().Be("0");
         set["iTLZero"].WritePayload.Should().Be("0");
@@ -416,85 +417,50 @@ public class TimeRegionLanguageServiceTests
     [Fact]
     public void Applying_de_DE_rewrites_what_an_American_format_left_behind()
     {
-        var german = CultureInfo.GetCultureInfo("de-DE");
-        var number = german.NumberFormat;
-        var date = german.DateTimeFormat;
-        string clock = TimeRegionLanguageService.Unquoted(date.LongTimePattern);
-
         var set = SetFor(Format, "de-DE")!;
         var american = SetFor(Format, "en-US")!;
 
-        set["sGrouping"].WritePayload.Should().Be(TimeRegionLanguageService.WindowsGrouping(number.NumberGroupSizes));
-        set["sMonGrouping"].WritePayload.Should().Be(TimeRegionLanguageService.WindowsGrouping(number.CurrencyGroupSizes));
-        set["iCurrDigits"].WritePayload.Should().Be(Invariant(number.CurrencyDecimalDigits));
-        set["iCurrency"].WritePayload.Should().Be(Invariant(number.CurrencyPositivePattern));
-        set["iNegCurr"].WritePayload.Should().Be(Invariant(number.CurrencyNegativePattern));
-        set["iNegNumber"].WritePayload.Should().Be(Invariant(number.NumberNegativePattern));
-        set["s1159"].WritePayload.Should().Be(Spaced(date.AMDesignator));
-        set["s2359"].WritePayload.Should().Be(Spaced(date.PMDesignator));
+        set["sGrouping"].WritePayload!.ToString().Should().MatchRegex(GroupingShape);
+        set["sMonGrouping"].WritePayload!.ToString().Should().MatchRegex(GroupingShape);
         set["sDate"].WritePayload.Should().Be(".");
-        set["sTime"].WritePayload.Should().Be(date.TimeSeparator);
-        set["sYearMonth"].WritePayload.Should().Be(Spaced(date.YearMonthPattern));
+        set["sList"].WritePayload.Should().Be(";");
         set["iDate"].WritePayload.Should().Be("1");
         set["iTime"].WritePayload.Should().Be("1");
-        set["iTLZero"].WritePayload.Should().Be(TimeRegionLanguageService.HourLeadingZeroOf(clock));
-        set["iTimePrefix"].WritePayload.Should().Be(TimeRegionLanguageService.TimeMarkerPositionOf(clock));
-        set["iFirstWeekOfYear"].WritePayload.Should().Be(Invariant((int)date.CalendarWeekRule));
+        set["iFirstDayOfWeek"].WritePayload.Should().Be("0");
 
         set["iCurrency"].WritePayload.Should().NotBe(american["iCurrency"].WritePayload);
         set["iDate"].WritePayload.Should().NotBe(american["iDate"].WritePayload);
         set["iTime"].WritePayload.Should().NotBe(american["iTime"].WritePayload);
     }
 
+    // Measured 2026-09-21 on Windows 11 24H2: what Windows itself writes when
+    // that format is picked in Settings. .NET reads ICU, which differs where it matters - ICU's ar-SA short date
+    // carries U+200F direction marks and its decimal separator is U+066B, neither of which Windows writes, and the
+    // format cards then cannot recognise the value Winhance left behind.
     [Theory]
-    [InlineData(new[] { 3 }, "3;0")]
-    [InlineData(new[] { 3, 2 }, "3;2;0")]
-    [InlineData(new[] { 3, 0 }, "3")]
-    [InlineData(new[] { 0 }, "0")]
-    [InlineData(new int[0], "0")]
-    public void Group_sizes_are_written_the_way_LOCALE_SGROUPING_spells_them(int[] sizes, string expected)
+    [InlineData("en-US", "sShortDate", "M/d/yyyy")]
+    [InlineData("en-US", "iFirstDayOfWeek", "6")]
+    [InlineData("en-ZA", "sShortDate", "yyyy/MM/dd")]
+    [InlineData("en-ZA", "sDecimal", ",")]
+    [InlineData("de-DE", "sShortDate", "dd.MM.yyyy")]
+    [InlineData("hi-IN", "sShortDate", "dd-MM-yyyy")]
+    [InlineData("hi-IN", "sDecimal", ".")]
+    [InlineData("ja-JP", "sShortDate", "yyyy/MM/dd")]
+    [InlineData("ar-SA", "sShortDate", "dd/MM/yyyy")]
+    [InlineData("ar-SA", "sDecimal", ".")]
+    [InlineData("ar-SA", "sList", ";")]
+    public void A_format_writes_what_windows_holds_for_that_locale(string key, string name, string expected)
     {
-        TimeRegionLanguageService.WindowsGrouping(sizes).Should().Be(expected);
+        SetFor(Format, key)![name].WritePayload.Should().Be(expected);
     }
 
-    [Theory]
-    [InlineData("HH:mm:ss", "HH:mm:ss")]
-    [InlineData("dddd, d 'de' MMMM 'de' yyyy", "dddd, d  MMMM  yyyy")]
-    [InlineData("H 'h' mm", "H  mm")]
-    public void Quoted_text_is_left_out_of_a_picture_before_its_parts_are_read(string picture, string expected)
+    [Fact]
+    public void No_written_value_carries_a_mark_ICU_adds_and_windows_does_not()
     {
-        TimeRegionLanguageService.Unquoted(picture).Should().Be(expected);
-    }
+        var arabic = SetFor(Format, "ar-SA")!;
 
-    [Theory]
-    [InlineData("M/d/yyyy", "0")]
-    [InlineData("dd.MM.yyyy", "1")]
-    [InlineData("yyyy-MM-dd", "2")]
-    [InlineData("'den' yyyy-MM-dd", "2")]
-    [InlineData("'-'", null)]
-    public void The_date_order_is_the_first_date_part_outside_quoted_text(string picture, string? expected)
-    {
-        TimeRegionLanguageService.DateOrderOf(TimeRegionLanguageService.Unquoted(picture)).Should().Be(expected);
-    }
-
-    [Theory]
-    [InlineData("HH:mm:ss", "1")]
-    [InlineData("hh:mm:ss tt", "1")]
-    [InlineData("H:mm:ss", "0")]
-    [InlineData("h:mm:ss tt", "0")]
-    public void A_two_letter_hour_is_an_hour_with_a_leading_zero(string clock, string expected)
-    {
-        TimeRegionLanguageService.HourLeadingZeroOf(clock).Should().Be(expected);
-    }
-
-    [Theory]
-    [InlineData("tt h:mm:ss", "1")]
-    [InlineData("h:mm:ss tt", "0")]
-    [InlineData("HH:mm:ss", "0")]
-    [InlineData("tt", "0")]
-    public void The_time_marker_leads_only_when_it_stands_before_the_hour(string clock, string expected)
-    {
-        TimeRegionLanguageService.TimeMarkerPositionOf(clock).Should().Be(expected);
+        arabic["sShortDate"].WritePayload!.ToString().Should().NotContain("\u200f");
+        arabic["sDecimal"].WritePayload.Should().NotBe("\u066b");
     }
 
     [Fact]
@@ -502,21 +468,12 @@ public class TimeRegionLanguageServiceTests
     {
         foreach (var option in Service.Options(Format, new FakeDetectionContext()))
         {
-            var culture = CultureInfo.GetCultureInfo(option.Value);
-            string shortDate = TimeRegionLanguageService.Unquoted(culture.DateTimeFormat.ShortDatePattern);
-
             Service.ValueFor(OptionValue.GroupSizes, option.Value).Should().MatchRegex(GroupingShape, option.Value);
             Service.ValueFor(OptionValue.CurrencyGroupSizes, option.Value).Should().MatchRegex(GroupingShape, option.Value);
-
-            if (Service.ValueFor(OptionValue.CurrencyNegativePattern, option.Value) is { } negativeCurrency)
-                negativeCurrency.Should().MatchRegex("^([0-9]|1[0-5])$", option.Value);
-            else
-                culture.NumberFormat.CurrencyNegativePattern.Should().BeGreaterThan(15, option.Value);
-
-            if (Service.ValueFor(OptionValue.DateOrder, option.Value) is { } dateOrder)
-                dateOrder.Should().MatchRegex("^[0-2]$", option.Value);
-            else
-                shortDate.Should().NotContainAny("M", "d", "y");
+            Service.ValueFor(OptionValue.CurrencyNegativePattern, option.Value).Should().MatchRegex("^([0-9]|1[0-5])$", option.Value);
+            Service.ValueFor(OptionValue.DateOrder, option.Value).Should().MatchRegex("^[0-2]$", option.Value);
+            Service.ValueFor(OptionValue.HourClock, option.Value).Should().MatchRegex("^[01]$", option.Value);
+            Service.ValueFor(OptionValue.FirstDayOfWeek, option.Value).Should().MatchRegex("^[0-6]$", option.Value);
         }
     }
 
@@ -547,7 +504,9 @@ public class TimeRegionLanguageServiceTests
     public void A_quoted_literal_in_a_pattern_is_written_as_it_stands()
     {
         // Win32 date pictures copy single-quoted text unchanged; unquoted, the d of the Spanish de is a day token.
-        SetFor(Format, "es-ES")!["sLongDate"].WritePayload.Should().Be("dddd, d 'de' MMMM 'de' yyyy");
+        // Windows quotes the spaces around it as well, where ICU quotes the word alone - measured, and another
+        // reason the values come from Windows rather than from .NET.
+        SetFor(Format, "es-ES")!["sLongDate"].WritePayload.Should().Be("dddd, d' de 'MMMM' de 'yyyy");
     }
 
     [Fact]
@@ -556,6 +515,29 @@ public class TimeRegionLanguageServiceTests
         Format.Control.Should().Be(ControlKind.KeyedSelection);
         SetFor(Format, "en-US")!.Keys.Should().BeEquivalentTo(FormatValueNames);
         SetFor(Format, "en-US")!.Keys.Should().BeEquivalentTo(WrittenTargetKeys(Format));
+    }
+
+    // Measured 2026-09-21 on Windows 11 24H2: each of these is what Windows
+    // itself wrote into Control Panel\International when that format was picked in Settings, and several are
+    // values .NET answers differently (it calls the positive sign "+" and the digit substitution "None").
+    [Theory]
+    [InlineData("en-US", "iDigits", "2")]
+    [InlineData("en-US", "iLZero", "1")]
+    [InlineData("en-US", "iCountry", "1")]
+    [InlineData("en-US", "iPaperSize", "1")]
+    [InlineData("en-US", "sLanguage", "ENU")]
+    [InlineData("en-US", "sPositiveSign", "")]
+    [InlineData("en-US", "NumShape", "1")]
+    [InlineData("en-ZA", "iCountry", "27")]
+    [InlineData("en-ZA", "iPaperSize", "9")]
+    [InlineData("ar-SA", "iCalendarType", "23")]
+    [InlineData("ar-SA", "NumShape", "0")]
+    [InlineData("ar-SA", "sNativeDigits", "\u0660\u0661\u0662\u0663\u0664\u0665\u0666\u0667\u0668\u0669")]
+    [InlineData("hi-IN", "sNativeDigits", "\u0966\u0967\u0968\u0969\u096A\u096B\u096C\u096D\u096E\u096F")]
+    [InlineData("th-TH", "iCalendarType", "7")]
+    public void Windows_own_locale_data_answers_the_nine_values_a_culture_cannot(string key, string name, string expected)
+    {
+        SetFor(Format, key)![name].WritePayload.Should().Be(expected);
     }
 
     [Fact]
@@ -951,4 +933,50 @@ public class TimeRegionLanguageServiceTests
     {
         SystemLocale.Control.Should().Be(ControlKind.KeyedSelection);
     }
+
+    [Fact]
+    public void The_short_date_card_offers_its_recommended_patterns_first()
+    {
+        Service.Options(ShortDate, new FakeDetectionContext()).Take(5).Select(option => option.Value)
+            .Should().Equal("M/d/yyyy", "dd/MM/yyyy", "yyyy-MM-dd", "yyyy/MM/dd", "dd MMM yyyy");
+    }
+
+    // region-format writes dd.MM.yyyy for de-DE and dd-MM-yyyy for hi-IN, which no fixed option list offers.
+    [Theory]
+    [InlineData("en-US")]
+    [InlineData("en-ZA")]
+    [InlineData("de-DE")]
+    [InlineData("hi-IN")]
+    [InlineData("ja-JP")]
+    [InlineData("ar-SA")]
+    public void Every_pattern_a_regional_format_writes_is_offered_by_the_short_date_card(string culture)
+    {
+        var written = SetFor(Format, culture)!["sShortDate"].WritePayload;
+
+        Service.Options(ShortDate, new FakeDetectionContext()).Select(option => option.Value)
+            .Should().Contain((string)written!, culture);
+    }
+
+    [Fact]
+    public void The_short_date_key_is_the_pattern_the_machine_carries()
+    {
+        var machine = new FakeDetectionContext().Set(International, "sShortDate", "dd.MM.yyyy");
+
+        Service.CurrentKey(ShortDate, machine).Should().Be("dd.MM.yyyy");
+    }
+
+    [Fact]
+    public void Applying_a_short_date_writes_that_pattern_and_nothing_else()
+    {
+        var set = SetFor(ShortDate, "dd.MM.yyyy")!;
+
+        set.Should().ContainKey("sShortDate").WhoseValue.WritePayload.Should().Be("dd.MM.yyyy");
+        set.Should().HaveCount(1);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("dd/MM/yyyy\r\nStart-Process calc")]
+    public void A_pattern_that_is_empty_or_carries_control_characters_is_not_a_short_date(string key) =>
+        Service.Accepts(ShortDate, key).Should().BeFalse();
 }

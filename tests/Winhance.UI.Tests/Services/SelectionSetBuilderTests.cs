@@ -16,6 +16,7 @@ public class SelectionSetBuilderTests
     private readonly Mock<IAppSelectionSource> _apps = new();
     private readonly Mock<IApplicationModeService> _mode = new();
     private readonly Mock<ICatalogScopeProvider> _scopeProvider = new();
+    private readonly Mock<ICatalogSettingsRegistry> _registry = new();
 
     public SelectionSetBuilderTests()
     {
@@ -30,10 +31,13 @@ public class SelectionSetBuilderTests
 
         _mode.Setup(m => m.GetBuilderEdits()).Returns(new List<SettingChoice>());
         _mode.Setup(m => m.IsIncluded(It.IsAny<string>())).Returns(true);
+
+        _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>()))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>());
     }
 
     private SelectionSetBuilder CreateSut() =>
-        new(_snapshot.Object, _apps.Object, _mode.Object, _scopeProvider.Object);
+        new(_snapshot.Object, _apps.Object, _mode.Object, _scopeProvider.Object, _registry.Object);
 
     // Real catalog settings: ConfigFileMapper.ToFile writes through the Setting's own targets and states.
     private const string RemoteAssistance = "security-remote-assistance";
@@ -105,6 +109,47 @@ public class SelectionSetBuilderTests
         set.Settings.Should().Equal(
             new SettingChoice("t", new ChoiceValue.Toggle(false)),
             new SettingChoice("s", new ChoiceValue.Option(2)));
+    }
+
+    // Clean Start Menu and Clean Taskbar. An Action has no value to capture off this PC and none to leave out,
+    // so the include tick is the whole choice: ticked means the answer file runs it on the new install.
+    private const string CleanStartMenu = "start-menu-clean-11";
+
+    private const string CleanTaskbar = "taskbar-clean";
+
+    private void RegistryOffers(params string[] ids) =>
+        _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>()))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>
+            {
+                [FeatureIds.StartMenu] = ids.Select(id => SettingCatalog.Find(id)!).ToList(),
+            });
+
+    [Fact]
+    public async Task FromBuilderSession_AnIncludedAction_IsWrittenAndAnExcludedOneIsNot()
+    {
+        RegistryOffers(CleanStartMenu, CleanTaskbar);
+        _mode.Setup(m => m.IsIncluded(CleanTaskbar)).Returns(false);
+
+        var set = await CreateSut().FromBuilderSessionAsync();
+
+        set.Settings.Should().Equal(new SettingChoice(CleanStartMenu, new ChoiceValue.Toggle(true)));
+    }
+
+    // A snapshot can carry a stale answer for an Action, so nothing but the tick decides.
+    [Fact]
+    public async Task FromBuilderSession_AnAction_NeverKeepsItsOwnRecordedValue()
+    {
+        RegistryOffers(CleanStartMenu, CleanTaskbar);
+        _snapshot.Setup(s => s.CaptureAsync(It.IsAny<CatalogScope>()))
+            .ReturnsAsync(new List<SettingChoice> { new(CleanTaskbar, new ChoiceValue.Toggle(false)) });
+        _mode.Setup(m => m.GetBuilderEdits())
+            .Returns(new List<SettingChoice> { new(CleanStartMenu, new ChoiceValue.Toggle(false)) });
+
+        var set = await CreateSut().FromBuilderSessionAsync();
+
+        set.Settings.Should().Equal(
+            new SettingChoice(CleanStartMenu, new ChoiceValue.Toggle(true)),
+            new SettingChoice(CleanTaskbar, new ChoiceValue.Toggle(true)));
     }
 
     [Fact]

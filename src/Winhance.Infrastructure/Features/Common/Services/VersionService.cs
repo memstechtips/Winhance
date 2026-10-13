@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
@@ -9,6 +10,8 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 
 internal class VersionService : IVersionService
 {
+    internal const string LatestInstallerUrl = "https://github.com/memstechtips/Winhance/releases/latest/download/Winhance.Installer.exe";
+
     // Dev-only override: when WINHANCE_LOCAL_INSTALLER points at an existing
     // file, the in-app updater skips the GitHub round-trip entirely and uses
     // that file as the "downloaded" installer. Used to test the silent-install
@@ -21,7 +24,6 @@ internal class VersionService : IVersionService
     private readonly IFileSystemService _fileSystemService;
     private readonly HttpClient _httpClient;
     private readonly string _latestReleaseApiUrl = "https://api.github.com/repos/memstechtips/Winhance/releases/latest";
-    private readonly string _latestReleaseDownloadUrl = "https://github.com/memstechtips/Winhance/releases/latest/download/Winhance.Installer.exe";
     private readonly string _userAgent = "Winhance-Update-Checker";
     private string? _downloadedInstallerPath;
 
@@ -47,20 +49,7 @@ internal class VersionService : IVersionService
 
             // Get the InformationalVersion which can include the -beta tag
             var versionInfo = FileVersionInfo.GetVersionInfo(location);
-            string version = versionInfo.ProductVersion ?? versionInfo.FileVersion ?? "v0.0.0";
-
-            int plusIndex = version.IndexOf('+');
-            if (plusIndex > 0)
-            {
-                version = version.Substring(0, plusIndex);
-            }
-
-            if (!version.StartsWith('v'))
-            {
-                version = $"v{version}";
-            }
-
-            return VersionInfo.FromTag(version);
+            return VersionInfo.FromProductVersion(versionInfo.ProductVersion ?? versionInfo.FileVersion ?? "v0.0.0");
         }
         catch (Exception ex)
         {
@@ -83,6 +72,20 @@ internal class VersionService : IVersionService
             };
         }
 
+        var latestVersion = await GetLatestReleaseAsync(cancellationToken).ConfigureAwait(false);
+        if (string.IsNullOrEmpty(latestVersion.Version))
+            return latestVersion;
+
+        VersionInfo currentVersion = GetCurrentVersion();
+        latestVersion = latestVersion with { IsUpdateAvailable = latestVersion.IsNewerThan(currentVersion) };
+
+        _logService.Log(LogLevel.Info, $"Current version: {currentVersion.Version}, Latest version: {latestVersion.Version}, Update available: {latestVersion.IsUpdateAvailable}");
+
+        return latestVersion;
+    }
+
+    public async Task<VersionInfo> GetLatestReleaseAsync(CancellationToken cancellationToken = default)
+    {
         const int maxRetries = 3;
         int delayMs = 2000;
 
@@ -109,14 +112,7 @@ internal class VersionService : IVersionService
                                       ? published
                                       : DateTime.MinValue;
 
-                var latestVersion = VersionInfo.FromTag(tagName);
-
-                VersionInfo currentVersion = GetCurrentVersion();
-                latestVersion = latestVersion with { IsUpdateAvailable = latestVersion.IsNewerThan(currentVersion) };
-
-                _logService.Log(LogLevel.Info, $"Current version: {currentVersion.Version}, Latest version: {latestVersion.Version}, Update available: {latestVersion.IsUpdateAvailable}");
-
-                return latestVersion;
+                return VersionInfo.FromTag(tagName);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -167,7 +163,7 @@ internal class VersionService : IVersionService
         string tempPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "Winhance.Installer.exe");
 
         // Download the installer using streaming to avoid loading the entire file into memory
-        using var downloadRequest = new HttpRequestMessage(HttpMethod.Get, _latestReleaseDownloadUrl);
+        using var downloadRequest = new HttpRequestMessage(HttpMethod.Get, LatestInstallerUrl);
         downloadRequest.Headers.TryAddWithoutValidation("User-Agent", _userAgent);
         using var response = await _httpClient.SendAsync(downloadRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
@@ -189,7 +185,7 @@ internal class VersionService : IVersionService
             throw new InvalidOperationException("No update has been downloaded.");
 
         string appDir = AppContext.BaseDirectory;
-        bool isPortable = _fileSystemService.FileExists(_fileSystemService.CombinePath(appDir, "portable.marker"));
+        bool isPortable = _fileSystemService.FileExists(_fileSystemService.CombinePath(appDir, AppDataPaths.PortableMarkerFileName));
         string appExePath = _fileSystemService.CombinePath(appDir, "Winhance.exe");
 
         string installerArgs = BuildInstallerArgs(appDir, isPortable);

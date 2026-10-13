@@ -42,6 +42,7 @@ OutputDir=C:\Winhance\installer-output
 OutputBaseFilename=Winhance.Installer
 SetupIconFile=C:\Winhance\src\Winhance.UI\Assets\AppIcons\winhance-rocket.ico
 VersionInfoCopyright=Copyright © Marco du Plessis
+VersionInfoVersion={#StringChange(MyAppVersion, "-beta", "")}
 SolidCompression=yes
 WizardStyle=modern
 ; Dir page is replaced by a custom page that appears after task selection

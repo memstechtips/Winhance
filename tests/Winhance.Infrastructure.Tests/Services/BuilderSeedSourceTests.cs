@@ -41,7 +41,7 @@ public class BuilderSeedSourceTests
 
     private void Arrange(Setting setting) =>
         _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>()))
-            .Returns(new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.ExplorerCustomization] = new[] { setting } });
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.Explorer] = new[] { setting } });
 
     private static Setting Toggle(StateRole[] enabled, StateRole[] disabled) => new()
     {
@@ -164,6 +164,70 @@ public class BuilderSeedSourceTests
         choices.Should().BeEmpty();
     }
 
+    private void ArrangeTheAutounattendPage() =>
+        _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>()))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>
+            {
+                [FeatureIds.Autounattend] = SettingCatalog.ByFeature[FeatureIds.Autounattend],
+            });
+
+    private static Dictionary<string, ChoiceValue> StateChoices(IReadOnlyList<SettingChoice> choices) =>
+        choices.Where(c => c.Value is ChoiceValue.Toggle or ChoiceValue.CheckBox or ChoiceValue.Option)
+            .ToDictionary(c => c.SettingId, c => c.Value);
+
+    // The card a new file opens on is the same state, so this seed changes nothing the page would not show anyway.
+    [Fact]
+    public async Task Recommended_OnTheAutounattendPage_IsTheStateEachCardStartsOn()
+    {
+        ArrangeTheAutounattendPage();
+
+        var choices = StateChoices(await Sut().ChoicesForAsync(BuilderSeed.Recommended, CatalogScope.CurrentMachine));
+
+        choices.Should().Equal(new Dictionary<string, ChoiceValue>
+        {
+            ["autounattend-edition"] = new ChoiceValue.Option(0),
+            ["autounattend-media-editions"] = new ChoiceValue.Option(0),
+            ["autounattend-hardware-checks"] = new ChoiceValue.Toggle(false),
+            ["autounattend-disk"] = new ChoiceValue.Option(0),
+            ["autounattend-account"] = new ChoiceValue.Option(0),
+            ["autounattend-oobe-network"] = new ChoiceValue.Option(1),
+            ["autounattend-licence-page"] = new ChoiceValue.Toggle(false),
+            ["autounattend-oem-registration-page"] = new ChoiceValue.Toggle(false),
+            ["autounattend-network-page"] = new ChoiceValue.Toggle(false),
+            ["autounattend-privacy"] = new ChoiceValue.Option(0),
+            ["autounattend-netfx3"] = new ChoiceValue.Toggle(true),
+            ["autounattend-desktop-shortcut"] = new ChoiceValue.Option(1),
+            ["autounattend-delete-installers"] = new ChoiceValue.Toggle(true),
+            ["autounattend-stage-apps"] = new ChoiceValue.CheckBox(true),
+        });
+    }
+
+    [Fact]
+    public async Task WindowsDefaults_OnTheAutounattendPage_IsWhatSetupDoesWithNoAnswerFile()
+    {
+        ArrangeTheAutounattendPage();
+
+        var choices = StateChoices(await Sut().ChoicesForAsync(BuilderSeed.WindowsDefaults, CatalogScope.CurrentMachine));
+
+        choices.Should().Equal(new Dictionary<string, ChoiceValue>
+        {
+            ["autounattend-edition"] = new ChoiceValue.Option(0),
+            ["autounattend-media-editions"] = new ChoiceValue.Option(0),
+            ["autounattend-hardware-checks"] = new ChoiceValue.Toggle(true),
+            ["autounattend-disk"] = new ChoiceValue.Option(0),
+            ["autounattend-account"] = new ChoiceValue.Option(1),
+            ["autounattend-oobe-network"] = new ChoiceValue.Option(0),
+            ["autounattend-licence-page"] = new ChoiceValue.Toggle(true),
+            ["autounattend-oem-registration-page"] = new ChoiceValue.Toggle(true),
+            ["autounattend-network-page"] = new ChoiceValue.Toggle(true),
+            ["autounattend-privacy"] = new ChoiceValue.Option(2),
+            ["autounattend-netfx3"] = new ChoiceValue.Toggle(false),
+            ["autounattend-desktop-shortcut"] = new ChoiceValue.Option(0),
+            ["autounattend-delete-installers"] = new ChoiceValue.Toggle(true),
+            ["autounattend-stage-apps"] = new ChoiceValue.CheckBox(true),
+        });
+    }
+
     [Fact]
     public async Task Recommended_Selection_UsesRecommendedIndex()
     {
@@ -271,6 +335,17 @@ public class BuilderSeedSourceTests
         Arrange(Toggle(NoRoles, RecommendedRole));
 
         var choices = await Sut().ChoicesForAsync(BuilderSeed.CurrentMachine, CatalogScope.CurrentMachine);
+
+        choices.Should().BeEmpty();
+        _registry.Verify(r => r.GetAll(It.IsAny<CatalogScope>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ConfigFile_IsEmpty()
+    {
+        Arrange(Toggle(NoRoles, RecommendedRole));
+
+        var choices = await Sut().ChoicesForAsync(BuilderSeed.ConfigFile, CatalogScope.CurrentMachine);
 
         choices.Should().BeEmpty();
         _registry.Verify(r => r.GetAll(It.IsAny<CatalogScope>()), Times.Never);

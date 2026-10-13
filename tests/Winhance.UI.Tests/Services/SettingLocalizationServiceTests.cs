@@ -71,14 +71,15 @@ public class SettingLocalizationServiceTests
     [Fact]
     public void BuildCrossGroupInfoMessage_WhenChildSettingsExist_BuildsMessage()
     {
+        // A real catalog id: the feature name comes from SettingCatalog.FeatureById, not from the id's prefix.
         var crossGroupSettings = new Dictionary<string, LocKey>
         {
-            ["privacy-child1"] = TestKeys.Of("Setting_Child1_Name")
+            ["privacy-ads-promotional-master"] = TestKeys.Of("Setting_Child1_Name")
         };
 
         var childSetting = new Setting
         {
-            Id = "privacy-child1",
+            Id = "privacy-ads-promotional-master",
             Display = new Display
             {
                 Name = TestKeys.Of("Child Setting 1"),
@@ -86,7 +87,7 @@ public class SettingLocalizationServiceTests
                 GroupName = TestKeys.Of("SettingGroup_PrivacyGroup"),
             },
         };
-        _catalogSettingsRegistry.Setup(r => r.GetById("privacy-child1", It.IsAny<CatalogScope>()))
+        _catalogSettingsRegistry.Setup(r => r.GetById("privacy-ads-promotional-master", It.IsAny<CatalogScope>()))
             .Returns(childSetting);
 
         _localizationService.Setup(l => l.GetString("Setting_CrossGroupWarning_Header"))
@@ -109,7 +110,7 @@ public class SettingLocalizationServiceTests
         // Pin the group-key construction (feature name + localized group) so a wrong Display field read fails.
         result.Should().Contain("Privacy & Security (Privacy Group Localized)");
         // Pin the mode threading: both filters ON must query the current-machine scope.
-        _catalogSettingsRegistry.Verify(r => r.GetById("privacy-child1", CatalogScope.CurrentMachine), Times.Once);
+        _catalogSettingsRegistry.Verify(r => r.GetById("privacy-ads-promotional-master", CatalogScope.CurrentMachine), Times.Once);
     }
 
     [Fact]
@@ -137,14 +138,14 @@ public class SettingLocalizationServiceTests
     {
         var crossGroupSettings = new Dictionary<string, LocKey>
         {
-            ["privacy-child1"] = TestKeys.Of("Setting_Child1_Name")
+            ["privacy-ads-promotional-master"] = TestKeys.Of("Setting_Child1_Name")
         };
 
         _scopeProvider.Setup(p => p.Current).Returns(new CatalogScope(true, false));
 
         var childSetting = new Setting
         {
-            Id = "privacy-child1",
+            Id = "privacy-ads-promotional-master",
             Display = new Display
             {
                 Name = TestKeys.Of("Child Setting 1"),
@@ -154,7 +155,7 @@ public class SettingLocalizationServiceTests
         };
         // Strict on the scope arg: only the other-OS-versions scope resolves - the current-machine scope
         // returns null and fails NotBeNull, so the provider threading is load-bearing here.
-        _catalogSettingsRegistry.Setup(r => r.GetById("privacy-child1", new CatalogScope(true, false)))
+        _catalogSettingsRegistry.Setup(r => r.GetById("privacy-ads-promotional-master", new CatalogScope(true, false)))
             .Returns(childSetting);
 
         var sut = CreateSut();
@@ -163,6 +164,6 @@ public class SettingLocalizationServiceTests
         var result = sut.BuildCrossGroupInfoMessage(setting);
 
         result.Should().NotBeNull();
-        _catalogSettingsRegistry.Verify(r => r.GetById("privacy-child1", new CatalogScope(true, false)), Times.Once);
+        _catalogSettingsRegistry.Verify(r => r.GetById("privacy-ads-promotional-master", new CatalogScope(true, false)), Times.Once);
     }
 }

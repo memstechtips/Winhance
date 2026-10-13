@@ -33,13 +33,10 @@ internal class PowerService(
     private static bool SameScheme(string key, string otherKey) =>
         Guid.TryParse(key, out var scheme) && Guid.TryParse(otherKey, out var otherScheme) && scheme == otherScheme;
 
-    // A plan Windows installed under a GUID of its own is known only by its name, and one locale translates
-    // around the brand rather than keeping the whole English name, so the brand alone is what is matched.
+    // A plan Windows installed under a GUID of its own is known only by its name.
     private static string? PredefinedGuid(DynamicOption option) =>
         PowerPlanCatalog.BuiltInPowerPlans.FirstOrDefault(p => SameScheme(p.Guid, option.Value))?.Guid
-        ?? (option.Label.Contains("Winhance", StringComparison.OrdinalIgnoreCase)
-            ? PowerPlanCatalog.WinhancePowerPlanGuid
-            : null);
+        ?? (PowerPlanCatalog.HasWinhanceName(option.Label) ? PowerPlanCatalog.WinhancePowerPlanGuid : null);
 
     // Dead stub, always false: power-plan apply runs through the catalog engine (ApplyRequestResolver ->
     // PowerPlanEffect -> WindowsStateWriter), so PowerService is not an apply handler.
@@ -58,8 +55,7 @@ internal class PowerService(
             var matchingPlan = systemPlans.FirstOrDefault(p =>
                 string.Equals(p.Guid, winhanceGuid, StringComparison.OrdinalIgnoreCase));
 
-            if (matchingPlan != null &&
-                !string.Equals(matchingPlan.Name?.Trim(), "Winhance Power Plan", StringComparison.OrdinalIgnoreCase))
+            if (matchingPlan != null && !PowerPlanCatalog.HasWinhanceName(matchingPlan.Name))
             {
                 logService.Log(LogLevel.Warning, $"Detected corrupt Winhance plan (name: '{matchingPlan.Name}'), cleaning up");
 

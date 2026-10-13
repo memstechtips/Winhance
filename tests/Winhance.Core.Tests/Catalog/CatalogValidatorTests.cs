@@ -45,6 +45,17 @@ public class CatalogValidatorTests
         Assert.Empty(errors);
     }
 
+    [Theory]
+    [InlineData(@"HKEY_CLASSES_ROOT\lnkfile")]
+    [InlineData(@"HKCR\lnkfile")]
+    public void A_registry_path_through_classes_root_is_an_error(string path)
+    {
+        var s = Make([new RegTarget("NeverShowExt", [path], "NeverShowExt", RegistryValueKind.String)],
+            [St(TestKeys.Of("On"), new() { ["NeverShowExt"] = StateValue.Of("") }, fallback: true)]);
+
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("HKEY_CLASSES_ROOT"));
+    }
+
     [Fact]
     public void A_keyed_selection_with_one_target_and_no_states_is_valid()
     {
@@ -186,13 +197,31 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Only_a_colour_list_declares_fixed_keys()
+    public void Only_a_colour_or_locale_value_list_declares_fixed_keys()
     {
         var colors = FakeOptionProvider.SettingFor() with { Options = new(OptionSource.Colors) { Keys = ["#000000"] } };
+        var locale = FakeOptionProvider.SettingFor() with
+        {
+            Options = new(OptionSource.LocaleValues) { Value = OptionValue.ShortDate, Keys = ["dd/MM/yyyy"] },
+        };
         var formats = FakeOptionProvider.SettingFor() with { Options = new(OptionSource.RegionalFormats) { Keys = ["en-US"] } };
 
         Assert.DoesNotContain(CatalogValidator.Validate(colors), e => e.Message.Contains("fixed Keys"));
-        Assert.Contains(CatalogValidator.Validate(formats), e => e.Message.Contains("Only a Colors list declares fixed Keys"));
+        Assert.DoesNotContain(CatalogValidator.Validate(locale), e => e.Message.Contains("fixed Keys"));
+        Assert.Contains(CatalogValidator.Validate(formats), e => e.Message.Contains("Only a Colors or LocaleValues list declares fixed Keys"));
+    }
+
+    [Fact]
+    public void A_locale_value_list_must_name_the_value_it_offers()
+    {
+        var unnamed = FakeOptionProvider.SettingFor() with { Options = new(OptionSource.LocaleValues) };
+        var elsewhere = FakeOptionProvider.SettingFor() with
+        {
+            Options = new(OptionSource.RegionalFormats) { Value = OptionValue.ShortDate },
+        };
+
+        Assert.Contains(CatalogValidator.Validate(unnamed), e => e.Message.Contains("must name the Value it offers"));
+        Assert.Contains(CatalogValidator.Validate(elsewhere), e => e.Message.Contains("must name the Value it offers"));
     }
 
     [Fact]
@@ -563,12 +592,27 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void An_answer_file_only_setting_needs_exactly_one_windows_default_state()
+    public void An_answer_file_only_setting_with_states_needs_one_to_seed_from()
     {
         var s = Make(
             new[] { Element("K") },
             new[] { St(LocKey.Common.Enabled, new()), St(LocKey.Common.Disabled, new() { ["K"] = StateValue.Of("true") }) });
-        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("WindowsDefault state to seed from"));
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("state to seed from"));
+    }
+
+    [Theory]
+    [InlineData(RoleKind.Recommended)]
+    [InlineData(RoleKind.WindowsDefault)]
+    public void Either_role_gives_an_answer_file_only_setting_its_seed(RoleKind role)
+    {
+        var s = Make(
+            new[] { Element("K") },
+            new[]
+            {
+                St(LocKey.Common.Enabled, new()),
+                St(LocKey.Common.Disabled, new() { ["K"] = StateValue.Of("true") }, roles: new StateRole(role)),
+            });
+        Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("state to seed from"));
     }
 
     [Fact]
@@ -619,6 +663,57 @@ public class CatalogValidatorTests
             Effects = new[] { new AutounattendCommand("specialize", "Microsoft-Windows-Deployment", "cmd.exe /c echo") },
         };
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("mixes"));
+    }
+
+    private static Setting LiveWithScript(ScriptEffect script) =>
+        Make(
+            new[] { Reg("R", "V") },
+            new[]
+            {
+                St(LocKey.Common.Enabled, new() { ["R"] = StateValue.Of(1) }) with { Effects = new[] { script } },
+                St(LocKey.Common.Disabled, new() { ["R"] = StateValue.Of(0) }),
+            });
+
+    [Fact]
+    public void A_live_script_may_not_depend_on_the_apps_an_answer_file_installs()
+    {
+        var s = LiveWithScript(new ScriptEffect("echo hi", RunContext.System) { When = AppsToInstall.Some });
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("the live apply ignores both"));
+    }
+
+    [Fact]
+    public void A_live_script_may_not_wait_for_the_sign_in_after_setup()
+    {
+        var s = LiveWithScript(new ScriptEffect("echo hi", RunContext.SignInAfterSetup));
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("the live apply ignores both"));
+    }
+
+    [Fact]
+    public void A_live_script_that_runs_every_time_is_valid()
+    {
+        Assert.Empty(CatalogValidator.Validate(LiveWithScript(new ScriptEffect("echo hi", RunContext.System))));
+    }
+
+    [Fact]
+    public void An_answer_file_only_script_may_depend_on_the_apps_and_wait_for_the_sign_in_after_setup()
+    {
+        var s = Make(
+            Array.Empty<Target>(),
+            new[]
+            {
+                St(LocKey.Common.Enabled, new(), roles: new StateRole(RoleKind.WindowsDefault)) with
+                {
+                    Effects = new[]
+                    {
+                        new ScriptEffect("echo some", RunContext.System) { When = AppsToInstall.Some },
+                        new ScriptEffect("echo later", RunContext.SignInAfterSetup),
+                    },
+                },
+                St(LocKey.Common.Disabled, new()),
+            });
+
+        Assert.True(s.IsAnswerFileOnly);
+        Assert.Empty(CatalogValidator.Validate(s));
     }
 
     [Fact]
@@ -679,6 +774,15 @@ public class CatalogValidatorTests
     }
 
     [Fact]
+    public void A_text_setting_may_hand_what_was_typed_to_its_scripts_instead_of_a_target()
+    {
+        var s = Typed(Array.Empty<Target>(), Array.Empty<SettingState>())
+            with { CustomStateScripts = [new ScriptEffect("Move-Folders '{{value}}'", RunContext.User)] };
+
+        Assert.Empty(CatalogValidator.Validate(s));
+    }
+
+    [Fact]
     public void A_text_setting_may_not_write_to_the_registry()
     {
         var s = Typed(new[] { Reg("R", "V") }, Array.Empty<SettingState>());
@@ -692,6 +796,22 @@ public class CatalogValidatorTests
             with { TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything.")), SeedKey: "this-pc") };
 
         Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("answer-file target") || e.Message.Contains("SeedKey"));
+    }
+
+    [Fact]
+    public void A_user_script_target_belongs_to_a_list()
+    {
+        var s = Make(new[] { new AutounattendScript("script", RunContext.System) }, Array.Empty<SettingState>());
+
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("carries the user's own scripts"));
+    }
+
+    [Fact]
+    public void A_user_script_names_one_of_the_two_sections_the_script_has()
+    {
+        var s = Typed(new[] { new AutounattendScript("script", RunContext.SignInAfterSetup) }, Array.Empty<SettingState>());
+
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("not at the sign-in after Setup"));
     }
 
     [Fact]
@@ -838,6 +958,46 @@ public class CatalogValidatorTests
     {
         var s = Listed(Array.Empty<Target>(), Array.Empty<SettingState>());
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("exactly one answer-file element"));
+    }
+
+    [Fact]
+    public void A_list_setting_may_carry_scripts_instead_of_an_element()
+    {
+        var s = Listed(new[] { new AutounattendScript("script", RunContext.System) }, Array.Empty<SettingState>());
+        Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("exactly one answer-file element"));
+    }
+
+    [Fact]
+    public void A_list_setting_may_change_the_media_instead_of_writing_an_element()
+    {
+        var s = Listed(new[] { new AutounattendMedia("installers") }, Array.Empty<SettingState>());
+        Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("exactly one answer-file element"));
+    }
+
+    [Fact]
+    public void A_file_field_names_the_filter_its_picker_opens_with()
+    {
+        var bare = Listed(new[] { Element("K") }, Array.Empty<SettingState>()) with
+        {
+            List = new([new Field("file", FieldKind.File, TestKeys.Of("File"))]),
+        };
+        var filtered = bare with
+        {
+            List = new([new Field("file", FieldKind.File, TestKeys.Of("File"), Filter: new FileFilter(TestKeys.Of("Files"), "*.exe"))]),
+        };
+
+        Assert.Contains(CatalogValidator.Validate(bare), e => e.Message.Contains("Field 'file': a File field names the filter"));
+        Assert.DoesNotContain(CatalogValidator.Validate(filtered), e => e.Message.Contains("a File field names the filter"));
+    }
+
+    [Fact]
+    public void Only_a_file_field_names_a_picker_filter()
+    {
+        var s = Listed(new[] { Element("K") }, Array.Empty<SettingState>()) with
+        {
+            List = new([new Field("name", FieldKind.Text, TestKeys.Of("Name"), Filter: new FileFilter(TestKeys.Of("Files"), "*.exe"))]),
+        };
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("Field 'name': a File field names the filter"));
     }
 
     [Fact]

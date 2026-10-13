@@ -23,5 +23,4 @@ public partial class WindowsThemeCustomizationsViewModel : BaseSettingsFeatureVi
 
     public override string ModuleId => FeatureIds.WindowsTheme;
 
-    protected override string GetDisplayNameKey() => "Feature_WindowsTheme_Name";
 }

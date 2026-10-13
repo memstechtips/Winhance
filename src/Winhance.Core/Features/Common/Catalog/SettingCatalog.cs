@@ -41,11 +41,11 @@ public static class SettingCatalog
 
     public static IReadOnlyDictionary<string, Setting> ById { get; } = All.ToDictionary(s => s.Id);
 
+    public static IReadOnlyDictionary<string, string> FeatureById { get; } = ByFeature
+        .SelectMany(feature => feature.Value.Select(setting => (setting.Id, feature.Key)))
+        .ToDictionary(pair => pair.Id, pair => pair.Key);
+
     // Accepts a canonical id OR a retired -win10 alias (SettingIdAliases.Normalize).
     public static Setting? Find(string settingId) =>
         ById.TryGetValue(SettingIdAliases.Normalize(settingId), out var s) ? s : null;
-
-    public static bool IsOrChildOf(string settingId, string parentId) =>
-        settingId == parentId
-        || (ById.TryGetValue(settingId, out var setting) && setting.UiParentId == parentId);
 }

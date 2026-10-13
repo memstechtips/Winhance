@@ -27,7 +27,8 @@ public class AutounattendWritersTests
 
     // "group" is the option index of the list's Selection field: 0 Administrators, 1 Users.
     private static ChoiceValue.ListRow Account(
-        string name, string displayName, string group, string password, bool obscure, bool autoLogon = false) =>
+        string name, string displayName, string group, string password, bool obscure, bool autoLogon = false,
+        bool changePassword = false) =>
         new(new Dictionary<string, string>
         {
             ["name"] = name,
@@ -36,6 +37,7 @@ public class AutounattendWritersTests
             ["password"] = password,
             ["obscure"] = obscure ? "true" : "false",
             ["auto-logon"] = autoLogon ? "true" : "false",
+            ["change-password"] = changePassword ? "true" : "false",
         });
 
     private static readonly ChoiceValue.ListRow[] NoAccounts = [];
@@ -95,6 +97,17 @@ public class AutounattendWritersTests
         new("autounattend-account", new ChoiceValue.Option(2)),
         new("autounattend-accounts", new ChoiceValue.List(accounts)),
     ];
+
+    // OobeNetworkWriter decides the adapter cut from the account mode, so it reads a card the generic writer
+    // wrote; the builder runs them in this order and so does this.
+    private static XDocument WriteNetwork(params SettingChoice[] choices)
+    {
+        var doc = AutounattendDocument.NewSkeleton();
+        var context = ContextWith(choices);
+        Elements.Write(doc, context);
+        new OobeNetworkWriter().Write(doc, context);
+        return doc;
+    }
 
     // InputLocale is the format's LCID paired with the layout id: no one setting names it, so it has its own writer.
     private static XDocument WriteRegion(params SettingChoice[] choices)
@@ -306,7 +319,7 @@ public class AutounattendWritersTests
     public void Account_local_keeps_oobe_offline_and_restores_the_adapters_at_first_logon()
     {
         // NetFx3 off keeps its dism command out of the Deployment list being counted.
-        var doc = Write(Elements, new SettingChoice("autounattend-netfx3", new ChoiceValue.Toggle(false)));
+        var doc = WriteNetwork(new SettingChoice("autounattend-netfx3", new ChoiceValue.Toggle(false)));
 
         var commands = RunSynchronous(doc, "specialize", "Microsoft-Windows-Deployment");
         commands.Should().HaveCount(2);
@@ -425,6 +438,61 @@ public class AutounattendWritersTests
     }
 
     [Fact]
+    public void An_account_asked_for_a_new_password_gets_the_command_that_expires_it()
+    {
+        var doc = Write(new AccountWriter(), CreateNow(
+        [
+            Account("Marco", "Marco du Plessis", "0", string.Empty, obscure: false, changePassword: true),
+            Account("Guest", "Guest account", "1", string.Empty, obscure: false),
+        ]));
+
+        var commands = ComponentOrNull(doc, "oobeSystem", "Microsoft-Windows-Shell-Setup")!
+            .Element(U + "FirstLogonCommands")!.Elements(U + "SynchronousCommand").ToList();
+        commands.Should().ContainSingle();
+        commands[0].Element(U + "CommandLine")!.Value.Should().Be(
+            "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command \"Set-LocalUser -Name 'Marco' -PasswordNeverExpires $false; net.exe user 'Marco' /logonpasswordchg:yes\"");
+    }
+
+    [Fact]
+    public void An_account_name_with_a_space_and_an_apostrophe_is_quoted_for_PowerShell()
+    {
+        var doc = Write(new AccountWriter(), CreateNow(
+            [Account("O'Brien Test", "O'Brien", "0", string.Empty, obscure: false, changePassword: true)]));
+
+        ComponentOrNull(doc, "oobeSystem", "Microsoft-Windows-Shell-Setup")!
+            .Element(U + "FirstLogonCommands")!.Elements(U + "SynchronousCommand").Single()
+            .Element(U + "CommandLine")!.Value.Should().Be(
+                "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command \"Set-LocalUser -Name 'O''Brien Test' -PasswordNeverExpires $false; net.exe user 'O''Brien Test' /logonpasswordchg:yes\"");
+    }
+
+    [Fact]
+    public void An_account_name_with_a_typographic_apostrophe_is_quoted_for_PowerShell()
+    {
+        var doc = Write(new AccountWriter(), CreateNow(
+            [Account("O\u2019Brien", "O\u2019Brien", "0", string.Empty, obscure: false, changePassword: true)]));
+
+        ComponentOrNull(doc, "oobeSystem", "Microsoft-Windows-Shell-Setup")!
+            .Element(U + "FirstLogonCommands")!.Elements(U + "SynchronousCommand").Single()
+            .Element(U + "CommandLine")!.Value.Should().Be(
+                "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command \"Set-LocalUser -Name 'O\u2019\u2019Brien' -PasswordNeverExpires $false; net.exe user 'O\u2019\u2019Brien' /logonpasswordchg:yes\"");
+    }
+
+    [Fact]
+    public void A_new_password_request_runs_before_the_cached_answer_file_is_deleted()
+    {
+        var doc = Write(new AccountWriter(), CreateNow(
+            [Account("Marco", "Marco du Plessis", "0", "hunter2", obscure: true, autoLogon: true, changePassword: true)]));
+
+        var commands = ComponentOrNull(doc, "oobeSystem", "Microsoft-Windows-Shell-Setup")!
+            .Element(U + "FirstLogonCommands")!.Elements(U + "SynchronousCommand")
+            .Select(c => (Order: c.Element(U + "Order")!.Value, Command: c.Element(U + "CommandLine")!.Value))
+            .ToList();
+        commands.Should().Equal(
+            ("1", "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command \"Set-LocalUser -Name 'Marco' -PasswordNeverExpires $false; net.exe user 'Marco' /logonpasswordchg:yes\""),
+            ("2", SettingCatalog.ById["autounattend-accounts"].List!.PasswordCleanup!.Command));
+    }
+
+    [Fact]
     public void A_file_with_no_password_in_it_gets_no_cleanup_command()
     {
         var doc = Write(new AccountWriter(), CreateNow(AdministratorWithNoPassword));
@@ -501,7 +569,7 @@ public class AutounattendWritersTests
             new SettingChoice("region-system-locale", new ChoiceValue.Keyed("en-GB", "English (United Kingdom)")),
             new SettingChoice("region-keyboard-layout", new ChoiceValue.Keyed("00000407", "German")));
 
-        // Setup asks for the language and keyboard on its own first screen, so windowsPE gets nothing.
+        // No setup language chosen, so Setup keeps its own first screen and windowsPE gets nothing.
         ComponentOrNull(doc, "windowsPE", "Microsoft-Windows-International-Core-WinPE").Should().BeNull();
         ComponentOrNull(doc, "oobeSystem", "Microsoft-Windows-International-Core")!
             .Elements().Select(e => (e.Name.LocalName, e.Value)).Should().Equal(
@@ -547,6 +615,61 @@ public class AutounattendWritersTests
         ComponentOrNull(doc, "windowsPE", "Microsoft-Windows-International-Core-WinPE").Should().BeNull();
         ComponentOrNull(doc, "oobeSystem", "Microsoft-Windows-International-Core")!
             .Elements().Select(e => (e.Name.LocalName, e.Value)).Should().Equal(("UserLocale", "en-ZA"));
+    }
+
+    [Fact]
+    public void A_setup_language_answers_every_question_Setups_first_screen_asks()
+    {
+        var doc = WriteRegion(
+            new SettingChoice("autounattend-setup-language", new ChoiceValue.Keyed("en-GB", "English (United Kingdom)")),
+            new SettingChoice("region-format", new ChoiceValue.Keyed("de-DE", "German (Germany)")),
+            new SettingChoice("region-system-locale", new ChoiceValue.Keyed("en-GB", "English (United Kingdom)")),
+            new SettingChoice("region-keyboard-layout", new ChoiceValue.Keyed("00000407", "German")));
+
+        var setup = ComponentOrNull(doc, "windowsPE", "Microsoft-Windows-International-Core-WinPE")!;
+        setup.Elements().Select(e => e.Name.LocalName).Should().Equal(
+            "SetupUILanguage", "InputLocale", "SystemLocale", "UILanguage", "UserLocale");
+        setup.Element(U + "SetupUILanguage")!.Element(U + "UILanguage")!.Value.Should().Be("en-GB");
+        setup.Element(U + "UILanguage")!.Value.Should().Be("en-GB");
+        setup.Element(U + "InputLocale")!.Value.Should().Be("0407:00000407");
+        setup.Element(U + "SystemLocale")!.Value.Should().Be("en-GB");
+        setup.Element(U + "UserLocale")!.Value.Should().Be("de-DE");
+    }
+
+    [Fact]
+    public void The_ask_me_option_carries_an_empty_key_and_writes_no_windowsPE_component()
+    {
+        var doc = WriteRegion(
+            new SettingChoice("autounattend-setup-language", new ChoiceValue.Keyed(string.Empty, "Ask me during setup")),
+            new SettingChoice("region-format", new ChoiceValue.Keyed("de-DE", "German (Germany)")),
+            new SettingChoice("region-keyboard-layout", new ChoiceValue.Keyed("00000407", "German")));
+
+        ComponentOrNull(doc, "windowsPE", "Microsoft-Windows-International-Core-WinPE").Should().BeNull();
+        ComponentOrNull(doc, "oobeSystem", "Microsoft-Windows-International-Core")!
+            .Elements().Select(e => e.Name.LocalName).Should().Equal("InputLocale", "UserLocale");
+    }
+
+    // The region cards are the only source for the other three, so a file that excludes them still skips the
+    // language half of the screen and lets Setup ask the rest.
+    [Fact]
+    public void A_setup_language_with_no_region_cards_writes_the_language_alone()
+    {
+        var doc = WriteRegion(
+            new SettingChoice("autounattend-setup-language", new ChoiceValue.Keyed("fr-FR", "French (France)")));
+
+        ComponentOrNull(doc, "windowsPE", "Microsoft-Windows-International-Core-WinPE")!
+            .Elements().Select(e => e.Name.LocalName).Should().Equal("SetupUILanguage", "UILanguage");
+    }
+
+    [Fact]
+    public void The_display_language_is_written_into_oobeSystem()
+    {
+        var doc = WriteRegion(
+            new SettingChoice("region-display-language", new ChoiceValue.Keyed("nl-NL", "Dutch (Netherlands)")));
+
+        ComponentOrNull(doc, "windowsPE", "Microsoft-Windows-International-Core-WinPE").Should().BeNull();
+        ComponentOrNull(doc, "oobeSystem", "Microsoft-Windows-International-Core")!
+            .Elements().Select(e => (e.Name.LocalName, e.Value)).Should().Equal(("UILanguage", "nl-NL"));
     }
 
     [Fact]
@@ -628,6 +751,127 @@ public class AutounattendWritersTests
             .Elements().Select(e => e.Name.LocalName).Should().Equal("ComputerName", "TimeZone", "ProductKey");
     }
 
+    private static XElement Disk(XDocument doc) =>
+        ComponentOrNull(doc, "windowsPE", "Microsoft-Windows-Setup")!.Element(U + "DiskConfiguration")!.Element(U + "Disk")!;
+
+    // One row per CreatePartition, in Order: "<Type> <Size or Extend>".
+    private static List<string> Creates(XDocument doc) =>
+        Disk(doc).Element(U + "CreatePartitions")!.Elements(U + "CreatePartition")
+            .Select(p => p.Element(U + "Type")!.Value + " " + (p.Element(U + "Size")?.Value ?? "extend"))
+            .ToList();
+
+    // One row per ModifyPartition: "<PartitionID> <Label> <Format>".
+    private static List<string> Modifies(XDocument doc) =>
+        Disk(doc).Element(U + "ModifyPartitions")!.Elements(U + "ModifyPartition")
+            .Select(p => p.Element(U + "PartitionID")!.Value + " " + p.Element(U + "Label")!.Value + " " + p.Element(U + "Format")!.Value)
+            .ToList();
+
+    private static string InstalledPartition(XDocument doc) =>
+        ComponentOrNull(doc, "windowsPE", "Microsoft-Windows-Setup")!
+            .Element(U + "ImageInstall")!.Element(U + "OSImage")!.Element(U + "InstallTo")!.Element(U + "PartitionID")!.Value;
+
+    private static SettingChoice[] Uefi(string recoverySize) =>
+    [
+        new("autounattend-disk", new ChoiceValue.Option(1)),
+        new("autounattend-disk-recovery-size", new ChoiceValue.Text(recoverySize)),
+    ];
+
+    // The layout in Microsoft's own UEFI unattend sample, partition ids and all. Windows is the fourth
+    // partition there because the MSR takes an id and no ModifyPartition, which is the part that is easy to
+    // get wrong and impossible to see without installing.
+    [Fact]
+    public void Uefi_lays_the_disk_out_the_way_the_microsoft_sample_does()
+    {
+        var doc = Write(new DiskConfigurationWriter(), Uefi("1000"));
+
+        Creates(doc).Should().Equal("Primary 1000", "EFI 300", "MSR 16", "Primary extend");
+        Modifies(doc).Should().Equal("1 Recovery NTFS", "2 System FAT32", "4 Windows NTFS");
+        InstalledPartition(doc).Should().Be("4");
+
+        var recovery = Disk(doc).Element(U + "ModifyPartitions")!.Elements(U + "ModifyPartition").First();
+        recovery.Element(U + "TypeID")!.Value.Should().Be("de94bba4-06d1-4d40-a16a-bfd50179d6ac");
+        Disk(doc).Element(U + "ModifyPartitions")!.Elements(U + "ModifyPartition").Last()
+            .Element(U + "Letter")!.Value.Should().Be("C");
+    }
+
+    [Fact]
+    public void An_empty_recovery_size_leaves_the_partition_out_and_moves_windows_up()
+    {
+        var doc = Write(new DiskConfigurationWriter(), Uefi(string.Empty));
+
+        Creates(doc).Should().Equal("EFI 300", "MSR 16", "Primary extend");
+        Modifies(doc).Should().Equal("1 System FAT32", "3 Windows NTFS");
+        InstalledPartition(doc).Should().Be("3");
+    }
+
+    [Fact]
+    public void Bios_makes_the_system_partition_primary_and_active_with_no_msr()
+    {
+        var doc = Write(
+            new DiskConfigurationWriter(),
+            new SettingChoice("autounattend-disk", new ChoiceValue.Option(2)),
+            new SettingChoice("autounattend-disk-system-size", new ChoiceValue.Text("100")));
+
+        Creates(doc).Should().Equal("Primary 1000", "Primary 100", "Primary extend");
+        Modifies(doc).Should().Equal("1 Recovery NTFS", "2 System NTFS", "3 Windows NTFS");
+        InstalledPartition(doc).Should().Be("3");
+
+        var system = Disk(doc).Element(U + "ModifyPartitions")!.Elements(U + "ModifyPartition").ElementAt(1);
+        system.Element(U + "Active")!.Value.Should().Be("true");
+        Disk(doc).Element(U + "ModifyPartitions")!.Elements(U + "ModifyPartition").First()
+            .Element(U + "TypeID")!.Value.Should().Be("0x27");
+    }
+
+    // "Do not set both CreatePartition:Size and CreatePartition:Extend... An error is logged, and installation
+    // is terminated", and one of the two is required.
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void Every_partition_names_a_size_or_extends_never_both_and_never_neither(int layout)
+    {
+        var doc = Write(new DiskConfigurationWriter(), new SettingChoice("autounattend-disk", new ChoiceValue.Option(layout)));
+
+        foreach (var partition in Disk(doc).Element(U + "CreatePartitions")!.Elements(U + "CreatePartition"))
+            (partition.Element(U + "Size") is null).Should().NotBe(partition.Element(U + "Extend") is null);
+    }
+
+    [Fact]
+    public void The_disk_number_reaches_the_wiped_disk_and_the_install_target()
+    {
+        var doc = Write(
+            new DiskConfigurationWriter(),
+            new SettingChoice("autounattend-disk", new ChoiceValue.Option(1)),
+            new SettingChoice("autounattend-disk-number", new ChoiceValue.Text("2")));
+
+        Disk(doc).Element(U + "DiskID")!.Value.Should().Be("2");
+        ComponentOrNull(doc, "windowsPE", "Microsoft-Windows-Setup")!
+            .Element(U + "ImageInstall")!.Element(U + "OSImage")!.Element(U + "InstallTo")!
+            .Element(U + "DiskID")!.Value.Should().Be("2");
+    }
+
+    // Every sample writes DiskConfiguration before ImageInstall, Disk's own ids before its partition lists, and
+    // WillShowUI after the last Disk.
+    [Fact]
+    public void The_windowsPE_setup_children_stay_in_schema_order()
+    {
+        var doc = Write(new DiskConfigurationWriter(), Uefi("1000"));
+
+        ComponentOrNull(doc, "windowsPE", "Microsoft-Windows-Setup")!
+            .Elements().Select(e => e.Name.LocalName).Should().Equal("DiskConfiguration", "ImageInstall");
+        Disk(doc).Elements().Select(e => e.Name.LocalName)
+            .Should().Equal("DiskID", "WillWipeDisk", "CreatePartitions", "ModifyPartitions");
+        ComponentOrNull(doc, "windowsPE", "Microsoft-Windows-Setup")!.Element(U + "DiskConfiguration")!
+            .Elements().Select(e => e.Name.LocalName).Should().Equal("Disk", "WillShowUI");
+    }
+
+    [Fact]
+    public void Asking_during_setup_writes_no_disk_configuration_at_all()
+    {
+        var doc = Write(new DiskConfigurationWriter(), new SettingChoice("autounattend-disk", new ChoiceValue.Option(0)));
+
+        ComponentOrNull(doc, "windowsPE", "Microsoft-Windows-Setup").Should().BeNull();
+    }
+
     [Fact]
     public void Account_microsoft_writes_nothing()
     {
@@ -635,6 +879,78 @@ public class AutounattendWritersTests
 
         ComponentOrNull(doc, "specialize", "Microsoft-Windows-Deployment").Should().BeNull();
         ComponentOrNull(doc, "oobeSystem", "Microsoft-Windows-Shell-Setup").Should().BeNull();
+    }
+
+    private static void AdaptersAreCut(XDocument doc)
+    {
+        var commands = RunSynchronous(doc, "specialize", "Microsoft-Windows-Deployment");
+        commands.Should().ContainSingle();
+        Path(commands[0]).Should().Contain("Disable-NetAdapter");
+
+        var firstLogon = ComponentOrNull(doc, "oobeSystem", "Microsoft-Windows-Shell-Setup")!
+            .Element(U + "FirstLogonCommands")!.Elements(U + "SynchronousCommand").ToList();
+        firstLogon.Should().ContainSingle();
+        firstLogon[0].Element(U + "CommandLine")!.Value.Should().Contain("Enable-NetAdapter");
+    }
+
+    private static void SetupStaysOnline(XDocument doc)
+    {
+        ComponentOrNull(doc, "specialize", "Microsoft-Windows-Deployment").Should().BeNull();
+        ComponentOrNull(doc, "oobeSystem", "Microsoft-Windows-Shell-Setup").Should().BeNull();
+    }
+
+    [Fact]
+    public void A_local_account_cuts_the_adapters_whatever_the_network_card_says()
+    {
+        AdaptersAreCut(Write(
+            new OobeNetworkWriter(),
+            new SettingChoice("autounattend-account", new ChoiceValue.Option(0)),
+            new SettingChoice("autounattend-oobe-network", new ChoiceValue.Option(0))));
+    }
+
+    [Fact]
+    public void A_microsoft_account_leaves_setup_online_whatever_the_network_card_says()
+    {
+        SetupStaysOnline(Write(
+            new OobeNetworkWriter(),
+            new SettingChoice("autounattend-account", new ChoiceValue.Option(1)),
+            new SettingChoice("autounattend-oobe-network", new ChoiceValue.Option(1))));
+    }
+
+    [Fact]
+    public void Create_now_takes_the_network_cards_answer()
+    {
+        SetupStaysOnline(Write(
+            new OobeNetworkWriter(),
+            new SettingChoice("autounattend-account", new ChoiceValue.Option(2)),
+            new SettingChoice("autounattend-oobe-network", new ChoiceValue.Option(0))));
+
+        AdaptersAreCut(Write(
+            new OobeNetworkWriter(),
+            new SettingChoice("autounattend-account", new ChoiceValue.Option(2)),
+            new SettingChoice("autounattend-oobe-network", new ChoiceValue.Option(1))));
+    }
+
+    // Both cards fall back to their seed state, so the file a user never opened cuts the adapters.
+    [Fact]
+    public void A_set_that_names_neither_card_cuts_the_adapters()
+    {
+        AdaptersAreCut(Write(new OobeNetworkWriter()));
+        AdaptersAreCut(Write(new OobeNetworkWriter(), new SettingChoice("autounattend-account", new ChoiceValue.Option(2))));
+    }
+
+    // A wrong LogicalName leaves the resource unreachable, and the only symptom is a wallpaper that never
+    // applies on a PC nobody can attach a debugger to.
+    [Fact]
+    public void The_desktop_interop_travels_as_the_source_Add_Type_compiles()
+    {
+        var source = AutounattendScripts.DesktopBackgroundInterop;
+
+        source.Should().Contain("namespace Winhance.Desktop")
+            .And.Contain("public static class DesktopBackground")
+            .And.Contain("B92B56A9-8B55-4E14-9A89-0199BBB6F93B");
+        // The here-string that carries it ends at a line of its own, and C# 5 has no file-scoped namespace.
+        source.Should().NotContain("\n'@").And.NotContain("namespace Winhance.Desktop;");
     }
 
     [Fact]
@@ -645,6 +961,14 @@ public class AutounattendWritersTests
         AutounattendScripts.ExtractScript.Should().Contain("WriteAllBytes");
         AutounattendScripts.ExtractScript.Should().Contain("FromBase64String");
         AutounattendScripts.ExtractCommand.Should().Contain("C:\\Windows\\Panther\\unattend.xml").And.Contain("Extensions.ExtractScript");
+    }
+
+    // XML parsing hands the extractor LF line endings, and cmd.exe misses labels in a batch file that has them.
+    [Fact]
+    public void ExtractScript_resource_writes_text_files_with_CRLF_line_endings()
+    {
+        AutounattendScripts.ExtractScript.Should().Contain("$text = $file.InnerText.Trim() -replace '\\r?\\n', \"`r`n\";");
+        AutounattendScripts.ExtractScript.Should().Contain("$encoding.GetBytes( $text )");
     }
 
     [Fact]
@@ -706,7 +1030,7 @@ public class AutounattendWritersTests
     {
         var doc = AutounattendDocument.NewSkeleton();
         doc.Pass("specialize").Component("Microsoft-Windows-Deployment").AddRunSynchronousCommand("cmd.exe /c one");
-        doc.Pass("oobeSystem").Component("Microsoft-Windows-Shell-Setup").SetOobe("HideEULAPage", "true");
+        doc.Pass("oobeSystem").Component("Microsoft-Windows-Shell-Setup").ElementPath("OOBE/HideEULAPage").Value = "true";
 
         new ArchitectureWriter().Write(doc, ContextWith(
             new SettingChoice("autounattend-architecture-arm64", new ChoiceValue.CheckBox(false)),
@@ -769,16 +1093,17 @@ public class AutounattendWritersTests
 
         foreach (var pass in new[] { "windowsPE", "specialize", "oobeSystem" })
             doc.Pass(pass).Elements(U + "component").Select(c => (string?)c.Attribute("processorArchitecture")).Should().Equal("x86", "arm64", "amd64");
-        foreach (var pass in new[] { "offlineServicing", "generalize", "auditSystem", "auditUser" })
-            doc.Pass(pass).HasElements.Should().BeFalse();
+        doc.Root!.Elements(U + "settings").Select(s => (string?)s.Attribute("pass")).Should().Equal("windowsPE", "specialize", "oobeSystem");
 
         var specialize = doc.Pass("specialize").Elements(U + "component").First().Element(U + "RunSynchronous")!.Elements(U + "RunSynchronousCommand").ToList();
         specialize.Select(c => (string?)c.Element(U + "Order")).Should().Equal("1", "2", "3", "4", "5");
         specialize.Select(c => c.Element(U + "Description")!.Value).Should().SatisfyRespectively(
             d => d.Should().Be("Loads Scripts in this XML File"),
             d => d.Should().Be("Registry Entry to Create a Local Account during OOBE"),
-            d => d.Should().StartWith("Disable All Network Adapters Temporarily"),
             d => d.Should().Be("Enables .NET Framework 3.5 from Windows Installation Media"),
+            // The cut sits behind the cards the generic writer emits because OobeNetworkWriter runs after it;
+            // it only has to land before OOBE, and nothing above it needs the network.
+            d => d.Should().StartWith("Disable All Network Adapters Temporarily"),
             d => d.Should().StartWith("Runs Winhance Script System Wide Operations"));
         doc.Pass("windowsPE").Elements(U + "component").First().Element(U + "RunSynchronous")!.Elements(U + "RunSynchronousCommand").Should().HaveCount(6);
         doc.Extensions().Elements().Select(e => e.Name.LocalName).Should().Equal("Generator", "ExtractScript", "File");

@@ -11,6 +11,7 @@ PowerWriteACValueIndex
 PowerWriteDCValueIndex
 PowerReadValueMin
 PowerReadValueMax
+PowerReadPossibleFriendlyName
 PowerDuplicateScheme
 PowerDeleteScheme
 PowerRestoreDefaultPowerSchemes
@@ -29,6 +30,13 @@ LocalFree
 // Boot firmware: BIOS vs UEFI (kernel32.dll)
 GetFirmwareType
 FIRMWARE_TYPE
+
+// The Secure Boot dbx, read to see whether this PC revokes PCA 2011 boot managers (kernel32.dll, advapi32.dll)
+GetFirmwareEnvironmentVariableEx
+LookupPrivilegeValue
+AdjustTokenPrivileges
+GetCurrentProcess
+SE_SYSTEM_ENVIRONMENT_NAME
 
 // C:'s volume GUID path, matched against the System Restore client list (kernel32.dll)
 GetVolumeNameForVolumeMountPoint
@@ -162,17 +170,60 @@ SHCreateStreamOnFileEx
 SHGetPathFromIDList
 MAX_PATH
 
-// The desktop background the shell owns (shell32.dll, user32.dll). A slideshow is the one kind the
-// registry cannot carry from another machine, because the folder id embeds the folder as the shell sees
-// it, so IDesktopWallpaper builds it here. COLOR_BACKGROUND comes with SYS_COLOR_INDEX and listing it
-// separately is PInvoke004.
-IDesktopWallpaper
-DesktopWallpaper
-DESKTOP_WALLPAPER_POSITION
-DESKTOP_SLIDESHOW_OPTIONS
-SHCreateItemFromParsingName
-SHCreateShellItemArrayFromShellItem
-IShellItem
-IShellItemArray
+// The solid background colour the shell paints (user32.dll). COLOR_BACKGROUND comes with SYS_COLOR_INDEX
+// and listing it separately is PInvoke004. IDesktopWallpaper is NOT generated here: the answer file has to
+// carry that call as source, so it is declared by hand in Native/DesktopBackgroundInterop.cs.
 SetSysColors
 SYS_COLOR_INDEX
+
+// The nine values a regional format keeps that .NET has no faithful counterpart for, read from Windows' own
+// locale data (kernel32.dll). LOCALE_NOUSEROVERRIDE asks for the locale's value, not the current user's edits.
+GetLocaleInfoEx
+LOCALE_IDIGITS
+LOCALE_ILZERO
+LOCALE_ICOUNTRY
+LOCALE_IPAPERSIZE
+LOCALE_ICALENDARTYPE
+LOCALE_SABBREVLANGNAME
+LOCALE_SNATIVEDIGITS
+LOCALE_IDIGITSUBSTITUTION
+LOCALE_SPOSITIVESIGN
+LOCALE_NOUSEROVERRIDE
+LOCALE_SDECIMAL
+LOCALE_STHOUSAND
+LOCALE_SLIST
+LOCALE_SSHORTDATE
+LOCALE_SLONGDATE
+LOCALE_STIMEFORMAT
+LOCALE_SSHORTTIME
+LOCALE_IFIRSTDAYOFWEEK
+LOCALE_IMEASURE
+LOCALE_SMONDECIMALSEP
+LOCALE_SMONTHOUSANDSEP
+LOCALE_SCURRENCY
+LOCALE_SNEGATIVESIGN
+LOCALE_SGROUPING
+LOCALE_SMONGROUPING
+LOCALE_ICURRDIGITS
+LOCALE_ICURRENCY
+LOCALE_INEGCURR
+LOCALE_INEGNUMBER
+LOCALE_IFIRSTWEEKOFYEAR
+LOCALE_S1159
+LOCALE_S2359
+LOCALE_SDATE
+LOCALE_STIME
+LOCALE_SYEARMONTH
+LOCALE_IDATE
+LOCALE_ITIME
+LOCALE_ITLZERO
+LOCALE_ITIMEMARKPOSN
+
+// Has the DNS Client service re-read its registry settings, as `sc control dnscache paramchange` does (advapi32.dll)
+OpenSCManager
+OpenService
+ControlService
+CloseServiceHandle
+SC_MANAGER_CONNECT
+SERVICE_PAUSE_CONTINUE
+SERVICE_CONTROL_PARAMCHANGE

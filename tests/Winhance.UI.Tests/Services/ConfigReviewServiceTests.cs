@@ -53,7 +53,8 @@ public class ConfigReviewServiceTests : IDisposable
             _mockLocalizationService.Object,
             _mockWindowsVersionService.Object,
             new FakeOptionProviderRegistry(new PowerService(
-                Mock.Of<ILogService>(), Mock.Of<IPowerSettingsQueryService>(), Mock.Of<IPowerSchemeOperations>())));
+                Mock.Of<ILogService>(), Mock.Of<IPowerSettingsQueryService>(), Mock.Of<IPowerSchemeOperations>())),
+            Mock.Of<IFileStore>());
         return _service;
     }
 
@@ -1962,14 +1963,14 @@ public class ConfigReviewServiceTests : IDisposable
     }
 
     [Theory]
-    [InlineData("explorer-customization-short-date", "Short Date Format")]
-    [InlineData("explorer-customization-first-day-of-week", "First Day of Week")]
-    [InlineData("explorer-customization-number-decimal", "Number Decimal Symbol")]
-    [InlineData("explorer-customization-list-separator", "List Separator")]
-    [InlineData("explorer-customization-measurement-system", "Measurement System")]
-    [InlineData("explorer-customization-currency-decimal", "Currency Decimal Symbol")]
+    [InlineData("explorer-customization-short-date", "Short Date Format", "M/d/yyyy")]
+    [InlineData("explorer-customization-first-day-of-week", "First Day of Week", null)]
+    [InlineData("explorer-customization-number-decimal", "Number Decimal Symbol", null)]
+    [InlineData("explorer-customization-list-separator", "List Separator", null)]
+    [InlineData("explorer-customization-measurement-system", "Measurement System", null)]
+    [InlineData("explorer-customization-currency-decimal", "Currency Decimal Symbol", null)]
     public async Task EnterReviewModeAsync_AFileFromTheReleasedApp_DiffsAMovedSettingUnderTheFeatureItLivesInNow(
-        string settingId, string releasedName)
+        string settingId, string releasedName, string? savedKey)
     {
         _mockSettingStateProvider
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
@@ -1978,14 +1979,17 @@ public class ConfigReviewServiceTests : IDisposable
                 [settingId] = new SettingStateResult { Success = true, CurrentValue = 1 }
             });
 
-        // Winhance 26.06.12 writes these ids under the Explorer group.
-        var item = new ConfigurationItem { Id = settingId, Name = releasedName, InputType = InputType.Selection, SelectedIndex = 0 };
+        // Winhance 26.06.12 writes these ids under the Explorer group. Short date is keyed on the pattern now,
+        // and ConfigLoadService migrates the index that file holds before review ever sees it.
+        var item = new ConfigurationItem { Id = settingId, Name = releasedName, InputType = InputType.Selection };
+        if (savedKey is null) item.SelectedIndex = 0;
+        else (item.SelectedKey, item.SelectedKeyLabel) = (savedKey, savedKey);
         var config = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
                 IsIncluded = true,
-                Features = new Dictionary<string, ConfigSection> { [FeatureIds.ExplorerCustomization] = Included(item) }
+                Features = new Dictionary<string, ConfigSection> { [FeatureIds.Explorer] = Included(item) }
             }
         };
 
@@ -1993,7 +1997,7 @@ public class ConfigReviewServiceTests : IDisposable
         await service.EnterReviewModeAsync(config);
 
         service.GetFeatureDiffCount(FeatureIds.TimeRegionLanguage).Should().Be(1);
-        service.GetFeatureDiffCount(FeatureIds.ExplorerCustomization).Should().Be(0);
+        service.GetFeatureDiffCount(FeatureIds.Explorer).Should().Be(0);
         service.IsFeatureInConfig(FeatureIds.TimeRegionLanguage).Should().BeTrue();
         service.GetDiffForSetting(settingId)!.FeatureModuleId.Should().Be(FeatureIds.TimeRegionLanguage);
 
@@ -2018,7 +2022,7 @@ public class ConfigReviewServiceTests : IDisposable
             Customize = new FeatureGroupSection
             {
                 IsIncluded = true,
-                Features = new Dictionary<string, ConfigSection> { [FeatureIds.ExplorerCustomization] = Included(item) }
+                Features = new Dictionary<string, ConfigSection> { [FeatureIds.Explorer] = Included(item) }
             }
         };
 

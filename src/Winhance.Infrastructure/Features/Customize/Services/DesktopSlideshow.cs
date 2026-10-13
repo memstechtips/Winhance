@@ -1,35 +1,31 @@
 using System.Runtime.InteropServices;
-using Windows.Win32;
-using Windows.Win32.UI.Shell;
+using Winhance.Desktop;
 
 namespace Winhance.Infrastructure.Features.Customize.Services;
 
 // COM because the folder id Windows records embeds the folder as the shell sees it and cannot be written from
-// outside that machine. SetSlideshow takes "a single item which is the container itself".
+// outside that machine. The call itself lives in DesktopBackgroundInterop, which the answer file also carries.
 internal interface IDesktopSlideshow
 {
     void Set(string folder, int position, int intervalMs, bool shuffle);
+
+    string? Folder();
 }
 
 internal sealed class DesktopSlideshow : IDesktopSlideshow
 {
-    public void Set(string folder, int position, int intervalMs, bool shuffle)
+    public void Set(string folder, int position, int intervalMs, bool shuffle) =>
+        DesktopBackground.Slideshow(folder, position, intervalMs, shuffle);
+
+    public string? Folder()
     {
-        var desktop = (IDesktopWallpaper)new DesktopWallpaper();
         try
         {
-            PInvoke.SHCreateItemFromParsingName(folder, null, typeof(IShellItem).GUID, out object item)
-                .ThrowOnFailure();
-            PInvoke.SHCreateShellItemArrayFromShellItem((IShellItem)item, typeof(IShellItemArray).GUID, out object album)
-                .ThrowOnFailure();
-
-            desktop.SetSlideshow((IShellItemArray)album);
-            desktop.SetSlideshowOptions(shuffle ? DESKTOP_SLIDESHOW_OPTIONS.DSO_SHUFFLEIMAGES : 0, (uint)intervalMs);
-            desktop.SetPosition((DESKTOP_WALLPAPER_POSITION)position);
+            return DesktopBackground.SlideshowFolder() is { Length: > 0 } folder ? folder : null;
         }
-        finally
+        catch (Exception ex) when (ex is COMException or InvalidOperationException)
         {
-            Marshal.ReleaseComObject(desktop);
+            return null;
         }
     }
 }

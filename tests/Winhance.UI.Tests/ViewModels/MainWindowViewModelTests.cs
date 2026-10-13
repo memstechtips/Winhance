@@ -93,6 +93,8 @@ public class MainWindowViewModelTests : IDisposable
             _mockLocalizationService.Object,
             _mockDialogService.Object,
             _mockHardwareFilterService.Object,
+            Mock.Of<ITargetWindowsService>(),
+            Mock.Of<ICatalogScopeProvider>(),
             _mockCatalogSettingsRegistry.Object,
             _mockLogService.Object);
     }
@@ -273,14 +275,14 @@ public class MainWindowViewModelTests : IDisposable
     public void ModeConfigReviewTooltip_ReturnsFallbackWhenLocalizationReturnsNull()
     {
         var sut = CreateSut();
-        sut.ModeConfigReviewTooltip.Should().Be("Config Review");
+        sut.ModeConfigReviewTooltip.Should().Be("Config Review — review an imported config before applying it.");
     }
 
     [Fact]
     public void ModeBuilderTooltip_ReturnsFallbackWhenLocalizationReturnsNull()
     {
         var sut = CreateSut();
-        sut.ModeBuilderTooltip.Should().Be("Builder mode");
+        sut.ModeBuilderTooltip.Should().Be("Builder mode — create a config or autounattend file without changing this PC.");
     }
 
     [Fact]
@@ -373,6 +375,14 @@ public class MainWindowViewModelTests : IDisposable
         _reviewModeBarViewModel.IsInReviewMode = true;
 
         sut.IsWindowsFilterButtonEnabled.Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsWindowsFilterButtonEnabled_ReturnsFalseInBuilder()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+
+        CreateSut().IsWindowsFilterButtonEnabled.Should().BeFalse();
     }
 
     [Fact]

@@ -115,6 +115,12 @@ public static class TechnicalDetailKeys
 
     public const string EffectRegistryWrite = "TechnicalDetails_Effect_RegistryWrite";
 
+    public const string EffectUserScript = "TechnicalDetails_Effect_UserScript";
+
+    public const string DetailUserScriptSystem = "TechnicalDetails_Detail_UserScriptSystem";
+
+    public const string DetailUserScriptUser = "TechnicalDetails_Detail_UserScriptUser";
+
     public const string ChipDesktopSlideshow = "TechnicalDetails_Chip_DesktopSlideshow";
     public const string ChipDesktopSlideshowTooltip = "TechnicalDetails_Chip_DesktopSlideshow_Tooltip";
 
@@ -130,6 +136,12 @@ public static class TechnicalDetailKeys
     public const string PowerPlanNotInstalled = "TechnicalDetails_PowerPlan_NotInstalled";
 
     public const string CodeWhenSetTo = "TechnicalDetails_Code_WhenSetTo";
+
+    // An option can carry two scripts of which only one runs, or one that runs later than the rest; without these
+    // two blocks under one option read as "both run when you pick it".
+    public const string CodeWhenSetToWithApps = "TechnicalDetails_Code_WhenSetTo_WithApps";
+    public const string CodeWhenSetToWithoutApps = "TechnicalDetails_Code_WhenSetTo_WithoutApps";
+    public const string CodeWhenSetToAfterSetup = "TechnicalDetails_Code_WhenSetTo_AfterSetup";
 
     public const string RelRequires = "TechnicalDetails_Rel_Requires";
     public const string RelEnables = "TechnicalDetails_Rel_Enables";

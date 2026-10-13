@@ -14,7 +14,11 @@ public abstract record Effect
 }
 
 // Detection comes from an accompanying Target in the state's Set.
-public sealed record ScriptEffect(string Script, RunContext Run) : Effect;
+public sealed record ScriptEffect(string Script, RunContext Run) : Effect
+{
+    // Answer file only: Some keeps the script out of a file that installs no apps, None out of one that does.
+    public AppsToInstall When { get; init; } = AppsToInstall.Either;
+}
 
 public sealed record RegContentEffect(string Content) : Effect;
 

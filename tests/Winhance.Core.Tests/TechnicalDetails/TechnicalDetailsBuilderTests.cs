@@ -116,6 +116,43 @@ public class TechnicalDetailsBuilderTests
         labels.Should().OnlyHaveUniqueItems();
     }
 
+    private static Setting AnswerFileScriptSetting() => new()
+    {
+        Id = "answer-file-script-setting",
+        Display = Show(),
+        States =
+        [
+            new SettingState
+            {
+                Label = TestKeys.Of("ServiceOption_Manual"),
+                Roles = [StateRole.WindowsDefault],
+                Effects =
+                [
+                    new ScriptEffect("no-apps-script", RunContext.System) { When = AppsToInstall.None },
+                    new ScriptEffect("apps-script", RunContext.System) { When = AppsToInstall.Some },
+                ],
+            },
+            new SettingState
+            {
+                Label = TestKeys.Of("ServiceOption_Automatic"),
+                Effects = [new ScriptEffect("sign-in-script", RunContext.SignInAfterSetup)],
+            },
+        ],
+    };
+
+    [Fact]
+    public void ScriptRows_SayWhichAnswerFilesRunThemAndWhen()
+    {
+        var snapshot = Snap(InputType.Selection, selectedIndex: 0, optionLabels: ["Manual", "Automatic"]);
+
+        var sections = TechnicalDetailsBuilder.Build(AnswerFileScriptSetting(), snapshot, FallbackLoc(), Build);
+
+        MatrixOf(sections).CodeBlocks.Select(b => b.Label).Should().Equal(
+            "When set to Manual, if the answer file installs no apps",
+            "When set to Manual, if the answer file installs apps",
+            "When set to Automatic, at the first sign-in after Setup restarts");
+    }
+
     [Fact]
     public void ScriptRows_CarryTheirOwnBody()
     {

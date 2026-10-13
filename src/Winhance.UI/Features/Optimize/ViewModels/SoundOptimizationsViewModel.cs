@@ -9,8 +9,6 @@ public partial class SoundOptimizationsViewModel : BaseSettingsFeatureViewModel,
 {
     public override string ModuleId => FeatureIds.Sound;
 
-    protected override string GetDisplayNameKey() => "Feature_Sound_Name";
-
     public SoundOptimizationsViewModel(
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,

@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Winhance.Infrastructure.Features.Autounattend.ScriptSections;
 
@@ -75,10 +76,45 @@ Write-Log ""====================================================================
 ");
     }
 
-    public static void AppendHelperFunctions(StringBuilder sb)
+    // Writes only the helpers the script calls, and the helpers those call (Lock-RegistryKey needs
+    // Open-RegistryKeyForAcl), in the order HelperFunctions lists them.
+    public static void AppendHelperFunctions(StringBuilder sb, string calledFrom)
     {
-        sb.AppendLine(@"
-function Get-TargetUser {
+        var used = new HashSet<string>();
+        var toScan = new Queue<string>();
+        toScan.Enqueue(calledFrom);
+        while (toScan.TryDequeue(out var text))
+        {
+            foreach (var (name, function) in HelperFunctions)
+            {
+                if (Calls(text, name) && used.Add(name))
+                    toScan.Enqueue(function);
+            }
+        }
+
+        foreach (var (_, function) in HelperFunctions.Where(h => used.Contains(h.Name)))
+        {
+            sb.AppendLine();
+            sb.AppendLine(function);
+        }
+    }
+
+    // PowerShell command names ignore case and may contain '-', so a call is the whole name; the name on a
+    // function's own definition line is not a call.
+    private static bool Calls(string text, string name) =>
+        Regex.IsMatch(text, $@"(?<![\w-]|function\s+){Regex.Escape(name)}(?![\w-])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    public static void AppendCompletionBlock(StringBuilder sb)
+    {
+        sb.AppendLine();
+        sb.AppendLine("Write-Log \"================================================================================\" \"INFO\"");
+        sb.AppendLine("Write-Log \"Winhance Windows Optimization & Customization Script Completed\" \"SUCCESS\"");
+        sb.AppendLine("Write-Log \"================================================================================\" \"INFO\"");
+    }
+
+    private static readonly (string Name, string Function)[] HelperFunctions =
+    [
+        ("Get-TargetUser", @"function Get-TargetUser {
     try {
         $user = Get-WmiObject Win32_ComputerSystem | Select-Object -ExpandProperty UserName
         if ($user -and $user -ne ""NT AUTHORITY\SYSTEM"") {
@@ -100,9 +136,8 @@ function Get-TargetUser {
     } catch { }
 
     return $null
-}
-
-function Get-UserSID {
+}"),
+        ("Get-UserSID", @"function Get-UserSID {
     param($Username)
     try {
         $profListPath = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList'
@@ -116,9 +151,8 @@ function Get-UserSID {
     } catch {
         return $null
     }
-}
-
-function Set-RegistryValue {
+}"),
+        ("Set-RegistryValue", @"function Set-RegistryValue {
     param(
         [string]$Path,
         [string]$Name,
@@ -137,9 +171,8 @@ function Set-RegistryValue {
     catch {
         Write-Log ""Failed to set $Path\$Name : $($_.Exception.Message)"" ""ERROR""
     }
-}
-
-function Remove-RegistryValue {
+}"),
+        ("Remove-RegistryValue", @"function Remove-RegistryValue {
     param(
         [string]$Path,
         [string]$Name,
@@ -158,9 +191,8 @@ function Remove-RegistryValue {
     catch {
         Write-Log ""Failed to remove $Path\$Name : $($_.Exception.Message)"" ""ERROR""
     }
-}
-
-function Remove-RegistryKey {
+}"),
+        ("Remove-RegistryKey", @"function Remove-RegistryKey {
     param(
         [string]$Path,
         [string]$Description
@@ -175,9 +207,8 @@ function Remove-RegistryKey {
     catch {
         Write-Log ""Failed to remove key $Path : $($_.Exception.Message)"" ""ERROR""
     }
-}
-
-function New-RegistryKey {
+}"),
+        ("New-RegistryKey", @"function New-RegistryKey {
     param(
         [string]$Path,
         [string]$Description
@@ -192,9 +223,8 @@ function New-RegistryKey {
     catch {
         Write-Log ""Failed to create key $Path : $($_.Exception.Message)"" ""ERROR""
     }
-}
-
-function Set-BinaryBit {
+}"),
+        ("Set-BinaryBit", @"function Set-BinaryBit {
     param(
         [string]$Path,
         [string]$Name,
@@ -233,9 +263,8 @@ function Set-BinaryBit {
     catch {
         Write-Log ""Failed to modify binary bit $Path\$Name : $($_.Exception.Message)"" ""ERROR""
     }
-}
-
-function Set-BinaryByte {
+}"),
+        ("Set-BinaryByte", @"function Set-BinaryByte {
     param(
         [string]$Path,
         [string]$Name,
@@ -268,9 +297,8 @@ function Set-BinaryByte {
     catch {
         Write-Log ""Failed to modify binary byte $Path\$Name : $($_.Exception.Message)"" ""ERROR""
     }
-}
-
-function Set-RegistryCompositeValue {
+}"),
+        ("Set-RegistryCompositeValue", @"function Set-RegistryCompositeValue {
     param(
         [string]$Path,
         [string]$Name,
@@ -313,9 +341,8 @@ function Set-RegistryCompositeValue {
     catch {
         Write-Log ""Failed to set composite $Path\$Name [$Key] : $($_.Exception.Message)"" ""ERROR""
     }
-}
-
-function Set-RegistryStringFlag {
+}"),
+        ("Set-RegistryStringFlag", @"function Set-RegistryStringFlag {
     param(
         [string]$Path,
         [string]$Name,
@@ -351,9 +378,8 @@ function Set-RegistryStringFlag {
     catch {
         Write-Log ""Failed to set string flag $Path\$Name : $($_.Exception.Message)"" ""ERROR""
     }
-}
-
-function Open-RegistryKeyForAcl {
+}"),
+        ("Open-RegistryKeyForAcl", @"function Open-RegistryKeyForAcl {
     param([string]$Path)
 
     $hive, $subKey = $Path -split "":\\"", 2
@@ -366,9 +392,8 @@ function Open-RegistryKeyForAcl {
     }
     $rights = [System.Security.AccessControl.RegistryRights]::ChangePermissions -bor [System.Security.AccessControl.RegistryRights]::ReadKey -bor [System.Security.AccessControl.RegistryRights]::TakeOwnership
     return $root.OpenSubKey($subKey, [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, $rights)
-}
-
-function Unlock-RegistryKey {
+}"),
+        ("Unlock-RegistryKey", @"function Unlock-RegistryKey {
     param(
         [string]$Path,
         [string]$Description
@@ -402,9 +427,8 @@ function Unlock-RegistryKey {
     catch {
         Write-Log ""Failed to unlock $Path : $($_.Exception.Message)"" ""ERROR""
     }
-}
-
-function Lock-RegistryKey {
+}"),
+        ("Lock-RegistryKey", @"function Lock-RegistryKey {
     param(
         [string]$Path,
         [string]$Description
@@ -438,15 +462,8 @@ function Lock-RegistryKey {
     catch {
         Write-Log ""Failed to lock $Path : $($_.Exception.Message)"" ""ERROR""
     }
-}
-");
-        AppendStartProcessAsUser(sb);
-    }
-
-    public static void AppendStartProcessAsUser(StringBuilder sb)
-    {
-        sb.AppendLine(@"
-function Start-ProcessAsUser {
+}"),
+        ("Start-ProcessAsUser", @"function Start-ProcessAsUser {
     param([string]$CommandLine)
 
     if (-not ([System.Management.Automation.PSTypeName]'Winhance.TL'.Type)) {
@@ -538,15 +555,11 @@ function Start-ProcessAsUser {
         if ($dup -ne [IntPtr]::Zero) { $null = $T::CloseHandle($dup) }
         if ($tok -ne [IntPtr]::Zero) { $null = $T::CloseHandle($tok) }
     }
-}
-");
-    }
-
-    public static void AppendCompletionBlock(StringBuilder sb)
-    {
-        sb.AppendLine();
-        sb.AppendLine("Write-Log \"================================================================================\" \"INFO\"");
-        sb.AppendLine("Write-Log \"Winhance Windows Optimization & Customization Script Completed\" \"SUCCESS\"");
-        sb.AppendLine("Write-Log \"================================================================================\" \"INFO\"");
-    }
+}"),
+        ("Add-WinhanceDesktopType", @"function Add-WinhanceDesktopType {
+    if ('Winhance.Desktop.DesktopBackground' -as [type]) { return }
+    Add-Type -TypeDefinition @'
+" + AutounattendScripts.DesktopBackgroundInterop + @"'@
+}"),
+    ];
 }

@@ -48,7 +48,9 @@ public class NavBadgeServiceTests : IDisposable
 
         _externalAppsVm = new ExternalAppsViewModel(
             mockExternalAppsService.Object,
+            new Mock<IInstalledAppsService>().Object,
             mockAppInstallService.Object,
+            new Mock<IStagedAppInstaller>().Object,
             mockProgressService.Object,
             mockLogService.Object,
             mockDialogService.Object,

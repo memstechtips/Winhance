@@ -27,7 +27,7 @@ public class AutounattendWriterTests
     public AutounattendWriterTests()
     {
         _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>())).Returns(ParityCatalog.ByFeature);
-        _builder.Setup(b => b.BuildAsync(It.IsAny<SelectionSet>(), It.IsAny<IReadOnlyDictionary<string, IReadOnlyList<Setting>>>()))
+        _builder.Setup(b => b.BuildAsync(It.IsAny<SelectionSet>(), It.IsAny<IReadOnlyDictionary<string, IReadOnlyList<Setting>>>(), It.IsAny<WinBuild?>()))
             .ReturnsAsync("Write-Host 'Winhancements'");
         _ps.Setup(p => p.ValidateXmlSyntaxAsync(It.IsAny<string>(), default)).Returns(Task.CompletedTask);
         _version.Setup(v => v.GetCurrentVersion()).Returns(new VersionInfo { Version = "26.09.04" });
@@ -51,7 +51,7 @@ public class AutounattendWriterTests
         _written.Should().Contain("processorArchitecture=\"arm64\"");
         _registry.Verify(r => r.InitializeAsync(), Times.Once);
         _registry.Verify(r => r.GetAll(new CatalogScope(true, false)), Times.Once);
-        _builder.Verify(b => b.BuildAsync(SelectionSet.Empty, ParityCatalog.ByFeature), Times.Once);
+        _builder.Verify(b => b.BuildAsync(SelectionSet.Empty, ParityCatalog.ByFeature, null), Times.Once);
         _ps.Verify(p => p.ValidateXmlSyntaxAsync(It.Is<string>(x => x.Contains("CDATA")), default), Times.Once);
         _log.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.Contains("Generating autounattend.xml")), null, It.IsAny<string>()), Times.Once);
         _log.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.Contains("generated successfully")), null, It.IsAny<string>()), Times.Once);
@@ -63,6 +63,17 @@ public class AutounattendWriterTests
         await Sut().WriteAsync(SelectionSet.Empty, CatalogScope.CurrentMachine, OutputPath);
 
         _registry.Verify(r => r.GetAll(CatalogScope.CurrentMachine), Times.Once);
+    }
+
+    [Fact]
+    public async Task WriteAsync_TargetBuild_ReachesTheScriptAndTheCarriedConfig()
+    {
+        var target = WindowsReleases.TargetOf(26300);
+
+        await Sut().WriteAsync(SelectionSet.Empty, CatalogScope.CurrentMachine with { TargetBuild = target }, OutputPath);
+
+        _builder.Verify(b => b.BuildAsync(SelectionSet.Empty, ParityCatalog.ByFeature, target), Times.Once);
+        _written.Should().Contain("\"TargetBuild\": 26300");
     }
 
     [Fact]

@@ -29,6 +29,7 @@ public class SettingItemViewModelListTests
     private readonly Mock<IApplicationModeService> _modeService = new();
     private readonly Mock<ISettingsLoadingService> _settingsLoadingService = new();
     private readonly Mock<IEventBus> _eventBus = new();
+    private readonly Mock<IFilePickerService> _filePicker = new();
 
     private readonly Dictionary<string, SettingChoice> _authored = new();
 
@@ -49,6 +50,9 @@ public class SettingItemViewModelListTests
 
     private static readonly Setting ListSetting =
         AutounattendCatalog.All.Single(s => s.Id == "autounattend-accounts");
+
+    private static readonly Setting OwnInstallersSetting =
+        AutounattendCatalog.All.Single(s => s.Id == "autounattend-own-installers");
 
     private static readonly Setting ParentSetting =
         AutounattendCatalog.All.Single(s => s.Id == ListSetting.EnabledWhen!.OtherId);
@@ -88,7 +92,8 @@ public class SettingItemViewModelListTests
             null,
             null,
             null,
-            _modeService.Object);
+            _modeService.Object,
+            _filePicker.Object);
 
     private SettingItemViewModel CreateSut() => CreateCard(ListSetting, InputType.List);
 
@@ -107,6 +112,12 @@ public class SettingItemViewModelListTests
 
     private ChoiceValue.List Recorded() =>
         (ChoiceValue.List)_authored["autounattend-accounts"].Value;
+
+    private ChoiceValue.List RecordedInstallers() =>
+        (ChoiceValue.List)_authored["autounattend-own-installers"].Value;
+
+    private void ArrangePicked(string path) =>
+        _filePicker.Setup(p => p.PickFile(It.IsAny<string[]>(), It.IsAny<string?>())).Returns(path);
 
     private static string? SignsIn(ChoiceValue.List value) =>
         value.Rows.FirstOrDefault(row => row.Values.GetValueOrDefault("auto-logon") == "true")?
@@ -127,6 +138,75 @@ public class SettingItemViewModelListTests
 
         sut.Rows[1].Remove();
         Assert.False(Assert.Single(sut.Rows).CanRemove);
+    }
+
+    [Fact]
+    public void A_list_with_a_file_field_adds_no_row_when_the_picker_is_cancelled()
+    {
+        var sut = CreateCard(OwnInstallersSetting, InputType.List);
+
+        sut.AddRow();
+
+        Assert.Empty(sut.Rows);
+        Assert.DoesNotContain("autounattend-own-installers", _authored.Keys);
+    }
+
+    [Fact]
+    public void A_list_with_a_file_field_opens_the_picker_with_the_catalog_filter()
+    {
+        ArrangePicked(@"C:\Setup\Reader.exe");
+        var sut = CreateCard(OwnInstallersSetting, InputType.List);
+        sut.ListAddLabel = "Add an installer";
+
+        sut.AddRow();
+
+        _filePicker.Verify(p => p.PickFile(
+            It.Is<string[]>(f => f.Length == 2 && f[0] == LocKey.AutounattendOwnInstallers.Filter.Value && f[1] == "*.exe;*.msi"),
+            "Add an installer"), Times.Once);
+    }
+
+    // The row's first box is the picked file, so a row that leaves its other boxes empty is still a filled row.
+    [Fact]
+    public void A_picked_file_is_recorded_at_once_with_its_other_fields_empty()
+    {
+        ArrangePicked(@"C:\Setup\Reader.exe");
+        var sut = CreateCard(OwnInstallersSetting, InputType.List);
+
+        sut.AddRow();
+
+        var row = Assert.Single(RecordedInstallers().Rows);
+        Assert.Equal(@"C:\Setup\Reader.exe", row.Values["file"]);
+        Assert.Equal(string.Empty, row.Values["switches"]);
+        Assert.Equal(@"C:\Setup\Reader.exe", FieldOf(Assert.Single(sut.Rows), "file").Text);
+    }
+
+    [Fact]
+    public void Text_typed_beside_a_picked_file_is_recorded_on_its_row()
+    {
+        ArrangePicked(@"C:\Setup\Reader.exe");
+        var sut = CreateCard(OwnInstallersSetting, InputType.List);
+        sut.AddRow();
+
+        FieldOf(sut.Rows[0], "switches").Text = " /sAll ";
+
+        var row = Assert.Single(RecordedInstallers().Rows);
+        Assert.Equal(@"C:\Setup\Reader.exe", row.Values["file"]);
+        Assert.Equal("/sAll", row.Values["switches"]);
+    }
+
+    [Fact]
+    public void The_only_row_of_a_list_that_can_be_empty_can_be_removed()
+    {
+        ArrangePicked(@"C:\Setup\Reader.exe");
+        var sut = CreateCard(OwnInstallersSetting, InputType.List);
+        sut.AddRow();
+        var row = Assert.Single(sut.Rows);
+        Assert.True(row.CanRemove);
+
+        row.Remove();
+
+        Assert.Empty(sut.Rows);
+        Assert.Empty(RecordedInstallers().Rows);
     }
 
     [Fact]
@@ -213,14 +293,16 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public void The_password_banner_shows_only_in_builder()
+    public void The_password_banner_shows_only_while_a_config_file_is_being_built()
     {
         var sut = CreateSut();
         sut.ShowPasswordBanner.Should().BeTrue();
 
         _modeService.SetupGet(m => m.CurrentBuilderTarget).Returns(BuilderTarget.Autounattend);
-        sut.ShowPasswordBanner.Should().BeTrue();
+        sut.ShowPasswordBanner.Should().BeFalse(
+            because: "an answer file carries every password whether or not the box is ticked");
 
+        _modeService.SetupGet(m => m.CurrentBuilderTarget).Returns(BuilderTarget.Config);
         _modeService.SetupGet(m => m.CurrentMode).Returns(WinhanceMode.Normal);
         sut.ShowPasswordBanner.Should().BeFalse();
     }

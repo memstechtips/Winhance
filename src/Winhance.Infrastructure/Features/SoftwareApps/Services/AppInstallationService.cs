@@ -19,7 +19,9 @@ internal class AppInstallationService(
     IScheduledTaskService scheduledTaskService,
     ITaskProgressService taskProgressService,
     IFileSystemService fileSystemService,
-    IChangeHistoryService changeHistory) : IAppInstallationService
+    IChangeHistoryService changeHistory,
+    IStagedAppInstaller stagedAppInstaller,
+    IUserPreferencesService preferences) : IAppInstallationService
 {
     // Enabling a feature or capability is handed to a PowerShell window Winhance does not watch, so
     // every servicing path reports this rather than an install it cannot vouch for.
@@ -44,6 +46,52 @@ internal class AppInstallationService(
         catch (Exception ex)
         {
             logService.LogError($"Failed to install app '{app?.Id}': {ex.Message}");
+            return OperationResult<bool>.Failed(ex.Message);
+        }
+    }
+
+    // Skips the package-id gate InstallSingleAppCoreAsync applies, so a Chocolatey-only app reaches Chocolatey.
+    public async Task<OperationResult<bool>> InstallOnNewPcAsync(ItemDefinition app, IProgress<TaskProgressDetail>? progress = null)
+    {
+        var cancellationToken = taskProgressService.GetCurrentCancellationToken();
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            OperationResult<bool> result;
+            var staged = stagedAppInstaller.Find(app);
+            if (staged != null && await stagedAppInstaller.InstallAsync(staged, progress, cancellationToken).ConfigureAwait(false))
+            {
+                result = OperationResult<bool>.Succeeded(true);
+            }
+            else
+            {
+                result = await externalAppsService.InstallAppForAllUsersAsync(app, progress).ConfigureAwait(false);
+
+                // The Store route installs for the signed-in user only, so it is the last resort for an app that also ships as a Store package.
+                if (!result.Success && app.AppxPackageName?.Length > 0)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    result = await windowsAppsService.InstallAppAsync(app, progress).ConfigureAwait(false);
+                }
+            }
+
+            if (result.Success)
+            {
+                logService.Log(LogLevel.Success, $"Successfully installed app '{app.Id}'");
+                changeHistory.LogAppChange(app.Name, AppChangeKind.Installed);
+            }
+            return result;
+        }
+        catch (OperationCanceledException)
+        {
+            logService.Log(LogLevel.Info, $"Installation of '{app.Id}' was cancelled");
+            return OperationResult<bool>.Cancelled("Operation was cancelled");
+        }
+        catch (Exception ex)
+        {
+            logService.LogError($"Failed to install app '{app.Id}': {ex.Message}");
             return OperationResult<bool>.Failed(ex.Message);
         }
     }
@@ -134,6 +182,7 @@ internal class AppInstallationService(
 
             if ((app?.WinGetPackageId != null && app.WinGetPackageId.Length > 0) ||
                 !string.IsNullOrEmpty(app?.MsStoreId) ||
+                !string.IsNullOrEmpty(app?.ChocoPackageId) ||
                 app?.ExternalApp?.RequiresDirectDownload == true ||
                 app?.ExternalApp?.DownloadUrl != null)
             {
@@ -150,7 +199,9 @@ internal class AppInstallationService(
                 }
                 else
                 {
-                    var result = await externalAppsService.InstallAppAsync(app, progress).ConfigureAwait(false);
+                    var result = preferences.GetPreference(UserPreferenceKeys.InstallAppsForAllUsers, false)
+                        ? await externalAppsService.InstallAppForAllUsersAsync(app, progress).ConfigureAwait(false)
+                        : await externalAppsService.InstallAppAsync(app, progress).ConfigureAwait(false);
                     if (result.Success)
                     {
                         logService.Log(LogLevel.Success, $"Successfully installed app '{app.Id}'");

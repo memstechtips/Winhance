@@ -21,7 +21,7 @@ internal sealed class BuilderSeedSource : IBuilderSeedSource
 
     public async Task<IReadOnlyList<SettingChoice>> ChoicesForAsync(BuilderSeed seed, CatalogScope scope)
     {
-        if (seed == BuilderSeed.CurrentMachine) return Array.Empty<SettingChoice>();
+        if (seed is BuilderSeed.CurrentMachine or BuilderSeed.ConfigFile) return Array.Empty<SettingChoice>();
 
         await _registry.InitializeAsync().ConfigureAwait(false);
         var build = new WinBuild(_version.GetWindowsBuildNumber(), _version.GetWindowsBuildRevision());
@@ -34,8 +34,7 @@ internal sealed class BuilderSeedSource : IBuilderSeedSource
             {
                 if (setting.Control == ControlKind.Action) continue;
 
-                // A card with ReadOnly targets is seeded from this PC's reading; a role sweep must not overwrite it.
-                if (setting.IsAnswerFileOnly && setting.Targets.OfType<RegTarget>().Any(t => t.ReadOnly)) continue;
+                if (setting.SeedsFromThisPc) continue;
 
                 if (ChoiceFor(setting, build, useRecommended) is { } value)
                     choices.Add(new SettingChoice(setting.Id, value));

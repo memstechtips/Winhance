@@ -53,14 +53,14 @@ public class AutounattendDocumentTests
     }
 
     [Fact]
-    public void SetOobe_orders_flags_the_way_the_template_did_and_replaces_in_place()
+    public void ElementPath_orders_OOBE_flags_the_way_the_template_did_and_replaces_in_place()
     {
         var shell = AutounattendDocument.NewSkeleton().Pass("oobeSystem").Component("Microsoft-Windows-Shell-Setup");
 
-        shell.SetOobe("ProtectYourPC", "3");
-        shell.SetOobe("HideOnlineAccountScreens", "true");
-        shell.SetOobe("HideEULAPage", "true");
-        shell.SetOobe("HideEULAPage", "false");
+        shell.ElementPath("OOBE/ProtectYourPC").Value = "3";
+        shell.ElementPath("OOBE/HideOnlineAccountScreens").Value = "true";
+        shell.ElementPath("OOBE/HideEULAPage").Value = "true";
+        shell.ElementPath("OOBE/HideEULAPage").Value = "false";
 
         var oobe = shell.Element(U + "OOBE")!;
         oobe.Elements().Select(e => e.Name.LocalName).Should().Equal("HideEULAPage", "HideOnlineAccountScreens", "ProtectYourPC");

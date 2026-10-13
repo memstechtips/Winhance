@@ -28,6 +28,7 @@ public class SidebarIconNamesTests
     [Theory]
     [InlineData("Optimize", "OptimizeIconSymbol")]
     [InlineData("Customize", "CustomizeIconSymbol")]
+    [InlineData("Autounattend", "AutounattendIconSymbol")]
     public void A_page_header_draws_the_sidebar_icon_of_its_destination(string page, string resourceKey)
     {
         var xaml = File.ReadAllText(Path.Combine(UiDir, "Features", page, page + "Page.xaml"));

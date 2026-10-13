@@ -179,7 +179,7 @@ internal static class ParityCatalog
         },
     };
 
-    public const string FeatureId = FeatureIds.ExplorerCustomization;   // any Customize feature id; the sections key on it
+    public const string FeatureId = FeatureIds.Explorer;   // any Customize feature id; the sections key on it
 
     public static readonly IReadOnlyDictionary<string, IReadOnlyList<Setting>> ByFeature =
         new Dictionary<string, IReadOnlyList<Setting>> { [FeatureId] = Settings };

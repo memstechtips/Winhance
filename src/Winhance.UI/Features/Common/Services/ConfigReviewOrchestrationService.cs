@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.WimUtil.Models;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -28,6 +29,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     private readonly IPolicyCleanupService _policyCleanupService;
     private readonly IChangeHistoryService _changeHistoryService;
     private readonly IHardwareFilterService _hardwareFilter;
+    private readonly ITargetWindowsService _targetWindows;
+    private readonly WimUtilSession _wimUtilSession;
 
     public ConfigReviewOrchestrationService(
         ILogService logService,
@@ -45,7 +48,9 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         IReviewModeViewModelCoordinator vmCoordinator,
         IPolicyCleanupService policyCleanupService,
         IChangeHistoryService changeHistoryService,
-        IHardwareFilterService hardwareFilter)
+        IHardwareFilterService hardwareFilter,
+        ITargetWindowsService targetWindows,
+        WimUtilSession wimUtilSession)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -63,6 +68,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _policyCleanupService = policyCleanupService;
         _changeHistoryService = changeHistoryService;
         _hardwareFilter = hardwareFilter;
+        _targetWindows = targetWindows;
+        _wimUtilSession = wimUtilSession;
 
         _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
 
@@ -104,6 +111,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             // scope synchronously before its first await - and the FilterStateChangedEvent refresh that a later
             // reset would raise no-ops while that first load still holds the loading semaphore.
             _hardwareFilter.ResetAsync().FireAndForget(_logService);
+            _targetWindows.ResetAsync().FireAndForget(_logService);
+            _wimUtilSession.Reset();
             _eventBus.Publish(new AuthoringModeExitedEvent());
             _logService.Log(LogLevel.Info, "Published AuthoringModeExitedEvent to reload settings from system state");
         }
@@ -259,8 +268,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             if (selectedSections.Count == 0)
             {
                 _dialogService.ShowMessage(
-                    _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection", "No changes to apply."),
-                    _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection_Title", "No Changes"));
+                    _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection", "There are no changes to apply."),
+                    _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection_Title", "Nothing to Apply"));
                 return;
             }
 
@@ -269,7 +278,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             // Capture current external app UI selections BEFORE exiting review mode
             // This preserves user's checkbox changes made during review
             List<string>? selectedExternalAppIds = null;
-            if (hasExternalApps)
+            if (hasExternalApps && (externalAppsInstall || externalAppsRemove))
             {
                 selectedExternalAppIds = _vmCoordinator.GetSelectedExternalAppIds();
             }
@@ -322,19 +331,20 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
 
             _configReviewModeService.ExitReviewMode();
 
-            var message = _localizationService.GetStringOrDefault("Config_Import_Success_Message", "Configuration imported successfully.");
+            var message = _localizationService.GetStringOrDefault("Config_Import_Success_Message", "Your configuration has been applied successfully. Some settings may only take effect after a system restart. A restart is recommended.");
             if (notApplied is { Count: > 0 })
                 message += "\n\n" + string.Join("\n", notApplied);
 
             await _dialogService.ShowInformationAsync(
                 message,
-                _localizationService.GetStringOrDefault("Config_Import_Success_Title", "Import Successful"));
+                _localizationService.GetStringOrDefault("Config_Import_Success_Title", "Configuration Applied"));
 
-            // Process External Apps installation AFTER success dialog dismissal (needs UI thread)
+            // Process External Apps AFTER success dialog dismissal (needs UI thread)
             // Use captured user selections instead of config section to honor user's review choices
             if (selectedExternalAppIds != null && selectedExternalAppIds.Count > 0)
             {
-                await _configAppSelectionService.ProcessExternalAppsFromUserSelectionAsync(selectedExternalAppIds);
+                await _configAppSelectionService.ProcessExternalAppsFromUserSelectionAsync(
+                    selectedExternalAppIds, remove: externalAppsRemove);
             }
         }
         catch (Exception ex)

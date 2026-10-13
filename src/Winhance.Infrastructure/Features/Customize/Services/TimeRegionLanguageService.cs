@@ -1,8 +1,11 @@
 using System.Globalization;
+using System.Text;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
+using Windows.Win32;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.Autounattend.Helpers;
+using Winhance.Infrastructure.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Customize.Services;
 
@@ -25,8 +28,7 @@ internal sealed class TimeRegionLanguageService : IOptionProvider
 
     private const string TimeZoneIdPunctuation = " ()+-.";
 
-    // LOCALE_INEGCURR stops at 15; .NET has a pattern 16.
-    private const int HighestNegativeCurrencyFormat = 15;
+    private const int MaxLocaleValueLength = 80;
 
     public IReadOnlyList<OptionSource> Sources { get; } =
     [
@@ -35,6 +37,8 @@ internal sealed class TimeRegionLanguageService : IOptionProvider
         OptionSource.RegionalFormats,
         OptionSource.SystemLocales,
         OptionSource.Countries,
+        OptionSource.LocaleValues,
+        OptionSource.DisplayLanguages,
     ];
 
     public IReadOnlyList<DynamicOption> Options(Setting setting, IDetectionContext context)
@@ -50,6 +54,8 @@ internal sealed class TimeRegionLanguageService : IOptionProvider
                 .Select(region => new DynamicOption(region.DisplayName, region.TwoLetterISORegionName))
                 .OrderBy(option => option.Label, StringComparer.CurrentCulture)
                 .ToList(),
+            OptionSource.LocaleValues => LocaleValues(list),
+            OptionSource.DisplayLanguages => DisplayLanguages(list, context),
             var other => throw new ArgumentOutOfRangeException(nameof(setting), other, "Not a time, region or language list."),
         };
     }
@@ -61,6 +67,9 @@ internal sealed class TimeRegionLanguageService : IOptionProvider
         OptionSource.RegionalFormats => NonEmpty(RegTargetReader.Read(setting, "LocaleName", context)),
         OptionSource.SystemLocales => CurrentSystemLocale(setting, context),
         OptionSource.Countries => CurrentCountry(setting, context),
+        OptionSource.LocaleValues => NonEmpty(WrittenValue(setting, context)),
+        // A list with no Path is about media this PC has never seen, so it has no current value to detect.
+        OptionSource.DisplayLanguages => setting.Options!.Path is null ? null : CurrentDisplayLanguage(setting, context),
         var other => throw new ArgumentOutOfRangeException(nameof(setting), other, "Not a time, region or language list."),
     };
 
@@ -71,6 +80,10 @@ internal sealed class TimeRegionLanguageService : IOptionProvider
         OptionSource.RegionalFormats => Named(SpecificCultures(), key) is not null,
         OptionSource.SystemLocales => Named(SystemLocales(), key) is not null,
         OptionSource.Countries => RegionNamed(key) is not null,
+        // Windows itself writes these, so the set cannot be enumerated ahead of time; only a shape check is possible.
+        OptionSource.LocaleValues => key.Length is > 0 and <= MaxLocaleValueLength && !key.Any(char.IsControl),
+        // Neutral as well as specific: a language pack may be installed as "en" with no region behind it.
+        OptionSource.DisplayLanguages => CultureNamed(key) is not null,
         var other => throw new ArgumentOutOfRangeException(nameof(setting), other, "Not a time, region or language list."),
     };
 
@@ -79,7 +92,54 @@ internal sealed class TimeRegionLanguageService : IOptionProvider
         OptionValue.Key or OptionValue.Color =>
             throw new ArgumentOutOfRangeException(nameof(value), value, "Not a time, region or language value."),
         OptionValue.GeoId => RegionNamed(key)?.GeoId.ToString(CultureInfo.InvariantCulture),
+        _ when LocaleTypes.TryGetValue(value, out var lcType) => LocaleInfo.Read(key, lcType),
         _ => Named(SpecificCultures(), key) is { } culture ? CultureValue(culture, value) : null,
+    };
+
+    // Every value a regional format writes that Windows holds itself. .NET reads ICU, which disagrees with Windows
+    // in ways that reach the registry: ICU's ar-SA short date carries right-to-left marks Windows never writes and
+    // its Arabic decimal separator where Windows writes a full stop, and ICU says three decimal digits for en-US
+    // where Windows stores two. Measured 2026-09-21 on Windows 11 24H2.
+    private static readonly Dictionary<OptionValue, uint> LocaleTypes = new()
+    {
+        [OptionValue.DecimalSeparator] = PInvoke.LOCALE_SDECIMAL,
+        [OptionValue.GroupSeparator] = PInvoke.LOCALE_STHOUSAND,
+        [OptionValue.ListSeparator] = PInvoke.LOCALE_SLIST,
+        [OptionValue.ShortDate] = PInvoke.LOCALE_SSHORTDATE,
+        [OptionValue.LongDate] = PInvoke.LOCALE_SLONGDATE,
+        [OptionValue.LongTime] = PInvoke.LOCALE_STIMEFORMAT,
+        [OptionValue.ShortTime] = PInvoke.LOCALE_SSHORTTIME,
+        [OptionValue.FirstDayOfWeek] = PInvoke.LOCALE_IFIRSTDAYOFWEEK,
+        [OptionValue.MeasurementSystem] = PInvoke.LOCALE_IMEASURE,
+        [OptionValue.CurrencyDecimalSeparator] = PInvoke.LOCALE_SMONDECIMALSEP,
+        [OptionValue.CurrencyGroupSeparator] = PInvoke.LOCALE_SMONTHOUSANDSEP,
+        [OptionValue.CurrencySymbol] = PInvoke.LOCALE_SCURRENCY,
+        [OptionValue.NegativeSign] = PInvoke.LOCALE_SNEGATIVESIGN,
+        [OptionValue.GroupSizes] = PInvoke.LOCALE_SGROUPING,
+        [OptionValue.CurrencyGroupSizes] = PInvoke.LOCALE_SMONGROUPING,
+        [OptionValue.CurrencyDecimalDigits] = PInvoke.LOCALE_ICURRDIGITS,
+        [OptionValue.CurrencyPositivePattern] = PInvoke.LOCALE_ICURRENCY,
+        [OptionValue.CurrencyNegativePattern] = PInvoke.LOCALE_INEGCURR,
+        [OptionValue.NumberNegativePattern] = PInvoke.LOCALE_INEGNUMBER,
+        [OptionValue.FirstWeekOfYear] = PInvoke.LOCALE_IFIRSTWEEKOFYEAR,
+        [OptionValue.AmDesignator] = PInvoke.LOCALE_S1159,
+        [OptionValue.PmDesignator] = PInvoke.LOCALE_S2359,
+        [OptionValue.DateSeparator] = PInvoke.LOCALE_SDATE,
+        [OptionValue.TimeSeparator] = PInvoke.LOCALE_STIME,
+        [OptionValue.YearMonth] = PInvoke.LOCALE_SYEARMONTH,
+        [OptionValue.DateOrder] = PInvoke.LOCALE_IDATE,
+        [OptionValue.HourClock] = PInvoke.LOCALE_ITIME,
+        [OptionValue.HourLeadingZero] = PInvoke.LOCALE_ITLZERO,
+        [OptionValue.TimeMarkerPosition] = PInvoke.LOCALE_ITIMEMARKPOSN,
+        [OptionValue.DecimalDigits] = PInvoke.LOCALE_IDIGITS,
+        [OptionValue.LeadingZero] = PInvoke.LOCALE_ILZERO,
+        [OptionValue.CountryCode] = PInvoke.LOCALE_ICOUNTRY,
+        [OptionValue.PaperSize] = PInvoke.LOCALE_IPAPERSIZE,
+        [OptionValue.CalendarType] = PInvoke.LOCALE_ICALENDARTYPE,
+        [OptionValue.AbbreviatedLanguage] = PInvoke.LOCALE_SABBREVLANGNAME,
+        [OptionValue.NativeDigits] = PInvoke.LOCALE_SNATIVEDIGITS,
+        [OptionValue.DigitSubstitution] = PInvoke.LOCALE_IDIGITSUBSTITUTION,
+        [OptionValue.PositiveSign] = PInvoke.LOCALE_SPOSITIVESIGN,
     };
 
     // Writing TimeZoneKeyName does not switch the zone: the running clock, the Bias/StandardName set and the dynamic
@@ -89,6 +149,8 @@ internal sealed class TimeRegionLanguageService : IOptionProvider
         OptionSource.TimeZones when IsTimeZoneId(key) =>
             new ScriptEffect($"tzutil.exe /s '{PowerShellScriptUtilities.EscapePowerShellString(key)}'", RunContext.System),
         OptionSource.KeyboardLayouts when IsLayoutId(key) => new RegContentEffect(SubstituteRemoval(setting, key)),
+        OptionSource.DisplayLanguages when setting.Options!.Path is not null && CultureNamed(key) is not null =>
+            new RegContentEffect(PreferredUILanguage(setting, key)),
         _ => null,
     };
 
@@ -109,50 +171,33 @@ internal sealed class TimeRegionLanguageService : IOptionProvider
         return $"Windows Registry Editor Version 5.00\r\n\r\n[{substitutes}]\r\n\"{klid}\"=-\r\n";
     }
 
+    // The card's Keys first, because they are the formats Winhance recommends and their order is deliberate, then
+    // every other value the offered regional formats write, read the way region-format itself reads them. Built
+    // this way the card always has an entry for whatever region-format just wrote, which is what stops it reading
+    // "Not recognized" after a format apply.
+    private List<DynamicOption> LocaleValues(OptionList list) =>
+        list.Keys
+            .Concat(SpecificCultures()
+                .Select(culture => ValueFor(list.Value!.Value, culture.Name))
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value!)
+                .OrderBy(value => value, StringComparer.Ordinal))
+            .Distinct(StringComparer.Ordinal)
+            .Select(value => new DynamicOption(value, value))
+            .ToList();
+
+    private static string? WrittenValue(Setting setting, IDetectionContext context) =>
+        RegTargetReader.Read(setting, setting.Targets.OfType<RegTarget>().First(t => !t.ReadOnly).Key, context) as string;
+
+    // The five values Windows has no locale type for: an LCID in the shape each key wants, and the code pages the
+    // system locale writes. Everything a regional format writes comes from Windows itself through LocaleTypes.
     private static string? CultureValue(CultureInfo culture, OptionValue value)
     {
-        var date = culture.DateTimeFormat;
-        var number = culture.NumberFormat;
         var text = culture.TextInfo;
 
         return value switch
         {
             OptionValue.LocaleId => culture.LCID == NoLcid ? null : culture.LCID.ToString("X8", CultureInfo.InvariantCulture),
-            OptionValue.DecimalSeparator => number.NumberDecimalSeparator,
-            OptionValue.GroupSeparator => number.NumberGroupSeparator,
-            OptionValue.ListSeparator => text.ListSeparator,
-            OptionValue.ShortDate => WindowsPattern(date.ShortDatePattern),
-            OptionValue.LongDate => WindowsPattern(date.LongDatePattern),
-            OptionValue.LongTime => WindowsPattern(date.LongTimePattern),
-            OptionValue.ShortTime => WindowsPattern(date.ShortTimePattern),
-            // Windows counts the week from Monday (0) to Sunday (6); System.DayOfWeek counts from Sunday (0).
-            OptionValue.FirstDayOfWeek => (((int)date.FirstDayOfWeek + 6) % 7).ToString(CultureInfo.InvariantCulture),
-            OptionValue.MeasurementSystem => RegionOf(culture) is { } region ? (region.IsMetric ? "0" : "1") : null,
-            OptionValue.CurrencyDecimalSeparator => number.CurrencyDecimalSeparator,
-            OptionValue.CurrencyGroupSeparator => number.CurrencyGroupSeparator,
-            OptionValue.CurrencySymbol => number.CurrencySymbol,
-            OptionValue.NegativeSign => number.NegativeSign,
-            OptionValue.GroupSizes => WindowsGrouping(number.NumberGroupSizes),
-            OptionValue.CurrencyGroupSizes => WindowsGrouping(number.CurrencyGroupSizes),
-            OptionValue.CurrencyDecimalDigits => number.CurrencyDecimalDigits.ToString(CultureInfo.InvariantCulture),
-            // .NET numbers these patterns, and CalendarWeekRule, the way LOCALE_ICURRENCY, LOCALE_INEGCURR,
-            // LOCALE_INEGNUMBER and LOCALE_IFIRSTWEEKOFYEAR number theirs.
-            OptionValue.CurrencyPositivePattern => number.CurrencyPositivePattern.ToString(CultureInfo.InvariantCulture),
-            OptionValue.CurrencyNegativePattern => number.CurrencyNegativePattern <= HighestNegativeCurrencyFormat
-                ? number.CurrencyNegativePattern.ToString(CultureInfo.InvariantCulture)
-                : null,
-            OptionValue.NumberNegativePattern => number.NumberNegativePattern.ToString(CultureInfo.InvariantCulture),
-            OptionValue.FirstWeekOfYear => ((int)date.CalendarWeekRule).ToString(CultureInfo.InvariantCulture),
-            OptionValue.AmDesignator => WindowsPattern(date.AMDesignator),
-            OptionValue.PmDesignator => WindowsPattern(date.PMDesignator),
-            OptionValue.DateSeparator => date.DateSeparator,
-            OptionValue.TimeSeparator => date.TimeSeparator,
-            OptionValue.YearMonth => WindowsPattern(date.YearMonthPattern),
-            // Windows keeps these four beside the pictures they restate, for programs older than the pictures.
-            OptionValue.DateOrder => DateOrderOf(Unquoted(date.ShortDatePattern)),
-            OptionValue.HourClock => Unquoted(date.LongTimePattern).Contains('H') ? "1" : "0",
-            OptionValue.HourLeadingZero => HourLeadingZeroOf(Unquoted(date.LongTimePattern)),
-            OptionValue.TimeMarkerPosition => TimeMarkerPositionOf(Unquoted(date.LongTimePattern)),
             // Nls\Language\Default is the LCID as four hex digits, not as a number.
             OptionValue.SystemLocaleId => culture.LCID.ToString("X4", CultureInfo.InvariantCulture),
             OptionValue.AnsiCodePage => CodePage(text.ANSICodePage),
@@ -303,43 +348,71 @@ internal sealed class TimeRegionLanguageService : IOptionProvider
         }
     }
 
-    // ICU puts a narrow no-break space before the AM/PM designator, and Win32 reads a character it does not know as
-    // a literal, so it would show in the clock. Single-quoted runs stay: Win32 pictures copy quoted text unchanged too.
-    private static string WindowsPattern(string pattern) =>
-        pattern.Replace("\u202f", " ", StringComparison.Ordinal)
-            .Replace("\u00a0", " ", StringComparison.Ordinal);
-
-    // LOCALE_SGROUPING ends in ;0 when the last size repeats. .NET repeats the last size unless its array ends in 0.
-    internal static string WindowsGrouping(int[] sizes)
-    {
-        if (sizes.Length == 0 || sizes[0] == 0)
-            return "0";
-
-        return sizes[^1] == 0
-            ? string.Join(';', sizes[..^1])
-            : string.Join(';', sizes) + ";0";
-    }
-
-    // Win32 and .NET both copy single-quoted text in a date or time picture out unread.
-    internal static string Unquoted(string pattern) =>
-        string.Concat(pattern.Split('\'').Where((_, index) => index % 2 == 0));
-
-    // LOCALE_IDATE: 0 month-day-year, 1 day-month-year, 2 year-month-day.
-    internal static string? DateOrderOf(string picture) =>
-        picture.FirstOrDefault(c => c is 'M' or 'd' or 'y') switch { 'M' => "0", 'd' => "1", 'y' => "2", _ => null };
-
-    internal static string HourLeadingZeroOf(string clock) =>
-        clock.Contains("HH", StringComparison.Ordinal) || clock.Contains("hh", StringComparison.Ordinal) ? "1" : "0";
-
-    // LOCALE_ITIMEMARKPOSN: 1 when the AM/PM marker leads the hour, as in Korean.
-    internal static string TimeMarkerPositionOf(string clock)
-    {
-        int marker = clock.IndexOf('t');
-        int hour = clock.IndexOf("h", StringComparison.OrdinalIgnoreCase);
-        return marker >= 0 && marker < hour ? "1" : "0";
-    }
-
     private static string CodePage(int codePage) => codePage.ToString(CultureInfo.InvariantCulture);
+
+    // With a Path, the packs this PC actually has; without one, every language .NET knows, because the answer
+    // file is for installation media this PC has never seen.
+    private static List<DynamicOption> DisplayLanguages(OptionList list, IDetectionContext context)
+    {
+        if (list.Path is null)
+            return CultureOptions(SpecificCultures());
+
+        var installed = new List<DynamicOption>();
+        foreach (var name in context.GetSubKeyNames(list.Path))
+            if (CultureNamed(name) is { } culture)
+                installed.Add(new DynamicOption(culture.DisplayName, culture.Name));
+
+        installed.Sort((left, right) => string.Compare(left.Label, right.Label, StringComparison.CurrentCulture));
+        return installed;
+    }
+
+    // PreferredUILanguages is REG_MULTI_SZ and the display language is its first entry; Windows appends the
+    // fallbacks behind it. A machine that has never been switched has no value at all.
+    private static string? CurrentDisplayLanguage(Setting setting, IDetectionContext context) =>
+        RegTargetReader.Read(setting, "PreferredUILanguages", context) switch
+        {
+            string[] { Length: > 0 } list => CultureNamed(list[0])?.Name,
+            string single => CultureNamed(single)?.Name,
+            _ => null,
+        };
+
+    // REG_MULTI_SZ has no .reg text form, so the pair Windows reads is written as hex(7): UTF-16LE, one
+    // terminator for the entry and a second for the list.
+    private static string PreferredUILanguage(Setting setting, string key)
+    {
+        string path = RegTargetReader.Target(setting, "PreferredUILanguages").Paths[0];
+        var bytes = Encoding.Unicode.GetBytes(key + "\0\0");
+        var hex = string.Join(",", bytes.Select(b => b.ToString("x2", CultureInfo.InvariantCulture)));
+        return $"Windows Registry Editor Version 5.00\r\n\r\n[{path}]\r\n\"PreferredUILanguages\"=hex(7):{hex}\r\n";
+    }
+
+    // A MUI subkey is named by its language tag, and some images name it by its hexadecimal LCID instead, so a
+    // name .NET does not know as a tag is tried as one before it is dropped rather than assuming either shape.
+    private static CultureInfo? CultureNamed(string name)
+    {
+        if (name.Length == 0)
+            return null;
+
+        try
+        {
+            return CultureInfo.GetCultureInfo(name);
+        }
+        catch (CultureNotFoundException)
+        {
+        }
+
+        if (!int.TryParse(name, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int lcid) || lcid == NoLcid)
+            return null;
+
+        try
+        {
+            return CultureInfo.GetCultureInfo(lcid);
+        }
+        catch (CultureNotFoundException)
+        {
+            return null;
+        }
+    }
 
     private static string? NonEmpty(object? value) => value is string text && text.Length > 0 ? text : null;
 }

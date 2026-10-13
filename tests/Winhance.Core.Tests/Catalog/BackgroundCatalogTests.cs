@@ -12,10 +12,10 @@ public class BackgroundCatalogTests
     private static SettingState WindowsDefaultOf(string settingId) =>
         SettingCatalog.Find(settingId)!.States.Single(s => s.HasRole(RoleKind.WindowsDefault));
 
-    // A profile that has never set a background carries none of these values.
+    // A profile that has never set a background carries none of these values, and deleting each one leaves
+    // Windows doing what it does with the value missing. theme-wallpaper-fit is the exception below.
     [Theory]
     [InlineData("theme-wallpaper", "BackgroundType")]
-    [InlineData("theme-wallpaper-fit", "TileWallpaper")]
     [InlineData("theme-wallpaper-interval", "Interval")]
     [InlineData("theme-wallpaper-shuffle", "Shuffle")]
     public void The_windows_default_deletes_the_value_it_also_reads_as_absent(string settingId, string targetKey)
@@ -27,13 +27,18 @@ public class BackgroundCatalogTests
         state.ResetSet![targetKey].DeleteOnWrite.Should().BeTrue();
     }
 
-    // Every machine carries WallpaperStyle, so a reset writes it rather than deleting it.
+    // TileWallpaper is where that rule breaks: Windows reads a MISSING value as tiled, so deleting it is not
+    // the same as writing "0". A WindowsDefault state's ResetSet fires on every apply, so the delete also ran
+    // over the empty profile an answer file writes into, and a Fill wallpaper came up tiled. Reading absent
+    // as "not tiled" stays, because that is what detection sees on a machine nobody has touched.
     [Fact]
-    public void The_fits_style_is_still_written_on_a_reset()
+    public void The_fit_reads_a_missing_tile_flag_but_never_writes_one()
     {
         var state = WindowsDefaultOf("theme-wallpaper-fit");
 
-        state.ResetSet!.Keys.Should().Equal("TileWallpaper");
+        state.ResetSet.Should().BeNull("a missing TileWallpaper is not 'not tiled', it IS tiled");
+        state.Set["TileWallpaper"].AcceptsAbsent.Should().BeTrue();
+        state.Set["TileWallpaper"].WritePayload.Should().Be("0");
         state.Set["WallpaperStyle"].WritePayload.Should().Be("10");
     }
 

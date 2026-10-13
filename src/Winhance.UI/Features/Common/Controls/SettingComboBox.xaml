@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<UserControl
+<local:SettingBoundControl
     x:Class="Winhance.UI.Features.Common.Controls.SettingComboBox"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -12,9 +12,9 @@
     halves of a powercfg selection alike - so "a combo box" is one thing, and a change to how a dropdown
     reports its state is a change to one file.
     -->
-    <UserControl.Resources>
+    <local:SettingBoundControl.Resources>
         <Style TargetType="local:ComboBoxEx" BasedOn="{StaticResource DefaultComboBoxStyle}"/>
-    </UserControl.Resources>
+    </local:SettingBoundControl.Resources>
 
     <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
         <local:SettingQuickSetButtons
@@ -112,4 +112,4 @@
                 Margin="12,0,34,0"/>
         </Grid>
     </StackPanel>
-</UserControl>
+</local:SettingBoundControl>

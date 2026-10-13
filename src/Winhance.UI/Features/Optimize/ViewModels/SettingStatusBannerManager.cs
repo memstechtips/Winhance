@@ -26,7 +26,8 @@ internal sealed class SettingStatusBannerManager
     // BannerState.Clear when there is nothing to show; null leaves an existing compatibility banner untouched
     // (value is not an int index).
     public BannerState? ComputeBannerForValue(
-        object? value, IReadOnlyList<OptionWarning?>? optionWarnings, string? crossGroupInfoMessage, int optionCount, string? compatibilityMessage)
+        object? value, IReadOnlyList<OptionWarning?>? optionWarnings, string? crossGroupInfoMessage, int optionCount, string? compatibilityMessage,
+        InfoBarSeverity compatibilitySeverity = InfoBarSeverity.Warning)
     {
         if (value is not int selectedIndex)
         {
@@ -48,7 +49,7 @@ internal sealed class SettingStatusBannerManager
             return ComputeCrossGroupBanner(selectedIndex, crossGroupInfoMessage, optionCount);
 
         if (!string.IsNullOrEmpty(compatibilityMessage))
-            return new BannerState(compatibilityMessage, InfoBarSeverity.Warning);
+            return new BannerState(compatibilityMessage, compatibilitySeverity);
 
         return BannerState.Clear;
     }

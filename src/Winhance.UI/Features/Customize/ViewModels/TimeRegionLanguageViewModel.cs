@@ -23,5 +23,4 @@ public partial class TimeRegionLanguageViewModel : BaseSettingsFeatureViewModel,
 
     public override string ModuleId => FeatureIds.TimeRegionLanguage;
 
-    protected override string GetDisplayNameKey() => "Feature_TimeRegionLanguage_Name";
 }

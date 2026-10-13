@@ -12,7 +12,7 @@ namespace Winhance.Infrastructure.Tests.Autounattend;
 
 // The autounattend script for the parity catalog, frozen the day the engine-backed emitter replaced the hand-written
 // ones (after a line-for-line parity run against them). A change here is a change to what every generated XML does;
-// make it on purpose, re-capture, and tell Marco.
+// make it on purpose, and re-capture.
 public class WinhancementsScriptBuilderGoldenTests
 {
     private readonly Mock<ILogService> _log = new();
@@ -126,45 +126,29 @@ public class WinhancementsScriptBuilderGoldenTests
 
         script.Should().Contain("$customPlanGuid = \"11111111-2222-3333-4444-555555555555\"");
         script.Should().Contain("powercfg /changename $customPlanGuid \"Winhance Power Plan\"");
-        script.Should().Contain("$targetPlanGuid = \"11111111-2222-3333-4444-555555555555\"");
-        script.Should().Contain("powercfg /setactive 11111111-2222-3333-4444-555555555555 2>$null");
+        script.Should().Contain("$targetPlanGuid = $customPlanGuid");
+        script.Should().Contain("powercfg /setactive $customPlanGuid 2>$null");
+    }
+
+    [Fact]
+    public async Task PowerPlanChoice_WithNoPowerSettings_StillActivatesThePlan()
+    {
+        var plan = new Setting { Id = "power-plan-selection", Display = new() { Name = TestKeys.Of("plan"), Description = TestKeys.Of("plan") }, Options = new(OptionSource.PowerPlans) };
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.Power] = new[] { plan } };
+        var choices = new[] { new SettingChoice(plan.Id, new ChoiceValue.Keyed("11111111-2222-3333-4444-555555555555", "High Performance")) };
+
+        var script = await Builder().BuildAsync(new SelectionSet(choices, Array.Empty<AppChoice>(), Array.Empty<AppChoice>()), byFeature);
+
+        script.Should().NotContain("Applying power settings...");
+        script.Should().Contain("powercfg /setactive $customPlanGuid 2>$null");
+        // /query also succeeds on a hidden template (Ultimate Performance), which then never gets created or activated.
+        script.Should().NotContain("powercfg /query");
+        script.Should().Contain("powercfg /list | Select-String -SimpleMatch $customPlanGuid");
     }
 
     private const string GoldenSystemPass = """
     # POWER PLAN & POWERCFG SETTINGS
     # ============================================================================
-
-    Write-Log "Enabling hidden power settings..." "INFO"
-    $PowerSettingsBasePath = "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerSettings"
-    $hiddenSettings = @(
-        @{ Subgroup = "2a737441-1930-4402-8d77-b2bebba308a3"; Setting = "0853a681-27c8-4100-a2fd-82013e970683" },
-        @{ Subgroup = "2a737441-1930-4402-8d77-b2bebba308a3"; Setting = "d4e98f31-5ffe-4ce1-be31-1b38b384c009" },
-        @{ Subgroup = "4f971e89-eebd-4455-a8de-9e59040e7347"; Setting = "7648efa3-dd9c-4e3e-b566-50f929386280" },
-        @{ Subgroup = "4f971e89-eebd-4455-a8de-9e59040e7347"; Setting = "96996bc0-ad50-47ec-923b-6f41874dd9eb" },
-        @{ Subgroup = "4f971e89-eebd-4455-a8de-9e59040e7347"; Setting = "5ca83367-6e45-459f-a27b-476b1d01c936" },
-        @{ Subgroup = "54533251-82be-4824-96c1-47b60b740d00"; Setting = "94d3a615-a899-4ac5-ae2b-e4d8f634367f" },
-        @{ Subgroup = "54533251-82be-4824-96c1-47b60b740d00"; Setting = "be337238-0d82-4146-a960-4f3749d470c7" },
-        @{ Subgroup = "54533251-82be-4824-96c1-47b60b740d00"; Setting = "465e1f50-b610-473a-ab58-00d1077dc418" },
-        @{ Subgroup = "54533251-82be-4824-96c1-47b60b740d00"; Setting = "40fbefc7-2e9d-4d25-a185-0cfd8574bac6" },
-        @{ Subgroup = "54533251-82be-4824-96c1-47b60b740d00"; Setting = "0cc5b647-c1df-4637-891a-dec35c318583" },
-        @{ Subgroup = "54533251-82be-4824-96c1-47b60b740d00"; Setting = "ea062031-0e34-4ff1-9b6d-eb1059334028" },
-        @{ Subgroup = "54533251-82be-4824-96c1-47b60b740d00"; Setting = "36687f9e-e3a5-4dbf-b1dc-15eb381c6863" },
-        @{ Subgroup = "54533251-82be-4824-96c1-47b60b740d00"; Setting = "06cadf0e-64ed-448a-8927-ce7bf90eb35d" },
-        @{ Subgroup = "54533251-82be-4824-96c1-47b60b740d00"; Setting = "12a0ab44-fe28-4fa9-b3bd-4b64f44960a6" }
-    )
-
-    $enabledCount = 0
-    foreach ($item in $hiddenSettings) {
-        $regPath = Join-Path $PowerSettingsBasePath "$($item.Subgroup)\$($item.Setting)"
-        try {
-            if (Test-Path $regPath) {
-                Set-ItemProperty -Path $regPath -Name "Attributes" -Value 0 -Type DWord -ErrorAction Stop
-                $enabledCount++
-            }
-        } catch {
-        }
-    }
-    Write-Log "Enabled $enabledCount hidden power settings" "SUCCESS"
 
     Write-Log "Applying power settings..." "INFO"
 
@@ -208,9 +192,17 @@ public class WinhancementsScriptBuilderGoldenTests
         Write-Log "Failed: Scripts description - $($_.Exception.Message)" "ERROR"
     }
 
-    Unlock-RegistryKey -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\ParitySvc' -Description 'Locked key description'
-    Set-RegistryValue -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\ParitySvc' -Name 'Start' -Type 'DWord' -Value 4 -Description 'Locked key description'
-    Lock-RegistryKey -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\ParitySvc' -Description 'Locked key description'
+    if (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Services\ParitySvc') {
+        Unlock-RegistryKey -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\ParitySvc' -Description 'Locked key description'
+    }
+    if (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Services\ParitySvc') {
+        Set-RegistryValue -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\ParitySvc' -Name 'Start' -Type 'DWord' -Value 4 -Description 'Locked key description'
+    } else {
+        Write-Log 'Locked key description | skipped, this PC has no ParitySvc service' "INFO"
+    }
+    if (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Services\ParitySvc') {
+        Lock-RegistryKey -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\ParitySvc' -Description 'Locked key description'
+    }
     Set-RegistryValue -Path 'HKLM:\SOFTWARE\ParityAction' -Name 'Ran' -Type 'DWord' -Value 1 -Description 'Action description'
 
     # PowerShell script for: Action
@@ -230,6 +222,11 @@ public class WinhancementsScriptBuilderGoldenTests
     $processedCount = 0
     foreach ($task in $scheduledTasks) {
         try {
+            $null = & cmd.exe /c "schtasks /Query /TN `"$($task.TN)`"" 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Log "$($task.Desc) | skipped, this PC has no $($task.TN) task" "INFO"
+                continue
+            }
             $result = & cmd.exe /c "schtasks /Change /TN `"$($task.TN)`" $($task.Action)" 2>&1
             if ($LASTEXITCODE -eq 0) {
                 Write-Log "$($task.Desc)" "SUCCESS"

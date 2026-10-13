@@ -70,15 +70,6 @@ public static partial class ExternalAppDefinitions
                     },
                     new ItemDefinition
                     {
-                        Id = "external-app-freefilesync",
-                        Name = "FreeFileSync",
-                        Description = "Open-source folder comparison and synchronization tool",
-                        GroupName = "Online Storage & Backup",
-                        ChocoPackageId = "freefilesync",
-                        WebsiteUrl = "https://freefilesync.org/",
-                    },
-                    new ItemDefinition
-                    {
                         Id = "external-app-hekasoft-backup",
                         Name = "Hekasoft Backup & Restore",
                         Description = "Backs up and restores browser bookmarks, settings, and profiles",

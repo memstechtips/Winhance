@@ -96,13 +96,16 @@ public class SettingsLoadingService : ISettingsLoadingService
         return await BuildViewModelsAsync(featureModuleId, settingsList, parentViewModel);
     }
 
-    // Two card fields are read off the catalog SCOPE rather than off the setting, so a scope change leaves
+    // Three card fields are read off the catalog SCOPE rather than off the setting, so a scope change leaves
     // them stale on every card that survived it: HasBattery (authoring for other hardware shows the DC half
-    // on a machine that has none) and the cross-group info message (its child list is scope-filtered, and two
-    // of those children are Windows-10-only). Everything else on a card derives from the setting or from live
-    // system state, and a scope change moves neither.
+    // on a machine that has none), the cross-group info message (its child list is scope-filtered, and two
+    // of those children are Windows-10-only) and the Windows-version label (only views showing every version
+    // carry one). Everything else on a card derives from the setting or from live system state, and a scope
+    // change moves neither.
     public async Task RefreshScopeDerivedStateAsync(IEnumerable<SettingItemViewModel> settings)
     {
+        var liveBuild = LiveBuild();
+        var scope = _scopeProvider.Current;
         foreach (var viewModel in settings)
         {
             if (viewModel.SupportsSeparateACDC)
@@ -125,6 +128,9 @@ public class SettingsLoadingService : ISettingsLoadingService
                 viewModel.CrossGroupInfoMessage = crossGroupInfoMessage;
                 viewModel.UpdateStatusBanner(viewModel.SelectedValue);
             }
+
+            viewModel.SetCompatibilityMessage(
+                LocalizeCompatibilityMessage(AvailabilityCompatibility.ForScope(setting.Availability, scope, liveBuild)));
         }
     }
 
@@ -143,6 +149,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         var batchStates = await _settingStateProvider.GetStatesAsync(settingsList);
 
         var liveBuild = LiveBuild();
+        var scope = _scopeProvider.Current;
 
         foreach (var setting in settingsList)
         {
@@ -156,7 +163,7 @@ public class SettingsLoadingService : ISettingsLoadingService
 
             var crossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
 
-            var viewModel = await _viewModelFactory.CreateAsync(setting, currentState, parentViewModel, crossGroupInfoMessage, LocalizeCompatibilityMessage(AvailabilityCompatibility.DeriveCompatibilityMessage(setting.Availability, liveBuild)), liveBuild);
+            var viewModel = await _viewModelFactory.CreateAsync(setting, currentState, parentViewModel, crossGroupInfoMessage, LocalizeCompatibilityMessage(AvailabilityCompatibility.ForScope(setting.Availability, scope, liveBuild)), liveBuild);
             viewModel.IsTechnicalDetailsGloballyVisible = showTechnicalDetails;
             settingViewModels.Add(viewModel);
         }

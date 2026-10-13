@@ -2,6 +2,7 @@ using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Infrastructure.Features.Autounattend.Helpers;
 using Winhance.Infrastructure.Features.Autounattend.Writers;
 
 namespace Winhance.Infrastructure.Features.Autounattend;
@@ -15,8 +16,10 @@ internal static class AutounattendDocumentBuilder
     private static readonly AccountWriter Account = new();
     private static readonly ArchitectureWriter Architecture = new();
     private static readonly TimeRegionLanguageWriter TimeRegionLanguage = new();
+    private static readonly OobeNetworkWriter OobeNetwork = new();
+    private static readonly DiskConfigurationWriter Disk = new();
 
-    internal static IReadOnlyList<IAutounattendElementWriter> ShapeWriters { get; } = [ProductKey, Account, Architecture];
+    internal static IReadOnlyList<IAutounattendElementWriter> ShapeWriters { get; } = [ProductKey, Account, Architecture, OobeNetwork, Disk];
 
     internal static AutounattendElementWriter Elements { get; } =
         new(ShapeWriters.SelectMany(writer => writer.Handles).ToHashSet(StringComparer.Ordinal));
@@ -25,14 +28,22 @@ internal static class AutounattendDocumentBuilder
     {
         var doc = AutounattendDocument.NewSkeleton();
         ProductKey.Write(doc, context);
+        Disk.Write(doc, context);
         WriteScriptExtractor(doc);
         Account.Write(doc, context);
         Elements.Write(doc, context);
+        OobeNetwork.Write(doc, context);
         WriteWinhancementsScript(doc, context);
         WriteEmbeddedPictures(doc, context);
+        WriteUserScripts(doc, context);
         TimeRegionLanguage.Write(doc, context);
         Architecture.Write(doc, context);
-        doc.Extensions().AddFirst(new XElement(AutounattendDocument.WinhanceExtensions + "Generator", new XAttribute("version", context.AppVersion)));
+        // Setup reads a pass only when it carries settings, so a pass nothing wrote to stays out of the file.
+        doc.Root!.Elements(AutounattendDocument.Unattend + "settings").Where(pass => !pass.HasElements).Remove();
+        var generator = new XElement(AutounattendDocument.WinhanceExtensions + "Generator", new XAttribute("version", context.AppVersion));
+        doc.Extensions().AddFirst(generator);
+        if (context.Config is { } config)
+            generator.AddAfterSelf(new XElement(AutounattendDocument.WinhanceExtensions + "Config", config));
         return doc;
     }
 
@@ -51,6 +62,16 @@ internal static class AutounattendDocumentBuilder
         doc.Extensions().Add(new XElement(AutounattendDocument.WinhanceExtensions + "File",
             new XAttribute("path", ScriptPaths.AutounattendScriptPath),
             new XCData(context.WinhancementsScript)));
+    }
+
+    private static void WriteUserScripts(XDocument doc, AutounattendRenderContext context)
+    {
+        foreach (var script in UserScriptFiles.From(context.Selections))
+        {
+            doc.Extensions().Add(new XElement(AutounattendDocument.WinhanceExtensions + "File",
+                new XAttribute("path", script.Path),
+                new XCData(script.Content)));
+        }
     }
 
     private static void WriteEmbeddedPictures(XDocument doc, AutounattendRenderContext context)

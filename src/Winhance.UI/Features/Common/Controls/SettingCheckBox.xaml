@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<UserControl
+<local:SettingBoundControl
     x:Class="Winhance.UI.Features.Common.Controls.SettingCheckBox"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -34,4 +34,4 @@
                 IsTwoState="True"/>
         </Grid>
     </StackPanel>
-</UserControl>
+</local:SettingBoundControl>

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
@@ -23,6 +24,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly INewBadgeService _newBadgeService;
     private readonly ISettingViewModelEnricher _enricher;
+    private readonly IPowerSettingsQueryService _power;
 
     public SettingViewModelFactory(
         SettingViewModelDependencies viewModelDeps,
@@ -30,7 +32,8 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         ILocalizationService localizationService,
         IUserPreferencesService userPreferencesService,
         INewBadgeService newBadgeService,
-        ISettingViewModelEnricher enricher)
+        ISettingViewModelEnricher enricher,
+        IPowerSettingsQueryService power)
     {
         _viewModelDeps = viewModelDeps;
         _logService = logService;
@@ -38,6 +41,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         _userPreferencesService = userPreferencesService;
         _newBadgeService = newBadgeService;
         _enricher = enricher;
+        _power = power;
     }
 
     public async Task<SettingItemViewModel> CreateAsync(
@@ -87,9 +91,12 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             _viewModelDeps.ApplicationModeService,
             _viewModelDeps.FilePickerService);
 
+        // Typed fields open read-only; the pencil unlocks them.
+        viewModel.IsLocked = setting.Fields.Count > 0;
         viewModel.RecordKnownState(currentState);
         viewModel.CrossGroupInfoMessage = crossGroupInfoMessage;
         viewModel.CompatibilityMessage = compatibilityMessage;
+        viewModel.CompatibilitySeverity = setting.Availability.Allows(build) ? InfoBarSeverity.Informational : InfoBarSeverity.Warning;
 
         if (setting.Availability.RequiresAdvancedUnlock)
         {
@@ -134,8 +141,8 @@ public class SettingViewModelFactory : ISettingViewModelFactory
 
         if (inputType == InputType.List)
         {
-            viewModel.ListAddLabel = Localized(LocKey.AutounattendAccounts.Add);
-            viewModel.ListRemoveLabel = Localized(LocKey.AutounattendAccounts.Remove);
+            viewModel.ListAddLabel = setting.List!.Add is { } add ? Localized(add) : string.Empty;
+            viewModel.ListRemoveLabel = setting.List.Remove is { } remove ? Localized(remove) : string.Empty;
             viewModel.SavePasswordsLabel = Localized(LocKey.AutounattendAccounts.SavePasswords);
             viewModel.SavePasswordsNote = Localized(LocKey.AutounattendAccounts.SavePasswordsNote);
 
@@ -156,7 +163,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                 if (setting is { States.Count: > 0 })
                 {
                     int currentIndex = currentState.CurrentValue is int ci ? ci : ComboBoxConstants.CustomStateIndex;
-                    BuildCatalogSelectionOptions(setting, viewModel.ComboBoxOptions);
+                    BuildCatalogSelectionOptions(setting, viewModel.ComboBoxOptions, await WindowsPowerOptionsAsync(setting));
                     resolvedSelection = currentState.CurrentValue ?? currentIndex;
                 }
 
@@ -239,15 +246,60 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     // a deliberate choice, and it was pickable. An IsDetectOnly state is left out for the same reason from the
     // other direction. SKIP, NEVER RENUMBER: every option keeps its own STATE index as its Value - that index is
     // what the drop-down-closed handler applies, what a saved .winhance config persists, and what the review diff compares.
-    private void BuildCatalogSelectionOptions(Setting setting, ObservableCollection<ComboBoxDisplayOption> options)
+    // Windows names the choices of a power setting itself, in the language it is installed in, and lists only the
+    // ones this machine has: a CPU that cannot boost aggressively does not offer those modes. So a power card shows
+    // Windows' own wording and, on the machine it is about to change, drops the states this PC does not offer.
+    // Keyed by the possible-setting INDEX, which is what a catalog state carries.
+    // An authoring mode keeps every state, because the file is for a PC whose hardware this one cannot speak for.
+    // The catalog still owns the values, which is what the apply and the answer file write and a config carries.
+    private async Task<IReadOnlyDictionary<int, string>?> WindowsPowerOptionsAsync(Setting setting)
+    {
+        if (setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault() is not { } target)
+            return null;
+
+        try
+        {
+            var offered = await _power.GetPossibleValuesAsync(target.SubgroupGuid, target.SettingGuid)
+                .ConfigureAwait(false);
+            return offered.Count > 0
+                ? offered.GroupBy(option => option.Index).ToDictionary(group => group.Key, group => group.First().Name)
+                : null;
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Warning,
+                $"Could not read the options Windows offers for {setting.Id}: {ex.Message}");
+            return null;
+        }
+    }
+
+    private void BuildCatalogSelectionOptions(
+        Setting setting,
+        ObservableCollection<ComboBoxDisplayOption> options,
+        IReadOnlyDictionary<int, string>? windowsOptions = null)
     {
         var states = setting.States;
+        var powerKey = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Key;
         for (int i = 0; i < states.Count; i++)
         {
             var state = states[i];
             if (state.IsDetectOnly)
                 continue;
-            var label = Localized(state.Label);
+            string? windowsName = null;
+            if (windowsOptions is not null && powerKey is not null)
+            {
+                if (state.Set.TryGetValue(powerKey, out var stateValue)
+                    && stateValue.WritePayload is int index
+                    && windowsOptions.TryGetValue(index, out var offeredName))
+                {
+                    windowsName = offeredName;
+                }
+                else if (!_viewModelDeps.ApplicationModeService.Capabilities().AuthorsIntent)
+                {
+                    continue;   // this PC has no such value, and the card is about to change this PC
+                }
+            }
+            var label = windowsName ?? Localized(state.Label);
             var tooltip = state.Tooltip is { } tip ? Localized(tip) : null;
             options.Add(new ComboBoxDisplayOption(label, i, tooltip)
             {

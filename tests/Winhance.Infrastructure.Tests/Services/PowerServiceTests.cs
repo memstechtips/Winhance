@@ -186,4 +186,26 @@ public class PowerServiceTests
             s => s.DeleteScheme(It.IsAny<Guid>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task CleanupCorruptWinhancePlanAsync_PlanNamedAroundTheBrand_DoesNotDelete()
+    {
+        // fa.json's name for the plan.
+        var persianPlan = new PowerPlan
+        {
+            Name = "\u0637\u0631\u062D \u0627\u0646\u0631\u0698\u06CC Winhance",
+            Guid = "57696e68-616e-6365-506f-776572000000",
+            IsActive = true
+        };
+
+        _powerSettingsQueryService
+            .Setup(s => s.GetAvailablePowerPlansAsync())
+            .ReturnsAsync(new List<PowerPlan> { persianPlan });
+
+        await _sut.CleanupCorruptWinhancePlanAsync();
+
+        _powerSchemeOperations.Verify(
+            s => s.DeleteScheme(It.IsAny<Guid>()),
+            Times.Never);
+    }
 }

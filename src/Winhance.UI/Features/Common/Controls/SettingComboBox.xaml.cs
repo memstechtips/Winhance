@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -17,7 +16,7 @@ namespace Winhance.UI.Features.Common.Controls;
 
 // Events are routed here rather than bound in markup because the handler differs per mode
 // (OnComboBoxDropDownClosed / OnAC... / OnDC...) and x:Bind cannot pick one at runtime.
-public sealed partial class SettingComboBox : UserControl, INotifyPropertyChanged
+public sealed partial class SettingComboBox : SettingBoundControl
 {
     // The dot's colour is the status itself, so it does not follow the theme.
     private static readonly SolidColorBrush ExistsBrush = new(Color.FromArgb(255, 0, 200, 60));
@@ -28,22 +27,11 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
     public SettingComboBox()
     {
         InitializeComponent();
-        Unloaded += (_, _) => Detach();
-    }
-
-    public static readonly DependencyProperty SettingProperty = DependencyProperty.Register(
-        nameof(Setting), typeof(SettingItemViewModel), typeof(SettingComboBox),
-        new PropertyMetadata(null, OnSettingChanged));
-
-    public SettingItemViewModel? Setting
-    {
-        get => (SettingItemViewModel?)GetValue(SettingProperty);
-        set => SetValue(SettingProperty, value);
     }
 
     public static readonly DependencyProperty ModeProperty = DependencyProperty.Register(
         nameof(Mode), typeof(SettingInputMode), typeof(SettingComboBox),
-        new PropertyMetadata(SettingInputMode.Single, OnAnyChanged));
+        new PropertyMetadata(SettingInputMode.Single, RefreshOnChange));
 
     public SettingInputMode Mode
     {
@@ -56,7 +44,7 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
     // which is why Width, MinWidth and MaxWidth are all driven from it.
     public static readonly DependencyProperty PinnedWidthProperty = DependencyProperty.Register(
         nameof(PinnedWidth), typeof(double), typeof(SettingComboBox),
-        new PropertyMetadata(double.NaN, OnAnyChanged));
+        new PropertyMetadata(double.NaN, RefreshOnChange));
 
     public double PinnedWidth
     {
@@ -86,42 +74,14 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
     // fire. Null while resolved so no empty tooltip appears.
     public string? OutcomeTooltip { get; private set; }
 
-    private SettingItemViewModel? _observed;
-
-    private static void OnSettingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        var control = (SettingComboBox)d;
-        control.Detach();
-        control._observed = e.NewValue as SettingItemViewModel;
-        if (control._observed is { } vm)
-            vm.PropertyChanged += control.OnSettingPropertyChanged;
-        control.Refresh();
-    }
-
-    private static void OnAnyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        => ((SettingComboBox)d).Refresh();
-
-    private void Detach()
-    {
-        if (_observed is { } vm)
-            vm.PropertyChanged -= OnSettingPropertyChanged;
-        _observed = null;
-    }
-
-    private void OnSettingPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName is null
-            or nameof(SettingItemViewModel.SelectedValue)
+    protected override bool RefreshesOn(string propertyName)
+        => propertyName is nameof(SettingItemViewModel.SelectedValue)
             or nameof(SettingItemViewModel.AcValue)
             or nameof(SettingItemViewModel.DcValue)
             or nameof(SettingItemViewModel.ComboBoxOptions)
-            or nameof(SettingItemViewModel.Name))
-        {
-            Refresh();
-        }
-    }
+            or nameof(SettingItemViewModel.Name);
 
-    private void Refresh()
+    protected override void Refresh()
     {
         if (Setting is not { } vm)
             return;
@@ -136,22 +96,6 @@ public sealed partial class SettingComboBox : UserControl, INotifyPropertyChange
         // too - the DP's own change callback routes through Refresh.
         Notify(nameof(Options), nameof(SelectedIndex), nameof(InputAutomationName), nameof(OutcomeTooltip),
             nameof(PinnedMinWidth), nameof(PinnedMaxWidth));
-    }
-
-    // x:Bind OneWay subscribes here. Without it the compiler emits WMC1506 ("OneWay bindings require
-    // at least one of their steps to support raising notifications") and the bindings only refresh
-    // because something calls Bindings.Update() by hand - which is easy to forget when adding a
-    // property, and fails silently when you do.
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    private void Notify(params string[] names)
-    {
-        var handler = PropertyChanged;
-        if (handler is null)
-            return;
-        foreach (var name in names)
-            handler(this, new PropertyChangedEventArgs(name));
     }
 
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)

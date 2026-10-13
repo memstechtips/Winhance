@@ -12,7 +12,15 @@ namespace Winhance.Infrastructure.Tests.Autounattend;
 
 public class WinhancementsScriptBuilderTests
 {
+    private const string InstallWinhanceScript = @"C:\ProgramData\Winhance\Unattend\Scripts\Install-Winhance.ps1";
+
     private static readonly string[] CortanaPackage = ["Microsoft.549981C3F5F10"];
+
+    private static readonly string[] RegistryHelpers =
+    [
+        "Set-RegistryValue", "Remove-RegistryValue", "Remove-RegistryKey", "New-RegistryKey", "Set-BinaryBit", "Set-BinaryByte",
+        "Set-RegistryCompositeValue", "Set-RegistryStringFlag", "Open-RegistryKeyForAcl", "Unlock-RegistryKey", "Lock-RegistryKey",
+    ];
 
     private readonly Mock<ILogService> _logService = new();
     private readonly Mock<IPowerShellRunner> _powerShellRunner = new();
@@ -34,6 +42,17 @@ public class WinhancementsScriptBuilderTests
 
     private static SelectionSet SetOf(params SettingChoice[] choices) =>
         new(choices, Array.Empty<AppChoice>(), Array.Empty<AppChoice>());
+
+    private static SettingChoice Scripts(string cardId, params (int Type, string Script)[] rows) =>
+        new(cardId, new ChoiceValue.List(rows.Select(r => new ChoiceValue.ListRow(
+            new Dictionary<string, string> { ["type"] = r.Type.ToString(), ["script"] = r.Script })).ToList()));
+
+    // The SYSTEM side's branch for a user whose customizations are already applied: the sign-in after Setup's restart.
+    private static string AlreadyAppliedBranch(string script)
+    {
+        var start = script.IndexOf("        if ($alreadyApplied) {", StringComparison.Ordinal);
+        return script[start..script.IndexOf("        } else {", start, StringComparison.Ordinal)];
+    }
 
     [Fact]
     public async Task BuildAsync_EmptySet_ProducesValidScript()
@@ -71,15 +90,31 @@ public class WinhancementsScriptBuilderTests
     }
 
     [Fact]
-    public async Task BuildAsync_ContainsHelperFunctions()
+    public async Task BuildAsync_EmptySet_CarriesOnlyTheHelpersTheUserBridgeCalls()
     {
-        var set = SelectionSet.Empty;
-        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>();
+        var result = await _sut.BuildAsync(SelectionSet.Empty, new Dictionary<string, IReadOnlyList<Setting>>());
+
+        result.Should().Contain("function Get-TargetUser {")
+            .And.Contain("function Get-UserSID {")
+            .And.Contain("function Start-ProcessAsUser {");
+        foreach (var helper in RegistryHelpers)
+            result.Should().NotContain($"function {helper} {{", helper);
+    }
+
+    [Fact]
+    public async Task BuildAsync_ARegistryWrite_CarriesSetRegistryValueAndNoOtherRegistryHelper()
+    {
+        var set = SetOf(new SettingChoice("security-remote-assistance", new ChoiceValue.Toggle(true)));
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
+        {
+            { FeatureIds.Privacy, new[] { SettingCatalog.Find("security-remote-assistance")! } }
+        };
 
         var result = await _sut.BuildAsync(set, byFeature);
 
-        result.Should().Contain("function Set-RegistryValue");
-        result.Should().Contain("function Start-ProcessAsUser");
+        result.Should().Contain("function Set-RegistryValue {");
+        foreach (var helper in RegistryHelpers.Where(h => h != "Set-RegistryValue"))
+            result.Should().NotContain($"function {helper} {{", helper);
     }
 
     [Fact]
@@ -130,32 +165,156 @@ public class WinhancementsScriptBuilderTests
     }
 
     [Fact]
-    public async Task BuildAsync_ContainsScriptsDirectorySetup()
+    public async Task BuildAsync_RunsEachUserScriptFileByItsType()
     {
-        var set = SelectionSet.Empty;
-        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>();
+        var set = SetOf(
+            Scripts("autounattend-user-script-system", (0, "Write-Host 'mine'"), (3, "Windows Registry Editor Version 5.00")),
+            Scripts("autounattend-user-script-user", (1, "echo theirs")));
 
-        var result = await _sut.BuildAsync(set, byFeature);
+        var result = await _sut.BuildAsync(set, new Dictionary<string, IReadOnlyList<Setting>>());
 
-        result.Should().Contain("$scriptsDir");
+        var dir = ScriptPaths.UnattendUserScriptsDirectory;
+        result.Should().Contain($"    & \"{dir}\\System-1.ps1\"");
+        result.Should().Contain($"    & reg.exe import \"{dir}\\System-2.reg\"");
+        result.Should().Contain($"            & cmd.exe /c \"{dir}\\User-1.cmd\"");
+        result.Should().NotContain("Write-Host 'mine'", because: "the script travels in its own file");
     }
 
     [Fact]
-    public async Task BuildAsync_WritesTheShortcutOnlyWhenTheCardIsOn()
+    public async Task BuildAsync_WithNoUserScript_LeavesThePlaceholderEmpty()
+    {
+        var result = await _sut.BuildAsync(SelectionSet.Empty, new Dictionary<string, IReadOnlyList<Setting>>());
+
+        result.Should().NotContain("Running your own script");
+    }
+
+    [Fact]
+    public async Task BuildAsync_AUserScriptCallingAHelperCarriesThatHelper()
+    {
+        var set = SetOf(Scripts("autounattend-user-script-system",
+            (0, @"Set-RegistryValue -Path 'HKLM:\Software\Mine' -Name 'On' -Type 'DWord' -Value 1")));
+
+        var result = await _sut.BuildAsync(set, new Dictionary<string, IReadOnlyList<Setting>>());
+
+        result.Should().Contain("function Set-RegistryValue");
+    }
+
+    [Fact]
+    public async Task BuildAsync_SetsUpTheScriptsDirectoryOnlyForAppRemoval()
+    {
+        var removal = new SelectionSet(
+            Array.Empty<SettingChoice>(),
+            new[] { new AppChoice("windows-app-cortana", "Cortana", CortanaPackage, null, null, null) },
+            Array.Empty<AppChoice>());
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>();
+
+        var withApps = await _sut.BuildAsync(removal, byFeature);
+        var without = await _sut.BuildAsync(SelectionSet.Empty, byFeature);
+
+        withApps.Should().Contain("$scriptsDir = ");
+        without.Should().NotContain("$scriptsDir");
+    }
+
+    [Fact]
+    public async Task BuildAsync_WritesTheShortcutOnlyWhenTheCardPicksIt()
     {
         var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
         {
             [FeatureIds.Autounattend] = SettingCatalog.ByFeature[FeatureIds.Autounattend],
         };
 
-        var on = await _sut.BuildAsync(SetOf(new SettingChoice("autounattend-desktop-shortcut", new ChoiceValue.Toggle(true))), byFeature);
-        var off = await _sut.BuildAsync(SetOf(new SettingChoice("autounattend-desktop-shortcut", new ChoiceValue.Toggle(false))), byFeature);
+        var on = await _sut.BuildAsync(SetOf(new SettingChoice("autounattend-desktop-shortcut", new ChoiceValue.Option(1))), byFeature);
+        var off = await _sut.BuildAsync(SetOf(new SettingChoice("autounattend-desktop-shortcut", new ChoiceValue.Option(0))), byFeature);
 
         on.Should().Contain("# AUTOUNATTEND SETTINGS").And.Contain("Install Winhance.lnk");
         off.Should().NotContain("Install Winhance.lnk").And.NotContain("# AUTOUNATTEND SETTINGS");
     }
 
-    // The XML writers fall back to the WindowsDefault state for a card the set never reached; the script agrees.
+    [Fact]
+    public async Task BuildAsync_HandsTheChosenExternalAppsToTheInstallScript()
+    {
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
+        {
+            [FeatureIds.Autounattend] = SettingCatalog.ByFeature[FeatureIds.Autounattend],
+        };
+        var set = new SelectionSet(
+            [new SettingChoice("autounattend-desktop-shortcut", new ChoiceValue.Option(1))],
+            Array.Empty<AppChoice>(),
+            [new AppChoice("google-chrome", "Google Chrome", null, null, null, "Google.Chrome")]);
+
+        var result = await _sut.BuildAsync(set, byFeature);
+
+        result.Should().Contain("$apps = 'google-chrome'").And.NotContain("{{external-app-ids}}");
+    }
+
+    // With nothing to install, the shortcut runs the web installer rather than Install-Winhance.ps1.
+    [Fact]
+    public async Task BuildAsync_WithNothingToInstall_WritesTheWebInstallerShortcut()
+    {
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
+        {
+            [FeatureIds.Autounattend] = SettingCatalog.ByFeature[FeatureIds.Autounattend],
+        };
+
+        var result = await _sut.BuildAsync(SetOf(new SettingChoice("autounattend-desktop-shortcut", new ChoiceValue.Option(1))), byFeature);
+
+        result.Should().Contain("irm 'https://get.winhance.net' | iex").And.NotContain("Install-Winhance.ps1");
+    }
+
+    [Fact]
+    public async Task BuildAsync_MovesTheUserFoldersInTheUserBlockToTheTypedLocation()
+    {
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
+        {
+            [FeatureIds.Autounattend] = SettingCatalog.ByFeature[FeatureIds.Autounattend],
+        };
+
+        var result = await _sut.BuildAsync(SetOf(new SettingChoice("autounattend-user-folders", new ChoiceValue.Text(@"D:\Mom's PC"))), byFeature);
+
+        var userBlockIndex = result.IndexOf("if ($UserCustomizations)", StringComparison.Ordinal);
+        result.IndexOf("$base = 'D:\\Mom''s PC'", StringComparison.Ordinal).Should().BeGreaterThan(userBlockIndex);
+        result.Should().Contain("User Shell Folders").And.NotContain("{{value}}");
+    }
+
+    // The answer file carries only what it uses: an empty box, or a set that never reached the card, writes nothing.
+    [Fact]
+    public async Task BuildAsync_LeavesTheUserFoldersOutWhenTheBoxIsEmpty()
+    {
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
+        {
+            [FeatureIds.Autounattend] = SettingCatalog.ByFeature[FeatureIds.Autounattend],
+        };
+
+        var empty = await _sut.BuildAsync(SetOf(new SettingChoice("autounattend-user-folders", new ChoiceValue.Text(string.Empty))), byFeature);
+        var untouched = await _sut.BuildAsync(SelectionSet.Empty, byFeature);
+
+        empty.Should().NotContain("User Shell Folders");
+        untouched.Should().NotContain("User Shell Folders");
+    }
+
+    [Fact]
+    public async Task BuildAsync_EmptySet_RunsNothingAtTheSignInAfterSetup()
+    {
+        var result = await _sut.BuildAsync(SelectionSet.Empty, new Dictionary<string, IReadOnlyList<Setting>>());
+
+        AlreadyAppliedBranch(result).Should().NotContain("Start-ProcessAsUser");
+        result.Should().NotContain("InstallWinhanceAtSignIn");
+    }
+
+    [Fact]
+    public async Task BuildAsync_InstallAutomatically_RunsTheInstallScriptAtTheSignInAfterSetup()
+    {
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
+        {
+            [FeatureIds.Autounattend] = SettingCatalog.ByFeature[FeatureIds.Autounattend],
+        };
+
+        var result = await _sut.BuildAsync(SetOf(new SettingChoice("autounattend-desktop-shortcut", new ChoiceValue.Option(2))), byFeature);
+
+        AlreadyAppliedBranch(result).Should().Contain("Start-ProcessAsUser").And.Contain(InstallWinhanceScript);
+    }
+
+    // The XML writers fall back to the seed state for a card the set never reached; the script agrees.
     [Fact]
     public async Task BuildAsync_ASetThatNeverReachedThePage_StillWritesTheShortcut()
     {
@@ -287,6 +446,59 @@ public class WinhancementsScriptBuilderTests
         custValIndex.Should().BeGreaterThan(userBlockIndex);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task A_file_that_removes_Game_Bar_turns_Game_DVR_off_whatever_the_card_says(bool cardOn)
+    {
+        var set = new SelectionSet(
+            [new SettingChoice("gaming-xbox-game-dvr", new ChoiceValue.Toggle(cardOn))],
+            [new AppChoice("windows-app-xbox-game-bar", "Xbox Game Bar", ["Microsoft.XboxGamingOverlay"], null, null, null)],
+            Array.Empty<AppChoice>());
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
+        {
+            { FeatureIds.GamingPerformance, new[] { SettingCatalog.Find("gaming-xbox-game-dvr")! } }
+        };
+
+        var result = await _sut.BuildAsync(set, byFeature);
+
+        result.Should().Contain("-Name 'GameDVR_Enabled' -Type 'DWord' -Value 0");
+        result.Should().NotContain("-Name 'GameDVR_Enabled' -Type 'DWord' -Value 1");
+    }
+
+    [Fact]
+    public async Task The_Winhance_plan_in_a_file_is_a_copy_of_Balanced_like_in_the_app()
+    {
+        var set = SetOf(new SettingChoice("power-plan-selection",
+            new ChoiceValue.Keyed(PowerPlanCatalog.WinhancePowerPlanGuid, "Winhance Power Plan")));
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
+        {
+            { FeatureIds.Power, new[] { SettingCatalog.Find("power-plan-selection")! } }
+        };
+
+        var result = await _sut.BuildAsync(set, byFeature);
+
+        result.Should().Contain($"powercfg /duplicatescheme {PowerPlanCatalog.BalancedGuid} $customPlanGuid");
+        result.Should().NotContain("e9a42b02-d5df-448d-aa00-03f14749eb61");
+    }
+
+    [Fact]
+    public async Task A_file_that_keeps_Game_Bar_leaves_Game_DVR_to_the_card()
+    {
+        var set = new SelectionSet(
+            [new SettingChoice("gaming-xbox-game-dvr", new ChoiceValue.Toggle(true))],
+            [new AppChoice("windows-app-cortana", "Cortana", CortanaPackage, null, null, null)],
+            Array.Empty<AppChoice>());
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
+        {
+            { FeatureIds.GamingPerformance, new[] { SettingCatalog.Find("gaming-xbox-game-dvr")! } }
+        };
+
+        var result = await _sut.BuildAsync(set, byFeature);
+
+        result.Should().Contain("-Name 'GameDVR_Enabled' -Type 'DWord' -Value 1");
+    }
+
     [Fact]
     public async Task BuildAsync_ValidSyntax_LogsSuccess()
     {
@@ -338,6 +550,47 @@ public class WinhancementsScriptBuilderTests
     }
 
     [Fact]
+    public async Task BuildAsync_UnhidesOnlyTheHiddenPowerSettingsItWrites()
+    {
+        // The USB hub timeout is one Windows hides (its target carries an EnablementKey); the display timeout is not.
+        var set = SetOf(
+            new SettingChoice("usb-hub-selective-suspend-timeout", new ChoiceValue.AcDcNumber(1000, 1000)),
+            new SettingChoice("power-display-timeout", new ChoiceValue.AcDcOption(1, 0)));
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
+        {
+            {
+                FeatureIds.Power,
+                new[]
+                {
+                    SettingCatalog.Find("usb-hub-selective-suspend-timeout")!,
+                    SettingCatalog.Find("power-display-timeout")!,
+                }
+            }
+        };
+
+        var result = await _sut.BuildAsync(set, byFeature);
+
+        var start = result.IndexOf("$hiddenSettings = @(", StringComparison.Ordinal);
+        var unhidden = result[start..result.IndexOf("$enabledCount = 0", start, StringComparison.Ordinal)];
+        unhidden.Should().Contain("@{ Subgroup = \"2a737441-1930-4402-8d77-b2bebba308a3\"; Setting = \"0853a681-27c8-4100-a2fd-82013e970683\" }");
+        unhidden.Split("Subgroup = ").Should().HaveCount(2, "only the USB hub timeout is hidden");
+    }
+
+    [Fact]
+    public async Task BuildAsync_WithNoHiddenPowerSetting_UnhidesNothing()
+    {
+        var set = SetOf(new SettingChoice("power-display-timeout", new ChoiceValue.AcDcOption(1, 0)));
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
+        {
+            { FeatureIds.Power, new[] { SettingCatalog.Find("power-display-timeout")! } }
+        };
+
+        var result = await _sut.BuildAsync(set, byFeature);
+
+        result.Should().Contain("# POWER PLAN & POWERCFG SETTINGS").And.NotContain("$hiddenSettings");
+    }
+
+    [Fact]
     public async Task BuildAsync_SettingDict_AliasedConfigId_EmitsViaMergedCatalogSetting()
     {
         // A set restored from a Windows-10 export carries the retired "-win10" This PC folder item id, while the
@@ -349,7 +602,7 @@ public class WinhancementsScriptBuilderTests
         var set = SetOf(new SettingChoice("explorer-customization-thispc-folder-desktop-win10", new ChoiceValue.Toggle(true)));
         var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
         {
-            { FeatureIds.ExplorerCustomization, new[] { SettingCatalog.Find("explorer-customization-thispc-folder-desktop")! } }
+            { FeatureIds.Explorer, new[] { SettingCatalog.Find("explorer-customization-thispc-folder-desktop")! } }
         };
 
         var result = await _sut.BuildAsync(set, byFeature);

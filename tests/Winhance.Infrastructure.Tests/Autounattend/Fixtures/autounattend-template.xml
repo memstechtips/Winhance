@@ -134,7 +134,7 @@
         <RunSynchronousCommand wcm:action="add">
           <Order>4</Order>
           <Description>Enables .NET Framework 3.5 from Windows Installation Media</Description>
-          <Path>powershell.exe -NoProfile -WindowStyle Hidden -Command "foreach($d in 'C','D','E','F','G','H','I','J','K'){$src=Join-Path ($d+':') 'sources\sxs';if(Test-Path $src\*.cab){dism /Online /Enable-Feature /FeatureName:NetFx3 /All /LimitAccess /Source:$src;break}}"</Path>
+          <Path>powershell.exe -NoProfile -WindowStyle Hidden -Command "foreach($d in (gdr -PSProvider FileSystem)){$src=$d.Root+'sources\sxs';if(Test-Path $src\*.cab){dism /Online /Enable-Feature /FeatureName:NetFx3 /All /LimitAccess /Source:$src;break}}"</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
           <Order>5</Order>
@@ -163,7 +163,7 @@
         <RunSynchronousCommand wcm:action="add">
           <Order>4</Order>
           <Description>Enables .NET Framework 3.5 from Windows Installation Media</Description>
-          <Path>powershell.exe -NoProfile -WindowStyle Hidden -Command "foreach($d in 'C','D','E','F','G','H','I','J','K'){$src=Join-Path ($d+':') 'sources\sxs';if(Test-Path $src\*.cab){dism /Online /Enable-Feature /FeatureName:NetFx3 /All /LimitAccess /Source:$src;break}}"</Path>
+          <Path>powershell.exe -NoProfile -WindowStyle Hidden -Command "foreach($d in (gdr -PSProvider FileSystem)){$src=$d.Root+'sources\sxs';if(Test-Path $src\*.cab){dism /Online /Enable-Feature /FeatureName:NetFx3 /All /LimitAccess /Source:$src;break}}"</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
           <Order>5</Order>
@@ -192,7 +192,7 @@
         <RunSynchronousCommand wcm:action="add">
           <Order>4</Order>
           <Description>Enables .NET Framework 3.5 from Windows Installation Media</Description>
-          <Path>powershell.exe -NoProfile -WindowStyle Hidden -Command "foreach($d in 'C','D','E','F','G','H','I','J','K'){$src=Join-Path ($d+':') 'sources\sxs';if(Test-Path $src\*.cab){dism /Online /Enable-Feature /FeatureName:NetFx3 /All /LimitAccess /Source:$src;break}}"</Path>
+          <Path>powershell.exe -NoProfile -WindowStyle Hidden -Command "foreach($d in (gdr -PSProvider FileSystem)){$src=$d.Root+'sources\sxs';if(Test-Path $src\*.cab){dism /Online /Enable-Feature /FeatureName:NetFx3 /All /LimitAccess /Source:$src;break}}"</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
           <Order>5</Order>

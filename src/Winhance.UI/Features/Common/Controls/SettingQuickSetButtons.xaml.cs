@@ -1,8 +1,5 @@
-using System.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
 
@@ -14,27 +11,16 @@ public enum SettingQuickSetKind
     Numeric,
 }
 
-public sealed partial class SettingQuickSetButtons : UserControl, INotifyPropertyChanged
+public sealed partial class SettingQuickSetButtons : SettingBoundControl
 {
     public SettingQuickSetButtons()
     {
         InitializeComponent();
-        Unloaded += (_, _) => Detach();
-    }
-
-    public static readonly DependencyProperty SettingProperty = DependencyProperty.Register(
-        nameof(Setting), typeof(SettingItemViewModel), typeof(SettingQuickSetButtons),
-        new PropertyMetadata(null, OnSettingChanged));
-
-    public SettingItemViewModel? Setting
-    {
-        get => (SettingItemViewModel?)GetValue(SettingProperty);
-        set => SetValue(SettingProperty, value);
     }
 
     public static readonly DependencyProperty ModeProperty = DependencyProperty.Register(
         nameof(Mode), typeof(SettingInputMode), typeof(SettingQuickSetButtons),
-        new PropertyMetadata(SettingInputMode.Single, OnAnyChanged));
+        new PropertyMetadata(SettingInputMode.Single, RefreshOnChange));
 
     public SettingInputMode Mode
     {
@@ -44,7 +30,7 @@ public sealed partial class SettingQuickSetButtons : UserControl, INotifyPropert
 
     public static readonly DependencyProperty KindProperty = DependencyProperty.Register(
         nameof(Kind), typeof(SettingQuickSetKind), typeof(SettingQuickSetButtons),
-        new PropertyMetadata(SettingQuickSetKind.Selection, OnAnyChanged));
+        new PropertyMetadata(SettingQuickSetKind.Selection, RefreshOnChange));
 
     public SettingQuickSetKind Kind
     {
@@ -60,34 +46,7 @@ public sealed partial class SettingQuickSetButtons : UserControl, INotifyPropert
     public string RecommendedAutomationName { get; private set; } = string.Empty;
     public string DefaultAutomationName { get; private set; } = string.Empty;
 
-    private SettingItemViewModel? _observed;
-
-    private static void OnSettingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        var control = (SettingQuickSetButtons)d;
-        control.Detach();
-        control._observed = e.NewValue as SettingItemViewModel;
-        if (control._observed is { } vm)
-            vm.PropertyChanged += control.OnSettingPropertyChanged;
-        control.Refresh();
-    }
-
-    private static void OnAnyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        => ((SettingQuickSetButtons)d).Refresh();
-
-    private void Detach()
-    {
-        if (_observed is { } vm)
-            vm.PropertyChanged -= OnSettingPropertyChanged;
-        _observed = null;
-    }
-
-    // The visibility flags and tooltips change as the setting's value and language change; a null
-    // PropertyName means "everything", which the view model raises on a language switch.
-    private void OnSettingPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-        => Refresh();
-
-    private void Refresh()
+    protected override void Refresh()
     {
         if (Setting is not { } vm)
         {
@@ -134,21 +93,4 @@ public sealed partial class SettingQuickSetButtons : UserControl, INotifyPropert
         nameof(ButtonsVisibility), nameof(RecommendedCommand), nameof(DefaultCommand),
         nameof(RecommendedTooltip), nameof(DefaultTooltip),
         nameof(RecommendedAutomationName), nameof(DefaultAutomationName));
-
-    // x:Bind OneWay subscribes here. Without it the compiler emits WMC1506 ("OneWay bindings require
-    // at least one of their steps to support raising notifications") and the bindings only refresh
-    // because something calls Bindings.Update() by hand - which is easy to forget when adding a
-    // property, and fails silently when you do.
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    private void Notify(params string[] names)
-    {
-        var handler = PropertyChanged;
-        if (handler is null)
-            return;
-        foreach (var name in names)
-            handler(this, new PropertyChangedEventArgs(name));
-    }
-
 }

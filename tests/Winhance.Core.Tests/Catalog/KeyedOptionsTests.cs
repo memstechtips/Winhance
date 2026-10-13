@@ -82,10 +82,11 @@ public class KeyedOptionsTests
             Computing((value, _) => value == OptionValue.LocaleId ? null : value.ToString()));
 
         var payloads = Payloads(set);
-        payloads.Should().HaveCount(30).And.NotContainKey("Locale");
+        payloads.Should().HaveCount(39).And.NotContainKey("Locale");
         payloads["LocaleName"].Should().Be("en-US");
         payloads["sShortDate"].Should().Be(nameof(OptionValue.ShortDate));
         payloads["sNegativeSign"].Should().Be(nameof(OptionValue.NegativeSign));
+        payloads["sNativeDigits"].Should().Be(nameof(OptionValue.NativeDigits));
     }
 
     [Fact]

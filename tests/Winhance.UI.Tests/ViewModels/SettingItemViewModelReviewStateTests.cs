@@ -57,6 +57,8 @@ public class SettingItemViewModelReviewStateTests
             .Where(p => p.Name != nameof(SettingItemViewModel.IsInReviewMode))
             .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
             .Where(p => p.Name != nameof(SettingItemViewModel.ReviewActionGroupName))
+            .Where(p => p.Name != nameof(SettingItemViewModel.ReviewApplyLabel))
+            .Where(p => p.Name != nameof(SettingItemViewModel.ReviewDontApplyLabel))
             .ToList();
 
     private static SettingItemViewModel WithFullReviewState(SettingItemViewModel vm)

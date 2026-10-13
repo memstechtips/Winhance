@@ -64,7 +64,7 @@ internal class DirectDownloadService : IDirectDownloadService
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var downloadUrl = await ResolveDownloadUrlAsync(item, cancellationToken).ConfigureAwait(false);
+            var downloadUrl = await ResolveDownloadUrlAsync(item, GetCurrentArchitecture(), cancellationToken).ConfigureAwait(false);
             if (string.IsNullOrEmpty(downloadUrl))
             {
                 progress?.Report(new TaskProgressDetail
@@ -171,7 +171,55 @@ internal class DirectDownloadService : IDirectDownloadService
         }
     }
 
-    private async Task<string> ResolveDownloadUrlAsync(ItemDefinition item, CancellationToken cancellationToken)
+    public async Task<string?> DownloadAsync(
+        ItemDefinition item,
+        string architecture,
+        string destinationFolder,
+        IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var downloadUrl = await ResolveDownloadUrlAsync(item, architecture, cancellationToken).ConfigureAwait(false);
+            var downloadedFile = await DownloadFileAsync(downloadUrl, destinationFolder, item.Name, progress, cancellationToken).ConfigureAwait(false);
+
+            if (downloadedFile == null && !string.IsNullOrEmpty(item.ExternalApp?.FallbackDownloadUrl))
+            {
+                _logService?.LogInformation($"Primary download failed for {item.Name}, trying fallback URL: {item.ExternalApp.FallbackDownloadUrl}");
+                downloadedFile = await DownloadFileAsync(item.ExternalApp.FallbackDownloadUrl, destinationFolder, item.Name, progress, cancellationToken).ConfigureAwait(false);
+            }
+
+            return downloadedFile;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logService?.LogWarning($"Could not download {item.Name} for {architecture}: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<bool> InstallFileAsync(
+        string filePath,
+        string displayName,
+        IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await InstallDownloadedFileAsync(filePath, displayName, progress, cancellationToken).ConfigureAwait(false);
+        }
+        catch (NotSupportedException ex)
+        {
+            _logService?.LogError($"Cannot install {displayName}: {ex.Message}");
+            return false;
+        }
+    }
+
+    private async Task<string> ResolveDownloadUrlAsync(ItemDefinition item, string architecture, CancellationToken cancellationToken)
     {
         var externalApp = item.ExternalApp;
         if (externalApp == null)
@@ -185,13 +233,12 @@ internal class DirectDownloadService : IDirectDownloadService
                 cancellationToken).ConfigureAwait(false);
         }
 
-        return SelectDownloadUrl(item);
+        return SelectDownloadUrl(item, architecture);
     }
 
-    private string SelectDownloadUrl(ItemDefinition item)
+    private string SelectDownloadUrl(ItemDefinition item, string arch)
     {
-        var arch = GetCurrentArchitecture();
-        _logService?.LogInformation($"Detecting architecture: {arch}");
+        _logService?.LogInformation($"Selecting the download URL for {arch}");
 
         var externalApp = item.ExternalApp;
         if (externalApp == null)
@@ -256,19 +303,20 @@ internal class DirectDownloadService : IDirectDownloadService
         return regex.IsMatch(fileName);
     }
 
-    private async Task<string?> DownloadFileAsync(
+    public async Task<string?> DownloadFileAsync(
         string url,
-        string downloadPath,
+        string destinationFolder,
         string displayName,
-        IProgress<TaskProgressDetail>? progress,
-        CancellationToken cancellationToken)
+        IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         var fileName = _fileSystemService.GetFileName(new Uri(url).LocalPath);
-        var filePath = _fileSystemService.CombinePath(downloadPath, fileName);
+        var filePath = _fileSystemService.CombinePath(destinationFolder, fileName);
 
         try
         {
-            _logService?.LogInformation($"Downloading {fileName} from {url}...");
+            _fileSystemService.CreateDirectory(destinationFolder);
+            _logService?.LogInformation($"Downloading {displayName} from {url}...");
 
             using var downloadRequest = new HttpRequestMessage(HttpMethod.Get, url);
             downloadRequest.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
@@ -279,6 +327,7 @@ internal class DirectDownloadService : IDirectDownloadService
             var totalMB = totalBytes / (1024.0 * 1024.0);
 
             using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+
             using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
 
             var buffer = new byte[8192];
@@ -316,12 +365,12 @@ internal class DirectDownloadService : IDirectDownloadService
         }
         catch (OperationCanceledException)
         {
-            _logService?.LogInformation($"Download of {fileName} was cancelled");
+            _logService?.LogInformation($"Download of {displayName} was cancelled");
             throw;
         }
         catch (Exception ex)
         {
-            _logService?.LogError($"Failed to download {fileName}: {ex.Message}");
+            _logService?.LogError($"Failed to download {displayName} from {url}: {ex.Message}");
             return null;
         }
     }

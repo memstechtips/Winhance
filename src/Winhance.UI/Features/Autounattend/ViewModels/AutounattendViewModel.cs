@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
@@ -6,9 +8,13 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.WimUtil.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Features.Optimize.ViewModels;
+using Winhance.UI.Features.WimUtil.Models;
 
 namespace Winhance.UI.Features.Autounattend.ViewModels;
 
@@ -40,7 +46,7 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
         [FeatureIds.WindowsTheme] = ("Feature_WindowsTheme_Name", "Windows Theme"),
         [FeatureIds.Taskbar] = ("Feature_Taskbar_Name", "Taskbar"),
         [FeatureIds.StartMenu] = ("Feature_StartMenu_Name", "Start Menu"),
-        [FeatureIds.ExplorerCustomization] = ("Feature_Explorer_Name", "Explorer"),
+        [FeatureIds.Explorer] = ("Feature_Explorer_Name", "Explorer"),
         [FeatureIds.TimeRegionLanguage] = ("Feature_TimeRegionLanguage_Name", "Time, region and language"),
     };
 
@@ -49,8 +55,12 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
     private readonly IAppSelectionSource _apps;
     private readonly IWindowsAppsService _windowsApps;
     private readonly IExternalAppsService _externalApps;
+    private readonly WimUtilSession _session;
 
     private ISubscriptionToken? _filterStateChangedSubscription;
+    private SettingItemViewModel? _winhanceOnNewPc;
+    private SettingItemViewModel? _ownInstallers;
+    private SettingItemViewModel? _stageApps;
     private IncludedSummary? _summary;
     private int _loadVersion;
     private int _includedHosts;
@@ -68,7 +78,8 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
         ICatalogScopeProvider scope,
         IAppSelectionSource apps,
         IWindowsAppsService windowsApps,
-        IExternalAppsService externalApps)
+        IExternalAppsService externalApps,
+        WimUtilSession session)
         : base(settingsLoadingService, logService, localizationService, dispatcherService, eventBus, applicationModeService)
     {
         _registry = registry;
@@ -76,20 +87,14 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
         _apps = apps;
         _windowsApps = windowsApps;
         _externalApps = externalApps;
+        _session = session;
+        _session.EditionsChanged += OnSessionEditionsChanged;
         _localizationService.LanguageChanged += OnPageTextLanguageChanged;
+        // The base constructor assigns it; the nullable analysis of this constructor cannot see that.
+        GroupedSettings!.CollectionChanged += OnGroupedSettingsChanged;
     }
 
     public override string ModuleId => FeatureIds.Autounattend;
-
-    protected override string GetDisplayNameKey() => "Feature_Autounattend_Name";
-
-    public string PageTitle => _localizationService.GetStringOrDefault(
-        "Autounattend_Page_Title",
-        "Autounattend.xml Settings");
-
-    public string PageDescription => _localizationService.GetStringOrDefault(
-        "Autounattend_Page_Description",
-        "Automate the Windows Setup Process");
 
     public string IncludedTitle => _localizationService.GetStringOrDefault(
         "Autounattend_Included_Name",
@@ -134,6 +139,7 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
         // Not from the constructor: the container resolves this view model long before the page is first opened.
         _filterStateChangedSubscription ??= _eventBus.SubscribeAsync<FilterStateChangedEvent>(OnIncludedFilterStateChangedAsync);
 
+        ShowMediaEditions();
         return RefreshIncludedAsync();
     }
 
@@ -177,12 +183,7 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
     // FilterStateChangedEvent is published from the UI thread, so this needs no dispatcher.
     private Task OnIncludedFilterStateChangedAsync(FilterStateChangedEvent e) => RefreshIncludedAsync();
 
-    private void OnPageTextLanguageChanged(object? sender, EventArgs e)
-    {
-        OnPropertyChanged(nameof(PageTitle));
-        OnPropertyChanged(nameof(PageDescription));
-        TryRelabelIncluded();
-    }
+    private void OnPageTextLanguageChanged(object? sender, EventArgs e) => TryRelabelIncluded();
 
     // Neither caller catches: the view awaits LoadIncludedAsync from an async void Loaded handler, and the
     // language change arrives on an event handler.
@@ -205,6 +206,7 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
     private void ShowIncludedPlaceholder()
     {
         _summary = null;
+        ExternalAppsRow()?.Attach(null, null);
         IncludedGroups.Clear();
         IncludedCountText = Loading;
         OnPropertyChanged(nameof(IncludedCornerRadius));
@@ -222,6 +224,7 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
 
         if (_summary is not { } summary)
         {
+            ExternalAppsRow()?.Attach(null, null);
             IncludedGroups.Clear();
             IncludedCountText = Loading;
             OnPropertyChanged(nameof(IncludedCornerRadius));
@@ -229,6 +232,9 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
         }
 
         var format = _localizationService.GetStringOrDefault("Autounattend_Included_Count", "{0} of {1} included");
+        var windowsAppsFormat = _localizationService.GetStringOrDefault(
+            "Autounattend_Included_WindowsApps_Count",
+            "{0} will be removed from Windows");
 
         // Built whole first, so a label lookup that throws cannot leave half a list on the page.
         var rebuilt = new List<IncludedRowViewModel>();
@@ -236,13 +242,18 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
         foreach (var group in summary.Groups)
         {
             var features = group.Features
-                .Select(feature => new IncludedRowViewModel(
-                    feature.FeatureId,
-                    _localizationService.GetStringOrDefault(feature.LabelKey, feature.DefaultLabel),
-                    IncludedCountFormat(format, feature.Included, feature.Total),
-                    feature.IconResourceKey,
-                    [],
-                    RefreshIncludedCorners))
+                .Select(feature => feature.FeatureId == FeatureIds.ExternalApps
+                    ? NewExternalAppsRow(feature)
+                    : new IncludedRowViewModel(
+                        feature.FeatureId,
+                        _localizationService.GetStringOrDefault(feature.LabelKey, feature.DefaultLabel),
+                        IncludedCountFormat(
+                            feature.FeatureId == FeatureIds.WindowsApps ? windowsAppsFormat : format,
+                            feature.Included,
+                            feature.Total),
+                        feature.IconResourceKey,
+                        [],
+                        RefreshIncludedCorners))
                 .ToList();
 
             rebuilt.Add(new IncludedRowViewModel(
@@ -256,11 +267,14 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
 
         var countText = IncludedCountFormat(format, summary.Included, summary.Total);
 
+        ExternalAppsRow()?.Attach(null, null);
         IncludedGroups.Clear();
         foreach (var row in rebuilt)
         {
             IncludedGroups.Add(row);
         }
+
+        ExternalAppsRow()?.Attach(_ownInstallers, _stageApps);
 
         foreach (var row in IncludedGroups.Where(built => expanded.Contains(built.Key)))
         {
@@ -270,6 +284,135 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
         IncludedCountText = countText;
         OnPropertyChanged(nameof(IncludedCornerRadius));
         RefreshIncludedCorners();
+        ShowWinhanceOnNewPc();
+    }
+
+    private ExternalAppsRowViewModel NewExternalAppsRow(IncludedFeature feature) =>
+        new(
+            feature.FeatureId,
+            _localizationService.GetStringOrDefault(feature.LabelKey, feature.DefaultLabel),
+            IncludedCountFormat(
+                _localizationService.GetStringOrDefault(
+                    "Autounattend_Included_ExternalApps_Count",
+                    "{0} will be installed by Winhance"),
+                feature.Included,
+                feature.Total),
+            feature.IconResourceKey,
+            RefreshIncludedCorners,
+            feature.Included)
+        {
+            WarningText = _localizationService.GetStringOrDefault(
+                "Autounattend_Included_ExternalApps_NotInstalled",
+                "'Winhance on the new PC' is set to 'Don't add', so these apps will not be installed."),
+        };
+
+    private ExternalAppsRowViewModel? ExternalAppsRow() =>
+        IncludedGroups.SelectMany(group => group.Children).OfType<ExternalAppsRowViewModel>().FirstOrDefault();
+
+    // Until the card loads it reads as its seed state, the desktop shortcut.
+    private void ShowWinhanceOnNewPc()
+    {
+        if (ExternalAppsRow() is not { } row)
+            return;
+
+        var state = _winhanceOnNewPc?.CurrentStateLabel;
+        bool installs = row.AppCount > 0 || _ownInstallers?.HasRows == true;
+        row.IsWarning = installs && state == LocKey.Setting.AutounattendDesktopShortcut.Option0.Value;
+        row.Description = !installs || row.IsWarning
+            ? string.Empty
+            : state == LocKey.Setting.AutounattendDesktopShortcut.Option2.Value
+                ? _localizationService.GetStringOrDefault(
+                    "Autounattend_Included_ExternalApps_Automatic",
+                    "Installed automatically after setup")
+                : _localizationService.GetStringOrDefault(
+                    "Autounattend_Included_ExternalApps_Shortcut",
+                    "Installed from the 'Install Winhance' desktop shortcut");
+    }
+
+    // The page's cards are rebuilt on every load, so the cards the External Software row reads are looked up again
+    // whenever the groups change.
+    private void OnGroupedSettingsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        ShowMediaEditions();
+
+        var cards = GroupedSettings.SelectMany(group => group).ToList();
+        var winhance = cards.FirstOrDefault(setting => setting.SettingId == "autounattend-desktop-shortcut");
+        var ownInstallers = cards.FirstOrDefault(setting => setting.SettingId == OwnInstaller.SettingId);
+        var stageApps = cards.FirstOrDefault(setting => setting.SettingId == OwnInstaller.StageAppsId);
+        if (ReferenceEquals(winhance, _winhanceOnNewPc)
+            && ReferenceEquals(ownInstallers, _ownInstallers)
+            && ReferenceEquals(stageApps, _stageApps))
+            return;
+
+        WatchWinhanceOnNewPc(winhance);
+        WatchInstallerCards(ownInstallers, stageApps);
+        ShowWinhanceOnNewPc();
+    }
+
+    private void WatchWinhanceOnNewPc(SettingItemViewModel? card)
+    {
+        if (_winhanceOnNewPc is not null)
+            _winhanceOnNewPc.PropertyChanged -= OnWinhanceOnNewPcChanged;
+
+        _winhanceOnNewPc = card;
+
+        if (card is not null)
+            card.PropertyChanged += OnWinhanceOnNewPcChanged;
+    }
+
+    private void OnWinhanceOnNewPcChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SettingItemViewModel.SelectedValue))
+            ShowWinhanceOnNewPc();
+    }
+
+    private void WatchInstallerCards(SettingItemViewModel? ownInstallers, SettingItemViewModel? stageApps)
+    {
+        if (_ownInstallers is not null)
+            _ownInstallers.PropertyChanged -= OnOwnInstallersChanged;
+
+        _ownInstallers = ownInstallers;
+        _stageApps = stageApps;
+
+        if (ownInstallers is not null)
+            ownInstallers.PropertyChanged += OnOwnInstallersChanged;
+
+        ExternalAppsRow()?.Attach(ownInstallers, stageApps);
+    }
+
+    private void OnOwnInstallersChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SettingItemViewModel.HasRows))
+            ShowWinhanceOnNewPc();
+    }
+
+    // The External Software row draws the installer cards. The edition cards describe the image a WIMUtil session
+    // is building, so they show only in a session started there.
+    protected override bool IsShownOnPage(SettingItemViewModel setting) =>
+        setting.SettingId is not (OwnInstaller.SettingId or OwnInstaller.StageAppsId)
+        && (_session.Editions.Count > 0 || setting.Setting?.Targets.Any(target => target is AutounattendMedia) != true);
+
+    // This feature is the whole page, so matching its name would show every card.
+    protected override bool SearchMatchesFeatureName => false;
+
+    public bool TakesQuickActions(SettingItemViewModel setting) =>
+        IsShownOnPage(setting) && setting.Setting?.SeedsFromThisPc != true;
+
+    private void OnSessionEditionsChanged(object? sender, EventArgs e) => ShowMediaEditions();
+
+    private void ShowMediaEditions()
+    {
+        if (Settings is null)
+            return;
+
+        var names = _session.Editions.Select(edition => edition.Name).ToList();
+        foreach (var card in Settings.Where(setting => setting.Setting?.CheckList?.Source == CheckListSource.MediaEditions))
+        {
+            if (!card.CheckItems.Select(item => item.Key).SequenceEqual(names))
+                card.SetCheckListEntries(names);
+        }
+
+        RefreshDeclaredGates();
     }
 
     private async Task<IncludedSummary> CountIncludedAsync()
@@ -359,6 +502,10 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
         if (disposing)
         {
             _localizationService.LanguageChanged -= OnPageTextLanguageChanged;
+            GroupedSettings.CollectionChanged -= OnGroupedSettingsChanged;
+            _session.EditionsChanged -= OnSessionEditionsChanged;
+            WatchWinhanceOnNewPc(null);
+            WatchInstallerCards(null, null);
             ReleaseIncluded();
         }
         base.Dispose(disposing);
@@ -391,7 +538,7 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
     }
 }
 
-public sealed partial class IncludedRowViewModel : ObservableObject
+public partial class IncludedRowViewModel : ObservableObject
 {
     private readonly Action _onExpansionChanged;
     private bool _isExpanded;
@@ -448,5 +595,97 @@ public sealed partial class IncludedRowViewModel : ObservableObject
             _isLastVisible = isLastVisible;
             OnPropertyChanged(nameof(CornerRadius));
         }
+    }
+}
+
+// The staging tick and the installer list are two catalog cards the page keeps off its grouped list; this row draws them.
+public sealed partial class ExternalAppsRowViewModel : IncludedRowViewModel
+{
+    private SettingItemViewModel? _ownInstallers;
+    private SettingItemViewModel? _stageApps;
+
+    public ExternalAppsRowViewModel(
+        string key,
+        string name,
+        string countText,
+        string iconResourceKey,
+        Action onExpansionChanged,
+        int appCount)
+        : base(key, name, countText, iconResourceKey, [], onExpansionChanged)
+    {
+        AppCount = appCount;
+    }
+
+    internal int AppCount { get; }
+
+    [ObservableProperty]
+    public partial string Description { get; internal set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool IsWarning { get; internal set; }
+
+    public string WarningText { get; init; } = string.Empty;
+
+    public bool HasInstallerCards => _ownInstallers is not null && _stageApps is not null;
+
+    public bool StageOnMedia
+    {
+        get => _stageApps?.IsSelected ?? true;
+        set => _stageApps?.OnCheckBoxChanged(value);
+    }
+
+    public string StageOnMediaLabel => _stageApps?.Name ?? string.Empty;
+
+    public string OwnInstallersName => _ownInstallers?.Name ?? string.Empty;
+
+    public string OwnInstallersDescription => _ownInstallers?.Description ?? string.Empty;
+
+    public string AddOwnInstallerLabel => _ownInstallers?.ListAddLabel ?? string.Empty;
+
+    public ObservableCollection<ListRowViewModel>? OwnInstallerRows => _ownInstallers?.Rows;
+
+    public bool HasOwnInstallers => _ownInstallers?.HasRows == true;
+
+    public void AddOwnInstaller() => _ownInstallers?.AddRow();
+
+    // Rows and cards are rebuilt at different times, so either side can arrive first and either can be replaced.
+    internal void Attach(SettingItemViewModel? ownInstallers, SettingItemViewModel? stageApps)
+    {
+        if (_ownInstallers is not null)
+            _ownInstallers.PropertyChanged -= OnCardChanged;
+        if (_stageApps is not null)
+            _stageApps.PropertyChanged -= OnCardChanged;
+
+        _ownInstallers = ownInstallers;
+        _stageApps = stageApps;
+
+        if (ownInstallers is not null)
+            ownInstallers.PropertyChanged += OnCardChanged;
+        if (stageApps is not null)
+            stageApps.PropertyChanged += OnCardChanged;
+
+        ShowCards();
+    }
+
+    private void OnCardChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(SettingItemViewModel.IsSelected)
+            or nameof(SettingItemViewModel.HasRows)
+            or nameof(SettingItemViewModel.Name)
+            or nameof(SettingItemViewModel.Description)
+            or nameof(SettingItemViewModel.ListAddLabel))
+            ShowCards();
+    }
+
+    private void ShowCards()
+    {
+        OnPropertyChanged(nameof(HasInstallerCards));
+        OnPropertyChanged(nameof(StageOnMedia));
+        OnPropertyChanged(nameof(StageOnMediaLabel));
+        OnPropertyChanged(nameof(OwnInstallersName));
+        OnPropertyChanged(nameof(OwnInstallersDescription));
+        OnPropertyChanged(nameof(AddOwnInstallerLabel));
+        OnPropertyChanged(nameof(OwnInstallerRows));
+        OnPropertyChanged(nameof(HasOwnInstallers));
     }
 }

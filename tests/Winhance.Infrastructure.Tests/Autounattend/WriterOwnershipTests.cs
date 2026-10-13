@@ -41,11 +41,15 @@ public class WriterOwnershipTests
     public void Every_unclaimed_answer_file_setting_has_something_a_writer_or_the_script_can_render()
     {
         var claimed = Claims();
-        foreach (var setting in SettingCatalog.All.Where(s => s.IsAnswerFileOnly && !claimed.Contains(s.Id)))
+        // WIMUtil applies a media setting to the image itself, so the file carries only the choice.
+        foreach (var setting in SettingCatalog.All.Where(s =>
+            s.IsAnswerFileOnly && !claimed.Contains(s.Id) && !s.Targets.OfType<AutounattendMedia>().Any()))
         {
             var renderable = setting.Targets.OfType<AutounattendElement>().Any()
+                || setting.Targets.OfType<AutounattendScript>().Any()
                 || setting.States.SelectMany(s => s.Effects).OfType<AutounattendCommand>().Any()
-                || setting.States.SelectMany(s => s.Effects).OfType<ScriptEffect>().Any();
+                || setting.States.SelectMany(s => s.Effects).OfType<ScriptEffect>().Any()
+                || setting.CustomStateScripts.Count > 0;
 
             renderable.Should().BeTrue(setting.Id);
         }

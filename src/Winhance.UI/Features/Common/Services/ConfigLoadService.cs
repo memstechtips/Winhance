@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Constants;
@@ -67,9 +68,20 @@ public class ConfigLoadService : IConfigLoadService
                 ConfigFileConstants.FileFilter,
                 ConfigFileConstants.FilePattern);
 
-            if (string.IsNullOrEmpty(filePath))
-                return null;
+            return string.IsNullOrEmpty(filePath) ? null : await LoadAndValidateConfigurationAsync(filePath);
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error loading configuration file: {ex.Message}");
+            _dialogService.ShowMessage(_localizationService.GetString("Config_Load_Error", ex.Message), _localizationService.GetString("Dialog_Error"));
+            return null;
+        }
+    }
 
+    public async Task<WinhanceConfigFile?> LoadAndValidateConfigurationAsync(string filePath)
+    {
+        try
+        {
             _configImportState.SourceName = Path.GetFileName(filePath);
 
             var json = await _fileSystemService.ReadAllTextAsync(filePath);
@@ -88,7 +100,7 @@ public class ConfigLoadService : IConfigLoadService
                 var versionText = loadedConfig.Version ?? "unknown";
                 await _dialogService.ShowInformationAsync(
                     _localizationService.GetStringOrDefault("Config_Unsupported_Message", $"This configuration file version ({versionText}) is not compatible with this version of Winhance.", versionText),
-                    _localizationService.GetStringOrDefault("Config_Unsupported_Title", "Incompatible Configuration"));
+                    _localizationService.GetStringOrDefault("Config_Unsupported_Title", "Unsupported Configuration Version"));
                 _logService.Log(LogLevel.Warning, $"Rejected incompatible config version: {loadedConfig.Version}");
                 return null;
             }
@@ -186,13 +198,13 @@ public class ConfigLoadService : IConfigLoadService
         try
         {
             var configDir = _fileSystemService.CombinePath(
-                _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Winhance", "Backup");
+                AppDataPaths.UserRoot(_interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData)),
+                "Backup");
 
             if (!_fileSystemService.DirectoryExists(configDir))
             {
                 _dialogService.ShowMessage(
-                    _localizationService.GetStringOrDefault("Config_Backup_NotFound", "No backup configuration files found."),
+                    _localizationService.GetStringOrDefault("Config_Backup_NotFound", "No backup configuration files were found. A backup is automatically created on first app launch."),
                     _localizationService.GetStringOrDefault("Config_Backup_NotFound_Title", "No Backup Found"));
                 return null;
             }
@@ -204,7 +216,7 @@ public class ConfigLoadService : IConfigLoadService
             if (backupFiles.Length == 0)
             {
                 _dialogService.ShowMessage(
-                    _localizationService.GetStringOrDefault("Config_Backup_NotFound", "No backup configuration files found."),
+                    _localizationService.GetStringOrDefault("Config_Backup_NotFound", "No backup configuration files were found. A backup is automatically created on first app launch."),
                     _localizationService.GetStringOrDefault("Config_Backup_NotFound_Title", "No Backup Found"));
                 return null;
             }

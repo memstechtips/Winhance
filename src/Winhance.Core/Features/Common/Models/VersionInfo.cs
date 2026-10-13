@@ -50,6 +50,16 @@ public sealed record VersionInfo
         };
     }
 
+    // A file's ProductVersion carries no 'v' and may end in '+<commit hash>'.
+    public static VersionInfo FromProductVersion(string productVersion)
+    {
+        int plusIndex = productVersion.IndexOf('+');
+        if (plusIndex > 0)
+            productVersion = productVersion[..plusIndex];
+
+        return FromTag(productVersion.StartsWith('v') ? productVersion : $"v{productVersion}");
+    }
+
     public bool IsNewerThan(VersionInfo other)
     {
         if (other == null)
