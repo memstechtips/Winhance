@@ -1,7 +1,10 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.WimUtil.Interfaces;
@@ -27,10 +30,16 @@ public class WimStep2XmlViewModelTests : IDisposable
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IResourceService> _mockResourceService = new();
     private readonly Mock<IAnswerFileValidator> _mockAnswerFileValidator = new();
+    private readonly Mock<IAutounattendReader> _mockAutounattendReader = new();
     private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
     private readonly Mock<IBuilderModeEntry> _mockBuilderModeEntry = new();
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
+    private readonly Mock<IEventBus> _mockEventBus = new();
     private readonly AnswerFileCheckState _checkState = new();
+    private readonly Mock<IWimImageService> _mockWimImageService = new();
+    private readonly Mock<ITargetWindowsService> _mockTargetWindows = new();
+    private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
+    private readonly CancellationTokenSource _removalCancellation = new();
     private readonly WimUtilSession _session = new();
 
     private readonly WimStep2XmlViewModel _sut;
@@ -70,7 +79,20 @@ public class WimStep2XmlViewModelTests : IDisposable
 
         _mockSaves
             .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
-            .ReturnsAsync(GeneratedXmlPath);
+            .ReturnsAsync(new SelectionSaveResult(GeneratedXmlPath, []));
+
+        // Generate names what it is about to do and waits for a yes; tests about the generation itself
+        // answer it here.
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+        _mockDialogService
+            .Setup(d => d.ShowSummaryAsync(It.IsAny<SummaryRequest>()))
+            .ReturnsAsync(true);
+
+        _mockTaskProgressService
+            .Setup(t => t.StartTask(It.IsAny<string>(), It.IsAny<bool>()))
+            .Returns(_removalCancellation);
 
         _sut = new WimStep2XmlViewModel(
             _mockSaves.Object,
@@ -83,18 +105,29 @@ public class WimStep2XmlViewModelTests : IDisposable
             _mockLogService.Object,
             _mockResourceService.Object,
             _mockAnswerFileValidator.Object,
+            _mockAutounattendReader.Object,
             _mockApplicationModeService.Object,
             _mockBuilderModeEntry.Object,
             _mockDispatcherService.Object,
+            _mockEventBus.Object,
             _checkState,
-            _session);
+            _session,
+            _mockWimImageService.Object,
+            _mockTargetWindows.Object,
+            _mockTaskProgressService.Object);
     }
 
     public void Dispose()
     {
         _sut.Dispose();
+        _removalCancellation.Dispose();
         GC.SuppressFinalize(this);
     }
+
+    private static List<SummaryRow> Rows(SummaryRequest request) => request.Sections.SelectMany(s => s.Rows).ToList();
+
+    private static List<string> RowText(SummaryRequest request) =>
+        Rows(request).SelectMany(r => new[] { r.Title, r.Detail, r.Code }).OfType<string>().ToList();
 
     private void ArrangeAutounattendSession()
     {
@@ -235,12 +268,101 @@ public class WimStep2XmlViewModelTests : IDisposable
         ArrangeAutounattendSession();
         _mockSaves
             .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
-            .ReturnsAsync((string?)null);
+            .ReturnsAsync(SelectionSaveResult.Nothing);
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 
         _sut.IsXmlAdded.Should().BeFalse();
         _sut.GenerateWinhanceXmlCard.IsComplete.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_NamesWhatItWillDoBeforeItStarts()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeAutounattendSession();
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_Generate_Confirm_Title"
+            && r.ConfirmButtonText == "Button_Continue"
+            && RowText(r).Contains("WIMUtil_Generate_Plan_Write")
+            && RowText(r).Contains("C:\\WorkDir\\autounattend.xml")
+            && RowText(r).Contains("WIMUtil_Generate_Plan_Check")
+            && r.Verdict == null)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_NoWindowsApps_SaysSoInThePlanInsteadOfAskingAgain()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeAutounattendSession();
+        _mockSelections.Setup(s => s.FromBuilderSessionAsync()).ReturnsAsync(SelectionSet.Empty);
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Verdict!.Tone == SummaryTone.Warning && r.Verdict.Title == "WIMUtil_Generate_Plan_NoWindowsApps")), Times.Once);
+        _mockSaves.Verify(s => s.SaveAsync(
+            BuilderTarget.Autounattend, It.IsAny<SelectionSet>(), It.Is<SelectionSaveOptions>(o => !o.ReportSuccessInDialog)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_WhenDeclined_WritesNothing()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeAutounattendSession();
+        _mockDialogService
+            .Setup(d => d.ShowSummaryAsync(It.IsAny<SummaryRequest>()))
+            .ReturnsAsync(false);
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockSaves.Verify(s => s.SaveAsync(
+            It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()), Times.Never);
+        _sut.IsXmlAdded.Should().BeFalse();
+        _sut.GenerateWinhanceXmlCard.IsComplete.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_OnSuccess_SummarisesTheFileTheAppsAndTheCheck()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeAutounattendSession();
+        _mockSaves
+            .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
+            .ReturnsAsync(new SelectionSaveResult(
+                GeneratedXmlPath,
+                [new StagedApp("Brave", true), new StagedApp("7-Zip", false)]));
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_Generate_Summary_Title"
+            && r.ConfirmButtonText == ""
+            && Rows(r).Any(row => row.Title == "Brave" && row.Tone == SummaryTone.Success)
+            && Rows(r).Any(row => row.Title == "7-Zip" && row.Tone == SummaryTone.Warning)
+            && r.Verdict!.Tone == SummaryTone.Success
+            && r.Verdict.Title == "WIMUtil_AnswerFile_Verdict_Clean"
+            && r.CopyText!.Contains(GeneratedXmlPath))), Times.Once);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_WhenTheCheckThrows_SaysSoInTheSummary()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeAutounattendSession();
+        _mockAnswerFileValidator
+            .Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_Generate_Summary_Title"
+            && r.Verdict!.Tone == SummaryTone.Warning
+            && r.Verdict.Title == "WIMUtil_Generate_Summary_CheckFailed")), Times.Once);
     }
 
     [Fact]
@@ -293,6 +415,160 @@ public class WimStep2XmlViewModelTests : IDisposable
 
         _mockApplicationModeService.Verify(m => m.SetBuilderTarget(BuilderTarget.Autounattend), Times.Once);
         _mockBuilderModeEntry.Verify(e => e.EnterAsync(It.IsAny<BuilderTarget>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task StartAutounattendSessionCommand_TargetsTheMediasBuild()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _mockWimImageService.Setup(w => w.DetectImageFormatAsync("C:\\WorkDir")).ReturnsAsync(new ImageFormatInfo { Build = 26300 });
+        _mockBuilderModeEntry.Setup(e => e.EnterAsync(BuilderTarget.Autounattend)).ReturnsAsync(true);
+
+        await _sut.StartAutounattendSessionCommand.ExecuteAsync(null);
+
+        _mockTargetWindows.Verify(t => t.SetAsync(26300), Times.Once);
+    }
+
+    [Fact]
+    public async Task StartAutounattendSessionCommand_WithNoReadableMedia_KeepsTheTarget()
+    {
+        _mockBuilderModeEntry.Setup(e => e.EnterAsync(BuilderTarget.Autounattend)).ReturnsAsync(true);
+
+        await _sut.StartAutounattendSessionCommand.ExecuteAsync(null);
+
+        _mockTargetWindows.Verify(t => t.SetAsync(It.IsAny<int?>()), Times.Never);
+    }
+
+    private void ArrangeLangIni(string contents)
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _mockFileSystemService.Setup(f => f.FileExists("C:\\WorkDir\\sources\\lang.ini")).Returns(true);
+        _mockFileSystemService.Setup(f => f.ReadAllTextAsync("C:\\WorkDir\\sources\\lang.ini", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(contents);
+        _mockBuilderModeEntry.Setup(e => e.EnterAsync(BuilderTarget.Autounattend)).ReturnsAsync(true);
+    }
+
+    [Fact]
+    public async Task StartAutounattendSessionCommand_MediaWithOneLanguage_PicksItForSetup()
+    {
+        ArrangeLangIni("[Available UI Languages]\r\nfr-fr = 3\r\n\r\n[Fallback Languages]\r\nfr-fr = en-us\r\n");
+
+        await _sut.StartAutounattendSessionCommand.ExecuteAsync(null);
+
+        _mockApplicationModeService.Verify(m => m.RecordBuilderEdit(It.Is<SettingChoice>(c =>
+            c.SettingId == "autounattend-setup-language"
+            && c.Value is ChoiceValue.Keyed && ((ChoiceValue.Keyed)c.Value).Key == "fr-FR")), Times.Once);
+        _mockEventBus.Verify(b => b.Publish(It.IsAny<BuilderSeededEvent>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task StartAutounattendSessionCommand_MediaWithSeveralLanguages_LeavesSetupAsking()
+    {
+        ArrangeLangIni("[Available UI Languages]\r\nen-us = 3\r\nde-de = 3\r\n");
+
+        await _sut.StartAutounattendSessionCommand.ExecuteAsync(null);
+
+        _mockApplicationModeService.Verify(m => m.RecordBuilderEdit(It.IsAny<SettingChoice>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task StartAutounattendSessionCommand_KeepsALanguageTheUserAlreadyPicked()
+    {
+        ArrangeLangIni("[Available UI Languages]\r\nen-us = 3\r\n");
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _mockApplicationModeService.Setup(m => m.GetBuilderEdit("autounattend-setup-language"))
+            .Returns(new SettingChoice("autounattend-setup-language", new ChoiceValue.Keyed("de-DE", "German (Germany)")));
+
+        await _sut.StartAutounattendSessionCommand.ExecuteAsync(null);
+
+        _mockApplicationModeService.Verify(m => m.RecordBuilderEdit(It.IsAny<SettingChoice>()), Times.Never);
+    }
+
+    private string ArrangeSelectedFile()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"winhance-{Guid.NewGuid():N}.xml");
+        File.WriteAllText(path, "<unattend />");
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _mockFilePickerService.Setup(p => p.PickFile(It.IsAny<string[]>(), It.IsAny<string>())).Returns(path);
+        _mockWimCustomizationService.Setup(s => s.AddXmlToImageAsync(path, "C:\\WorkDir")).ReturnsAsync(true);
+        return path;
+    }
+
+    [Fact]
+    public async Task SelectXmlFileCommand_AWinhanceFileWithItsChoices_OpensThemAsASession()
+    {
+        var path = ArrangeSelectedFile();
+        var config = new WinhanceConfigFile();
+        _mockAutounattendReader.Setup(r => r.ReadAsync(path)).ReturnsAsync(new WinhanceAnswerFile("26.09.23", config));
+
+        try
+        {
+            await _sut.SelectXmlFileCommand.ExecuteAsync(null);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+
+        _mockBuilderModeEntry.Verify(e => e.EnterFromAsync(BuilderTarget.Autounattend, config), Times.Once);
+    }
+
+    [Fact]
+    public async Task SelectXmlFileCommand_DecliningToOpenTheChoices_LeavesTheModeAlone()
+    {
+        var path = ArrangeSelectedFile();
+        _mockAutounattendReader.Setup(r => r.ReadAsync(path)).ReturnsAsync(new WinhanceAnswerFile("26.09.23", new WinhanceConfigFile()));
+        _mockDialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
+
+        try
+        {
+            await _sut.SelectXmlFileCommand.ExecuteAsync(null);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+
+        _mockBuilderModeEntry.Verify(e => e.EnterFromAsync(It.IsAny<BuilderTarget>(), It.IsAny<WinhanceConfigFile>()), Times.Never);
+        _sut.SelectXmlCard.IsComplete.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SelectXmlFileCommand_AnOlderWinhanceFile_SaysToGenerateItAgain()
+    {
+        var path = ArrangeSelectedFile();
+        _mockAutounattendReader.Setup(r => r.ReadAsync(path)).ReturnsAsync(new WinhanceAnswerFile("26.09.01", null));
+
+        try
+        {
+            await _sut.SelectXmlFileCommand.ExecuteAsync(null);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+
+        _mockDialogService.Verify(d => d.ShowInformationAsync("WIMUtil_OpenWinhanceFile_NoChoices", "WIMUtil_OpenWinhanceFile_Title", It.IsAny<string>()), Times.Once);
+        _mockBuilderModeEntry.Verify(e => e.EnterFromAsync(It.IsAny<BuilderTarget>(), It.IsAny<WinhanceConfigFile>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SelectXmlFileCommand_AFileWinhanceDidNotMake_AsksNothing()
+    {
+        var path = ArrangeSelectedFile();
+
+        try
+        {
+            await _sut.SelectXmlFileCommand.ExecuteAsync(null);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        _sut.SelectXmlCard.IsComplete.Should().BeTrue();
     }
 
     [Fact]
@@ -385,6 +661,72 @@ public class WimStep2XmlViewModelTests : IDisposable
         _mockApplicationModeService.Raise(m => m.ModeChanged += null, this, EventArgs.Empty);
 
         _session.WorkingDirectory.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_NamesTheOwnInstallersItWillCopy()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeAutounattendSession();
+        var installers = new SettingChoice(OwnInstaller.SettingId, new ChoiceValue.List(
+        [
+            new ChoiceValue.ListRow(new Dictionary<string, string> { ["file"] = "C:\\Setup\\Reader.exe", ["switches"] = "/sAll" }),
+        ]));
+        _mockSelections
+            .Setup(s => s.FromBuilderSessionAsync())
+            .ReturnsAsync(new SelectionSet([installers], [new AppChoice("test", "Test", null, null, null, null)], []));
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_Generate_Confirm_Title"
+            && Rows(r).Any(row => row.Title == "WIMUtil_Generate_Plan_OwnInstallers" && row.Detail == "Reader.exe"))), Times.Once);
+    }
+
+    private static readonly SettingChoice OneOwnInstaller = new(OwnInstaller.SettingId, new ChoiceValue.List(
+    [
+        new ChoiceValue.ListRow(new Dictionary<string, string> { ["file"] = "C:\\Setup\\Reader.exe", ["switches"] = "" }),
+    ]));
+
+    private void ArrangeSessionWithVlc(params SettingChoice[] settings)
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeAutounattendSession();
+        _mockLocalizationService
+            .Setup(l => l.GetString("WIMUtil_Generate_Plan_Download_Detail", It.IsAny<object[]>()))
+            .Returns((string _, object[] args) => (string)args[0]);
+        _mockSelections
+            .Setup(s => s.FromBuilderSessionAsync())
+            .ReturnsAsync(new SelectionSet(
+                settings,
+                [new AppChoice("test", "Test", null, null, null, null)],
+                [new AppChoice("vlc", "VLC", null, null, null, null)]));
+    }
+
+    [Theory]
+    [InlineData(true, "VLC, Winhance")]
+    [InlineData(false, "Winhance")]
+    public async Task GenerateWinhanceXmlCommand_PlansToDownloadTheAppsOnlyWhileTheStagingTickIsSet(bool staged, string downloads)
+    {
+        ArrangeSessionWithVlc(new SettingChoice(OwnInstaller.StageAppsId, new ChoiceValue.CheckBox(staged)), OneOwnInstaller);
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_Generate_Confirm_Title"
+            && Rows(r).Any(row => row.Title == "WIMUtil_Generate_Plan_Download" && row.Detail == downloads))), Times.Once);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_WithNothingTheSaveWouldStage_PlansNoDownload()
+    {
+        ArrangeSessionWithVlc(new SettingChoice(OwnInstaller.StageAppsId, new ChoiceValue.CheckBox(false)));
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_Generate_Confirm_Title"
+            && Rows(r).All(row => row.Title != "WIMUtil_Generate_Plan_Download"))), Times.Once);
     }
 
     [Fact]
@@ -634,11 +976,16 @@ public class WimStep2XmlViewModelTests : IDisposable
             _mockLogService.Object,
             _mockResourceService.Object,
             _mockAnswerFileValidator.Object,
+            _mockAutounattendReader.Object,
             _mockApplicationModeService.Object,
             _mockBuilderModeEntry.Object,
             _mockDispatcherService.Object,
+            _mockEventBus.Object,
             _checkState,
-            _session);
+            _session,
+            _mockWimImageService.Object,
+            _mockTargetWindows.Object,
+            _mockTaskProgressService.Object);
 
         var act = () =>
         {
@@ -698,13 +1045,21 @@ public class WimStep2XmlViewModelTests : IDisposable
         _checkState.Subject.Should().Be("C:\\WorkDir\\autounattend.xml");
         _checkState.LastReport.Should().BeSameAs(report);
         _sut.GenerateWinhanceXmlCard.IsComplete.Should().BeTrue();
-        _mockDialogService.Verify(d => d.ShowTaskOutputDialogAsync(
-            "WIMUtil_AnswerFile_DialogTitle",
-            It.Is<IReadOnlyList<string>>(l => l.Contains("WIMUtil_AnswerFile_Summary") && l.Contains("line 3: settings[specialize]") && l.Contains("Path"))), Times.Once);
+
+        // Generate reports the whole run at once, so the findings ride in that summary rather than
+        // opening a second dialog behind it.
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_Generate_Summary_Title"
+            && r.Verdict!.Tone == SummaryTone.Error
+            && r.Verdict.Message == "WIMUtil_AnswerFile_Summary"
+            && RowText(r).Contains("line 3: settings[specialize]")
+            && RowText(r).Contains("Path"))), Times.Once);
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_AnswerFile_DialogTitle")), Times.Never);
     }
 
     [Fact]
-    public async Task GenerateWinhanceXmlCommand_CleanAnswerFile_PublishesTheReportWithoutADialog()
+    public async Task GenerateWinhanceXmlCommand_CleanAnswerFile_PublishesTheReportAndSaysSoInTheSummary()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
         ArrangeAutounattendSession();
@@ -714,7 +1069,12 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.XmlStatus.Should().Be("WIMUtil_Status_XmlGenSuccess");
         _checkState.Subject.Should().Be("C:\\WorkDir\\autounattend.xml");
         _checkState.LastReport!.Findings.Should().BeEmpty();
-        _mockDialogService.Verify(d => d.ShowTaskOutputDialogAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<string>>()), Times.Never);
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_Generate_Summary_Title"
+            && r.Verdict!.Title == "WIMUtil_AnswerFile_Verdict_Clean"
+            && !r.Sections.Any(sec => sec.Heading == "WIMUtil_AnswerFile_FindingsHeading"))), Times.Once);
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_AnswerFile_DialogTitle")), Times.Never);
     }
 
     [Fact]
@@ -839,5 +1199,291 @@ public class WimStep2XmlViewModelTests : IDisposable
         {
             File.Delete(selected);
         }
+    }
+
+    private const string LeftoverImage = "C:\\WorkDir\\sources\\install.old.wim";
+    private static readonly string[] HomeAndPro = ["Windows 11 Home", "Windows 11 Pro"];
+    private static readonly string[] ProOnly = ["Windows 11 Pro"];
+
+    private static ChoiceValue.Option KeepAll => Keep(LocKey.Setting.AutounattendMediaEditions.Option0);
+
+    private static ChoiceValue.Option KeepChosen => Keep(LocKey.Setting.AutounattendMediaEditions.Option1);
+
+    private static ChoiceValue.Option KeepTicked => Keep(LocKey.Setting.AutounattendMediaEditions.Option2);
+
+    private static ChoiceValue.Option Keep(LocKey label) =>
+        new(SettingCatalog.Find("autounattend-media-editions")!.States.ToList().FindIndex(state => state.Label == label));
+
+    private void ArrangeMediaEditions(params ChoiceValue?[] mediaEditionsThenListThenEdition)
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeAutounattendSession();
+        _session.Editions =
+        [
+            new(1, "Windows 11 Home", "Core"),
+            new(2, "Windows 11 Home Single Language", "CoreSingleLanguage"),
+            new(3, "Windows 11 Pro", "Professional"),
+        ];
+
+        var ids = new[] { "autounattend-media-editions", "autounattend-media-editions-list", "autounattend-edition" };
+        var settings = ids.Zip(mediaEditionsThenListThenEdition)
+            .Where(pair => pair.Second is not null)
+            .Select(pair => new SettingChoice(pair.First, pair.Second!))
+            .ToList();
+        _mockSelections
+            .Setup(s => s.FromBuilderSessionAsync())
+            .ReturnsAsync(new SelectionSet(settings, [new AppChoice("test", "Test", null, null, null, null)], []));
+        _mockWimImageService
+            .Setup(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EditionRemovalResult(true));
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_KeepsOnlyTheTickedEditions_AfterTheFileIsWritten()
+    {
+        ArrangeMediaEditions(KeepTicked, new ChoiceValue.Keys(["Windows 11 Home", "Windows 11 Pro"]), new ChoiceValue.Option(4));
+        var calls = new List<string>();
+        _mockSaves
+            .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
+            .Callback(() => calls.Add("save"))
+            .ReturnsAsync(new SelectionSaveResult(GeneratedXmlPath, []));
+        _mockWimImageService
+            .Setup(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .Callback(() => calls.Add("keep"))
+            .ReturnsAsync(new EditionRemovalResult(true));
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        calls.Should().Equal("save", "keep");
+        _mockWimImageService.Verify(w => w.KeepEditionsAsync("C:\\WorkDir",
+            It.Is<IReadOnlyCollection<string>>(kept => kept.SequenceEqual(HomeAndPro)),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_Generate_Confirm_Title"
+            && RowText(r).Contains("WIMUtil_Generate_Plan_RemoveEditions")
+            && Rows(r).All(row => row.Tone != SummaryTone.Warning))), Times.Once);
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_Generate_Summary_Title"
+            && Rows(r).Any(row => row.Title == "Windows 11 Pro" && row.Tone == SummaryTone.Success)
+            && Rows(r).Any(row => row.Title == "Windows 11 Home Single Language" && row.Detail == "WIMUtil_Generate_Result_EditionRemoved"))), Times.Once);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_KeepOnlyTheChosenEdition_KeepsTheEditionTheEditionCardNames()
+    {
+        ArrangeMediaEditions(KeepChosen, null, new ChoiceValue.Option(4));
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockWimImageService.Verify(w => w.KeepEditionsAsync("C:\\WorkDir",
+            It.Is<IReadOnlyCollection<string>>(kept => kept.SequenceEqual(ProOnly)),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_RemovingTheChosenEdition_WarnsButStillRuns()
+    {
+        ArrangeMediaEditions(KeepTicked, new ChoiceValue.Keys(["Windows 11 Home"]), new ChoiceValue.Option(4));
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            Rows(r).Any(row => row.Title == "WIMUtil_Generate_Plan_ChosenEditionRemoved" && row.Tone == SummaryTone.Warning))), Times.Once);
+        _mockWimImageService.Verify(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // Keeping the chosen edition with "Ask me during setup" names no edition; keeping the ticked ones with nothing
+    // ticked keeps none.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GenerateWinhanceXmlCommand_AChoiceKeepingNoEdition_KeepsThemAllAndSaysSo(bool ticked)
+    {
+        ArrangeMediaEditions(ticked ? KeepTicked : KeepChosen, new ChoiceValue.Keys([]), new ChoiceValue.Option(0));
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            Rows(r).Any(row => row.Title == "WIMUtil_Generate_Plan_NoEditionLeft" && row.Tone == SummaryTone.Warning))), Times.Once);
+        _mockWimImageService.Verify(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_KeepAllEditions_LeavesTheImageAlone()
+    {
+        ArrangeMediaEditions(KeepAll, new ChoiceValue.Keys(["Windows 11 Home"]), new ChoiceValue.Option(4));
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockWimImageService.Verify(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_WhenTheEditionsCannotBeRemoved_TheFileStillCountsAndTheSummarySaysSo()
+    {
+        ArrangeMediaEditions(KeepChosen, null, new ChoiceValue.Option(4));
+        _mockWimImageService
+            .Setup(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new IOException("locked"));
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _sut.GenerateWinhanceXmlCard.IsComplete.Should().BeTrue();
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_Generate_Summary_Title"
+            && Rows(r).Any(row => row.Title == "WIMUtil_Msg_RemoveEditionsFailed" && row.Tone == SummaryTone.Warning))), Times.Once);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_GeneratedTwice_KeepsTheSameEditionsAndReportsNoFailure()
+    {
+        ArrangeMediaEditions(KeepTicked, new ChoiceValue.Keys(HomeAndPro), new ChoiceValue.Option(4));
+        _mockWimImageService.Setup(w => w.DetectImageFormatAsync("C:\\WorkDir")).ReturnsAsync(new ImageFormatInfo
+        {
+            Editions = [new(1, "Windows 11 Home", "Core"), new(2, "Windows 11 Pro", "Professional")],
+        });
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _session.Editions.Should().Equal(new ImageEdition(1, "Windows 11 Home", "Core"), new ImageEdition(2, "Windows 11 Pro", "Professional"));
+        _mockWimImageService.Verify(w => w.KeepEditionsAsync("C:\\WorkDir",
+            It.Is<IReadOnlyCollection<string>>(kept => kept.SequenceEqual(HomeAndPro)),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            RowText(r).Contains("WIMUtil_Msg_RemoveEditionsFailed"))), Times.Never);
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_Generate_Summary_Title")), Times.Exactly(2));
+    }
+
+    // An edition the install-key table does not know has no option either; with no edition chosen it must not
+    // be the one edition kept.
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_KeepOnlyTheChosenEditionWithNoneChosen_KeepsThemAllAndSaysSo()
+    {
+        ArrangeMediaEditions(KeepChosen, null, null);
+        _session.Editions = [.. _session.Editions, new(4, "Windows 11 IoT Enterprise", "IoTEnterprise")];
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            Rows(r).Any(row => row.Title == "WIMUtil_Generate_Plan_NoEditionLeft" && row.Tone == SummaryTone.Warning))), Times.Once);
+        _mockWimImageService.Verify(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_RemovesEditionsAsATaskTheUserCanCancel()
+    {
+        ArrangeMediaEditions(KeepChosen, null, new ChoiceValue.Option(4));
+        var lockedWhileRunning = false;
+        _mockWimImageService
+            .Setup(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .Callback(() => lockedWhileRunning = _sut.IsRemovingEditions)
+            .ReturnsAsync(new EditionRemovalResult(true));
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        lockedWhileRunning.Should().BeTrue();
+        _sut.IsRemovingEditions.Should().BeFalse();
+        _mockTaskProgressService.Verify(t => t.StartTask("WIMUtil_Status_RemovingEditions", true), Times.Once);
+        _mockWimImageService.Verify(w => w.KeepEditionsAsync("C:\\WorkDir", It.IsAny<IReadOnlyCollection<string>>(),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), _removalCancellation.Token), Times.Once);
+        _mockTaskProgressService.Verify(t => t.CompleteTask(), Times.Once);
+        _mockTaskProgressService.Verify(t => t.FailTask(), Times.Never);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_WhenTheRemovalIsCancelled_TheFileStillCountsAndTheSummarySaysSo()
+    {
+        ArrangeMediaEditions(KeepChosen, null, new ChoiceValue.Option(4));
+        _mockWimImageService
+            .Setup(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _sut.GenerateWinhanceXmlCard.IsComplete.Should().BeTrue();
+        _sut.IsRemovingEditions.Should().BeFalse();
+        _session.Editions.Should().HaveCount(3);
+        _mockTaskProgressService.Verify(t => t.CancelTask(), Times.Once);
+        _mockTaskProgressService.Verify(t => t.FailTask(), Times.Never);
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_Generate_Summary_Title"
+            && Rows(r).Any(row => row.Title == "WIMUtil_Msg_RemoveEditionsCancelled" && row.Tone == SummaryTone.Warning)
+            && !RowText(r).Contains("WIMUtil_Generate_Result_EditionRemoved"))), Times.Once);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_WhenTheServiceReportsFailure_TheSummarySaysTheImageIsUnchanged()
+    {
+        ArrangeMediaEditions(KeepChosen, null, new ChoiceValue.Option(4));
+        _mockWimImageService
+            .Setup(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EditionRemovalResult.Failed);
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _session.Editions.Should().HaveCount(3);
+        _mockTaskProgressService.Verify(t => t.FailTask(), Times.Once);
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_Generate_Summary_Title"
+            && Rows(r).Any(row => row.Title == "WIMUtil_Msg_RemoveEditionsFailed" && row.Tone == SummaryTone.Warning)
+            && !RowText(r).Contains("WIMUtil_Generate_Result_EditionRemoved"))), Times.Once);
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_WhenTheOldImageIsLeftBehind_TheSummaryNamesTheFileToDelete()
+    {
+        ArrangeMediaEditions(KeepChosen, null, new ChoiceValue.Option(4));
+        _mockWimImageService
+            .Setup(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EditionRemovalResult(true, LeftoverImage));
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockLocalizationService.Verify(l => l.GetString("WIMUtil_Generate_Summary_OldImageLeft",
+            It.Is<object[]>(args => args.Length == 1 && LeftoverImage.Equals(args[0]))), Times.Once);
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_Generate_Summary_Title"
+            && Rows(r).Any(row => row.Title == "WIMUtil_Generate_Summary_OldImageLeft" && row.Tone == SummaryTone.Warning)
+            && Rows(r).Any(row => row.Title == "Windows 11 Pro" && row.Tone == SummaryTone.Success)
+            && r.CopyText!.Contains("WIMUtil_Generate_Summary_OldImageLeft"))), Times.Once);
+    }
+
+    [Fact]
+    public async Task StartAutounattendSessionCommand_RecordsTheMediasEditionsForTheUnattendPage()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ImageEdition[] editions = [new(1, "Windows 11 Home", "Core"), new(2, "Windows 11 Pro", "Professional")];
+        _mockWimImageService.Setup(w => w.DetectImageFormatAsync("C:\\WorkDir")).ReturnsAsync(new ImageFormatInfo { Editions = editions });
+        _mockBuilderModeEntry.Setup(e => e.EnterAsync(BuilderTarget.Autounattend)).ReturnsAsync(true);
+
+        await _sut.StartAutounattendSessionCommand.ExecuteAsync(null);
+
+        _session.Editions.Should().Equal(editions);
+    }
+
+    [Fact]
+    public async Task StartAutounattendSessionCommand_WhenEnteringFails_RecordsNoEditions()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _mockWimImageService.Setup(w => w.DetectImageFormatAsync("C:\\WorkDir"))
+            .ReturnsAsync(new ImageFormatInfo { Editions = [new(1, "Windows 11 Home", "Core")] });
+        _mockBuilderModeEntry.Setup(e => e.EnterAsync(BuilderTarget.Autounattend)).ReturnsAsync(false);
+
+        await _sut.StartAutounattendSessionCommand.ExecuteAsync(null);
+
+        _session.Editions.Should().BeEmpty();
     }
 }

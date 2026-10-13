@@ -9,4 +9,5 @@ public enum InputType
     CheckBox,
     TextBox,
     List,
+    CheckList,
 }

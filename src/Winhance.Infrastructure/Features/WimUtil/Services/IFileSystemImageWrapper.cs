@@ -45,7 +45,10 @@ internal interface IFileSystemImageWrapper : IDisposable
 
     int BootImageEntryCount { get; }
 
-    void AddTree(string sourceDirectory, bool includeBaseDirectory);
+    // pathInImage is rooted at the image, as in \efi\boot\bootx64.efi. A file's folder has to be added first.
+    void AddDirectory(string pathInImage);
+
+    void AddFile(string pathInImage, string sourceFile);
 
     IIsoResultImage CreateResultImage();
 }

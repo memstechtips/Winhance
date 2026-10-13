@@ -17,6 +17,7 @@ public class WimStep4IsoViewModelTests
     private readonly Mock<IWimCustomizationService> _mockWimCustomizationService = new();
     private readonly Mock<IIsoService> _mockIsoService = new();
     private readonly Mock<IUsbMediaWriter> _mockUsbMediaWriter = new();
+    private readonly Mock<IBootManagerService> _mockBootManagerService = new();
     private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
     private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
@@ -54,10 +55,15 @@ public class WimStep4IsoViewModelTests
             .Setup(t => t.CreateDetailedProgress())
             .Returns(new Progress<TaskProgressDetail>());
 
+        _mockBootManagerService
+            .Setup(b => b.PrepareAsync(It.IsAny<string>(), It.IsAny<BootManager>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BootFileReplacements.None);
+
         _sut = new WimStep4IsoViewModel(
             _mockWimCustomizationService.Object,
             _mockIsoService.Object,
             _mockUsbMediaWriter.Object,
+            _mockBootManagerService.Object,
             _mockTaskProgressService.Object,
             _mockProcessExecutor.Object,
             _mockDialogService.Object,
@@ -131,7 +137,7 @@ public class WimStep4IsoViewModelTests
     }
 
     [Fact]
-    public void SelectIsoOutputLocationCommand_WhenFileSelected_UpdatesSelectOutputCardDescription()
+    public void SelectIsoOutputLocationCommand_WhenFileSelected_ShowsTheFullPathOnTheCard()
     {
         _mockFilePickerService
             .Setup(f => f.PickSaveFile(It.IsAny<string[]>(), It.IsAny<string?>(), It.IsAny<string?>()))
@@ -139,7 +145,7 @@ public class WimStep4IsoViewModelTests
 
         _sut.SelectIsoOutputLocationCommand.Execute(null);
 
-        _sut.SelectOutputCard.Description.Should().Contain("Winhance_Windows.iso");
+        _sut.SelectOutputCard.Description.Should().Contain("D:\\Output\\Winhance_Windows.iso");
     }
 
 
@@ -165,7 +171,7 @@ public class WimStep4IsoViewModelTests
         _mockDialogService.Verify(d => d.ShowWarningAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
         _mockIsoService.Verify(i => i.CreateIsoAsync(
-            It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
             It.IsAny<IProgress<Winhance.Core.Features.Common.Models.TaskProgressDetail>>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -190,7 +196,7 @@ public class WimStep4IsoViewModelTests
 
         _mockIsoService
             .Setup(i => i.CreateIsoAsync(
-                It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
                 It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
@@ -224,7 +230,7 @@ public class WimStep4IsoViewModelTests
 
         _mockIsoService
             .Setup(i => i.CreateIsoAsync(
-                It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
                 It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
@@ -253,7 +259,7 @@ public class WimStep4IsoViewModelTests
 
         _mockIsoService
             .Setup(i => i.CreateIsoAsync(
-                It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
                 It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
@@ -287,7 +293,7 @@ public class WimStep4IsoViewModelTests
 
         _mockIsoService
             .Setup(i => i.CreateIsoAsync(
-                It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
                 It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
             .Returns(() =>
             {
@@ -376,7 +382,7 @@ public class WimStep4IsoViewModelTests
         await _sut.SelectUsbDestinationCommand.ExecuteAsync(null);
         await _sut.CreateMediaCommand.ExecuteAsync(null);
 
-        _mockUsbMediaWriter.Verify(w => w.Write(It.IsAny<RemovableDrive>(), It.IsAny<string>(),
+        _mockUsbMediaWriter.Verify(w => w.Write(It.IsAny<RemovableDrive>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
             It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -386,7 +392,7 @@ public class WimStep4IsoViewModelTests
         var stick = new RemovableDrive(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false);
         _mockUsbMediaWriter.Setup(w => w.GetCandidateTargets()).Returns([stick]);
         _mockUsbMediaWriter
-            .Setup(w => w.Write(stick, @"C:\work", It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Setup(w => w.Write(stick, @"C:\work", It.IsAny<BootFileReplacements>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
             .Throws(new UsbMediaErasedException(stick, wasCancelled: false, new InvalidOperationException("The device is not ready.")));
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
@@ -408,7 +414,7 @@ public class WimStep4IsoViewModelTests
         var stick = new RemovableDrive(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false);
         _mockUsbMediaWriter.Setup(w => w.GetCandidateTargets()).Returns([stick]);
         _mockUsbMediaWriter
-            .Setup(w => w.Write(stick, @"C:\work", It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Setup(w => w.Write(stick, @"C:\work", It.IsAny<BootFileReplacements>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
             .Throws(new UsbMediaErasedException(stick, wasCancelled: true, new OperationCanceledException()));
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
@@ -446,7 +452,7 @@ public class WimStep4IsoViewModelTests
         _sut.WorkingDirectory = "C:\\WorkDir";
         _mockIsoService
             .Setup(i => i.CreateIsoAsync(
-                It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
                 It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         _mockDialogService
@@ -487,7 +493,7 @@ public class WimStep4IsoViewModelTests
             .ReturnsAsync(DriverInstallStepResult.CreatedXml);
         _mockIsoService
             .Setup(i => i.CreateIsoAsync(
-                It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
                 It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         _mockDialogService
@@ -511,7 +517,7 @@ public class WimStep4IsoViewModelTests
             .Setup(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()))
             .ReturnsAsync(report);
         _mockIsoService
-            .Setup(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Setup(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         // The "open folder" prompt after a successful ISO: Close.
         _mockDialogService
@@ -527,20 +533,19 @@ public class WimStep4IsoViewModelTests
     {
         ArrangeIsoRun(OneError());
         _mockDialogService
-            .Setup(d => d.ShowTaskOutputConfirmationAsync(AnswerFileTitle, It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r => r.Title == AnswerFileTitle)))
             .ReturnsAsync(false);
 
         await _sut.CreateMediaCommand.ExecuteAsync(null);
 
         _sut.IsIsoCreated.Should().BeFalse();
-        _mockIsoService.Verify(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
-        _mockDialogService.Verify(d => d.ShowTaskOutputConfirmationAsync(
-            AnswerFileTitle,
-            It.Is<IReadOnlyList<string>>(l => l.Contains("WIMUtil_AnswerFile_Verdict_WillFail")
-                && l.Contains("WIMUtil_AnswerFile_Summary")
-                && l.Contains("300 characters, limit 259")),
-            "WIMUtil_Button_ContinueAnyway",
-            "Button_Cancel"), Times.Once);
+        _mockIsoService.Verify(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == AnswerFileTitle
+            && r.ConfirmButtonText == "WIMUtil_Button_ContinueAnyway"
+            && r.Verdict!.Title == "WIMUtil_AnswerFile_Verdict_WillFail"
+            && r.Verdict.Message == "WIMUtil_AnswerFile_Summary"
+            && r.Sections.SelectMany(sec => sec.Rows).Any(row => row.Detail == "300 characters, limit 259"))), Times.Once);
     }
 
     [Fact]
@@ -548,7 +553,7 @@ public class WimStep4IsoViewModelTests
     {
         ArrangeIsoRun(OneError());
         _mockDialogService
-            .Setup(d => d.ShowTaskOutputConfirmationAsync(AnswerFileTitle, It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r => r.Title == AnswerFileTitle)))
             .ReturnsAsync(true);
 
         await _sut.CreateMediaCommand.ExecuteAsync(null);
@@ -562,7 +567,7 @@ public class WimStep4IsoViewModelTests
         var report = OneError();
         ArrangeIsoRun(report);
         _mockDialogService
-            .Setup(d => d.ShowTaskOutputConfirmationAsync(AnswerFileTitle, It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r => r.Title == AnswerFileTitle)))
             .ReturnsAsync(true);
 
         await _sut.CreateMediaCommand.ExecuteAsync(null);
@@ -580,7 +585,7 @@ public class WimStep4IsoViewModelTests
 
         _sut.IsIsoCreated.Should().BeTrue();
         _mockAnswerFileValidator.Verify(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()), Times.Once);
-        _mockDialogService.Verify(d => d.ShowTaskOutputConfirmationAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.IsAny<SummaryRequest>()), Times.Never);
     }
 
     [Fact]
@@ -607,13 +612,13 @@ public class WimStep4IsoViewModelTests
             .Setup(v => v.ValidateAsync("C:\\work\\autounattend.xml", It.IsAny<CancellationToken>()))
             .ReturnsAsync(OneError());
         _mockDialogService
-            .Setup(d => d.ShowTaskOutputConfirmationAsync(AnswerFileTitle, It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r => r.Title == AnswerFileTitle)))
             .ReturnsAsync(false);
 
         await _sut.SelectUsbDestinationCommand.ExecuteAsync(null);
         await _sut.CreateMediaCommand.ExecuteAsync(null);
 
-        _mockUsbMediaWriter.Verify(w => w.Write(It.IsAny<RemovableDrive>(), It.IsAny<string>(),
+        _mockUsbMediaWriter.Verify(w => w.Write(It.IsAny<RemovableDrive>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
             It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
         _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.Is<ConfirmationRequest>(r => r.Title == "WIMUtil_Msg_UsbEraseTitle")), Times.Never);
     }
@@ -652,5 +657,79 @@ public class WimStep4IsoViewModelTests
 
         _sut.IsIsoCreated.Should().BeTrue();
         _mockLogService.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("boom")), It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task InspectBootManagerAsync_MediaOffers2023_ShowsBothChoicesWith2011Selected()
+    {
+        _mockBootManagerService
+            .Setup(b => b.InspectAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BootManagerOptions(Offers2023: true, BootManager.Pca2011, IsOutdated: false));
+
+        await _sut.InspectBootManagerAsync();
+
+        _sut.ShowBootManagerChoice.Should().BeTrue();
+        _sut.BootManagerChoices.Select(c => c.Value).Should().Equal(BootManager.Pca2011, BootManager.Ca2023);
+        _sut.SelectedBootManager!.Value.Should().Be(BootManager.Pca2011);
+        _sut.BootManagerDescription.Should().Be("WIMUtil_Card_BootManager_Description");
+    }
+
+    [Fact]
+    public async Task InspectBootManagerAsync_ThisPcRevokes2011_Selects2023AndSaysWhy()
+    {
+        _mockBootManagerService
+            .Setup(b => b.InspectAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BootManagerOptions(Offers2023: true, BootManager.Ca2023, IsOutdated: false));
+
+        await _sut.InspectBootManagerAsync();
+
+        _sut.SelectedBootManager!.Value.Should().Be(BootManager.Ca2023);
+        _sut.BootManagerDescription.Should().Be("WIMUtil_Card_BootManager_DescriptionRevoked");
+    }
+
+    [Fact]
+    public async Task InspectBootManagerAsync_NothingToChoose_HidesTheCardButStillWarnsAboutOldMedia()
+    {
+        _mockBootManagerService
+            .Setup(b => b.InspectAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BootManagerOptions(Offers2023: false, BootManager.Pca2011, IsOutdated: true));
+
+        await _sut.InspectBootManagerAsync();
+
+        _sut.ShowBootManagerChoice.Should().BeFalse();
+        _sut.BootManagerChoices.Should().BeEmpty();
+        _sut.IsBootManagerOutdated.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task InspectBootManagerAsync_ReadFails_HidesTheCard()
+    {
+        _mockBootManagerService
+            .Setup(b => b.InspectAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("boot.wim is locked"));
+
+        await _sut.InspectBootManagerAsync();
+
+        _sut.ShowBootManagerChoice.Should().BeFalse();
+        _sut.SelectedBootManager.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_2023Selected_HandsThePreparedFilesToTheIsoWriter()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        _mockBootManagerService
+            .Setup(b => b.InspectAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BootManagerOptions(Offers2023: true, BootManager.Ca2023, IsOutdated: false));
+        var prepared = new BootFileReplacements(new Dictionary<string, string> { [@"efi\boot\bootx64.efi"] = @"C:\temp\bootmgfw_EX.efi" });
+        _mockBootManagerService
+            .Setup(b => b.PrepareAsync("C:\\WorkDir", BootManager.Ca2023, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(prepared);
+        await _sut.InspectBootManagerAsync();
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockIsoService.Verify(i => i.CreateIsoAsync("C:\\WorkDir", "D:\\Output\\test.iso", prepared,
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

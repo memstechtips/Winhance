@@ -5,15 +5,17 @@ namespace Winhance.Infrastructure.Features.WimUtil.Services;
 
 internal interface IMediaCopier
 {
-    // skipFile is how the USB path leaves install.wim behind: FAT32 cannot hold it whole, so it
-    // is split onto the media afterwards rather than copied. knownTotalBytes is the byte count
-    // the caller already measured for the files that will be copied; null makes the copier walk
-    // the tree itself, which the ISO extraction has no other reason to do.
+    // skip sees folders as well as files, and a skipped folder is never created: it is how the
+    // USB writer splits one tree across two partitions. knownTotalBytes is the byte count the
+    // caller already measured; null makes the copier walk the tree itself, which the ISO
+    // extraction has no other reason to do. bytesBefore lets a second pass carry on the first
+    // pass's bar instead of starting a new one at zero.
     void CopyTree(
         string sourceDirectory,
         string destinationDirectory,
-        Func<string, bool>? skipFile,
+        Func<string, bool>? skip,
         long? knownTotalBytes,
+        long bytesBefore,
         IProgress<TaskProgressDetail>? progress,
         CancellationToken cancellationToken);
 }
@@ -43,8 +45,9 @@ internal sealed class MediaCopier : IMediaCopier
     public void CopyTree(
         string sourceDirectory,
         string destinationDirectory,
-        Func<string, bool>? skipFile,
+        Func<string, bool>? skip,
         long? knownTotalBytes,
+        long bytesBefore,
         IProgress<TaskProgressDetail>? progress,
         CancellationToken cancellationToken)
     {
@@ -52,14 +55,15 @@ internal sealed class MediaCopier : IMediaCopier
         // a 7 GB install.wim instead of standing still and jumping.
         var state = new TreeCopy
         {
-            SkipFile = skipFile,
+            Skip = skip,
+            CopiedBytes = bytesBefore,
             Reporter = new ByteProgressReporter(
                 progress,
                 new TransferRate(_timeProvider),
                 percent => _localization.GetString("Progress_CopyingIsoContentsPercent", percent.ToString())),
             TotalBytes = knownTotalBytes ?? _fileSystemService
                 .GetFiles(sourceDirectory, "*", SearchOption.AllDirectories)
-                .Where(f => skipFile is null || !skipFile(f))
+                .Where(f => skip is null || !skip(f))
                 .Sum(f => _fileSystemService.GetFileSize(f)),
         };
 
@@ -82,7 +86,7 @@ internal sealed class MediaCopier : IMediaCopier
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (state.SkipFile?.Invoke(file) == true)
+            if (state.Skip?.Invoke(file) == true)
             {
                 continue;
             }
@@ -104,6 +108,11 @@ internal sealed class MediaCopier : IMediaCopier
         {
             cancellationToken.ThrowIfCancellationRequested();
 
+            if (state.Skip?.Invoke(subDirectory) == true)
+            {
+                continue;
+            }
+
             var name = _fileSystemService.GetFileName(subDirectory);
             CopyInto(
                 subDirectory,
@@ -115,7 +124,7 @@ internal sealed class MediaCopier : IMediaCopier
 
     private sealed class TreeCopy
     {
-        internal Func<string, bool>? SkipFile { get; set; }
+        internal Func<string, bool>? Skip { get; init; }
 
         internal required ByteProgressReporter Reporter { get; init; }
 

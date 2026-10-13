@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.WimUtil.Models;
 using Winhance.Infrastructure.Features.WimUtil.Services;
 using Xunit;
 
@@ -28,7 +29,7 @@ public class Imapi2IsoImageWriterTests
     {
         var image = BuildImage();
 
-        BuildWriter(image.Object).Write(@"C:\work", @"C:\out.iso", null, CancellationToken.None);
+        BuildWriter(image.Object).Write(@"C:\work", @"C:\out.iso", BootFileReplacements.None, null, CancellationToken.None);
 
         image.VerifySet(i => i.FileSystemsToCreate = IsoFileSystems.Udf);
         image.VerifySet(i => i.UdfRevision = 0x102);
@@ -39,22 +40,32 @@ public class Imapi2IsoImageWriterTests
     {
         var order = new List<string>();
         var image = BuildImage();
+        SetupTree([], [@"C:\work\setup.exe"]);
         image.SetupSet(i => i.FreeMediaBlocks = 0).Callback(() => order.Add("FreeMediaBlocks"));
-        image.Setup(i => i.AddTree(It.IsAny<string>(), It.IsAny<bool>())).Callback(() => order.Add("AddTree"));
+        image.Setup(i => i.AddFile(It.IsAny<string>(), It.IsAny<string>())).Callback(() => order.Add("AddFile"));
 
-        BuildWriter(image.Object).Write(@"C:\work", @"C:\out.iso", null, CancellationToken.None);
+        BuildWriter(image.Object).Write(@"C:\work", @"C:\out.iso", BootFileReplacements.None, null, CancellationToken.None);
 
-        order.Should().ContainInOrder("FreeMediaBlocks", "AddTree");
+        order.Should().ContainInOrder("FreeMediaBlocks", "AddFile");
     }
 
     [Fact]
-    public void Write_Always_AddsTheTreeWithoutTheBaseDirectory()
+    public void Write_Always_AddsEveryFolderBeforeAnyFileRootedAtTheImage()
     {
+        var added = new List<string>();
         var image = BuildImage();
+        SetupTree([@"C:\work\efi\boot", @"C:\work\efi"], [@"C:\work\setup.exe", @"C:\work\efi\boot\bootx64.efi"]);
+        image.Setup(i => i.AddDirectory(It.IsAny<string>())).Callback<string>(path => added.Add(path));
+        image.Setup(i => i.AddFile(It.IsAny<string>(), It.IsAny<string>()))
+             .Callback<string, string>((path, source) => added.Add(path + " <- " + source));
 
-        BuildWriter(image.Object).Write(@"C:\work", @"C:\out.iso", null, CancellationToken.None);
+        BuildWriter(image.Object).Write(@"C:\work", @"C:\out.iso", BootFileReplacements.None, null, CancellationToken.None);
 
-        image.Verify(i => i.AddTree(@"C:\work", false), Times.Once);
+        added.Should().Equal(
+            @"\efi",
+            @"\efi\boot",
+            @"\setup.exe <- C:\work\setup.exe",
+            @"\efi\boot\bootx64.efi <- C:\work\efi\boot\bootx64.efi");
     }
 
     [Fact]
@@ -65,7 +76,7 @@ public class Imapi2IsoImageWriterTests
         image.Setup(i => i.SetBootImageOptions(It.IsAny<IReadOnlyList<BootEntry>>()))
              .Callback<IReadOnlyList<BootEntry>>(entries => assigned = entries);
 
-        BuildWriter(image.Object).Write(@"C:\work", @"C:\out.iso", null, CancellationToken.None);
+        BuildWriter(image.Object).Write(@"C:\work", @"C:\out.iso", BootFileReplacements.None, null, CancellationToken.None);
 
         assigned.Should().HaveCount(2);
         assigned.Select(e => e.Platform).Should().Equal(BootPlatform.BiosX86, BootPlatform.Uefi);
@@ -79,7 +90,7 @@ public class Imapi2IsoImageWriterTests
         image.SetupGet(i => i.BootImageEntryCount).Returns(1);
 
         Action act = () => BuildWriter(image.Object)
-            .Write(@"C:\work", @"C:\out.iso", null, CancellationToken.None);
+            .Write(@"C:\work", @"C:\out.iso", BootFileReplacements.None, null, CancellationToken.None);
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*2*");
     }
@@ -89,7 +100,7 @@ public class Imapi2IsoImageWriterTests
     {
         var image = BuildImage();
 
-        BuildWriter(image.Object).Write(@"C:\work", @"C:\out.iso", null, CancellationToken.None);
+        BuildWriter(image.Object).Write(@"C:\work", @"C:\out.iso", BootFileReplacements.None, null, CancellationToken.None);
 
         image.VerifySet(i => i.StageFiles = false);
     }
@@ -104,7 +115,7 @@ public class Imapi2IsoImageWriterTests
         fileSystem.Setup(fs => fs.FileExists(It.Is<string>(p => p.EndsWith("efisys.bin")))).Returns(true);
 
         Action act = () => BuildWriter(Mock.Of<IFileSystemImageWrapper>(), fileSystem.Object)
-            .Write(@"C:\work", @"C:\out.iso", null, CancellationToken.None);
+            .Write(@"C:\work", @"C:\out.iso", BootFileReplacements.None, null, CancellationToken.None);
 
         act.Should().Throw<FileNotFoundException>();
     }
@@ -119,7 +130,7 @@ public class Imapi2IsoImageWriterTests
         fileSystem.Setup(fs => fs.FileExists(It.Is<string>(p => p.EndsWith("efisys.bin")))).Returns(false);
 
         Action act = () => BuildWriter(Mock.Of<IFileSystemImageWrapper>(), fileSystem.Object)
-            .Write(@"C:\work", @"C:\out.iso", null, CancellationToken.None);
+            .Write(@"C:\work", @"C:\out.iso", BootFileReplacements.None, null, CancellationToken.None);
 
         act.Should().Throw<FileNotFoundException>();
     }
@@ -131,9 +142,41 @@ public class Imapi2IsoImageWriterTests
         var image = BuildImage();
         image.Setup(i => i.CreateResultImage()).Returns(result.Object);
 
-        BuildWriter(image.Object).Write(@"C:\work", @"C:\out.iso", null, CancellationToken.None);
+        BuildWriter(image.Object).Write(@"C:\work", @"C:\out.iso", BootFileReplacements.None, null, CancellationToken.None);
 
         result.Verify(r => r.WriteTo(@"C:\out.iso", It.IsAny<Action<long, long>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public void Write_Replacements_BootTheIsoFromTheReplacedImageAndAddTheReplacementsInPlace()
+    {
+        var added = new List<string>();
+        IReadOnlyList<BootEntry> assigned = Array.Empty<BootEntry>();
+        var image = BuildImage();
+        SetupTree([], [@"C:\work\EFI\Microsoft\Boot\efisys.bin", @"C:\work\efi\boot\bootx64.efi", @"C:\work\setup.exe"]);
+        image.Setup(i => i.SetBootImageOptions(It.IsAny<IReadOnlyList<BootEntry>>()))
+             .Callback<IReadOnlyList<BootEntry>>(entries => assigned = entries);
+        image.Setup(i => i.AddFile(It.IsAny<string>(), It.IsAny<string>()))
+             .Callback<string, string>((path, source) => added.Add(path + " <- " + source));
+        var replacements = new BootFileReplacements(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [@"efi\microsoft\boot\efisys.bin"] = @"C:\temp\efisys_EX.bin",
+            [@"efi\boot\bootx64.efi"] = @"C:\temp\bootmgfw_EX.efi",
+        });
+
+        BuildWriter(image.Object).Write(@"C:\work", @"C:\out.iso", replacements, null, CancellationToken.None);
+
+        assigned.Select(e => e.BootImagePath).Should().Equal(BiosBootImage, @"C:\temp\efisys_EX.bin");
+        added.Should().Equal(
+            @"\EFI\Microsoft\Boot\efisys.bin <- C:\temp\efisys_EX.bin",
+            @"\efi\boot\bootx64.efi <- C:\temp\bootmgfw_EX.efi",
+            @"\setup.exe <- C:\work\setup.exe");
+    }
+
+    private void SetupTree(string[] directories, string[] files)
+    {
+        _fileSystem.Setup(fs => fs.GetDirectories(@"C:\work", "*", SearchOption.AllDirectories)).Returns(directories);
+        _fileSystem.Setup(fs => fs.GetFiles(@"C:\work", "*", SearchOption.AllDirectories)).Returns(files);
     }
 
     private static Mock<IFileSystemImageWrapper> BuildImage()

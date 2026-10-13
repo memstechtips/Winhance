@@ -11,13 +11,13 @@ internal sealed class Imapi2FileSystemImage : IFileSystemImageWrapper
 {
     private const string BootImageOptionsArrayProperty = "BootImageOptionsArray";
 
-    // STGM_READ | STGM_SHARE_DENY_NONE. AssignBootImage takes an IStream and nothing else.
-    private const uint BootImageOpenMode = 0x00000040;
+    // STGM_READ | STGM_SHARE_DENY_NONE. AssignBootImage and AddFile take an IStream and nothing else.
+    private const uint StreamOpenMode = 0x00000040;
 
     private readonly object _raw;
     private readonly IFileSystemImage2 _image;
     private readonly List<object> _bootObjects = [];
-    private readonly List<IStream> _bootStreams = [];
+    private readonly List<IStream> _streams = [];
     private bool _disposed;
 
     public Imapi2FileSystemImage()
@@ -108,12 +108,28 @@ internal sealed class Imapi2FileSystemImage : IFileSystemImageWrapper
             [options]);
     }
 
-    public void AddTree(string sourceDirectory, bool includeBaseDirectory)
+    public void AddDirectory(string pathInImage)
     {
-        var bstr = Marshal.StringToBSTR(sourceDirectory);
+        var bstr = Marshal.StringToBSTR(pathInImage);
         try
         {
-            _image.Root.AddTree((BSTR)bstr, includeBaseDirectory);
+            _image.Root.AddDirectory((BSTR)bstr);
+        }
+        finally
+        {
+            Marshal.FreeBSTR(bstr);
+        }
+    }
+
+    public void AddFile(string pathInImage, string sourceFile)
+    {
+        var stream = OpenStream(sourceFile);
+        _streams.Add(stream);
+
+        var bstr = Marshal.StringToBSTR(pathInImage);
+        try
+        {
+            _image.Root.AddFile((BSTR)bstr, stream);
         }
         finally
         {
@@ -132,7 +148,7 @@ internal sealed class Imapi2FileSystemImage : IFileSystemImageWrapper
         if (_disposed) return;
         _disposed = true;
 
-        foreach (var stream in _bootStreams)
+        foreach (var stream in _streams)
         {
             Release(stream);
         }
@@ -142,7 +158,7 @@ internal sealed class Imapi2FileSystemImage : IFileSystemImageWrapper
             Release(boot);
         }
 
-        _bootStreams.Clear();
+        _streams.Clear();
         _bootObjects.Clear();
         Release(_raw);
     }
@@ -176,16 +192,16 @@ internal sealed class Imapi2FileSystemImage : IFileSystemImageWrapper
         options.Emulation = EmulationType.EmulationNone;
         // IMAPI2 keeps its own reference for CreateResultImage; this one is released in Dispose,
         // which is what lets the working folder be deleted straight after a build.
-        var stream = OpenBootImage(entry.BootImagePath);
-        _bootStreams.Add(stream);
+        var stream = OpenStream(entry.BootImagePath);
+        _streams.Add(stream);
         options.AssignBootImage(stream);
 
         return raw;
     }
 
-    private static IStream OpenBootImage(string path)
+    private static IStream OpenStream(string path)
     {
-        PInvoke.SHCreateStreamOnFileEx(path, BootImageOpenMode, 0, false, null, out var stream)
+        PInvoke.SHCreateStreamOnFileEx(path, StreamOpenMode, 0, false, null, out var stream)
             .ThrowOnFailure();
 
         return stream;

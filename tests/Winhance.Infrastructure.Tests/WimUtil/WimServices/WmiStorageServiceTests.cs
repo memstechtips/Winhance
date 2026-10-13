@@ -125,16 +125,16 @@ public class WmiStorageServiceTests
     }
 
     [Fact]
-    public void CreateActiveFat32Partition_StickPastTheFat32Ceiling_CapsThePartitionSize()
+    public void CreateBootPartition_IsAnActiveFat32PartitionOfTheGivenSize()
     {
-        var disk = GivenDisk(2, largestFreeExtent: 61_530_439_680UL);
+        var disk = GivenDisk(2);
         disk.OnInvoke = (_, _) => (0u, OutputWithCreatedPartition(1));
 
-        var number = CreateSut().CreateActiveFat32Partition(2);
+        var number = CreateSut().CreateBootPartition(2, 2_147_483_648L);
 
         number.Should().Be(1);
         var parameters = disk.Invocations.Single().Parameters;
-        parameters.Should().Contain("Size", (ulong)UsbWriteLayoutPlanner.Fat32MaxVolumeBytes);
+        parameters.Should().Contain("Size", 2_147_483_648UL);
         parameters.Should().NotContainKey("UseMaximumSize");
         parameters.Should().Contain("MbrType", (ushort)12);
         parameters.Should().Contain("IsActive", true);
@@ -142,31 +142,36 @@ public class WmiStorageServiceTests
     }
 
     [Fact]
-    public void CreateActiveFat32Partition_SmallerStick_UsesTheWholeDisk()
+    public void CreateInstallPartition_TakesTheRestOfTheDiskAsAnIfsPartition()
     {
-        var disk = GivenDisk(2, largestFreeExtent: 16_008_609_792UL);
-        disk.OnInvoke = (_, _) => (0u, OutputWithCreatedPartition(1));
+        var disk = GivenDisk(2);
+        disk.OnInvoke = (_, _) => (0u, OutputWithCreatedPartition(2));
 
-        CreateSut().CreateActiveFat32Partition(2);
+        var number = CreateSut().CreateInstallPartition(2);
 
+        number.Should().Be(2);
         var parameters = disk.Invocations.Single().Parameters;
         parameters.Should().Contain("UseMaximumSize", true);
+        parameters.Should().Contain("MbrType", (ushort)7);
         parameters.Should().NotContainKey("Size");
+        parameters.Should().NotContainKey("IsActive");
     }
 
-    [Fact]
-    public void FormatFat32_FormatsTheVolumeBehindThePartition_Quick()
+    [Theory]
+    [InlineData("FAT32", "WINBOOT")]
+    [InlineData("NTFS", "WINSETUP")]
+    public void Format_FormatsTheVolumeBehindThePartition_Quick(string fileSystem, string label)
     {
         var partition = GivenPartition(2, 1);
         var volume = new FakeInstance();
         partition.Related["MSFT_Volume"] = [volume];
 
-        CreateSut().FormatFat32(2, 1, "WINHANCE");
+        CreateSut().Format(2, 1, fileSystem, label);
 
         volume.Invocations.Single().Method.Should().Be("Format");
         var parameters = volume.Invocations.Single().Parameters;
-        parameters.Should().Contain("FileSystem", "FAT32");
-        parameters.Should().Contain("FileSystemLabel", "WINHANCE");
+        parameters.Should().Contain("FileSystem", fileSystem);
+        parameters.Should().Contain("FileSystemLabel", label);
         parameters.Should().Contain("Full", false);
     }
 

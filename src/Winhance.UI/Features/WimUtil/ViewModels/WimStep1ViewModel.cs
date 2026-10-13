@@ -123,9 +123,6 @@ public partial class WimStep1ViewModel : ObservableObject
                 WorkingDirectory = selectedPath;
                 SelectDirectoryCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Using")}: {WorkingDirectory}";
                 IsExtractionComplete = true;
-                await _dialogService.ShowInformationAsync(
-                    _localizationService.GetString("WIMUtil_Msg_ValidationComplete"),
-                    _localizationService.GetString("WIMUtil_SelectWorkingDirectory"));
             }
             else
             {

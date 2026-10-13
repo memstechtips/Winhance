@@ -106,8 +106,7 @@ internal class TaskOutputDialogBuilder
             }
         };
 
-        // Copy to Clipboard -- build text dynamically to include live lines. Copying must not
-        // dismiss: on the confirmation variant a dismissal would read as an answer.
+        // Copy to Clipboard -- build text dynamically to include live lines. Copying must not dismiss.
         dialog.SecondaryButtonClick += (_, args) =>
         {
             args.Cancel = true;

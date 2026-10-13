@@ -264,9 +264,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
             _checkState.Publish(answerFile, report);
             if (report.Findings.Count > 0 && !SameFindings(report, previous))
             {
-                await _dialogService.ShowTaskOutputDialogAsync(
-                    _localizationService.GetString("WIMUtil_AnswerFile_DialogTitle"),
-                    AnswerFileReportDialog.Lines(report, _localizationService));
+                await _dialogService.ShowSummaryAsync(AnswerFileReportDialog.Request(report, _localizationService));
             }
         }
         catch (Exception ex)

@@ -10,9 +10,9 @@ internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) 
     // MSFT_Disk / MSFT_Partition / MSFT_Volume live in this namespace, not the WMI default.
     private const string StorageNamespace = @"root\Microsoft\Windows\Storage";
 
-    // MSFT_Disk's PartitionStyle. MBR, not GPT: one MBR + FAT32 + active partition boots both
-    // firmware types, which is exactly why Microsoft's instructions specify FAT32. IsActive is
-    // documented as "only valid when the disk's PartitionStyle property is MBR".
+    // MSFT_Disk's PartitionStyle. MBR, not GPT: an MBR disk with an active FAT32 partition boots
+    // both firmware types. IsActive is documented as "only valid when the disk's PartitionStyle
+    // property is MBR".
     private const ushort PartitionStyleMbr = 1;
     private const ushort PartitionStyleGpt = 2;
 
@@ -23,8 +23,9 @@ internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) 
     // The partition is gone either way, which is all this needs.
     private const uint DeletedButAccessPathsRemain = 42000;
 
-    // MSFT_Disk.CreatePartition's MbrType for FAT32.
+    // MSFT_Disk.CreatePartition's MbrType values; IFS is the one NTFS takes.
     private const ushort MbrTypeFat32 = 12;
+    private const ushort MbrTypeIfs = 7;
 
     public IReadOnlyList<RemovableDrive> GetDisks()
     {
@@ -150,52 +151,33 @@ internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) 
         logService.LogInformation($"Disk {diskNumber} is MBR");
     }
 
-    public int CreateActiveFat32Partition(int diskNumber)
-    {
-        using var disk = GetDisk(diskNumber);
-        var parameters = new Dictionary<string, object>
+    public int CreateBootPartition(int diskNumber, long sizeBytes) =>
+        CreatePartition(diskNumber, "boot", new Dictionary<string, object>
         {
             ["MbrType"] = MbrTypeFat32,
             ["IsActive"] = true,
-        };
+            ["Size"] = (ulong)sizeBytes,
+        });
 
-        // Windows' own formatter refuses FAT32 past 32 GB, so on a bigger stick the partition
-        // stops there and the rest of the drive stays unallocated.
-        var free = ReadLargestFreeExtent(diskNumber);
-        if (free > (ulong)UsbWriteLayoutPlanner.Fat32MaxVolumeBytes)
+    public int CreateInstallPartition(int diskNumber) =>
+        CreatePartition(diskNumber, "install", new Dictionary<string, object>
         {
-            parameters["Size"] = (ulong)UsbWriteLayoutPlanner.Fat32MaxVolumeBytes;
-        }
-        else
-        {
-            parameters["UseMaximumSize"] = true;
-        }
+            ["MbrType"] = MbrTypeIfs,
+            ["UseMaximumSize"] = true,
+        });
 
-        // No AssignDriveLetter: the letter is assigned after the format.
-        using var result = Invoke(disk, "CreatePartition", parameters, $"partition disk {diskNumber}");
-
-        // The method page types CreatedPartition as a String; the wire carries the embedded
-        // MSFT_Partition itself, not a path to one.
-        using var created = result.Output.Get("CreatedPartition") as IWmiInstance
-            ?? throw new InvalidOperationException($"CreatePartition on disk {diskNumber} returned no partition.");
-        var partitionNumber = Convert.ToInt32(created.Get("PartitionNumber"), CultureInfo.InvariantCulture);
-
-        logService.LogInformation($"Created active FAT32 partition {partitionNumber} on disk {diskNumber}");
-        return partitionNumber;
-    }
-
-    public void FormatFat32(int diskNumber, int partitionNumber, string label)
+    public void Format(int diskNumber, int partitionNumber, string fileSystem, string label)
     {
         using var volume = GetVolume(diskNumber, partitionNumber);
 
         // A full format zeroes the whole stick, which on a 64 GB drive is minutes of nothing.
         Invoke(volume, "Format", new Dictionary<string, object>
         {
-            ["FileSystem"] = "FAT32",
+            ["FileSystem"] = fileSystem,
             ["FileSystemLabel"] = label,
             ["Full"] = false,
         }, $"format partition {partitionNumber} on disk {diskNumber}").Dispose();
-        logService.LogInformation($"Formatted partition {partitionNumber} on disk {diskNumber} as FAT32");
+        logService.LogInformation($"Formatted partition {partitionNumber} on disk {diskNumber} as {fileSystem}");
     }
 
     public char AssignDriveLetter(int diskNumber, int partitionNumber)
@@ -233,6 +215,22 @@ internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) 
     {
         using var disk = GetDisk(diskNumber);
         return Convert.ToUInt64(disk.Get("LargestFreeExtent"), CultureInfo.InvariantCulture);
+    }
+
+    // No AssignDriveLetter: the letter is assigned after the format.
+    private int CreatePartition(int diskNumber, string role, Dictionary<string, object> parameters)
+    {
+        using var disk = GetDisk(diskNumber);
+        using var result = Invoke(disk, "CreatePartition", parameters, $"create the {role} partition on disk {diskNumber}");
+
+        // The method page types CreatedPartition as a String; the wire carries the embedded
+        // MSFT_Partition itself, not a path to one.
+        using var created = result.Output.Get("CreatedPartition") as IWmiInstance
+            ?? throw new InvalidOperationException($"CreatePartition on disk {diskNumber} returned no partition.");
+        var partitionNumber = Convert.ToInt32(created.Get("PartitionNumber"), CultureInfo.InvariantCulture);
+
+        logService.LogInformation($"Created {role} partition {partitionNumber} on disk {diskNumber}");
+        return partitionNumber;
     }
 
     private static char ReadDriveLetter(IWmiInstance partition) =>

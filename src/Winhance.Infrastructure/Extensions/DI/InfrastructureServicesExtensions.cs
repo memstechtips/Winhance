@@ -32,6 +32,7 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IUserPreferencesService, UserPreferencesService>();
 
         services.AddSingleton<INewBadgeService, NewBadgeService>();
+        services.AddSingleton<ISupportAskSchedule, SupportAskSchedule>();
 
         services.AddSingleton<ILocalizationService, LocalizationService>();
 
@@ -87,6 +88,8 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<ICatalogDetectionService, CatalogDetectionService>();
         services.AddSingleton<ICatalogSettingStateProvider, CatalogSettingStateProvider>();
         services.AddSingleton<IRegImportService, RegImportService>();
+        services.AddSingleton<INetworkAdapters, NetworkAdapters>();
+        services.AddSingleton<IDnsSettingsService, DnsSettingsService>();
         services.AddSingleton<IStateWriter, WindowsStateWriter>();
         services.AddSingleton<IAsyncEffectRunner, WindowsAsyncEffectRunner>();
 
@@ -120,6 +123,7 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IConfigFileWriter, ConfigFileWriter>();
         services.AddSingleton<IFileStore, FileStore>();
         services.AddSingleton<IAutounattendWriter, Winhance.Infrastructure.Features.Autounattend.Services.AutounattendWriter>();
+        services.AddSingleton<IAutounattendReader, Winhance.Infrastructure.Features.Autounattend.Services.AutounattendReader>();
         services.AddSingleton<IBuilderSeedSource, BuilderSeedSource>();
 
         services.AddSingleton<IPolicyCleanupService, PolicyCleanupService>();
@@ -153,12 +157,20 @@ public static class InfrastructureServicesExtensions
             Winhance.Infrastructure.Features.WimUtil.Services.StorageApiUsbMediaWriter>();
         services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IIsoService,
             Winhance.Infrastructure.Features.WimUtil.Services.IsoService>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IWimFileExtractor,
+            Winhance.Infrastructure.Features.WimUtil.Services.WimgApiFileExtractor>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.ISecureBootDatabase,
+            Winhance.Infrastructure.Features.WimUtil.Services.FirmwareSecureBootDatabase>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IBootManagerService,
+            Winhance.Infrastructure.Features.WimUtil.Services.BootManagerService>();
         services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IDriverInstallStepWriter,
             Winhance.Infrastructure.Features.WimUtil.Services.DriverInstallStepWriter>();
         services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IAnswerFileValidator,
             Winhance.Infrastructure.Features.WimUtil.Services.AnswerFileValidator>();
         services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IWimCustomizationService,
             Winhance.Infrastructure.Features.WimUtil.Services.WimCustomizationService>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IAppStagingService,
+            Winhance.Infrastructure.Features.WimUtil.Services.AppStagingService>();
         services.AddSingleton<Winhance.Core.Features.Autounattend.Interfaces.IWinhancementsScriptBuilder,
             Winhance.Infrastructure.Features.Autounattend.Services.WinhancementsScriptBuilder>();
 
@@ -222,10 +234,12 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IChocolateyService, ChocolateyService>();
 
         services.AddSingleton<IExternalAppUninstallService, ExternalAppUninstallService>();
+        services.AddSingleton<IInstalledAppsService, InstalledAppsService>();
 
         services.AddSingleton<IStoreDownloadService, StoreDownloadService>();
 
         services.AddSingleton<IDirectDownloadService, DirectDownloadService>();
+        services.AddSingleton<IStagedAppInstaller, StagedAppInstaller>();
 
         services.AddSingleton<ILegacyCapabilityService, LegacyCapabilityService>();
         services.AddSingleton<IOptionalFeatureService, OptionalFeatureService>();

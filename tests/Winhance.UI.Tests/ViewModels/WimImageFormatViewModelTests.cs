@@ -456,6 +456,56 @@ public class WimImageFormatViewModelTests : IDisposable
     }
 
     [Fact]
+    public void IsImageLocked_DisablesTheConvertCardUntilItClears()
+    {
+        _sut.CurrentImageFormat = new ImageFormatInfo
+        {
+            Format = ImageFormat.Wim,
+            FileSizeBytes = 4_000_000_000L
+        };
+        _sut.UpdateConversionCardState();
+
+        _sut.IsImageLocked = true;
+
+        _sut.ConvertImageCard.IsEnabled.Should().BeFalse();
+
+        _sut.IsImageLocked = false;
+
+        _sut.ConvertImageCard.IsEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ConvertImageFormatCommand_WhileTheImageIsLocked_DoesNothing()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _sut.CurrentImageFormat = new ImageFormatInfo
+        {
+            Format = ImageFormat.Wim,
+            FileSizeBytes = 4_000_000_000L
+        };
+        _sut.IsImageLocked = true;
+
+        await _sut.ConvertImageFormatCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(
+            It.IsAny<ConfirmationRequest>()), Times.Never);
+        _mockTaskProgressService.Verify(t => t.StartTask(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteCommands_WhileTheImageIsLocked_DoNothing()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _sut.IsImageLocked = true;
+
+        await _sut.DeleteWimCommand.ExecuteAsync(null);
+        await _sut.DeleteEsdCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(
+            It.IsAny<ConfirmationRequest>()), Times.Never);
+    }
+
+    [Fact]
     public void FormatFileSize_ConvertsToGB()
     {
         var result = WimImageFormatViewModel.FormatFileSize(4_294_967_296L);

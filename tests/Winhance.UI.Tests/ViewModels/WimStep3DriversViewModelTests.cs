@@ -445,9 +445,11 @@ public class WimStep3DriversViewModelTests : IDisposable
         await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
 
         _sut.ExtractSystemDriversCard.IsComplete.Should().BeTrue();
-        _mockDialogService.Verify(d => d.ShowTaskOutputDialogAsync(
-            "WIMUtil_AnswerFile_DialogTitle",
-            It.Is<IReadOnlyList<string>>(l => l.Contains("WIMUtil_AnswerFile_Verdict_MayFail") && l.Contains("WIMUtil_AnswerFile_Summary") && l.Contains("line 9"))), Times.Once);
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Title == "WIMUtil_AnswerFile_DialogTitle"
+            && r.Verdict!.Title == "WIMUtil_AnswerFile_Verdict_MayFail"
+            && r.Verdict.Message == "WIMUtil_AnswerFile_Summary"
+            && r.Sections.SelectMany(sec => sec.Rows).Any(row => row.Code == "line 9"))), Times.Once);
     }
 
     [Fact]
@@ -458,7 +460,7 @@ public class WimStep3DriversViewModelTests : IDisposable
         await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
 
         _mockAnswerFileValidator.Verify(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()), Times.Once);
-        _mockDialogService.Verify(d => d.ShowTaskOutputDialogAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<string>>()), Times.Never);
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.IsAny<SummaryRequest>()), Times.Never);
     }
 
     [Fact]
@@ -507,7 +509,7 @@ public class WimStep3DriversViewModelTests : IDisposable
 
         await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
 
-        _mockDialogService.Verify(d => d.ShowTaskOutputDialogAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<string>>()), Times.Never);
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.IsAny<SummaryRequest>()), Times.Never);
         _checkState.Subject.Should().Be("C:\\WorkDir\\autounattend.xml");
         _checkState.LastReport.Should().BeSameAs(rechecked);
     }
@@ -523,7 +525,7 @@ public class WimStep3DriversViewModelTests : IDisposable
 
         await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
 
-        _mockDialogService.Verify(d => d.ShowTaskOutputDialogAsync("WIMUtil_AnswerFile_DialogTitle", It.IsAny<IReadOnlyList<string>>()), Times.Once);
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r => r.Title == "WIMUtil_AnswerFile_DialogTitle")), Times.Once);
     }
 
     [Fact]
@@ -536,7 +538,7 @@ public class WimStep3DriversViewModelTests : IDisposable
 
         _sut.ExtractSystemDriversCard.IsComplete.Should().BeTrue();
         _mockAnswerFileValidator.Verify(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
-        _mockDialogService.Verify(d => d.ShowTaskOutputDialogAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<string>>()), Times.Never);
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.IsAny<SummaryRequest>()), Times.Never);
     }
 
     [Fact]

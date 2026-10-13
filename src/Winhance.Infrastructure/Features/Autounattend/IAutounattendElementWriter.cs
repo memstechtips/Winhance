@@ -9,8 +9,10 @@ internal sealed record AutounattendRenderContext(
     string AppVersion,
     SelectionSet Selections)
 {
-    public ChoiceValue? Value(string settingId) =>
-        Selections.Settings.FirstOrDefault(choice => choice.SettingId == settingId)?.Value;
+    // The .winhance form of Selections, so Winhance can reopen the file; null leaves it out.
+    public string? Config { get; init; }
+
+    public ChoiceValue? Value(string settingId) => Selections.Value(settingId);
 
     public IReadOnlyList<(string Destination, string Base64)> EmbeddedPictures =>
         Selections.Files
@@ -22,25 +24,7 @@ internal sealed record AutounattendRenderContext(
     public string? Key(string settingId) =>
         Value(settingId) is ChoiceValue.Keyed { Key.Length: > 0 } keyed ? keyed.Key : null;
 
-    public SettingState? StateOf(string settingId) =>
-        SettingCatalog.ById.TryGetValue(settingId, out var setting) ? ChosenState(setting, Value(settingId)) : null;
-
-    // Falls back to WindowsDefault so a set that never reached the Autounattend page still renders a full file.
-    public static SettingState? ChosenState(Setting setting, ChoiceValue? value)
-    {
-        var chosen = value switch
-        {
-            ChoiceValue.Toggle toggle =>
-                setting.States.FirstOrDefault(s => s.Label == TwoState.Label(ControlKind.Toggle, toggle.On)),
-            ChoiceValue.CheckBox box =>
-                setting.States.FirstOrDefault(s => s.Label == TwoState.Label(ControlKind.CheckBox, box.Checked)),
-            ChoiceValue.Option option when option.Index >= 0 && option.Index < setting.States.Count =>
-                setting.States[option.Index],
-            _ => null,
-        };
-
-        return chosen ?? setting.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault));
-    }
+    public SettingState? StateOf(string settingId) => Selections.StateOf(settingId);
 
     public bool? Checked(string settingId) =>
         SettingCatalog.ById.TryGetValue(settingId, out var setting) && StateOf(settingId) is { } state

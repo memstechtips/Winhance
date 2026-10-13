@@ -226,6 +226,9 @@ public class WimStep1ViewModelTests
 
         _sut.WorkingDirectory.Should().Be("D:\\ExtractedIso");
         _sut.IsExtractionComplete.Should().BeTrue();
+
+        // The card's tick says it worked; a dialog repeating that is one more click for nothing.
+        _mockDialogService.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

@@ -7,47 +7,63 @@ namespace Winhance.Infrastructure.Tests.WimUtil.WimServices;
 public class UsbWriteLayoutPlannerTests
 {
     [Theory]
-    [InlineData(3_000_000_000L, false)]
-    [InlineData(4_294_967_295L, false)]
-    [InlineData(4_294_967_296L, true)]
-    [InlineData(7_578_075_168L, true)]
-    public void Plan_LargestFileVaries_RequiresSplitOnlyPastTheFat32Ceiling(
-        long largestFileBytes, bool expected)
+    [InlineData("bootmgr")]
+    [InlineData("bootmgr.efi")]
+    [InlineData("bootmgfw.efi")]
+    [InlineData("autounattend.xml")]
+    [InlineData("sources")]
+    [InlineData(@"sources\boot.wim")]
+    [InlineData("boot")]
+    [InlineData(@"boot\bcd")]
+    [InlineData(@"efi\boot\bootx64.efi")]
+    [InlineData(@"EFI\Microsoft\Boot\BCD")]
+    public void IsOnBootPartition_WhatThePcStartsFrom_IsOnIt(string relativePath)
     {
-        var layout = UsbWriteLayoutPlanner.Plan(
-            totalPayloadBytes: 8_465_957_864L, largestFileBytes: largestFileBytes);
+        UsbWriteLayoutPlanner.IsOnBootPartition(relativePath).Should().BeTrue();
+    }
 
-        layout.RequiresSplit.Should().Be(expected);
+    [Theory]
+    [InlineData(@"sources\install.wim")]
+    [InlineData(@"sources\install.esd")]
+    [InlineData(@"sources\$OEM$")]
+    [InlineData(@"sources\$OEM$\$1\Winhance\Setup.exe")]
+    [InlineData("$WinpeDriver$")]
+    [InlineData("support")]
+    [InlineData("setup.exe")]
+    [InlineData("bootsect.exe")]
+    [InlineData("efisys")]
+    public void IsOnBootPartition_TheRest_StaysOff(string relativePath)
+    {
+        UsbWriteLayoutPlanner.IsOnBootPartition(relativePath).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(@"efi\boot", true)]
+    [InlineData(@"efi\boot\bootx64.efi", true)]
+    [InlineData(@"efi\microsoft\boot\bcd", false)]
+    [InlineData(@"boot\bcd", false)]
+    [InlineData(@"sources\install.wim", false)]
+    [InlineData("autounattend.xml", false)]
+    public void IsLeftOffInstallPartition_OnlyTheFirmwareFallbackPath(string relativePath, bool leftOff)
+    {
+        UsbWriteLayoutPlanner.IsLeftOffInstallPartition(relativePath).Should().Be(leftOff);
     }
 
     [Fact]
-    public void SplitSizeMb_IsTheDocumented3800Megabytes()
+    public void Plan_CountsEachFileOnEveryPartitionItLandsOn()
     {
-        UsbWriteLayoutPlanner.SplitSizeMb.Should().Be(3800);
-    }
+        var sizes = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase)
+        {
+            [@"sources\boot.wim"] = 600,
+            [@"efi\boot\bootx64.efi"] = 3,
+            ["autounattend.xml"] = 1,
+            [@"sources\install.wim"] = 7_000,
+            ["setup.exe"] = 100,
+        };
 
-    [Fact]
-    public void Plan_PayloadOneBytePastTheCeiling_ExceedsFat32Ceiling()
-    {
-        var layout = UsbWriteLayoutPlanner.Plan(
-            totalPayloadBytes: UsbWriteLayoutPlanner.Fat32MaxVolumeBytes + 1, largestFileBytes: 1_000L);
+        var layout = UsbWriteLayoutPlanner.Plan(sizes);
 
-        layout.ExceedsFat32Ceiling.Should().BeTrue();
-    }
-
-    [Fact]
-    public void Plan_PayloadExactlyAtTheCeiling_Fits()
-    {
-        var layout = UsbWriteLayoutPlanner.Plan(
-            totalPayloadBytes: UsbWriteLayoutPlanner.Fat32MaxVolumeBytes, largestFileBytes: 1_000L);
-
-        layout.ExceedsFat32Ceiling.Should().BeFalse();
-    }
-
-    [Fact]
-    public void SplitTargetPath_MediaRoot_PointsAtSourcesInstallSwm()
-    {
-        UsbWriteLayoutPlanner.SplitTargetPath(@"E:\")
-            .Should().Be(@"E:\sources\install.swm");
+        layout.BootBytes.Should().Be(604);
+        layout.InstallBytes.Should().Be(7_701);
     }
 }

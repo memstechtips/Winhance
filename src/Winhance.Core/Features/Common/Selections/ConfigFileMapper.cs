@@ -20,6 +20,7 @@ public static class ConfigFileMapper
         ControlKind.CheckBox => InputType.CheckBox,
         ControlKind.TextBox => InputType.TextBox,
         ControlKind.List => InputType.List,
+        ControlKind.CheckList => InputType.CheckList,
         ControlKind.Selection or ControlKind.KeyedSelection => InputType.Selection,
         ControlKind.Slider => InputType.NumericRange,
         ControlKind.Action => InputType.Action,
@@ -39,6 +40,7 @@ public static class ConfigFileMapper
         item.SelectedKeyLabel = null;
         item.Text = null;
         item.Rows = null;
+        item.SelectedKeys = null;
         item.SavePasswords = null;
         item.File = null;
 
@@ -83,6 +85,9 @@ public static class ConfigFileMapper
             case ChoiceValue.List list:
                 item.Rows = list.Rows.Select(row => Obscured(row, list.SavePasswords, setting)).ToList();
                 item.SavePasswords = list.SavePasswords;
+                break;
+            case ChoiceValue.Keys keys:
+                item.SelectedKeys = [.. keys.Values];
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(value), value, "Unhandled ChoiceValue.");
@@ -141,6 +146,9 @@ public static class ConfigFileMapper
                 return new ChoiceValue.List(
                     rows,
                     item.SavePasswords ?? rows.Any(r => PasswordFields(setting).Any(f => r.Values.GetValueOrDefault(f.Key, string.Empty).Length > 0)));
+
+            case ControlKind.CheckList:
+                return item.SelectedKeys is { } selectedKeys ? new ChoiceValue.Keys(selectedKeys) : null;
 
             default:
                 return null;

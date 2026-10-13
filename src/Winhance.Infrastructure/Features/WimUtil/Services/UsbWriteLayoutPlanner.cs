@@ -1,32 +1,50 @@
-using Winhance.Core.Features.WimUtil.Models;
-
 namespace Winhance.Infrastructure.Features.WimUtil.Services;
 
+internal readonly record struct UsbWriteLayout(long BootBytes, long InstallBytes);
+
+// Two partitions on one MBR disk, the only partition table that boots both UEFI and legacy BIOS. UEFI firmware
+// reads FAT32 alone, so the active FAT32 partition carries what the PC starts from, up to Setup's first
+// screen. Setup then finds install.wim on the NTFS partition by itself, whole and at any size. Verified on
+// Gigabyte boards with Secure Boot on, off, and legacy CSM.
 internal static class UsbWriteLayoutPlanner
 {
-    // Microsoft's own figure in the "Create a bootable USB flash drive" instructions. Not 4000:
-    // the split pieces have to clear FAT32's ceiling with headroom, not sit on it.
-    internal const int SplitSizeMb = 3800;
+    // An untouched 25H2 boot set is 635 MB; the rest is headroom for a customised boot.wim.
+    internal const long BootPartitionBytes = 2L * 1024 * 1024 * 1024;
 
-    // FAT32 stores a file's size in 32 bits, so 4 GiB is the first size it cannot hold.
-    internal const long Fat32MaxFileBytes = 4L * 1024 * 1024 * 1024;
-
-    // "When using a FAT-32 drive, you can format it to only use 32GB of space" - Windows' own
-    // formatter refuses more. It is both the partition size on a bigger stick and the payload
-    // ceiling past which a second stick is needed. 32,000 MiB rather than exactly 32 GiB: the
-    // refusal is a boundary check, and diskpart's size=32000 is the figure known to clear it.
-    internal const long Fat32MaxVolumeBytes = 32_000L * 1024 * 1024;
-
-    internal static UsbWriteLayout Plan(long totalPayloadBytes, long largestFileBytes)
+    internal static UsbWriteLayout Plan(IReadOnlyDictionary<string, long> sizeByRelativePath)
     {
-        return new UsbWriteLayout(
-            RequiresSplit: largestFileBytes >= Fat32MaxFileBytes,
-            TotalPayloadBytes: totalPayloadBytes,
-            ExceedsFat32Ceiling: totalPayloadBytes > Fat32MaxVolumeBytes);
+        long boot = 0, install = 0;
+        foreach (var (path, size) in sizeByRelativePath)
+        {
+            if (IsOnBootPartition(path))
+                boot += size;
+
+            if (!IsLeftOffInstallPartition(path))
+                install += size;
+        }
+
+        return new UsbWriteLayout(boot, install);
     }
 
-    // Every .swm has to sit in the same folder as its siblings, and Setup looks for them beside
-    // where install.wim would have been.
-    internal static string SplitTargetPath(string mediaRoot) =>
-        Path.Combine(mediaRoot, "sources", "install.swm");
+    // Takes folders as well as files, so the copy never creates an empty sources\$OEM$ or support\ on the
+    // boot partition. autounattend.xml sits on both roots: Setup searches the root of every removable drive.
+    // $WinpeDriver$ stays on the install partition: KB 2686316 has Setup probe the root of every drive letter.
+    internal static bool IsOnBootPartition(string relativePath) =>
+        relativePath.Equals("bootmgr", StringComparison.OrdinalIgnoreCase)
+        || relativePath.Equals("bootmgr.efi", StringComparison.OrdinalIgnoreCase)
+        || relativePath.Equals("bootmgfw.efi", StringComparison.OrdinalIgnoreCase)
+        || relativePath.Equals("autounattend.xml", StringComparison.OrdinalIgnoreCase)
+        || relativePath.Equals("sources", StringComparison.OrdinalIgnoreCase)
+        || relativePath.Equals(@"sources\boot.wim", StringComparison.OrdinalIgnoreCase)
+        || IsIn(relativePath, "boot")
+        || IsIn(relativePath, "efi");
+
+    // efi\boot is the fallback path firmware boots from. Gigabyte's firmware reads NTFS too, and a copy there
+    // adds a second "UEFI:" entry to the boot menu. The rest of efi\ and boot\ stays: setup.exe started from
+    // inside Windows sizes Boot, Efi and Sources beside it and fails with 0x80070003 when one is missing.
+    internal static bool IsLeftOffInstallPartition(string relativePath) => IsIn(relativePath, @"efi\boot");
+
+    private static bool IsIn(string relativePath, string folder) =>
+        relativePath.Equals(folder, StringComparison.OrdinalIgnoreCase)
+        || relativePath.StartsWith(folder + @"\", StringComparison.OrdinalIgnoreCase);
 }

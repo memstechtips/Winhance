@@ -1,5 +1,6 @@
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.WimUtil.Models;
 
 namespace Winhance.Infrastructure.Features.WimUtil.Services;
 
@@ -12,6 +13,8 @@ internal sealed class Imapi2IsoImageWriter : IIsoImageWriter
     private const int RequiredBootEntries = 2;
 
     private const string VolumeLabel = "WINHANCE";
+
+    private const string UefiBootImage = @"efi\microsoft\boot\efisys.bin";
 
     private readonly Func<IFileSystemImageWrapper> _imageFactory;
     private readonly IFileSystemService _fileSystemService;
@@ -36,11 +39,17 @@ internal sealed class Imapi2IsoImageWriter : IIsoImageWriter
     public void Write(
         string workingDirectory,
         string outputPath,
+        BootFileReplacements replacements,
         IProgress<TaskProgressDetail>? progress,
         CancellationToken cancellationToken)
     {
         var biosBootImage = _fileSystemService.CombinePath(workingDirectory, "boot", "etfsboot.com");
-        var uefiBootImage = _fileSystemService.CombinePath(workingDirectory, "efi", "microsoft", "boot", "efisys.bin");
+
+        // efisys.bin is a small FAT image holding its own copy of the UEFI boot manager, and it is what a
+        // PC boots from the ISO, so a 2023 boot manager has to arrive through it.
+        var uefiBootImage = replacements.Files.TryGetValue(UefiBootImage, out var replacedBootImage)
+            ? replacedBootImage
+            : _fileSystemService.CombinePath(workingDirectory, UefiBootImage);
 
         // Cheaper and clearer than letting IMAPI2 fail on a missing stream later.
         if (!_fileSystemService.FileExists(biosBootImage))
@@ -60,7 +69,7 @@ internal sealed class Imapi2IsoImageWriter : IIsoImageWriter
         image.VolumeName = VolumeLabel;
 
         // True would copy the whole payload to a temp location first - another 8 GB of scratch
-        // for an ISO this size.
+        // for an ISO this size. False alone is not enough: see AddWorkingTree.
         image.StageFiles = false;
 
         image.SetBootImageOptions(
@@ -78,9 +87,7 @@ internal sealed class Imapi2IsoImageWriter : IIsoImageWriter
                 $"IMAPI2 accepted the boot catalog but reads back {assigned} entries, not {RequiredBootEntries}.");
         }
 
-        // False, never true: true nests the whole tree under a folder named after the working
-        // directory, which builds cleanly and then does not boot.
-        image.AddTree(workingDirectory, false);
+        AddWorkingTree(image, workingDirectory, replacements);
 
         using var result = image.CreateResultImage();
         _logService.LogInformation($"IMAPI2 built a {result.TotalBytes:N0} byte image for {outputPath}");
@@ -94,5 +101,26 @@ internal sealed class Imapi2IsoImageWriter : IIsoImageWriter
             outputPath,
             (written, total) => reporter.Report(written, total, outputName),
             cancellationToken);
+    }
+
+    // File by file, never AddTree: IMAPI2 stages every file it opens from a path on a USB or network drive,
+    // whatever StageFiles says (documented on put_StageFiles, measured 2026-10-05 as a full copy of
+    // install.wim in %TEMP%). A stream it is handed is read in place while the result image is written.
+    private void AddWorkingTree(IFileSystemImageWrapper image, string workingDirectory, BootFileReplacements replacements)
+    {
+        // Ordinal order puts every folder after its parent.
+        var directories = _fileSystemService.GetDirectories(workingDirectory, "*", SearchOption.AllDirectories)
+            .Order(StringComparer.OrdinalIgnoreCase);
+        foreach (var directory in directories)
+        {
+            image.AddDirectory(@"\" + Path.GetRelativePath(workingDirectory, directory));
+        }
+
+        foreach (var file in _fileSystemService.GetFiles(workingDirectory, "*", SearchOption.AllDirectories))
+        {
+            var relativePath = Path.GetRelativePath(workingDirectory, file);
+            var source = replacements.Files.TryGetValue(relativePath, out var replacement) ? replacement : file;
+            image.AddFile(@"\" + relativePath, source);
+        }
     }
 }

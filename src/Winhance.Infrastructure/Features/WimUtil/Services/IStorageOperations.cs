@@ -17,12 +17,15 @@ internal interface IStorageOperations
 
     void EnsureMbr(int diskNumber);
 
-    // Returns the new partition's number. Its drive letter comes last, after the format, the
+    // Both return the new partition's number. Its drive letter comes last, after the format, the
     // way the diskpart recipe does it: a RAW volume with a letter is what Explorer greets with
     // its "you need to format the disk" prompt.
-    int CreateActiveFat32Partition(int diskNumber);
+    int CreateBootPartition(int diskNumber, long sizeBytes);
 
-    void FormatFat32(int diskNumber, int partitionNumber, string label);
+    // Takes the rest of the disk.
+    int CreateInstallPartition(int diskNumber);
+
+    void Format(int diskNumber, int partitionNumber, string fileSystem, string label);
 
     char AssignDriveLetter(int diskNumber, int partitionNumber);
 }

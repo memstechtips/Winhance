@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Moq;
 using Winhance.Core.Features.WimUtil.Interfaces;
 using Winhance.Core.Features.WimUtil.Models;
+using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.WimUtil.Models;
@@ -17,6 +18,7 @@ public class WimUtilViewModelTests : IDisposable
 {
     private readonly Mock<IIsoService> _mockIsoService = new();
     private readonly Mock<IUsbMediaWriter> _mockUsbMediaWriter = new();
+    private readonly Mock<IBootManagerService> _mockBootManagerService = new();
     private readonly Mock<IWimImageService> _mockWimImageService = new();
     private readonly Mock<IWimCustomizationService> _mockWimCustomizationService = new();
     private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
@@ -32,6 +34,8 @@ public class WimUtilViewModelTests : IDisposable
     private readonly Mock<IResourceService> _mockResourceService = new();
 
     private readonly Mock<IAnswerFileValidator> _mockAnswerFileValidator = new();
+    private readonly Mock<IAutounattendReader> _mockAutounattendReader = new();
+    private readonly Mock<IEventBus> _mockEventBus = new();
     private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
     private readonly Mock<IBuilderModeEntry> _mockBuilderModeEntry = new();
     private readonly WimUtilSession _session = new();
@@ -73,9 +77,14 @@ public class WimUtilViewModelTests : IDisposable
             .Callback<Func<Task>>(a => a().GetAwaiter().GetResult())
             .Returns(Task.CompletedTask);
 
+        _mockBootManagerService
+            .Setup(b => b.InspectAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BootManagerOptions(Offers2023: false, BootManager.Pca2011, IsOutdated: false));
+
         _sut = new WimUtilViewModel(
             _mockIsoService.Object,
             _mockUsbMediaWriter.Object,
+            _mockBootManagerService.Object,
             _mockWimImageService.Object,
             _mockWimCustomizationService.Object,
             _mockTaskProgressService.Object,
@@ -90,9 +99,12 @@ public class WimUtilViewModelTests : IDisposable
             _mockFilePickerService.Object,
             _mockResourceService.Object,
             _mockAnswerFileValidator.Object,
+            _mockAutounattendReader.Object,
             _mockApplicationModeService.Object,
             _mockBuilderModeEntry.Object,
-            _session);
+            _mockEventBus.Object,
+            _session,
+            Mock.Of<ITargetWindowsService>());
     }
 
     public void Dispose()
@@ -364,6 +376,71 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step1.HasExtractedIsoAlready = true;
 
         _sut.HasExtractedIsoAlready.Should().BeTrue();
+    }
+
+    [Fact]
+    public void RemovingEditions_LocksTheStepsThatReadTheImageUntilItEnds()
+    {
+        _mockWimImageService
+            .Setup(w => w.DetectAllImageFormatsAsync(It.IsAny<string>()))
+            .ReturnsAsync(new ImageDetectionResult());
+        _sut.Step1.IsExtractionComplete = true;
+        _sut.Step4State.IsExpanded = false;
+
+        _sut.Step2.IsRemovingEditions = true;
+
+        _sut.Step2State.IsAvailable.Should().BeFalse();
+        _sut.Step3State.IsAvailable.Should().BeFalse();
+        _sut.Step4State.IsAvailable.Should().BeFalse();
+        _sut.Step4State.StatusText.Should().Be("WIMUtil_Status_RemovingEditions");
+        _sut.NavigateToStepCommand.Execute("4");
+        _sut.Step4State.IsExpanded.Should().BeFalse();
+
+        _sut.Step2.IsRemovingEditions = false;
+
+        _sut.Step2State.IsAvailable.Should().BeTrue();
+        _sut.Step3State.IsAvailable.Should().BeTrue();
+        _sut.Step4State.IsAvailable.Should().BeTrue();
+    }
+
+    [Fact]
+    public void RemovingEditions_LocksStep1AndItsImageActionsUntilItEnds()
+    {
+        _mockWimImageService
+            .Setup(w => w.DetectAllImageFormatsAsync(It.IsAny<string>()))
+            .ReturnsAsync(new ImageDetectionResult
+            {
+                WimInfo = new ImageFormatInfo { Format = ImageFormat.Wim, FileSizeBytes = 4_000_000_000L }
+            });
+        _sut.Step1.IsExtractionComplete = true;
+        _sut.ConvertImageCard.IsEnabled.Should().BeTrue();
+
+        _sut.Step2.IsRemovingEditions = true;
+
+        _sut.Step1State.IsAvailable.Should().BeFalse();
+        _sut.Step1State.StatusText.Should().Be("WIMUtil_Status_RemovingEditions");
+        _sut.ConvertImageCard.IsEnabled.Should().BeFalse();
+        _sut.NavigateToStepCommand.Execute("1");
+        _sut.Step1State.IsExpanded.Should().BeTrue();
+
+        _sut.Step2.IsRemovingEditions = false;
+
+        _sut.Step1State.IsAvailable.Should().BeTrue();
+        _sut.ConvertImageCard.IsEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public void RemovingEditions_WhenItEnds_ReadsTheImageAgainForTheConvertCard()
+    {
+        _mockWimImageService
+            .Setup(w => w.DetectAllImageFormatsAsync(It.IsAny<string>()))
+            .ReturnsAsync(new ImageDetectionResult());
+        _sut.Step2.IsRemovingEditions = true;
+        _mockWimImageService.Invocations.Clear();
+
+        _sut.Step2.IsRemovingEditions = false;
+
+        _mockWimImageService.Verify(w => w.DetectAllImageFormatsAsync(It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

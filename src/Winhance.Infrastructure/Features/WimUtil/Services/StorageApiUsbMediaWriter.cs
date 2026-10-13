@@ -10,32 +10,27 @@ namespace Winhance.Infrastructure.Features.WimUtil.Services;
 internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
 {
     private const string UsbBusType = "USB";
-    private const string VolumeLabel = "WINHANCE";
+    private const string BootLabel = "WINBOOT";
+    private const string InstallLabel = "WINSETUP";
 
     private readonly IStorageOperations _operations;
     private readonly IMediaCopier _mediaCopier;
-    private readonly IDismProcessRunner _dismProcessRunner;
     private readonly IFileSystemService _fileSystemService;
     private readonly ILocalizationService _localization;
     private readonly ILogService _logService;
-    private readonly TimeProvider _timeProvider;
 
     public StorageApiUsbMediaWriter(
         IStorageOperations operations,
         IMediaCopier mediaCopier,
-        IDismProcessRunner dismProcessRunner,
         IFileSystemService fileSystemService,
         ILocalizationService localization,
-        ILogService logService,
-        TimeProvider timeProvider)
+        ILogService logService)
     {
         _operations = operations;
         _mediaCopier = mediaCopier;
-        _dismProcessRunner = dismProcessRunner;
         _fileSystemService = fileSystemService;
         _localization = localization;
         _logService = logService;
-        _timeProvider = timeProvider;
     }
 
     public IReadOnlyList<RemovableDrive> GetCandidateTargets()
@@ -60,12 +55,15 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
     public void Write(
         RemovableDrive target,
         string workingDirectory,
+        BootFileReplacements replacements,
         IProgress<TaskProgressDetail>? progress,
         CancellationToken cancellationToken)
     {
         // The system disk is refused here as well as in the picker: the picker is a UI list a
         // caller can bypass, and MSFT_Disk's own 42010 arrives only after the wipe has started.
-        if (!GetCandidateTargets().Any(candidate => candidate.DiskNumber == target.DiskNumber))
+        // The whole record is compared because Windows reuses disk numbers: a drive plugged in
+        // after the picked one was pulled can hold its number.
+        if (!GetCandidateTargets().Contains(target))
         {
             throw new InvalidOperationException(
                 $"Disk {target.DiskNumber} ({target.Model}) is not a removable USB drive.");
@@ -85,36 +83,34 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
                 target.Model));
         }
 
-        // One pass over the tree: the layout, the split decision and the copier's total all come
-        // from these sizes, so nothing walks the working folder twice.
+        // One pass over the tree: the layout and the copier's total both come from these sizes,
+        // so nothing walks the working folder twice.
         var sizes = _fileSystemService.GetFiles(workingDirectory, "*", SearchOption.AllDirectories)
-            .ToDictionary(file => file, _fileSystemService.GetFileSize, StringComparer.OrdinalIgnoreCase);
-        var totalBytes = sizes.Values.Sum();
-        var largestFile = sizes.Count == 0 ? 0 : sizes.Values.Max();
-        var layout = UsbWriteLayoutPlanner.Plan(totalBytes, largestFile);
-        var payloadGigabytes = (layout.TotalPayloadBytes / (1024.0 * 1024 * 1024)).ToString("F1");
+            .ToDictionary(file => Path.GetRelativePath(workingDirectory, file), _fileSystemService.GetFileSize, StringComparer.OrdinalIgnoreCase);
+        var layout = UsbWriteLayoutPlanner.Plan(sizes);
 
         // Everything that can refuse the write happens before anything is erased.
-        if (layout.ExceedsFat32Ceiling)
+        if (layout.BootBytes > UsbWriteLayoutPlanner.BootPartitionBytes)
         {
             throw new InvalidOperationException(_localization.GetStringOrDefault(
-                "WIMUtil_Err_UsbPayloadTooLarge",
-                $"This image is {payloadGigabytes} GB. A FAT32 drive can only be formatted to 32 GB, "
-                + "so this image would need a second USB drive and Winhance cannot write it to one.",
-                payloadGigabytes));
+                "WIMUtil_Err_UsbBootFilesTooLarge",
+                $"The files the PC starts from (boot.wim and the boot folders) come to {Gigabytes(layout.BootBytes)} GB, "
+                + $"more than the {Gigabytes(UsbWriteLayoutPlanner.BootPartitionBytes)} GB boot partition holds. "
+                + "Start again from an unmodified Windows ISO.",
+                Gigabytes(layout.BootBytes),
+                Gigabytes(UsbWriteLayoutPlanner.BootPartitionBytes)));
         }
 
-        if (target.SizeBytes < layout.TotalPayloadBytes)
+        var neededBytes = UsbWriteLayoutPlanner.BootPartitionBytes + layout.InstallBytes;
+        if (target.SizeBytes < neededBytes)
         {
             throw new InvalidOperationException(_localization.GetStringOrDefault(
                 "WIMUtil_Err_UsbDriveTooSmall",
-                $"{target.Model} holds {target.SizeGigabytes:F1} GB but the media needs {payloadGigabytes} GB.",
+                $"{target.Model} holds {target.SizeGigabytes:F1} GB but the media needs {Gigabytes(neededBytes)} GB.",
                 target.Model,
                 target.SizeGigabytes.ToString("F1"),
-                payloadGigabytes));
+                Gigabytes(neededBytes)));
         }
-
-        var imageToSplit = layout.RequiresSplit ? FindImageToSplit(workingDirectory, sizes) : null;
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -125,34 +121,49 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
             IsIndeterminate = true
         });
 
-        // Format, mark active, copy - Microsoft's documented procedure, and no bcdboot: the media
-        // already ships \EFI\BOOT\BOOTX64.EFI and \boot\bcd, and copying them verbatim is what
-        // makes the stick boot.
-        _operations.Clear(target.DiskNumber);
-
-        // From here on the drive is blank, and whatever stops the write has to say so: a bare
-        // failure reads as "nothing happened", and the user unplugs an empty stick.
+        // From Clear on the drive is blank, and whatever stops the write has to say so: a bare
+        // failure reads as "nothing happened", and the user unplugs an empty stick. Clear is
+        // inside because it wipes first and can still fail on the steps that follow the wipe.
         try
         {
+            // No bcdboot: the media already ships \EFI\BOOT\BOOTX64.EFI and \boot\bcd, and copying
+            // them verbatim is what makes the stick boot.
+            _operations.Clear(target.DiskNumber);
             _operations.EnsureMbr(target.DiskNumber);
-            var partitionNumber = _operations.CreateActiveFat32Partition(target.DiskNumber);
-            _operations.FormatFat32(target.DiskNumber, partitionNumber, VolumeLabel);
-            var driveLetter = _operations.AssignDriveLetter(target.DiskNumber, partitionNumber);
+            var bootPartition = _operations.CreateBootPartition(target.DiskNumber, UsbWriteLayoutPlanner.BootPartitionBytes);
+            var installPartition = _operations.CreateInstallPartition(target.DiskNumber);
+            _operations.Format(target.DiskNumber, bootPartition, "FAT32", BootLabel);
+            _operations.Format(target.DiskNumber, installPartition, "NTFS", InstallLabel);
+            var bootRoot = $"{_operations.AssignDriveLetter(target.DiskNumber, bootPartition)}:\\";
+            var installRoot = $"{_operations.AssignDriveLetter(target.DiskNumber, installPartition)}:\\";
 
-            var mediaRoot = $"{driveLetter}:\\";
-            _logService.LogInformation($"Writing {layout.TotalPayloadBytes:N0} bytes to {mediaRoot}");
+            var totalBytes = layout.BootBytes + layout.InstallBytes;
+            _logService.LogInformation($"Writing {layout.BootBytes:N0} bytes to {bootRoot} and {layout.InstallBytes:N0} to {installRoot}");
 
             _mediaCopier.CopyTree(
                 workingDirectory,
-                mediaRoot,
-                imageToSplit is null ? null : path => string.Equals(path, imageToSplit, StringComparison.OrdinalIgnoreCase),
-                imageToSplit is not null && sizes.TryGetValue(imageToSplit, out var wimBytes) ? totalBytes - wimBytes : totalBytes,
+                bootRoot,
+                path => !UsbWriteLayoutPlanner.IsOnBootPartition(Path.GetRelativePath(workingDirectory, path)),
+                totalBytes,
+                0,
+                progress,
+                cancellationToken);
+            _mediaCopier.CopyTree(
+                workingDirectory,
+                installRoot,
+                path => UsbWriteLayoutPlanner.IsLeftOffInstallPartition(Path.GetRelativePath(workingDirectory, path)),
+                totalBytes,
+                layout.BootBytes,
                 progress,
                 cancellationToken);
 
-            if (imageToSplit is not null)
+            foreach (var (relativePath, replacement) in replacements.Files)
             {
-                SplitImageOntoMedia(imageToSplit, mediaRoot, progress, cancellationToken);
+                if (UsbWriteLayoutPlanner.IsOnBootPartition(relativePath))
+                    _fileSystemService.CopyFile(replacement, Path.Combine(bootRoot, relativePath), overwrite: true);
+
+                if (!UsbWriteLayoutPlanner.IsLeftOffInstallPartition(relativePath))
+                    _fileSystemService.CopyFile(replacement, Path.Combine(installRoot, relativePath), overwrite: true);
             }
         }
         catch (OperationCanceledException ex)
@@ -165,89 +176,5 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
         }
     }
 
-    // dism /Split-Image splits sources\install.wim and nothing else, so any other file past FAT32's
-    // limit - an ESD, or a stale one left beside a converted WIM - has to be dealt with first, and
-    // before the drive is touched.
-    private string FindImageToSplit(string workingDirectory, IReadOnlyDictionary<string, long> sizes)
-    {
-        var wimPath = _fileSystemService.CombinePath(workingDirectory, "sources", "install.wim");
-        var unsplittable = sizes.FirstOrDefault(entry =>
-            entry.Value >= UsbWriteLayoutPlanner.Fat32MaxFileBytes
-            && !string.Equals(entry.Key, wimPath, StringComparison.OrdinalIgnoreCase)).Key;
-
-        if (unsplittable is not null)
-        {
-            var fileName = _fileSystemService.GetFileName(unsplittable);
-            throw new InvalidOperationException(_localization.GetStringOrDefault(
-                "WIMUtil_Err_UsbCannotSplit",
-                $"{fileName} is larger than 4 GB, which FAT32 cannot hold, and Winhance can only split "
-                + "sources\\install.wim. Convert an ESD image to WIM format in the previous step, or remove "
-                + "the file from the working folder, then write the USB drive.",
-                fileName));
-        }
-
-        return wimPath;
-    }
-
-    private void SplitImageOntoMedia(
-        string imagePath,
-        string mediaRoot,
-        IProgress<TaskProgressDetail>? progress,
-        CancellationToken cancellationToken)
-    {
-        var target = UsbWriteLayoutPlanner.SplitTargetPath(mediaRoot);
-
-        progress?.Report(new TaskProgressDetail
-        {
-            StatusText = _localization.GetString("Progress_SplittingImage"),
-            TerminalOutput = target,
-            IsIndeterminate = true
-        });
-
-        // dism.exe, not the DISM API: there is no DismSplitImage, and WIMGAPI's WIMSplitFile ships
-        // in the ADK rather than the SDK. This is also literally the command in Microsoft's own USB
-        // instructions, so it is the documented method rather than a fallback from one.
-        var arguments =
-            $"/Split-Image /ImageFile:\"{imagePath}\" /SWMFile:\"{target}\" /FileSize:{UsbWriteLayoutPlanner.SplitSizeMb}";
-
-        var splitProgress = progress is null
-            ? null
-            : new SplitProgress(progress, _fileSystemService.GetFileSize(imagePath), new TransferRate(_timeProvider));
-
-        // Blocking on the runner is safe here and nowhere else: Write is a synchronous contract
-        // (formatting a disk has no async half) and its only caller already runs it on a pool
-        // thread, so there is no synchronization context to deadlock against.
-        var (exitCode, _) = _dismProcessRunner
-            .RunProcessWithProgressAsync("dism.exe", arguments, splitProgress, cancellationToken)
-            .GetAwaiter()
-            .GetResult();
-
-        if (exitCode != 0)
-        {
-            throw new InvalidOperationException($"Splitting the Windows image failed with exit code {exitCode}.");
-        }
-
-        _logService.LogInformation($"Split {imagePath} into {target} at {UsbWriteLayoutPlanner.SplitSizeMb} MB per piece");
-    }
-
-    // DISM prints only its own bar, and the bytes behind each percent are the image size, so the
-    // write speed can be read off it.
-    private sealed class SplitProgress(IProgress<TaskProgressDetail> inner, long imageBytes, TransferRate rate)
-        : IProgress<TaskProgressDetail>
-    {
-        public void Report(TaskProgressDetail detail)
-        {
-            if (detail.Progress is { } percent)
-            {
-                rate.Update((long)(imageBytes * percent / 100));
-                var speed = rate.ToString();
-                if (speed.Length > 0)
-                {
-                    detail.TerminalOutput = $"{detail.TerminalOutput} {speed}";
-                }
-            }
-
-            inner.Report(detail);
-        }
-    }
+    private static string Gigabytes(long bytes) => (bytes / (1024.0 * 1024 * 1024)).ToString("F1");
 }
