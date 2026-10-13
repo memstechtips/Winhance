@@ -17,6 +17,7 @@ public class KeyedSelectionReviewDiffTests : IDisposable
     private readonly Mock<ICatalogSettingStateProvider> _stateProvider = new();
     private readonly Mock<ILocalizationService> _localizationService = new();
     private readonly Mock<IWindowsVersionService> _windowsVersionService = new();
+    private readonly Mock<IFileStore> _fileStore = new();
 
     private ConfigReviewService? _service;
 
@@ -47,7 +48,8 @@ public class KeyedSelectionReviewDiffTests : IDisposable
             _stateProvider.Object,
             _localizationService.Object,
             _windowsVersionService.Object,
-            new FakeOptionProviderRegistry());
+            new FakeOptionProviderRegistry(),
+            _fileStore.Object);
 
         await _service.EnterReviewModeAsync(new WinhanceConfigFile
         {
@@ -111,6 +113,27 @@ public class KeyedSelectionReviewDiffTests : IDisposable
 
         diff.Should().NotBeNull();
         diff!.ConfigValueDisplay.Should().Be("delta");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task A_carried_file_is_a_diff_only_when_its_bytes_differ_from_what_the_machine_is_on(bool sameBytes)
+    {
+        _fileStore.Setup(s => s.IsSameFileAsync("beta", "AQID")).ReturnsAsync(sameBytes);
+
+        var diff = await EagerDiffFor(
+            FakeOptionProvider.SettingFor(),
+            new ConfigurationItem
+            {
+                Id = "fake-keyed",
+                SelectedKey = "gamma",
+                SelectedKeyLabel = "Gamma zone",
+                File = new CarriedFileItem { Destination = "gamma", Base64 = "AQID" },
+            },
+            MachineOn("beta"));
+
+        (diff is null).Should().Be(sameBytes);
     }
 
     [Theory]

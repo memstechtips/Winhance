@@ -1,5 +1,6 @@
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -116,6 +117,31 @@ public class ConfigurationService : IConfigurationService
             await _configReviewOrchestrationService.EnterReviewModeAsync(config, importOptions.IsWindowsDefaults);
     }
 
+    // The import dialog's defaults with review skipped, so a scripted run applies what Import would.
+    private static readonly ImportOptions CommandLineImportOptions = new()
+    {
+        ProcessWindowsAppsRemoval = true,
+        ProcessExternalAppsInstallation = true,
+        ApplyCleanTaskbar = true,
+        ApplyCleanStartMenu = true,
+    };
+
+    public async Task ImportConfigurationFromFileAsync(string filePath)
+    {
+        _logService.Log(LogLevel.Info, $"Starting configuration import from the command line: {filePath}");
+
+        await EnsureRegistryInitializedAsync();
+
+        var config = await _configLoadService.LoadAndValidateConfigurationAsync(filePath);
+        if (config == null)
+        {
+            _logService.Log(LogLevel.Warning, $"Command-line config not applied: {filePath}");
+            return;
+        }
+
+        await _configExecutionService.ExecuteConfigImportAsync(config, PreTickFrom(config, CommandLineImportOptions));
+    }
+
     // A clean action has to be selected in the file, not merely present: an unticked one is a config saying
     // "leave it alone".
     public static ImportOptions PreTickFrom(WinhanceConfigFile file, ImportOptions chosen) => chosen with
@@ -146,8 +172,8 @@ public class ConfigurationService : IConfigurationService
             var set = await _selections.FromMachineForBackupAsync();
 
             var configDir = _fileSystem.CombinePath(
-                _interactiveUser.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Winhance", "Backup");
+                AppDataPaths.UserRoot(_interactiveUser.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData)),
+                "Backup");
 
             _fileSystem.CreateDirectory(configDir);
 
@@ -157,7 +183,6 @@ public class ConfigurationService : IConfigurationService
             await _saves.SaveAsync(BuilderTarget.Config, set, new SelectionSaveOptions
             {
                 FixedPath = filePath,
-                ConfirmEmptyAppSelection = false,
                 ReportSuccessInDialog = false,
             });
         }

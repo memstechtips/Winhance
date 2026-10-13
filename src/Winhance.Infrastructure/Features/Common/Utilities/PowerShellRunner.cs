@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Exceptions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Infrastructure.Features.Autounattend.Helpers;
 
 namespace Winhance.Infrastructure.Features.Common.Utilities;
 
@@ -238,7 +239,7 @@ internal class PowerShellRunner : IPowerShellRunner
                 await _fileSystemService.WriteAllBytesAsync(tempFiles[i], bytes, ct).ConfigureAwait(false);
             }
 
-            var fileList = string.Join(", ", tempFiles.Select(f => "'" + f.Replace("'", "''", StringComparison.Ordinal) + "'"));
+            var fileList = string.Join(", ", tempFiles.Select(f => "'" + PowerShellScriptUtilities.EscapePowerShellString(f) + "'"));
             var parseScript = @"
 $files = @(" + fileList + @")
 for ($i = 0; $i -lt $files.Count; $i++) {
@@ -295,7 +296,7 @@ exit 0";
 try {
     $settings = New-Object System.Xml.XmlReaderSettings
     $settings.DtdProcessing = [System.Xml.DtdProcessing]::Ignore
-    $reader = [System.Xml.XmlReader]::Create('" + tempFile.Replace("'", "''") + @"', $settings)
+    $reader = [System.Xml.XmlReader]::Create('" + PowerShellScriptUtilities.EscapePowerShellString(tempFile) + @"', $settings)
     while ($reader.Read()) { }
     $reader.Close()
     Write-Host 'XML validation passed - document is well-formed'

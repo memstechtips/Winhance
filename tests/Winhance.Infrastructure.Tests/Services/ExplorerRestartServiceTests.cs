@@ -44,7 +44,7 @@ public class ExplorerRestartServiceTests
         _mockPending.Verify(p => p.Clear(), Times.Once);
     }
 
-    // Regressions from the 2026-07-28 report: Marco's Explorer was killed and never came back, and
+    // Regressions from the 2026-07-28 report: Explorer was killed and never came back, and
     // the bar disappeared as though the restart had worked.
 
     [Fact]

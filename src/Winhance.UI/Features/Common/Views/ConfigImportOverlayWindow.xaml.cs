@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
-using Microsoft.UI.Xaml.Media.Imaging;
 using Winhance.Core.Features.Common.Interfaces;
 using WinRT.Interop;
 using Winhance.Core.Features.Common.Extensions;
@@ -36,14 +35,11 @@ public sealed partial class ConfigImportOverlayWindow : Window
         OverlayStatusText.Text = statusText;
         OverlayDetailText.Text = detailText ?? string.Empty;
 
-        OverlayLogo.Source = new BitmapImage(
-            new Uri("ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png"));
-
         try
         {
             var localizationService = App.Services.GetService<ILocalizationService>();
             OverlayTitleText.Text = localizationService.GetStringOrDefault("App_Title", "Winhance");
-            OverlayTaglineText.Text = localizationService.GetStringOrDefault("App_Tagline", "");
+            OverlayTaglineText.Text = localizationService.GetStringOrDefault("App_Tagline", "Enhance Your Windows Experience");
         }
         catch
         {

@@ -1,9 +1,9 @@
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.Customize.Interfaces;
-using Winhance.Infrastructure.Features.Customize.Services;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -33,7 +33,7 @@ internal sealed class FileStore(IFileSystemService files, ILogService log, IWind
                 continue;
 
             if (SettingCatalog.Find(choice.SettingId)?.Options?.Source != OptionSource.Pictures
-                || !WindowsThemeService.IsPicture(keyed.Key)
+                || !PictureFileConstants.IsPicture(keyed.Key)
                 || !theme.Travels(keyed.Key))
                 continue;
 
@@ -100,6 +100,24 @@ internal sealed class FileStore(IFileSystemService files, ILogService log, IWind
         return set with { Settings = settings };
     }
 
+    public async Task<bool> IsSameFileAsync(string path, string base64)
+    {
+        try
+        {
+            if (!files.FileExists(path))
+                return false;
+
+            var carried = Convert.FromBase64String(base64);
+            return files.GetFileSize(path) == carried.Length
+                && (await files.ReadAllBytesAsync(path).ConfigureAwait(false)).AsSpan().SequenceEqual(carried);
+        }
+        catch (Exception ex) when (ex is FormatException or IOException or UnauthorizedAccessException)
+        {
+            log.Log(LogLevel.Debug, $"Could not compare '{path}' with the file a config carries: {ex.Message}");
+            return false;
+        }
+    }
+
     // A config is someone else's file, so only the name it gives is believed, and a colon in one would address a
     // stream inside another file.
     private string? LandingFor(CarriedFile file)
@@ -112,7 +130,7 @@ internal sealed class FileStore(IFileSystemService files, ILogService log, IWind
 
         if (Path.GetFileName(file.Destination) is not { Length: > 0 } name
             || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
-            || !WindowsThemeService.IsPicture(name)
+            || !PictureFileConstants.IsPicture(name)
             || ReservedDeviceNames.Contains(Path.GetFileNameWithoutExtension(name)))
         {
             log.Log(LogLevel.Warning, $"The file '{file.SettingId}' carries was ignored: '{file.Destination}' does not name a picture.");

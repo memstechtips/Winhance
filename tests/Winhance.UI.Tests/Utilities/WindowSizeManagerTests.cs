@@ -16,6 +16,27 @@ public class WindowSizeManagerTests
     private static readonly RectInt32[] DualDisplay = { R(0, 0, 1920, 1032), R(1920, 0, 1920, 1032) };
 
     [Fact]
+    public void FitInside_SizeSavedOnABiggerScreen_ShrinksToTheWorkArea()
+    {
+        WindowSizeManager.FitInside(R(200, 100, 1344, 864), R(0, 0, 1024, 728))
+            .Should().Be(R(0, 0, 1024, 728));
+    }
+
+    [Fact]
+    public void FitInside_WindowHangingOffTheRight_MovesBackOnScreen()
+    {
+        WindowSizeManager.FitInside(R(700, 100, 800, 600), R(0, 0, 1024, 728))
+            .Should().Be(R(224, 100, 800, 600));
+    }
+
+    [Fact]
+    public void FitInside_WindowThatFits_IsLeftAlone()
+    {
+        WindowSizeManager.FitInside(R(100, 100, 1280, 800), SingleDisplay[0])
+            .Should().Be(R(100, 100, 1280, 800));
+    }
+
+    [Fact]
     public void IsWindowRectVisible_FullyOnPrimary_ReturnsTrue()
     {
         WindowSizeManager.IsWindowRectVisible(R(100, 100, 1280, 800), SingleDisplay)

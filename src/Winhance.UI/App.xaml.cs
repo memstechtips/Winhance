@@ -4,12 +4,17 @@ using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
 using Winhance.UI.Features.Common.Extensions.DI;
+using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Helpers;
 
 namespace Winhance.UI;
 
 public partial class App : Application
 {
+    // E_LAYOUTCYCLE, which CsWinRT surfaces as LayoutCycleException.
+    private const int LayoutCycleHResult = unchecked((int)0x802B0014);
+
     private Window? _mainWindow;
     private IHost? _host;
     private ILogService? _logService;
@@ -58,7 +63,10 @@ public partial class App : Application
     {
         StartupLogger.Log($"Unhandled UI exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}\nInner: {e.Exception?.InnerException?.Message}\n{e.Exception?.InnerException?.StackTrace}");
         _logService?.LogError($"Unhandled UI exception: {e.Exception?.Message}", e.Exception);
-        e.Handled = true;
+
+        // WinUI cannot lay out again after a layout cycle; handled, it leaves a window that draws nothing and
+        // takes no clicks, so that one closes the app with the error already logged.
+        e.Handled = e.Exception?.HResult != LayoutCycleHResult;
     }
 
     private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
@@ -74,7 +82,8 @@ public partial class App : Application
         try
         {
             StartupLogger.Log("Building DI host...");
-            _host = CompositionRoot.CreateWinhanceHost().Build();
+            var launch = LaunchCommandLine.Parse(Environment.GetCommandLineArgs()[1..], message => StartupLogger.Log(message));
+            _host = CompositionRoot.CreateWinhanceHost(launch).Build();
             StartupLogger.Log("DI host built successfully");
 
             try
@@ -119,6 +128,8 @@ public partial class App : Application
             StartupLogger.Log("MainWindow created, activating...");
             _mainWindow.Activate();
             StartupLogger.Log("MainWindow activated");
+            if (launch.StartInTray)
+                Services.GetRequiredService<TrayController>().HideToTray();
 
             // Initialize theme service after window is created
             StartupLogger.Log("Initializing theme...");

@@ -22,16 +22,13 @@
 
     <Grid>
         <!-- Loading State -->
-        <ProgressRing
-            IsActive="{x:Bind IsLoading, Mode=OneWay}"
-            Visibility="{x:Bind IsLoading, Mode=OneWay}"
-            Width="48"
-            Height="48"
+        <local:RocketLoader
+            x:Name="LoadingRocket"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"/>
 
         <!-- Main Content -->
-        <ScrollView x:Name="ContentScrollView" Visibility="{x:Bind IsNotLoading, Mode=OneWay}">
+        <ScrollView x:Name="ContentScrollView">
             <!-- Wrap StackPanel in Grid to avoid visual glitches with MaxWidth -->
             <Grid>
                 <StackPanel Spacing="{StaticResource SettingsCardSpacing}" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch" Padding="0,12,0,24">
@@ -75,7 +72,7 @@
 
                     <!-- No Results Message -->
                     <TextBlock
-                        Text="No settings match your search."
+                        Text="{x:Bind NoSearchResultsText}"
                         Style="{StaticResource BodyTextBlockStyle}"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                         HorizontalAlignment="Center"

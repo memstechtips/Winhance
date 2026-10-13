@@ -7,12 +7,16 @@ using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
-public class LocalizationServiceTests
+// SetLanguage sets the process-wide UI culture, so every fact puts it back and the culture readers never run alongside.
+[Collection(ProcessCultureCollection.Name)]
+public sealed class LocalizationServiceTests : IDisposable
 {
     private static readonly string[] EnglishOnly = ["en.json"];
 
     private readonly Mock<IFileSystemService> _mockFileSystem = new();
     private readonly LocalizationService _sut;
+    private readonly CultureInfo? _previousDefault = CultureInfo.DefaultThreadCurrentUICulture;
+    private readonly CultureInfo _previousCurrent = CultureInfo.CurrentUICulture;
 
     public LocalizationServiceTests()
     {
@@ -28,6 +32,12 @@ public class LocalizationServiceTests
             .Returns(false);
 
         _sut = new LocalizationService(_mockFileSystem.Object);
+    }
+
+    public void Dispose()
+    {
+        CultureInfo.DefaultThreadCurrentUICulture = _previousDefault;
+        CultureInfo.CurrentUICulture = _previousCurrent;
     }
 
     [Fact]
@@ -147,27 +157,13 @@ public class LocalizationServiceTests
         eventRaised.Should().BeTrue();
     }
 
-    // DefaultThreadCurrentUICulture is process-global and xUnit runs classes in parallel, so the fact puts it back.
     [Fact]
     public void SetLanguage_SetsTheDefaultThreadUICulture()
     {
-        var previousDefault = CultureInfo.DefaultThreadCurrentUICulture;
-        var previousCurrent = CultureInfo.CurrentUICulture;
+        _sut.SetLanguage("de").Should().BeTrue();
 
-        try
-        {
-            _sut.SetLanguage("de").Should().BeTrue();
-
-            var uiCultureOnNewThreads = CultureInfo.DefaultThreadCurrentUICulture?.Name;
-
-            uiCultureOnNewThreads.Should().Be("de",
-                because: "the region and language option lists read their display names on thread-pool threads, which start from this");
-        }
-        finally
-        {
-            CultureInfo.DefaultThreadCurrentUICulture = previousDefault;
-            CultureInfo.CurrentUICulture = previousCurrent;
-        }
+        CultureInfo.DefaultThreadCurrentUICulture?.Name.Should().Be("de",
+            because: "the region and language option lists read their display names on thread-pool threads, which start from this");
     }
 
     [Fact]

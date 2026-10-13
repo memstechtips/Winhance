@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
@@ -42,7 +43,7 @@ internal class UserPreferencesService : IUserPreferencesService
                 _logService.Log(LogLevel.Info, $"Using fallback path: {localAppData}");
             }
 
-            string appDataPath = _fileSystemService.CombinePath(localAppData, "Winhance", "Config");
+            string appDataPath = _fileSystemService.CombinePath(AppDataPaths.UserRoot(localAppData), "Config");
 
             if (!_fileSystemService.DirectoryExists(appDataPath))
             {

@@ -4,7 +4,7 @@ using Windows.Foundation;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-// Every cell exactly ItemWidth x ItemHeight, fixed gaps, left-aligned; the page centres the containing
+// Every cell ItemWidth x ItemHeight, fixed gaps, left-aligned; the page centres the containing
 // StackPanel with a MaxWidth from the card column count so headers, select-all checkboxes and the grid share the
 // same extents (the Store / Settings card-grid pattern). ItemsRepeater + UniformGridLayout produced a measure
 // cycle that snapped the outer ScrollViewer back to the top.
@@ -21,6 +21,21 @@ public sealed partial class UniformWrapPanel : Panel
     {
         get => (double)GetValue(ItemWidthProperty);
         set => SetValue(ItemWidthProperty, value);
+    }
+
+    // Below two ItemWidth columns the cells shrink as far as this to keep two, and a lone column fills the width, so
+    // a narrow window shows no empty margins beside the cards. Zero keeps every cell at ItemWidth.
+    public static readonly DependencyProperty MinItemWidthProperty =
+        DependencyProperty.Register(
+            nameof(MinItemWidth),
+            typeof(double),
+            typeof(UniformWrapPanel),
+            new PropertyMetadata(0.0, OnLayoutPropertyChanged));
+
+    public double MinItemWidth
+    {
+        get => (double)GetValue(MinItemWidthProperty);
+        set => SetValue(MinItemWidthProperty, value);
     }
 
     public static readonly DependencyProperty ItemHeightProperty =
@@ -77,8 +92,7 @@ public sealed partial class UniformWrapPanel : Panel
         if (double.IsInfinity(availableWidth) || double.IsNaN(availableWidth) || availableWidth <= 0)
             availableWidth = ItemWidth > 0 ? ItemWidth * count : 0;
 
-        int columns = ComputeColumnCount(availableWidth);
-        double cellWidth = ItemWidth > 0 ? ItemWidth : availableWidth / Math.Max(1, columns);
+        var (columns, cellWidth) = Fit(availableWidth, ItemWidth, MinItemWidth, ColumnSpacing, count);
 
         // Always measure children with unbounded vertical room so we learn each
         // child's true desired height; the cell height then becomes
@@ -105,8 +119,7 @@ public sealed partial class UniformWrapPanel : Panel
         if (count == 0)
             return finalSize;
 
-        int columns = ComputeColumnCount(finalSize.Width);
-        double cellWidth = ItemWidth > 0 ? ItemWidth : finalSize.Width / Math.Max(1, columns);
+        var (columns, cellWidth) = Fit(finalSize.Width, ItemWidth, MinItemWidth, ColumnSpacing, count);
         double cellHeight = ComputeCellHeight();
 
         for (int i = 0; i < count; i++)
@@ -139,14 +152,20 @@ public sealed partial class UniformWrapPanel : Panel
         return max;
     }
 
-    private int ComputeColumnCount(double availableWidth)
+    internal static (int Columns, double CellWidth) Fit(double available, double itemWidth, double minItemWidth, double spacing, int count)
     {
-        if (ItemWidth <= 0)
-            return Math.Max(1, Children.Count);
+        if (itemWidth <= 0)
+        {
+            int all = Math.Max(1, count);
+            return (all, available / all);
+        }
 
-        double effective = availableWidth + ColumnSpacing;
-        double per = ItemWidth + ColumnSpacing;
-        int columns = (int)Math.Floor(effective / per);
-        return Math.Max(1, columns);
+        int columns = Math.Max(1, (int)Math.Floor((available + spacing) / (itemWidth + spacing)));
+        if (columns >= 2 || minItemWidth <= 0)
+            return (columns, itemWidth);
+
+        return available + spacing >= 2 * (minItemWidth + spacing)
+            ? (2, (available - spacing) / 2)
+            : (1, available);
     }
 }

@@ -270,6 +270,24 @@ public class FileStoreTests
             Times.Once);
     }
 
+    [Theory]
+    [InlineData(new byte[] { 1, 2, 3 }, true)]
+    [InlineData(new byte[] { 1, 2, 4 }, false)]
+    [InlineData(new byte[] { 1, 2 }, false)]
+    public async Task A_carried_file_is_the_same_file_only_byte_for_byte(byte[] carried, bool expected)
+    {
+        (await _sut.IsSameFileAsync(Source, Convert.ToBase64String(carried))).Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task A_carried_file_is_never_the_same_as_a_missing_file_or_bad_base64()
+    {
+        (await _sut.IsSameFileAsync(Source, "not base64!")).Should().BeFalse();
+
+        _files.Setup(f => f.FileExists(Source)).Returns(false);
+        (await _sut.IsSameFileAsync(Source, Convert.ToBase64String(Bytes))).Should().BeFalse();
+    }
+
     [Fact]
     public async Task A_file_that_cannot_be_written_is_logged_and_the_rest_still_land()
     {

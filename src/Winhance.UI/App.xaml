@@ -20,7 +20,13 @@
                 <ResourceDictionary Source="ms-appx:///Features/Common/Resources/FeatureIcons.xaml" />
                 <!-- InfoBadge pill styles, foreground brushes, and icon template selector -->
                 <ResourceDictionary Source="ms-appx:///Features/Common/Resources/BadgeStyles.xaml" />
+                <!-- Theme-following styles for UI built in C# -->
+                <ResourceDictionary Source="ms-appx:///Features/Common/Resources/CodeBuiltStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- Below this window height the page header and the rows under it compact, so 800x600 and
+                 1024x768 keep room for the page content. Effective pixels, as AdaptiveTrigger measures. -->
+            <x:Double x:Key="ShortWindowHeight">800</x:Double>
 
             <!-- Title Bar Button Style -->
             <Style x:Key="TitleBarButtonStyle" TargetType="Button">

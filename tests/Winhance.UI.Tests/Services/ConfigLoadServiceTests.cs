@@ -292,7 +292,7 @@ public class ConfigLoadServiceTests
             .Returns(@"C:\Users\Test\AppData\Local");
 
         _mockFileSystemService
-            .Setup(fs => fs.CombinePath(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(fs => fs.CombinePath(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(@"C:\Users\Test\AppData\Local\Winhance\Backup");
 
         _mockFileSystemService
@@ -314,7 +314,7 @@ public class ConfigLoadServiceTests
             .Returns(@"C:\Users\Test\AppData\Local");
 
         _mockFileSystemService
-            .Setup(fs => fs.CombinePath(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(fs => fs.CombinePath(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(@"C:\Users\Test\AppData\Local\Winhance\Backup");
 
         _mockFileSystemService

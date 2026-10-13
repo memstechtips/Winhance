@@ -96,8 +96,8 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             if (selectedSections.Count == 0)
             {
                 _dialogService.ShowMessage(
-                    _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection", "No changes to apply."),
-                    _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection_Title", "No Changes"));
+                    _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection", "There are no changes to apply."),
+                    _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection_Title", "Nothing to Apply"));
                 return;
             }
 
@@ -546,7 +546,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
 
     private async Task ShowImportSuccessMessage(IReadOnlyList<string> setAside, IReadOnlyList<string> notApplied)
     {
-        var message = _localizationService.GetStringOrDefault("Config_Import_Success_Message", "Configuration imported successfully.");
+        var message = _localizationService.GetStringOrDefault("Config_Import_Success_Message", "Your configuration has been applied successfully. Some settings may only take effect after a system restart. A restart is recommended.");
         if (setAside.Count > 0)
         {
             var format = _localizationService.GetStringOrDefault("Config_SetAside_Format", "{0} settings in this file are not on this PC and were set aside.");
@@ -558,6 +558,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
 
         await _dialogService.ShowInformationAsync(
             message,
-            _localizationService.GetStringOrDefault("Config_Import_Success_Title", "Import Successful"));
+            _localizationService.GetStringOrDefault("Config_Import_Success_Title", "Configuration Applied"));
     }
 }

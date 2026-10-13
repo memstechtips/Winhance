@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Helpers;
 
 namespace Winhance.Core.Features.Common.Services;
 
@@ -15,8 +16,7 @@ public class LogService : ILogService, IDisposable
     public LogService()
     {
         _logPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "Winhance",
+            AppDataPaths.MachineRoot,
             "Logs",
             $"Winhance_Log_{DateTime.Now:yyyyMMdd_HHmmss}.log"
         );

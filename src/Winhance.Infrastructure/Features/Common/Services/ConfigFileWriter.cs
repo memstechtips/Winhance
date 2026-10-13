@@ -24,6 +24,8 @@ internal sealed class ConfigFileWriter : IConfigFileWriter
     {
         await _registry.InitializeAsync().ConfigureAwait(false);
         var file = ConfigFileMapper.ToFile(set, _registry.GetAll(scope));
+        file.ComputerName = Environment.MachineName;
+        file.TargetBuild = scope.TargetBuild?.Build;
         var json = JsonSerializer.Serialize(file, ConfigFileConstants.JsonOptions);
         await _files.WriteAllTextAsync(outputPath, json).ConfigureAwait(false);
         _log.Log(LogLevel.Info, $"Configuration written to {outputPath} ({set.Settings.Count} settings, {set.WindowsApps.Count + set.ExternalApps.Count} apps)");

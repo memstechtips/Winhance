@@ -3,7 +3,6 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 using Windows.System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -327,18 +326,10 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
 
     private void UpdateVisualState()
     {
-        if (IsSelected)
-        {
-            BackgroundBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorTertiaryBrush"];
-        }
-        else if ((_isPointerOver || _isFocused) && !IsLocked)
-        {
-            BackgroundBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorSecondaryBrush"];
-        }
-        else
-        {
-            BackgroundBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
-        }
+        string state = IsSelected ? "Selected"
+            : (_isPointerOver || _isFocused) && !IsLocked ? "PointerOver"
+            : "Normal";
+        VisualStateManager.GoToState(this, state, false);
     }
 
     private void NotifyPropertyChanged([CallerMemberName] string? propertyName = null)

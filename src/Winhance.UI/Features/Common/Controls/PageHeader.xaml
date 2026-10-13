@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.PageHeader"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
+    x:DefaultBindMode="OneWay">
+
+    <Grid>
+        <!-- On a short window (800x600, 1024x768) the header shrinks so the page content keeps the height. -->
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="WindowHeightStates">
+                <VisualState x:Name="TallState">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowHeight="{StaticResource ShortWindowHeight}"/>
+                    </VisualState.StateTriggers>
+                </VisualState>
+                <VisualState x:Name="ShortState">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowHeight="0"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="IconBox.Width" Value="32"/>
+                        <Setter Target="IconBox.Height" Value="32"/>
+                        <Setter Target="TitleStack.Spacing" Value="10"/>
+                        <Setter Target="TitleText.FontSize" Value="20"/>
+                        <Setter Target="DescriptionText.Visibility" Value="Collapsed"/>
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <StackPanel x:Name="TitleStack" Grid.Column="0" Orientation="Horizontal" Spacing="16">
+            <Viewbox x:Name="IconBox" Width="64" Height="64" Stretch="Uniform">
+                <fluentIcons:FluentIcon Icon="{x:Bind Icon}" IconVariant="Color"/>
+            </Viewbox>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock
+                    x:Name="TitleText"
+                    Text="{x:Bind Title}"
+                    Style="{StaticResource TitleTextBlockStyle}"
+                    FontWeight="Bold"
+                    FontSize="30"
+                    AutomationProperties.HeadingLevel="Level1"/>
+                <TextBlock
+                    x:Name="DescriptionText"
+                    Text="{x:Bind Description}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Margin="0,2,0,0"/>
+            </StackPanel>
+        </StackPanel>
+        <ContentPresenter Grid.Column="1" VerticalAlignment="Bottom" Content="{x:Bind Actions}"/>
+    </Grid>
+</UserControl>

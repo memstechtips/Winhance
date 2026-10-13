@@ -39,7 +39,7 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
 
             if (hasDiffValues)
             {
-                var diffFormat = _localizationService.GetStringOrDefault("Review_Mode_Diff_Toggle", "Current: {0} \u2192 Config: {1}");
+                var diffFormat = _localizationService.GetStringOrDefault("Review_Mode_Diff_Toggle", "Current: {0} → Config: {1}");
                 viewModel.HasReviewDiff = true;
                 viewModel.ReviewDiffMessage = string.Format(diffFormat, existingDiff.CurrentValueDisplay, existingDiff.ConfigValueDisplay);
             }
@@ -96,7 +96,7 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
 
         if (hasDiff)
         {
-            var diffFormat = _localizationService.GetStringOrDefault("Review_Mode_Diff_Toggle", "Current: {0} \u2192 Config: {1}");
+            var diffFormat = _localizationService.GetStringOrDefault("Review_Mode_Diff_Toggle", "Current: {0} → Config: {1}");
             viewModel.HasReviewDiff = true;
             viewModel.ReviewDiffMessage = string.Format(diffFormat, currentDisplay, configDisplay);
             viewModel.IsReviewApproved = false;
