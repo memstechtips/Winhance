@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "catalogHash": "a613e7d6a175b4abd4d07694e6d4b1d70615a9bfc417354080182a6367e1fddc",
-  "settingCount": 425,
+  "catalogHash": "151faafc8b8ee5db4e4fee2ee8fe51a73f219fd3f3d2dc9fe2e5ca9600d11f49",
+  "settingCount": 439,
   "settings": [
     {
       "id": "theme-mode-windows",
@@ -1095,15 +1095,7 @@
               "writePayload": "10"
             }
           },
-          "resetSet": {
-            "TileWallpaper": {
-              "acceptsAbsent": true,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": true,
-              "values": [],
-              "writePayload": null
-            }
-          }
+          "resetSet": null
         },
         {
           "label": "Setting_theme-wallpaper-fit_Option_1",
@@ -1557,7 +1549,7 @@
     },
     {
       "id": "explorer-customization-shortcut-suffix",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Selection",
       "contexts": [
         "Always"
@@ -1650,7 +1642,7 @@
     },
     {
       "id": "explorer-customization-shortcut-arrow",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Selection",
       "contexts": [
         "Always"
@@ -1738,7 +1730,7 @@
     },
     {
       "id": "explorer-customization-desktop-icon-this-pc",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -1836,7 +1828,7 @@
     },
     {
       "id": "explorer-customization-desktop-icon-recycle-bin",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -1926,7 +1918,7 @@
     },
     {
       "id": "explorer-customization-desktop-icon-users-files",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -2024,7 +2016,7 @@
     },
     {
       "id": "explorer-customization-desktop-icon-control-panel",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -2122,7 +2114,7 @@
     },
     {
       "id": "explorer-customization-desktop-icon-network",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -2220,7 +2212,7 @@
     },
     {
       "id": "explorer-customization-context-menu",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -2315,7 +2307,7 @@
     },
     {
       "id": "explorer-take-ownership",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -2336,7 +2328,7 @@
           "appliesTo": [],
           "kind": "Registry",
           "paths": [
-            "HKEY_CLASSES_ROOT\\*\\shell\\TakeOwnership"
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\*\\shell\\TakeOwnership"
           ],
           "valueName": "",
           "keyExistenceOnly": false,
@@ -2403,7 +2395,7 @@
     },
     {
       "id": "explorer-context-menu-toggle-extensions",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -2424,7 +2416,7 @@
           "appliesTo": [],
           "kind": "Registry",
           "paths": [
-            "HKEY_CLASSES_ROOT\\AllFilesystemObjects\\shell\\Windows.ShowFileExtensions"
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\AllFilesystemObjects\\shell\\Windows.ShowFileExtensions"
           ],
           "valueName": "ExplorerCommandHandler",
           "keyExistenceOnly": false,
@@ -2490,7 +2482,7 @@
     },
     {
       "id": "explorer-context-menu-windows-terminal",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -2583,8 +2575,96 @@
       ]
     },
     {
+      "id": "explorer-context-menu-ask-copilot",
+      "feature": "Explorer",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "{CB3B0003-8088-4EDE-8769-8B354AB2FF8C}",
+          "joinKey": "{CB3B0003-8088-4EDE-8769-8B354AB2FF8C}",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Shell Extensions\\Blocked"
+          ],
+          "valueName": "{CB3B0003-8088-4EDE-8769-8B354AB2FF8C}",
+          "keyExistenceOnly": false,
+          "type": "String",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "{CB3B0003-8088-4EDE-8769-8B354AB2FF8C}": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "Recommended",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "{CB3B0003-8088-4EDE-8769-8B354AB2FF8C}": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                ""
+              ],
+              "writePayload": ""
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
       "id": "explorer-context-menu-sfc",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -2605,7 +2685,7 @@
           "appliesTo": [],
           "kind": "Registry",
           "paths": [
-            "HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\SFC"
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\Directory\\Background\\shell\\SFC"
           ],
           "valueName": "MUIVerb",
           "keyExistenceOnly": false,
@@ -2671,7 +2751,7 @@
     },
     {
       "id": "explorer-context-menu-dism",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -2692,7 +2772,7 @@
           "appliesTo": [],
           "kind": "Registry",
           "paths": [
-            "HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\RepairWindowsImage"
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\Directory\\Background\\shell\\RepairWindowsImage"
           ],
           "valueName": "MUIVerb",
           "keyExistenceOnly": false,
@@ -2715,7 +2795,7 @@
           "appliesTo": [],
           "kind": "Registry",
           "paths": [
-            "HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\RepairWindowsImage"
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\Directory\\Background\\shell\\RepairWindowsImage"
           ],
           "valueName": "Icon",
           "keyExistenceOnly": false,
@@ -2738,7 +2818,7 @@
           "appliesTo": [],
           "kind": "Registry",
           "paths": [
-            "HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\RepairWindowsImage"
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\Directory\\Background\\shell\\RepairWindowsImage"
           ],
           "valueName": "HasLUAShield",
           "keyExistenceOnly": false,
@@ -2761,7 +2841,7 @@
           "appliesTo": [],
           "kind": "Registry",
           "paths": [
-            "HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\RepairWindowsImage\\command"
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\Directory\\Background\\shell\\RepairWindowsImage\\command"
           ],
           "valueName": "",
           "keyExistenceOnly": false,
@@ -2784,7 +2864,7 @@
           "appliesTo": [],
           "kind": "Registry",
           "paths": [
-            "HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\RepairWindowsImage"
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\Directory\\Background\\shell\\RepairWindowsImage"
           ],
           "valueName": null,
           "keyExistenceOnly": true,
@@ -2912,7 +2992,7 @@
     },
     {
       "id": "explorer-context-menu-chkdsk",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -2933,7 +3013,7 @@
           "appliesTo": [],
           "kind": "Registry",
           "paths": [
-            "HKEY_CLASSES_ROOT\\Directory\\Background\\shell\\CHKDSK"
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\Directory\\Background\\shell\\CHKDSK"
           ],
           "valueName": "MUIVerb",
           "keyExistenceOnly": false,
@@ -2999,7 +3079,7 @@
     },
     {
       "id": "explorer-context-menu-ps1-edit-run",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -3020,7 +3100,7 @@
           "appliesTo": [],
           "kind": "Registry",
           "paths": [
-            "HKEY_CLASSES_ROOT\\SystemFileAssociations\\.ps1\\Shell\\Edit-Run-with"
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\SystemFileAssociations\\.ps1\\Shell\\Edit-Run-with"
           ],
           "valueName": "MUIVerb",
           "keyExistenceOnly": false,
@@ -3086,7 +3166,7 @@
     },
     {
       "id": "explorer-context-menu-compress-to",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -3114,7 +3194,7 @@
           "appliesTo": [],
           "kind": "Registry",
           "paths": [
-            "HKEY_CLASSES_ROOT\\*\\shell\\CompressToFullMenu_ForOldContextMenu"
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\*\\shell\\CompressToFullMenu_ForOldContextMenu"
           ],
           "valueName": "ExplorerCommandHandler",
           "keyExistenceOnly": false,
@@ -3180,7 +3260,7 @@
     },
     {
       "id": "devices-dynamic-lighting-ambient",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -3277,7 +3357,7 @@
     },
     {
       "id": "devices-dynamic-lighting-foreground-app",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -3374,7 +3454,7 @@
     },
     {
       "id": "devices-default-printer-management",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -3464,8 +3544,540 @@
       ]
     },
     {
+      "id": "explorer-snap-windows",
+      "feature": "Explorer",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "WindowArrangementActive",
+          "joinKey": "WindowArrangementActive",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Control Panel\\Desktop"
+          ],
+          "valueName": "WindowArrangementActive",
+          "keyExistenceOnly": false,
+          "type": "String",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "WindowArrangementActive": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "1"
+              ],
+              "writePayload": "1"
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [],
+          "set": {
+            "WindowArrangementActive": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "0"
+              ],
+              "writePayload": "0"
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "explorer-snap-suggestions",
+      "feature": "Explorer",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "SnapAssist",
+          "joinKey": "SnapAssist",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
+          ],
+          "valueName": "SnapAssist",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "SnapAssist": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [],
+          "set": {
+            "SnapAssist": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "explorer-snap-layouts-maximize-button",
+      "feature": "Explorer",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 22000,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "EnableSnapAssistFlyout",
+          "joinKey": "EnableSnapAssistFlyout",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
+          ],
+          "valueName": "EnableSnapAssistFlyout",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "EnableSnapAssistFlyout": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [],
+          "set": {
+            "EnableSnapAssistFlyout": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "explorer-snap-layouts-top-of-screen",
+      "feature": "Explorer",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 22000,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "EnableSnapBar",
+          "joinKey": "EnableSnapBar",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
+          ],
+          "valueName": "EnableSnapBar",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "EnableSnapBar": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [],
+          "set": {
+            "EnableSnapBar": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "explorer-snap-groups-in-switchers",
+      "feature": "Explorer",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 22000,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "EnableTaskGroups",
+          "joinKey": "EnableTaskGroups",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
+          ],
+          "valueName": "EnableTaskGroups",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "EnableTaskGroups": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [],
+          "set": {
+            "EnableTaskGroups": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "explorer-snap-without-edge",
+      "feature": "Explorer",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 22000,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "DITest",
+          "joinKey": "DITest",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
+          ],
+          "valueName": "DITest",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "DITest": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [],
+          "set": {
+            "DITest": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
       "id": "explorer-customization-launch-to",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Selection",
       "contexts": [
         "Always"
@@ -3589,7 +4201,7 @@
     },
     {
       "id": "explorer-customization-browse-folders",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Selection",
       "contexts": [
         "Always"
@@ -3678,7 +4290,7 @@
     },
     {
       "id": "explorer-customization-click-items",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Selection",
       "contexts": [
         "Always"
@@ -3834,7 +4446,7 @@
     },
     {
       "id": "explorer-customization-show-recent-files",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -3965,7 +4577,7 @@
     },
     {
       "id": "explorer-customization-show-frequent-folders",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -4055,7 +4667,7 @@
     },
     {
       "id": "explorer-customization-show-office-files",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -4150,7 +4762,7 @@
     },
     {
       "id": "explorer-customization-show-thumbnails",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -4239,7 +4851,7 @@
     },
     {
       "id": "explorer-customization-show-menus",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -4335,7 +4947,7 @@
     },
     {
       "id": "explorer-customization-item-space",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -4431,7 +5043,7 @@
     },
     {
       "id": "explorer-customization-icon-thumbnails",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -4520,7 +5132,7 @@
     },
     {
       "id": "explorer-customization-icon-cache-size",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Selection",
       "contexts": [
         "Always"
@@ -4624,7 +5236,7 @@
     },
     {
       "id": "explorer-customization-thumbnail-cache-cleanup",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -4714,8 +5326,90 @@
       ]
     },
     {
+      "id": "explorer-customization-folder-type-discovery",
+      "feature": "Explorer",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "FolderType",
+          "joinKey": "FolderType",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\Bags\\AllFolders\\Shell"
+          ],
+          "valueName": "FolderType",
+          "keyExistenceOnly": false,
+          "type": "String",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "FolderType": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "FolderType": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "NotSpecified"
+              ],
+              "writePayload": "NotSpecified"
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
       "id": "explorer-customization-folder-tips",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -4802,7 +5496,7 @@
     },
     {
       "id": "explorer-customization-full-path",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -4892,7 +5586,7 @@
     },
     {
       "id": "explorer-customization-show-hidden-files",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -4983,7 +5677,7 @@
     },
     {
       "id": "explorer-customization-hide-empty-drives",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -5070,7 +5764,7 @@
     },
     {
       "id": "explorer-customization-show-file-ext",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -5160,7 +5854,7 @@
     },
     {
       "id": "explorer-customization-show-lnk-extension",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -5181,7 +5875,7 @@
           "appliesTo": [],
           "kind": "Registry",
           "paths": [
-            "HKEY_CLASSES_ROOT\\lnkfile"
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\lnkfile"
           ],
           "valueName": "NeverShowExt",
           "keyExistenceOnly": false,
@@ -5242,7 +5936,7 @@
     },
     {
       "id": "explorer-enable-photo-viewer",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -5329,7 +6023,7 @@
     },
     {
       "id": "explorer-customization-legacy-notepad",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -5464,7 +6158,7 @@
     },
     {
       "id": "explorer-customization-hide-merge-conflicts",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -5552,7 +6246,7 @@
     },
     {
       "id": "explorer-customization-hide-protected-files",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -5641,7 +6335,7 @@
     },
     {
       "id": "explorer-customization-separate-process",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -5730,7 +6424,7 @@
     },
     {
       "id": "explorer-customization-persist-browsers",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -5827,7 +6521,7 @@
     },
     {
       "id": "explorer-customization-show-drive-letters",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -5914,7 +6608,7 @@
     },
     {
       "id": "explorer-customization-compressed-color",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -6004,7 +6698,7 @@
     },
     {
       "id": "explorer-customization-popup-descriptions",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -6093,7 +6787,7 @@
     },
     {
       "id": "explorer-customization-preview-handlers",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -6181,7 +6875,7 @@
     },
     {
       "id": "explorer-customization-status-bar",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -6270,7 +6964,7 @@
     },
     {
       "id": "explorer-customization-disable-sync-provider-notifications",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -6358,7 +7052,7 @@
     },
     {
       "id": "explorer-customization-checkbox-select",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -6447,7 +7141,7 @@
     },
     {
       "id": "explorer-customization-sharing-wizard",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -6535,7 +7229,7 @@
     },
     {
       "id": "explorer-customization-typing-behavior",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Selection",
       "contexts": [
         "Always"
@@ -6624,7 +7318,7 @@
     },
     {
       "id": "explorer-customization-thispc-folder-desktop",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -6786,7 +7480,7 @@
     },
     {
       "id": "explorer-customization-thispc-folder-documents",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -6948,7 +7642,7 @@
     },
     {
       "id": "explorer-customization-thispc-folder-downloads",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -7110,7 +7804,7 @@
     },
     {
       "id": "explorer-customization-thispc-folder-music",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -7272,7 +7966,7 @@
     },
     {
       "id": "explorer-customization-thispc-folder-pictures",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -7434,7 +8128,7 @@
     },
     {
       "id": "explorer-customization-thispc-folder-videos",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -7596,7 +8290,7 @@
     },
     {
       "id": "explorer-customization-3d-objects",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -7690,7 +8384,7 @@
     },
     {
       "id": "explorer-customization-home-folder",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -7891,7 +8585,7 @@
     },
     {
       "id": "explorer-customization-gallery",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -8092,7 +8786,7 @@
     },
     {
       "id": "explorer-customization-show-availability-status",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -8189,7 +8883,7 @@
     },
     {
       "id": "explorer-customization-nav-expand-current",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -8278,7 +8972,7 @@
     },
     {
       "id": "explorer-customization-nav-show-all-folders",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -8375,7 +9069,7 @@
     },
     {
       "id": "explorer-customization-nav-saf-desktop",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -8501,7 +9195,7 @@
     },
     {
       "id": "explorer-customization-nav-saf-documents",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -8627,7 +9321,7 @@
     },
     {
       "id": "explorer-customization-nav-saf-downloads",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -8753,7 +9447,7 @@
     },
     {
       "id": "explorer-customization-nav-saf-music",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -8879,7 +9573,7 @@
     },
     {
       "id": "explorer-customization-nav-saf-pictures",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -9005,7 +9699,7 @@
     },
     {
       "id": "explorer-customization-nav-saf-videos",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -9131,7 +9825,7 @@
     },
     {
       "id": "explorer-customization-nav-show-libraries",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -9324,7 +10018,7 @@
     },
     {
       "id": "explorer-customization-duplicate-removable-drives",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -9411,7 +10105,7 @@
     },
     {
       "id": "explorer-long-file-paths",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -9501,7 +10195,7 @@
     },
     {
       "id": "explorer-customization-netplwiz-auto-login",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -9590,7 +10284,7 @@
     },
     {
       "id": "explorer-autoplay",
-      "feature": "ExplorerCustomization",
+      "feature": "Explorer",
       "control": "Toggle",
       "contexts": [
         "Always"
@@ -11552,6 +12246,95 @@
           "set": {
             "ShowTaskViewButton": {
               "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "taskbar-clock-seconds",
+      "feature": "Taskbar",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "ShowSecondsInSystemClock",
+          "joinKey": "ShowSecondsInSystemClock",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
+          ],
+          "valueName": "ShowSecondsInSystemClock",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "ShowSecondsInSystemClock": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "Recommended",
+              "context": "Always",
+              "appliesTo": []
+            },
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "ShowSecondsInSystemClock": {
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -13664,6 +14447,141 @@
       ]
     },
     {
+      "id": "start-shut-down-dialog-default",
+      "feature": "StartMenu",
+      "control": "Selection",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "Start_PowerButtonAction",
+          "joinKey": "Start_PowerButtonAction",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
+          ],
+          "valueName": "Start_PowerButtonAction",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Setting_start-shut-down-dialog-default_Option_0",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "Start_PowerButtonAction": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                2
+              ],
+              "writePayload": 2
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_start-shut-down-dialog-default_Option_1",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "Start_PowerButtonAction": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                4
+              ],
+              "writePayload": 4
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_start-shut-down-dialog-default_Option_2",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "Start_PowerButtonAction": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                16
+              ],
+              "writePayload": 16
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_start-shut-down-dialog-default_Option_3",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "Start_PowerButtonAction": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_start-shut-down-dialog-default_Option_4",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "Start_PowerButtonAction": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                256
+              ],
+              "writePayload": 256
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
       "id": "region-time-zone",
       "feature": "TimeRegionLanguage",
       "control": "KeyedSelection",
@@ -14443,6 +15361,213 @@
           "perMonitor": false
         },
         {
+          "key": "iDigits",
+          "joinKey": "iDigits",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Control Panel\\International"
+          ],
+          "valueName": "iDigits",
+          "keyExistenceOnly": false,
+          "type": "String",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "iLZero",
+          "joinKey": "iLZero",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Control Panel\\International"
+          ],
+          "valueName": "iLZero",
+          "keyExistenceOnly": false,
+          "type": "String",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "iCountry",
+          "joinKey": "iCountry",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Control Panel\\International"
+          ],
+          "valueName": "iCountry",
+          "keyExistenceOnly": false,
+          "type": "String",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "iPaperSize",
+          "joinKey": "iPaperSize",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Control Panel\\International"
+          ],
+          "valueName": "iPaperSize",
+          "keyExistenceOnly": false,
+          "type": "String",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "iCalendarType",
+          "joinKey": "iCalendarType",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Control Panel\\International"
+          ],
+          "valueName": "iCalendarType",
+          "keyExistenceOnly": false,
+          "type": "String",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "sLanguage",
+          "joinKey": "sLanguage",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Control Panel\\International"
+          ],
+          "valueName": "sLanguage",
+          "keyExistenceOnly": false,
+          "type": "String",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "sNativeDigits",
+          "joinKey": "sNativeDigits",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Control Panel\\International"
+          ],
+          "valueName": "sNativeDigits",
+          "keyExistenceOnly": false,
+          "type": "String",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "NumShape",
+          "joinKey": "NumShape",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Control Panel\\International"
+          ],
+          "valueName": "NumShape",
+          "keyExistenceOnly": false,
+          "type": "String",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "sPositiveSign",
+          "joinKey": "sPositiveSign",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Control Panel\\International"
+          ],
+          "valueName": "sPositiveSign",
+          "keyExistenceOnly": false,
+          "type": "String",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
           "key": "format-element",
           "joinKey": "format-element",
           "appliesTo": [],
@@ -14513,6 +15638,55 @@
           "compositeStringKey": null,
           "perNetworkInterface": false,
           "perMonitor": false
+        }
+      ],
+      "states": []
+    },
+    {
+      "id": "region-display-language",
+      "feature": "TimeRegionLanguage",
+      "control": "KeyedSelection",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": "DisplayLanguages",
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "PreferredUILanguages",
+          "joinKey": "PreferredUILanguages",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Control Panel\\Desktop"
+          ],
+          "valueName": "PreferredUILanguages",
+          "keyExistenceOnly": false,
+          "type": "MultiString",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "ui-language-element",
+          "joinKey": "ui-language-element",
+          "appliesTo": [],
+          "kind": "AutounattendElement"
         }
       ],
       "states": []
@@ -14704,12 +15878,12 @@
     {
       "id": "explorer-customization-short-date",
       "feature": "TimeRegionLanguage",
-      "control": "Selection",
+      "control": "KeyedSelection",
       "contexts": [
         "Always"
       ],
       "detector": null,
-      "optionSource": null,
+      "optionSource": "LocaleValues",
       "availability": {
         "builds": [],
         "hardware": [],
@@ -14742,93 +15916,7 @@
           "perMonitor": false
         }
       ],
-      "states": [
-        {
-          "label": "Setting_explorer-customization-short-date_Option_0",
-          "isFallback": false,
-          "roles": [],
-          "set": {
-            "sShortDate": {
-              "acceptsAbsent": true,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": false,
-              "values": [
-                "M/d/yyyy"
-              ],
-              "writePayload": "M/d/yyyy"
-            }
-          },
-          "resetSet": null
-        },
-        {
-          "label": "Setting_explorer-customization-short-date_Option_1",
-          "isFallback": false,
-          "roles": [],
-          "set": {
-            "sShortDate": {
-              "acceptsAbsent": false,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": false,
-              "values": [
-                "dd/MM/yyyy"
-              ],
-              "writePayload": "dd/MM/yyyy"
-            }
-          },
-          "resetSet": null
-        },
-        {
-          "label": "Setting_explorer-customization-short-date_Option_2",
-          "isFallback": false,
-          "roles": [],
-          "set": {
-            "sShortDate": {
-              "acceptsAbsent": false,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": false,
-              "values": [
-                "yyyy-MM-dd"
-              ],
-              "writePayload": "yyyy-MM-dd"
-            }
-          },
-          "resetSet": null
-        },
-        {
-          "label": "Setting_explorer-customization-short-date_Option_3",
-          "isFallback": false,
-          "roles": [],
-          "set": {
-            "sShortDate": {
-              "acceptsAbsent": false,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": false,
-              "values": [
-                "yyyy/MM/dd"
-              ],
-              "writePayload": "yyyy/MM/dd"
-            }
-          },
-          "resetSet": null
-        },
-        {
-          "label": "Setting_explorer-customization-short-date_Option_4",
-          "isFallback": false,
-          "roles": [],
-          "set": {
-            "sShortDate": {
-              "acceptsAbsent": false,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": false,
-              "values": [
-                "dd MMM yyyy"
-              ],
-              "writePayload": "dd MMM yyyy"
-            }
-          },
-          "resetSet": null
-        }
-      ]
+      "states": []
     },
     {
       "id": "explorer-customization-first-day-of-week",
@@ -17328,6 +18416,170 @@
                 0
               ],
               "writePayload": 0
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_updates-policy-mode_Option_4",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "AUOptions": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                2
+              ],
+              "writePayload": 2
+            },
+            "AlwaysAutoRebootAtScheduledTime": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "AutoInstallMinorUpdates": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "BranchReadinessLevel": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "DeferFeatureUpdates": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "DeferFeatureUpdatesPeriodInDays": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "DeferQualityUpdates": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "DeferQualityUpdatesPeriodInDays": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "FlightSettingsMaxPauseDays": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "NoAUShutdownOption": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "NoAutoUpdate": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "PauseFeatureUpdatesEndTime": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "PauseFeatureUpdatesStartTime": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "PauseQualityUpdatesEndTime": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "PauseQualityUpdatesStartTime": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "PauseUpdatesExpiryTime": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "PauseUpdatesStartTime": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "PausedFeatureDate": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "PausedFeatureStatus": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "PausedQualityDate": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "PausedQualityStatus": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "UseWUServer": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
             }
           },
           "resetSet": null
@@ -22102,6 +23354,11 @@
           "isFallback": false,
           "roles": [
             {
+              "kind": "Recommended",
+              "context": "Always",
+              "appliesTo": []
+            },
+            {
               "kind": "WindowsDefault",
               "context": "Always",
               "appliesTo": []
@@ -22123,13 +23380,7 @@
         {
           "label": "Common_Disabled",
           "isFallback": true,
-          "roles": [
-            {
-              "kind": "Recommended",
-              "context": "Always",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "DirectXUserGlobalSettings": {
               "acceptsAbsent": false,
@@ -23136,7 +24387,7 @@
       "contexts": [
         "Always"
       ],
-      "detector": "DnsServerDetector",
+      "detector": null,
       "optionSource": null,
       "availability": {
         "builds": [],
@@ -23145,7 +24396,104 @@
         "requiresAdvancedUnlock": false
       },
       "numeric": null,
-      "targets": [],
+      "targets": [
+        {
+          "key": "primary",
+          "joinKey": "primary",
+          "appliesTo": [],
+          "kind": "DnsTarget"
+        },
+        {
+          "key": "primaryDoh",
+          "joinKey": "primaryDoh",
+          "appliesTo": [],
+          "kind": "DnsTarget"
+        },
+        {
+          "key": "primaryTemplate",
+          "joinKey": "primaryTemplate",
+          "appliesTo": [],
+          "kind": "DnsTarget"
+        },
+        {
+          "key": "primaryFallback",
+          "joinKey": "primaryFallback",
+          "appliesTo": [],
+          "kind": "DnsTarget"
+        },
+        {
+          "key": "secondary",
+          "joinKey": "secondary",
+          "appliesTo": [],
+          "kind": "DnsTarget"
+        },
+        {
+          "key": "secondaryDoh",
+          "joinKey": "secondaryDoh",
+          "appliesTo": [],
+          "kind": "DnsTarget"
+        },
+        {
+          "key": "secondaryTemplate",
+          "joinKey": "secondaryTemplate",
+          "appliesTo": [],
+          "kind": "DnsTarget"
+        },
+        {
+          "key": "secondaryFallback",
+          "joinKey": "secondaryFallback",
+          "appliesTo": [],
+          "kind": "DnsTarget"
+        },
+        {
+          "key": "primary6",
+          "joinKey": "primary6",
+          "appliesTo": [],
+          "kind": "DnsTarget"
+        },
+        {
+          "key": "primary6Doh",
+          "joinKey": "primary6Doh",
+          "appliesTo": [],
+          "kind": "DnsTarget"
+        },
+        {
+          "key": "primary6Template",
+          "joinKey": "primary6Template",
+          "appliesTo": [],
+          "kind": "DnsTarget"
+        },
+        {
+          "key": "primary6Fallback",
+          "joinKey": "primary6Fallback",
+          "appliesTo": [],
+          "kind": "DnsTarget"
+        },
+        {
+          "key": "secondary6",
+          "joinKey": "secondary6",
+          "appliesTo": [],
+          "kind": "DnsTarget"
+        },
+        {
+          "key": "secondary6Doh",
+          "joinKey": "secondary6Doh",
+          "appliesTo": [],
+          "kind": "DnsTarget"
+        },
+        {
+          "key": "secondary6Template",
+          "joinKey": "secondary6Template",
+          "appliesTo": [],
+          "kind": "DnsTarget"
+        },
+        {
+          "key": "secondary6Fallback",
+          "joinKey": "secondary6Fallback",
+          "appliesTo": [],
+          "kind": "DnsTarget"
+        }
+      ],
       "states": [
         {
           "label": "Setting_gaming-dns-server_Option_0",
@@ -23162,70 +24510,276 @@
               "appliesTo": []
             }
           ],
-          "set": {},
+          "set": {
+            "primary": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "primary6": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "secondary": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "secondary6": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          },
           "resetSet": null
         },
         {
           "label": "Setting_gaming-dns-server_Option_1",
           "isFallback": false,
           "roles": [],
-          "set": {},
+          "set": {
+            "primary": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "1.1.1.1"
+              ],
+              "writePayload": "1.1.1.1"
+            },
+            "primary6": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "secondary": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "1.0.0.1"
+              ],
+              "writePayload": "1.0.0.1"
+            },
+            "secondary6": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          },
           "resetSet": null
         },
         {
           "label": "Setting_gaming-dns-server_Option_2",
           "isFallback": false,
           "roles": [],
-          "set": {},
+          "set": {
+            "primary": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "1.1.1.2"
+              ],
+              "writePayload": "1.1.1.2"
+            },
+            "primary6": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "secondary": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "1.0.0.2"
+              ],
+              "writePayload": "1.0.0.2"
+            },
+            "secondary6": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          },
           "resetSet": null
         },
         {
           "label": "Setting_gaming-dns-server_Option_3",
           "isFallback": false,
           "roles": [],
-          "set": {},
+          "set": {
+            "primary": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "1.1.1.3"
+              ],
+              "writePayload": "1.1.1.3"
+            },
+            "primary6": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "secondary": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "1.0.0.3"
+              ],
+              "writePayload": "1.0.0.3"
+            },
+            "secondary6": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          },
           "resetSet": null
         },
         {
           "label": "Setting_gaming-dns-server_Option_4",
           "isFallback": false,
           "roles": [],
-          "set": {},
+          "set": {
+            "primary": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "8.8.8.8"
+              ],
+              "writePayload": "8.8.8.8"
+            },
+            "primary6": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "secondary": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "8.8.4.4"
+              ],
+              "writePayload": "8.8.4.4"
+            },
+            "secondary6": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          },
           "resetSet": null
         },
         {
           "label": "Setting_gaming-dns-server_Option_5",
           "isFallback": false,
           "roles": [],
-          "set": {},
+          "set": {
+            "primary": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "9.9.9.9"
+              ],
+              "writePayload": "9.9.9.9"
+            },
+            "primary6": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "secondary": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "149.112.112.112"
+              ],
+              "writePayload": "149.112.112.112"
+            },
+            "secondary6": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          },
           "resetSet": null
         },
         {
           "label": "Setting_gaming-dns-server_Option_6",
           "isFallback": false,
           "roles": [],
-          "set": {},
-          "resetSet": null
-        },
-        {
-          "label": "Setting_gaming-dns-server_Option_7",
-          "isFallback": false,
-          "roles": [],
-          "set": {},
-          "resetSet": null
-        },
-        {
-          "label": "Setting_gaming-dns-server_Option_8",
-          "isFallback": false,
-          "roles": [],
-          "set": {},
-          "resetSet": null
-        },
-        {
-          "label": "Setting_gaming-dns-server_Option_9",
-          "isFallback": false,
-          "roles": [],
-          "set": {},
+          "set": {
+            "primary": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "208.67.222.222"
+              ],
+              "writePayload": "208.67.222.222"
+            },
+            "primary6": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "secondary": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "208.67.220.220"
+              ],
+              "writePayload": "208.67.220.220"
+            },
+            "secondary6": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          },
           "resetSet": null
         }
       ]
@@ -32003,6 +33557,177 @@
       ]
     },
     {
+      "id": "security-wpbt-execution",
+      "feature": "Privacy",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "DisableWpbtExecution",
+          "joinKey": "DisableWpbtExecution",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager"
+          ],
+          "valueName": "DisableWpbtExecution",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "Recommended",
+              "context": "Always",
+              "appliesTo": []
+            },
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "DisableWpbtExecution": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [],
+          "set": {
+            "DisableWpbtExecution": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "security-defender-scheduled-scan",
+      "feature": "Privacy",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "ScheduleDay",
+          "joinKey": "ScheduleDay",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Scan"
+          ],
+          "valueName": "ScheduleDay",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": true,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "ScheduleDay": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [],
+          "set": {
+            "ScheduleDay": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                8
+              ],
+              "writePayload": 8
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
       "id": "security-wifi-sense",
       "feature": "Privacy",
       "control": "Toggle",
@@ -33663,6 +35388,29 @@
           "compositeStringKey": null,
           "perNetworkInterface": false,
           "perMonitor": false
+        },
+        {
+          "key": "SubscribedContent-338387Enabled",
+          "joinKey": "SubscribedContent-338387Enabled",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager"
+          ],
+          "valueName": "SubscribedContent-338387Enabled",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": true,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
         }
       ],
       "states": [
@@ -33678,6 +35426,15 @@
           ],
           "set": {
             "RotatingLockScreenEnabled": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            },
+            "SubscribedContent-338387Enabled": {
               "acceptsAbsent": false,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
@@ -33701,6 +35458,15 @@
           ],
           "set": {
             "RotatingLockScreenEnabled": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            },
+            "SubscribedContent-338387Enabled": {
               "acceptsAbsent": false,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
@@ -33753,29 +35519,6 @@
           "compositeStringKey": null,
           "perNetworkInterface": false,
           "perMonitor": false
-        },
-        {
-          "key": "SubscribedContent-338387Enabled",
-          "joinKey": "SubscribedContent-338387Enabled",
-          "appliesTo": [],
-          "kind": "Registry",
-          "paths": [
-            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager"
-          ],
-          "valueName": "SubscribedContent-338387Enabled",
-          "keyExistenceOnly": false,
-          "type": "DWord",
-          "isGroupPolicy": false,
-          "applyOnly": true,
-          "lockWhenValue": null,
-          "byteIndex": null,
-          "bitMask": null,
-          "stringFlagMask": null,
-          "stringFlagAbsentBase": 0,
-          "byteOnly": false,
-          "compositeStringKey": null,
-          "perNetworkInterface": false,
-          "perMonitor": false
         }
       ],
       "states": [
@@ -33798,15 +35541,6 @@
                 1
               ],
               "writePayload": 1
-            },
-            "SubscribedContent-338387Enabled": {
-              "acceptsAbsent": false,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": false,
-              "values": [
-                1
-              ],
-              "writePayload": 1
             }
           },
           "resetSet": null
@@ -33823,15 +35557,6 @@
           ],
           "set": {
             "RotatingLockScreenOverlayEnabled": {
-              "acceptsAbsent": false,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": false,
-              "values": [
-                0
-              ],
-              "writePayload": 0
-            },
-            "SubscribedContent-338387Enabled": {
               "acceptsAbsent": false,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
@@ -38769,6 +40494,103 @@
           ],
           "set": {
             "DisableCocreator": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "privacy-notepad-ai-features",
+      "feature": "Privacy",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 22000,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "DisableAIFeatures",
+          "joinKey": "DisableAIFeatures",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\WindowsNotepad"
+          ],
+          "valueName": "DisableAIFeatures",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": true,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "DisableAIFeatures": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "Recommended",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "DisableAIFeatures": {
               "acceptsAbsent": false,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
@@ -44984,6 +46806,23 @@
                 1
               ],
               "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Template_MediaSharing_Option_2",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "Power": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                2
+              ],
+              "writePayload": 2
             }
           },
           "resetSet": null

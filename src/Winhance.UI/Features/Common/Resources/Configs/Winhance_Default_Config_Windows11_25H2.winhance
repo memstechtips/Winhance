@@ -441,7 +441,7 @@
   "Customize": {
     "IsIncluded": true,
     "Features": {
-      "ExplorerCustomization": {
+      "Explorer": {
         "IsIncluded": true,
         "Items": [
           {
@@ -511,6 +511,12 @@
             "InputType": 0
           },
           {
+            "Id": "explorer-context-menu-ask-copilot",
+            "Name": "Setting_explorer-context-menu-ask-copilot_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-context-menu-sfc",
             "Name": "Setting_explorer-context-menu-sfc_Name",
             "IsSelected": false,
@@ -555,6 +561,42 @@
           {
             "Id": "devices-default-printer-management",
             "Name": "Setting_devices-default-printer-management_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-snap-windows",
+            "Name": "Setting_explorer-snap-windows_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-snap-suggestions",
+            "Name": "Setting_explorer-snap-suggestions_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-snap-layouts-maximize-button",
+            "Name": "Setting_explorer-snap-layouts-maximize-button_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-snap-layouts-top-of-screen",
+            "Name": "Setting_explorer-snap-layouts-top-of-screen_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-snap-groups-in-switchers",
+            "Name": "Setting_explorer-snap-groups-in-switchers_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-snap-without-edge",
+            "Name": "Setting_explorer-snap-without-edge_Name",
             "IsSelected": true,
             "InputType": 0
           },
@@ -621,6 +663,12 @@
           {
             "Id": "explorer-customization-thumbnail-cache-cleanup",
             "Name": "Setting_explorer-customization-thumbnail-cache-cleanup_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-folder-type-discovery",
+            "Name": "Setting_explorer-customization-folder-type-discovery_Name",
             "IsSelected": true,
             "InputType": 0
           },
@@ -934,6 +982,12 @@
             "Name": "Setting_start-disable-bing-search-results_Name",
             "IsSelected": true,
             "InputType": 0
+          },
+          {
+            "Id": "start-shut-down-dialog-default",
+            "Name": "Setting_start-shut-down-dialog-default_Name",
+            "InputType": 1,
+            "SelectedIndex": 0
           }
         ]
       },
@@ -1028,6 +1082,12 @@
             "Id": "taskbar-task-view",
             "Name": "Setting_taskbar-task-view_Name",
             "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "taskbar-clock-seconds",
+            "Name": "Setting_taskbar-clock-seconds_Name",
+            "IsSelected": false,
             "InputType": 0
           },
           {
@@ -2365,6 +2425,18 @@
             "InputType": 0
           },
           {
+            "Id": "security-wpbt-execution",
+            "Name": "Setting_security-wpbt-execution_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "security-defender-scheduled-scan",
+            "Name": "Setting_security-defender-scheduled-scan_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
             "Id": "security-automatic-maintenance",
             "Name": "Setting_security-automatic-maintenance_Name",
             "IsSelected": true,
@@ -2721,6 +2793,12 @@
           {
             "Id": "privacy-disable-paint-ai-cocreator",
             "Name": "Setting_privacy-disable-paint-ai-cocreator_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-notepad-ai-features",
+            "Name": "Setting_privacy-notepad-ai-features_Name",
             "IsSelected": true,
             "InputType": 0
           },

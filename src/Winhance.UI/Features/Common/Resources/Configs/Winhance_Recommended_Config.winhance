@@ -584,7 +584,7 @@
         "Name": "UniGetUI",
         "IsSelected": true,
         "InputType": 0,
-        "WinGetPackageId": "MartiCliment.UniGetUI"
+        "WinGetPackageId": "Devolutions.UniGetUI"
       },
       {
         "Id": "external-app-notepadplusplus",
@@ -598,7 +598,7 @@
   "Customize": {
     "IsIncluded": true,
     "Features": {
-      "ExplorerCustomization": {
+      "Explorer": {
         "IsIncluded": true,
         "Items": [
           {
@@ -737,6 +737,12 @@
             "Id": "explorer-context-menu-windows-terminal",
             "Name": "Show 'Open in Windows Terminal' in Context Menu",
             "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-context-menu-ask-copilot",
+            "Name": "Show 'Ask Copilot' in Context Menu",
+            "IsSelected": false,
             "InputType": 0
           },
           {
@@ -1281,6 +1287,12 @@
             "InputType": 0
           },
           {
+            "Id": "taskbar-clock-seconds",
+            "Name": "Show seconds in the taskbar clock",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "taskbar-copilot",
             "Name": "Copilot Preview Button",
             "IsSelected": false,
@@ -1521,8 +1533,8 @@
           },
           {
             "Id": "gaming-directx-vrr-optimizations",
-            "Name": "Variable Refresh Rate",
-            "IsSelected": false,
+            "Name": "Variable refresh rate for older games",
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -2526,6 +2538,12 @@
             "InputType": 0
           },
           {
+            "Id": "security-wpbt-execution",
+            "Name": "Firmware Startup Programs (WPBT)",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
             "Id": "security-wifi-sense",
             "Name": "WiFi-Sense",
             "IsSelected": false,
@@ -2813,6 +2831,7 @@
           { "Id": "privacy-deny-copilot-microphone", "Name": "Copilot Microphone Access", "IsSelected": false, "InputType": 0 },
           { "Id": "privacy-disable-paint-ai-image-creator", "Name": "Paint AI Image Creator", "IsSelected": false, "InputType": 0 },
           { "Id": "privacy-disable-paint-ai-cocreator", "Name": "Paint AI Cocreator", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-notepad-ai-features", "Name": "Notepad AI Features", "IsSelected": false, "InputType": 0 },
           { "Id": "privacy-disable-paint-generative-fill", "Name": "Paint Generative Fill", "IsSelected": false, "InputType": 0 },
           { "Id": "privacy-disable-paint-generative-erase", "Name": "Paint Generative Erase", "IsSelected": false, "InputType": 0 },
           { "Id": "privacy-disable-paint-remove-background", "Name": "Paint Remove Background", "IsSelected": false, "InputType": 0 },
