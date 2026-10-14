@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "winhanceVersion": "26.10.06",
-  "catalogHash": "602e2b4111f81abbb410083c247c66477e91b02703645ce4c573460e247ab744",
-  "settingCount": 469,
+  "winhanceVersion": "26.10.14",
+  "catalogHash": "a3728752c3e714bc78579e03c57db73f0e4774f264f0f4c47c45d2e1e7978c14",
+  "settingCount": 470,
   "referenceBuilds": {
     "win10": 19045,
     "win11": 26100
@@ -8658,17 +8658,17 @@
           "matrixWin10": null
         },
         {
-          "id": "explorer-customization-folder-type-discovery",
-          "name": "Automatic folder views",
-          "description": "Windows picks each folder\u0027s view from what is in it, so a folder of pictures or videos opens as large icons. Turn this off and folders open as General items in Details view, unless you already set a view for that folder.",
+          "id": "explorer-customization-folder-view",
+          "name": "Folder view",
+          "description": "Sets the view every folder opens in. Automatic lets Windows pick a view from what is in each folder. Changing this resets the views you set on individual folders",
           "group": "Files and Folders",
           "icon": {
             "pack": "Material",
             "name": "FolderTable"
           },
-          "control": "Toggle",
+          "control": "Selection",
           "isSubjectivePreference": true,
-          "addedInVersion": "26.10.02",
+          "addedInVersion": "26.10.14",
           "uiParentId": null,
           "availability": {
             "builds": [],
@@ -8699,6 +8699,35 @@
                 "openRegeditTooltip": "Open in Registry Editor",
                 "hasPaths": true,
                 "canOpenRegedit": true
+              },
+              {
+                "label": "Registry",
+                "kind": "Registry",
+                "description": "Read to determine which option is active, and written when you apply one.",
+                "paths": [
+                  {
+                    "full": "HKEY_CURRENT_USER\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\Bags\\AllFolders\\Shell\\{5C4F28B5-F869-4E84-8E60-F11DB97C5CC7}",
+                    "label": "Path",
+                    "hasLabel": true,
+                    "display": "HKCU\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\Bags\\AllFolders\\Shell\\{5C4F28B5-F869-4E84-8E60-F11DB97C5CC7}"
+                  }
+                ],
+                "startColumn": 1,
+                "columnSpan": 3,
+                "openRegeditTooltip": "Open in Registry Editor",
+                "hasPaths": true,
+                "canOpenRegedit": true
+              },
+              {
+                "label": "Also runs",
+                "kind": "AlsoRuns",
+                "description": "",
+                "paths": [],
+                "startColumn": 4,
+                "columnSpan": 1,
+                "openRegeditTooltip": "",
+                "hasPaths": false,
+                "canOpenRegedit": false
               }
             ],
             "columns": [
@@ -8710,16 +8739,72 @@
                 "headerTooltip": "",
                 "hasType": true,
                 "hasChips": false
+              },
+              {
+                "header": "Mode",
+                "typeName": "DWord",
+                "kind": "Value",
+                "chips": [],
+                "headerTooltip": "",
+                "hasType": true,
+                "hasChips": false
+              },
+              {
+                "header": "LogicalViewMode",
+                "typeName": "DWord",
+                "kind": "Value",
+                "chips": [],
+                "headerTooltip": "",
+                "hasType": true,
+                "hasChips": false
+              },
+              {
+                "header": "IconSize",
+                "typeName": "DWord",
+                "kind": "Value",
+                "chips": [],
+                "headerTooltip": "",
+                "hasType": true,
+                "hasChips": false
+              },
+              {
+                "header": "Script",
+                "typeName": "",
+                "kind": "Script",
+                "chips": [],
+                "headerTooltip": "",
+                "hasType": false,
+                "hasChips": false
               }
             ],
             "options": [
               {
-                "label": "On",
+                "label": "Automatic",
                 "cells": [
                   {
                     "text": "deletes key",
                     "isCheck": false,
                     "hasText": true
+                  },
+                  {
+                    "text": "deletes key",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "deletes key",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "deletes key",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "",
+                    "isCheck": true,
+                    "hasText": false
                   }
                 ],
                 "isCurrent": false,
@@ -8730,15 +8815,287 @@
                 "defaultContext": ""
               },
               {
-                "label": "Off",
+                "label": "Extra large icons",
                 "cells": [
                   {
                     "text": "NotSpecified",
                     "isCheck": false,
                     "hasText": true
+                  },
+                  {
+                    "text": "1",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "3",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "256",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "",
+                    "isCheck": true,
+                    "hasText": false
                   }
                 ],
-                "isCurrent": true,
+                "isCurrent": false,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "Large icons",
+                "cells": [
+                  {
+                    "text": "NotSpecified",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "1",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "3",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "96",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "",
+                    "isCheck": true,
+                    "hasText": false
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "Medium icons",
+                "cells": [
+                  {
+                    "text": "NotSpecified",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "1",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "3",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "48",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "",
+                    "isCheck": true,
+                    "hasText": false
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "Small icons",
+                "cells": [
+                  {
+                    "text": "NotSpecified",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "1",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "3",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "16",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "",
+                    "isCheck": true,
+                    "hasText": false
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "List",
+                "cells": [
+                  {
+                    "text": "NotSpecified",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "3",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "4",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "16",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "",
+                    "isCheck": true,
+                    "hasText": false
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "Details",
+                "cells": [
+                  {
+                    "text": "NotSpecified",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "4",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "1",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "16",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "",
+                    "isCheck": true,
+                    "hasText": false
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "Tiles",
+                "cells": [
+                  {
+                    "text": "NotSpecified",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "6",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "2",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "48",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "",
+                    "isCheck": true,
+                    "hasText": false
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "Content",
+                "cells": [
+                  {
+                    "text": "NotSpecified",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "8",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "5",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "32",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "",
+                    "isCheck": true,
+                    "hasText": false
+                  }
+                ],
+                "isCurrent": false,
                 "isRecommended": false,
                 "isWindowsDefault": false,
                 "currentContext": "",
@@ -8756,6 +9113,13 @@
             "settingDescription": "Selecting an option makes the changes shown to the right.",
             "requirements": [
               {
+                "text": "Asks you to confirm before it runs",
+                "tooltip": "Prompts before applying this setting",
+                "linkSettingId": "",
+                "linkText": "",
+                "hasLink": false
+              },
+              {
                 "text": "Explorer restart",
                 "tooltip": "Explorer has to restart for this to take effect. Winhance offers that in a bar at the bottom of the window once you have applied it, so you choose when.",
                 "linkSettingId": "",
@@ -8767,11 +9131,75 @@
             "optionLinksHeading": "Also sets",
             "hasOptionLinks": false,
             "notes": [],
-            "notesHeading": "Also happens when you apply",
+            "notesHeading": "Also happens when you apply, if you agree to the prompt",
             "notesDetailHeader": "Details",
             "hasNotes": false,
-            "codeBlocks": [],
-            "hasCode": false,
+            "codeBlocks": [
+              {
+                "heading": "PowerShell Scripts",
+                "label": "When set to Automatic",
+                "body": "\r\n$shell = \u0027HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\u0027\r\nGet-ChildItem \u0022$shell\\Bags\u0022 -ErrorAction SilentlyContinue | Where-Object PSChildName -ne \u0027AllFolders\u0027 | Remove-Item -Recurse -Force\r\nRemove-Item \u0022$shell\\BagMRU\u0022 -Recurse -Force -ErrorAction SilentlyContinue",
+                "kind": "PowerShell",
+                "description": "Winhance runs this script when you apply the matching option."
+              },
+              {
+                "heading": "PowerShell Scripts",
+                "label": "When set to Extra large icons",
+                "body": "\r\n$shell = \u0027HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\u0027\r\nGet-ChildItem \u0022$shell\\Bags\u0022 -ErrorAction SilentlyContinue | Where-Object PSChildName -ne \u0027AllFolders\u0027 | Remove-Item -Recurse -Force\r\nRemove-Item \u0022$shell\\BagMRU\u0022 -Recurse -Force -ErrorAction SilentlyContinue",
+                "kind": "PowerShell",
+                "description": "Winhance runs this script when you apply the matching option."
+              },
+              {
+                "heading": "PowerShell Scripts",
+                "label": "When set to Large icons",
+                "body": "\r\n$shell = \u0027HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\u0027\r\nGet-ChildItem \u0022$shell\\Bags\u0022 -ErrorAction SilentlyContinue | Where-Object PSChildName -ne \u0027AllFolders\u0027 | Remove-Item -Recurse -Force\r\nRemove-Item \u0022$shell\\BagMRU\u0022 -Recurse -Force -ErrorAction SilentlyContinue",
+                "kind": "PowerShell",
+                "description": "Winhance runs this script when you apply the matching option."
+              },
+              {
+                "heading": "PowerShell Scripts",
+                "label": "When set to Medium icons",
+                "body": "\r\n$shell = \u0027HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\u0027\r\nGet-ChildItem \u0022$shell\\Bags\u0022 -ErrorAction SilentlyContinue | Where-Object PSChildName -ne \u0027AllFolders\u0027 | Remove-Item -Recurse -Force\r\nRemove-Item \u0022$shell\\BagMRU\u0022 -Recurse -Force -ErrorAction SilentlyContinue",
+                "kind": "PowerShell",
+                "description": "Winhance runs this script when you apply the matching option."
+              },
+              {
+                "heading": "PowerShell Scripts",
+                "label": "When set to Small icons",
+                "body": "\r\n$shell = \u0027HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\u0027\r\nGet-ChildItem \u0022$shell\\Bags\u0022 -ErrorAction SilentlyContinue | Where-Object PSChildName -ne \u0027AllFolders\u0027 | Remove-Item -Recurse -Force\r\nRemove-Item \u0022$shell\\BagMRU\u0022 -Recurse -Force -ErrorAction SilentlyContinue",
+                "kind": "PowerShell",
+                "description": "Winhance runs this script when you apply the matching option."
+              },
+              {
+                "heading": "PowerShell Scripts",
+                "label": "When set to List",
+                "body": "\r\n$shell = \u0027HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\u0027\r\nGet-ChildItem \u0022$shell\\Bags\u0022 -ErrorAction SilentlyContinue | Where-Object PSChildName -ne \u0027AllFolders\u0027 | Remove-Item -Recurse -Force\r\nRemove-Item \u0022$shell\\BagMRU\u0022 -Recurse -Force -ErrorAction SilentlyContinue",
+                "kind": "PowerShell",
+                "description": "Winhance runs this script when you apply the matching option."
+              },
+              {
+                "heading": "PowerShell Scripts",
+                "label": "When set to Details",
+                "body": "\r\n$shell = \u0027HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\u0027\r\nGet-ChildItem \u0022$shell\\Bags\u0022 -ErrorAction SilentlyContinue | Where-Object PSChildName -ne \u0027AllFolders\u0027 | Remove-Item -Recurse -Force\r\nRemove-Item \u0022$shell\\BagMRU\u0022 -Recurse -Force -ErrorAction SilentlyContinue",
+                "kind": "PowerShell",
+                "description": "Winhance runs this script when you apply the matching option."
+              },
+              {
+                "heading": "PowerShell Scripts",
+                "label": "When set to Tiles",
+                "body": "\r\n$shell = \u0027HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\u0027\r\nGet-ChildItem \u0022$shell\\Bags\u0022 -ErrorAction SilentlyContinue | Where-Object PSChildName -ne \u0027AllFolders\u0027 | Remove-Item -Recurse -Force\r\nRemove-Item \u0022$shell\\BagMRU\u0022 -Recurse -Force -ErrorAction SilentlyContinue",
+                "kind": "PowerShell",
+                "description": "Winhance runs this script when you apply the matching option."
+              },
+              {
+                "heading": "PowerShell Scripts",
+                "label": "When set to Content",
+                "body": "\r\n$shell = \u0027HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\u0027\r\nGet-ChildItem \u0022$shell\\Bags\u0022 -ErrorAction SilentlyContinue | Where-Object PSChildName -ne \u0027AllFolders\u0027 | Remove-Item -Recurse -Force\r\nRemove-Item \u0022$shell\\BagMRU\u0022 -Recurse -Force -ErrorAction SilentlyContinue",
+                "kind": "PowerShell",
+                "description": "Winhance runs this script when you apply the matching option."
+              }
+            ],
+            "hasCode": true,
             "readingLabel": "",
             "readingCells": [],
             "hasReading": false,
@@ -8781,7 +9209,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: FolderType deletes key (Default). Off: FolderType NotSpecified, Current. Registry: HKEY_CURRENT_USER\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\Bags\\AllFolders\\Shell."
+            "accessibleSummary": "Automatic: FolderType deletes key, Mode deletes key, LogicalViewMode deletes key, IconSize deletes key, Script Current (Default). Extra large icons: FolderType NotSpecified, Mode 1, LogicalViewMode 3, IconSize 256, Script Current. Large icons: FolderType NotSpecified, Mode 1, LogicalViewMode 3, IconSize 96, Script Current. Medium icons: FolderType NotSpecified, Mode 1, LogicalViewMode 3, IconSize 48, Script Current. Small icons: FolderType NotSpecified, Mode 1, LogicalViewMode 3, IconSize 16, Script Current. List: FolderType NotSpecified, Mode 3, LogicalViewMode 4, IconSize 16, Script Current. Details: FolderType NotSpecified, Mode 4, LogicalViewMode 1, IconSize 16, Script Current. Tiles: FolderType NotSpecified, Mode 6, LogicalViewMode 2, IconSize 48, Script Current. Content: FolderType NotSpecified, Mode 8, LogicalViewMode 5, IconSize 32, Script Current. Registry: HKEY_CURRENT_USER\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\Bags\\AllFolders\\Shell. Registry: HKEY_CURRENT_USER\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\Bags\\AllFolders\\Shell\\{5C4F28B5-F869-4E84-8E60-F11DB97C5CC7}."
           },
           "matrixWin10": null
         },
@@ -9896,6 +10324,256 @@
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
             "accessibleSummary": "On: NoOpenWith deletes key, UseFilter 0, Script Current. Off: NoOpenWith \u0022\u0022, UseFilter 1, Script  (Recommended, Default), Current. Registry: HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\Applications\\notepad.exe. Registry: HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\notepad.exe."
+          },
+          "matrixWin10": null
+        },
+        {
+          "id": "explorer-customization-notepad-word-wrap",
+          "name": "Notepad word wrap",
+          "description": "Wraps long lines to fit the window in legacy Notepad. The Store version of Notepad ignores this setting",
+          "group": "File Associations",
+          "icon": {
+            "pack": "Material",
+            "name": "Wrap"
+          },
+          "control": "Toggle",
+          "isSubjectivePreference": true,
+          "addedInVersion": "26.10.14",
+          "uiParentId": "explorer-customization-legacy-notepad",
+          "availability": {
+            "builds": [
+              {
+                "min": "22000.0",
+                "max": "*"
+              }
+            ],
+            "hardware": [],
+            "requiresAdvancedUnlock": false,
+            "message": {
+              "win10": "This setting applies to Windows 11 only",
+              "win11": null
+            }
+          },
+          "optionWarnings": [],
+          "matrix": {
+            "groups": [
+              {
+                "label": "Registry",
+                "kind": "Registry",
+                "description": "Read to determine which option is active, and written when you apply one.",
+                "paths": [
+                  {
+                    "full": "HKEY_CURRENT_USER\\Software\\Microsoft\\Notepad",
+                    "label": "Path",
+                    "hasLabel": true,
+                    "display": "HKCU\\Software\\Microsoft\\Notepad"
+                  }
+                ],
+                "startColumn": 0,
+                "columnSpan": 1,
+                "openRegeditTooltip": "Open in Registry Editor",
+                "hasPaths": true,
+                "canOpenRegedit": true
+              }
+            ],
+            "columns": [
+              {
+                "header": "fWrap",
+                "typeName": "DWord",
+                "kind": "Value",
+                "chips": [],
+                "headerTooltip": "",
+                "hasType": true,
+                "hasChips": false
+              }
+            ],
+            "options": [
+              {
+                "label": "On",
+                "cells": [
+                  {
+                    "text": "1",
+                    "isCheck": false,
+                    "hasText": true
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "Off",
+                "cells": [
+                  {
+                    "text": "0 (or not set)",
+                    "isCheck": false,
+                    "hasText": true
+                  }
+                ],
+                "isCurrent": true,
+                "isRecommended": false,
+                "isWindowsDefault": true,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              }
+            ],
+            "optionHeader": "Option",
+            "roleHeader": "Role",
+            "pathLabel": "Path",
+            "valueNameLabel": "Value name",
+            "valueTypeLabel": "Value type",
+            "taskLabel": "Task",
+            "settingLabel": "Options",
+            "settingDescription": "Selecting an option makes the changes shown to the right.",
+            "requirements": [],
+            "optionLinks": [],
+            "optionLinksHeading": "Also sets",
+            "hasOptionLinks": false,
+            "notes": [],
+            "notesHeading": "Also happens when you apply",
+            "notesDetailHeader": "Details",
+            "hasNotes": false,
+            "codeBlocks": [],
+            "hasCode": false,
+            "readingLabel": "",
+            "readingCells": [],
+            "hasReading": false,
+            "currentLabel": "Current",
+            "recommendedLabel": "Recommended",
+            "defaultLabel": "Default",
+            "recommendedTooltip": "What Winhance suggests for most people",
+            "defaultTooltip": "How Windows ships out of the box",
+            "currentTooltip": "This is what your system is set to now",
+            "accessibleSummary": "On: fWrap 1. Off: fWrap 0 (or not set) (Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Notepad."
+          },
+          "matrixWin10": null
+        },
+        {
+          "id": "explorer-customization-notepad-status-bar",
+          "name": "Notepad status bar",
+          "description": "Shows the status bar with the line number, column and encoding in legacy Notepad. The Store version of Notepad ignores this setting",
+          "group": "File Associations",
+          "icon": {
+            "pack": "Material",
+            "name": "DockBottom"
+          },
+          "control": "Toggle",
+          "isSubjectivePreference": true,
+          "addedInVersion": "26.10.14",
+          "uiParentId": "explorer-customization-legacy-notepad",
+          "availability": {
+            "builds": [
+              {
+                "min": "22000.0",
+                "max": "*"
+              }
+            ],
+            "hardware": [],
+            "requiresAdvancedUnlock": false,
+            "message": {
+              "win10": "This setting applies to Windows 11 only",
+              "win11": null
+            }
+          },
+          "optionWarnings": [],
+          "matrix": {
+            "groups": [
+              {
+                "label": "Registry",
+                "kind": "Registry",
+                "description": "Read to determine which option is active, and written when you apply one.",
+                "paths": [
+                  {
+                    "full": "HKEY_CURRENT_USER\\Software\\Microsoft\\Notepad",
+                    "label": "Path",
+                    "hasLabel": true,
+                    "display": "HKCU\\Software\\Microsoft\\Notepad"
+                  }
+                ],
+                "startColumn": 0,
+                "columnSpan": 1,
+                "openRegeditTooltip": "Open in Registry Editor",
+                "hasPaths": true,
+                "canOpenRegedit": true
+              }
+            ],
+            "columns": [
+              {
+                "header": "StatusBar",
+                "typeName": "DWord",
+                "kind": "Value",
+                "chips": [],
+                "headerTooltip": "",
+                "hasType": true,
+                "hasChips": false
+              }
+            ],
+            "options": [
+              {
+                "label": "On",
+                "cells": [
+                  {
+                    "text": "1 (or not set)",
+                    "isCheck": false,
+                    "hasText": true
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": false,
+                "isWindowsDefault": true,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "Off",
+                "cells": [
+                  {
+                    "text": "0",
+                    "isCheck": false,
+                    "hasText": true
+                  }
+                ],
+                "isCurrent": true,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              }
+            ],
+            "optionHeader": "Option",
+            "roleHeader": "Role",
+            "pathLabel": "Path",
+            "valueNameLabel": "Value name",
+            "valueTypeLabel": "Value type",
+            "taskLabel": "Task",
+            "settingLabel": "Options",
+            "settingDescription": "Selecting an option makes the changes shown to the right.",
+            "requirements": [],
+            "optionLinks": [],
+            "optionLinksHeading": "Also sets",
+            "hasOptionLinks": false,
+            "notes": [],
+            "notesHeading": "Also happens when you apply",
+            "notesDetailHeader": "Details",
+            "hasNotes": false,
+            "codeBlocks": [],
+            "hasCode": false,
+            "readingLabel": "",
+            "readingCells": [],
+            "hasReading": false,
+            "currentLabel": "Current",
+            "recommendedLabel": "Recommended",
+            "defaultLabel": "Default",
+            "recommendedTooltip": "What Winhance suggests for most people",
+            "defaultTooltip": "How Windows ships out of the box",
+            "currentTooltip": "This is what your system is set to now",
+            "accessibleSummary": "On: StatusBar 1 (or not set) (Default). Off: StatusBar 0, Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Notepad."
           },
           "matrixWin10": null
         },
@@ -48175,134 +48853,6 @@
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
             "accessibleSummary": "On: DisableWpbtExecution 0 (or not set) (Recommended, Default). Off: DisableWpbtExecution 1, Current. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager."
-          },
-          "matrixWin10": null
-        },
-        {
-          "id": "security-defender-scheduled-scan",
-          "name": "Microsoft Defender scheduled scan",
-          "description": "Lets Microsoft Defender run its regular automatic scan. Turning it off sets the Defender scan schedule policy to Never; real-time protection keeps running and you can still scan manually",
-          "group": "Security",
-          "icon": {
-            "pack": "Material",
-            "name": "MagnifyScan"
-          },
-          "control": "Toggle",
-          "isSubjectivePreference": true,
-          "addedInVersion": "26.10.02",
-          "uiParentId": null,
-          "availability": {
-            "builds": [],
-            "hardware": [],
-            "requiresAdvancedUnlock": false,
-            "message": {
-              "win10": null,
-              "win11": null
-            }
-          },
-          "optionWarnings": [],
-          "matrix": {
-            "groups": [
-              {
-                "label": "Registry",
-                "kind": "Registry",
-                "description": "Read to determine which option is active, and written when you apply one.",
-                "paths": [
-                  {
-                    "full": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Scan",
-                    "label": "Path",
-                    "hasLabel": true,
-                    "display": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Scan"
-                  }
-                ],
-                "startColumn": 0,
-                "columnSpan": 1,
-                "openRegeditTooltip": "Open in Registry Editor",
-                "hasPaths": true,
-                "canOpenRegedit": true
-              }
-            ],
-            "columns": [
-              {
-                "header": "ScheduleDay",
-                "typeName": "DWord",
-                "kind": "Value",
-                "chips": [
-                  {
-                    "text": "Group Policy",
-                    "tooltip": "A Group Policy value. Windows treats these as managed settings, so the matching option in Windows Settings may appear greyed out or say it is managed by your organisation. That is expected. On a work-managed device, your organisation\u0027s policy can also override it.",
-                    "linkSettingId": "",
-                    "linkText": "",
-                    "hasLink": false
-                  }
-                ],
-                "headerTooltip": "",
-                "hasType": true,
-                "hasChips": true
-              }
-            ],
-            "options": [
-              {
-                "label": "On",
-                "cells": [
-                  {
-                    "text": "deletes key",
-                    "isCheck": false,
-                    "hasText": true
-                  }
-                ],
-                "isCurrent": false,
-                "isRecommended": false,
-                "isWindowsDefault": true,
-                "currentContext": "",
-                "recommendedContext": "",
-                "defaultContext": ""
-              },
-              {
-                "label": "Off",
-                "cells": [
-                  {
-                    "text": "8",
-                    "isCheck": false,
-                    "hasText": true
-                  }
-                ],
-                "isCurrent": true,
-                "isRecommended": false,
-                "isWindowsDefault": false,
-                "currentContext": "",
-                "recommendedContext": "",
-                "defaultContext": ""
-              }
-            ],
-            "optionHeader": "Option",
-            "roleHeader": "Role",
-            "pathLabel": "Path",
-            "valueNameLabel": "Value name",
-            "valueTypeLabel": "Value type",
-            "taskLabel": "Task",
-            "settingLabel": "Options",
-            "settingDescription": "Selecting an option makes the changes shown to the right.",
-            "requirements": [],
-            "optionLinks": [],
-            "optionLinksHeading": "Also sets",
-            "hasOptionLinks": false,
-            "notes": [],
-            "notesHeading": "Also happens when you apply",
-            "notesDetailHeader": "Details",
-            "hasNotes": false,
-            "codeBlocks": [],
-            "hasCode": false,
-            "readingLabel": "",
-            "readingCells": [],
-            "hasReading": false,
-            "currentLabel": "Current",
-            "recommendedLabel": "Recommended",
-            "defaultLabel": "Default",
-            "recommendedTooltip": "What Winhance suggests for most people",
-            "defaultTooltip": "How Windows ships out of the box",
-            "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: ScheduleDay deletes key (Default). Off: ScheduleDay 8, Current. Registry: HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Scan."
           },
           "matrixWin10": null
         },

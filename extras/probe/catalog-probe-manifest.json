@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "catalogHash": "151faafc8b8ee5db4e4fee2ee8fe51a73f219fd3f3d2dc9fe2e5ca9600d11f49",
-  "settingCount": 439,
+  "catalogHash": "2e6900ffcec4914774a1dcbf93bb03fbb89e0f22e5524e3d8a1941dfe0bf5a35",
+  "settingCount": 440,
   "settings": [
     {
       "id": "theme-mode-windows",
@@ -5326,9 +5326,9 @@
       ]
     },
     {
-      "id": "explorer-customization-folder-type-discovery",
+      "id": "explorer-customization-folder-view",
       "feature": "Explorer",
-      "control": "Toggle",
+      "control": "Selection",
       "contexts": [
         "Always"
       ],
@@ -5364,11 +5364,80 @@
           "compositeStringKey": null,
           "perNetworkInterface": false,
           "perMonitor": false
+        },
+        {
+          "key": "Mode",
+          "joinKey": "Mode",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\Bags\\AllFolders\\Shell\\{5C4F28B5-F869-4E84-8E60-F11DB97C5CC7}"
+          ],
+          "valueName": "Mode",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "LogicalViewMode",
+          "joinKey": "LogicalViewMode",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\Bags\\AllFolders\\Shell\\{5C4F28B5-F869-4E84-8E60-F11DB97C5CC7}"
+          ],
+          "valueName": "LogicalViewMode",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "IconSize",
+          "joinKey": "IconSize",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\Bags\\AllFolders\\Shell\\{5C4F28B5-F869-4E84-8E60-F11DB97C5CC7}"
+          ],
+          "valueName": "IconSize",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
         }
       ],
       "states": [
         {
-          "label": "Common_Enabled",
+          "label": "Setting_explorer-customization-folder-view_Option_0",
           "isFallback": false,
           "roles": [
             {
@@ -5384,12 +5453,33 @@
               "deleteOnWrite": true,
               "values": [],
               "writePayload": null
+            },
+            "IconSize": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "LogicalViewMode": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "Mode": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
             }
           },
           "resetSet": null
         },
         {
-          "label": "Common_Disabled",
+          "label": "Setting_explorer-customization-folder-view_Option_1",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -5401,6 +5491,341 @@
                 "NotSpecified"
               ],
               "writePayload": "NotSpecified"
+            },
+            "IconSize": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                256
+              ],
+              "writePayload": 256
+            },
+            "LogicalViewMode": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                3
+              ],
+              "writePayload": 3
+            },
+            "Mode": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_explorer-customization-folder-view_Option_2",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "FolderType": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "NotSpecified"
+              ],
+              "writePayload": "NotSpecified"
+            },
+            "IconSize": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                96
+              ],
+              "writePayload": 96
+            },
+            "LogicalViewMode": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                3
+              ],
+              "writePayload": 3
+            },
+            "Mode": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_explorer-customization-folder-view_Option_3",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "FolderType": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "NotSpecified"
+              ],
+              "writePayload": "NotSpecified"
+            },
+            "IconSize": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                48
+              ],
+              "writePayload": 48
+            },
+            "LogicalViewMode": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                3
+              ],
+              "writePayload": 3
+            },
+            "Mode": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_explorer-customization-folder-view_Option_4",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "FolderType": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "NotSpecified"
+              ],
+              "writePayload": "NotSpecified"
+            },
+            "IconSize": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                16
+              ],
+              "writePayload": 16
+            },
+            "LogicalViewMode": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                3
+              ],
+              "writePayload": 3
+            },
+            "Mode": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_explorer-customization-folder-view_Option_5",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "FolderType": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "NotSpecified"
+              ],
+              "writePayload": "NotSpecified"
+            },
+            "IconSize": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                16
+              ],
+              "writePayload": 16
+            },
+            "LogicalViewMode": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                4
+              ],
+              "writePayload": 4
+            },
+            "Mode": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                3
+              ],
+              "writePayload": 3
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_explorer-customization-folder-view_Option_6",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "FolderType": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "NotSpecified"
+              ],
+              "writePayload": "NotSpecified"
+            },
+            "IconSize": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                16
+              ],
+              "writePayload": 16
+            },
+            "LogicalViewMode": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            },
+            "Mode": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                4
+              ],
+              "writePayload": 4
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_explorer-customization-folder-view_Option_7",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "FolderType": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "NotSpecified"
+              ],
+              "writePayload": "NotSpecified"
+            },
+            "IconSize": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                48
+              ],
+              "writePayload": 48
+            },
+            "LogicalViewMode": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                2
+              ],
+              "writePayload": 2
+            },
+            "Mode": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                6
+              ],
+              "writePayload": 6
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_explorer-customization-folder-view_Option_8",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "FolderType": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "NotSpecified"
+              ],
+              "writePayload": "NotSpecified"
+            },
+            "IconSize": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                32
+              ],
+              "writePayload": 32
+            },
+            "LogicalViewMode": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                5
+              ],
+              "writePayload": 5
+            },
+            "Mode": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                8
+              ],
+              "writePayload": 8
             }
           },
           "resetSet": null
@@ -6150,6 +6575,188 @@
                 1
               ],
               "writePayload": 1
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "explorer-customization-notepad-word-wrap",
+      "feature": "Explorer",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 22000,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "fWrap",
+          "joinKey": "fWrap",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Notepad"
+          ],
+          "valueName": "fWrap",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "fWrap": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "fWrap": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "explorer-customization-notepad-status-bar",
+      "feature": "Explorer",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 22000,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "StatusBar",
+          "joinKey": "StatusBar",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Notepad"
+          ],
+          "valueName": "StatusBar",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "StatusBar": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "StatusBar": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
             }
           },
           "resetSet": null
@@ -33639,88 +34246,6 @@
                 1
               ],
               "writePayload": 1
-            }
-          },
-          "resetSet": null
-        }
-      ]
-    },
-    {
-      "id": "security-defender-scheduled-scan",
-      "feature": "Privacy",
-      "control": "Toggle",
-      "contexts": [
-        "Always"
-      ],
-      "detector": null,
-      "optionSource": null,
-      "availability": {
-        "builds": [],
-        "hardware": [],
-        "validatesExistence": false,
-        "requiresAdvancedUnlock": false
-      },
-      "numeric": null,
-      "targets": [
-        {
-          "key": "ScheduleDay",
-          "joinKey": "ScheduleDay",
-          "appliesTo": [],
-          "kind": "Registry",
-          "paths": [
-            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Scan"
-          ],
-          "valueName": "ScheduleDay",
-          "keyExistenceOnly": false,
-          "type": "DWord",
-          "isGroupPolicy": true,
-          "applyOnly": false,
-          "lockWhenValue": null,
-          "byteIndex": null,
-          "bitMask": null,
-          "stringFlagMask": null,
-          "stringFlagAbsentBase": 0,
-          "byteOnly": false,
-          "compositeStringKey": null,
-          "perNetworkInterface": false,
-          "perMonitor": false
-        }
-      ],
-      "states": [
-        {
-          "label": "Common_Enabled",
-          "isFallback": false,
-          "roles": [
-            {
-              "kind": "WindowsDefault",
-              "context": "Always",
-              "appliesTo": []
-            }
-          ],
-          "set": {
-            "ScheduleDay": {
-              "acceptsAbsent": true,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": true,
-              "values": [],
-              "writePayload": null
-            }
-          },
-          "resetSet": null
-        },
-        {
-          "label": "Common_Disabled",
-          "isFallback": true,
-          "roles": [],
-          "set": {
-            "ScheduleDay": {
-              "acceptsAbsent": false,
-              "acceptsAnyPresent": false,
-              "deleteOnWrite": false,
-              "values": [
-                8
-              ],
-              "writePayload": 8
             }
           },
           "resetSet": null

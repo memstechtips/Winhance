@@ -179,40 +179,6 @@ public static class PrivacyOptimizationsCatalog
         },
         new()
         {
-            Id = "security-defender-scheduled-scan",
-            Display = new()
-            {
-                Name = LocKey.Setting.SecurityDefenderScheduledScan.Name,
-                Description = LocKey.Setting.SecurityDefenderScheduledScan.Description,
-                GroupName = LocKey.SettingGroup.Security,
-                Icon = MaterialIcons.MagnifyScan,
-                IsSubjectivePreference = true,
-                AddedInVersion = "26.10.02",
-            },
-            Targets = new Target[]
-            {
-                // The policy, not the scheduled task: Defender recreates the task, and honours ScheduleDay with Tamper
-                // Protection on (8 = Never in WindowsDefender.admx).
-                new RegTarget("ScheduleDay", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender\Scan" }, "ScheduleDay", RegistryValueKind.DWord) { IsGroupPolicy = true },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["ScheduleDay"] = Absent },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["ScheduleDay"] = Of(8) },
-                },
-            },
-        },
-        new()
-        {
             Id = "security-wifi-sense",
             Display = new()
             {

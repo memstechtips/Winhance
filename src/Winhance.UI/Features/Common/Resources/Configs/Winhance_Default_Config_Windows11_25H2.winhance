@@ -667,10 +667,10 @@
             "InputType": 0
           },
           {
-            "Id": "explorer-customization-folder-type-discovery",
-            "Name": "Setting_explorer-customization-folder-type-discovery_Name",
-            "IsSelected": true,
-            "InputType": 0
+            "Id": "explorer-customization-folder-view",
+            "Name": "Setting_explorer-customization-folder-view_Name",
+            "InputType": 1,
+            "SelectedIndex": 0
           },
           {
             "Id": "explorer-customization-folder-tips",
@@ -718,6 +718,18 @@
             "Id": "explorer-customization-legacy-notepad",
             "Name": "Setting_explorer-customization-legacy-notepad_Name",
             "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-notepad-word-wrap",
+            "Name": "Setting_explorer-customization-notepad-word-wrap_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-notepad-status-bar",
+            "Name": "Setting_explorer-customization-notepad-status-bar_Name",
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -2427,12 +2439,6 @@
           {
             "Id": "security-wpbt-execution",
             "Name": "Setting_security-wpbt-execution_Name",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
-            "Id": "security-defender-scheduled-scan",
-            "Name": "Setting_security-defender-scheduled-scan_Name",
             "IsSelected": true,
             "InputType": 0
           },

@@ -41,6 +41,10 @@ public class EnabledWhenConformanceTests
         ["explorer-snap-groups-in-switchers"] = ("explorer-snap-windows", new[] { "Common_Enabled" }),
         ["explorer-snap-without-edge"] = ("explorer-snap-windows", new[] { "Common_Enabled" }),
 
+        // The Store Notepad ignores both values; measured in the 26H2 VM. Only legacy Notepad reads them.
+        ["explorer-customization-notepad-word-wrap"] = ("explorer-customization-legacy-notepad", new[] { "Common_Enabled" }),
+        ["explorer-customization-notepad-status-bar"] = ("explorer-customization-legacy-notepad", new[] { "Common_Enabled" }),
+
         // Toast sounds and lock-screen toasts are properties OF a toast; no toasts, nothing to shape.
         ["notifications-sound"] = ("windows-pushnotifications", new[] { "Common_Enabled" }),
         ["notifications-toast-above-lock"] = ("windows-pushnotifications", new[] { "Common_Enabled" }),

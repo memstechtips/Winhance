@@ -1589,35 +1589,110 @@ if (-not (Test-Path $icoPath)) {
         },
         new()
         {
-            Id = "explorer-customization-folder-type-discovery",
+            Id = "explorer-customization-folder-view",
             Display = new()
             {
-                Name = LocKey.Setting.ExplorerCustomizationFolderTypeDiscovery.Name,
-                Description = LocKey.Setting.ExplorerCustomizationFolderTypeDiscovery.Description,
+                Name = LocKey.Setting.ExplorerCustomizationFolderView.Name,
+                Description = LocKey.Setting.ExplorerCustomizationFolderView.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
                 Icon = MaterialIcons.FolderTable,
                 IsSubjectivePreference = true,
-                AddedInVersion = "26.10.02",
+                AddedInVersion = "26.10.14",
             },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Apply = new() { RequiresConfirmation = true, Restart = new RestartProcess("Explorer") },
             Targets = new Target[]
             {
-                // NotSpecified makes every folder without a saved view open as General items. Measured in the 26H2
-                // VM: a fresh folder of pictures opened as Large icons before, Details after an Explorer restart.
+                // NotSpecified opens every folder as General items, Downloads included, so the General items view below is
+                // the one view every folder gets. Measured in the 26H2 VM after an Explorer restart. A folder with a saved
+                // view keeps it, which is why each state clears the saved views.
                 new RegTarget("FolderType", new[] { @"HKEY_CURRENT_USER\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags\AllFolders\Shell" }, "FolderType", RegistryValueKind.String),
+                new RegTarget("Mode", new[] { @"HKEY_CURRENT_USER\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags\AllFolders\Shell\{5C4F28B5-F869-4E84-8E60-F11DB97C5CC7}" }, "Mode", RegistryValueKind.DWord),
+                new RegTarget("LogicalViewMode", new[] { @"HKEY_CURRENT_USER\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags\AllFolders\Shell\{5C4F28B5-F869-4E84-8E60-F11DB97C5CC7}" }, "LogicalViewMode", RegistryValueKind.DWord),
+                new RegTarget("IconSize", new[] { @"HKEY_CURRENT_USER\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags\AllFolders\Shell\{5C4F28B5-F869-4E84-8E60-F11DB97C5CC7}" }, "IconSize", RegistryValueKind.DWord),
             },
             States = new[]
             {
                 new SettingState
                 {
-                    Label = LocKey.Common.Enabled,
+                    Label = LocKey.Setting.ExplorerCustomizationFolderView.Option0,
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["FolderType"] = Absent },
+                    Set = new Dictionary<string, StateValue> { ["FolderType"] = Absent, ["Mode"] = Absent, ["LogicalViewMode"] = Absent, ["IconSize"] = Absent },
+                    Effects = new Effect[] { new ScriptEffect(@"
+$shell = 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell'
+Get-ChildItem ""$shell\Bags"" -ErrorAction SilentlyContinue | Where-Object PSChildName -ne 'AllFolders' | Remove-Item -Recurse -Force
+Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", RunContext.User) },
                 },
                 new SettingState
                 {
-                    Label = LocKey.Common.Disabled,
-                    Set = new Dictionary<string, StateValue> { ["FolderType"] = Of("NotSpecified") },
+                    Label = LocKey.Setting.ExplorerCustomizationFolderView.Option1,
+                    Set = new Dictionary<string, StateValue> { ["FolderType"] = Of("NotSpecified"), ["Mode"] = Of(1), ["LogicalViewMode"] = Of(3), ["IconSize"] = Of(256) },
+                    Effects = new Effect[] { new ScriptEffect(@"
+$shell = 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell'
+Get-ChildItem ""$shell\Bags"" -ErrorAction SilentlyContinue | Where-Object PSChildName -ne 'AllFolders' | Remove-Item -Recurse -Force
+Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", RunContext.User) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.ExplorerCustomizationFolderView.Option2,
+                    Set = new Dictionary<string, StateValue> { ["FolderType"] = Of("NotSpecified"), ["Mode"] = Of(1), ["LogicalViewMode"] = Of(3), ["IconSize"] = Of(96) },
+                    Effects = new Effect[] { new ScriptEffect(@"
+$shell = 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell'
+Get-ChildItem ""$shell\Bags"" -ErrorAction SilentlyContinue | Where-Object PSChildName -ne 'AllFolders' | Remove-Item -Recurse -Force
+Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", RunContext.User) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.ExplorerCustomizationFolderView.Option3,
+                    Set = new Dictionary<string, StateValue> { ["FolderType"] = Of("NotSpecified"), ["Mode"] = Of(1), ["LogicalViewMode"] = Of(3), ["IconSize"] = Of(48) },
+                    Effects = new Effect[] { new ScriptEffect(@"
+$shell = 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell'
+Get-ChildItem ""$shell\Bags"" -ErrorAction SilentlyContinue | Where-Object PSChildName -ne 'AllFolders' | Remove-Item -Recurse -Force
+Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", RunContext.User) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.ExplorerCustomizationFolderView.Option4,
+                    Set = new Dictionary<string, StateValue> { ["FolderType"] = Of("NotSpecified"), ["Mode"] = Of(1), ["LogicalViewMode"] = Of(3), ["IconSize"] = Of(16) },
+                    Effects = new Effect[] { new ScriptEffect(@"
+$shell = 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell'
+Get-ChildItem ""$shell\Bags"" -ErrorAction SilentlyContinue | Where-Object PSChildName -ne 'AllFolders' | Remove-Item -Recurse -Force
+Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", RunContext.User) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.ExplorerCustomizationFolderView.Option5,
+                    Set = new Dictionary<string, StateValue> { ["FolderType"] = Of("NotSpecified"), ["Mode"] = Of(3), ["LogicalViewMode"] = Of(4), ["IconSize"] = Of(16) },
+                    Effects = new Effect[] { new ScriptEffect(@"
+$shell = 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell'
+Get-ChildItem ""$shell\Bags"" -ErrorAction SilentlyContinue | Where-Object PSChildName -ne 'AllFolders' | Remove-Item -Recurse -Force
+Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", RunContext.User) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.ExplorerCustomizationFolderView.Option6,
+                    Set = new Dictionary<string, StateValue> { ["FolderType"] = Of("NotSpecified"), ["Mode"] = Of(4), ["LogicalViewMode"] = Of(1), ["IconSize"] = Of(16) },
+                    Effects = new Effect[] { new ScriptEffect(@"
+$shell = 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell'
+Get-ChildItem ""$shell\Bags"" -ErrorAction SilentlyContinue | Where-Object PSChildName -ne 'AllFolders' | Remove-Item -Recurse -Force
+Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", RunContext.User) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.ExplorerCustomizationFolderView.Option7,
+                    Set = new Dictionary<string, StateValue> { ["FolderType"] = Of("NotSpecified"), ["Mode"] = Of(6), ["LogicalViewMode"] = Of(2), ["IconSize"] = Of(48) },
+                    Effects = new Effect[] { new ScriptEffect(@"
+$shell = 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell'
+Get-ChildItem ""$shell\Bags"" -ErrorAction SilentlyContinue | Where-Object PSChildName -ne 'AllFolders' | Remove-Item -Recurse -Force
+Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", RunContext.User) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.ExplorerCustomizationFolderView.Option8,
+                    Set = new Dictionary<string, StateValue> { ["FolderType"] = Of("NotSpecified"), ["Mode"] = Of(8), ["LogicalViewMode"] = Of(5), ["IconSize"] = Of(32) },
+                    Effects = new Effect[] { new ScriptEffect(@"
+$shell = 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell'
+Get-ChildItem ""$shell\Bags"" -ErrorAction SilentlyContinue | Where-Object PSChildName -ne 'AllFolders' | Remove-Item -Recurse -Force
+Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", RunContext.User) },
                 },
             },
         },
@@ -2009,6 +2084,76 @@ if (Test-Path $appPathsKey) {
                         ["NoOpenWith"] = Of(""),
                         ["UseFilter"] = Of(1),
                     },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-customization-notepad-word-wrap",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerCustomizationNotepadWordWrap.Name,
+                Description = LocKey.Setting.ExplorerCustomizationNotepadWordWrap.Description,
+                GroupName = LocKey.SettingGroup.FileAssociations,
+                Icon = MaterialIcons.Wrap,
+                AddedInVersion = "26.10.14",
+                IsSubjectivePreference = true,
+            },
+            UiParentId = "explorer-customization-legacy-notepad",
+            EnabledWhen = new("explorer-customization-legacy-notepad", [LocKey.Common.Enabled]),
+            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
+            Targets = new Target[]
+            {
+                new RegTarget("fWrap", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Notepad" }, "fWrap", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue> { ["fWrap"] = Of(1) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["fWrap"] = Of(0).OrAbsent() },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-customization-notepad-status-bar",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerCustomizationNotepadStatusBar.Name,
+                Description = LocKey.Setting.ExplorerCustomizationNotepadStatusBar.Description,
+                GroupName = LocKey.SettingGroup.FileAssociations,
+                Icon = MaterialIcons.DockBottom,
+                AddedInVersion = "26.10.14",
+                IsSubjectivePreference = true,
+            },
+            UiParentId = "explorer-customization-legacy-notepad",
+            EnabledWhen = new("explorer-customization-legacy-notepad", [LocKey.Common.Enabled]),
+            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
+            Targets = new Target[]
+            {
+                new RegTarget("StatusBar", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Notepad" }, "StatusBar", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["StatusBar"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Set = new Dictionary<string, StateValue> { ["StatusBar"] = Of(0) },
                 },
             },
         },

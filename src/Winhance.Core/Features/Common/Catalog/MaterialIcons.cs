@@ -291,4 +291,5 @@ public static class MaterialIcons
     public static readonly Icon Wifi = new(IconPack.Material, "Wifi");
     public static readonly Icon WifiOff = new(IconPack.Material, "WifiOff");
     public static readonly Icon WindowRestore = new(IconPack.Material, "WindowRestore");
+    public static readonly Icon Wrap = new(IconPack.Material, "Wrap");
 }
