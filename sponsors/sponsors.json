@@ -1,6 +1,6 @@
 {
   "$schemaNote": "See sponsors/README.md. This file is the single source of truth for Winhance sponsor & supporter recognition. Every surface fetches it live from the `sponsors` branch (the app via SponsorsService.LiveUrl, the store wall via theme JS), and a snapshot ships with every release as the offline fallback. The copy on `main` is docs-only and is NOT what anything reads.",
-  "updated": "2026-10-14",
+  "updated": "2026-10-15",
   "sponsors": [
     {
       "id": "imperium-sns",
@@ -29,6 +29,13 @@
     }
   ],
   "supporters": [
+    {
+      "name": "Test Renewal 595",
+      "since": "2026-06",
+      "src": "Marco du Plessis",
+      "monthly": true,
+      "months": 1
+    },
     {
       "name": "Dr. David Barrett",
       "since": "2026-10",
@@ -331,10 +338,6 @@
     },
     {
       "name": "Leo Smith",
-      "since": "2026-06"
-    },
-    {
-      "name": "Marco du Plessis",
       "since": "2026-06"
     }
   ]
