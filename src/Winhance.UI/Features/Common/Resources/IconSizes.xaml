@@ -31,6 +31,8 @@
     <!-- App chrome. -->
     <x:Double x:Key="NavIconFontSize">20</x:Double>
     <x:Double x:Key="TitleBarIconFontSize">20</x:Double>
+    <!-- The labelled Support pill; one step up from its neighbours on purpose. -->
+    <x:Double x:Key="SupportHeartFontSize">22</x:Double>
 
     <!-- Toolbar buttons above a list (install, remove, refresh, view mode). -->
     <x:Double x:Key="ActionBarIconFontSize">18</x:Double>

@@ -63,6 +63,14 @@
         <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}"/>
     </Style>
 
+    <Style x:Key="CodeBuilt.AccentText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+    </Style>
+
+    <Style x:Key="CodeBuilt.AccentIcon" TargetType="fluentIcons:FluentIcon">
+        <Setter Property="Foreground" Value="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+    </Style>
+
     <Style x:Key="CodeBuilt.SecondaryIcon" TargetType="fluentIcons:FluentIcon">
         <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}"/>
     </Style>

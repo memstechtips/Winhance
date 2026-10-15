@@ -9,7 +9,7 @@ public class ApplicationCloseService : IApplicationCloseService
 {
     private readonly ILogService _logService;
     private readonly ITaskProgressService _taskProgressService;
-    private readonly IUserPreferencesService _userPreferencesService;
+    private readonly ISupportAskSchedule _supportAskSchedule;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
 
@@ -33,13 +33,13 @@ public class ApplicationCloseService : IApplicationCloseService
     public ApplicationCloseService(
         ILogService logService,
         ITaskProgressService taskProgressService,
-        IUserPreferencesService userPreferencesService,
+        ISupportAskSchedule supportAskSchedule,
         IDialogService dialogService,
         ILocalizationService localizationService)
     {
         _logService = logService;
         _taskProgressService = taskProgressService;
-        _userPreferencesService = userPreferencesService;
+        _supportAskSchedule = supportAskSchedule;
         _dialogService = dialogService;
         _localizationService = localizationService;
     }
@@ -108,30 +108,15 @@ public class ApplicationCloseService : IApplicationCloseService
     {
         try
         {
-            _logService.LogInformation("Closing application with support dialog check");
-
-            bool showDialog = await ShouldShowSupportDialogAsync();
-
-            if (showDialog)
+            if (await ShouldAskForSupportAsync())
             {
-                _logService.LogInformation("Showing sponsors dialog");
-
-                // The sponsors builder launches the store URL itself on a support
-                // click, so the close service only awaits the dialog — it does not
-                // open any URL. SupportClicked is intentionally ignored here.
-                var (supportClicked, dontShowAgain) = await _dialogService.ShowSponsorsDialogAsync(SponsorsDialogMode.Exit);
-
-                _logService.LogInformation($"Sponsors dialog completed with SupportClicked: {supportClicked}, DontShowAgain: {dontShowAgain}");
-
-                if (dontShowAgain)
-                {
-                    _logService.LogInformation("Saving DontShowSupport preference");
-                    await SaveDontShowSupportPreferenceAsync(true);
-                }
+                _logService.LogInformation("Showing support dialog");
+                await _dialogService.ShowSponsorsDialogAsync(SponsorsDialogMode.Exit);
+                await _supportAskSchedule.MarkAskedAsync();
             }
             else
             {
-                _logService.LogInformation("Skipping sponsors dialog due to user preference");
+                _logService.LogInformation("Skipping support dialog: asked within the last day");
             }
 
             _logService.LogInformation("Shutting down application");
@@ -144,49 +129,17 @@ public class ApplicationCloseService : IApplicationCloseService
         }
     }
 
-    private async Task<bool> ShouldShowSupportDialogAsync()
+    // Unreadable preferences must not silence the ask.
+    private async Task<bool> ShouldAskForSupportAsync()
     {
         try
         {
-            _logService.LogInformation("Checking DontShowSupport preference");
-
-            bool dontShow = await _userPreferencesService.GetPreferenceAsync("DontShowSupport", false);
-
-            if (dontShow)
-            {
-                _logService.LogInformation("DontShowSupport is set to true, skipping dialog");
-                return false;
-            }
-
-            return true;
+            return await _supportAskSchedule.ShouldAskOnExitAsync();
         }
         catch (Exception ex)
         {
-            _logService.LogError($"Error checking sponsors dialog preference: {ex.Message}", ex);
+            _logService.LogError($"Error checking the support ask schedule: {ex.Message}", ex);
             return true;
-        }
-    }
-
-    private async Task SaveDontShowSupportPreferenceAsync(bool dontShow)
-    {
-        try
-        {
-            _logService.LogInformation($"Saving DontShowSupport preference: {dontShow}");
-
-            var result = await _userPreferencesService.SetPreferenceAsync("DontShowSupport", dontShow);
-
-            if (result.Success)
-            {
-                _logService.LogInformation("Successfully saved DontShowSupport preference");
-            }
-            else
-            {
-                _logService.LogError("Failed to save DontShowSupport preference");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error saving DontShowSupport preference: {ex.Message}", ex);
         }
     }
 }

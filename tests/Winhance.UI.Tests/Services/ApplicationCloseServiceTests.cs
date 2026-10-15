@@ -12,7 +12,7 @@ public class ApplicationCloseServiceTests
 {
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
-    private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
+    private readonly Mock<ISupportAskSchedule> _mockSchedule = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
 
@@ -28,7 +28,7 @@ public class ApplicationCloseServiceTests
         var svc = new ApplicationCloseService(
             _mockLogService.Object,
             _mockTaskProgressService.Object,
-            _mockUserPreferencesService.Object,
+            _mockSchedule.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object);
         // Tests must not actually terminate the test host — swap in a no-op shutdown.
@@ -66,9 +66,7 @@ public class ApplicationCloseServiceTests
         };
 
         _mockTaskProgressService.Setup(t => t.IsTaskRunning).Returns(false);
-        _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync("DontShowSupport", false))
-            .ReturnsAsync(true);
+        _mockSchedule.Setup(s => s.ShouldAskOnExitAsync()).ReturnsAsync(false);
 
         try
         {
@@ -89,9 +87,7 @@ public class ApplicationCloseServiceTests
         service.BeforeShutdown = () => throw new InvalidOperationException("Cleanup failed");
 
         _mockTaskProgressService.Setup(t => t.IsTaskRunning).Returns(false);
-        _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync("DontShowSupport", false))
-            .ReturnsAsync(true);
+        _mockSchedule.Setup(s => s.ShouldAskOnExitAsync()).ReturnsAsync(false);
 
         try
         {
@@ -114,9 +110,7 @@ public class ApplicationCloseServiceTests
         service.BeforeShutdown = null;
 
         _mockTaskProgressService.Setup(t => t.IsTaskRunning).Returns(false);
-        _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync("DontShowSupport", false))
-            .ReturnsAsync(true);
+        _mockSchedule.Setup(s => s.ShouldAskOnExitAsync()).ReturnsAsync(false);
 
         try
         {
@@ -181,9 +175,7 @@ public class ApplicationCloseServiceTests
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
             .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
-        _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync("DontShowSupport", false))
-            .ReturnsAsync(true);
+        _mockSchedule.Setup(s => s.ShouldAskOnExitAsync()).ReturnsAsync(false);
 
         try
         {
@@ -224,9 +216,7 @@ public class ApplicationCloseServiceTests
         var service = CreateService();
 
         _mockTaskProgressService.Setup(t => t.IsTaskRunning).Returns(false);
-        _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync("DontShowSupport", false))
-            .ReturnsAsync(true);
+        _mockSchedule.Setup(s => s.ShouldAskOnExitAsync()).ReturnsAsync(false);
 
         try
         {
@@ -243,173 +233,45 @@ public class ApplicationCloseServiceTests
     }
 
     [Fact]
-    public async Task CheckOperationsAndCloseAsync_DontShowSupportTrue_SkipsSponsorsDialog()
+    public async Task CheckOperationsAndCloseAsync_WhenScheduleSaysNo_SkipsSupportDialog()
     {
         var service = CreateService();
 
         _mockTaskProgressService.Setup(t => t.IsTaskRunning).Returns(false);
-        _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync("DontShowSupport", false))
-            .ReturnsAsync(true);
+        _mockSchedule.Setup(s => s.ShouldAskOnExitAsync()).ReturnsAsync(false);
 
-        try
-        {
-            await service.CheckOperationsAndCloseAsync();
-        }
-        catch
-        {
-            // Expected: Application.Current is null in unit tests
-        }
+        await service.CheckOperationsAndCloseAsync();
 
-        _mockDialogService.Verify(
-            d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()),
-            Times.Never);
+        _mockDialogService.Verify(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()), Times.Never);
+        _mockSchedule.Verify(s => s.MarkAskedAsync(), Times.Never);
     }
 
     [Fact]
-    public async Task CheckOperationsAndCloseAsync_DontShowSupportFalse_ShowsSponsorsDialogInExitMode()
+    public async Task CheckOperationsAndCloseAsync_WhenScheduleSaysYes_ShowsExitDialogThenMarksAsked()
     {
         var service = CreateService();
 
         _mockTaskProgressService.Setup(t => t.IsTaskRunning).Returns(false);
-        _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync("DontShowSupport", false))
-            .ReturnsAsync(false);
+        _mockSchedule.Setup(s => s.ShouldAskOnExitAsync()).ReturnsAsync(true);
+        _mockDialogService.Setup(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>())).Returns(Task.CompletedTask);
 
-        _mockDialogService
-            .Setup(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()))
-            .ReturnsAsync((false, false));
+        await service.CheckOperationsAndCloseAsync();
 
-        try
-        {
-            await service.CheckOperationsAndCloseAsync();
-        }
-        catch
-        {
-            // Expected: Application.Current is null in unit tests
-        }
-
-        _mockDialogService.Verify(
-            d => d.ShowSponsorsDialogAsync(SponsorsDialogMode.Exit),
-            Times.Once);
+        _mockDialogService.Verify(d => d.ShowSponsorsDialogAsync(SponsorsDialogMode.Exit), Times.Once);
+        _mockSchedule.Verify(s => s.MarkAskedAsync(), Times.Once);
     }
 
     [Fact]
-    public async Task CheckOperationsAndCloseAsync_SponsorsDialog_DontShowAgainChecked_SavesPreference()
+    public async Task CheckOperationsAndCloseAsync_WhenScheduleThrows_DefaultsToShowDialog()
     {
         var service = CreateService();
 
         _mockTaskProgressService.Setup(t => t.IsTaskRunning).Returns(false);
-        _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync("DontShowSupport", false))
-            .ReturnsAsync(false);
-        _mockUserPreferencesService
-            .Setup(u => u.SetPreferenceAsync("DontShowSupport", true))
-            .ReturnsAsync(OperationResult.Succeeded());
+        _mockSchedule.Setup(s => s.ShouldAskOnExitAsync()).ThrowsAsync(new Exception("Prefs unavailable"));
+        _mockDialogService.Setup(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>())).Returns(Task.CompletedTask);
 
-        _mockDialogService
-            .Setup(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()))
-            .ReturnsAsync((false, true)); // DontShowAgain = true
+        await service.CheckOperationsAndCloseAsync();
 
-        try
-        {
-            await service.CheckOperationsAndCloseAsync();
-        }
-        catch
-        {
-            // Expected: Application.Current is null in unit tests
-        }
-
-        _mockUserPreferencesService.Verify(
-            u => u.SetPreferenceAsync("DontShowSupport", true),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task CheckOperationsAndCloseAsync_SponsorsDialog_DontShowAgainUnchecked_DoesNotSavePreference()
-    {
-        var service = CreateService();
-
-        _mockTaskProgressService.Setup(t => t.IsTaskRunning).Returns(false);
-        _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync("DontShowSupport", false))
-            .ReturnsAsync(false);
-
-        _mockDialogService
-            .Setup(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()))
-            .ReturnsAsync((false, false)); // DontShowAgain = false
-
-        try
-        {
-            await service.CheckOperationsAndCloseAsync();
-        }
-        catch
-        {
-            // Expected: Application.Current is null in unit tests
-        }
-
-        _mockUserPreferencesService.Verify(
-            u => u.SetPreferenceAsync("DontShowSupport", It.IsAny<bool>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task CheckOperationsAndCloseAsync_WhenPreferenceCheckThrows_DefaultsToShowDialog()
-    {
-        var service = CreateService();
-
-        _mockTaskProgressService.Setup(t => t.IsTaskRunning).Returns(false);
-        _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync("DontShowSupport", false))
-            .ThrowsAsync(new Exception("Prefs unavailable"));
-
-        // ShouldShowSupportDialogAsync catches and returns true, so sponsors dialog should show
-        _mockDialogService
-            .Setup(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()))
-            .ReturnsAsync((false, false));
-
-        try
-        {
-            await service.CheckOperationsAndCloseAsync();
-        }
-        catch
-        {
-            // Expected: Application.Current is null in unit tests
-        }
-
-        _mockDialogService.Verify(
-            d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task CheckOperationsAndCloseAsync_WhenSavePreferenceFails_LogsError()
-    {
-        var service = CreateService();
-
-        _mockTaskProgressService.Setup(t => t.IsTaskRunning).Returns(false);
-        _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync("DontShowSupport", false))
-            .ReturnsAsync(false);
-        _mockUserPreferencesService
-            .Setup(u => u.SetPreferenceAsync("DontShowSupport", true))
-            .ReturnsAsync(OperationResult.Failed("Save error"));
-
-        _mockDialogService
-            .Setup(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()))
-            .ReturnsAsync((false, true)); // DontShowAgain = true
-
-        try
-        {
-            await service.CheckOperationsAndCloseAsync();
-        }
-        catch
-        {
-            // Expected: Application.Current is null in unit tests
-        }
-
-        _mockLogService.Verify(
-            l => l.LogError(It.Is<string>(s => s.Contains("Failed to save DontShowSupport preference")), It.IsAny<Exception?>(), It.IsAny<string>()),
-            Times.Once);
+        _mockDialogService.Verify(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()), Times.Once);
     }
 }
