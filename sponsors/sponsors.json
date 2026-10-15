@@ -30,13 +30,6 @@
   ],
   "supporters": [
     {
-      "name": "Test Renewal 595",
-      "since": "2026-06",
-      "src": "Marco du Plessis",
-      "monthly": true,
-      "months": 1
-    },
-    {
       "name": "Dr. David Barrett",
       "since": "2026-10",
       "src": "DAVID BARRETT"
@@ -338,6 +331,10 @@
     },
     {
       "name": "Leo Smith",
+      "since": "2026-06"
+    },
+    {
+      "name": "Marco du Plessis",
       "since": "2026-06"
     }
   ]
