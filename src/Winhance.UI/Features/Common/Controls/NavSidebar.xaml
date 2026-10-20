@@ -26,7 +26,7 @@
                     Margin="0,8,0,0">
 
             <local:NavButton x:Name="SoftwareAppsButton"
-                             IconSymbol="Apps"
+                             IconSymbol="{StaticResource SoftwareAppsIconSymbol}"
                              Text="{x:Bind ViewModel.NavSoftwareAppsText, Mode=OneWay}"
                              AutomationProperties.Name="{x:Bind ViewModel.NavSoftwareAppsText, Mode=OneWay}"
                              NavigationTag="SoftwareApps"
@@ -34,7 +34,7 @@
                              Clicked="NavButton_Clicked"/>
 
             <local:NavButton x:Name="OptimizeButton"
-                             IconSymbol="Gauge"
+                             IconSymbol="{StaticResource OptimizeIconSymbol}"
                              Text="{x:Bind ViewModel.NavOptimizeText, Mode=OneWay}"
                              AutomationProperties.Name="{x:Bind ViewModel.NavOptimizeText, Mode=OneWay}"
                              NavigationTag="Optimize"
@@ -42,7 +42,7 @@
                              Clicked="NavButton_Clicked"/>
 
             <local:NavButton x:Name="CustomizeButton"
-                             IconSymbol="DesignIdeas"
+                             IconSymbol="{StaticResource CustomizeIconSymbol}"
                              Text="{x:Bind ViewModel.NavCustomizeText, Mode=OneWay}"
                              AutomationProperties.Name="{x:Bind ViewModel.NavCustomizeText, Mode=OneWay}"
                              NavigationTag="Customize"
@@ -57,11 +57,19 @@
                     Padding="{x:Bind NavPanelPadding, Mode=OneWay}"
                     Margin="0,0,0,8">
 
-            <local:NavButton x:Name="AdvancedToolsButton"
+            <local:NavButton x:Name="AutounattendButton"
+                             IconSymbol="TextBulletListSquareSparkle"
+                             Text="{x:Bind ViewModel.NavAutounattendText, Mode=OneWay}"
+                             AutomationProperties.Name="{x:Bind ViewModel.NavAutounattendText, Mode=OneWay}"
+                             NavigationTag="Autounattend"
+                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             Clicked="NavButton_Clicked"/>
+
+            <local:NavButton x:Name="WimUtilButton"
                              IconSymbol="WrenchScrewdriver"
-                             Text="{x:Bind ViewModel.NavAdvancedToolsText, Mode=OneWay}"
-                             AutomationProperties.Name="{x:Bind ViewModel.NavAdvancedToolsText, Mode=OneWay}"
-                             NavigationTag="AdvancedTools"
+                             Text="{x:Bind ViewModel.NavWimUtilText, Mode=OneWay}"
+                             AutomationProperties.Name="{x:Bind ViewModel.NavWimUtilText, Mode=OneWay}"
+                             NavigationTag="WimUtil"
                              IsCompact="{x:Bind IsCompact, Mode=OneWay}"
                              Clicked="NavButton_Clicked"/>
 

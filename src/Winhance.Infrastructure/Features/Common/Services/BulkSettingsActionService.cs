@@ -56,18 +56,17 @@ internal class BulkSettingsActionService(
                     IsActive = true
                 });
 
-                if (setting.Control == ControlKind.Toggle)
+                if (TwoState.Is(setting.Control))
                 {
                     // The build-aware reset engine (ApplyRequestResolver) resolves the per-OS default from its
                     // WindowsDefault-roled state, and the bulk loop only gates on whether a default EXISTS on this
                     // build. GetDefault is build-aware.
-                    if (CatalogToggleState.GetDefault(setting, currentBuild) is not bool enableValue)
+                    if (TwoState.GetDefault(setting, currentBuild) is not bool enableValue)
                     {
-                        logService.Log(LogLevel.Debug, $"Skipping '{setting.Id}' - no default toggle state");
+                        logService.Log(LogLevel.Debug, $"Skipping '{setting.Id}' - no default two-state value");
                         continue;
                     }
 
-                    // Mirror per-card HandleToggleAsync: pass only SettingId + Enable + ResetToDefault.
                     // The build-aware apply pipeline derives the per-OS registry write from the WindowsDefault state.
                     await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                     {
@@ -113,8 +112,8 @@ internal class BulkSettingsActionService(
                 {
                     // Slider (NumericRange) reset. Population here is powercfg NumericRange only, so it uses
                     // BuildPowerCfgApplyValue. GATED to Slider so power-plan-selection - whose DERIVED Control is
-                    // PowerPlan (OptionSource) - is NOT reset here (no static default), and is likewise excluded
-                    // from the affected-count (HasDefaultValue is false for PowerPlan).
+                    // KeyedSelection (Options) - is NOT reset here (no static default), and is likewise
+                    // excluded from the affected-count (HasDefaultValue is false for it).
                     var valueToApply = RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: false);
                     await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                     {
@@ -204,9 +203,8 @@ internal class BulkSettingsActionService(
                     continue;
                 }
 
-                // Stateless one-shot Actions have no default/recommended STATE, so they are excluded from the bulk
-                // "Reset to Defaults" / "Apply Recommended" ops (and their affected-count).
-                if (setting.Control == ControlKind.Action)
+                // A one-shot Action has no default or recommended state, so the bulk ops and their count skip it.
+                if (setting.Control is ControlKind.Action)
                 {
                     continue;
                 }

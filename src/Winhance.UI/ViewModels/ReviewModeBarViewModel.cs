@@ -29,6 +29,9 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial bool CanApplyReviewedConfig { get; set; }
 
+    [ObservableProperty]
+    public partial string? ReviewModeSetAsideDetail { get; set; }
+
     public string ReviewModeTitleText =>
         _localizationService.GetStringOrDefault("Review_Mode_Title", "Config Review Mode");
 
@@ -145,25 +148,40 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
         if (!_configReviewModeService.IsInReviewMode)
         {
             ReviewModeStatusText = string.Empty;
+            ReviewModeSetAsideDetail = null;
             return;
         }
 
+        string status;
         if (_configReviewDiffService.TotalChanges > 0)
         {
             var format = _localizationService.GetStringOrDefault("Review_Mode_Status_Format", "{0} of {1} reviewed ({2} will be applied)");
-            ReviewModeStatusText = string.Format(format,
+            status = string.Format(format,
                 _configReviewDiffService.ReviewedChanges,
                 _configReviewDiffService.TotalChanges,
                 _configReviewDiffService.ApprovedChanges);
         }
         else if (_configReviewDiffService.TotalConfigItems > 0)
         {
-            ReviewModeStatusText = _localizationService.GetStringOrDefault("Review_Mode_Status_AllMatch", "All settings already match config");
+            status = _localizationService.GetStringOrDefault("Review_Mode_Status_AllMatch", "All settings already match config");
         }
         else
         {
-            ReviewModeStatusText = _localizationService.GetStringOrDefault("Review_Mode_Status_NoItems", "No configuration items to apply");
+            status = _localizationService.GetStringOrDefault("Review_Mode_Status_NoItems", "No configuration items to apply");
         }
+
+        if (_configReviewModeService.SetAside is { Count: > 0 } setAside)
+        {
+            var format = _localizationService.GetStringOrDefault("Config_SetAside_Format", "{0} settings in this file are not on this PC and were set aside.");
+            status += " - " + string.Format(format, setAside.Count);
+            ReviewModeSetAsideDetail = string.Join("\n", setAside);
+        }
+        else
+        {
+            ReviewModeSetAsideDetail = null;
+        }
+
+        ReviewModeStatusText = status;
     }
 
     [RelayCommand]

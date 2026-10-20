@@ -3,11 +3,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Events;
-using Winhance.Core.Features.AdvancedTools.Interfaces;
+using Winhance.Core.Features.WimUtil.Interfaces;
+using Winhance.Core.Features.Autounattend.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Infrastructure.Extensions.DI;
+using Winhance.Infrastructure.Features.Customize.Services;
+using Winhance.Infrastructure.Features.Optimize.Services;
 using Xunit;
 
 namespace Winhance.IntegrationTests.DI;
@@ -51,12 +54,17 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(IStateWriter))]
     [InlineData(typeof(IRegImportService))]
     [InlineData(typeof(ISpecialSettingHandlerRegistry))]
-    [InlineData(typeof(IAutounattendScriptBuilder))]
+    [InlineData(typeof(IWinhancementsScriptBuilder))]
     [InlineData(typeof(IAnswerFileValidator))]
     [InlineData(typeof(ISettingSnapshotSource))]
     [InlineData(typeof(IConfigFileWriter))]
     [InlineData(typeof(IAutounattendWriter))]
     [InlineData(typeof(IBuilderSeedSource))]
+    [InlineData(typeof(IWindowsThemeService))]
+    [InlineData(typeof(IFileStore))]
+    [InlineData(typeof(IOptionProviderRegistry))]
+    [InlineData(typeof(ThemeModeApplier))]
+    [InlineData(typeof(TimeRegionLanguageService))]
     public void Resolve_CoreInfrastructureServices_AllNonNull(Type serviceType)
     {
         using var provider = BuildProvider();
@@ -64,6 +72,20 @@ public class InfrastructureContainerSmokeTests
         var service = provider.GetService(serviceType);
 
         service.Should().NotBeNull($"service {serviceType.Name} should be resolvable from the DI container");
+    }
+
+    // The registry resolves its providers on first lookup, so a provider graph that reaches back to it fails here.
+    [Fact]
+    public void Resolve_OptionProviderRegistry_FindsTheRegisteredProviderForEveryOptionList()
+    {
+        using var provider = BuildProvider();
+        var registry = provider.GetRequiredService<IOptionProviderRegistry>();
+
+        foreach (var source in Enum.GetValues<OptionSource>())
+            registry.For(source).Sources.Should().Contain(source);
+        registry.For(OptionSource.PowerPlans).Should().BeSameAs(provider.GetRequiredService<PowerService>());
+        registry.For(OptionSource.TimeZones).Should().BeSameAs(provider.GetRequiredService<TimeRegionLanguageService>());
+        registry.For(OptionSource.Pictures).Should().BeSameAs(provider.GetRequiredService<IWindowsThemeService>());
     }
 
     [Fact]

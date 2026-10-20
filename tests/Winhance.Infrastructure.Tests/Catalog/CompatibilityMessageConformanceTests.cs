@@ -93,4 +93,47 @@ public class CompatibilityMessageConformanceTests
     {
         Assert.Null(Derive(Availability.Everywhere, new WinBuild(19045)));
     }
+
+    private static readonly CatalogScope EveryVersion = new(IncludeOtherOsVersions: true, IncludeOtherHardware: false);
+
+    // Same-named Windows 10 and Windows 11 cards must each say which one they are, on whichever Windows this PC runs.
+    [Theory]
+    [InlineData("start-menu-clean-10", 26100, "Compatibility_Windows10Only")]
+    [InlineData("start-menu-clean-11", 26100, "Compatibility_Windows11Only")]
+    [InlineData("start-menu-clean-10", 19045, "Compatibility_Windows10Only")]
+    [InlineData("start-menu-clean-11", 19045, "Compatibility_Windows11Only")]
+    public void Every_version_view_labels_both_twins(string id, int liveBuild, string expected)
+    {
+        Assert.Equal(expected, AvailabilityCompatibility.ForScope(SettingCatalog.ById[id].Availability, EveryVersion, new WinBuild(liveBuild, 9550)));
+    }
+
+    [Theory]
+    [InlineData(26100, 7171, "Compatibility_MinBuild|26100.7171")]
+    [InlineData(26100, 0, "Compatibility_MinBuild|26100")]
+    public void A_fitting_setting_names_the_bound_it_needs(int minBuild, int minRevision, string expected)
+    {
+        var a = Avail(new BuildRange(new WinBuild(minBuild, minRevision), Unbounded));
+
+        Assert.Equal(expected, AvailabilityCompatibility.ForScope(a, EveryVersion, new WinBuild(26200, 9550)));
+    }
+
+    [Fact]
+    public void A_fitting_setting_with_an_upper_bound_names_it()
+    {
+        var startLayout = Avail(new BuildRange(new WinBuild(22000), new WinBuild(26120, int.MaxValue)));
+        var taskbarWindow = Avail(BuildRange.Between(22621, 26099));
+
+        Assert.Equal("Compatibility_MaxBuild|26120", AvailabilityCompatibility.ForScope(startLayout, EveryVersion, new WinBuild(26100)));
+        Assert.Equal("Compatibility_BuildRange|22621-26099", AvailabilityCompatibility.ForScope(taskbarWindow, EveryVersion, new WinBuild(22631)));
+    }
+
+    [Fact]
+    public void A_scope_that_only_shows_fitting_settings_labels_nothing()
+    {
+        var win10 = Avail(BuildRange.Windows10);
+
+        Assert.Null(AvailabilityCompatibility.ForScope(win10, CatalogScope.CurrentMachine, new WinBuild(26100)));
+        Assert.Null(AvailabilityCompatibility.ForScope(win10, CatalogScope.CurrentMachine with { TargetBuild = new WinBuild(19045, int.MaxValue) }, new WinBuild(26100)));
+        Assert.Null(AvailabilityCompatibility.ForScope(Availability.Everywhere, EveryVersion, new WinBuild(26100)));
+    }
 }

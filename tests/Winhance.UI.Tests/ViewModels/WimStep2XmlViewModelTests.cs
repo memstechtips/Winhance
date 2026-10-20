@@ -1,14 +1,14 @@
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.AdvancedTools.Interfaces;
-using Winhance.Core.Features.AdvancedTools.Models;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
-using Winhance.UI.Features.AdvancedTools.Models;
-using Winhance.UI.Features.AdvancedTools.ViewModels;
+using Winhance.Core.Features.WimUtil.Interfaces;
+using Winhance.Core.Features.WimUtil.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.WimUtil.Models;
+using Winhance.UI.Features.WimUtil.ViewModels;
 using Xunit;
 
 namespace Winhance.UI.Tests.ViewModels;
@@ -27,7 +27,11 @@ public class WimStep2XmlViewModelTests : IDisposable
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IResourceService> _mockResourceService = new();
     private readonly Mock<IAnswerFileValidator> _mockAnswerFileValidator = new();
+    private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
+    private readonly Mock<IBuilderModeEntry> _mockBuilderModeEntry = new();
+    private readonly Mock<IDispatcherService> _mockDispatcherService = new();
     private readonly AnswerFileCheckState _checkState = new();
+    private readonly WimUtilSession _session = new();
 
     private readonly WimStep2XmlViewModel _sut;
 
@@ -47,14 +51,22 @@ public class WimStep2XmlViewModelTests : IDisposable
             .Setup(f => f.CombinePath(It.IsAny<string[]>()))
             .Returns((string[] parts) => string.Join("\\", parts));
 
+        _mockFileSystemService
+            .Setup(f => f.GetFileName(It.IsAny<string>()))
+            .Returns((string path) => System.IO.Path.GetFileName(path));
+
+        _mockDispatcherService
+            .Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
+            .Callback<Func<Task>>(a => a().GetAwaiter().GetResult())
+            .Returns(Task.CompletedTask);
+
         // Default: a set carrying a Windows app so generate doesn't show the no-apps warning
         _mockSelections
-            .Setup(s => s.FromMachineAsync())
+            .Setup(s => s.FromBuilderSessionAsync())
             .ReturnsAsync(new SelectionSet(
                 Array.Empty<SettingChoice>(),
                 [new AppChoice("test", "Test", null, null, null, null)],
-                Array.Empty<AppChoice>(),
-                AutounattendChoices.None));
+                Array.Empty<AppChoice>()));
 
         _mockSaves
             .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
@@ -71,7 +83,11 @@ public class WimStep2XmlViewModelTests : IDisposable
             _mockLogService.Object,
             _mockResourceService.Object,
             _mockAnswerFileValidator.Object,
-            _checkState);
+            _mockApplicationModeService.Object,
+            _mockBuilderModeEntry.Object,
+            _mockDispatcherService.Object,
+            _checkState,
+            _session);
     }
 
     public void Dispose()
@@ -80,10 +96,11 @@ public class WimStep2XmlViewModelTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private void ArrangeGenerateConfirmed() =>
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+    private void ArrangeAutounattendSession()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _mockApplicationModeService.Setup(m => m.CurrentBuilderTarget).Returns(BuilderTarget.Autounattend);
+    }
 
     [Fact]
     public void Constructor_InitializesSelectedXmlPathToEmpty()
@@ -169,25 +186,10 @@ public class WimStep2XmlViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task GenerateWinhanceXmlCommand_WhenUserCancels_DoesNotGenerate()
-    {
-        _sut.WorkingDirectory = "C:\\WorkDir";
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
-
-        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
-
-        _mockSaves.Verify(s => s.SaveAsync(
-            It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()), Times.Never);
-        _sut.IsXmlAdded.Should().BeFalse();
-    }
-
-    [Fact]
     public async Task GenerateWinhanceXmlCommand_OnSuccess_SetsIsXmlAdded()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
-        ArrangeGenerateConfirmed();
+        ArrangeAutounattendSession();
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 
@@ -200,7 +202,7 @@ public class WimStep2XmlViewModelTests : IDisposable
     public async Task GenerateWinhanceXmlCommand_WritesIntoTheWorkingDirectory_WithoutASuccessDialog()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
-        ArrangeGenerateConfirmed();
+        ArrangeAutounattendSession();
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 
@@ -212,51 +214,25 @@ public class WimStep2XmlViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task GenerateWinhanceXmlCommand_OnSuccess_EnsuresTheDriverInstallStep()
+    public async Task GenerateWinhanceXmlCommand_LeavesTheDriverStepToTheSaveService()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
-        ArrangeGenerateConfirmed();
+        ArrangeAutounattendSession();
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 
-        _mockWimCustomizationService.Verify(
-            s => s.EnsureDriverInstallStepAsync("C:\\WorkDir", It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task GenerateWinhanceXmlCommand_EnsureFailure_DoesNotFailTheFlow()
-    {
-        _sut.WorkingDirectory = "C:\\WorkDir";
-        ArrangeGenerateConfirmed();
-        _mockWimCustomizationService
-            .Setup(s => s.EnsureDriverInstallStepAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("boom"));
-
-        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
-
-        _sut.IsXmlAdded.Should().BeTrue();
         _sut.GenerateWinhanceXmlCard.IsComplete.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task GenerateWinhanceXmlCommand_WhenUserCancels_DoesNotEnsureTheDriverInstallStep()
-    {
-        _sut.WorkingDirectory = "C:\\WorkDir";
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
-
-        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
-
         _mockWimCustomizationService.Verify(
             s => s.EnsureDriverInstallStepAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockWimCustomizationService.Verify(
+            s => s.EnsureDriverInstallStepAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task GenerateWinhanceXmlCommand_WhenNothingWasSaved_LeavesTheCardIncomplete()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
-        ArrangeGenerateConfirmed();
+        ArrangeAutounattendSession();
         _mockSaves
             .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
             .ReturnsAsync((string?)null);
@@ -274,7 +250,7 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.DownloadXmlCard.IsComplete = true;
         _sut.SelectXmlCard.IsComplete = true;
 
-        ArrangeGenerateConfirmed();
+        ArrangeAutounattendSession();
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 
@@ -286,7 +262,7 @@ public class WimStep2XmlViewModelTests : IDisposable
     public async Task GenerateWinhanceXmlCommand_OnException_SetsHasFailed()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
-        ArrangeGenerateConfirmed();
+        ArrangeAutounattendSession();
 
         _mockSaves
             .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
@@ -297,6 +273,173 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.GenerateWinhanceXmlCard.HasFailed.Should().BeTrue();
         _mockDialogService.Verify(d => d.ShowErrorAsync(
             "WIMUtil_Msg_XmlGenError", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task StartAutounattendSessionCommand_FromNormal_EntersBuilderWithTheAutounattendTarget()
+    {
+        await _sut.StartAutounattendSessionCommand.ExecuteAsync(null);
+
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(BuilderTarget.Autounattend), Times.Once);
+        _mockApplicationModeService.Verify(m => m.SetBuilderTarget(It.IsAny<BuilderTarget>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task StartAutounattendSessionCommand_AlreadyInBuilder_SwitchesTheTargetAndKeepsTheSession()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+
+        await _sut.StartAutounattendSessionCommand.ExecuteAsync(null);
+
+        _mockApplicationModeService.Verify(m => m.SetBuilderTarget(BuilderTarget.Autounattend), Times.Once);
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(It.IsAny<BuilderTarget>()), Times.Never);
+    }
+
+    [Fact]
+    public void IsAutounattendSession_FollowsModeChanged()
+    {
+        _sut.IsAutounattendSession.Should().BeFalse();
+        var raised = new List<string?>();
+        _sut.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        ArrangeAutounattendSession();
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, this, EventArgs.Empty);
+
+        _sut.IsAutounattendSession.Should().BeTrue();
+        raised.Should().Contain(nameof(WimStep2XmlViewModel.IsAutounattendSession));
+    }
+
+    // The real EnterAsync raises ModeChanged from inside EnterBuilderMode, before it returns.
+    private void ArrangeEnteringFromThisCard()
+    {
+        _mockBuilderModeEntry
+            .Setup(e => e.EnterAsync(BuilderTarget.Autounattend))
+            .Returns(() =>
+            {
+                ArrangeAutounattendSession();
+                _mockApplicationModeService.Raise(m => m.ModeChanged += null, this, EventArgs.Empty);
+                return Task.FromResult(true);
+            });
+    }
+
+    [Fact]
+    public async Task EnteringTheAutounattendSession_FromThisCard_RecordsTheWorkingFolder()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeEnteringFromThisCard();
+
+        await _sut.StartAutounattendSessionCommand.ExecuteAsync(null);
+
+        _session.WorkingDirectory.Should().Be("C:\\WorkDir");
+    }
+
+    [Fact]
+    public void ASessionTheBarStarted_DoesNotRecordTheWorkingFolder()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+
+        ArrangeAutounattendSession();
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, this, EventArgs.Empty);
+
+        _session.WorkingDirectory.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_InASessionTheBarStarted_NamesTheMediaAndLeavesTheSessionAlone()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeAutounattendSession();
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, this, EventArgs.Empty);
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockSaves.Verify(s => s.SaveAsync(
+            BuilderTarget.Autounattend,
+            It.IsAny<SelectionSet>(),
+            It.Is<SelectionSaveOptions>(o => o.MediaFolder == "C:\\WorkDir")),
+            Times.Once);
+        _session.WorkingDirectory.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task LeavingBuilder_ClearsTheWorkingFolder()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeEnteringFromThisCard();
+        await _sut.StartAutounattendSessionCommand.ExecuteAsync(null);
+
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Normal);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, this, EventArgs.Empty);
+
+        _session.WorkingDirectory.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SwitchingTheTargetAwayFromAutounattend_ClearsTheWorkingFolder()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeEnteringFromThisCard();
+        await _sut.StartAutounattendSessionCommand.ExecuteAsync(null);
+
+        _mockApplicationModeService.Setup(m => m.CurrentBuilderTarget).Returns(BuilderTarget.Config);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, this, EventArgs.Empty);
+
+        _session.WorkingDirectory.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task MovingTheWorkingFolderDuringTheSession_UpdatesWhatTheSaveServiceReads()
+    {
+        ArrangeEnteringFromThisCard();
+        await _sut.StartAutounattendSessionCommand.ExecuteAsync(null);
+
+        _sut.WorkingDirectory = "D:\\OtherMedia";
+
+        _session.WorkingDirectory.Should().Be("D:\\OtherMedia");
+    }
+
+    [Fact]
+    public void GenerateCardDescription_FollowsTheSession()
+    {
+        _sut.GenerateWinhanceXmlCard.Description.Should().Be("WIMUtil_Card_GenerateWinhanceXML_Snapshot_Description");
+
+        ArrangeAutounattendSession();
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, this, EventArgs.Empty);
+
+        _sut.GenerateWinhanceXmlCard.Description.Should().Be("WIMUtil_Card_GenerateWinhanceXML_Session_Description");
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_OutsideAnAutounattendSession_WarnsAndSavesNothing()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowWarningAsync(
+            "WIMUtil_Card_GenerateWinhanceXML_Start", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _mockSaves.Verify(s => s.SaveAsync(
+            It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()), Times.Never);
+        _sut.IsXmlAdded.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_WritesTheSessionsSet_NotAMachineSnapshot()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        ArrangeAutounattendSession();
+        var session = new SelectionSet(
+            [new SettingChoice("authored", new ChoiceValue.Toggle(true))],
+            Array.Empty<AppChoice>(),
+            Array.Empty<AppChoice>());
+        _mockSelections.Setup(s => s.FromBuilderSessionAsync()).ReturnsAsync(session);
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockSaves.Verify(s => s.SaveAsync(
+            BuilderTarget.Autounattend,
+            It.Is<SelectionSet>(set => set.Settings.Single().SettingId == "authored"),
+            It.IsAny<SelectionSaveOptions>()), Times.Once);
     }
 
     [Fact]
@@ -491,7 +634,11 @@ public class WimStep2XmlViewModelTests : IDisposable
             _mockLogService.Object,
             _mockResourceService.Object,
             _mockAnswerFileValidator.Object,
-            _checkState);
+            _mockApplicationModeService.Object,
+            _mockBuilderModeEntry.Object,
+            _mockDispatcherService.Object,
+            _checkState,
+            _session);
 
         var act = () =>
         {
@@ -539,7 +686,7 @@ public class WimStep2XmlViewModelTests : IDisposable
     public async Task GenerateWinhanceXmlCommand_OnSuccess_ChecksTheMediaCopyAndShowsTheFindings()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
-        ArrangeGenerateConfirmed();
+        ArrangeAutounattendSession();
         var report = OneError();
         _mockAnswerFileValidator
             .Setup(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()))
@@ -560,7 +707,7 @@ public class WimStep2XmlViewModelTests : IDisposable
     public async Task GenerateWinhanceXmlCommand_CleanAnswerFile_PublishesTheReportWithoutADialog()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
-        ArrangeGenerateConfirmed();
+        ArrangeAutounattendSession();
 
         await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
 
@@ -574,7 +721,7 @@ public class WimStep2XmlViewModelTests : IDisposable
     public async Task GenerateWinhanceXmlCommand_CheckThrows_KeepsTheCardComplete()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
-        ArrangeGenerateConfirmed();
+        ArrangeAutounattendSession();
         _mockAnswerFileValidator
             .Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("boom"));
@@ -591,7 +738,7 @@ public class WimStep2XmlViewModelTests : IDisposable
     public async Task GenerateWinhanceXmlCommand_PublishesTheReportForTheBanner()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
-        ArrangeGenerateConfirmed();
+        ArrangeAutounattendSession();
         var report = OneError();
         _mockAnswerFileValidator
             .Setup(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()))
@@ -608,7 +755,7 @@ public class WimStep2XmlViewModelTests : IDisposable
     {
         _checkState.Publish("C:\\OldDir\\autounattend.xml", OneError());
         _sut.WorkingDirectory = "C:\\WorkDir";
-        ArrangeGenerateConfirmed();
+        ArrangeAutounattendSession();
         _mockAnswerFileValidator
             .Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("boom"));

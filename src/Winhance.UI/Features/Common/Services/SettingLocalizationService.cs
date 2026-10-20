@@ -74,26 +74,9 @@ public class SettingLocalizationService : ISettingLocalizationService
         return $"{header}\n{string.Join("\n", lines)}";
     }
 
-    // The English strings here are real fallbacks, not decoration: GetString returns the "[key]"
-    // marker for a missing key and never null, so a `??` on it could never fire.
-    private string GetFeatureName(string settingId)
-    {
-        if (settingId.StartsWith("privacy-"))
-            return Localized("Feature_Privacy_Name", "Privacy & Security");
-        if (settingId.StartsWith("notifications-"))
-            return Localized("Feature_Notifications_Name", "Notifications");
-        if (settingId.StartsWith("start-"))
-            return Localized("Feature_StartMenu_Name", "Start Menu");
-        if (settingId.StartsWith("customize-"))
-            return Localized("Feature_Explorer_Name", "Explorer");
-        if (settingId.StartsWith("gaming-"))
-            return Localized("Feature_GamingPerformance_Name", "Gaming & Performance");
-        if (settingId.StartsWith("power-"))
-            return Localized("Feature_Power_Name", "Power");
-
-        return Localized("Nav_Settings", "Settings");
-    }
-
-    private string Localized(string key, string fallback) =>
-        _localization.TryGetString(key, out var value) && !string.IsNullOrEmpty(value) ? value : fallback;
+    // The catalog knows which feature owns a setting; the id's prefix does not always name it.
+    private string GetFeatureName(string settingId) =>
+        SettingCatalog.FeatureById.TryGetValue(settingId, out var featureId)
+            ? _localization.GetString($"Feature_{featureId}_Name")
+            : _localization.GetString("Nav_Settings");
 }

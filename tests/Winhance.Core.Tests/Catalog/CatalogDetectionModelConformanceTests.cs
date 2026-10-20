@@ -1,3 +1,5 @@
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Models;
 using Xunit;
@@ -75,49 +77,49 @@ public class CatalogDetectionModelConformanceTests
     [Fact]
     public void Advertising_id_precedence() // CPSS Value is an apply-only mirror; the GP tier wins
     {
-        Assert.Equal("Enabled", Detect("privacy-advertising-id"));                                   // clean -> ads on (default)
-        Assert.Equal("Disabled", Detect("privacy-advertising-id", (AdPref, "Enabled", 0)));
+        Assert.Equal(LocKey.Common.Enabled.Value, Detect("privacy-advertising-id"));                                   // clean -> ads on (default)
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect("privacy-advertising-id", (AdPref, "Enabled", 0)));
         // GP disables while a stale pref says on: policy wins. (OLD `.Any` wrongly reports Enabled here.)
-        Assert.Equal("Disabled", Detect("privacy-advertising-id",
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect("privacy-advertising-id",
             (AdPref, "Enabled", 1), (AdGpoHklm, "DisabledByGroupPolicy", 1)));
         // The CPSS mirror is NOT read: a stale CPSS Value=0 does not flip a clean machine off.
-        Assert.Equal("Enabled", Detect("privacy-advertising-id", (AdCpss, "Value", 0)));
+        Assert.Equal(LocKey.Common.Enabled.Value, Detect("privacy-advertising-id", (AdCpss, "Value", 0)));
     }
 
     [Fact]
     public void Diagnostics_precedence() // one preference + group-policy telemetry keys
     {
-        Assert.Equal("Enabled", Detect("privacy-diagnostics"));                                      // clean -> telemetry on
-        Assert.Equal("Disabled", Detect("privacy-diagnostics", (DiagTelemetryHklm, "AllowTelemetry", 0)));
+        Assert.Equal(LocKey.Common.Enabled.Value, Detect("privacy-diagnostics"));                                      // clean -> telemetry on
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect("privacy-diagnostics", (DiagTelemetryHklm, "AllowTelemetry", 0)));
         // a stale ShowedToastAtLevel=3 pref does not keep it "on" once the GP disables telemetry (OLD bug)
-        Assert.Equal("Disabled", Detect("privacy-diagnostics",
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect("privacy-diagnostics",
             (DiagToast, "ShowedToastAtLevel", 3), (DiagTelemetryHklm, "AllowTelemetry", 0)));
     }
 
     [Fact]
     public void Lock_screen_overlay_reads_primary_key() // SubscribedContent mirror is apply-only
     {
-        Assert.Equal("Enabled", Detect("privacy-lock-screen-overlay"));                              // clean -> overlay on
-        Assert.Equal("Enabled", Detect("privacy-lock-screen-overlay", (CdmKey, "RotatingLockScreenOverlayEnabled", 1)));
-        Assert.Equal("Disabled", Detect("privacy-lock-screen-overlay", (CdmKey, "RotatingLockScreenOverlayEnabled", 0)));
+        Assert.Equal(LocKey.Common.Enabled.Value, Detect("privacy-lock-screen-overlay"));                              // clean -> overlay on
+        Assert.Equal(LocKey.Common.Enabled.Value, Detect("privacy-lock-screen-overlay", (CdmKey, "RotatingLockScreenOverlayEnabled", 1)));
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect("privacy-lock-screen-overlay", (CdmKey, "RotatingLockScreenOverlayEnabled", 0)));
         // a stale SubscribedContent=1 does not flip an off machine back on (mirror not read)
-        Assert.Equal("Disabled", Detect("privacy-lock-screen-overlay",
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect("privacy-lock-screen-overlay",
             (CdmKey, "RotatingLockScreenOverlayEnabled", 0), (CdmKey, "SubscribedContent-338387Enabled", 1)));
     }
 
     [Fact]
     public void DirectX_flip_model_defaults_on_when_absent() // composite sub-key; DefaultValue "1"
     {
-        Assert.Equal("Enabled", Detect("gaming-directx-flip-model"));                                          // sub-key absent -> default on
-        Assert.Equal("Enabled", Detect("gaming-directx-flip-model", (DirectXKey, "DirectXUserGlobalSettings", "SwapEffectUpgradeEnable=1")));
-        Assert.Equal("Disabled", Detect("gaming-directx-flip-model", (DirectXKey, "DirectXUserGlobalSettings", "SwapEffectUpgradeEnable=0")));
+        Assert.Equal(LocKey.Common.Enabled.Value, Detect("gaming-directx-flip-model"));                                          // sub-key absent -> default on
+        Assert.Equal(LocKey.Common.Enabled.Value, Detect("gaming-directx-flip-model", (DirectXKey, "DirectXUserGlobalSettings", "SwapEffectUpgradeEnable=1")));
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect("gaming-directx-flip-model", (DirectXKey, "DirectXUserGlobalSettings", "SwapEffectUpgradeEnable=0")));
     }
 
     [Fact]
     public void DirectX_vrr_defaults_on_when_absent()
     {
-        Assert.Equal("Enabled", Detect("gaming-directx-vrr-optimizations"));
-        Assert.Equal("Disabled", Detect("gaming-directx-vrr-optimizations", (DirectXKey, "DirectXUserGlobalSettings", "VRROptimizeEnable=0")));
+        Assert.Equal(LocKey.Common.Enabled.Value, Detect("gaming-directx-vrr-optimizations"));
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect("gaming-directx-vrr-optimizations", (DirectXKey, "DirectXUserGlobalSettings", "VRROptimizeEnable=0")));
     }
 
     [Fact]
@@ -135,14 +137,14 @@ public class CatalogDetectionModelConformanceTests
     {
         // CPSS Value is tagged a policy tier (the connected-privacy store the Win11 Settings app binds to); the two
         // InputPersonalization keys are apply-only enforcement keys. Default (all absent) reads OFF.
-        Assert.Equal("Disabled", Detect("privacy-inking-typing-dictionary"));                                 // clean -> off (default)
-        Assert.Equal("Enabled", Detect("privacy-inking-typing-dictionary", (InkCpss, "Value", 1)));
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect("privacy-inking-typing-dictionary"));                                 // clean -> off (default)
+        Assert.Equal(LocKey.Common.Enabled.Value, Detect("privacy-inking-typing-dictionary", (InkCpss, "Value", 1)));
         // CPSS is authoritative on Win11: Value=0 wins even over a stale AcceptedPrivacyPolicy=1
-        Assert.Equal("Disabled", Detect("privacy-inking-typing-dictionary",
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect("privacy-inking-typing-dictionary",
             (InkCpss, "Value", 0), (InkAccepted, "AcceptedPrivacyPolicy", 1)));
         // Win10 (no CPSS store): AcceptedPrivacyPolicy decides
-        Assert.Equal("Enabled", Detect("privacy-inking-typing-dictionary", (InkAccepted, "AcceptedPrivacyPolicy", 1)));
-        Assert.Equal("Disabled", Detect("privacy-inking-typing-dictionary", (InkAccepted, "AcceptedPrivacyPolicy", 0)));
+        Assert.Equal(LocKey.Common.Enabled.Value, Detect("privacy-inking-typing-dictionary", (InkAccepted, "AcceptedPrivacyPolicy", 1)));
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect("privacy-inking-typing-dictionary", (InkAccepted, "AcceptedPrivacyPolicy", 0)));
     }
 
     //  Single GPO-mirror toggles (no catalog change). Clean -> default-on; a disable applied to ONE policy hive
@@ -164,35 +166,35 @@ public class CatalogDetectionModelConformanceTests
     public void Single_gpo_mirror_clean_is_enabled_and_one_hive_disable_is_disabled(
         string id, string hkcuPath, string valueName, int disabledValue)
     {
-        Assert.Equal("Enabled", Detect(id));                                                  // clean -> default-on
-        Assert.Equal("Disabled", Detect(id, (hkcuPath, valueName, disabledValue)));           // recommended applied to the user hive
+        Assert.Equal(LocKey.Common.Enabled.Value, Detect(id));                                                  // clean -> default-on
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect(id, (hkcuPath, valueName, disabledValue)));           // recommended applied to the user hive
     }
 
     [Fact]
     public void Feedback_frequency_clean_on_and_policy_off()
     {
-        Assert.Equal("Enabled", Detect("privacy-feedback-frequency"));
-        Assert.Equal("Disabled", Detect("privacy-feedback-frequency",
+        Assert.Equal(LocKey.Common.Enabled.Value, Detect("privacy-feedback-frequency"));
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect("privacy-feedback-frequency",
             (@"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\DataCollection", "DoNotShowFeedbackNotifications", 1)));
     }
 
     [Fact]
     public void Autoplay_clean_on_and_policy_off()
     {
-        Assert.Equal("Enabled", Detect("explorer-autoplay"));
-        Assert.Equal("Disabled", Detect("explorer-autoplay",
+        Assert.Equal(LocKey.Common.Enabled.Value, Detect("explorer-autoplay"));
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect("explorer-autoplay",
             (@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer", "NoDriveTypeAutoRun", 255)));
-        Assert.Equal("Disabled", Detect("explorer-autoplay",
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect("explorer-autoplay",
             (@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers", "DisableAutoplay", 1)));
     }
 
     [Fact]
     public void Bing_search_results_clean_on_and_policy_off()
     {
-        Assert.Equal("Enabled", Detect("start-disable-bing-search-results"));
-        Assert.Equal("Disabled", Detect("start-disable-bing-search-results",
+        Assert.Equal(LocKey.Common.Enabled.Value, Detect("start-disable-bing-search-results"));
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect("start-disable-bing-search-results",
             (@"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer", "DisableSearchBoxSuggestions", 1)));
-        Assert.Equal("Disabled", Detect("start-disable-bing-search-results",
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect("start-disable-bing-search-results",
             (@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search", "BingSearchEnabled", 0)));
     }
 
@@ -204,8 +206,8 @@ public class CatalogDetectionModelConformanceTests
     [InlineData("explorer-customization-home-folder", @"HKEY_CURRENT_USER\Software\Classes\CLSID\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}")]
     public void Explorer_thispc_tree_clean_on_unpinned_off(string id, string clsidPath)
     {
-        Assert.Equal("Enabled", Detect(id));                                                   // clean -> shown (default)
-        Assert.Equal("Disabled", Detect(id, (clsidPath, "System.IsPinnedToNameSpaceTree", 0))); // unpinned -> hidden
+        Assert.Equal(LocKey.Common.Enabled.Value, Detect(id));                                                   // clean -> shown (default)
+        Assert.Equal(LocKey.Common.Disabled.Value, Detect(id, (clsidPath, "System.IsPinnedToNameSpaceTree", 0))); // unpinned -> hidden
     }
 
     // ApplyPlanBuilder emits one PowerCfgSetOp per context for EVERY powercfg target and the writer writes each

@@ -9,8 +9,6 @@ public partial class NotificationOptimizationsViewModel : BaseSettingsFeatureVie
 {
     public override string ModuleId => FeatureIds.Notifications;
 
-    protected override string GetDisplayNameKey() => "Feature_Notifications_Name";
-
     public NotificationOptimizationsViewModel(
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,

@@ -27,7 +27,7 @@ public class BuilderSaveServiceTests
         _selections.Setup(s => s.FromBuilderSessionAsync()).ReturnsAsync(SelectionSet.Empty);
         _saves
             .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
-            .ReturnsAsync(SavedPath);
+            .ReturnsAsync(new SelectionSaveResult(SavedPath, []));
     }
 
     private BuilderSaveService Sut() => new(

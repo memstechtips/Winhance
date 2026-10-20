@@ -1,3 +1,4 @@
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.ViewModels;

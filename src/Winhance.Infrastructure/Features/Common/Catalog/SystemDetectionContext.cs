@@ -1,5 +1,7 @@
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using Windows.Win32;
+using Windows.Win32.UI.Shell.Common;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -13,6 +15,7 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
     private readonly ISystemRestoreService _restore;
     private readonly IScheduledTaskStateService _tasks;
     private readonly IPowerSettingsQueryService _power;
+    private readonly ILocalizationService _localization;
     private readonly ILogService _log;
 
     private Dictionary<string, bool?> _taskCache = new();
@@ -21,7 +24,6 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
     private IReadOnlyList<string>? _dnsServers;
     private bool _powerPrefetched;
     private string? _activePlanGuid;
-    private string? _activePlanName;
     private bool _planPrefetched;
     private IReadOnlyList<DynamicOption> _installedPlans = System.Array.Empty<DynamicOption>();
 
@@ -30,12 +32,14 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
         ISystemRestoreService restore,
         IScheduledTaskStateService tasks,
         IPowerSettingsQueryService power,
+        ILocalizationService localization,
         ILogService log)
     {
         _reg = reg;
         _restore = restore;
         _tasks = tasks;
         _power = power;
+        _localization = localization;
         _log = log;
     }
 
@@ -106,6 +110,26 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
         return false;
     }
 
+    public bool FileExists(string path) => System.IO.File.Exists(path);
+
+    // Windows stores a USHORT byte count, then the ITEMIDLIST; a count that does not match the rest is rejected.
+    public unsafe string? ShellFolderPath(byte[] itemList)
+    {
+        const int IdListOffset = 2;
+        if (itemList.Length <= IdListOffset || BitConverter.ToUInt16(itemList, 0) != itemList.Length - IdListOffset)
+            return null;
+
+        Span<char> buffer = stackalloc char[(int)PInvoke.MAX_PATH];
+        fixed (byte* bytes = itemList)
+        {
+            if (!PInvoke.SHGetPathFromIDList(in *(ITEMIDLIST*)(bytes + IdListOffset), buffer))
+                return null;
+        }
+
+        var end = buffer.IndexOf('\0');
+        return new string(buffer[..(end < 0 ? buffer.Length : end)]);
+    }
+
     public bool? ScheduledTaskEnabled(string taskPath)
     {
         if (_taskCache.TryGetValue(taskPath, out var enabled))
@@ -137,14 +161,6 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
             _log.Log(LogLevel.Warning,
                 "Active power plan read before a pre-fetch; returning null.");
         return _activePlanGuid;
-    }
-
-    public string? ActivePowerPlanName()
-    {
-        if (!_planPrefetched)
-            _log.Log(LogLevel.Warning,
-                "Active power plan name read before a pre-fetch; returning null.");
-        return _activePlanName;
     }
 
     public IReadOnlyList<DynamicOption> InstalledPowerPlans()
@@ -190,15 +206,14 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
         // Active power plan + the installed plans (the runtime-sourced options): read once when a setting selects
         // the power plan. Both the active GUID and each option's GUID are lowercased so a dynamic-option setting can
         // match the current selection to an option Value directly (no index round-trip).
-        bool needsPlan = settings.Any(s => s.Detector is PowerPlanDetector || s.OptionSource is PowerPlanOptionSource);
+        bool needsPlan = settings.Any(s => s.Detector is PowerPlanDetector || s.Options?.Source == OptionSource.PowerPlans);
         if (needsPlan)
         {
             var plan = await _power.GetActivePowerPlanAsync().ConfigureAwait(false);
             _activePlanGuid = string.IsNullOrEmpty(plan?.Guid) ? null : plan.Guid.ToLowerInvariant();
 
             var plans = await _power.GetAvailablePowerPlansAsync().ConfigureAwait(false);
-            _installedPlans = PowerPlanOptions.Build(plans);
-            _activePlanName = plans.FirstOrDefault(p => p.IsActive)?.Name;
+            _installedPlans = PowerPlanOptions.Build(plans, _activePlanGuid, _localization);
 
             _planPrefetched = true;
         }

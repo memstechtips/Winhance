@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<UserControl
+<local:SettingBoundControl
     x:Class="Winhance.UI.Features.Common.Controls.SettingQuickSetButtons"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Winhance.UI.Features.Common.Controls">
 
     <!--
     The green "Set to Recommended" / grey "Set to Windows Default" pair that precedes every input control.
@@ -29,4 +30,4 @@
                       Foreground="{ThemeResource BadgeDefaultForeground}"/>
         </Button>
     </StackPanel>
-</UserControl>
+</local:SettingBoundControl>

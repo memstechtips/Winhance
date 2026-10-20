@@ -59,12 +59,12 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
     {
         try
         {
-            var incompatibleSettings = _configLoadService.DetectIncompatibleSettings(config);
+            var setAside = _configLoadService.DetectIncompatibleSettings(config);
 
-            if (incompatibleSettings.Count > 0)
+            if (setAside.Count > 0)
             {
                 config = _configLoadService.FilterConfigForCurrentSystem(config);
-                _logService.Log(LogLevel.Info, $"Silently filtered {incompatibleSettings.Count} incompatible settings from config");
+                _logService.Log(LogLevel.Info, $"Set aside {setAside.Count} settings this PC does not show: {string.Join(", ", setAside)}");
             }
 
             var selectedSections = new List<string>();
@@ -130,7 +130,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 ProcessWindowsAppsInstallation = hasWindowsApps && selectedSections.Contains("WindowsApps") && dialogOptions.ProcessWindowsAppsInstallation,
                 ProcessExternalAppsInstallation = hasExternalApps && dialogOptions.ProcessExternalAppsInstallation,
                 ProcessExternalAppsRemoval = hasExternalApps && dialogOptions.ProcessExternalAppsRemoval,
-                ApplyThemeWallpaper = dialogOptions.ApplyThemeWallpaper,
                 ApplyCleanTaskbar = dialogOptions.ApplyCleanTaskbar,
                 ApplyCleanStartMenu = dialogOptions.ApplyCleanStartMenu,
                 IsWindowsDefaults = dialogOptions.IsWindowsDefaults,
@@ -149,12 +148,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 selectedSections.Add($"Customize_{FeatureIds.StartMenu}");
                 actionOnlySubsections.Add($"Customize_{FeatureIds.StartMenu}");
             }
-            if (importOptions.ApplyThemeWallpaper && !selectedSections.Contains($"Customize_{FeatureIds.WindowsTheme}"))
-            {
-                if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
-                selectedSections.Add($"Customize_{FeatureIds.WindowsTheme}");
-                actionOnlySubsections.Add($"Customize_{FeatureIds.WindowsTheme}");
-            }
             importOptions = importOptions with { ActionOnlySubsections = actionOnlySubsections };
 
             var overlayStatus = _localizationService.GetStringOrDefault("Config_Import_Status_Applying", "Sit back, relax and watch while Winhance enhances Windows with your desired settings...");
@@ -163,6 +156,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             _configImportState.IsActive = true;
             _configImportState.ImportSuppliesPowerValues = false;
             var changeBatch = _changeHistoryService.BeginBatch(BuildImportBatchHeader());
+            IReadOnlyList<string> notApplied;
 
             try
             {
@@ -178,13 +172,14 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             }
             finally
             {
+                notApplied = _configImportState.TakeNotApplied();
                 _configImportState.IsActive = false;
                 _configImportState.ImportSuppliesPowerValues = false;
                 changeBatch.Dispose();
                 _overlayService.HideOverlay();
             }
 
-            await ShowImportSuccessMessage();
+            await ShowImportSuccessMessage(setAside, notApplied);
 
             // Process Windows Apps installation AFTER overlay is hidden (shows confirmation dialog)
             if (hasWindowsApps && importOptions.ProcessWindowsAppsInstallation)
@@ -360,16 +355,13 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         Func<string, object?, Task<(bool confirmed, bool checkboxResult)>> confirmationHandler =
             (settingId, value) =>
             {
-                if (settingId == SettingIds.PowerPlanSelection || settingId == SettingIds.UpdatesPolicyMode)
+                if (settingId == "power-plan-selection" || settingId == "updates-policy-mode")
                     return Task.FromResult((true, true));
 
-                if (settingId == SettingIds.ThemeModeWindows)
-                    return Task.FromResult((true, options?.ApplyThemeWallpaper ?? false));
-
-                if (settingId == SettingIds.TaskbarClean)
+                if (settingId == "taskbar-clean")
                     return Task.FromResult((true, options?.ApplyCleanTaskbar ?? false));
 
-                if (settingId == SettingIds.StartMenuCleanWin10 || settingId == SettingIds.StartMenuCleanWin11)
+                if (settingId == "start-menu-clean-10" || settingId == "start-menu-clean-11")
                     return Task.FromResult((true, options?.ApplyCleanStartMenu ?? false));
 
                 return Task.FromResult((true, true));
@@ -397,7 +389,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 var actionItems = BuildActionItems(options, featureName);
 
                 var capturedFeatureName = featureName;
-                var capturedSection = section;
+                var capturedSection = WithoutDeclinedOptions(section, options);
 
                 featureTasks.Add(Task.Run(async () =>
                 {
@@ -458,18 +450,6 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             var featureName = featureKey.Substring(groupName.Length + 1);
             var actionItems = BuildActionItems(options!, featureName);
 
-            if (options?.ApplyThemeWallpaper == true && featureName == FeatureIds.WindowsTheme)
-            {
-                actionItems.Add(new ConfigurationItem
-                {
-                    Id = SettingIds.ThemeModeWindows,
-                    Name = "Windows Theme",
-                    IsSelected = true,
-                    InputType = InputType.Selection,
-                    SelectedIndex = 0
-                });
-            }
-
             var capturedFeatureName = featureName;
             var capturedActionItems = actionItems;
 
@@ -511,6 +491,22 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         return results.All(r => r);
     }
 
+    // An unticked import box has to drop the file's own item: the section applies it straight otherwise.
+    private static ConfigSection WithoutDeclinedOptions(ConfigSection section, ImportOptions options)
+    {
+        var kept = section.Items.Where(item => !IsDeclined(item.Id, options)).ToList();
+        return kept.Count == section.Items.Count
+            ? section
+            : new ConfigSection { IsIncluded = section.IsIncluded, Items = kept };
+    }
+
+    private static bool IsDeclined(string settingId, ImportOptions options) => settingId switch
+    {
+        "taskbar-clean" => !options.ApplyCleanTaskbar,
+        "start-menu-clean-10" or "start-menu-clean-11" => !options.ApplyCleanStartMenu,
+        _ => false,
+    };
+
     private List<ConfigurationItem> BuildActionItems(ImportOptions options, string featureName)
     {
         var items = new List<ConfigurationItem>();
@@ -519,7 +515,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         {
             items.Add(new ConfigurationItem
             {
-                Id = SettingIds.TaskbarClean,
+                Id = "taskbar-clean",
                 Name = "Clean Taskbar",
                 IsSelected = true,
                 InputType = InputType.Toggle
@@ -528,7 +524,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
 
         if (options?.ApplyCleanStartMenu == true && featureName == FeatureIds.StartMenu)
         {
-            var settingId = _windowsVersionService.IsWindows11() ? SettingIds.StartMenuCleanWin11 : SettingIds.StartMenuCleanWin10;
+            var settingId = _windowsVersionService.IsWindows11() ? "start-menu-clean-11" : "start-menu-clean-10";
             items.Add(new ConfigurationItem
             {
                 Id = settingId,
@@ -548,10 +544,20 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         return string.IsNullOrEmpty(source) ? label : $"{label} ({source})";
     }
 
-    private async Task ShowImportSuccessMessage()
+    private async Task ShowImportSuccessMessage(IReadOnlyList<string> setAside, IReadOnlyList<string> notApplied)
     {
+        var message = _localizationService.GetStringOrDefault("Config_Import_Success_Message", "Configuration imported successfully.");
+        if (setAside.Count > 0)
+        {
+            var format = _localizationService.GetStringOrDefault("Config_SetAside_Format", "{0} settings in this file are not on this PC and were set aside.");
+            message += "\n\n" + string.Format(format, setAside.Count) + "\n" + string.Join("\n", setAside);
+        }
+
+        if (notApplied is { Count: > 0 })
+            message += "\n\n" + string.Join("\n", notApplied);
+
         await _dialogService.ShowInformationAsync(
-            _localizationService.GetStringOrDefault("Config_Import_Success_Message", "Configuration imported successfully."),
+            message,
             _localizationService.GetStringOrDefault("Config_Import_Success_Title", "Import Successful"));
     }
 }

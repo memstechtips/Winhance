@@ -4,7 +4,8 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
-using Winhance.Infrastructure.Features.AdvancedTools.Services;
+using Winhance.Infrastructure.Features.Autounattend.Services;
+using Winhance.IntegrationTests.Helpers;
 using Xunit;
 
 namespace Winhance.IntegrationTests.ScriptGeneration;
@@ -17,7 +18,7 @@ public class ScriptBuilderTests
 
     private readonly Mock<ILogService> _logService = new();
     private readonly Mock<IPowerShellRunner> _powerShellRunner = new();
-    private readonly AutounattendScriptBuilder _builder;
+    private readonly WinhancementsScriptBuilder _builder;
 
     public ScriptBuilderTests()
     {
@@ -26,10 +27,12 @@ public class ScriptBuilderTests
             .Setup(p => p.ValidateScriptSyntaxAsync(It.IsAny<string>(), default))
             .Returns(Task.CompletedTask);
 
-        _builder = new AutounattendScriptBuilder(
+        _builder = new WinhancementsScriptBuilder(
             _logService.Object,
             _powerShellRunner.Object,
-            new Mock<IWindowsVersionService>().Object);
+            new Mock<IWindowsVersionService>().Object,
+            new Mock<ILocalizationService>().Object,
+            OptionProviderFixtures.Registry());
     }
 
     // Apps plus one setting of each shape the passes route differently: HKLM registry (system pass), HKCU registry
@@ -42,8 +45,7 @@ public class ScriptBuilderTests
             new("power-display-timeout", new ChoiceValue.AcDcOption(1, 0)),
         },
         new[] { new AppChoice("app1", "Test Windows App", TestAppPackages, null, null, null) },
-        new[] { new AppChoice("ext1", "External App", null, null, null, "TestVendor.TestApp") },
-        AutounattendChoices.None);
+        new[] { new AppChoice("ext1", "External App", null, null, null, "TestVendor.TestApp") });
 
     private static Dictionary<string, IReadOnlyList<Setting>> FullCatalog() => new()
     {
@@ -58,8 +60,7 @@ public class ScriptBuilderTests
         var set = new SelectionSet(
             Array.Empty<SettingChoice>(),
             new[] { new AppChoice("app1", "Clipchamp", ClipchampPackage, null, null, null) },
-            Array.Empty<AppChoice>(),
-            AutounattendChoices.None);
+            Array.Empty<AppChoice>());
         var byFeature = new Dictionary<string, IReadOnlyList<Setting>>();
 
         var script = await _builder.BuildAsync(set, byFeature);
@@ -113,8 +114,7 @@ public class ScriptBuilderTests
         var set = new SelectionSet(
             new[] { new SettingChoice("security-remote-assistance", new ChoiceValue.Toggle(true)) },
             Array.Empty<AppChoice>(),
-            Array.Empty<AppChoice>(),
-            AutounattendChoices.None);
+            Array.Empty<AppChoice>());
         var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
         {
             [FeatureIds.Privacy] = new[] { SettingCatalog.Find("security-remote-assistance")! },
@@ -136,8 +136,7 @@ public class ScriptBuilderTests
         var set = new SelectionSet(
             new[] { new SettingChoice("power-display-timeout", new ChoiceValue.AcDcOption(1, 0)) },
             Array.Empty<AppChoice>(),
-            Array.Empty<AppChoice>(),
-            AutounattendChoices.None);
+            Array.Empty<AppChoice>());
         var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
         {
             [FeatureIds.Power] = new[] { SettingCatalog.Find("power-display-timeout")! },

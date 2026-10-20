@@ -38,6 +38,22 @@ public sealed partial class SectionPageShell : UserControl
         set => SetValue(ViewModelProperty, value);
     }
 
+    // A page with a single section has no cards to pick from: it hands over that section's own view instead.
+    public static readonly DependencyProperty SectionContentProperty = DependencyProperty.Register(
+        nameof(SectionContent),
+        typeof(object),
+        typeof(SectionPageShell),
+        new PropertyMetadata(null, OnSectionContentChanged));
+
+    public object? SectionContent
+    {
+        get => GetValue(SectionContentProperty);
+        set => SetValue(SectionContentProperty, value);
+    }
+
+    private static void OnSectionContentChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
+        ((SectionPageShell)d).OverviewCards.Visibility = e.NewValue is null ? Visibility.Visible : Visibility.Collapsed;
+
     // Sender is the card; its Tag is the section key.
     public event RoutedEventHandler? SectionCardClicked;
 
@@ -56,6 +72,7 @@ public sealed partial class SectionPageShell : UserControl
     public SectionPageChrome Chrome => new(
         OverviewScroller: OverviewScrollView,
         OverviewContent: OverviewContent,
+        HasSectionContent: SectionContent is not null,
         ContentFrame: InnerContentFrame,
         SearchBox: SearchBox,
         BreadcrumbRoot: BreadcrumbRoot,
@@ -74,7 +91,10 @@ public sealed partial class SectionPageShell : UserControl
         InfoBadgesToggle: InfoBadgesToggleItem,
         NewBadgesToggle: NewBadgesToggleItem,
         ShowOnlyChangesToggle: ShowOnlyChangesToggleItem,
-        ShowOnlyChangesSeparator: ShowOnlyChangesSeparator);
+        ShowOnlyChangesSeparator: ShowOnlyChangesSeparator,
+        IncludeAllItem: IncludeAllItem,
+        ExcludeAllItem: ExcludeAllItem,
+        IncludeActionsSeparator: IncludeActionsSeparator);
 
     // The three template-scoped handlers. Their instances are created per item as the ItemsControl
     // realizes them, so the base cannot subscribe to them element-by-element the way it does for the

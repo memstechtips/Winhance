@@ -14,18 +14,24 @@ public abstract record Effect
 }
 
 // Detection comes from an accompanying Target in the state's Set.
-public sealed record ScriptEffect(string Script, RunContext Run) : Effect;
+public sealed record ScriptEffect(string Script, RunContext Run) : Effect
+{
+    // Answer file only: Some keeps the script out of a file that installs no apps, None out of one that does.
+    public AppsToInstall When { get; init; } = AppsToInstall.Either;
+}
 
 public sealed record RegContentEffect(string Content) : Effect;
 
-// Apply-only; no read path exists.
-public sealed record NativePowerEffect(int InformationLevel, byte Value) : Effect;
+// Activates the scheme, importing a predefined one that is not installed.
+public sealed record PowerPlanEffect(string Guid) : Effect;
 
 public sealed record RegistryWriteEffect(string Path, string ValueName, RegistryValueKind Kind, object Value) : Effect
 {
     public bool IsGroupPolicy { get; init; }
 }
 
-// Applied only when the user opts into "also change the wallpaper" on a theme switch. INERT in the apply engine
-// (WindowsStateWriter.RunEffect's default no-op) - ThemeWallpaperApplier reads it directly.
-public sealed record WallpaperEffect(string Path) : Effect;
+// A RunSynchronous command in the answer file. Inert in the live apply engine.
+public sealed record AutounattendCommand(string Pass, string Component, string Command, string? Description = null) : Effect;
+
+// A FirstLogonCommands entry, which only oobeSystem Shell-Setup carries. Inert in the live apply engine.
+public sealed record AutounattendFirstLogonCommand(string Command, string? Description = null) : Effect;

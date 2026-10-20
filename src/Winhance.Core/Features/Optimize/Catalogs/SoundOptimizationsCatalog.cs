@@ -9,7 +9,6 @@ namespace Winhance.Core.Features.Optimize.Catalogs;
 public static class SoundOptimizationsCatalog
 {
     public const string FeatureId = FeatureIds.Sound;
-    public const string FeatureName = "Sound";
 
     public static IReadOnlyList<Setting> All { get; } = new Setting[]
     {

@@ -1,3 +1,5 @@
+using Winhance.Core.Features.Common.Localization;
+
 namespace Winhance.Core.Features.Common.Catalog;
 
 public enum LinkKind
@@ -6,7 +8,7 @@ public enum LinkKind
     Enables,    // applying the owning setting also forces OtherId to RequiredState
 }
 
-public sealed record Link(string OtherId, LinkKind Kind, string RequiredState)
+public sealed record Link(string OtherId, LinkKind Kind, LocKey RequiredState)
 {
     // Default true; auto-enable links set this false (force the other into its state, but no reverse).
     public bool ReverseCascade { get; init; } = true;

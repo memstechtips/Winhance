@@ -9,8 +9,6 @@ public partial class GamingOptimizationsViewModel : BaseSettingsFeatureViewModel
 {
     public override string ModuleId => FeatureIds.GamingPerformance;
 
-    protected override string GetDisplayNameKey() => "Feature_GamingPerformance_Name";
-
     public GamingOptimizationsViewModel(
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,

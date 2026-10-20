@@ -1,7 +1,10 @@
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Interfaces;
 using Xunit;
+using Winhance.TestSupport;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Core.Tests.Catalog;
 
 public class CatalogDiscoveryPrecedenceTests
@@ -34,7 +37,7 @@ public class CatalogDiscoveryPrecedenceTests
     private static Setting AdSetting() => new()
     {
         Id = "ad",
-        Display = new() { Name = "ad", Description = "ad" },
+        Display = new() { Name = TestKeys.Of("ad"), Description = TestKeys.Of("ad") },
         Targets = new Target[]
         {
             new RegTarget("Enabled", new[] { Pref }, "Enabled", RegistryValueKind.DWord),
@@ -45,13 +48,13 @@ public class CatalogDiscoveryPrecedenceTests
         {
             new SettingState
             {
-                Label = "Enabled",
+                Label = LocKey.Common.Enabled,
                 IsFallback = true,
                 Set = new Dictionary<string, StateValue> { ["Enabled"] = StateValue.Of(1).OrAbsent(), ["Gp"] = StateValue.Absent },
             },
             new SettingState
             {
-                Label = "Disabled",
+                Label = LocKey.Common.Disabled,
                 Set = new Dictionary<string, StateValue> { ["Enabled"] = StateValue.Of(0), ["Gp"] = StateValue.Of(1) },
             },
         },
@@ -61,28 +64,28 @@ public class CatalogDiscoveryPrecedenceTests
     public void Preference_on_with_absent_mirror_reads_enabled() // the 29-diff bug case
     {
         var ctx = new Ctx(new() { [(Pref, "Enabled")] = 1 });
-        Assert.Equal("Enabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label);
+        Assert.Equal(LocKey.Common.Enabled.Value, CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 
     [Fact]
     public void Group_policy_override_wins_over_preference()
     {
         var ctx = new Ctx(new() { [(Pref, "Enabled")] = 1, [(Gpo, "DisabledByGroupPolicy")] = 1 });
-        Assert.Equal("Disabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label);
+        Assert.Equal(LocKey.Common.Disabled.Value, CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 
     [Fact]
     public void Nothing_present_falls_to_default_on_fallback()
     {
         var ctx = new Ctx(new());
-        Assert.Equal("Enabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label);
+        Assert.Equal(LocKey.Common.Enabled.Value, CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 
     [Fact]
     public void Preference_off_reads_disabled()
     {
         var ctx = new Ctx(new() { [(Pref, "Enabled")] = 0 });
-        Assert.Equal("Disabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label);
+        Assert.Equal(LocKey.Common.Disabled.Value, CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 
     [Fact]
@@ -93,7 +96,7 @@ public class CatalogDiscoveryPrecedenceTests
         var setting = new Setting
         {
             Id = "theme",
-            Display = new() { Name = "theme", Description = "theme" },
+            Display = new() { Name = TestKeys.Of("theme"), Description = TestKeys.Of("theme") },
             Targets = new Target[]
             {
                 new RegTarget("Apps", ThemesPaths, "AppsUseLightTheme", RegistryValueKind.DWord),
@@ -101,8 +104,8 @@ public class CatalogDiscoveryPrecedenceTests
             },
             States = new[]
             {
-                new SettingState { Label = "Light", Set = new Dictionary<string, StateValue> { ["Apps"] = StateValue.Of(1), ["System"] = StateValue.Of(1) } },
-                new SettingState { Label = "Dark", Set = new Dictionary<string, StateValue> { ["Apps"] = StateValue.Of(0), ["System"] = StateValue.Of(0) } },
+                new SettingState { Label = TestKeys.Of("Light"), Set = new Dictionary<string, StateValue> { ["Apps"] = StateValue.Of(1), ["System"] = StateValue.Of(1) } },
+                new SettingState { Label = TestKeys.Of("Dark"), Set = new Dictionary<string, StateValue> { ["Apps"] = StateValue.Of(0), ["System"] = StateValue.Of(0) } },
             },
         };
 
@@ -117,12 +120,12 @@ public class CatalogDiscoveryPrecedenceTests
         var setting = new Setting
         {
             Id = "s",
-            Display = new() { Name = "s", Description = "s" },
+            Display = new() { Name = TestKeys.Of("s"), Description = TestKeys.Of("s") },
             Targets = new Target[] { new RegTarget("Mode", TestPaths, "V", RegistryValueKind.DWord) },
             States = new[]
             {
-                new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(1) } },
-                new SettingState { Label = "Off", IsFallback = true, Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(0) } },
+                new SettingState { Label = TestKeys.Of("On"), Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(1) } },
+                new SettingState { Label = TestKeys.Of("Off"), IsFallback = true, Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(0) } },
             },
         };
 
@@ -147,12 +150,12 @@ public class CatalogDiscoveryPrecedenceTests
         var setting = new Setting
         {
             Id = "s",
-            Display = new() { Name = "s", Description = "s" },
+            Display = new() { Name = TestKeys.Of("s"), Description = TestKeys.Of("s") },
             Targets = new Target[] { new RegTarget("Mode", TestPaths, "V", RegistryValueKind.DWord) },
             States = new[]
             {
-                new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(1) } },
-                new SettingState { Label = "Off", IsFallback = true, Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(0) } },
+                new SettingState { Label = TestKeys.Of("On"), Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(1) } },
+                new SettingState { Label = TestKeys.Of("Off"), IsFallback = true, Set = new Dictionary<string, StateValue> { ["Mode"] = StateValue.Of(0) } },
             },
         };
 
@@ -165,6 +168,6 @@ public class CatalogDiscoveryPrecedenceTests
         // Matched != fell through: a present value that matches the IsFallback state's OWN pattern
         // (Enabled=1 vs Of(1).OrAbsent()) returns that state via the normal match, never Custom.
         var ctx = new Ctx(new() { [(Pref, "Enabled")] = 1 });
-        Assert.Equal("Enabled", CatalogDiscovery.Detect(AdSetting(), ctx).Label);
+        Assert.Equal(LocKey.Common.Enabled.Value, CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 }

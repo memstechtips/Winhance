@@ -173,9 +173,10 @@ dotnet_diagnostic.CA1310.severity = none   # StringComparison on every compariso
 # app nobody references as a library; making them internal buys nothing.
 dotnet_diagnostic.CA1401.severity = none
 
-# 116 hits. Identifiers should not contain underscores. This repo's test convention is
-# Method_Scenario_Expectation and its localization keys are Setting_{id}_Name. The
-# underscore IS the convention.
+# 116 hits. Identifiers should not contain underscores. Test names here are
+# Method_Scenario_Expectation in service and view-model tests and sentences
+# (Every_setting_id_is_unique) in catalog, shape, gate and behaviour tests, one style
+# per file; localization keys are Setting_{id}_Name. The underscore IS the convention.
 dotnet_diagnostic.CA1707.severity = none
 
 # Library naming/design advice with no meaning for an internal app surface.
@@ -189,6 +190,18 @@ dotnet_diagnostic.CA1068.severity = none   # CancellationToken must be the last 
 # in the IDE so it can be taken opportunistically.
 dotnet_diagnostic.CA1859.severity = suggestion   # use concrete type for performance
 dotnet_diagnostic.CA1805.severity = suggestion   # do not initialize to default
+
+#### Compiled twice: by Roslyn here, by PowerShell Add-Type on the new PC ####
+
+# Hand-written source is meant to earn its clean build, not be excused one rule at a time, so this section
+# exists for one file and one rule, and only because no code fix exists. The file is both compiled into
+# Winhance and embedded verbatim in the answer file's PowerShell, where Add-Type hands it to Windows
+# PowerShell 5.1's CodeDom compiler - a C# 5 compiler. File-scoped namespaces arrived in C# 10, so taking
+# IDE0161's fix would break the wallpaper on every machine the answer file sets up. The
+# rest of what that compiler cannot read (implicit usings, interpolation, expression bodies, out-var,
+# nullable annotations) has no analyzer or test behind it, so it is kept out by hand.
+[src/Winhance.Infrastructure/Features/Common/Native/DesktopBackgroundInterop.cs]
+dotnet_diagnostic.IDE0161.severity = none
 
 #### Generated code — never analyse it ####
 

@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
@@ -20,7 +21,7 @@ public class PolicyCleanupServiceTests
         new()
         {
             Id = id,
-            Display = new Display { Name = id, Description = "Test" },
+            Display = new Display { Name = TestKeys.Of(id), Description = TestKeys.Of("Test") },
             Targets = keyPaths.Select((kp, i) => (Target)new RegTarget(
                 $"k{i}", new[] { kp }, "TestValue", Microsoft.Win32.RegistryValueKind.DWord)
                 { IsGroupPolicy = true }).ToArray()
@@ -30,7 +31,7 @@ public class PolicyCleanupServiceTests
         new()
         {
             Id = id,
-            Display = new Display { Name = id, Description = "Test" },
+            Display = new Display { Name = TestKeys.Of(id), Description = TestKeys.Of("Test") },
             Targets = keyPaths.Select((kp, i) => (Target)new RegTarget(
                 $"k{i}", new[] { kp }, "TestValue", Microsoft.Win32.RegistryValueKind.DWord)).ToArray()
         };

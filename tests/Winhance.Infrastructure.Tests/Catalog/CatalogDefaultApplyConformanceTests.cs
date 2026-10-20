@@ -118,9 +118,9 @@ public class CatalogDefaultApplyConformanceTests
             if (!setting.Targets.OfType<RegTarget>().Any(t => t.Key == targetKey)) continue;
 
             var defaultLabel = setting.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault, build))?.Label;
-            if (defaultLabel is null) continue;
+            if (defaultLabel is not { } label) continue;
 
-            if (ApplyPlanBuilder.Build(setting, defaultLabel, build, reset: true).Any(op => IsWriteTo(op, targetKey)))
+            if (ApplyPlanBuilder.Build(setting, label, build, reset: true).Any(op => IsWriteTo(op, targetKey)))
                 writers.Add($"{settingId}/{targetKey}");
         }
 

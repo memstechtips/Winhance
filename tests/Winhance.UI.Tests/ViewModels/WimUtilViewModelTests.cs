@@ -1,11 +1,12 @@
 using FluentAssertions;
 using Microsoft.UI.Xaml.Controls;
 using Moq;
-using Winhance.Core.Features.AdvancedTools.Interfaces;
-using Winhance.Core.Features.AdvancedTools.Models;
+using Winhance.Core.Features.WimUtil.Interfaces;
+using Winhance.Core.Features.WimUtil.Models;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.UI.Features.AdvancedTools.ViewModels;
+using Winhance.UI.Features.WimUtil.Models;
+using Winhance.UI.Features.WimUtil.ViewModels;
 using Winhance.UI.Features.Common.Interfaces;
 using Xunit;
 using Winhance.TestSupport;
@@ -31,6 +32,9 @@ public class WimUtilViewModelTests : IDisposable
     private readonly Mock<IResourceService> _mockResourceService = new();
 
     private readonly Mock<IAnswerFileValidator> _mockAnswerFileValidator = new();
+    private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
+    private readonly Mock<IBuilderModeEntry> _mockBuilderModeEntry = new();
+    private readonly WimUtilSession _session = new();
     private readonly WimUtilViewModel _sut;
 
     // Step1 builds its working directory from the mocked temp path, and every VM joins with a backslash.
@@ -85,7 +89,10 @@ public class WimUtilViewModelTests : IDisposable
             _mockFileSystemService.Object,
             _mockFilePickerService.Object,
             _mockResourceService.Object,
-            _mockAnswerFileValidator.Object);
+            _mockAnswerFileValidator.Object,
+            _mockApplicationModeService.Object,
+            _mockBuilderModeEntry.Object,
+            _session);
     }
 
     public void Dispose()
@@ -153,6 +160,22 @@ public class WimUtilViewModelTests : IDisposable
     public void Title_ReturnsLocalizationStringForWimUtilTitle()
     {
         _sut.Title.Should().Be("WIMUtil_Title");
+    }
+
+    [Fact]
+    public void PageDescription_KeyMissing_ReturnsFallback()
+    {
+        _mockLocalizationService.MissingKey("WIMUtil_Subtitle");
+
+        _sut.PageDescription.Should().Be("Create Custom Windows Installation Media");
+    }
+
+    [Fact]
+    public void PageDescription_KeyStubbed_ReturnsLocalizedString()
+    {
+        _mockLocalizationService.PresentKey("WIMUtil_Subtitle", "Stubbed page description");
+
+        _sut.PageDescription.Should().Be("Stubbed page description");
     }
 
     [Fact]
@@ -285,6 +308,17 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step1.WorkingDirectory = "C:\\Changed";
 
         raised.Should().BeTrue();
+    }
+
+    [Fact]
+    public void WhenTheModeChanges_RaisesIsAutounattendSessionOnParent()
+    {
+        var raised = new List<string?>();
+        _sut.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, this, EventArgs.Empty);
+
+        raised.Should().Contain(nameof(WimUtilViewModel.IsAutounattendSession));
     }
 
     [Fact]

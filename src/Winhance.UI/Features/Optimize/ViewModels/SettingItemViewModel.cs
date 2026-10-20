@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -11,10 +12,12 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.Common.TechnicalDetails;
 using Winhance.UI.Features.Common.Controls;
+using Winhance.UI.Features.Common.Converters;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Utilities;
@@ -31,6 +34,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     private readonly IUserPreferencesService? _userPreferencesService;
     private readonly INewBadgeService? _newBadgeService;
     private readonly IApplicationModeService? _applicationModeService;
+    private readonly IFilePickerService? _filePickerService;
     private readonly SettingStatusBannerManager _statusBannerManager;
     private readonly TechnicalDetailsManager _technicalDetailsManager;
     // Live Windows build (from config), for build-aware default/badge resolution of merged Selections
@@ -39,12 +43,14 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     private volatile bool _isUpdatingFromEvent;
     private bool _hasChangedThisSession;
     private object? _pendingValue;
+    // An upper-casing rule turns several typed strings into one normalized value, which must not be recorded twice.
+    private string? _lastRecordedText;
 
     public ISettingsFeatureViewModel? ParentFeatureViewModel { get; set; }
 
     public Setting? Setting { get; set; }
 
-    public IReadOnlyList<string?>? OptionWarnings { get; }
+    public IReadOnlyList<OptionWarning?>? OptionWarnings { get; }
 
     [ObservableProperty]
     public partial string SettingId { get; set; }
@@ -132,6 +138,61 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     [ObservableProperty]
     public partial string Units { get; set; }
 
+    [ObservableProperty]
+    public partial string TextValue { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool HasTextError { get; set; }
+
+    public string TextError => Setting?.TextBox?.Rule.Message is { } message
+        ? _localizationService.GetStringOrDefault(message.Value, message.Value)
+        : string.Empty;
+
+    public string TextPlaceholder => Setting?.TextBox?.Placeholder is { } placeholder
+        ? _localizationService.GetStringOrDefault(placeholder.Value, placeholder.Value)
+        : string.Empty;
+
+    public PickerKind TextBoxPicker => Setting?.TextBox?.Picker ?? PickerKind.None;
+
+    public bool HasTextBoxPicker => TextBoxPicker != PickerKind.None;
+
+    // en.json carries no generic Browse caption, so every card borrows the two the background children already
+    // ship in all 29 languages.
+    public string BrowseLabel => Setting?.Display.Tiles == OptionTiles.Colors
+        ? _localizationService.GetStringOrDefault(LocKey.Setting.ThemeWallpaperColor.Browse.Value, "View colors")
+        : _localizationService.GetStringOrDefault(LocKey.Setting.ThemeWallpaperPicture.Browse.Value, "Browse");
+
+    // Windows' own wording: "Recent images" heads the picture tiles, "Custom colors" the row under the swatches.
+    public string ChildHeader => Setting?.Display.Tiles == OptionTiles.Pictures
+        ? _localizationService.GetStringOrDefault(LocKey.Setting.ThemeWallpaperPicture.Recent.Value, "Recent images")
+        : Name;
+
+    public string BrowseRowHeader => Setting?.Display.Tiles == OptionTiles.Colors
+        ? _localizationService.GetStringOrDefault(LocKey.Setting.ThemeWallpaperColor.Custom.Value, "Custom colors")
+        : Name;
+
+    public ObservableCollection<ListRowViewModel> Rows { get; } = [];
+
+    [ObservableProperty]
+    public partial string ListAddLabel { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string ListRemoveLabel { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string SavePasswordsLabel { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string SavePasswordsNote { get; set; } = string.Empty;
+
+    // The flag lives on the List record, so a tick rewrites the whole record the way a row edit does.
+    [ObservableProperty]
+    public partial bool SavePasswords { get; set; }
+
+    partial void OnSavePasswordsChanged(bool value) => HandleListAsync().FireAndForget(_logService);
+
+    public bool HasRows => Rows.Count > 0;
+
     public string OnText { get; set; } = "On";
     public string OffText { get; set; } = "Off";
     public string ActionButtonText { get; set; } = "Apply";
@@ -215,7 +276,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     {
         OnPropertyChanged(nameof(ShowInfoBadge));
         OnPropertyChanged(nameof(ShowNumericQuickSetButtons));
-        OnPropertyChanged(nameof(ShowToggleQuickSetButtons));
+        OnPropertyChanged(nameof(ShowTwoStateQuickSetButtons));
         OnPropertyChanged(nameof(ShowSelectionQuickSetButtons));
         OnPropertyChanged(nameof(ShowAcSelectionQuickSetButtons));
         OnPropertyChanged(nameof(ShowDcSelectionQuickSetButtons));
@@ -314,9 +375,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // <action>" for Dual AC/DC variants) for AutomationProperties.Name. Visible
     // ToolTipService.ToolTip strings stay short (action only).
     //
-    // Used via x:Bind function-call syntax in SettingsCardItem.xaml — e.g.
-    //   AutomationProperties.Name="{x:Bind A11yName(ToggleRecommendedTooltip), Mode=OneWay}"
-    // x:Bind re-evaluates when the argument's PropertyChanged fires (language change).
+    // x:Bind function syntax re-evaluates when the argument's PropertyChanged fires (language change).
 
     public string A11yName(string? action) =>
         string.IsNullOrEmpty(action) ? Name : $"{Name}: {action}";
@@ -421,66 +480,53 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         });
     private RelayCommand? _setDcNumericToDefaultCommand;
 
-    public bool? ToggleRecommendedState =>
-        Setting is { } s ? RoleToggleState(s, RoleKind.Recommended, _build) : null;
+    public bool? TwoStateRecommended =>
+        Setting is { } s ? TwoState.GetRecommended(s, _build) : null;
 
-    public bool? ToggleDefaultState =>
-        Setting is { } s ? RoleToggleState(s, RoleKind.WindowsDefault, _build) : null;
+    public bool? TwoStateDefault =>
+        Setting is { } s ? TwoState.GetDefault(s, _build) : null;
 
-    // A toggle's recommended/default maps to whichever "Enabled"/"Disabled" state carries the role: the role-bearing
-    // state's Label ("Enabled"=>true / "Disabled"=>false / no role=>null). HasRole defaults to PowerContext.Always so
-    // PowerCfg AC/DC roles never match; a non-Enabled/Disabled role label (e.g. a
-    // Selection) yields null - these accessors are Toggle/CheckBox-only consumed.
-    private static bool? RoleToggleState(Setting setting, RoleKind kind, WinBuild build)
-    {
-        foreach (var st in setting.States)
-            if (st.HasRole(kind, build))
-                return st.Label switch { "Enabled" => true, "Disabled" => false, _ => (bool?)null };
-        return null;
-    }
+    private string TwoStateText(bool state) => state ? OnText : OffText;
 
-    private string ToggleStateText(bool state) => state ? OnText : OffText;
-
-    public string ToggleRecommendedTooltip =>
-        ToggleRecommendedState is bool s
-            ? FormatValueTooltip("InfoBadge_Numeric_SetToRecommended_Tooltip", ToggleStateText(s))
+    public string TwoStateRecommendedTooltip =>
+        TwoStateRecommended is bool s
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToRecommended_Tooltip", TwoStateText(s))
             : string.Empty;
 
-    public string ToggleDefaultTooltip =>
-        ToggleDefaultState is bool s
-            ? FormatValueTooltip("InfoBadge_Numeric_SetToDefault_Tooltip", ToggleStateText(s))
+    public string TwoStateDefaultTooltip =>
+        TwoStateDefault is bool s
+            ? FormatValueTooltip("InfoBadge_Numeric_SetToDefault_Tooltip", TwoStateText(s))
             : string.Empty;
 
-    public bool ShowToggleQuickSetButtons
+    public bool ShowTwoStateQuickSetButtons
     {
         get
         {
             if (!IsInfoBadgeGloballyVisible) return false;
             if (InputType != InputType.Toggle && InputType != InputType.CheckBox) return false;
-            return ToggleRecommendedState.HasValue || ToggleDefaultState.HasValue;
+            return TwoStateRecommended.HasValue || TwoStateDefault.HasValue;
         }
     }
 
-    public IRelayCommand SetToggleToRecommendedCommand => _setToggleToRecommendedCommand ??=
+    public IRelayCommand SetTwoStateToRecommendedCommand => _setTwoStateToRecommendedCommand ??=
         new RelayCommand(() =>
         {
-            if (ToggleRecommendedState is bool v)
+            if (TwoStateRecommended is bool v)
                 // fromCustomState while Custom: bypass the newValue==IsSelected guard (a Custom toggle
                 // sits at IsSelected=false, so a Disabled target would be silently swallowed - no write,
                 // no feedback) and clear the overlay on success. Quick-set is an explicit state pick,
                 // so no dialog (same reasoning as the Custom dialog flow's no-double-confirm).
-                HandleToggleAsync(v, fromCustomState: ShowsStateOverlay).FireAndForget(_logService);
+                HandleTwoStateAsync(v, fromCustomState: ShowsStateOverlay).FireAndForget(_logService);
         });
-    private RelayCommand? _setToggleToRecommendedCommand;
+    private RelayCommand? _setTwoStateToRecommendedCommand;
 
-    public IRelayCommand SetToggleToDefaultCommand => _setToggleToDefaultCommand ??=
+    public IRelayCommand SetTwoStateToDefaultCommand => _setTwoStateToDefaultCommand ??=
         new RelayCommand(() =>
         {
-            if (ToggleDefaultState is bool v)
-                // fromCustomState while Custom: see SetToggleToRecommendedCommand.
-                HandleToggleAsync(v, resetToDefault: true, fromCustomState: ShowsStateOverlay).FireAndForget(_logService);
+            if (TwoStateDefault is bool v)
+                HandleTwoStateAsync(v, resetToDefault: true, fromCustomState: ShowsStateOverlay).FireAndForget(_logService);
         });
-    private RelayCommand? _setToggleToDefaultCommand;
+    private RelayCommand? _setTwoStateToDefaultCommand;
 
     // Per-state roles drive recommended/default. States order matches the option order 1:1, so the index
     // matches. HasRole defaults to PowerContext.Always - standard selections match here; PowerCfg AC/DC-scoped
@@ -532,7 +578,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         {
             if (!IsInfoBadgeGloballyVisible) return false;
             if (InputType != InputType.Selection) return false;
-            if (IsPowerPlanSetting) return false; // PowerPlan has its own recommendation logic (TBD)
             if (SupportsSeparateACDC) return false; // Dual AC/DC selection uses per-mode buttons
             return SelectionRecommendedIndex.HasValue || SelectionDefaultIndex.HasValue;
         }
@@ -652,7 +697,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         });
     private RelayCommand? _setDcSelectionToDefaultCommand;
 
-    // PowerPlan is excluded - it has its own recommendation logic.
     public bool HasRecommendedQuickSetTarget => HasQuickSetTarget(recommended: true);
 
     public bool HasDefaultQuickSetTarget => HasQuickSetTarget(recommended: false);
@@ -660,11 +704,11 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     private bool HasQuickSetTarget(bool recommended) => InputType switch
     {
         InputType.Toggle or InputType.CheckBox =>
-            (recommended ? ToggleRecommendedState : ToggleDefaultState).HasValue,
+            (recommended ? TwoStateRecommended : TwoStateDefault).HasValue,
         InputType.Selection when IsPowerCfgSetting =>
             (recommended ? AcSelectionRecommendedIndex : AcSelectionDefaultIndex).HasValue
             || (SupportsSeparateACDC && (recommended ? DcSelectionRecommendedIndex : DcSelectionDefaultIndex).HasValue),
-        InputType.Selection when !IsPowerPlanSetting =>
+        InputType.Selection =>
             (recommended ? SelectionRecommendedIndex : SelectionDefaultIndex).HasValue,
         InputType.NumericRange when SupportsSeparateACDC =>
             (recommended ? AcRecommendedValue : AcDefaultValue).HasValue
@@ -687,7 +731,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         {
             case InputType.Toggle:
             case InputType.CheckBox:
-                (recommended ? SetToggleToRecommendedCommand : SetToggleToDefaultCommand).Execute(null);
+                (recommended ? SetTwoStateToRecommendedCommand : SetTwoStateToDefaultCommand).Execute(null);
                 return true;
 
             case InputType.Selection when IsPowerCfgSetting:
@@ -908,6 +952,23 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         OnPropertyChanged(nameof(EffectiveIsEnabled));
     }
 
+    // Kept apart from IsVisible because the search path stamps that one true on every card on every keystroke,
+    // which would erase a declared gate.
+    [ObservableProperty]
+    public partial bool ParentIsVisible { get; set; }
+
+    partial void OnParentIsVisibleChanged(bool value)
+    {
+        OnPropertyChanged(nameof(EffectiveIsVisible));
+    }
+
+    partial void OnIsVisibleChanged(bool value)
+    {
+        OnPropertyChanged(nameof(EffectiveIsVisible));
+    }
+
+    public bool EffectiveIsVisible => IsVisible && ParentIsVisible;
+
     // The state LABEL this card sits on, or null when there is none to name (no catalog Setting, no States, or a
     // Selection on the -1 Custom sentinel). A declared gate compares against this - by LABEL, never index. A toggle
     // answers from IsSelected (its SelectedValue is only written at load and would go stale); a selection from
@@ -923,16 +984,16 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             return InputType switch
             {
                 InputType.Toggle or InputType.CheckBox =>
-                    catalogSetting.States.FirstOrDefault(st => st.Label == (IsSelected ? "Enabled" : "Disabled"))?.Label,
+                    catalogSetting.States.FirstOrDefault(st => st.Label == TwoState.Label(catalogSetting.Control, IsSelected))?.Label.Value,
                 InputType.Selection when SelectedValue is int index
                     && index >= 0 && index < catalogSetting.States.Count =>
-                    catalogSetting.States[index].Label,
+                    catalogSetting.States[index].Label.Value,
                 _ => null,
             };
         }
     }
 
-    public bool EffectiveIsEnabled => IsEnabled && ParentIsEnabled && !IsInReviewMode;
+    public bool EffectiveIsEnabled => IsEnabled && ParentIsEnabled && !IsInReviewMode && IsIncluded;
 
     // Builder mode records desired state into the UI without applying to the system. Named for the
     // capability rather than the mode so the write path asks what it is allowed to do, not who it is.
@@ -946,7 +1007,16 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // for a setting never authored.
     public void ApplyAuthoredOverlay()
     {
-        if (!AuthorsIntent) return;
+        if (!AuthorsIntent)
+        {
+            // A card can outlive the session that excluded it.
+            SetIncludedFromSession(true);
+            return;
+        }
+
+        // Before the edit lookup, which returns early for a setting that was excluded without ever being edited.
+        SetIncludedFromSession(_applicationModeService?.IsIncluded(SettingId) ?? true);
+
         if (_applicationModeService?.GetBuilderEdit(SettingId) is not { } edit) return;
 
         // These are programmatic writes standing in for the user's earlier ones - they must not
@@ -965,36 +1035,38 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    // The inverse of what the handlers record; SettingItemViewModelAuthoredOverlayTests round-trips every shape,
-    // so a new input type that records but cannot restore fails there.
     private void ApplyAuthoredValues(SettingChoice edit)
     {
         switch (edit.Value)
         {
             case ChoiceValue.Toggle t:
-                // Outcome deliberately untouched: the toggle path only resolves an outcome for a
+                // Outcome deliberately untouched: the two-state path only resolves an outcome for a
                 // Custom-state pick, and that is not part of the record to restore from.
                 IsSelected = t.On;
                 break;
 
-            case ChoiceValue.PowerPlan p:
-                int planIndex = -1;
-                for (int i = 0; i < ComboBoxOptions.Count && planIndex < 0; i++)
-                {
-                    if (ComboBoxOptions[i].Tag is PowerPlanComboBoxOption tag && string.Equals(tag.Guid, p.Guid, StringComparison.OrdinalIgnoreCase))
-                        planIndex = i;
-                }
-                if (planIndex < 0)
-                {
-                    // A custom plan deleted since it was authored: the card would show the machine's plan while
-                    // Save still writes the authored GUID, so say so instead of restoring nothing silently.
-                    _logService.Log(LogLevel.Warning, $"Authored power plan {p.Guid} is not in the Builder dropdown for {SettingId}; the card shows the machine's plan.");
-                    break;
-                }
-                SelectedValue = planIndex;
-                NumericValue = planIndex;
+            case ChoiceValue.CheckBox c:
+                IsSelected = c.Checked;
+                break;
+
+            case ChoiceValue.Text t:
+                TextValue = t.Value;
+                _lastRecordedText = t.Value;
+                HasTextError = false;
+                break;
+
+            case ChoiceValue.List l:
+                SavePasswords = l.SavePasswords;
+                RebuildRows(l);
+                break;
+
+            case ChoiceValue.Keyed k:
+                // The provider lists only three Windows pictures and a few recents, so a restored picture is usually
+                // missing from it; the tile is captioned by file name rather than as "not available".
+                EnsureKeyedOption(k.Key, ShowsOptionTiles ? Path.GetFileName(k.Key) : null);
+                SelectedValue = k.Key;
                 Outcome = SettingDetectionOutcome.Resolved;
-                UpdateStatusBanner(planIndex);
+                UpdateStatusBanner(k.Key);
                 break;
 
             case ChoiceValue.AcDcOption a:
@@ -1081,13 +1153,218 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public partial bool IsLastChild { get; set; }
 
     public Microsoft.UI.Xaml.CornerRadius ChildCornerRadius =>
+        IsLastChild && !ShowsOptionTiles ? new Microsoft.UI.Xaml.CornerRadius(0, 0, 4, 4) : new Microsoft.UI.Xaml.CornerRadius(0);
+
+    public Microsoft.UI.Xaml.CornerRadius BrowseRowCornerRadius =>
         IsLastChild ? new Microsoft.UI.Xaml.CornerRadius(0, 0, 4, 4) : new Microsoft.UI.Xaml.CornerRadius(0);
 
-    partial void OnIsLastChildChanged(bool value) => OnPropertyChanged(nameof(ChildCornerRadius));
+    partial void OnIsLastChildChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ChildCornerRadius));
+        OnPropertyChanged(nameof(BrowseRowCornerRadius));
+    }
+
+    [ObservableProperty]
+    public partial bool HasVisibleChildren { get; set; } = true;
+
+    public Microsoft.UI.Xaml.CornerRadius ParentCornerRadius => HasVisibleChildren
+        ? new Microsoft.UI.Xaml.CornerRadius(4, 4, 0, 0)
+        : new Microsoft.UI.Xaml.CornerRadius(4);
+
+    partial void OnHasVisibleChildrenChanged(bool value) => OnPropertyChanged(nameof(ParentCornerRadius));
 
     public void ToggleExpander() => IsExpanderExpanded = !IsExpanderExpanded;
 
-    public bool IsPowerPlanSetting => Setting?.OptionSource is not null;
+    [ObservableProperty]
+    public partial bool IsIncluded { get; set; } = true;
+
+    private bool _isSyncingInclude;
+
+    partial void OnIsIncludedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(EffectiveIsEnabled));
+        OnPropertyChanged(nameof(IncludeState));
+        OnPropertyChanged(nameof(IncludeToolTip));
+
+        if (_isSyncingInclude) return;
+
+        _applicationModeService?.SetIncluded(SettingId, value);
+    }
+
+    // An answer file cannot leave a setting out: an absent choice renders the file's default.
+    public bool ShowIncludeCheckbox => AuthorsIntent && Setting?.IsAnswerFileOnly != true;
+
+    // The answer file carries the passwords whatever the box says; the tick rides on the List record to a
+    // later config save.
+    public bool ShowPasswordBanner =>
+        Setting?.List?.Fields.Any(f => f.Kind == FieldKind.Password) == true && AuthorsIntent;
+
+    public string IncludeToolTip => IsIncluded
+        ? _localizationService.GetStringOrDefault("Setting_Include_Tooltip_In", "Included in the file")
+        : _localizationService.GetStringOrDefault("Setting_Include_Tooltip_Out", "Left out of the file. Tick it to put it back.");
+
+    // The include box template's width: a 20px checkbox, 8px, a 16px glyph, then 12px to the header icon.
+    private const double IncludeBoxGutter = 56;
+
+    public Microsoft.UI.Xaml.Thickness CardPadding => ShowIncludeCheckbox
+        ? new Microsoft.UI.Xaml.Thickness(16 + IncludeBoxGutter, 12, 16, 12)
+        : new Microsoft.UI.Xaml.Thickness(16, 12, 16, 12);
+
+    public Microsoft.UI.Xaml.Thickness ChildCardPadding => IsCompactRow
+        ? RowPadding
+        : ShowIncludeCheckbox
+            ? new Microsoft.UI.Xaml.Thickness(54 + IncludeBoxGutter, 12, 52, 12)
+            : new Microsoft.UI.Xaml.Thickness(54, 12, 52, 12);
+
+    // Starts where the header text does: past the card padding, the 24px icon column and its 16px margin.
+    public Microsoft.UI.Xaml.Thickness RowPadding => new(CardPadding.Left + 40, 8, 52, 8);
+
+    public bool IsCompactRow =>
+        EffectiveUiParentId is { } parentId
+        && SettingCatalog.Find(parentId)?.Display.CompactChildren == true;
+
+    // 52 is the toolkit's expander-item height, 68 its card minimum, from a Style setter no per-card resource can reach.
+    public double ChildMinHeight => IsCompactRow ? 52 : 68;
+
+    public Microsoft.UI.Xaml.Controls.IconElement? ChildHeaderIcon =>
+        IsCompactRow ? null : IconConverter.Build(this, null);
+
+    public CommunityToolkit.WinUI.Controls.ContentAlignment ChildContentAlignment =>
+        Setting?.Display.Tiles is { } tiles && tiles != OptionTiles.None
+            ? CommunityToolkit.WinUI.Controls.ContentAlignment.Vertical
+            : CommunityToolkit.WinUI.Controls.ContentAlignment.Right;
+
+    // Right is the toolkit default; a vertical card must stretch or its tiles wrap inside their own measured width.
+    public Microsoft.UI.Xaml.HorizontalAlignment ChildContentHorizontalAlignment =>
+        ChildContentAlignment == CommunityToolkit.WinUI.Controls.ContentAlignment.Vertical
+            ? Microsoft.UI.Xaml.HorizontalAlignment.Stretch
+            : Microsoft.UI.Xaml.HorizontalAlignment.Right;
+
+    public string IncludeAutomationName => _localizationService.GetStringOrDefault(
+        "Setting_Include_AutomationName", $"Include {Name} in the file", Name);
+
+    // The box keeps IsThreeState false, so null only ever comes from the getter.
+    public bool? IncludeState
+    {
+        get
+        {
+            if (Children is not { Count: > 0 } children) return IsIncluded;
+
+            bool allIn = IsIncluded;
+            bool noneIn = !IsIncluded;
+            foreach (var child in children)
+            {
+                allIn &= child.IsIncluded;
+                noneIn &= !child.IsIncluded;
+            }
+
+            return allIn ? true : noneIn ? false : null;
+        }
+        set
+        {
+            if (value is not bool included) return;
+
+            IsIncluded = included;
+            if (Children is { } children)
+            {
+                foreach (var child in children)
+                {
+                    child.IsIncluded = included;
+                }
+            }
+
+            // The only raise when the click changed nothing - without it the box keeps what was clicked.
+            OnPropertyChanged();
+        }
+    }
+
+    // RebuildSettingIndexes replaces Children wholesale, so this hooks the assignment and not CollectionChanged.
+    private ObservableCollection<SettingItemViewModel>? _observedChildren;
+
+    partial void OnChildrenChanged(ObservableCollection<SettingItemViewModel>? value)
+    {
+        UnsubscribeFromChildren();
+
+        _observedChildren = value;
+        if (value is null) return;
+
+        foreach (var child in value)
+        {
+            child.PropertyChanged += OnChildPropertyChanged;
+        }
+
+        OnPropertyChanged(nameof(IncludeState));
+    }
+
+    private void UnsubscribeFromChildren()
+    {
+        if (_observedChildren is not { } children) return;
+
+        foreach (var child in children)
+        {
+            child.PropertyChanged -= OnChildPropertyChanged;
+        }
+
+        _observedChildren = null;
+    }
+
+    private void OnChildPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is null or nameof(IsIncluded))
+        {
+            OnPropertyChanged(nameof(IncludeState));
+        }
+    }
+
+    // Entering Builder rebuilds no card - BuilderSeededEvent fires only for a seed that is not this machine - so
+    // the card has to hear the transition itself.
+    private void OnApplicationModeChanged(object? sender, EventArgs e)
+    {
+        if (!AuthorsIntent)
+        {
+            SetIncludedFromSession(true);
+        }
+
+        OnPropertyChanged(nameof(ShowIncludeCheckbox));
+        OnPropertyChanged(nameof(CardPadding));
+        OnPropertyChanged(nameof(ChildCardPadding));
+        OnPropertyChanged(nameof(RowPadding));
+        OnPropertyChanged(nameof(IncludeState));
+        OnPropertyChanged(nameof(IncludeToolTip));
+        OnPropertyChanged(nameof(ShowPasswordBanner));
+    }
+
+    internal void SetIncludedFromSession(bool included)
+    {
+        if (IsIncluded == included) return;
+
+        bool wasSyncing = _isSyncingInclude;
+        _isSyncingInclude = true;
+        try
+        {
+            IsIncluded = included;
+        }
+        finally
+        {
+            _isSyncingInclude = wasSyncing;
+        }
+    }
+
+    public bool IsKeyedSelection => Setting?.Control == ControlKind.KeyedSelection;
+
+    // Only power plans offer an option this machine does not have (a predefined plan not yet installed).
+    public bool ShowsOptionStatus => IsKeyedSelection && Setting?.Options?.Source == OptionSource.PowerPlans;
+
+    // Apart from SelectedValue so an authored pick in Builder does not move the Active badge off the running scheme.
+    public string? LiveKeyedSelection { get; private set; }
+
+    public string KeyedActiveBadgeText => _localizationService.GetString("PowerPlan_Active_Badge");
+
+    public string KeyedDeleteTooltipText => _localizationService.GetString("PowerPlan_Delete_Tooltip");
+
+    public string KeyedInstalledTooltipText => _localizationService.GetString("PowerPlan_Status_Exists");
+
+    public string KeyedNotInstalledTooltipText => _localizationService.GetString("PowerPlan_Status_NotExists");
 
     // A powercfg setting carries exactly one PowerCfgTarget whose Mode is PowerModeSupport. Non-powercfg
     // settings have no PowerCfgTarget -> false.
@@ -1173,10 +1450,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                 return string.Empty;
             }
 
-            var key = Winhance.Core.Features.Common.Localization.SettingLocalizationKeys.IsLocalizationKey(state.Label)
-                ? state.Label
-                : Winhance.Core.Features.Common.Localization.SettingLocalizationKeys.OptionDisplay(catalogSetting, stateIndex);
-            return Localized(key) ?? state.Label;
+            return Localized(state.Label.Value) ?? state.Label.Value;
         }
     }
 
@@ -1189,7 +1463,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         _localizationService.TryGetString(key, out var text) ? text : null;
 
     // The SAME string that outcome's banner shows, so the two can never drift.
-    public string OverlayTooltipFor(SettingDetectionOutcome outcome, bool toggleLike = true)
+    public string OverlayTooltipFor(SettingDetectionOutcome outcome, bool isTwoState = true)
     {
         string prefix = outcome switch
         {
@@ -1197,7 +1471,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             SettingDetectionOutcome.Undetermined => "Common_UndeterminedBanner_",
             _ => "Common_CustomBanner_",
         };
-        return _localizationService.GetStringOrDefault(prefix + (toggleLike ? "Toggle" : "Selection"), string.Empty);
+        return _localizationService.GetStringOrDefault(prefix + (isTwoState ? "Toggle" : "Selection"), string.Empty);
     }
 
     // Per-MODE resolution. A Separate-mode powercfg setting edits two values (AC and DC) that can be
@@ -1250,10 +1524,10 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             ? DetectOnlyStateText
             : OverlayStateTextFor(OutcomeForMode(mode));
 
-    public string OverlayTooltipForMode(SettingInputMode mode, bool toggleLike) =>
+    public string OverlayTooltipForMode(SettingInputMode mode, bool isTwoState) =>
         IsDetectOnlyForMode(mode)
             ? string.Empty
-            : OverlayTooltipFor(OutcomeForMode(mode), toggleLike);
+            : OverlayTooltipFor(OutcomeForMode(mode), isTwoState);
 
     // A DETECT-ONLY state reports -1 too: its state index is real, but the option list has no ITEM there (skipped,
     // never renumbered), so binding the raw index would point past the end; the overlay names the state.
@@ -1261,9 +1535,21 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     {
         SettingInputMode.Ac => AcValue,
         SettingInputMode.Dc => DcValue,
-        _ => DetectOnlySelectedState is not null ? ComboBoxConstants.CustomStateIndex
+        _ => IsKeyedSelection ? KeyedOptionPosition(SelectedValue as string)
+            : DetectOnlySelectedState is not null ? ComboBoxConstants.CustomStateIndex
             : SelectedValue is int index ? index : ComboBoxConstants.CustomStateIndex,
     };
+
+    // A key the dropdown does not hold answers -1, which the ComboBox reads as nothing selected.
+    private int KeyedOptionPosition(string? key)
+    {
+        for (int i = 0; i < ComboBoxOptions.Count; i++)
+        {
+            if (ComboBoxOptions[i].Value is string value && string.Equals(value, key, StringComparison.OrdinalIgnoreCase))
+                return i;
+        }
+        return ComboBoxConstants.CustomStateIndex;
+    }
 
     public double NumericValueForMode(SettingInputMode mode) => mode switch
     {
@@ -1353,15 +1639,15 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     };
 
     // Never Collapsed - it must keep occupying its space, or the column reflows.
-    public double ToggleOpacityFor(SettingDetectionOutcome outcome) =>
+    public double TwoStateOpacityFor(SettingDetectionOutcome outcome) =>
         outcome == SettingDetectionOutcome.Resolved ? 1d : 0d;
 
     // False while the overlay covers it, so the overlay is the only thing reachable.
-    public bool ToggleInteractiveFor(SettingDetectionOutcome outcome) =>
+    public bool TwoStateInteractiveFor(SettingDetectionOutcome outcome) =>
         outcome == SettingDetectionOutcome.Resolved;
 
     // Keeps the invisible ToggleSwitch out of the automation tree while covered, so Narrator announces only the overlay.
-    public AccessibilityView ToggleAccessibilityViewFor(SettingDetectionOutcome outcome) =>
+    public AccessibilityView TwoStateAccessibilityViewFor(SettingDetectionOutcome outcome) =>
         outcome == SettingDetectionOutcome.Resolved ? AccessibilityView.Content : AccessibilityView.Raw;
 
     // Fully qualified: this file imports Microsoft.UI.Xaml.Controls but not Microsoft.UI.Xaml.
@@ -1373,10 +1659,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // Opacity, not Visibility, so the element stays measured and its host cannot collapse mid-apply; the outcome
     // is untouched, so the feature's banner stays until the apply lands.
     public double OverlayOpacity => IsApplying ? 0d : 1d;
-
-    // On the CONTROL's tooltip, because a pass-through overlay never receives the pointer.
-    public string? SelectionOutcomeTooltip =>
-        Outcome == SettingDetectionOutcome.Resolved ? null : OverlayTooltipFor(Outcome, toggleLike: false);
 
     public string CustomStateText => OverlayStateTextFor(Outcome);
 
@@ -1398,7 +1680,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         IUserPreferencesService? userPreferencesService = null,
         IRegeditLauncher? regeditLauncher = null,
         INewBadgeService? newBadgeService = null,
-        IApplicationModeService? applicationModeService = null)
+        IApplicationModeService? applicationModeService = null,
+        IFilePickerService? filePickerService = null)
     {
         _writeStrategySelector = writeStrategySelector;
         _logService = logService;
@@ -1407,8 +1690,13 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         _userPreferencesService = userPreferencesService;
         _newBadgeService = newBadgeService;
         _applicationModeService = applicationModeService;
+        _filePickerService = filePickerService;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
+        if (_applicationModeService is { } modeService)
+        {
+            modeService.ModeChanged += OnApplicationModeChanged;
+        }
 
         Setting = config.Setting;
         _build = config.Build;
@@ -1434,6 +1722,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         IsVisible = true;
         IsEnabled = true;
         ParentIsEnabled = true;
+        ParentIsVisible = true;
+        Rows.CollectionChanged += (_, _) => OnRowsChanged();
 
         RunActionCommand = new AsyncRelayCommand(RunActionAsync);
         UnlockCommand = new AsyncRelayCommand(HandleUnlockAsync);
@@ -1469,6 +1759,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             InputType = InputType,
             IsSelected = IsSelected,
             SelectedIndex = SelectedValue as int?,
+            SelectedKey = SelectedValue as string,
             NumericValue = NumericValue,
             AcValue = AcValue,
             DcValue = DcValue,
@@ -1594,55 +1885,43 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    // Shared by SettingViewModelFactory (initial load) and UpdateStateFromSystemState (refresh) so the dropdown is
-    // rebuilt identically from detection on BOTH paths. False (caller falls through to normal Selection handling)
-    // when not a power-plan Selection with DynamicOptions, or in an authoring mode, which keeps the factory's
-    // index-valued dropdown, whose Tag carries the GUID the recorded ChoiceValue.PowerPlan is built from.
-    public bool TryApplyDynamicPowerPlanOptions(SettingStateResult state)
+    public bool TryApplyKeyedOptions(SettingStateResult state)
     {
-        if (InputType != InputType.Selection
-            || !IsPowerPlanSetting
-            || AuthorsIntent
-            || state.DynamicOptions is not { } dynamicOptions)
+        if (InputType != InputType.Selection || !IsKeyedSelection || state.DynamicOptions is not { } options)
             return false;
 
         ComboBoxOptions.Clear();
+        // The Tag carries the option for SettingComboBox (status dot, delete button) and the technical details (status).
+        foreach (var option in options)
+            ComboBoxOptions.Add(new ComboBoxDisplayOption(option.Label, option.Value, tag: option));
 
-        foreach (var opt in dynamicOptions)
+        LiveKeyedSelection = state.DynamicSelection is { Length: > 0 } live ? live : null;
+
+        if (LiveKeyedSelection is { } key)
         {
-            var label = opt.Label.StartsWith("PowerPlan_")
-                ? _localizationService.GetString(opt.Label)
-                : opt.Label;
-
-            var isActive = state.DynamicSelection != null
-                && string.Equals(opt.Value, state.DynamicSelection, StringComparison.OrdinalIgnoreCase);
-
-            // The PowerPlanComboBox control + the delete path read these off the Tag: ExistsOnSystem/IsActive drive the
-            // visuals, SystemPlan.Guid is the delete target (null for a not-installed predefined plan so its delete
-            // button stays hidden), DisplayName carries the raw loc key (the delete dialog re-localizes it).
-            var tag = new PowerPlanComboBoxOption
-            {
-                DisplayName = opt.Label,
-                Guid = opt.Value,
-                ExistsOnSystem = opt.ExistsOnSystem,
-                IsActive = isActive,
-                SystemPlan = opt.ExistsOnSystem
-                    ? new Winhance.Core.Features.Optimize.Models.PowerPlan { Guid = opt.Value, Name = label, IsActive = isActive }
-                    : null,
-            };
-
-            ComboBoxOptions.Add(new ComboBoxDisplayOption(
-                label,
-                opt.Value,
-                opt.ExistsOnSystem ? "Installed on system" : "Not installed",
-                tag));
+            EnsureKeyedOption(key);
+            SelectedValue = key;
         }
 
-        // The stored selection is the active scheme GUID (default to the first option when the active plan is
-        // unreadable, mirroring the factory's load-time fallback).
-        SelectedValue = state.DynamicSelection ?? (dynamicOptions.Count > 0 ? dynamicOptions[0].Value : null);
         UpdateStatusBanner(SelectedValue);
+
+        // Clearing a ComboBox's ItemsSource resets SelectedIndex to -1, and SettingComboBox re-pushes the index only
+        // from PropertyChanged, which a rebuild onto the SAME key raises for nothing else.
+        OnPropertyChanged(nameof(ComboBoxOptions));
+        RebuildTiles();
         return true;
+    }
+
+    // Added rather than dropped: dropping it would show the machine's own value while Save still wrote the authored key.
+    private void EnsureKeyedOption(string key, string? label = null)
+    {
+        if (KeyedOptionPosition(key) >= 0)
+            return;
+
+        var display = label ?? _localizationService.GetStringOrDefault(
+            "Setting_KeyedOption_Unavailable", "{0} (not available on this PC)", key);
+        ComboBoxOptions.Add(new ComboBoxDisplayOption(display, key));
+        RebuildTiles();
     }
 
     public void UpdateStateFromSystemState(SettingStateResult state)
@@ -1660,10 +1939,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                     Outcome = state.Outcome;
                     break;
                 case InputType.Selection:
-                    // Power-plan settings rebuild their dropdown from the detection result's DynamicOptions on refresh,
-                    // the same way the factory builds it on load. The generic `SelectedValue = state.CurrentValue` below
-                    // would set the wrong value for a power plan (its CurrentValue is not the active scheme GUID).
-                    if (TryApplyDynamicPowerPlanOptions(state))
+                    if (TryApplyKeyedOptions(state))
                         break;
 
                     // The detection result's flag is the source of truth on refresh (mirrors the factory load).
@@ -1677,7 +1953,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                         if (state.DcValue is int dcRaw)
                             DcValue = FindStateIndexForPowerCfgValue(sel, powerTarget.Key, dcRaw) ?? ComboBoxConstants.CustomStateIndex;
                     }
-                    else if (state.CurrentValue != null)
+                    // Not a keyed card: its CurrentValue is the provider's index placeholder, not a key.
+                    else if (state.CurrentValue != null && !IsKeyedSelection)
                     {
                         // The option list holds only real options, so an unresolved re-detect simply leaves the
                         // ComboBox with nothing selected and the card's outcome overlay renders over it. The whole
@@ -1697,6 +1974,15 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                     {
                         NumericValue = ConvertFromSystemUnits(intValue);
                     }
+                    break;
+                case InputType.TextBox:
+                    if (state.CurrentValue is string text)
+                        TextValue = text;
+                    break;
+                case InputType.List:
+                    // The provider reads no machine for a list, so anything but a rebuilt record leaves the rows alone.
+                    if (state.CurrentValue is ChoiceValue.List rebuilt)
+                        RebuildRows(rebuilt);
                     break;
             }
         }
@@ -1747,7 +2033,20 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public void OnToggleSwitchToggled(object sender)
     {
         if (sender is ToggleSwitch toggle)
-            HandleToggleAsync(toggle.IsOn).FireAndForget(_logService);
+            HandleTwoStateAsync(toggle.IsOn).FireAndForget(_logService);
+    }
+
+    public void OnCheckBoxChanged(bool isChecked) => HandleTwoStateAsync(isChecked).FireAndForget(_logService);
+
+    public void OnTextBoxChanged(string raw) => HandleTextAsync(raw).FireAndForget(_logService);
+
+    public void AddRow()
+    {
+        if (NewListRow(null) is not { } row)
+            return;
+
+        Rows.Add(row);
+        HandleListAsync().FireAndForget(_logService);
     }
 
     public void OnCustomToggleClicked()
@@ -1866,7 +2165,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         return formatter;
     }
 
-    private async Task HandleToggleAsync(bool newValue, bool resetToDefault = false, bool fromCustomState = false)
+    private async Task HandleTwoStateAsync(bool newValue, bool resetToDefault = false, bool fromCustomState = false)
     {
         if (IsApplying || _isUpdatingFromEvent) return;
 
@@ -1876,14 +2175,14 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
         var result = await WriteAsync(new SettingWriteRequest
         {
-            Description = $"toggle to {newValue}",
+            Description = TwoState.Label(Setting!.Control, newValue).Value,
             SystemRequest = new ApplySettingRequest
             {
                 SettingId = SettingId,
                 Enable = newValue,
                 ResetToDefault = resetToDefault,
             },
-            AuthoredEdit = new SettingChoice(SettingId, new ChoiceValue.Toggle(newValue)),
+            AuthoredEdit = new SettingChoice(SettingId, ChoiceValue.TwoState(Setting!.Control, newValue)),
             // The Custom-state dialog already confirmed intent - never double-confirm.
             RequiresConfirmation = SettingRequiresConfirmation && !fromCustomState,
         });
@@ -1910,7 +2209,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     }
 
     // Cancel is the default (safe Enter) and keeps the current value. A pick applies EXACTLY once via
-    // HandleToggleAsync(fromCustomState: true): no second confirmation, equality guard bypassed. The Malformed
+    // HandleTwoStateAsync(fromCustomState: true): no second confirmation, equality guard bypassed. The Malformed
     // message promises the storage format will be repaired, which the apply delivers for free: every write passes
     // the catalog's declared RegistryValueKind.
     private async Task HandleCustomToggleClickAsync()
@@ -1927,19 +2226,231 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         {
             Title = Name,
             Message = _localizationService.GetStringOrDefault(messageKey, string.Empty),
-            ConfirmButtonText = _localizationService.GetStringOrDefault("Common_CustomDialog_Enabled", "Enabled"),
-            SecondaryButtonText = _localizationService.GetStringOrDefault("Common_CustomDialog_Disabled", "Disabled"),
+            ConfirmButtonText = _localizationService.GetStringOrDefault("Common_Enabled", "Enabled"),
+            SecondaryButtonText = _localizationService.GetStringOrDefault("Common_Disabled", "Disabled"),
             CancelButtonText = _localizationService.GetStringOrDefault("Button_Cancel", "Cancel"),
         });
 
         if (r.Confirmed)
-            await HandleToggleAsync(true, fromCustomState: true);
+            await HandleTwoStateAsync(true, fromCustomState: true);
         else if (r.SecondaryChosen)
-            await HandleToggleAsync(false, fromCustomState: true);
+            await HandleTwoStateAsync(false, fromCustomState: true);
         // Cancel: keep the unrecognized value and the Custom rendering.
     }
 
-    private async Task HandleValueChangedAsync(object? value, bool resetToDefault = false)
+    private async Task HandleTextAsync(string raw, bool browsed = false)
+    {
+        if (_isUpdatingFromEvent || Setting?.TextBox?.Rule is not { } rule)
+            return;
+
+        // The box raises TextChanged for the value this card just pushed into it.
+        if (raw == TextValue && !browsed)
+            return;
+
+        TextValue = raw;
+        HasTextError = raw.Length > 0 && !rule.Matches(raw);
+        if (HasTextError)
+            return;
+
+        var normalized = rule.Normalize(raw);
+        if (normalized == _lastRecordedText && !browsed)
+        {
+            _logService.LogDebug($"Text for {SettingId} is unchanged, nothing to write");
+            return;
+        }
+
+        var result = await WriteAsync(new SettingWriteRequest
+        {
+            Description = $"text ({normalized.Length} chars)",
+            SystemRequest = new ApplySettingRequest
+            {
+                SettingId = SettingId,
+                Enable = true,
+                Value = normalized,
+            },
+            AuthoredEdit = new SettingChoice(SettingId, new ChoiceValue.Text(normalized)),
+        });
+
+        if (result.Outcome == SettingWriteOutcome.Rejected)
+            return;
+
+        _lastRecordedText = normalized;
+        MarkChangedThisSession();
+        ComputeBadgeState();
+    }
+
+    internal void SeedText(string value)
+    {
+        TextValue = value;
+        _lastRecordedText = value;
+    }
+
+    // Not a locale key: no caption exists for a picker filter. IFilePickerService reads the array as a
+    // name/pattern PAIR, not as a list of patterns.
+    private const string PictureFilterName = "Pictures";
+    private const string PictureFilterPattern = "*.jpg;*.jpeg;*.png;*.bmp";
+
+    // Choosing the path the box already shows still applies it: that is how an album is started again.
+    public void BrowseForText()
+    {
+        if (_filePickerService is not { } picker)
+            return;
+
+        var chosen = TextBoxPicker switch
+        {
+            PickerKind.Folder => picker.PickFolder(Name),
+            PickerKind.File => picker.PickFile([PictureFilterName, PictureFilterPattern], Name),
+            _ => null,
+        };
+
+        _logService.LogDebug($"Browse for {SettingId} chose {(chosen is { Length: > 0 } ? chosen : "nothing")}");
+        if (chosen is { Length: > 0 })
+            HandleTextAsync(chosen, browsed: true).FireAndForget(_logService);
+    }
+
+    internal void SeedList(ChoiceValue.List value) => RebuildRows(value);
+
+    private void OnRowsChanged()
+    {
+        OnPropertyChanged(nameof(HasRows));
+        foreach (var row in Rows)
+            row.CanRemove = Rows.Count > 1;
+    }
+
+    private ListRowViewModel? NewListRow(ChoiceValue.ListRow? values)
+    {
+        if (Setting?.List is not { } list)
+        {
+            _logService.Log(LogLevel.Warning, $"List row for {SettingId} has no catalog fields; the row is dropped.");
+            return null;
+        }
+
+        return new ListRowViewModel(list.Fields, LocalizedField, ListRemoveLabel, values, OnListRowChanged, RemoveRow);
+    }
+
+    private string LocalizedField(LocKey key) => _localizationService.GetStringOrDefault(key.Value, key.Value);
+
+    private void OnListRowChanged(ListRowViewModel row)
+    {
+        foreach (var field in row.Fields)
+        {
+            if (!field.OneRowOnly || !field.Checked)
+                continue;
+
+            foreach (var other in Rows.Where(r => r != row))
+                other.FieldFor(field.Key)?.ClearTick();
+        }
+
+        HandleListAsync().FireAndForget(_logService);
+    }
+
+    private void RemoveRow(ListRowViewModel row)
+    {
+        Rows.Remove(row);
+        HandleListAsync().FireAndForget(_logService);
+    }
+
+    private void RebuildRows(ChoiceValue.List value)
+    {
+        Rows.Clear();
+        foreach (var values in value.Rows)
+        {
+            if (NewListRow(values) is { } row)
+                Rows.Add(row);
+        }
+    }
+
+    // No read-back after the write: rebuilding the rows would take the caret out of the box being typed in.
+    private async Task HandleListAsync()
+    {
+        if (_isUpdatingFromEvent)
+            return;
+
+        var filled = Rows.Where(row => row.IsFilled).Select(row => row.ToRow()).ToList();
+
+        var result = await WriteAsync(new SettingWriteRequest
+        {
+            Description = $"list {filled.Count} rows",
+            SystemRequest = new ApplySettingRequest
+            {
+                SettingId = SettingId,
+                Enable = true,
+            },
+            AuthoredEdit = new SettingChoice(SettingId, new ChoiceValue.List(filled, SavePasswords)),
+        });
+
+        if (result.Outcome == SettingWriteOutcome.Rejected)
+            return;
+
+        MarkChangedThisSession();
+        ComputeBadgeState();
+    }
+
+    public bool ShowsOptionTiles =>
+        IsKeyedSelection && Setting?.Display.Tiles is { } tiles && tiles != OptionTiles.None;
+
+    public ObservableCollection<OptionTileViewModel> Tiles { get; } = [];
+
+    private void RebuildTiles()
+    {
+        Tiles.Clear();
+        if (!ShowsOptionTiles)
+            return;
+
+        foreach (var option in ComboBoxOptions)
+        {
+            if (option.Value is string value)
+                Tiles.Add(new OptionTileViewModel(value, TileLabel(value, option.DisplayText), IsChosenTile(value), ChooseTile));
+        }
+
+        OnPropertyChanged(nameof(Tiles));
+    }
+
+    private string TileLabel(string value, string enumerated) =>
+        Setting is { } setting
+        && setting.States.FirstOrDefault(state =>
+            string.Equals(KeyedOptions.KeyOf(setting, state), value, StringComparison.OrdinalIgnoreCase)) is { } named
+            ? _localizationService.GetStringOrDefault(named.Label.Value, enumerated)
+            : enumerated;
+
+    private bool IsChosenTile(string value) =>
+        SelectedValue is string key && string.Equals(key, value, StringComparison.OrdinalIgnoreCase);
+
+    private void ChooseTile(OptionTileViewModel tile) =>
+        HandleValueChangedAsync(tile.Value).FireAndForget(_logService);
+
+    partial void OnSelectedValueChanged(object? value)
+    {
+        foreach (var tile in Tiles)
+            tile.IsSelected = value is string key
+                && string.Equals(tile.Value, key, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public void BrowseForOption()
+    {
+        if (Setting?.Display.Tiles != OptionTiles.Pictures || _filePickerService is not { } picker)
+            return;
+
+        if (picker.PickFile([PictureFilterName, PictureFilterPattern], Name) is not { Length: > 0 } chosen)
+            return;
+
+        var chosenFormat = _localizationService.GetStringOrDefault(
+            LocKey.Setting.ThemeWallpaperPicture.Chosen.Value, "{0}");
+        EnsureKeyedOption(chosen, string.Format(chosenFormat, Path.GetFileName(chosen)));
+        HandleValueChangedAsync(chosen).FireAndForget(_logService);
+    }
+
+    public void PickColor(Windows.UI.Color color)
+    {
+        if (Setting?.Display.Tiles != OptionTiles.Colors)
+            return;
+
+        var hex = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+        EnsureKeyedOption(hex, hex);
+        HandleValueChangedAsync(hex).FireAndForget(_logService);
+    }
+
+    private async Task HandleValueChangedAsync(object? value, bool resetToDefault = false, string? description = null)
     {
         _logService.LogDebug($"HandleValueChangedAsync called: value={value}, IsApplying={IsApplying}, SelectedValue={SelectedValue}");
 
@@ -1966,7 +2477,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         {
             var result = await WriteAsync(new SettingWriteRequest
             {
-                Description = $"value {value}",
+                Description = description ?? $"value {value}",
                 SystemRequest = new ApplySettingRequest
                 {
                     SettingId = SettingId,
@@ -2014,15 +2525,15 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // reports rather than swallowing.
     private SettingChoice? AuthoredEditForValue(object? value) => (InputType, value) switch
     {
-        (InputType.Selection, int index) when IsPowerPlanSetting =>
-            index >= 0 && index < ComboBoxOptions.Count && ComboBoxOptions[index].Tag is PowerPlanComboBoxOption plan && plan.Guid.Length > 0
-                ? new SettingChoice(SettingId, new ChoiceValue.PowerPlan(plan.Guid, PowerPlanDisplayName(plan)))
-                : null,
+        (InputType.Selection, string key) when IsKeyedSelection =>
+            new SettingChoice(SettingId, new ChoiceValue.Keyed(key, KeyedOptionLabel(key))),
 
         (InputType.Selection, int index) when index == ComboBoxConstants.CustomStateIndex =>
             CapturedCustomStateValues is { } custom ? new SettingChoice(SettingId, new ChoiceValue.CustomValues(custom)) : null,
 
         (InputType.Selection, int index) => new SettingChoice(SettingId, new ChoiceValue.Option(index)),
+
+        (InputType.TextBox, string text) => new SettingChoice(SettingId, new ChoiceValue.Text(text)),
 
         // The slider carries DISPLAY units and a ChoiceValue holds SYSTEM units.
         (InputType.NumericRange, int numeric) => new SettingChoice(SettingId, new ChoiceValue.Number(ConvertToSystemUnits(numeric))),
@@ -2030,10 +2541,11 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         _ => null,
     };
 
-    // The option Tag's DisplayName is the raw PowerPlan_ loc key for a predefined plan (the OS name for a custom
-    // one); the autounattend names the created plan with this string, so it must be the human name.
-    private string PowerPlanDisplayName(PowerPlanComboBoxOption plan) =>
-        plan.DisplayName.StartsWith("PowerPlan_", StringComparison.Ordinal) ? _localizationService.GetString(plan.DisplayName) : plan.DisplayName;
+    private string KeyedOptionLabel(string key)
+    {
+        int position = KeyedOptionPosition(key);
+        return position >= 0 ? ComboBoxOptions[position].DisplayText : key;
+    }
 
     private async Task ProcessPendingValueAsync()
     {
@@ -2260,8 +2772,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // they describe the action the user just took, whereas a malformed value is a pre-existing condition.
     internal void UpdateDetectionOutcomeBanner()
     {
-        bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
-        var outcomeBanner = _statusBannerManager.GetDetectionOutcomeBanner(Outcome, isToggleLike);
+        bool isTwoState = InputType == InputType.Toggle || InputType == InputType.CheckBox;
+        var outcomeBanner = _statusBannerManager.GetDetectionOutcomeBanner(Outcome, isTwoState);
 
         if (Outcome != SettingDetectionOutcome.Resolved)
         {
@@ -2287,7 +2799,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // clear - comparing against the current one would miss a banner raised under a different one.
     private bool IsDetectionOutcomeBannerMessage(string message)
     {
-        bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
+        bool isTwoState = InputType == InputType.Toggle || InputType == InputType.CheckBox;
         foreach (var candidate in new[]
                  {
                      SettingDetectionOutcome.Custom,
@@ -2295,7 +2807,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                      SettingDetectionOutcome.Undetermined,
                  })
         {
-            if (message == _statusBannerManager.GetDetectionOutcomeBanner(candidate, isToggleLike).Message)
+            if (message == _statusBannerManager.GetDetectionOutcomeBanner(candidate, isTwoState).Message)
                 return true;
         }
         return false;
@@ -2309,8 +2821,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         bool matchesRecommended = true;
         bool matchesDefault = true;
 
-        bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
-        if (isToggleLike)
+        bool isTwoState = InputType == InputType.Toggle || InputType == InputType.CheckBox;
+        if (isTwoState)
         {
             if (Outcome != SettingDetectionOutcome.Resolved)
             {
@@ -2321,11 +2833,11 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             }
             else
             {
-                if (ToggleRecommendedState is bool r && r != IsSelected) matchesRecommended = false;
-                if (ToggleDefaultState is bool d && d != IsSelected) matchesDefault = false;
+                if (TwoStateRecommended is bool r && r != IsSelected) matchesRecommended = false;
+                if (TwoStateDefault is bool d && d != IsSelected) matchesDefault = false;
             }
         }
-        else if (InputType == InputType.Selection && !IsPowerCfgSetting && !IsPowerPlanSetting)
+        else if (InputType == InputType.Selection && !IsPowerCfgSetting)
         {
             // Registry selection verdict: recommended/default come from the SELECTED state's Roles
             // (States order 1:1 with options).
@@ -2471,9 +2983,9 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     private bool HasAnyRecommendedData()
     {
         if (Setting == null) return false;
-        bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
-        if (isToggleLike) return ToggleRecommendedState.HasValue;
-        if (InputType == InputType.Selection && !IsPowerCfgSetting && !IsPowerPlanSetting)
+        bool isTwoState = InputType == InputType.Toggle || InputType == InputType.CheckBox;
+        if (isTwoState) return TwoStateRecommended.HasValue;
+        if (InputType == InputType.Selection && !IsPowerCfgSetting)
             return Setting.States.Any(st => st.HasRole(RoleKind.Recommended, _build));
         return AcRecommendedValue.HasValue || AcSelectionRecommendedIndex.HasValue
             || DcRecommendedValue.HasValue || DcSelectionRecommendedIndex.HasValue;
@@ -2482,9 +2994,9 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     private bool HasAnyDefaultData()
     {
         if (Setting == null) return false;
-        bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
-        if (isToggleLike) return ToggleDefaultState.HasValue;
-        if (InputType == InputType.Selection && !IsPowerCfgSetting && !IsPowerPlanSetting)
+        bool isTwoState = InputType == InputType.Toggle || InputType == InputType.CheckBox;
+        if (isTwoState) return TwoStateDefault.HasValue;
+        if (InputType == InputType.Selection && !IsPowerCfgSetting)
             return Setting.States.Any(st => st.HasRole(RoleKind.WindowsDefault, _build));
         return AcDefaultValue.HasValue || AcSelectionDefaultIndex.HasValue
             || DcDefaultValue.HasValue || DcSelectionDefaultIndex.HasValue;
@@ -2531,15 +3043,15 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             return;
         }
 
-        bool isToggleLike = InputType == InputType.Toggle || InputType == InputType.CheckBox;
-        bool hasToggleData = isToggleLike && (ToggleRecommendedState.HasValue || ToggleDefaultState.HasValue);
-        bool hasSelectionData = InputType == InputType.Selection && !IsPowerCfgSetting && !IsPowerPlanSetting
+        bool isTwoState = InputType == InputType.Toggle || InputType == InputType.CheckBox;
+        bool hasTwoStateData = isTwoState && (TwoStateRecommended.HasValue || TwoStateDefault.HasValue);
+        bool hasSelectionData = InputType == InputType.Selection && !IsPowerCfgSetting
             && Setting.States.Any(st => st.HasRole(RoleKind.Recommended, _build) || st.HasRole(RoleKind.WindowsDefault, _build));
         bool hasPowerCfgData = AcRecommendedValue.HasValue || AcDefaultValue.HasValue
             || AcSelectionRecommendedIndex.HasValue || AcSelectionDefaultIndex.HasValue
             || DcRecommendedValue.HasValue || DcDefaultValue.HasValue
             || DcSelectionRecommendedIndex.HasValue || DcSelectionDefaultIndex.HasValue;
-        HasBadgeData = hasToggleData || hasSelectionData || hasPowerCfgData;
+        HasBadgeData = hasTwoStateData || hasSelectionData || hasPowerCfgData;
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)
@@ -2560,14 +3072,16 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         OnPropertyChanged(nameof(DefaultAcValueTooltip));
         OnPropertyChanged(nameof(RecommendedDcValueTooltip));
         OnPropertyChanged(nameof(DefaultDcValueTooltip));
-        OnPropertyChanged(nameof(ToggleRecommendedTooltip));
-        OnPropertyChanged(nameof(ToggleDefaultTooltip));
+        OnPropertyChanged(nameof(TwoStateRecommendedTooltip));
+        OnPropertyChanged(nameof(TwoStateDefaultTooltip));
         OnPropertyChanged(nameof(SelectionRecommendedTooltip));
         OnPropertyChanged(nameof(SelectionDefaultTooltip));
         OnPropertyChanged(nameof(AcSelectionRecommendedTooltip));
         OnPropertyChanged(nameof(AcSelectionDefaultTooltip));
         OnPropertyChanged(nameof(DcSelectionRecommendedTooltip));
         OnPropertyChanged(nameof(DcSelectionDefaultTooltip));
+        OnPropertyChanged(nameof(IncludeAutomationName));
+        OnPropertyChanged(nameof(IncludeToolTip));
     }
 
     protected override void Dispose(bool disposing)
@@ -2575,6 +3089,12 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         if (disposing)
         {
             _localizationService.LanguageChanged -= OnLanguageChanged;
+            if (_applicationModeService is { } modeService)
+            {
+                modeService.ModeChanged -= OnApplicationModeChanged;
+            }
+
+            UnsubscribeFromChildren();
         }
         base.Dispose(disposing);
     }

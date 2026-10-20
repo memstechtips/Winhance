@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Interfaces;
 using Xunit;
 using Xunit.Abstractions;
 using Winhance.TestSupport;
@@ -78,12 +79,14 @@ public class CatalogCleanInstallConformanceTests
         foreach (var setting in SettingCatalog.All)
         {
             if (setting.Detector is not null) { Skip("custom-detector"); continue; }
+            if (setting.IsAnswerFileOnly) { Skip("answer-file-only"); continue; }
 
             switch (setting.Control)
             {
                 case ControlKind.Action: Skip("action"); continue;
-                case ControlKind.PowerPlan: Skip("dynamic-power-plan"); continue;
+                case ControlKind.KeyedSelection: Skip("dynamic-keyed-selection"); continue;
                 case ControlKind.Slider: Skip("numeric-slider"); continue;
+                case ControlKind.TextBox: Skip("typed-box"); continue;
             }
 
             if (!setting.Availability.Allows(build)) { Skip("build-unavailable"); continue; }
@@ -138,7 +141,7 @@ public class CatalogCleanInstallConformanceTests
 
                 compared++;
                 comparedIds.Add(setting.Id);
-                if (!string.Equals(detected, defaults[0].Label, StringComparison.Ordinal))
+                if (!string.Equals(detected, defaults[0].Label.Value, StringComparison.Ordinal))
                 {
                     string key = pc == PowerContext.Always ? setting.Id : $"{setting.Id}@{pc}";
                     divergent[key] = $"detected={(detected ?? "<Custom>")}, default={defaults[0].Label}";

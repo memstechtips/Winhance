@@ -17,27 +17,43 @@ public class EnabledWhenConformanceTests
     {
         // Hibernation genuinely owns these: with hiberfil.sys gone there is no hibernate timeout to set,
         // no hybrid sleep, no fast startup, and nothing for the Start-menu entry to do.
-        ["power-hibernate-timeout"] = ("power-hibernation-enable", new[] { "Enabled" }),
-        ["power-hybrid-sleep"] = ("power-hibernation-enable", new[] { "Enabled" }),
-        ["power-fast-startup"] = ("power-hibernation-enable", new[] { "Enabled" }),
-        ["start-power-hibernate-option"] = ("power-hibernation-enable", new[] { "Enabled" }),
+        ["power-hibernate-timeout"] = ("power-hibernation-enable", new[] { "Common_Enabled" }),
+        ["power-hybrid-sleep"] = ("power-hibernation-enable", new[] { "Common_Enabled" }),
+        ["power-fast-startup"] = ("power-hibernation-enable", new[] { "Common_Enabled" }),
+        ["start-power-hibernate-option"] = ("power-hibernation-enable", new[] { "Common_Enabled" }),
 
         // HVCI runs ON the hypervisor VBS starts.
-        ["gaming-memory-integrity"] = ("gaming-virtualization-based-security", new[] { "Enabled" }),
+        ["gaming-memory-integrity"] = ("gaming-virtualization-based-security", new[] { "Common_Enabled" }),
 
         // The one non-toggle gate, and the reason the gate is keyed on labels: SysMain has THREE states
         // and prefetching is its job, so the child is usable in the two where the service can run.
         ["gaming-performance-prefetch"] =
-            ("gaming-sysmain-service", new[] { "Manual", "Automatic (Recommended for HDD)" }),
+            ("gaming-sysmain-service", new[] { "ServiceOption_Manual", "Setting_gaming-sysmain-service_Option_2" }),
 
         // Both children configure the SECONDARY taskbars, which do not exist when it is off.
-        ["taskbar-multi-display-apps"] = ("taskbar-multi-display", new[] { "Enabled" }),
-        ["taskbar-combine-buttons-other"] = ("taskbar-multi-display", new[] { "Enabled" }),
+        ["taskbar-multi-display-apps"] = ("taskbar-multi-display", new[] { "Common_Enabled" }),
+        ["taskbar-combine-buttons-other"] = ("taskbar-multi-display", new[] { "Common_Enabled" }),
 
         // Toast sounds and lock-screen toasts are properties OF a toast; no toasts, nothing to shape.
-        ["notifications-sound"] = ("windows-pushnotifications", new[] { "Enabled" }),
-        ["notifications-toast-above-lock"] = ("windows-pushnotifications", new[] { "Enabled" }),
-        ["notifications-critical-toast-above-lock"] = ("windows-pushnotifications", new[] { "Enabled" }),
+        ["notifications-sound"] = ("windows-pushnotifications", new[] { "Common_Enabled" }),
+        ["notifications-toast-above-lock"] = ("windows-pushnotifications", new[] { "Common_Enabled" }),
+        ["notifications-critical-toast-above-lock"] = ("windows-pushnotifications", new[] { "Common_Enabled" }),
+
+        // A typed product key is written only when the edition dropdown defers to it, and Setup creates the
+        // accounts only when the user chose that over signing in.
+        ["autounattend-product-key"] = ("autounattend-edition", new[] { "Setting_autounattend-edition_Option_14" }),
+        ["autounattend-accounts"] = ("autounattend-account", new[] { "Setting_autounattend-account_Option_2" }),
+    };
+
+    // Not drawn at all rather than greyed: the background kind decides which of these mean anything.
+    public static readonly Dictionary<string, (string Target, string[] States)> Hidden = new()
+    {
+        ["theme-wallpaper-picture"] = ("theme-wallpaper", new[] { "Setting_theme-wallpaper_Option_0" }),
+        ["theme-wallpaper-fit"] = ("theme-wallpaper", new[] { "Setting_theme-wallpaper_Option_0", "Setting_theme-wallpaper_Option_2" }),
+        ["theme-wallpaper-color"] = ("theme-wallpaper", new[] { "Setting_theme-wallpaper_Option_1" }),
+        ["theme-wallpaper-album"] = ("theme-wallpaper", new[] { "Setting_theme-wallpaper_Option_2" }),
+        ["theme-wallpaper-interval"] = ("theme-wallpaper", new[] { "Setting_theme-wallpaper_Option_2" }),
+        ["theme-wallpaper-shuffle"] = ("theme-wallpaper", new[] { "Setting_theme-wallpaper_Option_2" }),
     };
 
     // The other half of the authoring, and the half a "children of an off parent are dead" instinct keeps re-adding.
@@ -85,7 +101,7 @@ public class EnabledWhenConformanceTests
 
         gate.Should().NotBeNull();
         gate!.OtherId.Should().Be(targetId);
-        gate.States.Should().Equal(states);
+        gate.States.Select(k => k.Value).Should().Equal(states);
     }
 
     [Theory]
@@ -93,9 +109,9 @@ public class EnabledWhenConformanceTests
     public void Each_declared_gate_names_states_the_target_really_has(
         string childId, string targetId, string[] states)
     {
-        // The whole point of keying on the label: a label that does not exist is a gate that can never
+        // The whole point of keying on the label: a key the target does not carry is a gate that can never
         // open. CatalogValidator enforces this catalog-wide; this says it for the gates by name.
-        var labels = S(targetId).States.Select(st => st.Label).ToList();
+        var labels = S(targetId).States.Select(st => st.Label.Value).ToList();
 
         states.Should().BeSubsetOf(labels, $"'{childId}' is gated on them");
     }
@@ -117,16 +133,46 @@ public class EnabledWhenConformanceTests
         DeliberatelyUngated.Select(id => new object[] { id });
 
     [Fact]
+    public void Exactly_the_verified_visibility_gates_are_declared()
+    {
+        var declared = SettingCatalog.All
+            .Where(s => s.VisibleWhen is not null)
+            .Select(s => s.Id)
+            .OrderBy(id => id, System.StringComparer.Ordinal);
+
+        declared.Should().Equal(Hidden.Keys.OrderBy(id => id, System.StringComparer.Ordinal));
+    }
+
+    [Theory]
+    [MemberData(nameof(HiddenCases))]
+    public void Each_declared_visibility_gate_names_its_target_and_the_states_it_is_drawn_in(
+        string childId, string targetId, string[] states)
+    {
+        var gate = S(childId).VisibleWhen;
+
+        gate.Should().NotBeNull();
+        gate!.OtherId.Should().Be(targetId);
+        gate.States.Select(k => k.Value).Should().Equal(states);
+        S(targetId).States.Select(st => st.Label.Value).Should().Contain(states);
+
+        // A hidden child is never also greyed: nothing needs both gates.
+        S(childId).EnabledWhen.Should().BeNull();
+    }
+
+    public static IEnumerable<object[]> HiddenCases() =>
+        Hidden.Select(kv => new object[] { kv.Key, kv.Value.Target, kv.Value.States });
+
+    [Fact]
     public void Every_nested_setting_is_accounted_for_as_gated_or_deliberately_ungated()
     {
-        // Non-vacuity for the two lists above: a NEW child of an existing parent has to be a decision,
+        // Non-vacuity for the three lists above: a NEW child of an existing parent has to be a decision,
         // not a default. Whichever way it is authored, it belongs in one of the lists.
         var nested = SettingCatalog.All
             .Where(s => !string.IsNullOrEmpty(s.UiParentId))
             .Select(s => s.Id)
             .OrderBy(id => id, System.StringComparer.Ordinal);
 
-        nested.Should().Equal(Expected.Keys.Concat(DeliberatelyUngated)
+        nested.Should().Equal(Expected.Keys.Concat(Hidden.Keys).Concat(DeliberatelyUngated)
             .OrderBy(id => id, System.StringComparer.Ordinal));
     }
 

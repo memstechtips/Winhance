@@ -11,6 +11,8 @@
     <!-- x64 only - ARM64 Windows can run x64 apps via emulation -->
     <Platforms>x64</Platforms>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <!-- CsWin32's tray bindings: NOTIFYICONDATAW's fixed text buffers and ExtractIconEx's HICON* out-parameters. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseWinUI>true</UseWinUI>
     <!-- Unpackaged deployment (no MSIX) -->
     <WindowsPackageType>None</WindowsPackageType>
@@ -42,10 +44,10 @@
     <DefineConstants>DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <StartupObject>Winhance.UI.Program</StartupObject>
     <!-- Version information -->
-    <Version>26.09.04</Version>
-    <FileVersion>26.09.04</FileVersion>
-    <AssemblyVersion>26.09.04</AssemblyVersion>
-    <InformationalVersion>v26.09.04</InformationalVersion>
+    <Version>26.10.06</Version>
+    <FileVersion>26.10.06</FileVersion>
+    <AssemblyVersion>26.10.06</AssemblyVersion>
+    <InformationalVersion>v26.10.06</InformationalVersion>
     <Copyright>Copyright © Marco du Plessis</Copyright>
   </PropertyGroup>
 
@@ -57,8 +59,9 @@
     <!-- Windows App SDK 1.8.x. 1.7 went out of support 2026-03-18.
          Keep the Microsoft.WindowsAppSDK *metapackage* - do NOT switch to the
          .WinUI component package. Material.Icons.WinUI3 / CommunityToolkit.WinUI /
-         FluentIcons / Xaml.Behaviors all transitively depend on the metapackage,
-         so referencing the component package as well pulls in BOTH families and
+         Xaml.Behaviors transitively depend on the metapackage (FluentIcons.WinUI 2.2
+         depends on the .WinUI component, at a version the metapackage pins), so
+         referencing the component package as well pulls in BOTH families and
          the duplicate WinAppSDK build props break the build (MSB4011 + the MSIX
          CustomBeforeMicrosoftCommonTargets error). The metapackage bundles ~38 MB
          of Windows ML DLLs (onnxruntime.dll + DirectML.dll) that Winhance never
@@ -72,10 +75,13 @@
     <!-- MVVM -->
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 
+    <!-- Command-line flags Winhance is started with -->
+    <PackageReference Include="System.CommandLine" Version="2.0.12" />
+
     <!-- Icons - Material Design Icons for WinUI3 -->
     <PackageReference Include="Material.Icons.WinUI3" Version="3.0.2" />
     <!-- Icons - Microsoft Fluent System Icons (4000+ icons) -->
-    <PackageReference Include="FluentIcons.WinUI" Version="2.1.326" />
+    <PackageReference Include="FluentIcons.WinUI" Version="2.2.339.1" />
 
     <!-- WinUI Controls - 8.2.251219 is the latest stable 8.2.x; runs on WinAppSDK 1.8 (floor 1.6+). -->
     <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />
@@ -117,9 +123,9 @@
     <ProjectReference Include="..\Winhance.Infrastructure\Winhance.Infrastructure.csproj" />
   </ItemGroup>
 
-  <!-- Content files (localization) - uses local UI project files -->
+  <!-- Localization json lives in Core, where the generator reads it; the Link keeps the shipped output layout. -->
   <ItemGroup>
-    <Content Include="Features\Common\Localization\*.json">
+    <Content Include="..\Winhance.Core\Features\Common\Localization\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>Localization\%(Filename)%(Extension)</Link>
     </Content>

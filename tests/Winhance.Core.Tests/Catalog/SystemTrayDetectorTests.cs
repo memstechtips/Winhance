@@ -1,5 +1,7 @@
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Interfaces;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.Core.Tests.Catalog;
 
@@ -23,8 +25,8 @@ public class SystemTrayDetectorTests
     }
 
     private const string Key = @"HKEY_CURRENT_USER\Control Panel\NotifyIconSettings";
-    private static readonly Setting Dummy = new() { Id = "tray", Display = new() { Name = "t", Description = "t" } };
-    private static readonly SystemTrayDetector Det = new("Show all", "Hide all");
+    private static readonly Setting Dummy = new() { Id = "tray", Display = new() { Name = TestKeys.Of("t"), Description = TestKeys.Of("t") } };
+    private static readonly SystemTrayDetector Det = new(TestKeys.Of("Show all"), TestKeys.Of("Hide all"));
 
     [Fact]
     public void All_promoted_is_show_all()

@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -14,6 +15,7 @@ public class ConfigLoadServiceTests
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IWindowsVersionService> _mockWindowsVersionService = new();
+    private readonly Mock<ICatalogSettingsRegistry> _mockRegistry = new();
     private readonly Mock<IConfigMigrationService> _mockConfigMigrationService = new();
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
@@ -27,6 +29,7 @@ public class ConfigLoadServiceTests
             _mockDialogService.Object,
             _mockLocalizationService.Object,
             _mockWindowsVersionService.Object,
+            _mockRegistry.Object,
             _mockConfigMigrationService.Object,
             _mockInteractiveUserService.Object,
             _mockFileSystemService.Object,
@@ -34,11 +37,17 @@ public class ConfigLoadServiceTests
             _mockConfigImportState.Object);
     }
 
-    // Gating is the catalog Availability model over the LIVE SettingCatalog (static, not
-    // mockable), so fixtures use REAL catalog ids + mocked build numbers - machine-independent, since
-    // Availability is authored data. Real ids used: privacy-timeline-suggestions (Windows10-gated,
-    // "Timeline Suggestions"), start-recommended-section (Windows11-gated, "Recommended section"),
-    // explorer-context-menu-compress-to (builds 26100+, 24H2), gaming-game-mode (ungated).
+    public ConfigLoadServiceTests()
+    {
+        _mockRegistry
+            .Setup(r => r.GetById(It.IsAny<string>(), It.IsAny<CatalogScope>()))
+            .Returns((string id, CatalogScope _) => SettingCatalog.Find(id));
+    }
+
+    private void HiddenOnThisMachine(string settingId) =>
+        _mockRegistry
+            .Setup(r => r.GetById(settingId, CatalogScope.CurrentMachine))
+            .Returns((Setting?)null);
 
     [Fact]
     public void DetectIncompatibleSettings_WithEmptyConfig_ReturnsEmptyList()
@@ -52,9 +61,9 @@ public class ConfigLoadServiceTests
     }
 
     [Fact]
-    public void DetectIncompatibleSettings_CatalogWindows10OnlySetting_OnWindows11_ReturnsIncompatible()
+    public void DetectIncompatibleSettings_NamesASettingThisMachineDoesNotShow_WithItsFeature()
     {
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
+        HiddenOnThisMachine("privacy-timeline-suggestions");
 
         var config = new WinhanceConfigFile
         {
@@ -76,15 +85,15 @@ public class ConfigLoadServiceTests
         var service = CreateService();
         var result = service.DetectIncompatibleSettings(config);
 
-        // The name comes from the catalog Display.Name.
+        // The service localizes the catalog's key, and with an unstubbed mock the fallback is the key itself.
         result.Should().ContainSingle()
-            .Which.Should().Be("Timeline Suggestions (Privacy)");
+            .Which.Should().Be("Setting_privacy-timeline-suggestions_Name (Privacy)");
     }
 
     [Fact]
-    public void DetectIncompatibleSettings_CatalogWindows11OnlySetting_OnWindows10_ReturnsIncompatible()
+    public void DetectIncompatibleSettings_NamesTheFeatureKeyTheFileFiledItUnder()
     {
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(19045);
+        HiddenOnThisMachine("start-recommended-section");
 
         var config = new WinhanceConfigFile
         {
@@ -107,71 +116,12 @@ public class ConfigLoadServiceTests
         var result = service.DetectIncompatibleSettings(config);
 
         result.Should().ContainSingle()
-            .Which.Should().Be("Recommended section (StartMenu)");
+            .Which.Should().Be("Setting_start-recommended-section_Name (StartMenu)");
     }
 
     [Fact]
-    public void DetectIncompatibleSettings_CatalogBuildRangeGatedSetting_BelowRange_ReturnsIncompatible()
+    public void DetectIncompatibleSettings_ASettingThisMachineShows_IsCompatible()
     {
-        // explorer-context-menu-compress-to is gated to builds 26100+ (24H2); build 22631 is below.
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
-
-        var config = new WinhanceConfigFile
-        {
-            Customize = new FeatureGroupSection
-            {
-                Features = new Dictionary<string, ConfigSection>
-                {
-                    ["Explorer"] = new ConfigSection
-                    {
-                        Items = new List<ConfigurationItem>
-                        {
-                            new ConfigurationItem { Id = "explorer-context-menu-compress-to", Name = "Compress To" }
-                        }
-                    }
-                }
-            }
-        };
-
-        var service = CreateService();
-        var result = service.DetectIncompatibleSettings(config);
-
-        result.Should().ContainSingle();
-    }
-
-    [Fact]
-    public void DetectIncompatibleSettings_CatalogBuildRangeGatedSetting_InRange_ReturnsEmpty()
-    {
-        // Same 26100+ gated setting, but the build is inside the range.
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(26120);
-
-        var config = new WinhanceConfigFile
-        {
-            Customize = new FeatureGroupSection
-            {
-                Features = new Dictionary<string, ConfigSection>
-                {
-                    ["Explorer"] = new ConfigSection
-                    {
-                        Items = new List<ConfigurationItem>
-                        {
-                            new ConfigurationItem { Id = "explorer-context-menu-compress-to", Name = "Compress To" }
-                        }
-                    }
-                }
-            }
-        };
-
-        var service = CreateService();
-        var result = service.DetectIncompatibleSettings(config);
-
-        result.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void DetectIncompatibleSettings_CatalogUngatedSetting_ReturnsEmpty()
-    {
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
 
         var config = new WinhanceConfigFile
         {
@@ -197,10 +147,9 @@ public class ConfigLoadServiceTests
     }
 
     [Fact]
-    public void DetectIncompatibleSettings_UnknownId_IsSkippedSilently()
+    public void DetectIncompatibleSettings_UnknownId_IsSkippedWithoutAskingTheRegistry()
     {
         // An id with no catalog peer is not a setting - it is neither flagged incompatible nor gated.
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
 
         var config = new WinhanceConfigFile
         {
@@ -223,13 +172,12 @@ public class ConfigLoadServiceTests
         var result = service.DetectIncompatibleSettings(config);
 
         result.Should().BeEmpty();
+        _mockRegistry.Verify(r => r.GetById(It.IsAny<string>(), It.IsAny<CatalogScope>()), Times.Never);
     }
 
     [Fact]
     public void DetectIncompatibleSettings_WithNullFeatures_SkipsSection()
     {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22621);
 
         var config = new WinhanceConfigFile
         {
@@ -244,11 +192,9 @@ public class ConfigLoadServiceTests
     }
 
     [Fact]
-    public void FilterConfigForCurrentSystem_RemovesCatalogIncompatible_KeepsCompatible()
+    public void FilterConfigForCurrentSystem_DropsWhatThisMachineDoesNotShow_KeepsTheRest()
     {
-        // On a Win11 build, the Windows10-gated privacy-timeline-suggestions is removed; the ungated
-        // gaming-game-mode is kept.
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
+        HiddenOnThisMachine("privacy-timeline-suggestions");
 
         var config = new WinhanceConfigFile
         {
@@ -282,7 +228,6 @@ public class ConfigLoadServiceTests
     [Fact]
     public void FilterConfigForCurrentSystem_KeepsUnknownIds()
     {
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22631);
 
         var config = new WinhanceConfigFile
         {
@@ -311,8 +256,6 @@ public class ConfigLoadServiceTests
     [Fact]
     public void FilterConfigForCurrentSystem_PreservesWindowsAppsAndExternalApps()
     {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22621);
 
         var config = new WinhanceConfigFile
         {

@@ -23,5 +23,4 @@ public partial class StartMenuCustomizationsViewModel : BaseSettingsFeatureViewM
 
     public override string ModuleId => FeatureIds.StartMenu;
 
-    protected override string GetDisplayNameKey() => "Feature_StartMenu_Name";
 }

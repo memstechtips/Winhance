@@ -27,7 +27,6 @@ internal class ConfigImportDialogBuilder
     private RadioButton _extAppsInstallRadio = null!;
     private RadioButton _extAppsUninstallRadio = null!;
     private RadioButton _extAppsSelectOnlyRadio = null!;
-    private CheckBox _themeWallpaperCheckbox = null!;
     private CheckBox _cleanTaskbarCheckbox = null!;
     private CheckBox _cleanStartMenuCheckbox = null!;
 
@@ -99,7 +98,6 @@ internal class ConfigImportDialogBuilder
         _extAppsInstallRadio = importControls.ExtAppsInstall;
         _extAppsUninstallRadio = importControls.ExtAppsUninstall;
         _extAppsSelectOnlyRadio = importControls.ExtAppsSelectOnly;
-        _themeWallpaperCheckbox = importControls.ThemeWallpaper;
         _cleanTaskbarCheckbox = importControls.CleanTaskbar;
         _cleanStartMenuCheckbox = importControls.CleanStartMenu;
 
@@ -107,13 +105,13 @@ internal class ConfigImportDialogBuilder
         {
             optionsPanel.Opacity = 1.0;
             SetImportControlsEnabled(true);
-            DialogAccessibilityHelper.AnnounceToNarrator(_skipReviewCheckbox, $"{skipReviewText}: {_localization.GetStringOrDefault("Accessibility_Checked", "Checked")}");
+            DialogAccessibilityHelper.AnnounceToNarrator(_skipReviewCheckbox, $"{skipReviewText}: {_localization.GetStringOrDefault("Common_Checked", "Checked")}");
         };
         _skipReviewCheckbox.Unchecked += (_, _) =>
         {
             optionsPanel.Opacity = 0.4;
             SetImportControlsEnabled(false);
-            DialogAccessibilityHelper.AnnounceToNarrator(_skipReviewCheckbox, $"{skipReviewText}: {_localization.GetStringOrDefault("Accessibility_Unchecked", "Unchecked")}");
+            DialogAccessibilityHelper.AnnounceToNarrator(_skipReviewCheckbox, $"{skipReviewText}: {_localization.GetStringOrDefault("Common_Unchecked", "Unchecked")}");
         };
 
         var contentPanel = new StackPanel { Spacing = 0, Margin = new Thickness(0, 0, 14, 0) };
@@ -158,7 +156,6 @@ internal class ConfigImportDialogBuilder
             // Select Only: neither Install nor Uninstall flag is set -- apps get pre-selected only
             ProcessExternalAppsInstallation = skipReview && _extAppsInstallRadio.IsChecked == true,
             ProcessExternalAppsRemoval = skipReview && _extAppsUninstallRadio.IsChecked == true,
-            ApplyThemeWallpaper = skipReview && _themeWallpaperCheckbox.IsChecked == true,
             ApplyCleanTaskbar = skipReview && _cleanTaskbarCheckbox.IsChecked == true,
             ApplyCleanStartMenu = skipReview && _cleanStartMenuCheckbox.IsChecked == true,
         };
@@ -173,7 +170,6 @@ internal class ConfigImportDialogBuilder
         _extAppsInstallRadio.IsEnabled = enabled;
         _extAppsUninstallRadio.IsEnabled = enabled;
         _extAppsSelectOnlyRadio.IsEnabled = enabled;
-        _themeWallpaperCheckbox.IsEnabled = enabled;
         _cleanTaskbarCheckbox.IsEnabled = enabled;
         _cleanStartMenuCheckbox.IsEnabled = enabled;
     }
@@ -297,7 +293,6 @@ internal class ConfigImportDialogBuilder
         RadioButton ExtAppsInstall,
         RadioButton ExtAppsUninstall,
         RadioButton ExtAppsSelectOnly,
-        CheckBox ThemeWallpaper,
         CheckBox CleanTaskbar,
         CheckBox CleanStartMenu);
 
@@ -360,13 +355,9 @@ internal class ConfigImportDialogBuilder
         appsGrid.Children.Add(extAppsUninstallRadio);
         appsGrid.Children.Add(extAppsSelectOnlyRadio);
 
-        var themeWallpaperCheckbox = CreateAccessibleCheckBox(
-            _localization.GetStringOrDefault("Config_Import_Options_ThemeWallpaper", "Apply default wallpaper for theme"),
-            isChecked: true, margin: new Thickness(0, 2, 0, 0));
-
         var cleanTaskbarCheckbox = CreateAccessibleCheckBox(
             _localization.GetStringOrDefault("Config_Import_Options_CleanTaskbar", "Clean Taskbar"),
-            isChecked: true);
+            isChecked: true, margin: new Thickness(0, 2, 0, 0));
 
         var cleanStartMenuCheckbox = CreateAccessibleCheckBox(
             _localization.GetStringOrDefault("Config_Import_Options_CleanStartMenu", "Clean Start Menu"),
@@ -378,14 +369,13 @@ internal class ConfigImportDialogBuilder
             Opacity = 0.4
         };
         optionsPanel.Children.Add(appsGrid);
-        optionsPanel.Children.Add(themeWallpaperCheckbox);
         optionsPanel.Children.Add(cleanTaskbarCheckbox);
         optionsPanel.Children.Add(cleanStartMenuCheckbox);
 
         var controls = new ImportOptionControls(
             winAppsInstallRadio, winAppsUninstallRadio, winAppsSelectOnlyRadio,
             extAppsInstallRadio, extAppsUninstallRadio, extAppsSelectOnlyRadio,
-            themeWallpaperCheckbox, cleanTaskbarCheckbox, cleanStartMenuCheckbox);
+            cleanTaskbarCheckbox, cleanStartMenuCheckbox);
 
         return (optionsPanel, controls);
     }
@@ -424,10 +414,10 @@ internal class ConfigImportDialogBuilder
 
         checkBox.Checked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
             checkBox,
-            $"{text}: {_localization.GetStringOrDefault("Accessibility_Checked", "Checked")}");
+            $"{text}: {_localization.GetStringOrDefault("Common_Checked", "Checked")}");
         checkBox.Unchecked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
             checkBox,
-            $"{text}: {_localization.GetStringOrDefault("Accessibility_Unchecked", "Unchecked")}");
+            $"{text}: {_localization.GetStringOrDefault("Common_Unchecked", "Unchecked")}");
 
         return checkBox;
     }

@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -62,7 +63,7 @@ public class ConfigurationServiceTests
     }
 
     private static SelectionSet SetWith(IReadOnlyList<AppChoice> windowsApps) =>
-        new(Array.Empty<SettingChoice>(), windowsApps, Array.Empty<AppChoice>(), AutounattendChoices.None);
+        new(Array.Empty<SettingChoice>(), windowsApps, Array.Empty<AppChoice>());
 
     private SelectionSet ArrangeMachineSet(IReadOnlyList<AppChoice> windowsApps)
     {
@@ -345,5 +346,44 @@ public class ConfigurationServiceTests
 
         _mockLogService.Verify(l => l.Log(LogLevel.Error, It.Is<string>(m => m.Contains("disk full")), null, It.IsAny<string>()), Times.Once);
         _mockDialogService.Verify(d => d.ShowErrorAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    private static WinhanceConfigFile FileWith(params ConfigurationItem[] items) => new()
+    {
+        Customize = new FeatureGroupSection
+        {
+            IsIncluded = true,
+            Features = new Dictionary<string, ConfigSection>
+            {
+                ["WindowsTheme"] = new ConfigSection { IsIncluded = true, Items = items },
+            },
+        },
+    };
+
+    private static readonly ImportOptions AllTicked = new()
+    {
+        ApplyCleanTaskbar = true,
+        ApplyCleanStartMenu = true,
+    };
+
+    [Fact]
+    public void PreTickFrom_DropsACleanActionTheFileLeftUnselected()
+    {
+        var file = FileWith(new ConfigurationItem { Id = "taskbar-clean", IsSelected = false });
+
+        var result = ConfigurationService.PreTickFrom(file, AllTicked);
+
+        result.ApplyCleanTaskbar.Should().BeFalse();
+        result.ApplyCleanStartMenu.Should().BeFalse();
+    }
+
+    [Fact]
+    public void PreTickFrom_NeverTicksSomethingTheUserUnticked()
+    {
+        var file = FileWith(new ConfigurationItem { Id = "taskbar-clean", IsSelected = true });
+
+        var result = ConfigurationService.PreTickFrom(file, new ImportOptions());
+
+        result.ApplyCleanTaskbar.Should().BeFalse();
     }
 }

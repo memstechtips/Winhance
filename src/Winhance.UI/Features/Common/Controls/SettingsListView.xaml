@@ -38,6 +38,8 @@
 
                     <ListView
                         x:Name="SettingsListViewControl"
+                        Header="{x:Bind Header, Mode=OneWay}"
+                        Footer="{x:Bind Footer, Mode=OneWay}"
                         ItemContainerStyle="{StaticResource SettingsListViewItemContainerStyle}"
                         SelectionMode="None"
                         IsItemClickEnabled="False"

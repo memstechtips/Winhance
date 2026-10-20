@@ -21,6 +21,8 @@ public class ReviewModeBarViewModelTests : IDisposable
 
     private readonly ReviewModeBarViewModel _sut;
 
+    private static readonly string[] SetAsideNames = ["Timeline Suggestions (Privacy)", "Lid close action (Power)"];
+
     public ReviewModeBarViewModelTests()
     {
         _mockDispatcherService
@@ -146,6 +148,34 @@ public class ReviewModeBarViewModelTests : IDisposable
         _sut.ReviewModeStatusText.Should().Contain("2");
         _sut.ReviewModeStatusText.Should().Contain("5");
         _sut.ReviewModeStatusText.Should().Contain("1");
+    }
+
+    [Fact]
+    public void StatusText_WhenSettingsWereSetAside_SaysHowManyAndListsThemInTheDetail()
+    {
+        _mockConfigReviewModeService.Setup(s => s.IsInReviewMode).Returns(true);
+        _mockConfigReviewModeService.Setup(s => s.SetAside).Returns(SetAsideNames);
+        _mockConfigReviewDiffService.Setup(d => d.TotalChanges).Returns(5);
+        _mockConfigReviewDiffService.Setup(d => d.ReviewedChanges).Returns(2);
+        _mockConfigReviewDiffService.Setup(d => d.ApprovedChanges).Returns(1);
+
+        _mockConfigReviewModeService.Raise(s => s.ReviewModeChanged += null, this, EventArgs.Empty);
+
+        _sut.ReviewModeStatusText.Should().StartWith("2 of 5 reviewed (1 will be applied)");
+        _sut.ReviewModeStatusText.Should().EndWith("2 settings in this file are not on this PC and were set aside.");
+        _sut.ReviewModeSetAsideDetail.Should().Be("Timeline Suggestions (Privacy)\nLid close action (Power)");
+    }
+
+    [Fact]
+    public void StatusText_WhenNothingWasSetAside_CarriesNoDetail()
+    {
+        _mockConfigReviewModeService.Setup(s => s.IsInReviewMode).Returns(true);
+        _mockConfigReviewDiffService.Setup(d => d.TotalChanges).Returns(5);
+
+        _mockConfigReviewModeService.Raise(s => s.ReviewModeChanged += null, this, EventArgs.Empty);
+
+        _sut.ReviewModeStatusText.Should().NotContain("set aside");
+        _sut.ReviewModeSetAsideDetail.Should().BeNull();
     }
 
     [Fact]

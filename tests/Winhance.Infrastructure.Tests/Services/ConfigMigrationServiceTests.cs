@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -396,5 +397,99 @@ public class ConfigMigrationServiceTests
         _sut.MigrateConfig(config);
 
         item.Id.Should().Be("explorer-customization-thispc-folder-videos");
+    }
+    [Fact]
+    public void MigrateConfig_AFileWrittenUnderARetiredFeatureId_IsRekeyedToTheCurrentOne()
+    {
+        var section = new ConfigSection { Items = new List<ConfigurationItem>() };
+        var config = new WinhanceConfigFile
+        {
+            Customize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection> { ["ExplorerCustomization"] = section },
+            },
+        };
+
+        _sut.MigrateConfig(config);
+
+        config.Customize.Features.Should().ContainKey(FeatureIds.Explorer).WhoseValue.Should().BeSameAs(section);
+        config.Customize.Features.Should().NotContainKey("ExplorerCustomization",
+            "review mode counts and badges features by the key the file carries");
+    }
+
+    [Fact]
+    public void MigrateConfig_FeatureIdsThatAreStillCurrent_AreLeftAlone()
+    {
+        var config = CreateConfigWithCustomizeItem(new ConfigurationItem { Id = "whatever" });
+
+        _sut.MigrateConfig(config);
+
+        config.Customize.Features.Should().ContainKey("TaskbarCustomizations");
+    }
+    [Theory]
+    [InlineData(0, "M/d/yyyy")]
+    [InlineData(3, "yyyy/MM/dd")]
+    [InlineData(4, "dd MMM yyyy")]
+    public void MigrateConfig_AShortDateSavedAsAnIndex_BecomesThePatternItMeant(int index, string expected)
+    {
+        var config = CreateConfigWithCustomizeItem(new ConfigurationItem
+        {
+            Id = "explorer-customization-short-date",
+            InputType = InputType.Selection,
+            SelectedIndex = index,
+        });
+
+        _sut.MigrateConfig(config);
+
+        var item = config.Customize.Features["TaskbarCustomizations"].Items[0];
+        item.SelectedKey.Should().Be(expected);
+        item.SelectedIndex.Should().BeNull();
+    }
+
+    [Fact]
+    public void MigrateConfig_AShortDateAlreadyKeyed_IsLeftAlone()
+    {
+        var config = CreateConfigWithCustomizeItem(new ConfigurationItem
+        {
+            Id = "explorer-customization-short-date",
+            SelectedKey = "dd.MM.yyyy",
+        });
+
+        _sut.MigrateConfig(config);
+
+        config.Customize.Features["TaskbarCustomizations"].Items[0].SelectedKey.Should().Be("dd.MM.yyyy");
+    }
+
+    [Theory]
+    [InlineData(7, "1.1.1.1", "1.0.0.1")]
+    [InlineData(8, "8.8.8.8", "8.8.4.4")]
+    [InlineData(9, "9.9.9.9", "149.112.112.112")]
+    public void MigrateConfig_DnsDohOption_BecomesItsServersEncrypted(int old, string preferred, string alternate)
+    {
+        var dns = new ConfigurationItem { Id = "gaming-dns-server", InputType = InputType.Selection, SelectedIndex = old };
+        var config = CreateConfigWithCustomizeItem(dns);
+
+        _sut.MigrateConfig(config);
+
+        dns.SelectedIndex.Should().BeNull();
+        dns.CustomStateValues.Should().BeEquivalentTo(new Dictionary<string, object>
+        {
+            ["primary"] = preferred,
+            ["primaryDoh"] = "1",
+            ["secondary"] = alternate,
+            ["secondaryDoh"] = "1",
+        });
+    }
+
+    [Fact]
+    public void MigrateConfig_DnsPlainOption_StaysAnIndex()
+    {
+        var dns = new ConfigurationItem { Id = "gaming-dns-server", InputType = InputType.Selection, SelectedIndex = 1 };
+        var config = CreateConfigWithCustomizeItem(dns);
+
+        _sut.MigrateConfig(config);
+
+        dns.SelectedIndex.Should().Be(1);
+        dns.CustomStateValues.Should().BeNull();
     }
 }

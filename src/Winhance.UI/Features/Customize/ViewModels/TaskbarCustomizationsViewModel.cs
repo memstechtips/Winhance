@@ -23,5 +23,4 @@ public partial class TaskbarCustomizationsViewModel : BaseSettingsFeatureViewMod
 
     public override string ModuleId => FeatureIds.Taskbar;
 
-    protected override string GetDisplayNameKey() => "Feature_Taskbar_Name";
 }

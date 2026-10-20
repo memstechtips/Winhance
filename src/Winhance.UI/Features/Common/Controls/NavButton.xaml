@@ -42,7 +42,7 @@
 
             <!-- Text (Hidden when compact).
                  Wrap to 2 lines so the default-scale rendering keeps the
-                 natural "Software & Apps" / "Advanced Tools" / etc. wrap
+                 natural "Software & Apps" etc. wrap
                  behaviour; TextTrimming kicks in only when the wrapped text
                  still exceeds 2 lines at higher Windows text-scale settings
                  ("Software\n& App…"). Combined with the parent StackPanel's

@@ -108,11 +108,32 @@ public class ConfigurationService : IConfigurationService
             importOptions = importOptions with { IsWindowsDefaults = true };
         }
 
+        importOptions = PreTickFrom(config, importOptions);
+
         if (!importOptions.ReviewBeforeApplying)
             await _configExecutionService.ExecuteConfigImportAsync(config, importOptions);
         else
             await _configReviewOrchestrationService.EnterReviewModeAsync(config, importOptions.IsWindowsDefaults);
     }
+
+    // A clean action has to be selected in the file, not merely present: an unticked one is a config saying
+    // "leave it alone".
+    public static ImportOptions PreTickFrom(WinhanceConfigFile file, ImportOptions chosen) => chosen with
+    {
+        ApplyCleanTaskbar = chosen.ApplyCleanTaskbar && Carries(file, "taskbar-clean", requireSelected: true),
+        ApplyCleanStartMenu = chosen.ApplyCleanStartMenu
+            && (Carries(file, "start-menu-clean-10", requireSelected: true)
+                || Carries(file, "start-menu-clean-11", requireSelected: true)),
+    };
+
+    private static bool Carries(WinhanceConfigFile file, string settingId, bool requireSelected) =>
+        AllItems(file).Any(item => item.Id == settingId && (!requireSelected || item.IsSelected == true));
+
+    private static IEnumerable<ConfigurationItem> AllItems(WinhanceConfigFile file) =>
+        file.Customize.Features.Values
+            .Concat(file.Optimize.Features.Values)
+            .Concat(file.Autounattend.Features.Values)
+            .SelectMany(section => section.Items);
 
     public async Task CreateUserBackupConfigAsync()
     {

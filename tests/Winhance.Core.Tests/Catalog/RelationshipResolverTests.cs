@@ -1,12 +1,14 @@
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
+using Winhance.TestSupport;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Core.Tests.Catalog;
 
 public class RelationshipResolverTests
 {
-    private static SettingState St(string label, bool isDefault = false,
-        IReadOnlyDictionary<string, string>? controls = null) =>
+    private static SettingState St(LocKey label, bool isDefault = false,
+        IReadOnlyDictionary<string, LocKey>? controls = null) =>
         new()
         {
             Label = label,
@@ -18,7 +20,7 @@ public class RelationshipResolverTests
         new()
         {
             Id = id,
-            Display = new() { Name = id, Description = id },
+            Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of(id)},
             // Links live per-state: place them on the active/non-default states, mirroring the converter.
             States = links.Length == 0
                 ? states
@@ -26,32 +28,32 @@ public class RelationshipResolverTests
         };
 
     // currentStateOf that knows nothing (everything "unknown")
-    private static string? None(string _) => null;
+    private static LocKey? None(string _) => null;
 
     [Fact]
     public void Activation_fires_requires_when_not_met()
     {
-        var s = S("a", new[] { St("On"), St("Off", isDefault: true) },
-            new Link("b", LinkKind.Requires, "On"));
-        var actions = RelationshipResolver.ResolveForward(s, "On", None);
-        Assert.Contains(actions, x => x.SettingId == "b" && x.StateLabel == "On");
+        var s = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) },
+            new Link("b", LinkKind.Requires, TestKeys.Of("On")));
+        var actions = RelationshipResolver.ResolveForward(s, TestKeys.Of("On"), None);
+        Assert.Contains(actions, x => x.SettingId == "b" && x.StateLabel == TestKeys.Of("On"));
     }
 
     [Fact]
     public void Requires_already_met_fires_nothing()
     {
-        var s = S("a", new[] { St("On"), St("Off", isDefault: true) },
-            new Link("b", LinkKind.Requires, "On"));
-        var actions = RelationshipResolver.ResolveForward(s, "On", id => id == "b" ? "On" : null);
+        var s = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) },
+            new Link("b", LinkKind.Requires, TestKeys.Of("On")));
+        var actions = RelationshipResolver.ResolveForward(s, TestKeys.Of("On"), id => id == "b" ? TestKeys.Of("On") : null);
         Assert.DoesNotContain(actions, x => x.SettingId == "b");
     }
 
     [Fact]
     public void Applying_the_default_state_fires_nothing()
     {
-        var s = S("a", new[] { St("On"), St("Off", isDefault: true) },
-            new Link("b", LinkKind.Requires, "On"));
-        Assert.Empty(RelationshipResolver.ResolveForward(s, "Off", None));
+        var s = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) },
+            new Link("b", LinkKind.Requires, TestKeys.Of("On")));
+        Assert.Empty(RelationshipResolver.ResolveForward(s, TestKeys.Of("Off"), None));
     }
 
     [Fact]
@@ -61,29 +63,29 @@ public class RelationshipResolverTests
         // prerequisite when applied. Proves the old "skip forward triggers on the WindowsDefault state" is gone.
         var onDefault = new SettingState
         {
-            Label = "On",
+            Label = TestKeys.Of("On"),
             Roles = new[] { new StateRole(RoleKind.WindowsDefault) },
-            Links = new[] { new Link("b", LinkKind.Requires, "On") },
+            Links = new[] { new Link("b", LinkKind.Requires, TestKeys.Of("On")) },
         };
         var s = new Setting
         {
             Id = "a",
-            Display = new() { Name = "a", Description = "a" },
-            States = new[] { onDefault, St("Off") },
+            Display = new() { Name = TestKeys.Of("a"), Description = TestKeys.Of("a") },
+            States = new[] { onDefault, St(TestKeys.Of("Off")) },
         };
-        var actions = RelationshipResolver.ResolveForward(s, "On", None);
-        Assert.Contains(actions, x => x.SettingId == "b" && x.StateLabel == "On");
+        var actions = RelationshipResolver.ResolveForward(s, TestKeys.Of("On"), None);
+        Assert.Contains(actions, x => x.SettingId == "b" && x.StateLabel == TestKeys.Of("On"));
     }
 
     [Fact]
     public void Enables_always_fires_with_force_even_if_met()
     {
-        var s = S("a", new[] { St("On"), St("Off", isDefault: true) },
-            new Link("b", LinkKind.Enables, "On"));
-        var actions = RelationshipResolver.ResolveForward(s, "On", id => "On");
+        var s = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) },
+            new Link("b", LinkKind.Enables, TestKeys.Of("On")));
+        var actions = RelationshipResolver.ResolveForward(s, TestKeys.Of("On"), id => TestKeys.Of("On"));
         var act = Assert.Single(actions, x => x.SettingId == "b");
         Assert.True(act.Force);
-        Assert.Equal("On", act.StateLabel);
+        Assert.Equal(TestKeys.Of("On"), act.StateLabel);
     }
 
     [Fact]
@@ -92,19 +94,19 @@ public class RelationshipResolverTests
         var s = S("a",
             new[]
             {
-                St("Deny", controls: new Dictionary<string, string> { ["c1"] = "Off", ["c2"] = "Off" }),
-                St("Allow", isDefault: true),
+                St(TestKeys.Of("Deny"), controls: new Dictionary<string, LocKey> { ["c1"] = TestKeys.Of("Off"), ["c2"] = TestKeys.Of("Off") }),
+                St(TestKeys.Of("Allow"), isDefault: true),
             });
-        var actions = RelationshipResolver.ResolveForward(s, "Deny", None);
-        Assert.Contains(actions, x => x.SettingId == "c1" && x.StateLabel == "Off");
-        Assert.Contains(actions, x => x.SettingId == "c2" && x.StateLabel == "Off");
+        var actions = RelationshipResolver.ResolveForward(s, TestKeys.Of("Deny"), None);
+        Assert.Contains(actions, x => x.SettingId == "c1" && x.StateLabel == TestKeys.Of("Off"));
+        Assert.Contains(actions, x => x.SettingId == "c2" && x.StateLabel == TestKeys.Of("Off"));
     }
 
     [Fact]
     public void Unknown_target_state_returns_empty()
     {
-        var s = S("a", new[] { St("On"), St("Off", isDefault: true) });
-        Assert.Empty(RelationshipResolver.ResolveForward(s, "Nope", None));
+        var s = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) });
+        Assert.Empty(RelationshipResolver.ResolveForward(s, TestKeys.Of("Nope"), None));
     }
 
     // Mirrors visual-effects-mode: the WindowsDefault state ("LetWindows") carries its OWN preset (Controls), and
@@ -112,18 +114,18 @@ public class RelationshipResolverTests
     // no-Controls state, NOT the WindowsDefault one.
     private static Setting Master() => S("m", new[]
     {
-        St("LetWindows", isDefault: true, controls: new Dictionary<string, string> { ["c1"] = "On", ["c2"] = "Off" }),
-        St("Appearance", controls: new Dictionary<string, string> { ["c1"] = "On", ["c2"] = "On" }),
-        St("Performance", controls: new Dictionary<string, string> { ["c1"] = "Off", ["c2"] = "Off" }),
-        St("Custom"),
+        St(TestKeys.Of("LetWindows"), isDefault: true, controls: new Dictionary<string, LocKey> { ["c1"] = TestKeys.Of("On"), ["c2"] = TestKeys.Of("Off") }),
+        St(TestKeys.Of("Appearance"), controls: new Dictionary<string, LocKey> { ["c1"] = TestKeys.Of("On"), ["c2"] = TestKeys.Of("On") }),
+        St(TestKeys.Of("Performance"), controls: new Dictionary<string, LocKey> { ["c1"] = TestKeys.Of("Off"), ["c2"] = TestKeys.Of("Off") }),
+        St(TestKeys.Of("Custom")),
     });
 
     [Fact]
     public void ReverseSync_snaps_parent_to_a_matching_preset()
     {
-        string? Cur(string id) => id switch { "c1" => "Off", "c2" => "Off", "m" => "Custom", _ => null };
+        LocKey? Cur(string id) => id switch { "c1" => TestKeys.Of("Off"), "c2" => TestKeys.Of("Off"), "m" => TestKeys.Of("Custom"), _ => null };
         var actions = RelationshipResolver.ResolveReverseSync("c1", new[] { Master() }, Cur);
-        Assert.Contains(actions, x => x.SettingId == "m" && x.StateLabel == "Performance");
+        Assert.Contains(actions, x => x.SettingId == "m" && x.StateLabel == TestKeys.Of("Performance"));
     }
 
     [Fact]
@@ -131,23 +133,23 @@ public class RelationshipResolverTests
     {
         // c1=Off,c2=On matches no preset; master currently "Appearance" -> drops to the neutral "Custom"
         // (the no-Controls state), NOT to the WindowsDefault "LetWindows" (which carries its own preset).
-        string? Cur(string id) => id switch { "c1" => "Off", "c2" => "On", "m" => "Appearance", _ => null };
+        LocKey? Cur(string id) => id switch { "c1" => TestKeys.Of("Off"), "c2" => TestKeys.Of("On"), "m" => TestKeys.Of("Appearance"), _ => null };
         var act = Assert.Single(RelationshipResolver.ResolveReverseSync("c1", new[] { Master() }, Cur));
         Assert.Equal("m", act.SettingId);
-        Assert.Equal("Custom", act.StateLabel);
+        Assert.Equal(TestKeys.Of("Custom"), act.StateLabel);
     }
 
     [Fact]
     public void ReverseSync_no_action_when_parent_already_at_target()
     {
-        string? Cur(string id) => id switch { "c1" => "Off", "c2" => "On", "m" => "Custom", _ => null };
+        LocKey? Cur(string id) => id switch { "c1" => TestKeys.Of("Off"), "c2" => TestKeys.Of("On"), "m" => TestKeys.Of("Custom"), _ => null };
         Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { Master() }, Cur));
     }
 
     [Fact]
     public void ReverseSync_ignores_parents_that_dont_control_the_child()
     {
-        var other = S("other", new[] { St("On"), St("Off", isDefault: true) });
+        var other = S("other", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) });
         Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { other }, None));
     }
 }

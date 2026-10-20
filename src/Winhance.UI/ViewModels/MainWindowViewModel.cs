@@ -3,10 +3,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Extensions;
 
@@ -25,9 +23,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly IApplicationModeService _applicationModeService;
     private readonly IDialogService _dialogService;
     private readonly IUserPreferencesService _userPreferencesService;
-    private readonly IBuilderSeedSource _builderSeedSource;
-    private readonly ISelectionSetBuilder _selectionSetBuilder;
-    private readonly IEventBus _eventBus;
+    private readonly IBuilderModeEntry _builderModeEntry;
 
     public TaskProgressViewModel TaskProgress { get; }
 
@@ -77,9 +73,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         IApplicationModeService applicationModeService,
         IDialogService dialogService,
         IUserPreferencesService userPreferencesService,
-        IBuilderSeedSource builderSeedSource,
-        ISelectionSetBuilder selectionSetBuilder,
-        IEventBus eventBus)
+        IBuilderModeEntry builderModeEntry)
     {
         _themeService = themeService;
         _configurationService = configurationService;
@@ -91,9 +85,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _applicationModeService = applicationModeService;
         _dialogService = dialogService;
         _userPreferencesService = userPreferencesService;
-        _builderSeedSource = builderSeedSource;
-        _selectionSetBuilder = selectionSetBuilder;
-        _eventBus = eventBus;
+        _builderModeEntry = builderModeEntry;
 
         TaskProgress = taskProgress;
         UpdateCheck = updateCheck;
@@ -159,7 +151,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(NavSoftwareAppsText));
         OnPropertyChanged(nameof(NavOptimizeText));
         OnPropertyChanged(nameof(NavCustomizeText));
-        OnPropertyChanged(nameof(NavAdvancedToolsText));
+        OnPropertyChanged(nameof(NavAutounattendText));
+        OnPropertyChanged(nameof(NavWimUtilText));
         OnPropertyChanged(nameof(NavSettingsText));
         OnPropertyChanged(nameof(NavMoreText));
 
@@ -267,8 +260,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public string NavCustomizeText =>
         _localizationService.GetStringOrDefault("Nav_Customize", "Customize");
 
-    public string NavAdvancedToolsText =>
-        _localizationService.GetStringOrDefault("Nav_AdvancedTools", "Advanced Tools");
+    public string NavAutounattendText =>
+        _localizationService.GetStringOrDefault("Nav_Autounattend", "Unattend");
+
+    public string NavWimUtilText =>
+        _localizationService.GetStringOrDefault("Nav_WimUtil", "WIMUtil");
 
     public string NavSettingsText =>
         _localizationService.GetStringOrDefault("Nav_Settings", "Settings");
@@ -306,7 +302,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             }
         }
 
-        if (target == WinhanceMode.Builder && !await ShowBuilderIntroIfNeededAsync())
+        if (target == WinhanceMode.Builder && !await _builderModeEntry.EnterAsync(BuilderTarget.Config))
         {
             RaiseModeProperties();
             return;
@@ -315,17 +311,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             RaiseModeProperties();
             return;
-        }
-
-        BuilderSeed? seed = null;
-        if (target == WinhanceMode.Builder)
-        {
-            seed = await _dialogService.ShowBuilderSeedDialogAsync();
-            if (seed is null)
-            {
-                RaiseModeProperties();
-                return;
-            }
         }
 
         try
@@ -337,18 +322,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                         await _configurationService.CancelReviewModeAsync();
                     else
                         _applicationModeService.EnterNormalMode();
-                    break;
-
-                case WinhanceMode.Builder:
-                    if (_applicationModeService.CurrentMode == WinhanceMode.ConfigReview)
-                        await _configurationService.CancelReviewModeAsync();
-                    _applicationModeService.EnterBuilderMode(BuilderTarget.Config);
-                    if (seed is { } chosenSeed && chosenSeed != BuilderSeed.CurrentMachine)
-                    {
-                        foreach (var choice in await _builderSeedSource.ChoicesForAsync(chosenSeed, _selectionSetBuilder.CurrentScope))
-                            _applicationModeService.RecordBuilderEdit(choice);
-                        _eventBus.Publish(new BuilderSeededEvent());
-                    }
                     break;
 
                 case WinhanceMode.ConfigReview:
@@ -370,51 +343,28 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         RaiseModeProperties();
     }
 
-    private const string BuilderIntroDontShowKey = "BuilderModeIntroDontShow";
     private const string ConfigReviewIntroDontShowKey = "ConfigReviewModeIntroDontShow";
 
-    private Task<bool> ShowBuilderIntroIfNeededAsync()
+    private async Task<bool> ShowConfigReviewIntroIfNeededAsync()
     {
-        return ShowModeIntroIfNeededAsync(
-            BuilderIntroDontShowKey,
-            "Dialog_BuilderIntro_Title",
-            "Dialog_BuilderIntro_Message",
-            "Dialog_BuilderIntro_Confirm");
-    }
-
-    private Task<bool> ShowConfigReviewIntroIfNeededAsync()
-    {
-        return ShowModeIntroIfNeededAsync(
-            ConfigReviewIntroDontShowKey,
-            "Dialog_ConfigReviewIntro_Title",
-            "Dialog_ConfigReviewIntro_Message",
-            "Dialog_ConfigReviewIntro_Confirm");
-    }
-
-    private async Task<bool> ShowModeIntroIfNeededAsync(
-        string dontShowKey,
-        string titleKey,
-        string messageKey,
-        string confirmKey)
-    {
-        if (_userPreferencesService.GetPreference(dontShowKey, false))
+        if (_userPreferencesService.GetPreference(ConfigReviewIntroDontShowKey, false))
         {
             return true;
         }
 
         var response = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
         {
-            Title = _localizationService.GetString(titleKey),
-            Message = _localizationService.GetString(messageKey),
+            Title = _localizationService.GetString("Dialog_ConfigReviewIntro_Title"),
+            Message = _localizationService.GetString("Dialog_ConfigReviewIntro_Message"),
             CheckboxText = _localizationService.GetString("Dialog_Mode_DontShowAgain"),
             CheckboxInitiallyChecked = false,
-            ConfirmButtonText = _localizationService.GetString(confirmKey),
+            ConfirmButtonText = _localizationService.GetString("Dialog_ConfigReviewIntro_Confirm"),
             CancelButtonText = _localizationService.GetString("Button_Cancel"),
         });
 
         if (response.Confirmed && response.CheckboxChecked)
         {
-            await _userPreferencesService.SetPreferenceAsync(dontShowKey, true);
+            await _userPreferencesService.SetPreferenceAsync(ConfigReviewIntroDontShowKey, true);
         }
 
         return response.Confirmed;

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
@@ -14,14 +15,12 @@ public class TestSectionInfo : ISectionInfo
 {
     public string Key { get; }
     public string IconGlyphKey { get; }
-    public string DisplayName { get; }
     public string ModuleId { get; }
 
-    public TestSectionInfo(string key, string iconGlyphKey, string displayName, string moduleId)
+    public TestSectionInfo(string key, string iconGlyphKey, string moduleId)
     {
         Key = key;
         IconGlyphKey = iconGlyphKey;
-        DisplayName = displayName;
         ModuleId = moduleId;
     }
 }
@@ -30,9 +29,9 @@ public class TestableSectionPageViewModel : SectionPageViewModel<TestSectionInfo
 {
     public static readonly IReadOnlyList<TestSectionInfo> TestSections = new List<TestSectionInfo>
     {
-        new("SectionA", "IconA", "Section A", "ModuleA"),
-        new("SectionB", "IconB", "Section B", "ModuleB"),
-        new("SectionC", "IconC", "Section C", "ModuleC"),
+        new("SectionA", "IconA", "ModuleA"),
+        new("SectionB", "IconB", "ModuleB"),
+        new("SectionC", "IconC", "ModuleC"),
     };
 
     protected override string PageTitleKey => "Test_Page_Title";
@@ -46,8 +45,12 @@ public class TestableSectionPageViewModel : SectionPageViewModel<TestSectionInfo
         ILocalizationService localizationService,
         IEnumerable<ISettingsFeatureViewModel> featureViewModels,
         IConfigReviewBadgeService badgeService,
-        IConfigReviewModeService reviewModeService)
-        : base(logService, localizationService, featureViewModels, badgeService, reviewModeService)
+        IConfigReviewModeService reviewModeService,
+        ICatalogSettingsRegistry registry,
+        ICatalogScopeProvider scope,
+        IApplicationModeService modeService)
+        : base(logService, localizationService, featureViewModels, badgeService, reviewModeService,
+               registry, scope, modeService)
     {
         InitializeSectionMappings();
     }
@@ -59,6 +62,9 @@ public class SectionPageViewModelTests
     private readonly Mock<ILocalizationService> _mockLocalizationService;
     private readonly Mock<IConfigReviewBadgeService> _mockBadgeService = new();
     private readonly Mock<IConfigReviewModeService> _mockReviewModeService = new();
+    private readonly Mock<ICatalogSettingsRegistry> _mockRegistry = new();
+    private readonly Mock<ICatalogScopeProvider> _mockScope = new();
+    private readonly Mock<IApplicationModeService> _mockModeService = new();
     private readonly List<Mock<ISettingsFeatureViewModel>> _mockFeatureVms;
 
     public SectionPageViewModelTests()
@@ -77,7 +83,7 @@ public class SectionPageViewModelTests
         {
             var mock = new Mock<ISettingsFeatureViewModel>();
             mock.Setup(vm => vm.ModuleId).Returns(section.ModuleId);
-            mock.Setup(vm => vm.DisplayName).Returns(section.DisplayName);
+            mock.Setup(vm => vm.DisplayName).Returns($"{section.Key} name");
             mock.Setup(vm => vm.SettingsCount).Returns(0);
             mock.Setup(vm => vm.Settings).Returns(new ObservableCollection<SettingItemViewModel>());
             mock.Setup(vm => vm.HasVisibleSettings).Returns(false);
@@ -92,7 +98,10 @@ public class SectionPageViewModelTests
             _mockLocalizationService.Object,
             _mockFeatureVms.Select(m => m.Object),
             _mockBadgeService.Object,
-            _mockReviewModeService.Object);
+            _mockReviewModeService.Object,
+            _mockRegistry.Object,
+            _mockScope.Object,
+            _mockModeService.Object);
     }
 
     [Fact]
@@ -379,7 +388,7 @@ public class SectionPageViewModelTests
 
         vm.CurrentSectionKey = "SectionA";
 
-        vm.CurrentSectionName.Should().Be("Section A");
+        vm.CurrentSectionName.Should().Be("SectionA name");
     }
 
     [Fact]
@@ -411,26 +420,6 @@ public class SectionPageViewModelTests
         var result = vm.GetSectionViewModel("Overview");
 
         result.Should().BeNull();
-    }
-
-    [Fact]
-    public void GetSectionDisplayName_WithValidKey_ReturnsDisplayName()
-    {
-        var vm = CreateViewModel();
-
-        var name = vm.GetSectionDisplayName("SectionB");
-
-        name.Should().Be("Section B");
-    }
-
-    [Fact]
-    public void GetSectionDisplayName_WithInvalidKey_ReturnsOverview()
-    {
-        var vm = CreateViewModel();
-
-        var name = vm.GetSectionDisplayName("UnknownKey");
-
-        name.Should().Be("Overview");
     }
 
     [Fact]
@@ -609,5 +598,39 @@ public class SectionPageViewModelTests
         vm.SearchText = "test";
 
         raisedProperties.Should().Contain(nameof(vm.HasNoSearchResults));
+    }
+
+    // A feature hides its cards after SearchText has already raised, so the first answer is the stale one.
+    [Fact]
+    public void HasNoSearchResults_WhenAFeatureFinishesFiltering_IsRaisedAgain()
+    {
+        _mockFeatureVms[1].Setup(v => v.HasVisibleSettings).Returns(true);
+        var vm = CreateViewModel();
+        vm.SearchText = "xyz no matches";
+        var raisedProperties = new List<string>();
+        vm.PropertyChanged += (_, e) => raisedProperties.Add(e.PropertyName!);
+
+        _mockFeatureVms[1].Setup(v => v.HasVisibleSettings).Returns(false);
+        _mockFeatureVms[1].Raise(
+            v => v.PropertyChanged += null,
+            new PropertyChangedEventArgs(nameof(ISettingsFeatureViewModel.HasVisibleSettings)));
+
+        raisedProperties.Should().Contain(nameof(vm.HasNoSearchResults));
+        vm.HasNoSearchResults.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Dispose_StopsFollowingTheFeatures()
+    {
+        var vm = CreateViewModel();
+        vm.Dispose();
+        var raisedProperties = new List<string>();
+        vm.PropertyChanged += (_, e) => raisedProperties.Add(e.PropertyName!);
+
+        _mockFeatureVms[0].Raise(
+            v => v.PropertyChanged += null,
+            new PropertyChangedEventArgs(nameof(ISettingsFeatureViewModel.HasVisibleSettings)));
+
+        raisedProperties.Should().BeEmpty();
     }
 }

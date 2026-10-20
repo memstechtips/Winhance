@@ -156,7 +156,8 @@ Recorded here because they are easy to get wrong and expensive to discover late:
   entirely (absence resolves to Custom).
 - **Exclude the unanalysable classes** using the manifest fields that identify them: `detector`
   (custom `IStateDetector` — note one of them has a detector *and* populated `Set`s, so it looks
-  analysable), `optionSource`, `numeric`, `control: "Action"`, `perNetworkInterface` / `perMonitor`
+  analysable), `optionSource` (a keyed selection, named by the list its options come from, such as
+  `PowerPlans`), `numeric`, `control: "Action"`, `perNetworkInterface` / `perMonitor`
   (the "all subkeys must match" semantics `RegTargetReader` does not implement), and
   `availability.builds` / target `appliesTo` against the probed machine's build.
 

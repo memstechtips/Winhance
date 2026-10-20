@@ -6,7 +6,9 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
+using Winhance.TestSupport;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Infrastructure.Tests.Services;
 
 public class RecommendedSettingsApplierTests
@@ -53,18 +55,18 @@ public class RecommendedSettingsApplierTests
     // resolver's Setting overloads. Tests construct synthetic Settings with exactly the shape/roles they
     // exercise - no real catalog id is needed.
 
-    private static Display Disp(string id) => new() { Name = $"Setting {id}", Description = $"Description for {id}" };
+    private static Display Disp(string id) => new() { Name = TestKeys.Of($"Setting {id}"), Description = TestKeys.Of($"Description for {id}") };
 
     // A toggle Setting (two Enabled/Disabled states). A Recommended role on the Enabled state means
-    // "recommend enabling" (CatalogToggleState.GetRecommended returns true).
+    // "recommend enabling" (TwoState.GetRecommended returns true).
     private static Setting ToggleWithRecommendedEnabled(string id) => new()
     {
         Id = id,
         Display = Disp(id),
         States = new[]
         {
-            new SettingState { Label = "Enabled", Roles = new[] { new StateRole(RoleKind.Recommended) } },
-            new SettingState { Label = "Disabled" },
+            new SettingState { Label = LocKey.Common.Enabled, Roles = new[] { new StateRole(RoleKind.Recommended) } },
+            new SettingState { Label = LocKey.Common.Disabled },
         },
     };
 
@@ -77,7 +79,7 @@ public class RecommendedSettingsApplierTests
         {
             states.Add(new SettingState
             {
-                Label = $"Option{i}",
+                Label = TestKeys.Of($"Option{i}"),
                 Roles = i == recommendedIndex
                     ? new[] { new StateRole(RoleKind.Recommended) }
                     : Array.Empty<StateRole>(),
@@ -162,9 +164,9 @@ public class RecommendedSettingsApplierTests
             Display = Disp("sel-no-rec"),
             States = new[]
             {
-                new SettingState { Label = "A" },
-                new SettingState { Label = "B" },
-                new SettingState { Label = "C" },
+                new SettingState { Label = TestKeys.Of("A") },
+                new SettingState { Label = TestKeys.Of("B") },
+                new SettingState { Label = TestKeys.Of("C") },
             },
         };
 

@@ -21,6 +21,9 @@ public enum WindowsChange
     // EXPENSIVE: carries a payload, so it must be SENT and is charged its full timeout per top-level window - seconds
     // on a busy machine. Declare it only where applying the setting genuinely changes how Windows looks.
     Appearance = 1 << 0,
+
+    // NEARLY FREE: one SystemParametersInfo makes the shell re-read the desktop background values now, not at next logon.
+    Desktop = 1 << 1,
 }
 
 // Reboot is separate (RequiresReboot); a setting may need both.

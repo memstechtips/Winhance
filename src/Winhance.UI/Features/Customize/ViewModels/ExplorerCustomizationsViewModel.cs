@@ -21,7 +21,6 @@ public partial class ExplorerCustomizationsViewModel : BaseSettingsFeatureViewMo
     {
     }
 
-    public override string ModuleId => FeatureIds.ExplorerCustomization;
+    public override string ModuleId => FeatureIds.Explorer;
 
-    protected override string GetDisplayNameKey() => "Feature_Explorer_Name";
 }

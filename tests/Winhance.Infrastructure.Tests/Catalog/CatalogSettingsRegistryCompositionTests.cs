@@ -26,7 +26,8 @@ public class CatalogSettingsRegistryCompositionTests
 
         var build = new WinBuild(26100, 0);
         var caps = new HardwareCaps(false, true);
-        bool Available(Setting s) => CatalogMembershipFilter.IsAvailable(s, build, caps);
+        // The answer-file gate lives on CatalogScope, not the filter, and no scope queried here opens it.
+        bool Available(Setting s) => CatalogMembershipFilter.IsAvailable(s, build, caps) && !s.IsAnswerFileOnly;
 
         var expected = SettingCatalog.All.Where(Available).Select(s => s.Id).OrderBy(x => x).ToList();
         var actual = reg.GetAll().SelectMany(kv => kv.Value).Select(s => s.Id).OrderBy(x => x).ToList();
@@ -63,6 +64,27 @@ public class CatalogSettingsRegistryCompositionTests
         Assert.Null(reg.GetFeatureIdForSetting("definitely-not-a-real-setting-id"));
     }
 
+    // A file authored on a 24H2 PC for 26H2 media must see what 26H2 has, not what the authoring PC has.
+    [Fact]
+    public async Task Target_build_replaces_this_pcs_build_in_the_os_gate()
+    {
+        var version = new Mock<IWindowsVersionService>();
+        version.Setup(v => v.GetWindowsBuildNumber()).Returns(26100);
+        version.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
+        var hardware = new Mock<IHardwareDetectionService>();
+        var existence = new Mock<ICatalogPowerExistenceFilter>();
+        existence.Setup(e => e.FilterAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync((IReadOnlyList<Setting> s) => s);
+        var reg = new CatalogSettingsRegistry(version.Object, hardware.Object, existence.Object);
+        await reg.InitializeAsync();
+        var for26H2 = CatalogScope.CurrentMachine with { TargetBuild = WindowsReleases.TargetOf(26300) };
+
+        Assert.Null(reg.GetById("start-all-apps-view"));
+        Assert.NotNull(reg.GetById("start-menu-layout"));
+        Assert.NotNull(reg.GetById("start-all-apps-view", for26H2));
+        Assert.Null(reg.GetById("start-menu-layout", for26H2));
+    }
+
     [Fact]
     public async Task Scope_param_relaxes_only_the_os_gate_defaulting_to_current_os()
     {
@@ -81,8 +103,8 @@ public class CatalogSettingsRegistryCompositionTests
 
         var build = new WinBuild(26100, 0);
         var caps = new HardwareCaps(false, true);
-        bool Current(Setting s) => CatalogMembershipFilter.IsAvailable(s, build, caps);
-        bool Relaxed(Setting s) => CatalogMembershipFilter.IsAvailableIgnoringOsBuild(s, caps);
+        bool Current(Setting s) => CatalogMembershipFilter.IsAvailable(s, build, caps) && !s.IsAnswerFileOnly;
+        bool Relaxed(Setting s) => CatalogMembershipFilter.IsAvailableIgnoringOsBuild(s, caps) && !s.IsAnswerFileOnly;
 
         var currentActual = reg.GetAll().SelectMany(kv => kv.Value).Select(s => s.Id).OrderBy(x => x).ToList();
         var relaxedActual = reg.GetAll(new CatalogScope(true, false)).SelectMany(kv => kv.Value).Select(s => s.Id).OrderBy(x => x).ToList();

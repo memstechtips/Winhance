@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
@@ -11,6 +10,7 @@ using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
 using Winhance.TestSupport;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Infrastructure.Tests.Services;
 
 public class SettingApplicationServiceTests
@@ -90,7 +90,7 @@ public class SettingApplicationServiceTests
             _mockChangeHistory.Object, _mockLocalization.Object,
             _mockHardware.Object, _mockStateWriter.Object, _mockAsyncEffects.Object, _mockVersion.Object,
             _mockCatalogDetection.Object, _mockSettingStateProvider.Object, _mockPowerQuery.Object,
-            _mockConfigImportState.Object);
+            _mockConfigImportState.Object, OptionProviderFixtures.Registry());
     }
 
     // The catalog Setting the funnel resolves for an id. REAL catalog Setting for a paired id (so
@@ -102,11 +102,11 @@ public class SettingApplicationServiceTests
         SettingCatalog.Find(id) ?? new Setting
         {
             Id = id,
-            Display = new Display { Name = $"Setting {id}", Description = $"Description for {id}" },
+            Display = new Display { Name = TestKeys.Of($"Setting {id}"), Description = TestKeys.Of($"Description for {id}")},
             States = new[]
             {
-                new SettingState { Label = "Enabled" },
-                new SettingState { Label = "Disabled" },
+                new SettingState { Label = LocKey.Common.Enabled },
+                new SettingState { Label = LocKey.Common.Disabled },
             },
         };
 
@@ -128,8 +128,8 @@ public class SettingApplicationServiceTests
     // engine to a plan the (defaulted-to-success) writer completes, so the funnel returns Success. GetById returns
     // this real catalog toggle Setting (Control == Toggle) for the change-history receipt.
     private static string RealPairedToggleId() => SettingCatalog.All.First(s =>
-        s.Detector is null && s.OptionSource is null && s.Numeric is null
-        && s.States.Any(st => st.Label == "Enabled") && s.States.Any(st => st.Label == "Disabled")
+        s.Detector is null && s.Options is null && s.Numeric is null
+        && s.States.Any(st => st.Label == LocKey.Common.Enabled) && s.States.Any(st => st.Label == LocKey.Common.Disabled)
         && s.Targets.OfType<RegTarget>().Any()).Id;
 
     [Fact]
@@ -139,8 +139,8 @@ public class SettingApplicationServiceTests
         // and a Disabled state) applies through the ApplyExecutor + IStateWriter. Unpaired/fake ids (the null-plan
         // tests below) resolve to null -> a logged OperationResult.Failed.
         var paired = SettingCatalog.All.First(s =>
-            s.Detector is null && s.OptionSource is null && s.Numeric is null
-            && s.States.Any(st => st.Label == "Enabled") && s.States.Any(st => st.Label == "Disabled")
+            s.Detector is null && s.Options is null && s.Numeric is null
+            && s.States.Any(st => st.Label == LocKey.Common.Enabled) && s.States.Any(st => st.Label == LocKey.Common.Disabled)
             && s.Targets.OfType<RegTarget>().Any());
         SetupSettingInRegistry(paired.Id);
 
@@ -184,11 +184,11 @@ public class SettingApplicationServiceTests
         // RelationshipResolver.ResolveForward, recursively apply the prerequisite when it is not already
         // met. Asserted by the prerequisite's SettingAppliedEvent being published (proof the follow-on apply ran).
         var owner = SettingCatalog.All.FirstOrDefault(s =>
-            s.Detector is null && s.OptionSource is null
-            && s.States.Any(st => st.Label == "Disabled")
-            && s.States.Any(st => st.Label == "Enabled" && st.Links.Any(l => l.Kind == LinkKind.Requires)));
+            s.Detector is null && s.Options is null
+            && s.States.Any(st => st.Label == LocKey.Common.Disabled)
+            && s.States.Any(st => st.Label == LocKey.Common.Enabled && st.Links.Any(l => l.Kind == LinkKind.Requires)));
         Assert.NotNull(owner);
-        var req = owner!.States.First(st => st.Label == "Enabled").Links.First(l => l.Kind == LinkKind.Requires);
+        var req = owner!.States.First(st => st.Label == LocKey.Common.Enabled).Links.First(l => l.Kind == LinkKind.Requires);
         Assert.Contains(SettingCatalog.All, s => s.Id == req.OtherId);
 
         SetupSettingInRegistry(owner.Id);
@@ -200,7 +200,7 @@ public class SettingApplicationServiceTests
             {
                 [req.OtherId] = new CatalogDetectionResult
                 {
-                    StateLabel = req.RequiredState == "Enabled" ? "Disabled" : "Enabled",
+                    StateLabel = (req.RequiredState == LocKey.Common.Enabled ? LocKey.Common.Disabled : LocKey.Common.Enabled).Value,
                     Detected = true,
                 },
             });
@@ -279,7 +279,7 @@ public class SettingApplicationServiceTests
         var actionId = SettingCatalog.All.First(s => s.Control == ControlKind.Action).Id;
         SetupSettingInRegistry(actionId);
 
-        var recommended = new Setting { Id = "rec1", Display = new Display { Name = "Rec1", Description = "d" } };
+        var recommended = new Setting { Id = "rec1", Display = new Display { Name = TestKeys.Of("Rec1"), Description = TestKeys.Of("d") } };
         _mockRecommended
             .Setup(r => r.ApplyRecommendedForFeatureAsync(actionId, It.IsAny<ISettingApplicationService>()))
             .ReturnsAsync(new List<Setting> { recommended });
@@ -355,12 +355,8 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_CheckboxResultOnSpecialHandledSetting_DoesNotApplyRecommended()
     {
-        // The load-bearing guard. theme-mode-windows' checkbox means "also change the wallpaper" and its
-        // handler owns that meaning, so the generic rule must never fire for a setting that HAS a handler -
-        // otherwise a wallpaper opt-in would silently apply a whole feature's recommended settings. The
-        // handler here DECLINES (returns false) so the funnel falls THROUGH to the generic apply, which is
-        // the path where the guard is the only thing standing between the checkbox and the applier; a handler
-        // that accepts returns long before this point.
+        // The handler DECLINES so the funnel falls through to the generic apply, where this guard is the only thing
+        // between a special-handled checkbox and the recommended applier.
         var actionId = SettingCatalog.All.First(s => s.Control == ControlKind.Action).Id;
         SetupSettingInRegistry(actionId);
 
@@ -459,8 +455,8 @@ public class SettingApplicationServiceTests
                 [id] = new SettingStateResult { Success = true, IsEnabled = false },
             });
 
-        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_0")).Returns("Disabled");
-        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_1")).Returns("Enabled");
+        _mockLocalization.Setup(l => l.GetString("Common_Disabled")).Returns("Disabled");
+        _mockLocalization.Setup(l => l.GetString("Common_Enabled")).Returns("Enabled");
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
@@ -487,8 +483,8 @@ public class SettingApplicationServiceTests
                 [id] = new SettingStateResult { Success = true, IsEnabled = true },
             });
 
-        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_0")).Returns("Disabled");
-        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_1")).Returns("Enabled");
+        _mockLocalization.Setup(l => l.GetString("Common_Disabled")).Returns("Disabled");
+        _mockLocalization.Setup(l => l.GetString("Common_Enabled")).Returns("Enabled");
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
@@ -515,8 +511,8 @@ public class SettingApplicationServiceTests
                 [id] = new SettingStateResult { Success = true, IsEnabled = false },
             });
 
-        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_0")).Returns("Disabled");
-        _mockLocalization.Setup(l => l.GetString("Template_EnabledDisabled_Option_1")).Returns("Enabled");
+        _mockLocalization.Setup(l => l.GetString("Common_Disabled")).Returns("Disabled");
+        _mockLocalization.Setup(l => l.GetString("Common_Enabled")).Returns("Enabled");
 
         _mockChangeHistory
             .Setup(h => h.LogSettingChange(
@@ -632,24 +628,24 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_WinhancePlanDoesNotExistYet_StampsRecommendedSettings()
     {
-        SetupSettingInRegistry(SettingIds.PowerPlanSelection);
+        SetupSettingInRegistry("power-plan-selection");
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = SettingIds.PowerPlanSelection,
+            SettingId = "power-plan-selection",
             Enable = true,
             SkipValuePrerequisites = true,
             Value = PowerPlanCatalog.WinhancePowerPlanGuid,
         });
 
         _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
-            SettingIds.PowerPlanSelection, It.IsAny<ISettingApplicationService>()), Times.Once);
+            "power-plan-selection", It.IsAny<ISettingApplicationService>()), Times.Once);
     }
 
     [Fact]
     public async Task ApplySettingAsync_WinhancePlanAlreadyExists_LeavesItsSettingsAlone()
     {
-        SetupSettingInRegistry(SettingIds.PowerPlanSelection);
+        SetupSettingInRegistry("power-plan-selection");
         _mockPowerQuery
             .Setup(p => p.GetAvailablePowerPlansAsync())
             .ReturnsAsync(new List<PowerPlan>
@@ -659,7 +655,7 @@ public class SettingApplicationServiceTests
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = SettingIds.PowerPlanSelection,
+            SettingId = "power-plan-selection",
             Enable = true,
             SkipValuePrerequisites = true,
             Value = PowerPlanCatalog.WinhancePowerPlanGuid,
@@ -674,18 +670,26 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_PowerPlanShape_RendersJustTheName()
     {
-        // The power-plan after-value is a dict with Guid + Name keys; the receipt shows the Name.
-        SetupSettingInRegistry(SettingIds.PowerPlanSelection);
+        const string balanced = "381b4222-f694-41f0-9685-ff5bb260df2e";
+        const string winhance = "11111111-2222-3333-4444-555555555555";
+        SetupSettingInRegistry("power-plan-selection");
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = SettingIds.PowerPlanSelection,
+            SettingId = "power-plan-selection",
             Enable = true,
             SkipValuePrerequisites = true,
-            Value = new Dictionary<string, object?>
+            Value = winhance,
+            BeforeState = new SettingStateResult
             {
-                ["Guid"] = "11111111-2222-3333-4444-555555555555",
-                ["Name"] = "Winhance Power Plan",
+                Success = true,
+                CurrentValue = 0,
+                DynamicSelection = balanced,
+                DynamicOptions =
+                [
+                    new DynamicOption("Balanced", balanced),
+                    new DynamicOption("Winhance Power Plan", winhance),
+                ],
             },
         });
 
@@ -1022,37 +1026,36 @@ public class SettingApplicationServiceTests
     [Fact]
     public async Task ApplySettingAsync_WinhancePowerPlanApplied_ReappliesRecommendedPowerSettings()
     {
-        // power-plan-selection is paired in the live catalog (OptionSource), so the engine builds a
-        // PowerPlanActivateOp from the GUID value; make the writer's activate succeed so operationResult.Success.
-        SetupSettingInRegistry(SettingIds.PowerPlanSelection);
-        _mockStateWriter.Setup(w => w.ActivatePowerPlan(It.IsAny<string>())).Returns(true);
+        // The plan is an EffectOp(PowerPlanEffect): the writer's effect has to succeed for the apply to succeed.
+        SetupSettingInRegistry("power-plan-selection");
+        _mockStateWriter.Setup(w => w.RunEffect(It.IsAny<Effect>())).Returns(true);
         _mockRecommended
             .Setup(r => r.ApplyRecommendedSettingsForFeatureAsync(It.IsAny<string>(), It.IsAny<ISettingApplicationService>()))
             .Returns(Task.CompletedTask);
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = SettingIds.PowerPlanSelection,
+            SettingId = "power-plan-selection",
             Enable = true,
             Value = PowerPlanCatalog.WinhancePowerPlanGuid,
         });
 
         _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
-            SettingIds.PowerPlanSelection, _service), Times.Once);
+            "power-plan-selection", _service), Times.Once);
     }
 
     [Fact]
     public async Task ApplySettingAsync_WinhancePowerPlanDuringConfigImportWithPowerValues_SkipsRecommendedReapply()
     {
         // An active config import that supplies its own individual power values is the source of truth -> skip.
-        SetupSettingInRegistry(SettingIds.PowerPlanSelection);
-        _mockStateWriter.Setup(w => w.ActivatePowerPlan(It.IsAny<string>())).Returns(true);
+        SetupSettingInRegistry("power-plan-selection");
+        _mockStateWriter.Setup(w => w.RunEffect(It.IsAny<Effect>())).Returns(true);
         _mockConfigImportState.Setup(c => c.IsActive).Returns(true);
         _mockConfigImportState.Setup(c => c.ImportSuppliesPowerValues).Returns(true);
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = SettingIds.PowerPlanSelection,
+            SettingId = "power-plan-selection",
             Enable = true,
             Value = PowerPlanCatalog.WinhancePowerPlanGuid,
         });
@@ -1065,12 +1068,12 @@ public class SettingApplicationServiceTests
     public async Task ApplySettingAsync_NonWinhancePowerPlanApplied_DoesNotReapplyRecommended()
     {
         // Switching to Balanced (not the Winhance plan) must NOT trigger the recommended re-apply.
-        SetupSettingInRegistry(SettingIds.PowerPlanSelection);
-        _mockStateWriter.Setup(w => w.ActivatePowerPlan(It.IsAny<string>())).Returns(true);
+        SetupSettingInRegistry("power-plan-selection");
+        _mockStateWriter.Setup(w => w.RunEffect(It.IsAny<Effect>())).Returns(true);
 
         await _service.ApplySettingAsync(new ApplySettingRequest
         {
-            SettingId = SettingIds.PowerPlanSelection,
+            SettingId = "power-plan-selection",
             Enable = true,
             Value = "381b4222-f694-41f0-9685-ff5bb260df2e",
         });
@@ -1079,7 +1082,7 @@ public class SettingApplicationServiceTests
             It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
     }
 
-    // Relationship detection is SCOPED. Detecting all 414 catalog settings after every interactive apply
+    // Relationship detection is SCOPED. Detecting all 419 catalog settings after every interactive apply
     // is correct but costs ~1-2s a click, and puts power plans and system restore in the log while the
     // user is on the Taskbar page.
 
@@ -1090,9 +1093,9 @@ public class SettingApplicationServiceTests
         // state of any other setting Controls it, and no state of any other setting Links to it. Every
         // resolver is therefore empty for ANY machine reading, so the detection was pure cost.
         var unrelated = SettingCatalog.All.FirstOrDefault(s =>
-            s.Detector is null && s.OptionSource is null && s.Numeric is null
+            s.Detector is null && s.Options is null && s.Numeric is null
             && s.Targets.OfType<RegTarget>().Any()
-            && s.States.Any(st => st.Label == "Enabled") && s.States.Any(st => st.Label == "Disabled")
+            && s.States.Any(st => st.Label == LocKey.Common.Enabled) && s.States.Any(st => st.Label == LocKey.Common.Disabled)
             && s.States.All(st => st.Links.Count == 0 && (st.Controls is null || st.Controls.Count == 0))
             && !SettingCatalog.All.Any(o => o.States.Any(st =>
                 st.Controls != null && st.Controls.ContainsKey(s.Id)))
@@ -1113,11 +1116,11 @@ public class SettingApplicationServiceTests
         // The other half of the same rule: narrowing the batch must not narrow BEHAVIOUR. A setting whose
         // target state Requires another must still read that other setting's live state and act on it.
         var owner = SettingCatalog.All.FirstOrDefault(s =>
-            s.Detector is null && s.OptionSource is null
-            && s.States.Any(st => st.Label == "Disabled")
-            && s.States.Any(st => st.Label == "Enabled" && st.Links.Any(l => l.Kind == LinkKind.Requires)));
+            s.Detector is null && s.Options is null
+            && s.States.Any(st => st.Label == LocKey.Common.Disabled)
+            && s.States.Any(st => st.Label == LocKey.Common.Enabled && st.Links.Any(l => l.Kind == LinkKind.Requires)));
         Assert.NotNull(owner);
-        var req = owner!.States.First(st => st.Label == "Enabled").Links.First(l => l.Kind == LinkKind.Requires);
+        var req = owner!.States.First(st => st.Label == LocKey.Common.Enabled).Links.First(l => l.Kind == LinkKind.Requires);
         Assert.Contains(SettingCatalog.All, s => s.Id == req.OtherId);
 
         SetupSettingInRegistry(owner.Id);
@@ -1131,7 +1134,7 @@ public class SettingApplicationServiceTests
             {
                 [req.OtherId] = new CatalogDetectionResult
                 {
-                    StateLabel = req.RequiredState == "Enabled" ? "Disabled" : "Enabled",
+                    StateLabel = (req.RequiredState == LocKey.Common.Enabled ? LocKey.Common.Disabled : LocKey.Common.Enabled).Value,
                     Detected = true,
                 },
             });
@@ -1143,5 +1146,176 @@ public class SettingApplicationServiceTests
         scope!.Count.Should().BeLessThan(SettingCatalog.All.Count,
             "one relationship must no longer cost a whole-catalog detection");
         _mockEventBus.Verify(e => e.Publish(It.Is<SettingAppliedEvent>(x => x.SettingId == req.OtherId)), Times.Once);
+    }
+
+    // A fake provider, because a shipped one writes whatever the machine's culture data yields.
+    [Fact]
+    public void ApplyRequestResolver_KeyedSelection_WritesTheKeyOverTheTarget()
+    {
+        var catalog = new[] { FakeOptionProvider.SettingFor() };
+
+        var plan = ApplyRequestResolver.Resolve(
+            "fake-keyed", enable: true, value: "beta", resetToDefault: false, catalog,
+            options: new FakeOptionProviderRegistry());
+        var outcome = ApplyExecutor.Execute(ApplyPlan.From(plan!), _mockStateWriter.Object);
+
+        outcome.Total.Should().Be(1);
+        outcome.AllSucceeded.Should().BeTrue();
+        _mockStateWriter.Verify(
+            w => w.WriteRegistry(
+                It.Is<RegTarget>(t => t.ValueName == FakeOptionProvider.ValueName),
+                FakeOptionProvider.ValuePath,
+                "beta"),
+            Times.Once);
+    }
+
+    // Called directly: the before-state provider is mocked empty, so ApplySettingAsync has no before side to render.
+    [Fact]
+    public void A_keyed_receipt_names_the_option_on_both_sides()
+    {
+        var setting = FakeOptionProvider.SettingFor();
+
+        _service.FormatBeforeDisplay(setting, FakeOptionProvider.StateOn("alpha"), hasBattery: true)
+            .Should().Be("Alpha zone");
+        _service.FormatStateDisplay(setting, enable: true, "beta", hasBattery: true, FakeOptionProvider.Offered)
+            .Should().Be("Beta zone");
+    }
+
+    // If the shipped setting stopped deriving as KeyedSelection, the Toggle arm would render "Enabled" for a time zone.
+    [Fact]
+    public void A_shipped_keyed_receipt_names_the_time_zone()
+    {
+        var setting = SettingCatalog.Find("region-time-zone")!;
+
+        _service.FormatStateDisplay(setting, enable: true, "South Africa Standard Time", hasBattery: true)
+            .Should().Be("South Africa Standard Time");
+    }
+
+    // The one reachable null plan: a config written on a PC that has this locale, applied on one that does not.
+    [Fact]
+    public async Task A_keyed_option_this_PC_cannot_write_names_the_option_it_dropped()
+    {
+        _mockLocalization
+            .Setup(l => l.GetString("Setting_KeyedOption_NotApplied", It.IsAny<object[]>()))
+            .Returns((string _, object[] args) => $"{args[0]} is not available on this PC, so it was not applied.");
+        SetupSettingInRegistry("region-system-locale");
+
+        var result = await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "region-system-locale",
+            Enable = true,
+            Value = "zz-ZZ",
+        });
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Be("zz-ZZ is not available on this PC, so it was not applied.");
+    }
+
+    [Fact]
+    public async Task A_refused_keyed_option_is_named_to_the_import_summary()
+    {
+        _mockLocalization
+            .Setup(l => l.GetString("Setting_KeyedOption_NotApplied", It.IsAny<object[]>()))
+            .Returns((string _, object[] args) => $"{args[0]} is not available on this PC, so it was not applied.");
+        _mockConfigImportState.SetupGet(s => s.IsActive).Returns(true);
+        var setting = SettingCatalog.Find("region-system-locale")!;
+        SetupSettingInRegistry(setting.Id);
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = setting.Id,
+            Enable = true,
+            Value = "zz-ZZ",
+        });
+
+        var expected = $"{setting.Display.Name.Value}: zz-ZZ is not available on this PC, so it was not applied.";
+        _mockConfigImportState.Verify(s => s.ReportNotApplied(expected), Times.Once);
+    }
+
+    [Fact]
+    public async Task A_refused_keyed_option_outside_an_import_is_not_queued()
+    {
+        SetupSettingInRegistry("region-system-locale");
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "region-system-locale",
+            Enable = true,
+            Value = "zz-ZZ",
+        });
+
+        _mockConfigImportState.Verify(s => s.ReportNotApplied(It.IsAny<string>()), Times.Never);
+    }
+
+    // The key is whatever someone else's config file holds, and the summary is plain text: a line break in it
+    // would read as another setting that was not applied.
+    [Fact]
+    public async Task A_refused_key_reaches_the_summary_flattened_and_bounded()
+    {
+        _mockLocalization
+            .Setup(l => l.GetString("Setting_KeyedOption_NotApplied", It.IsAny<object[]>()))
+            .Returns((string _, object[] args) => $"{args[0]}");
+        _mockConfigImportState.SetupGet(s => s.IsActive).Returns(true);
+        string reported = string.Empty;
+        _mockConfigImportState
+            .Setup(s => s.ReportNotApplied(It.IsAny<string>()))
+            .Callback((string message) => reported = message);
+        var setting = SettingCatalog.Find("region-system-locale")!;
+        SetupSettingInRegistry(setting.Id);
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = setting.Id,
+            Enable = true,
+            Value = "zz-ZZ\r\nEverything else applied fine." + new string('z', 200),
+        });
+
+        var prefix = $"{setting.Display.Name.Value}: ";
+        reported.Should().StartWith(prefix + "zz-ZZ Everything else applied fine.");
+        reported.Should().NotContain("\r").And.NotContain("\n");
+        reported[prefix.Length..].Length.Should().Be(120);
+    }
+
+    private static readonly DynamicOption[] KeyboardLayouts =
+    [
+        new DynamicOption("US", "00000409"),
+        new DynamicOption("United Kingdom", "00000809"),
+    ];
+
+    // A KLID is opaque: without the list the machine offered, the receipt would show 00000409 and 00000809.
+    [Fact]
+    public async Task A_keyed_receipt_reads_the_labels_the_machine_offered()
+    {
+        SetupSettingInRegistry("region-keyboard-layout");
+        _mockSettingStateProvider
+            .Setup(p => p.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["region-keyboard-layout"] = new SettingStateResult
+                {
+                    Success = true,
+                    DynamicOptions = KeyboardLayouts,
+                    DynamicSelection = "00000409",
+                },
+            });
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "region-keyboard-layout",
+            Enable = true,
+            Value = "00000809",
+        });
+
+        _mockChangeHistory.Verify(h => h.LogSettingChange(
+            It.IsAny<string>(), It.IsAny<string?>(), "US", "United Kingdom"), Times.Once);
+    }
+
+    [Fact]
+    public void A_keyed_option_the_machine_does_not_offer_renders_as_its_key()
+    {
+        var setting = SettingCatalog.Find("region-keyboard-layout")!;
+
+        _service.FormatStateDisplay(setting, enable: true, "00000407", hasBattery: true, KeyboardLayouts)
+            .Should().Be("00000407");
     }
 }

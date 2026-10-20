@@ -31,7 +31,8 @@ public class CatalogProbeManifestGeneratorTests
     [Fact]
     public void Generate_probe_script_and_catalog_manifest()
     {
-        var settings = SettingCatalog.All;
+        // A typed box (the slideshow album) holds what this PC has, not a Windows default to compare a probe against.
+        var settings = SettingCatalog.All.Where(s => !s.IsAnswerFileOnly && s.Control != ControlKind.TextBox).ToList();
         Assert.True(settings.Count > 300, $"only {settings.Count} settings enumerated - catalog composition bug.");
 
         var featureBySettingId = SettingCatalog.ByFeature
@@ -169,8 +170,8 @@ public class CatalogProbeManifestGeneratorTests
         if (setting.Detector is null) w.WriteNull("detector");
         else w.WriteString("detector", setting.Detector.GetType().Name);
 
-        if (setting.OptionSource is null) w.WriteNull("optionSource");
-        else w.WriteString("optionSource", setting.OptionSource.GetType().Name);
+        if (setting.Options is null) w.WriteNull("optionSource");
+        else w.WriteString("optionSource", setting.Options.Source.ToString());
 
         w.WriteStartObject("availability");
         WriteBuildRanges(w, "builds", setting.Availability.Builds);
@@ -292,7 +293,7 @@ public class CatalogProbeManifestGeneratorTests
     private static void WriteState(Utf8JsonWriter w, SettingState state)
     {
         w.WriteStartObject();
-        w.WriteString("label", state.Label);
+        w.WriteString("label", state.Label.Value);
         w.WriteBoolean("isFallback", state.IsFallback);
 
         w.WriteStartArray("roles");

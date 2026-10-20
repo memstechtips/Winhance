@@ -229,6 +229,55 @@ public class WinGetPackageInstallerTests
     }
 
     [Fact]
+    public void IsAppInstaller_MatchesItsWinGetAndStoreIds()
+    {
+        WinGetPackageInstaller.IsAppInstaller("microsoft.appinstaller").Should().BeTrue();
+        WinGetPackageInstaller.IsAppInstaller("9NBLGGH4NNS1").Should().BeTrue();
+        WinGetPackageInstaller.IsAppInstaller("Git.Git").Should().BeFalse();
+    }
+
+    [Fact]
+    public void UpgradeArguments_MatchTheIdExactlyAndNameTheSource()
+    {
+        WinGetPackageInstaller.UpgradeArguments("Git.Git", "winget")
+            .Should().StartWith("upgrade --id Git.Git --exact ").And.EndWith(" --source winget");
+    }
+
+    [Fact]
+    public void InstallArguments_ForAllUsers_EndsWithMachineScope()
+    {
+        WinGetPackageInstaller.InstallArguments("VideoLAN.VLC", "winget", null, forAllUsers: true)
+            .Should().EndWith(" --scope machine");
+    }
+
+    [Fact]
+    public void InstallArguments_DefaultScope_NamesNoScope()
+    {
+        WinGetPackageInstaller.InstallArguments("VideoLAN.VLC", "winget", null, forAllUsers: false)
+            .Should().NotContain("--scope");
+    }
+
+    [Fact]
+    public void DownloadArguments_NamesTheArchitectureFolderAndSource()
+    {
+        var arguments = WinGetPackageInstaller.DownloadArguments(
+            "VideoLAN.VLC", "arm64", forAllUsers: false, @"D:\Media\sources\$OEM$\Apps\vlc\arm64");
+
+        arguments.Should().StartWith("download --id VideoLAN.VLC ")
+            .And.Contain("--architecture arm64")
+            .And.Contain("--download-directory \"D:\\Media\\sources\\$OEM$\\Apps\\vlc\\arm64\"")
+            .And.Contain("--source winget")
+            .And.NotContain("--scope");
+    }
+
+    [Fact]
+    public void DownloadArguments_ForAllUsers_AsksForMachineScope()
+    {
+        WinGetPackageInstaller.DownloadArguments("VideoLAN.VLC", "x64", forAllUsers: true, @"D:\Apps\vlc\x64")
+            .Should().Contain("--scope machine");
+    }
+
+    [Fact]
     public void PackageInstallResult_Succeeded_HasCorrectProperties()
     {
         var result = PackageInstallResult.Succeeded();

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.ViewModels;
+using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Interfaces;
 
@@ -45,7 +46,8 @@ public interface ISectionPageViewModel : INotifyPropertyChanged
 
     void OnNavigatedFrom();
 
-    string GetSectionDisplayName(string sectionKey);
-
     string? FindSectionForSetting(string settingId);
+
+    // False for a card the page's Quick Actions must leave as it is.
+    bool TakesQuickActions(SettingItemViewModel setting);
 }

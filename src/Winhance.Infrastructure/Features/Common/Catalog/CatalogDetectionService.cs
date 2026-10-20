@@ -1,19 +1,29 @@
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Customize.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
 // Each setting's detection is isolated in a try/catch so one failure cannot abort the batch.
 internal sealed class CatalogDetectionService : ICatalogDetectionService
 {
+
     private readonly ISystemDetectionContextFactory _contextFactory;
     private readonly ILogService _log;
+    private readonly IOptionProviderRegistry _options;
+    private readonly IWindowsThemeService _theme;
 
-    public CatalogDetectionService(ISystemDetectionContextFactory contextFactory, ILogService log)
+    public CatalogDetectionService(
+        ISystemDetectionContextFactory contextFactory,
+        ILogService log,
+        IOptionProviderRegistry options,
+        IWindowsThemeService theme)
     {
         _contextFactory = contextFactory;
         _log = log;
+        _options = options;
+        _theme = theme;
     }
 
     public async Task<Dictionary<string, CatalogDetectionResult>> DetectAsync(IReadOnlyCollection<Setting> settings)
@@ -27,21 +37,19 @@ internal sealed class CatalogDetectionService : ICatalogDetectionService
         {
             try
             {
-                if (setting.OptionSource is { } optionSource)
+                if (setting.Options is { } list)
                 {
-                    // Runtime-sourced options (e.g. the installed power plans): the source enumerates the live
-                    // options and reports the current selection (a Value such as the active scheme GUID) directly
-                    // from the pre-fetched context - no static states, no separate current-selection detector. The
-                    // StateLabel carries that Value so the UI resolves the chosen option by value (no index round-trip).
-                    var options = optionSource.EnumerateOptions(context);
-                    string? current = optionSource.CurrentSelection(context);
-                    string? currentName = optionSource.CurrentSelectionName(context);
+                    // For an option list the StateLabel carries the current option's key.
+                    var provider = _options.For(list.Source);
+                    var options = provider.Options(setting, context);
+                    string? current = provider.CurrentKey(setting, context);
+                    if (current is null)
+                        _log.Log(LogLevel.Info, $"'{setting.Id}' has no current selection: its option provider found none among {options.Count} option(s)");
                     results[setting.Id] = new CatalogDetectionResult
                     {
                         StateLabel = current,
                         Detected = current is not null,
                         Options = options,
-                        DynamicSelectionName = currentName,
                     };
                     continue;
                 }
@@ -66,6 +74,9 @@ internal sealed class CatalogDetectionService : ICatalogDetectionService
                             LogLevel.Warning,
                             $"'{setting.Id}' has a malformed value: {detection.Detail}");
                     }
+
+                    if (detection.Outcome == SettingDetectionOutcome.Custom)
+                        _log.Log(LogLevel.Info, $"'{setting.Id}' matched no state: {DescribeReadings(readings)}");
 
                     results[setting.Id] = new CatalogDetectionResult
                     {
@@ -100,10 +111,11 @@ internal sealed class CatalogDetectionService : ICatalogDetectionService
         return results;
     }
 
-    private static IReadOnlyDictionary<string, object?>? BuildReadings(Setting setting, IDetectionContext context)
+    private IReadOnlyDictionary<string, object?>? BuildReadings(Setting setting, IDetectionContext context)
     {
         var regTargets = setting.Targets.OfType<RegTarget>().ToList();
-        if (regTargets.Count == 0)
+        var slideshowTargets = setting.Targets.OfType<DesktopSlideshowTarget>().ToList();
+        if (regTargets.Count == 0 && slideshowTargets.Count == 0)
             return null;
 
         var readings = new Dictionary<string, object?>();
@@ -136,8 +148,17 @@ internal sealed class CatalogDetectionService : ICatalogDetectionService
             readings[group.Key] = finalValue;
         }
 
+        // Filed under the target's own Key: a slideshow target has no value name.
+        foreach (var target in slideshowTargets)
+            readings[target.Key] = _theme.CurrentAlbum(setting, context);
+
         return readings;
     }
+
+    private static string DescribeReadings(IReadOnlyDictionary<string, object?>? readings) =>
+        readings is null || readings.Count == 0
+            ? "no readings"
+            : string.Join(", ", readings.Select(kv => $"{kv.Key}={kv.Value ?? "<absent>"}"));
 
     // CompositeStringKey / per-NIC are intentionally NOT reduced - the raw value is stored.
     private static object? Reduce(RegTarget target, object? raw)

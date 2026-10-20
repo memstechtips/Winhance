@@ -1,11 +1,15 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
+using Winhance.UI.Helpers;
 using Winhance.UI.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
@@ -23,6 +27,7 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
     private Dictionary<string, NavButton>? _navButtons;
     private MoreMenuViewModel? _moreMenuViewModel;
     private ILogService? _logService;
+    private ILocalizationService? _localizationService;
 
     public static readonly DependencyProperty IsPaneOpenProperty =
         DependencyProperty.Register(
@@ -107,7 +112,8 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
             { "SoftwareApps", SoftwareAppsButton },
             { "Optimize", OptimizeButton },
             { "Customize", CustomizeButton },
-            { "AdvancedTools", AdvancedToolsButton },
+            { "Autounattend", AutounattendButton },
+            { "WimUtil", WimUtilButton },
             { "Settings", SettingsButton },
             { "More", MoreButton }
         };
@@ -241,18 +247,38 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
 
     public void SetButtonLocked(string tag, bool isLocked, string? tooltip = null)
     {
-        if (_navButtons != null && _navButtons.TryGetValue(tag, out var button))
+        if (_navButtons == null || !_navButtons.TryGetValue(tag, out var button))
         {
-            button.IsLocked = isLocked;
-            if (isLocked && !string.IsNullOrEmpty(tooltip))
-            {
-                ToolTipService.SetToolTip(button, tooltip);
-            }
-            else if (!isLocked)
-            {
-                ToolTipService.SetToolTip(button, null);
-            }
+            return;
         }
+
+        var wasLocked = button.IsLocked;
+        button.IsLocked = isLocked;
+
+        var helpText = NavLockPolicy.HelpTextFor(isLocked, tooltip);
+        ToolTipService.SetToolTip(button, helpText.Length > 0 ? helpText : null);
+        AutomationProperties.SetHelpText(button, helpText);
+
+        if (NavLockPolicy.ShouldAnnounceUnlock(wasLocked, isLocked))
+        {
+            AnnounceUnlocked(button);
+        }
+    }
+
+    private void AnnounceUnlocked(NavButton button)
+    {
+        _localizationService ??= App.Services.GetService<ILocalizationService>();
+        var format = _localizationService.GetStringOrDefault(
+            "Nav_Unlocked_Announcement", "{0} is now available");
+
+        var peer = FrameworkElementAutomationPeer.FromElement(button)
+                   ?? FrameworkElementAutomationPeer.CreatePeerForElement(button);
+
+        peer?.RaiseNotificationEvent(
+            AutomationNotificationKind.ActionCompleted,
+            AutomationNotificationProcessing.ImportantMostRecent,
+            NavLockPolicy.UnlockAnnouncement(format, button.Text),
+            "NavButtonUnlocked");
     }
 
     public NavButton? GetButton(string tag)

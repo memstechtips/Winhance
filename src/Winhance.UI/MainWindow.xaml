@@ -10,13 +10,14 @@
 
     <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded" KeyboardAcceleratorPlacementMode="Hidden">
         <Grid.KeyboardAccelerators>
-            <!-- Ctrl+1-5: Navigate to sections, Ctrl+6: More menu -->
+            <!-- Ctrl+1-6: Navigate to sections, Ctrl+7: More menu -->
             <KeyboardAccelerator Key="Number1" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
             <KeyboardAccelerator Key="Number2" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
             <KeyboardAccelerator Key="Number3" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
             <KeyboardAccelerator Key="Number4" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
             <KeyboardAccelerator Key="Number5" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
-            <KeyboardAccelerator Key="Number6" Modifiers="Control" Invoked="MoreMenuAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number6" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number7" Modifiers="Control" Invoked="MoreMenuAccelerator_Invoked"/>
             <!-- Ctrl +/-/0: UI zoom (numpad keys; main-row +/- added in code-behind) -->
             <KeyboardAccelerator Key="Add" Modifiers="Control" Invoked="ZoomInAccelerator_Invoked"/>
             <KeyboardAccelerator Key="Subtract" Modifiers="Control" Invoked="ZoomOutAccelerator_Invoked"/>
@@ -290,6 +291,7 @@
             <TextBlock Grid.Column="3"
                        x:Name="ReviewModeStatusText"
                        Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeStatusText, Mode=OneWay}"
+                       ToolTipService.ToolTip="{x:Bind ViewModel.ReviewModeBar.ReviewModeSetAsideDetail, Mode=OneWay}"
                        FontSize="12"
                        Foreground="{ThemeResource TextOnAccentFillColorSecondaryBrush}"
                        VerticalAlignment="Center"

@@ -3,6 +3,7 @@ using System.Text;
 using Windows.Management.Deployment;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Infrastructure.Features.Autounattend.Helpers;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
@@ -117,81 +118,18 @@ internal class WinGetInstaller
 
             var arguments = "install Microsoft.AppInstaller --exact --silent --accept-source-agreements --accept-package-agreements --force --disable-interactivity --source winget";
 
-            var lastProgressReport = DateTime.MinValue;
+            var output = new WinGetOutputStream(
+                WinGetOperation.Bootstrap, string.Empty, _taskProgressService, _localization!, _logService);
 
             var result = await WinGetCliRunner.RunAsync(
                 arguments,
-                onOutputLine: line =>
-                {
-                    try
-                    {
-                        if (IsProgressBarLine(line))
-                            return;
-
-                        var displayLine = WinGetProgressParser.TranslateLine(line);
-
-                        if (!IsWinGetOutputNoise(line) && displayLine != null)
-                            _logService?.LogInformation(displayLine);
-
-                        var parsed = WinGetProgressParser.ParseLine(line);
-                        if (parsed != null)
-                        {
-                            var progressPercent = parsed.Phase switch
-                            {
-                                WinGetProgressParser.WinGetPhase.Found => 15,
-                                WinGetProgressParser.WinGetPhase.Downloading => 15 + (int)((parsed.Percent ?? 0) * 0.55),
-                                WinGetProgressParser.WinGetPhase.Installing => 70 + (int)((parsed.Percent ?? 0) * 0.25),
-                                WinGetProgressParser.WinGetPhase.Complete => 95,
-                                _ => 0
-                            };
-
-                            if (progressPercent > 0)
-                            {
-                                // Throttle progress updates to avoid flooding the UI (allow Complete through unconditionally)
-                                var now = DateTime.UtcNow;
-                                if (parsed.Phase == WinGetProgressParser.WinGetPhase.Complete
-                                    || (now - lastProgressReport).TotalMilliseconds >= 250)
-                                {
-                                    lastProgressReport = now;
-                                    _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-                                    {
-                                        Progress = progressPercent,
-                                        StatusText = GetString("Progress_WinGet_Installing"),
-                                        TerminalOutput = parsed.Percent.HasValue && parsed.Phase != WinGetProgressParser.WinGetPhase.Complete
-                                            ? null : (displayLine ?? line),
-                                    });
-                                }
-                            }
-                        }
-                        else if (displayLine != null && !IsWinGetOutputNoise(line))
-                        {
-                            // Non-progress meaningful lines bypass throttle (infrequent, contain important info)
-                            _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-                            {
-                                TerminalOutput = displayLine
-                            });
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
-                    }
-                },
-                onErrorLine: line =>
-                {
-                    _logService?.LogWarning(line);
-                    // Surface stderr in the terminal too — winget's actual error text
-                    // is useless to users (and to bug reports) if it only hits the log file.
-                    _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
-                    {
-                        TerminalOutput = line
-                    });
-                },
+                onOutputLine: output.HandleOutputLine,
+                onErrorLine: output.HandleErrorLine,
                 cancellationToken: cancellationToken,
                 timeoutMs: WinGetCliRunner.InstallTimeoutMs,
                 idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
                 exePathOverride: bundledPath,
-                onProgressLine: line => WinGetProgressParser.Forward(line, _taskProgressService, _logService)).ConfigureAwait(false);
+                onProgressLine: output.ForwardProgressLine).ConfigureAwait(false);
 
             if (WinGetExitCodes.IsSuccess(result.ExitCode))
             {
@@ -221,34 +159,6 @@ internal class WinGetInstaller
             _logService?.LogWarning($"Option 1 (bundled winget) failed: {ex.Message}");
             return (false, ex.Message);
         }
-    }
-
-    // These arrive as permanent output when ConPTY re-emits a \r\n-terminated progress bar, but are already handled by onProgressLine.
-    private static bool IsProgressBarLine(string line)
-    {
-        foreach (char c in line)
-        {
-            if (c >= '\u2588' && c <= '\u258F') return true;
-            if (c == '\u2591') return true;
-        }
-        return false;
-    }
-
-    private static bool IsWinGetOutputNoise(string? line)
-    {
-        if (string.IsNullOrWhiteSpace(line))
-            return true;
-
-        var trimmed = line.Trim();
-
-        // Progress bar characters
-        if (trimmed.Contains('█') || trimmed.Contains('▒'))
-            return true;
-
-        if (trimmed.Length <= 2 && (trimmed == "-" || trimmed == "\\" || trimmed == "|" || trimmed == "/"))
-            return true;
-
-        return false;
     }
 
     private async Task<(bool Success, string Message)> TryProvisionExistingPackageAsync(
@@ -433,17 +343,17 @@ internal class WinGetInstaller
     {
         var script = new StringBuilder();
         script.AppendLine("$ErrorActionPreference = 'Stop'");
-        script.Append($"Add-AppxProvisionedPackage -Online -PackagePath '{packagePath.Replace("'", "''")}'");
+        script.Append($"Add-AppxProvisionedPackage -Online -PackagePath '{PowerShellScriptUtilities.EscapePowerShellString(packagePath)}'");
 
         if (dependencyPackages is { Length: > 0 })
         {
-            var deps = string.Join(",", dependencyPackages.Select(p => $"'{p.Replace("'", "''")}'"));
+            var deps = string.Join(",", dependencyPackages.Select(p => $"'{PowerShellScriptUtilities.EscapePowerShellString(p)}'"));
             script.Append($" -DependencyPackagePath {deps}");
         }
 
         if (licensePaths is { Length: > 0 })
         {
-            script.Append($" -LicensePath '{licensePaths[0].Replace("'", "''")}'");
+            script.Append($" -LicensePath '{PowerShellScriptUtilities.EscapePowerShellString(licensePaths[0])}'");
         }
         else
         {

@@ -1,4 +1,5 @@
 using Windows.Win32.Foundation;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Optimize.Interfaces;
@@ -9,11 +10,36 @@ namespace Winhance.Infrastructure.Features.Optimize.Services;
 internal class PowerService(
     ILogService logService,
     IPowerSettingsQueryService powerSettingsQueryService,
-    IPowerSchemeOperations powerSchemeOperations) : IPowerService, ISpecialSettingHandler
+    IPowerSchemeOperations powerSchemeOperations) : IPowerService, ISpecialSettingHandler, IOptionProvider
 {
+    public IReadOnlyList<OptionSource> Sources { get; } = [OptionSource.PowerPlans];
+
+    public IReadOnlyList<DynamicOption> Options(Setting setting, IDetectionContext context) => context.InstalledPowerPlans();
+
+    public string? CurrentKey(Setting setting, IDetectionContext context) => context.ActivePowerPlanGuid();
+
+    public bool Accepts(Setting setting, string key) => Guid.TryParse(key, out _);
+
+    public string? ValueFor(OptionValue value, string key) =>
+        throw new ArgumentOutOfRangeException(nameof(value), value, "A power plan writes no registry value.");
+
+    public Effect? EffectFor(Setting setting, string key) =>
+        Guid.TryParse(key, out var guid) ? new PowerPlanEffect(guid.ToString("D")) : null;
+
+    public bool SameOption(Setting setting, DynamicOption saved, DynamicOption live) =>
+        SameScheme(saved.Value, live.Value)
+        || (PredefinedGuid(saved) is { } plan && plan == PredefinedGuid(live));
+
+    private static bool SameScheme(string key, string otherKey) =>
+        Guid.TryParse(key, out var scheme) && Guid.TryParse(otherKey, out var otherScheme) && scheme == otherScheme;
+
+    // A plan Windows installed under a GUID of its own is known only by its name.
+    private static string? PredefinedGuid(DynamicOption option) =>
+        PowerPlanCatalog.BuiltInPowerPlans.FirstOrDefault(p => SameScheme(p.Guid, option.Value))?.Guid
+        ?? (PowerPlanCatalog.HasWinhanceName(option.Label) ? PowerPlanCatalog.WinhancePowerPlanGuid : null);
 
     // Dead stub, always false: power-plan apply runs through the catalog engine (ApplyRequestResolver ->
-    // PowerPlanActivateOp -> WindowsStateWriter), so PowerService is not an apply handler.
+    // PowerPlanEffect -> WindowsStateWriter), so PowerService is not an apply handler.
     public Task<bool> TryApplySpecialSettingAsync(string settingId, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
         => Task.FromResult(false);
 
@@ -29,8 +55,7 @@ internal class PowerService(
             var matchingPlan = systemPlans.FirstOrDefault(p =>
                 string.Equals(p.Guid, winhanceGuid, StringComparison.OrdinalIgnoreCase));
 
-            if (matchingPlan != null &&
-                !string.Equals(matchingPlan.Name?.Trim(), "Winhance Power Plan", StringComparison.OrdinalIgnoreCase))
+            if (matchingPlan != null && !PowerPlanCatalog.HasWinhanceName(matchingPlan.Name))
             {
                 logService.Log(LogLevel.Warning, $"Detected corrupt Winhance plan (name: '{matchingPlan.Name}'), cleaning up");
 

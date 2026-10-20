@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.ViewModels;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
@@ -18,6 +19,8 @@ public class BuilderModeBarViewModelTests : IDisposable
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<IHardwareFilterService> _mockHardwareFilterService = new();
+    private readonly Mock<ITargetWindowsService> _mockTargetWindows = new();
+    private readonly Mock<ICatalogScopeProvider> _mockScopeProvider = new();
     private readonly Mock<ICatalogSettingsRegistry> _mockCatalogSettingsRegistry = new();
     private readonly Mock<ILogService> _mockLogService = new();
 
@@ -41,6 +44,10 @@ public class BuilderModeBarViewModelTests : IDisposable
 
         _mockHardwareFilterService.Setup(f => f.IsFilterEnabled).Returns(true);
         _mockHardwareFilterService.Setup(f => f.SetAsync(It.IsAny<bool>())).Returns(Task.CompletedTask);
+
+        _mockScopeProvider.Setup(p => p.Current).Returns(BuilderScope with { IncludeOtherHardware = true });
+        _mockTargetWindows.Setup(t => t.Build).Returns(26300);
+        _mockTargetWindows.Setup(t => t.SetAsync(It.IsAny<int?>())).Returns(Task.CompletedTask);
     }
 
     private BuilderModeBarViewModel CreateSut() => _sut = new(
@@ -50,6 +57,8 @@ public class BuilderModeBarViewModelTests : IDisposable
         _mockLocalizationService.Object,
         _mockDialogService.Object,
         _mockHardwareFilterService.Object,
+        _mockTargetWindows.Object,
+        _mockScopeProvider.Object,
         _mockCatalogSettingsRegistry.Object,
         _mockLogService.Object);
 
@@ -59,13 +68,16 @@ public class BuilderModeBarViewModelTests : IDisposable
             settingIds.Select(id => new SettingChoice(id, new ChoiceValue.Toggle(true))).ToList());
     }
 
+    // An expression tree cannot contain a with-expression, so the scope is built once outside the Moq lambdas.
+    private static readonly CatalogScope BuilderScope = CatalogScope.CurrentMachine with { IncludeAnswerFileOnly = true };
+
     private void InScope(params string[] settingIds)
     {
         foreach (string id in settingIds)
         {
             _mockCatalogSettingsRegistry
-                .Setup(r => r.GetById(id, CatalogScope.CurrentMachine))
-                .Returns(new Setting { Id = id, Display = new Display { Name = id, Description = id } });
+                .Setup(r => r.GetById(id, BuilderScope))
+                .Returns(new Setting { Id = id, Display = new Display { Name = TestKeys.Of(id), Description = TestKeys.Of(id)} });
         }
     }
 
@@ -213,5 +225,119 @@ public class BuilderModeBarViewModelTests : IDisposable
 
         changed.Should().Contain(nameof(BuilderModeBarViewModel.ShowOtherHardwareText));
         changed.Should().Contain(nameof(BuilderModeBarViewModel.ShowOtherHardwareTooltip));
+    }
+
+    private static readonly CatalogScope Narrowed25H2 =
+        BuilderScope with { IncludeOtherHardware = true, TargetBuild = new WinBuild(26200, int.MaxValue) };
+
+    [Fact]
+    public void TargetWindowsText_NamesAKnownRelease()
+    {
+        var sut = CreateSut();
+
+        sut.TargetWindowsText.Should().Be("Windows 11 26H2");
+    }
+
+    [Fact]
+    public void TargetWindowsText_FallsBackToTheBuildForAnUnlistedRelease()
+    {
+        _mockTargetWindows.Setup(t => t.Build).Returns(28000);
+
+        CreateSut().TargetWindowsText.Should().Be("Builder_Mode_TargetWindows_Build:28000");
+    }
+
+    [Fact]
+    public void TargetWindowsText_SaysAllVersionsWithNoTarget()
+    {
+        _mockTargetWindows.Setup(t => t.Build).Returns((int?)null);
+
+        CreateSut().TargetWindowsText.Should().Be("Builder_Mode_TargetWindows_AllVersions");
+    }
+
+    [Fact]
+    public async Task SetTargetWindowsAsync_WithEveryEditOnTheNewTarget_SwitchesWithoutAsking()
+    {
+        EditsAre("on-both");
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetById("on-both", Narrowed25H2))
+            .Returns(new Setting { Id = "on-both", Display = new Display { Name = TestKeys.Of("on-both"), Description = TestKeys.Of("on-both") } });
+        var sut = CreateSut();
+
+        await sut.SetTargetWindowsAsync(26200);
+
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        _mockTargetWindows.Verify(t => t.SetAsync(26200), Times.Once);
+    }
+
+    [Fact]
+    public async Task SetTargetWindowsAsync_DroppingEdits_AsksNamingTheCountAndTheRelease()
+    {
+        EditsAre("only-on-26h2");
+        ConfirmationRequest? shown = null;
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .Callback<ConfirmationRequest>(request => shown = request)
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
+        var sut = CreateSut();
+
+        await sut.SetTargetWindowsAsync(26200);
+
+        shown!.Title.Should().Be("Dialog_NarrowWindows_Title");
+        shown.Message.Should().Be("Dialog_NarrowWindows_Message:1,Windows 11 25H2");
+        _mockTargetWindows.Verify(t => t.SetAsync(It.IsAny<int?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SetTargetWindowsAsync_AllVersions_NeverAsks()
+    {
+        EditsAre("anything");
+        var sut = CreateSut();
+
+        await sut.SetTargetWindowsAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        _mockTargetWindows.Verify(t => t.SetAsync(null), Times.Once);
+    }
+
+    [Fact]
+    public void TargetChanged_RefreshesTheLabel()
+    {
+        var sut = CreateSut();
+        var changed = new List<string?>();
+        sut.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        _mockTargetWindows.Raise(t => t.Changed += null, _mockTargetWindows.Object, EventArgs.Empty);
+
+        changed.Should().Contain(nameof(BuilderModeBarViewModel.TargetWindowsText));
+    }
+
+    [Fact]
+    public async Task CancelCommand_AsksLeaveOrStay_AndLeaveReturnsToNormalMode()
+    {
+        ConfirmationRequest? shown = null;
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .Callback<ConfirmationRequest>(request => shown = request)
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+        var sut = CreateSut();
+
+        await sut.CancelCommand.ExecuteAsync(null);
+
+        shown!.ConfirmButtonText.Should().Be("Button_Leave");
+        shown.CancelButtonText.Should().Be("Button_Stay");
+        _mockApplicationModeService.Verify(m => m.EnterNormalMode(), Times.Once);
+    }
+
+    [Fact]
+    public async Task CancelCommand_Stay_KeepsBuilderMode()
+    {
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
+        var sut = CreateSut();
+
+        await sut.CancelCommand.ExecuteAsync(null);
+
+        _mockApplicationModeService.Verify(m => m.EnterNormalMode(), Times.Never);
     }
 }

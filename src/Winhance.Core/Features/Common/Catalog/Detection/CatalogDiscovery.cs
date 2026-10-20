@@ -1,3 +1,5 @@
+using Winhance.Core.Features.Common.Interfaces;
+
 namespace Winhance.Core.Features.Common.Catalog;
 
 // Only targets live on the context's current build are read (Target.AppliesTo); PowerCfg targets are read by a later wiring step.
@@ -104,13 +106,13 @@ public static class CatalogDiscovery
             {
                 readings.TryGet(deciding.Key, out var current, out var present);
                 if (expected.Matches(current, present))
-                    return state.Label;
+                    return state.Label.Value;
             }
         }
 
         // Nothing matched. A present deciding value that no state recognizes is genuinely Custom (null);
         // an absent deciding value still falls to the IsFallback state.
-        return Present(deciding.Key) ? null : fallback?.Label;
+        return Present(deciding.Key) ? null : fallback?.Label.Value;
     }
 
     public static int? DetectValue(Setting setting, IDetectionContext context, PowerContext powerContext = PowerContext.AC)

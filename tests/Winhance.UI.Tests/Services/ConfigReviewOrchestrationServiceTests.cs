@@ -4,8 +4,10 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.WimUtil.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
+using Winhance.UI.Features.WimUtil.Models;
 using Xunit;
 
 namespace Winhance.UI.Tests.Services;
@@ -28,6 +30,8 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     private readonly Mock<IPolicyCleanupService> _mockPolicyCleanupService = new();
     private readonly Mock<IChangeHistoryService> _mockChangeHistoryService = new();
     private readonly Mock<IHardwareFilterService> _mockHardwareFilter = new();
+    private readonly Mock<ITargetWindowsService> _mockTargetWindows = new();
+    private readonly WimUtilSession _wimUtilSession = new();
 
     private ConfigReviewOrchestrationService? _service;
 
@@ -46,6 +50,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             .Returns(Mock.Of<IDisposable>());
 
         _mockHardwareFilter.Setup(h => h.ResetAsync()).Returns(Task.CompletedTask);
+        _mockTargetWindows.Setup(t => t.ResetAsync()).Returns(Task.CompletedTask);
     }
 
     private ConfigReviewOrchestrationService CreateService()
@@ -66,7 +71,9 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             _mockVmCoordinator.Object,
             _mockPolicyCleanupService.Object,
             _mockChangeHistoryService.Object,
-            _mockHardwareFilter.Object);
+            _mockHardwareFilter.Object,
+            _mockTargetWindows.Object,
+            _wimUtilSession);
         return _service;
     }
 
@@ -165,7 +172,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     }
 
     [Fact]
-    public void OnApplicationModeChanged_LeavingBuilder_ResetsTheHardwareFilter()
+    public void OnApplicationModeChanged_LeavingBuilder_ResetsTheHardwareFilterAndTargetWindows()
     {
         // Authoring for hardware this PC does not have is Builder-only; anywhere else those settings
         // would read as applicable and apply to nothing.
@@ -176,6 +183,22 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
 
         _mockHardwareFilter.Verify(h => h.ResetAsync(), Times.Once);
+        _mockTargetWindows.Verify(t => t.ResetAsync(), Times.Once);
+    }
+
+    [Fact]
+    public void OnApplicationModeChanged_LeavingBuilder_ForgetsTheMediaTheWimUtilSessionWasBuilding()
+    {
+        _wimUtilSession.WorkingDirectory = @"C:\WinhanceWIM";
+        _wimUtilSession.Editions = [new ImageEdition(1, "Windows 11 Pro", "Professional")];
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        CreateService();
+
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Normal);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        _wimUtilSession.WorkingDirectory.Should().BeNull();
+        _wimUtilSession.Editions.Should().BeEmpty();
     }
 
     [Fact]
@@ -210,6 +233,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
 
         _mockHardwareFilter.Verify(h => h.ResetAsync(), Times.Never);
+        _mockTargetWindows.Verify(t => t.ResetAsync(), Times.Never);
     }
 
     [Fact]
@@ -330,7 +354,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             .Returns(new List<string>());
 
         _mockConfigReviewModeService
-            .Setup(s => s.EnterReviewModeAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<bool>()))
+            .Setup(s => s.EnterReviewModeAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<bool>(), It.IsAny<IReadOnlyList<string>>()))
             .ThrowsAsync(new InvalidOperationException("entry failed"));
 
         var service = CreateService();
@@ -354,8 +378,23 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         await service.EnterReviewModeAsync(config);
 
         _mockConfigReviewModeService.Verify(
-            r => r.EnterReviewModeAsync(config, false),
+            r => r.EnterReviewModeAsync(config, false, It.Is<IReadOnlyList<string>>(names => names.Count == 0)),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task EnterReviewModeAsync_HandsTheSetAsideNamesToTheReview()
+    {
+        var config = new WinhanceConfigFile();
+        var filtered = new WinhanceConfigFile();
+        var names = new List<string> { "Timeline Suggestions (Privacy)" };
+        _mockConfigLoadService.Setup(s => s.DetectIncompatibleSettings(config)).Returns(names);
+        _mockConfigLoadService.Setup(s => s.FilterConfigForCurrentSystem(config)).Returns(filtered);
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        _mockConfigReviewModeService.Verify(r => r.EnterReviewModeAsync(filtered, false, names), Times.Once);
     }
 
     [Fact]
@@ -549,6 +588,173 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
                 It.IsAny<WinhanceConfigFile>(),
                 It.IsAny<List<string>>(),
                 It.IsAny<ImportOptions>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplyReviewedConfigAsync_AnApprovedItemTheFileListsUnderItsWin10Id_IsApplied()
+    {
+        var listedUnderTheOldId = new ConfigurationItem { Id = "explorer-customization-thispc-folder-desktop-win10", Name = "Desktop" };
+        var config = new WinhanceConfigFile
+        {
+            Customize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Explorer"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem>
+                        {
+                            listedUnderTheOldId,
+                            new ConfigurationItem { Id = "not-approved", Name = "Other" }
+                        }
+                    }
+                }
+            }
+        };
+
+        _mockConfigReviewModeService.Setup(r => r.IsInReviewMode).Returns(true);
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(config);
+        _mockConfigReviewDiffService.Setup(d => d.GetApprovedDiffs()).Returns(new List<ConfigReviewDiff>
+        {
+            new ConfigReviewDiff
+            {
+                SettingId = "explorer-customization-thispc-folder-desktop",
+                FeatureModuleId = "Explorer",
+                ConfigItem = listedUnderTheOldId,
+                IsReviewed = true,
+                IsApproved = true
+            }
+        });
+        _mockVmCoordinator.Setup(v => v.HasSelectedWindowsApps).Returns(false);
+        _mockVmCoordinator.Setup(v => v.HasSelectedExternalApps).Returns(false);
+
+        var service = CreateService();
+        await service.ApplyReviewedConfigAsync();
+
+        _mockConfigExecutionService.Verify(
+            e => e.ApplyConfigurationWithOptionsAsync(
+                It.Is<WinhanceConfigFile>(c =>
+                    c.Customize.Features["Explorer"].Items.Count == 1
+                    && c.Customize.Features["Explorer"].Items[0] == listedUnderTheOldId),
+                It.Is<List<string>>(sections => sections.Contains("Customize_Explorer")),
+                It.IsAny<ImportOptions>()),
+            Times.Once);
+    }
+
+    // One approved setting as well, so the apply runs whether or not an app action was picked.
+    private void GivenReviewWithCheckedExternalApps(bool install, bool remove)
+    {
+        var config = new WinhanceConfigFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem> { new ConfigurationItem { Id = "s1", Name = "S1" } }
+                    }
+                }
+            }
+        };
+
+        _mockConfigReviewModeService.Setup(r => r.IsInReviewMode).Returns(true);
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(config);
+        _mockConfigReviewDiffService.Setup(d => d.GetApprovedDiffs()).Returns(new List<ConfigReviewDiff>
+        {
+            new ConfigReviewDiff { SettingId = "s1", FeatureModuleId = "Privacy", IsReviewed = true, IsApproved = true }
+        });
+        _mockConfigImportState.Setup(s => s.TakeNotApplied()).Returns(Array.Empty<string>());
+        _mockDialogService
+            .Setup(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+        _mockVmCoordinator.Setup(v => v.HasSelectedWindowsApps).Returns(false);
+        _mockVmCoordinator.Setup(v => v.HasSelectedExternalApps).Returns(true);
+        _mockVmCoordinator.Setup(v => v.IsExternalAppsInstallAction).Returns(install);
+        _mockVmCoordinator.Setup(v => v.IsExternalAppsRemoveAction).Returns(remove);
+        _mockVmCoordinator.Setup(v => v.GetSelectedExternalAppIds()).Returns(new List<string> { "ext1" });
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task ApplyReviewedConfigAsync_ExternalApps_RunTheActionTheUserPicked(bool install, bool remove)
+    {
+        GivenReviewWithCheckedExternalApps(install, remove);
+
+        await CreateService().ApplyReviewedConfigAsync();
+
+        _mockConfigAppSelectionService.Verify(
+            s => s.ProcessExternalAppsFromUserSelectionAsync(
+                It.Is<List<string>>(ids => ids.Single() == "ext1"), remove),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplyReviewedConfigAsync_ExternalAppsCheckedWithNoActionPicked_TouchesNoApps()
+    {
+        GivenReviewWithCheckedExternalApps(install: false, remove: false);
+
+        await CreateService().ApplyReviewedConfigAsync();
+
+        _mockVmCoordinator.Verify(v => v.GetSelectedExternalAppIds(), Times.Never);
+        _mockConfigAppSelectionService.Verify(
+            s => s.ProcessExternalAppsFromUserSelectionAsync(It.IsAny<List<string>>(), It.IsAny<bool>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ApplyReviewedConfigAsync_TellsTheUserWhatWasNotApplied()
+    {
+        var config = new WinhanceConfigFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem { Id = "setting1", Name = "S1" }
+                        }
+                    }
+                }
+            }
+        };
+
+        var approvedDiffs = new List<ConfigReviewDiff>
+        {
+            new ConfigReviewDiff
+            {
+                SettingId = "setting1",
+                SettingName = "S1",
+                FeatureModuleId = "Privacy",
+                IsReviewed = true,
+                IsApproved = true
+            }
+        };
+
+        _mockConfigReviewModeService.Setup(r => r.IsInReviewMode).Returns(true);
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(config);
+        _mockConfigReviewDiffService.Setup(d => d.GetApprovedDiffs()).Returns(approvedDiffs);
+
+        _mockVmCoordinator.Setup(v => v.HasSelectedWindowsApps).Returns(false);
+        _mockVmCoordinator.Setup(v => v.HasSelectedExternalApps).Returns(false);
+
+        _mockConfigImportState
+            .Setup(s => s.TakeNotApplied())
+            .Returns(new List<string> { "Time zone: Mars Standard Time is not available on this PC, so it was not applied." });
+
+        var service = CreateService();
+        await service.ApplyReviewedConfigAsync();
+
+        _mockDialogService.Verify(
+            d => d.ShowInformationAsync(
+                It.Is<string>(m => m.Contains("Mars Standard Time")),
+                It.IsAny<string>(),
+                It.IsAny<string>()),
             Times.Once);
     }
 

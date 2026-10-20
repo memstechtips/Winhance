@@ -1,10 +1,9 @@
 using System.ComponentModel;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
@@ -121,41 +120,9 @@ public sealed partial class SettingsCardItem : UserControl
         };
     }
 
-    private void OnPowerPlanComboBoxLoaded(object sender, RoutedEventArgs e)
+    private void OnOptionDeleteRequested(object? sender, DynamicOption option)
     {
-        if (sender is not PowerPlanComboBox comboBox)
-            return;
-
-        var settingVm = comboBox.Tag as SettingItemViewModel;
-        if (settingVm == null)
-            return;
-
-        var powerViewModel = settingVm.ParentFeatureViewModel as PowerOptimizationsViewModel;
-
-        try
-        {
-            var localizationService = App.Services.GetService<ILocalizationService>();
-            if (localizationService != null)
-            {
-                comboBox.ActiveBadgeText = localizationService.GetString("PowerPlan_Active_Badge");
-                comboBox.DeleteTooltipText = localizationService.GetString("PowerPlan_Delete_Tooltip");
-                comboBox.ExistsTooltipText = localizationService.GetString("PowerPlan_Status_Exists");
-                comboBox.NotExistsTooltipText = localizationService.GetString("PowerPlan_Status_NotExists");
-            }
-        }
-        catch
-        {
-            // Use default values if localization service is unavailable
-        }
-
-        comboBox.DeleteRequested += (s, plan) =>
-        {
-            powerViewModel?.DeletePowerPlanCommand.Execute(plan);
-        };
-
-        comboBox.DropDownClosed += (s, value) =>
-        {
-            settingVm.ApplySelectionValue(value);
-        };
+        if (sender is SettingComboBox { Setting.ParentFeatureViewModel: PowerOptimizationsViewModel power })
+            power.DeletePowerPlanCommand.Execute(option);
     }
 }

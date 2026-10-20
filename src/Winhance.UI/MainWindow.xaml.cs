@@ -31,6 +31,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     private WindowSizeManager? _windowSizeManager;
     private UiZoomManager? _uiZoomManager;
     private IConfigReviewService? _configReviewService;
+    private IApplicationModeService? _applicationModeService;
     private INavBadgeService? _navBadgeService;
     private ILogService? _logService;
     private PendingRestartViewModel? _pendingRestartViewModel;
@@ -219,12 +220,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                     {
                         ApplyFlowDirection(localizationService.IsRightToLeft);
 
-                        var advancedToolsButton = NavSidebar.GetButton("AdvancedTools");
-                        if (advancedToolsButton?.IsLocked == true)
-                        {
-                            ToolTipService.SetToolTip(advancedToolsButton,
-                                localizationService.GetStringOrDefault("Nav_AdvancedTools_Locked_Tooltip", "Unavailable during config review"));
-                        }
+                        ApplyNavLocks();
                     });
                 };
             }
@@ -369,6 +365,13 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                     _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
                 }
 
+                _applicationModeService = App.Services.GetService<IApplicationModeService>();
+                if (_applicationModeService != null)
+                {
+                    _applicationModeService.ModeChanged += OnApplicationModeChangedForNavLocks;
+                }
+                ApplyNavLocks();
+
                 _ = ViewModel.LoadFilterPreferenceAsync();
 
                 // Notify x:Bind that ViewModel is now available
@@ -419,23 +422,14 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                     DispatcherQueue.TryEnqueue(ApplyNavBadges));
                 ApplyNavBadges();
 
-                var localizationService = App.Services.GetService<ILocalizationService>();
-                NavSidebar.SetButtonLocked("AdvancedTools", true,
-                    localizationService.GetStringOrDefault("Nav_AdvancedTools_Locked_Tooltip", "Unavailable during config review"));
-
-                var currentTag = _navigationRouter?.GetTagForCurrentPage(ContentFrame.CurrentSourcePageType);
-                if (currentTag == "AdvancedTools")
-                {
-                    _navigationRouter?.NavigateToPage(ContentFrame, "SoftwareApps", applyNavBadges: ApplyNavBadges);
-                    NavSidebar.SelectedTag = "SoftwareApps";
-                }
+                ApplyNavLocks();
             }
             else
             {
                 NavSidebar.ClearAllBadges();
                 _navBadgeService?.UnsubscribeFromSoftwareAppsChanges();
 
-                NavSidebar.SetButtonLocked("AdvancedTools", false);
+                ApplyNavLocks();
             }
         });
     }
@@ -443,6 +437,33 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     private void OnBadgeStateChanged(object? sender, EventArgs e)
     {
         DispatcherQueue.TryEnqueue(ApplyNavBadges);
+    }
+
+    private void OnApplicationModeChangedForNavLocks(object? sender, EventArgs e)
+    {
+        DispatcherQueue.TryEnqueue(ApplyNavLocks);
+    }
+
+    private void ApplyNavLocks()
+    {
+        var mode = _applicationModeService?.CurrentMode ?? WinhanceMode.Normal;
+        var target = _applicationModeService?.CurrentBuilderTarget ?? BuilderTarget.Config;
+        var localizationService = App.Services.GetService<ILocalizationService>();
+
+        SetNavLock("WimUtil", NavLockPolicy.IsWimUtilLocked(mode),
+            localizationService.GetStringOrDefault("Nav_AdvancedTools_Locked_Tooltip", "Unavailable during config review"));
+        SetNavLock("Autounattend", NavLockPolicy.IsAutounattendLocked(mode, target),
+            localizationService.GetStringOrDefault("Nav_Autounattend_Locked_Tooltip", "Available in Builder mode with Autounattend selected"));
+    }
+
+    private void SetNavLock(string tag, bool locked, string tooltip)
+    {
+        NavSidebar.SetButtonLocked(tag, locked, tooltip);
+        if (locked && _navigationRouter?.GetTagForCurrentPage(ContentFrame.CurrentSourcePageType) == tag)
+        {
+            _navigationRouter?.NavigateToPage(ContentFrame, "SoftwareApps", applyNavBadges: ApplyNavBadges);
+            NavSidebar.SelectedTag = "SoftwareApps";
+        }
     }
 
     private void ApplyNavBadges()
@@ -691,18 +712,15 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
     private void NavigateAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
-        var tag = sender.Key switch
-        {
-            VirtualKey.Number1 => "SoftwareApps",
-            VirtualKey.Number2 => "Optimize",
-            VirtualKey.Number3 => "Customize",
-            VirtualKey.Number4 => "AdvancedTools",
-            VirtualKey.Number5 => "Settings",
-            _ => null
-        };
+        var tag = NavAccelerators.TagFor(sender.Key);
 
         if (tag != null)
         {
+            if (NavSidebar.GetButton(tag)?.IsLocked == true)
+            {
+                args.Handled = true;
+                return;
+            }
             NavSidebar.SelectedTag = tag;
             _navigationRouter?.NavigateToPage(ContentFrame, tag, applyNavBadges: ApplyNavBadges);
 

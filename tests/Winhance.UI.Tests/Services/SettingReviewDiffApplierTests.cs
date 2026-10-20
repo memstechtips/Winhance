@@ -66,16 +66,21 @@ public class SettingReviewDiffApplierTests
         string name = "Test Setting",
         InputType inputType = InputType.Toggle,
         bool isSelected = false,
-        object? selectedValue = null)
+        object? selectedValue = null,
+        Setting? setting = null,
+        string onText = "On",
+        string offText = "Off")
     {
         var config = new SettingItemViewModelConfig
         {
-            Setting = new Setting { Id = settingId, Display = new() { Name = name, Description = "Test" } },
+            Setting = setting ?? new Setting { Id = settingId, Display = new() { Name = TestKeys.Of(name), Description = TestKeys.Of("Test") } },
             SettingId = settingId,
             Name = name,
             Description = "Test",
             InputType = inputType,
-            IsSelected = isSelected
+            IsSelected = isSelected,
+            OnText = onText,
+            OffText = offText
         };
 
         var vm = new SettingItemViewModel(
@@ -287,6 +292,51 @@ public class SettingReviewDiffApplierTests
     }
 
     [Fact]
+    public void ApplyReviewDiffToViewModel_CheckBox_WithDiff_UsesTheCardsOwnTexts()
+    {
+        var activeConfig = new WinhanceConfigFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "check-setting",
+                                Name = "Check",
+                                IsSelected = true,
+                                InputType = InputType.CheckBox
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
+        _mockConfigReviewDiffService
+            .Setup(d => d.GetDiffForSetting("check-setting"))
+            .Returns((ConfigReviewDiff?)null);
+
+        var vm = CreateSettingViewModel(
+            settingId: "check-setting",
+            name: "Check",
+            inputType: InputType.CheckBox,
+            onText: "Checked",
+            offText: "Unchecked");
+        var state = new SettingStateResult { IsEnabled = false };
+
+        var service = CreateService();
+        service.ApplyReviewDiffToViewModel(vm, state);
+
+        vm.HasReviewDiff.Should().BeTrue();
+        vm.ReviewDiffMessage.Should().Be("Current: Unchecked -> Config: Checked");
+    }
+
+    [Fact]
     public void ApplyReviewDiffToViewModel_Toggle_NoDiff_DoesNotRegister()
     {
         var activeConfig = new WinhanceConfigFile
@@ -381,6 +431,50 @@ public class SettingReviewDiffApplierTests
             d => d.RegisterDiff(It.Is<ConfigReviewDiff>(diff =>
                 diff.SettingId == "selection-setting")),
             Times.Once);
+    }
+
+    [Fact]
+    public void ApplyReviewDiffToViewModel_KeyedSelection_WithLegacyIndexInConfig_NoDiff()
+    {
+        var activeConfig = new WinhanceConfigFile
+        {
+            Customize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Taskbar"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "fake-keyed",
+                                Name = "Keyed",
+                                InputType = InputType.Selection,
+                                SelectedIndex = 1
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
+        _mockConfigReviewDiffService
+            .Setup(d => d.GetDiffForSetting("fake-keyed"))
+            .Returns((ConfigReviewDiff?)null);
+
+        var vm = CreateSettingViewModel(
+            settingId: "fake-keyed",
+            name: "Keyed",
+            inputType: InputType.Selection,
+            setting: FakeOptionProvider.SettingFor());
+
+        var service = CreateService();
+        service.ApplyReviewDiffToViewModel(vm, new SettingStateResult());
+
+        vm.HasReviewDiff.Should().BeFalse();
+        _mockConfigReviewDiffService.Verify(
+            d => d.RegisterDiff(It.IsAny<ConfigReviewDiff>()), Times.Never);
     }
 
     [Fact]

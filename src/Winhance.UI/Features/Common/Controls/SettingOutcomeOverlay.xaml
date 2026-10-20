@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<UserControl
+<local:SettingBoundControl
     x:Class="Winhance.UI.Features.Common.Controls.SettingOutcomeOverlay"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Winhance.UI.Features.Common.Controls"
     xmlns:fluentIcons="using:FluentIcons.WinUI">
 
     <!--
@@ -40,4 +41,4 @@
         <TextBlock Text="{x:Bind OverlayText, Mode=OneWay}" VerticalAlignment="Center"
                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
     </StackPanel>
-</UserControl>
+</local:SettingBoundControl>

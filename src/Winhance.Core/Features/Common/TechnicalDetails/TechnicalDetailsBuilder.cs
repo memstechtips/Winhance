@@ -2,7 +2,6 @@
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
-using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.TechnicalDetails;
 
@@ -25,14 +24,13 @@ public static class TechnicalDetailsBuilder
     {
         var setting = ctx.Setting;
 
-        // Two shapes carry no States and so have no options to make rows from. Each names its own
-        // rows instead, and both come back as an OptionMatrix so they share every bit of the
-        // rendering below rather than growing a second table.
-        if (setting.Control == ControlKind.PowerPlan) return BuildPowerPlanMatrix(ctx);
+        if (setting.Control == ControlKind.KeyedSelection) return BuildKeyedSelectionMatrix(ctx);
+        if (setting.Control == ControlKind.TextBox) return BuildTextMatrix(ctx);
+        if (setting.Control == ControlKind.List) return BuildListMatrix(ctx);
         if (setting.Control == ControlKind.Action) return BuildActionMatrix(ctx);
         if (setting.States.Count == 0) return BuildNumericMatrix(ctx);
 
-        var targets = setting.Targets.Where(t => t is RegTarget or TaskTarget or PowerCfgTarget).ToList();
+        var targets = setting.Targets.Where(t => t is RegTarget or TaskTarget or PowerCfgTarget or AutounattendTarget).ToList();
         // No target means no column to build, but the OPTIONS are still real and still carry
         // their roles. Dropping them left a panel listing one "When set to X" code block per
         // option with no way to tell which X is recommended, which is the Windows default, or
@@ -46,30 +44,8 @@ public static class TechnicalDetailsBuilder
         var columns = new List<MatrixColumn>();
         var groups = new List<MatrixColumnGroup>();
 
-        // Registry columns, grouped by their FULL path list. Grouping on the first path alone would
-        // collapse two mirrors that share a first path but differ in the second, and then print one
-        // of the two tails as though it were both.
         var regTargets = targets.OfType<RegTarget>().ToList();
-        foreach (var byPaths in regTargets.GroupBy(PathKey, StringComparer.OrdinalIgnoreCase))
-        {
-            var start = columns.Count;
-            foreach (var reg in byPaths)
-                columns.Add(RegistryColumn(ctx, reg));
-
-            var pathLabel = ctx.Text(TechnicalDetailKeys.LabelPath, "Path");
-            groups.Add(new MatrixColumnGroup
-            {
-                Label = ctx.Text(TechnicalDetailKeys.GroupRegistry, "Registry"),
-                Kind = MatrixGroupKind.Registry,
-                Description = ctx.Text(TechnicalDetailKeys.DescRegistry,
-                    "Read to determine which option is active, and written when you apply one."),
-                // Every path, not just the first: a mirrored value really is written to all of them.
-                Paths = [.. byPaths.First().Paths.Select(p => new MatrixPath(p, pathLabel))],
-                StartColumn = start,
-                ColumnSpan = columns.Count - start,
-                OpenRegeditTooltip = ctx.Text(TechnicalDetailKeys.OpenRegedit, "Open in Registry Editor"),
-            });
-        }
+        AddRegistryColumns(ctx, regTargets, columns, groups);
 
         var taskTargets = targets.OfType<TaskTarget>().ToList();
         foreach (var task in taskTargets)
@@ -122,6 +98,10 @@ public static class TechnicalDetailsBuilder
             });
         }
 
+        var elementTargets = targets.OfType<AutounattendElement>().ToList();
+        var architectureTargets = targets.OfType<AutounattendArchitecture>().ToList();
+        AddAnswerFileColumns(ctx, elementTargets, architectureTargets, columns, groups);
+
         // Script / .reg columns: a check per option rather than a chip crowding the option name.
         bool anyScript = setting.States.Any(s => s.Effects.OfType<ScriptEffect>().Any());
         bool anyRegFile = setting.States.Any(s => s.Effects.OfType<RegContentEffect>().Any());
@@ -170,6 +150,10 @@ public static class TechnicalDetailsBuilder
             // value does, so the same formatter answers both.
             foreach (var pcfg in powerTargets)
                 cells.Add(new MatrixCell(ValueCell(ctx, state, pcfg.Key)));
+            foreach (var element in elementTargets)
+                cells.Add(new MatrixCell(ElementCell(ctx, state, element.Key)));
+            foreach (var architecture in architectureTargets)
+                cells.Add(new MatrixCell(ElementCell(ctx, state, architecture.Key)));
             if (anyScript)
                 cells.Add(state.Effects.OfType<ScriptEffect>().Any() ? MatrixCell.Check : MatrixCell.Empty);
             if (anyRegFile)
@@ -335,11 +319,12 @@ public static class TechnicalDetailsBuilder
             {
                 foreach (var pair in state.Controls)
                 {
-                    if (!seen.Add($"controls:{pair.Key}:{pair.Value}")) continue;
+                    if (!seen.Add($"controls:{pair.Key}:{pair.Value.Value}")) continue;
                     var controlled = ctx.SettingName(pair.Key);
+                    var childState = ctx.Text(pair.Value);
                     chips.Add(new MatrixChip(
-                        $"{ctx.Text(TechnicalDetailKeys.RelControls, "Sets")}: {controlled} ({pair.Value})",
-                        $"{controlled} = {pair.Value}")
+                        $"{ctx.Text(TechnicalDetailKeys.RelControls, "Sets")}: {controlled} ({childState})",
+                        $"{controlled} = {childState}")
                     {
                         LinkSettingId = pair.Key,
                         LinkText = controlled,
@@ -402,7 +387,7 @@ public static class TechnicalDetailsBuilder
         // on", and a one-shot is not on one.
         var row = new MatrixOption
         {
-            Label = ctx.Text(SettingLocalizationKeys.Name(setting), setting.Display.Name),
+            Label = ctx.Text(setting.Display.Name),
             Cells = [.. ordered.Select(write => new MatrixCell(FormatConcreteValue(write.Value)))],
         };
 
@@ -515,64 +500,320 @@ public static class TechnicalDetailsBuilder
                 "This setting takes a number rather than a fixed list of options."));
     }
 
-    // The rows come from the live dropdown - the only place the scheme GUID exists.
-    private static OptionMatrix? BuildPowerPlanMatrix(BuildContext ctx)
+    // Most lists are the machine's and have no rows; only the lists every Windows install shares document their options.
+    private static OptionMatrix? BuildKeyedSelectionMatrix(BuildContext ctx)
     {
-        // Installed-or-not is a fact about THIS machine, read off the live enumeration. A caller that
-        // supplies plans without one (the docs export, which lists the predefined plans as reference
-        // data) has no machine to report on, so the column is left out rather than filled with a
-        // guess - the same reason the docs never show which option is currently selected.
-        var hasStatus = ctx.Snapshot.Options.Any(o => o.Tag is PowerPlanComboBoxOption);
+        // ReadOnly targets included: the panel documents what is read as well as what is written.
+        var regTargets = ctx.Setting.Targets.OfType<RegTarget>().ToList();
+        var reference = ReferenceList(ctx);
+        if (regTargets.Count == 0 && reference.Count == 0)
+            return null;
 
-        var options = new List<MatrixOption>();
-        foreach (var option in ctx.Snapshot.Options)
+        var chip = ctx.Chip(
+            TechnicalDetailKeys.ChipKeyedOptions, "options come from Windows",
+            TechnicalDetailKeys.ChipKeyedOptionsTooltip,
+            "Windows supplies this list, so the choices and their names differ from one PC to another.");
+
+        var columns = new List<MatrixColumn>();
+        var groups = new List<MatrixColumnGroup>();
+        AddRegistryColumns(ctx, regTargets, columns, groups, chip);
+
+        var rows = new List<MatrixOption>();
+        if (reference.Count > 0)
         {
-            // Builder mode carries an index and a raw loc-key label rather than a GUID, and that is
-            // not live documentation of anything.
-            if (option.Value is not string guid || guid.Length == 0) continue;
+            // Only power plans have an installed-or-not answer; every other reference list is the same on every PC.
+            bool powerPlan = ctx.Setting.Options!.Source == OptionSource.PowerPlans;
+            List<DynamicOption> live = powerPlan
+                ? [.. ctx.Snapshot.Options.Select(o => o.Tag).OfType<DynamicOption>()]
+                : [];
+            bool withStatus = live.Count > 0;
+            var start = columns.Count;
+            AddReferenceColumns(ctx, columns, groups, powerPlan, withStatus);
+            rows = ReferenceRows(ctx, reference, live, start, withStatus);
+        }
 
-            var plan = option.Tag as PowerPlanComboBoxOption;
-            var cells = new List<MatrixCell> { new(guid) };
-            if (hasStatus)
-            {
-                cells.Add(new MatrixCell(plan?.ExistsOnSystem == true
-                    ? ctx.Text(TechnicalDetailKeys.PowerPlanInstalled, "Installed on system")
-                    : ctx.Text(TechnicalDetailKeys.PowerPlanNotInstalled, "Not installed")));
-            }
+        return Matrix(ctx, groups, columns, rows);
+    }
 
-            options.Add(new MatrixOption
+    private static IReadOnlyList<(string Label, string Value)> ReferenceList(BuildContext ctx)
+    {
+        var setting = ctx.Setting;
+        var list = setting.Options!;
+        return list.Source switch
+        {
+            OptionSource.PowerPlans =>
+                [.. PowerPlanCatalog.BuiltInPowerPlans.Select(p => (Label: ctx.Text(p.LocalizationKey, p.Name), Value: p.Guid))],
+            OptionSource.Pictures =>
+                [.. setting.States.Select(s => (Label: ctx.Text(s.Label), Value: KeyedOptions.KeyOf(setting, s) ?? string.Empty))],
+            OptionSource.Colors => [.. list.Keys.Select(hex => (Label: hex, Value: hex))],
+            _ => [],
+        };
+    }
+
+    private static void AddReferenceColumns(
+        BuildContext ctx,
+        List<MatrixColumn> columns,
+        List<MatrixColumnGroup> groups,
+        bool powerPlan,
+        bool withStatus)
+    {
+        var setting = ctx.Setting;
+        var start = columns.Count;
+        columns.Add(new MatrixColumn
+        {
+            Header = setting.Options!.Source switch
             {
-                Label = option.DisplayText,
-                Cells = cells,
-                IsCurrent = plan?.IsActive == true,
+                OptionSource.PowerPlans => ctx.Text(TechnicalDetailKeys.ColumnPowerPlanScheme, "Scheme GUID"),
+                OptionSource.Pictures => ctx.Text(TechnicalDetailKeys.LabelPath, "Path"),
+                _ => ctx.Text(TechnicalDetailKeys.ColumnPowerValue, "Value"),
+            },
+            Kind = powerPlan ? MatrixColumnKind.Power : MatrixColumnKind.Reference,
+        });
+        if (withStatus)
+        {
+            columns.Add(new MatrixColumn
+            {
+                Header = ctx.Text(TechnicalDetailKeys.ColumnPowerPlanStatus, "Status"),
+                Kind = MatrixColumnKind.Power,
             });
         }
-        if (options.Count == 0) return null;
 
-        var columns = new List<MatrixColumn>
+        groups.Add(new MatrixColumnGroup
         {
-            new() { Header = ctx.Text(TechnicalDetailKeys.ColumnPowerPlanScheme, "Scheme GUID"), Kind = MatrixColumnKind.Power },
-        };
-        if (hasStatus)
+            Label = powerPlan ? ctx.Text(TechnicalDetailKeys.GroupPowerPlan, "Power plan") : ctx.Text(setting.Display.Name),
+            Kind = powerPlan ? MatrixGroupKind.PowerPlan : MatrixGroupKind.Reference,
+            Description = powerPlan
+                ? ctx.Text(TechnicalDetailKeys.SectionPowerPlansDescription, "Applying selects this power scheme, creating it if it isn't installed.")
+                : ctx.Text(setting.Display.Description),
+            StartColumn = start,
+            ColumnSpan = columns.Count - start,
+        });
+    }
+
+    // A predefined scheme can be installed under a GUID of its own, so a live entry is also matched by label.
+    private static List<MatrixOption> ReferenceRows(
+        BuildContext ctx,
+        IReadOnlyList<(string Label, string Value)> reference,
+        List<DynamicOption> live,
+        int start,
+        bool withStatus)
+    {
+        var rows = new List<MatrixOption>(reference.Count + live.Count);
+        var matched = new HashSet<DynamicOption>();
+        foreach (var (label, value) in reference)
         {
-            columns.Add(new MatrixColumn { Header = ctx.Text(TechnicalDetailKeys.ColumnPowerPlanStatus, "Status"), Kind = MatrixColumnKind.Power });
+            var offered = live.FirstOrDefault(o =>
+                string.Equals(o.Value, value, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(o.Label, label, StringComparison.Ordinal));
+            if (offered is not null)
+                matched.Add(offered);
+            rows.Add(ReferenceRow(ctx, label, offered?.Value ?? value, start,
+                installed: offered is { ExistsOnSystem: true }, withStatus));
         }
 
-        var groups = new List<MatrixColumnGroup>
+        foreach (var custom in live.Where(o => !matched.Contains(o)))
+            rows.Add(ReferenceRow(ctx, custom.Label, custom.Value, start, installed: custom.ExistsOnSystem, withStatus));
+
+        return rows;
+    }
+
+    private static MatrixOption ReferenceRow(BuildContext ctx, string label, string value, int start, bool installed, bool withStatus)
+    {
+        var cells = new List<MatrixCell>(start + 2);
+        for (int i = 0; i < start; i++)
+            cells.Add(MatrixCell.Empty);
+        cells.Add(new MatrixCell(value));
+        if (withStatus)
         {
-            new()
+            cells.Add(new MatrixCell(installed
+                ? ctx.Text(TechnicalDetailKeys.PowerPlanInstalled, "Installed on system")
+                : ctx.Text(TechnicalDetailKeys.PowerPlanNotInstalled, "Not installed")));
+        }
+
+        return new MatrixOption
+        {
+            Label = label,
+            Cells = cells,
+            IsCurrent = string.Equals(value, ctx.Snapshot.SelectedKey, StringComparison.OrdinalIgnoreCase),
+        };
+    }
+
+    // Grouped by the FULL path list: grouping on the first path alone would collapse two mirrors that share a first
+    // path but differ in the second.
+    private static void AddRegistryColumns(
+        BuildContext ctx,
+        IReadOnlyList<RegTarget> regTargets,
+        List<MatrixColumn> columns,
+        List<MatrixColumnGroup> groups,
+        MatrixChip? extraChip = null)
+    {
+        foreach (var byPaths in regTargets.GroupBy(PathKey, StringComparer.OrdinalIgnoreCase))
+        {
+            var start = columns.Count;
+            foreach (var reg in byPaths)
             {
-                Label = ctx.Text(TechnicalDetailKeys.GroupPowerPlan, "Power plan"),
-                Kind = MatrixGroupKind.PowerPlan,
-                Description = ctx.Text(TechnicalDetailKeys.SectionPowerPlansDescription,
-                    "Applying selects this power scheme, creating it if it isn't installed."),
-                StartColumn = 0,
-                ColumnSpan = columns.Count,
-            },
+                var column = RegistryColumn(ctx, reg);
+                columns.Add(extraChip is null ? column : column with { Chips = [.. column.Chips, extraChip] });
+            }
+
+            var pathLabel = ctx.Text(TechnicalDetailKeys.LabelPath, "Path");
+            groups.Add(new MatrixColumnGroup
+            {
+                Label = ctx.Text(TechnicalDetailKeys.GroupRegistry, "Registry"),
+                Kind = MatrixGroupKind.Registry,
+                Description = byPaths.All(t => t.ReadOnly && !t.ClearedOnApply)
+                    ? ctx.Text(TechnicalDetailKeys.DescRegistryReadOnly,
+                        "Read from this PC to work out the current state; never written.")
+                    : ctx.Text(TechnicalDetailKeys.DescRegistry,
+                        "Read to determine which option is active, and written when you apply one."),
+                // Every path, not just the first: a mirrored value really is written to all of them.
+                Paths = [.. byPaths.First().Paths.Select(path => new MatrixPath(path, pathLabel))],
+                StartColumn = start,
+                ColumnSpan = columns.Count - start,
+                OpenRegeditTooltip = ctx.Text(TechnicalDetailKeys.OpenRegedit, "Open in Registry Editor"),
+            });
+        }
+    }
+
+    private static void AddAnswerFileColumns(
+        BuildContext ctx,
+        IReadOnlyList<AutounattendElement> elements,
+        IReadOnlyList<AutounattendArchitecture> architectures,
+        List<MatrixColumn> columns,
+        List<MatrixColumnGroup> groups)
+    {
+        foreach (var element in elements)
+        {
+            var start = columns.Count;
+            columns.Add(new MatrixColumn
+            {
+                Header = LeafName(element.Path, '/'),
+                Kind = MatrixColumnKind.AnswerFile,
+            });
+            groups.Add(new MatrixColumnGroup
+            {
+                Label = ctx.Text(TechnicalDetailKeys.GroupAnswerFile, "Answer file"),
+                Kind = MatrixGroupKind.AnswerFile,
+                Description = ctx.Text(TechnicalDetailKeys.DescAnswerFile,
+                    "Written into autounattend.xml when you build it; never read from this PC."),
+                Paths =
+                [
+                    new MatrixPath(element.Pass, ctx.Text(TechnicalDetailKeys.LabelPass, "Pass")),
+                    new MatrixPath(element.Component, ctx.Text(TechnicalDetailKeys.LabelComponent, "Component")),
+                    new MatrixPath(element.Path, ctx.Text(TechnicalDetailKeys.LabelPath, "Path")),
+                ],
+                StartColumn = start,
+                ColumnSpan = 1,
+            });
+        }
+
+        foreach (var architecture in architectures)
+        {
+            var start = columns.Count;
+            columns.Add(new MatrixColumn
+            {
+                Header = architecture.Architecture,
+                Kind = MatrixColumnKind.AnswerFile,
+            });
+            groups.Add(new MatrixColumnGroup
+            {
+                Label = ctx.Text(TechnicalDetailKeys.GroupArchitecture, "Processor architecture"),
+                Kind = MatrixGroupKind.Architecture,
+                Description = ctx.Text(TechnicalDetailKeys.DescArchitecture,
+                    "Every component in the file is written once per checked architecture."),
+                StartColumn = start,
+                ColumnSpan = 1,
+            });
+        }
+    }
+
+    private static OptionMatrix BuildTextMatrix(BuildContext ctx)
+    {
+        var textBox = ctx.Setting.TextBox!;
+        var columns = new List<MatrixColumn>();
+        var groups = new List<MatrixColumnGroup>();
+        AddAnswerFileColumns(
+            ctx,
+            ctx.Setting.Targets.OfType<AutounattendElement>().ToList(),
+            ctx.Setting.Targets.OfType<AutounattendArchitecture>().ToList(),
+            columns,
+            groups);
+        AddSlideshowColumns(ctx, columns, groups);
+
+        var written = columns.Count;
+        AddRegistryColumns(ctx, ctx.Setting.Targets.OfType<RegTarget>().ToList(), columns, groups);
+
+        var rows = new List<MatrixOption>
+        {
+            LabelledRow(ctx.Text(TechnicalDetailKeys.LabelRule, "Allowed form"), textBox.Rule.Pattern, written, columns.Count),
+            LabelledRow(ctx.Default, textBox.Default ?? string.Empty, written, columns.Count),
         };
 
-        return Matrix(ctx, groups, columns, options);
+        return Matrix(ctx, groups, columns, rows);
     }
+
+    private static void AddSlideshowColumns(BuildContext ctx, List<MatrixColumn> columns, List<MatrixColumnGroup> groups)
+    {
+        foreach (var target in ctx.Setting.Targets.OfType<DesktopSlideshowTarget>())
+        {
+            var start = columns.Count;
+            columns.Add(new MatrixColumn
+            {
+                Header = target.Key,
+                Kind = MatrixColumnKind.Script,
+                Chips =
+                [
+                    ctx.Chip(
+                        TechnicalDetailKeys.ChipDesktopSlideshow, "applied through the desktop slideshow",
+                        TechnicalDetailKeys.ChipDesktopSlideshowTooltip,
+                        "Windows records the folder as an id only the shell can build, so Winhance hands it to the desktop slideshow instead of writing a value."),
+                ],
+            });
+            groups.Add(new MatrixColumnGroup
+            {
+                Label = ctx.Text(TechnicalDetailKeys.GroupAlsoRuns, "Also runs"),
+                Kind = MatrixGroupKind.AlsoRuns,
+                StartColumn = start,
+                ColumnSpan = columns.Count - start,
+            });
+        }
+    }
+
+    private static OptionMatrix BuildListMatrix(BuildContext ctx)
+    {
+        var list = ctx.Setting.List!;
+        var columns = new List<MatrixColumn>();
+        var groups = new List<MatrixColumnGroup>();
+        AddAnswerFileColumns(
+            ctx,
+            ctx.Setting.Targets.OfType<AutounattendElement>().ToList(),
+            ctx.Setting.Targets.OfType<AutounattendArchitecture>().ToList(),
+            columns,
+            groups);
+
+        var written = columns.Count;
+        AddRegistryColumns(ctx, ctx.Setting.Targets.OfType<RegTarget>().ToList(), columns, groups);
+
+        var rows = list.Fields
+            .Select(field => LabelledRow(ctx.Text(field.Label), FieldCell(field), written, columns.Count))
+            .ToList();
+
+        return Matrix(ctx, groups, columns, rows);
+    }
+
+    private static string FieldCell(Field field) => field.Rule is { } rule
+        ? $"{field.Key} ({field.Kind}): {rule.Pattern}"
+        : $"{field.Key} ({field.Kind})";
+
+    private static MatrixOption LabelledRow(string label, string value, int valueColumns, int columnCount) => new()
+    {
+        Label = label,
+        Cells =
+        [
+            .. Enumerable.Repeat(new MatrixCell(value), valueColumns),
+            .. Enumerable.Repeat(MatrixCell.Empty, columnCount - valueColumns),
+        ],
+    };
 
     private static List<MatrixColumnGroup> PowerGroups(BuildContext ctx, PowerCfgTarget pcfg, int columnSpan) =>
     [
@@ -617,9 +858,10 @@ public static class TechnicalDetailsBuilder
             : ctx.Text(TechnicalDetailKeys.SectionOptions, "Options"),
         // Only true when there IS a grid to the right. A setting documented purely by its scripts
         // and side effects has no columns, and the sentence would describe something not on screen.
-        // An Action is the other exclusion: its table has a grid but no options, so "selecting an
-        // option" describes something the user cannot do - they press a button and it runs.
-        SettingDescription = columns.Count == 0 || ctx.Setting.Control == ControlKind.Action
+        // Action, TextBox and List are the other exclusions: their tables have a grid but no options, so
+        // "selecting an option" describes something the user cannot do - one presses a button, the others type.
+        SettingDescription = columns.Count == 0
+            || ctx.Setting.Control is ControlKind.Action or ControlKind.TextBox or ControlKind.List
             ? string.Empty
             : ctx.Text(TechnicalDetailKeys.SectionOptionsDescription,
                 "Selecting an option makes the changes shown to the right."),
@@ -628,9 +870,9 @@ public static class TechnicalDetailsBuilder
         OptionLinksHeading = ctx.Text(TechnicalDetailKeys.OptionLinksHeading, "Also sets"),
         Notes = BuildNotes(ctx),
         CodeBlocks = BuildCodeBlocks(ctx),
-        // A setting that asks before it runs does these only if you say yes -- the wallpaper prompt
-        // on theme mode, the "also apply recommended settings" prompt on the Start menu and taskbar
-        // cleaners. Confirmation is what makes them conditional, so it is what picks the heading.
+        // A setting that asks before it runs does these only if you say yes -- the "also apply recommended
+        // settings" prompt on the Start menu and taskbar cleaners. Confirmation is what makes them
+        // conditional, so it is what picks the heading.
         NotesHeading = ctx.Setting.Apply.RequiresConfirmation
             ? ctx.Text(TechnicalDetailKeys.NotesHeadingConditional,
                 "Also happens when you apply, if you agree to the prompt")
@@ -691,17 +933,8 @@ public static class TechnicalDetailsBuilder
                         ctx.Text(TechnicalDetailKeys.EffectRegistryWrite, "Writes registry value"),
                         $"{write.Path}\\{name} = {FormatConcreteValue(write.Value)}{suffix}"));
                     break;
-                case NativePowerEffect power:
-                    notes.Add(new MatrixNote(
-                        ctx.Text(TechnicalDetailKeys.EffectNativePower, "Native power write"),
-                        $"level {power.InformationLevel} = {power.Value}"));
-                    break;
             }
         }
-
-        AddWallpaperNote(ctx, null, ctx.Setting.Effects, notes);
-        for (int i = 0; i < ctx.Setting.States.Count; i++)
-            AddWallpaperNote(ctx, i, ctx.Setting.States[i].Effects, notes);
 
         AddConfirmCheckboxNotes(ctx, notes);
 
@@ -737,20 +970,20 @@ public static class TechnicalDetailsBuilder
             if (state is null) continue;   // nothing recommended: the applier skips it, so the panel does too
 
             notes.Add(new MatrixNote(
-                ctx.Text(SettingLocalizationKeys.Name(sibling), sibling.Display.Name), state));
+                ctx.Text(sibling.Display.Name), state));
         }
     }
 
     // Resolved the same two ways the applier resolves it, so the panel cannot promise a state the apply would not
-    // reach: toggles via the build-aware CatalogToggleState.GetRecommended, selections via the first UNCONDITIONAL
+    // reach: two-state kinds via the build-aware TwoState.GetRecommended, selections via the first UNCONDITIONAL
     // Recommended role. Null for the powercfg sliders, whose recommended value is built in Infrastructure.
     private static string? RecommendedStateLabel(BuildContext ctx, Setting setting)
     {
-        if (setting.Control == ControlKind.Toggle)
-            return CatalogToggleState.GetRecommended(setting, ctx.Build) switch
+        if (TwoState.Is(setting.Control))
+            return TwoState.GetRecommended(setting, ctx.Build) switch
             {
-                true => ctx.Text(TechnicalDetailKeys.On, "On"),
-                false => ctx.Text(TechnicalDetailKeys.Off, "Off"),
+                true => ctx.OnText(setting.Control),
+                false => ctx.OffText(setting.Control),
                 _ => null,
             };
 
@@ -759,14 +992,7 @@ public static class TechnicalDetailsBuilder
         for (int i = 0; i < setting.States.Count; i++)
         {
             if (!setting.States[i].HasRole(RoleKind.Recommended)) continue;
-            // A catalog state Label may itself BE a localization key (the power Template_* options);
-            // everything else uses the per-setting option key. Same two-step SettingLocalizationService
-            // uses, so the row reads exactly like the sibling's own dropdown.
-            var label = setting.States[i].Label;
-            var key = SettingLocalizationKeys.IsLocalizationKey(label)
-                ? label
-                : SettingLocalizationKeys.OptionDisplay(setting, i);
-            return ctx.Text(key, label);
+            return ctx.Text(setting.States[i].Label);
         }
         return null;
     }
@@ -777,25 +1003,6 @@ public static class TechnicalDetailsBuilder
             foreach (var setting in settings)
                 if (setting.Id == settingId) return featureId;
         return null;
-    }
-
-    private static void AddWallpaperNote(BuildContext ctx, int? stateIndex, IReadOnlyList<Effect> effects, List<MatrixNote> notes)
-    {
-        var wallpapers = effects.OfType<WallpaperEffect>().ToList();
-        if (wallpapers.Count == 0) return;
-
-        var label = ctx.Text(TechnicalDetailKeys.EffectWallpaper, "Sets desktop wallpaper");
-        var primary = stateIndex is int index ? $"{label} ({ctx.OptionLabel(index)})" : label;
-
-        // A row each, rather than several paths joined by a pipe into one cell. Two wallpapers for
-        // two Windows versions are two facts, and the table already knows how to show rows.
-        foreach (var wallpaper in wallpapers)
-        {
-            notes.Add(new MatrixNote(primary, wallpaper.Path)
-            {
-                Scope = DescribeBuildRanges(wallpaper.AppliesTo),
-            });
-        }
     }
 
     // Columns and cells are built by two separate passes over the same grouping, so both must key on this. NUL joins
@@ -823,6 +1030,10 @@ public static class TechnicalDetailsBuilder
             chips.Add(ctx.Chip(TechnicalDetailKeys.ChipApplyOnly, "written, not read",
                 TechnicalDetailKeys.ChipApplyOnlyTooltip,
                 "Winhance writes this value when you apply, but does not read it back to decide the current state."));
+        else if (reg.ReadOnly && !reg.ClearedOnApply)
+            chips.Add(ctx.Chip(TechnicalDetailKeys.ChipReadOnly, "read, not written",
+                TechnicalDetailKeys.ChipReadOnlyTooltip,
+                "Winhance reads this value to work out the current state or to fill in this card, and never writes it."));
         // No "mirrored" chip: the group header above this column lists every path the value is written to,
         // each with its own button - a better answer than a chip saying "there is more than one place".
         if (reg.ByteIndex is int byteIndex)
@@ -845,27 +1056,41 @@ public static class TechnicalDetailsBuilder
                 TechnicalDetailKeys.ChipOsSpecificTooltip,
                 "Only used on certain Windows versions. On others this value is left alone."));
 
-        // Catalogs use an EMPTY value name for a key's unnamed default value, not null, so a
-        // null-check alone silently produced a blank column header.
-        var named = !string.IsNullOrEmpty(reg.ValueName);
+        // A catalog writes an EMPTY value name for a key's unnamed default value and NULL for the key itself.
+        var (header, headerTooltip) = reg.ValueName switch
+        {
+            null => (ctx.Text(TechnicalDetailKeys.KeyItself, "(Key)"),
+                ctx.Text(TechnicalDetailKeys.KeyItselfTooltip,
+                    "This setting uses the registry key itself, not one named value inside it.")),
+            "" => (ctx.Text(TechnicalDetailKeys.DefaultValueName, "(Default)"),
+                ctx.Text(TechnicalDetailKeys.DefaultValueNameTooltip,
+                    "A registry key has one unnamed value, shown as (Default) in Registry Editor. This setting uses that one.")),
+            var name => (name, string.Empty),
+        };
+
         return new MatrixColumn
         {
-            Header = named ? reg.ValueName! : ctx.Text(TechnicalDetailKeys.DefaultValueName, "(Default)"),
+            Header = header,
             TypeName = reg.Type.ToString(),
             Chips = chips,
-            HeaderTooltip = named ? string.Empty : ctx.Text(TechnicalDetailKeys.DefaultValueNameTooltip,
-                "A registry key has one unnamed value, shown as (Default) in Registry Editor. This setting uses that one."),
+            HeaderTooltip = headerTooltip,
         };
     }
 
-    private static string LeafName(string path)
+    private static string LeafName(string path, char separator = '\\')
     {
-        var index = path.LastIndexOf('\\');
+        var index = path.LastIndexOf(separator);
         return index >= 0 && index < path.Length - 1 ? path[(index + 1)..] : path;
     }
 
     private static string ValueCell(BuildContext ctx, SettingState state, string key) =>
         state.Set.TryGetValue(key, out var value) ? FormatStateValue(ctx, value) : string.Empty;
+
+    // In a generated file a key the state never mentions and an Absent value are the same: not written.
+    private static string ElementCell(BuildContext ctx, SettingState state, string key) =>
+        state.Set.TryGetValue(key, out var value) && value.WritePayload is not null
+            ? FormatConcreteValue(value.WritePayload)
+            : ctx.Text(TechnicalDetailKeys.NotWritten, "Not written");
 
     private static (string Label, IReadOnlyList<MatrixCell> Cells) BuildReading(
         BuildContext ctx, IReadOnlyList<RegTarget> regTargets, IReadOnlyList<TaskTarget> taskTargets, int columnCount)
@@ -890,7 +1115,7 @@ public static class TechnicalDetailsBuilder
         {
             // Readings are keyed by the registry VALUE NAME (or "KeyExists" for a key-presence
             // target), not by the catalog target key.
-            var readingKey = string.IsNullOrEmpty(reg.ValueName) ? "KeyExists" : reg.ValueName!;
+            var readingKey = reg.ValueName ?? "KeyExists";
             if (snap.Readings is null || !snap.Readings.TryGetValue(readingKey, out var value))
                 cells.Add(new MatrixCell(unreadable));
             else
@@ -917,7 +1142,28 @@ public static class TechnicalDetailsBuilder
             ctx.Text(TechnicalDetailKeys.SectionRegContent, "Registry files"),
             ctx.Text(TechnicalDetailKeys.SectionRegContentDescription,
                 "Winhance imports this registry file when you apply the matching option."));
+        Collect(CodeKind.SetupCommand,
+            ctx.Text(TechnicalDetailKeys.SectionSetupCommands, "Windows Setup commands"),
+            ctx.Text(TechnicalDetailKeys.SectionSetupCommandsDescription,
+                "Windows Setup runs this command during installation when the matching option is chosen."));
+        CollectSlideshowScripts();
         return blocks;
+
+        // A slideshow box has no state to carry an effect, so its scripts are collected from the setting.
+        void CollectSlideshowScripts()
+        {
+            if (!ctx.Setting.Targets.OfType<DesktopSlideshowTarget>().Any()) return;
+            foreach (var script in ctx.Setting.CustomStateScripts)
+            {
+                blocks.Add(new MatrixCodeBlock(
+                    ctx.Text(TechnicalDetailKeys.SectionScripts, "PowerShell"),
+                    ctx.CodeLabel(null),
+                    script.Script,
+                    CodeKind.PowerShell,
+                    ctx.Text(TechnicalDetailKeys.SectionScriptsDescription,
+                        "Winhance runs this script when you apply the matching option.")));
+            }
+        }
 
         void Collect(CodeKind kind, string heading, string description)
         {
@@ -927,6 +1173,7 @@ public static class TechnicalDetailsBuilder
                 {
                     ScriptEffect script when kind == CodeKind.PowerShell => script.Script,
                     RegContentEffect reg when kind == CodeKind.RegFile => reg.Content,
+                    AutounattendCommand command when kind == CodeKind.SetupCommand => command.Command,
                     _ => null,
                 };
                 if (string.IsNullOrWhiteSpace(body)) continue;
@@ -977,16 +1224,6 @@ public static class TechnicalDetailsBuilder
                 yield return (i, effect);
     }
 
-    private static string DescribeBuildRanges(IReadOnlyList<BuildRange> ranges) =>
-        ranges.Count == 0 ? string.Empty : string.Join(", ", ranges.Select(DescribeBuildRange));
-
-    private static string DescribeBuildRange(BuildRange range)
-    {
-        if (range == BuildRange.Windows11) return "Windows 11";
-        if (range == BuildRange.Windows10) return "Windows 10";
-        return $"builds {range.Min.Build}-{range.Max.Build}";
-    }
-
     private sealed class BuildContext
     {
         private readonly ILocalizationService _loc;
@@ -1020,6 +1257,9 @@ public static class TechnicalDetailsBuilder
         public string Text(string key, string fallback) =>
             _loc.TryGetString(key, out var value) && !string.IsNullOrEmpty(value) ? value : fallback;
 
+        // A generated key is always in en.json and the service falls back to English, so the fallback never shows.
+        public string Text(LocKey key) => Text(key.Value, key.Value);
+
         public MatrixChip Chip(string key, string fallback, string tooltipKey, string tooltipFallback) =>
             new(Text(key, fallback), Text(tooltipKey, tooltipFallback));
 
@@ -1034,14 +1274,14 @@ public static class TechnicalDetailsBuilder
         // Never derived by matching English text against a state label.
         public string OptionLabel(int index)
         {
-            if (IsToggle)
+            if (IsTwoState)
             {
                 var state = index >= 0 && index < Setting.States.Count ? Setting.States[index] : null;
-                bool enabled = state is not null && state.Label == "Enabled";
-                return enabled ? Text(TechnicalDetailKeys.On, "On") : Text(TechnicalDetailKeys.Off, "Off");
+                bool on = state is not null && state.Label == TwoState.OnLabel(Setting.Control);
+                return on ? OnText(Setting.Control) : OffText(Setting.Control);
             }
             if (index >= 0 && index < Snapshot.Options.Count) return Snapshot.Options[index].DisplayText;
-            return index >= 0 && index < Setting.States.Count ? Setting.States[index].Label : string.Empty;
+            return index >= 0 && index < Setting.States.Count ? Text(Setting.States[index].Label) : string.Empty;
         }
 
         public string CodeLabel(int? stateIndex) => stateIndex is int index
@@ -1052,18 +1292,24 @@ public static class TechnicalDetailsBuilder
         public bool IsCurrentState(int index)
         {
             if (Snapshot.Outcome != SettingDetectionOutcome.Resolved) return false;
-            if (IsToggle)
+            if (IsTwoState)
             {
                 var state = Setting.States[index];
-                return (state.Label == "Enabled") == Snapshot.IsSelected;
+                return (state.Label == TwoState.OnLabel(Setting.Control)) == Snapshot.IsSelected;
             }
             return Snapshot.SelectedIndex == index;
         }
 
         public string SettingName(string settingId) => Text($"Setting_{settingId}_Name", settingId);
 
-        // ControlKind is derived from the setting's shape and is the catalog's own definition of a toggle
-        // (exactly two states labelled Enabled/Disabled), so it can't drift from what detection relies on.
-        private bool IsToggle => Setting.Control == ControlKind.Toggle;
+        private bool IsTwoState => TwoState.Is(Setting.Control);
+
+        public string OnText(ControlKind kind) => kind == ControlKind.CheckBox
+            ? Text(TechnicalDetailKeys.Checked, "Checked")
+            : Text(TechnicalDetailKeys.On, "On");
+
+        public string OffText(ControlKind kind) => kind == ControlKind.CheckBox
+            ? Text(TechnicalDetailKeys.Unchecked, "Unchecked")
+            : Text(TechnicalDetailKeys.Off, "Off");
     }
 }

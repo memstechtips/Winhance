@@ -39,6 +39,8 @@
         <PackageReference Include="System.DirectoryServices.Protocols" Version="8.0.0" />
         <PackageReference Include="System.IO.Packaging" Version="8.0.1" />
         <PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.10" />
+        <!-- Reads the manifest winget download writes beside a staged installer -->
+        <PackageReference Include="YamlDotNet" Version="16.3.0" />
         <!-- Pin patched System.Security.Cryptography.Xml: floors out the vulnerable
              transitive (NU1903 / GHSA-37gx-xxp4-5rgx CVE-2026-33116,
              GHSA-w3x6-4m5h-cxqf CVE-2026-26171, GHSA-g8r8-53c2-pm3f CVE-2026-47304). 10.0.10 is the patched floor (fixes the <= 10.0.9 range); latest 10.x. -->
@@ -46,8 +48,12 @@
     </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Features\AdvancedTools\Resources\autounattend-template.xml">
-      <LogicalName>Winhance.Infrastructure.Resources.AdvancedTools.autounattend-template.xml</LogicalName>
+    <EmbeddedResource Include="Features\Autounattend\Resources\ExtractScript.ps1">
+      <LogicalName>Winhance.Infrastructure.Resources.Autounattend.ExtractScript.ps1</LogicalName>
+    </EmbeddedResource>
+    <!-- Compiled as source AND embedded as text: the answer file hands this same file to Add-Type. -->
+    <EmbeddedResource Include="Features\Common\Native\DesktopBackgroundInterop.cs">
+      <LogicalName>Winhance.Infrastructure.Resources.Native.DesktopBackgroundInterop.cs</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 

@@ -1,3 +1,4 @@
+using Winhance.Core.Features.Common.Localization;
 using Microsoft.Win32;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
@@ -5,6 +6,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Catalog;
 
@@ -54,7 +56,10 @@ public class ComboBoxResolverSettingConformanceTests
     public void Canonical_state_reads_round_trip_to_that_state_index()
     {
         var resolver = new ComboBoxResolver(StubVersion());
-        var selections = SettingCatalog.All.Where(s => s.Control == ControlKind.Selection).ToList();
+        // An answer-file selection is never read back off a machine, so two of its options may write the same element.
+        var selections = SettingCatalog.All
+            .Where(s => s.Control == ControlKind.Selection && !s.IsAnswerFileOnly)
+            .ToList();
 
         var mismatches = new List<string>();
         int comparedStates = 0;
@@ -151,10 +156,10 @@ public class ComboBoxResolverSettingConformanceTests
 
     // A synthetic 3-option single-key registry selection. Options A/B/C write Val=1/2/3; the option at
     // windowsDefaultIndex carries the WindowsDefault role, and the one at fallbackIndex (if any) is the IsFallback
-    // catch-all. Three non-Enabled/Disabled states with no Numeric/OptionSource -> Control derives to Selection.
+    // catch-all. Three non-Enabled/Disabled states with no Numeric/Options -> Control derives to Selection.
     private static Setting MakeRegSelection(int windowsDefaultIndex, int? fallbackIndex = null)
     {
-        SettingState State(string label, int val, int idx) => new()
+        SettingState State(LocKey label, int val, int idx) => new()
         {
             Label = label,
             Roles = idx == windowsDefaultIndex
@@ -166,12 +171,12 @@ public class ComboBoxResolverSettingConformanceTests
         return new Setting
         {
             Id = "syn-reg-selection",
-            Display = new() { Name = "Synthetic", Description = "Synthetic registry selection" },
+            Display = new() { Name = TestKeys.Of("Synthetic"), Description = TestKeys.Of("Synthetic registry selection") },
             Targets = new Target[]
             {
                 new RegTarget("Val", TestPaths, "Val", RegistryValueKind.DWord),
             },
-            States = new[] { State("A", 1, 0), State("B", 2, 1), State("C", 3, 2) },
+            States = new[] { State(TestKeys.Of("A"), 1, 0), State(TestKeys.Of("B"), 2, 1), State(TestKeys.Of("C"), 3, 2) },
         };
     }
 

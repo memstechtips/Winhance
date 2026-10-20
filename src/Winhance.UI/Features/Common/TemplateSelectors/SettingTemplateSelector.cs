@@ -8,10 +8,13 @@ namespace Winhance.UI.Features.Common.TemplateSelectors;
 public partial class SettingTemplateSelector : DataTemplateSelector
 {
     public DataTemplate? ToggleTemplate { get; set; }
+    public DataTemplate? CheckBoxTemplate { get; set; }
     public DataTemplate? SelectionTemplate { get; set; }
-    public DataTemplate? PowerPlanTemplate { get; set; }
     public DataTemplate? NumericTemplate { get; set; }
     public DataTemplate? ActionTemplate { get; set; }
+    public DataTemplate? TextBoxTemplate { get; set; }
+    public DataTemplate? ListTemplate { get; set; }
+    public DataTemplate? TileSelectionTemplate { get; set; }
     // ONE template each: the on-battery column is bound to HasBattery inside the template rather than split into
     // Dual/SingleAC variants, which is what let the two halves drift apart.
     public DataTemplate? PowerSelectionTemplate { get; set; }
@@ -21,12 +24,6 @@ public partial class SettingTemplateSelector : DataTemplateSelector
     {
         if (item is SettingItemViewModel vm)
         {
-            // Check for PowerPlan setting first (special case of Selection)
-            if (vm.IsPowerPlanSetting && PowerPlanTemplate != null)
-            {
-                return PowerPlanTemplate;
-            }
-
             if (vm.SupportsSeparateACDC)
             {
                 if (vm.InputType == InputType.Selection)
@@ -35,19 +32,24 @@ public partial class SettingTemplateSelector : DataTemplateSelector
                     return PowerNumericTemplate;
             }
 
-            return vm.InputType switch
+            if (vm.ShowsOptionTiles)
+                return TileSelectionTemplate
+                    ?? throw new InvalidOperationException($"No template is wired for the tiles of '{vm.SettingId}'.");
+
+            var template = vm.InputType switch
             {
                 InputType.Toggle => ToggleTemplate,
+                InputType.CheckBox => CheckBoxTemplate,
                 InputType.Selection => SelectionTemplate,
                 InputType.NumericRange => NumericTemplate,
                 InputType.Action => ActionTemplate,
-                // No InputType.CheckBox arm: nothing produces that value. ControlKind has no CheckBox
-                // member and ConfigFileMapper.InputTypeFor - the one map from control to input type -
-                // falls through to Toggle, so a CheckBox view model cannot exist. The enum member survives
-                // only because ConfigurationItem persists InputType into .winhance files. It falls to the
-                // Toggle default below.
-                _ => ToggleTemplate
+                InputType.TextBox => TextBoxTemplate,
+                InputType.List => ListTemplate,
+                _ => throw new InvalidOperationException(
+                    $"Setting '{vm.SettingId}' is a {vm.InputType}, which the settings list has no card for."),
             };
+
+            return template ?? throw new InvalidOperationException($"No template is wired for {vm.InputType}.");
         }
 
         return base.SelectTemplateCore(item);

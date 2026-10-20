@@ -1,42 +1,45 @@
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
+using Winhance.TestSupport;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Core.Tests.Catalog;
 
 public class CatalogRelationshipValidatorTests
 {
-    private static readonly string[] OnState = ["on"];
-    private static readonly string[] OnOffStates = ["on", "off"];
-    private static readonly string[] OnAndGhostStates = ["on", "ghost"];
-    private static readonly string[] NeutralState = ["neutral"];
+    private static readonly LocKey[] OnState = [TestKeys.Of("on")];
+    private static readonly LocKey[] OnOffStates = [TestKeys.Of("on"), TestKeys.Of("off")];
+    private static readonly LocKey[] OnAndGhostStates = [TestKeys.Of("on"), TestKeys.Of("ghost")];
+    private static readonly LocKey[] NeutralState = [TestKeys.Of("neutral")];
 
     private static Setting S(string id, IReadOnlyList<Link>? links = null, string? uiParent = null,
-        IReadOnlyDictionary<string, string>? controls = null, EnabledWhen? enabledWhen = null,
-        string[]? extraStates = null)
+        IReadOnlyDictionary<string, LocKey>? controls = null, StateGate? enabledWhen = null,
+        StateGate? visibleWhen = null, LocKey[]? extraStates = null)
     {
         // Links live per-state. Host any test links on a state so the validator (which reads
         // States.SelectMany(st => st.Links)) sees them; reuse the controls state if present.
         var states = new List<SettingState>();
         if (controls != null)
-            states.Add(new SettingState { Label = "on", Controls = controls });
+            states.Add(new SettingState { Label = TestKeys.Of("on"), Controls = controls });
         if (links is { Count: > 0 })
         {
             if (states.Count > 0)
                 states[0] = states[0] with { Links = links };
             else
-                states.Add(new SettingState { Label = "on", Links = links });
+                states.Add(new SettingState { Label = TestKeys.Of("on"), Links = links });
         }
         // A RELATIONSHIP TARGET needs real states: every rule below asks whether some label exists on
         // it, and a stateless setting answers "no" to all of them.
-        foreach (var label in extraStates ?? System.Array.Empty<string>())
+        foreach (var label in extraStates ?? System.Array.Empty<LocKey>())
             if (states.All(st => st.Label != label))
                 states.Add(new SettingState { Label = label });
         return new()
         {
             Id = id,
-            Display = new() { Name = id, Description = id },
+            Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of(id)},
             UiParentId = uiParent,
             EnabledWhen = enabledWhen,
+            VisibleWhen = visibleWhen,
             States = states,
         };
     }
@@ -44,7 +47,7 @@ public class CatalogRelationshipValidatorTests
     [Fact]
     public void Link_self_loop_is_an_error()
     {
-        var errs = CatalogValidator.Validate(S("a", links: new[] { new Link("a", LinkKind.Requires, "on") }));
+        var errs = CatalogValidator.Validate(S("a", links: new[] { new Link("a", LinkKind.Requires, TestKeys.Of("on")) }));
         Assert.Contains(errs, e => e.Message.Contains("self-loop"));
     }
 
@@ -57,7 +60,7 @@ public class CatalogRelationshipValidatorTests
     [Fact]
     public void Controls_self_reference_is_an_error()
     {
-        var errs = CatalogValidator.Validate(S("a", controls: new Dictionary<string, string> { ["a"] = "on" }));
+        var errs = CatalogValidator.Validate(S("a", controls: new Dictionary<string, LocKey> { ["a"] = TestKeys.Of("on") }));
         Assert.Contains(errs, e => e.Message.Contains("Controls cannot reference its own"));
     }
 
@@ -71,14 +74,14 @@ public class CatalogRelationshipValidatorTests
     [Fact]
     public void Link_to_missing_setting_is_an_error()
     {
-        var errs = CatalogValidator.ValidateCatalog(new[] { S("a", links: new[] { new Link("ghost", LinkKind.Requires, "on") }) });
+        var errs = CatalogValidator.ValidateCatalog(new[] { S("a", links: new[] { new Link("ghost", LinkKind.Requires, TestKeys.Of("on")) }) });
         Assert.Contains(errs, e => e.Message.Contains("Link target 'ghost' is not a known setting"));
     }
 
     [Fact]
     public void Controls_to_missing_child_is_an_error()
     {
-        var errs = CatalogValidator.ValidateCatalog(new[] { S("a", controls: new Dictionary<string, string> { ["ghost"] = "on" }) });
+        var errs = CatalogValidator.ValidateCatalog(new[] { S("a", controls: new Dictionary<string, LocKey> { ["ghost"] = TestKeys.Of("on") }) });
         Assert.Contains(errs, e => e.Message.Contains("Controls child 'ghost' is not a known setting"));
     }
 
@@ -92,16 +95,16 @@ public class CatalogRelationshipValidatorTests
     [Fact]
     public void Link_cycle_is_detected()
     {
-        var a = S("a", links: new[] { new Link("b", LinkKind.Requires, "on") });
-        var b = S("b", links: new[] { new Link("a", LinkKind.Requires, "on") });
+        var a = S("a", links: new[] { new Link("b", LinkKind.Requires, TestKeys.Of("on")) });
+        var b = S("b", links: new[] { new Link("a", LinkKind.Requires, TestKeys.Of("on")) });
         Assert.Contains(CatalogValidator.ValidateCatalog(new[] { a, b }), e => e.Message.Contains("cycle detected"));
     }
 
     [Fact]
     public void Acyclic_graph_has_no_cycle_error()
     {
-        var a = S("a", links: new[] { new Link("b", LinkKind.Requires, "on") });
-        var b = S("b", links: new[] { new Link("c", LinkKind.Requires, "on") });
+        var a = S("a", links: new[] { new Link("b", LinkKind.Requires, TestKeys.Of("on")) });
+        var b = S("b", links: new[] { new Link("c", LinkKind.Requires, TestKeys.Of("on")) });
         var c = S("c");
         Assert.DoesNotContain(CatalogValidator.ValidateCatalog(new[] { a, b, c }), e => e.Message.Contains("cycle detected"));
     }
@@ -109,7 +112,7 @@ public class CatalogRelationshipValidatorTests
     [Fact]
     public void Valid_catalog_has_no_errors()
     {
-        var a = S("a", links: new[] { new Link("b", LinkKind.Requires, "on") }, uiParent: "b");
+        var a = S("a", links: new[] { new Link("b", LinkKind.Requires, TestKeys.Of("on")) }, uiParent: "b");
         var b = S("b", extraStates: OnState);
         Assert.Empty(CatalogValidator.ValidateCatalog(new[] { a, b }));
     }
@@ -122,7 +125,7 @@ public class CatalogRelationshipValidatorTests
     [Fact]
     public void Link_naming_a_state_the_target_does_not_have_is_an_error()
     {
-        var a = S("a", links: new[] { new Link("b", LinkKind.Requires, "ghost") });
+        var a = S("a", links: new[] { new Link("b", LinkKind.Requires, TestKeys.Of("ghost")) });
         var b = S("b", extraStates: OnState);
 
         Assert.Contains(CatalogValidator.ValidateCatalog(new[] { a, b }),
@@ -132,7 +135,7 @@ public class CatalogRelationshipValidatorTests
     [Fact]
     public void Link_naming_a_state_the_target_does_have_is_not_an_error()
     {
-        var a = S("a", links: new[] { new Link("b", LinkKind.Requires, "off") });
+        var a = S("a", links: new[] { new Link("b", LinkKind.Requires, TestKeys.Of("off")) });
         var b = S("b", extraStates: OnOffStates);
 
         Assert.DoesNotContain(CatalogValidator.ValidateCatalog(new[] { a, b }),
@@ -142,7 +145,7 @@ public class CatalogRelationshipValidatorTests
     [Fact]
     public void Controls_naming_a_state_the_child_does_not_have_is_an_error()
     {
-        var master = S("a", controls: new Dictionary<string, string> { ["b"] = "ghost" });
+        var master = S("a", controls: new Dictionary<string, LocKey> { ["b"] = TestKeys.Of("ghost") });
         var child = S("b", extraStates: OnState);
 
         Assert.Contains(CatalogValidator.ValidateCatalog(new[] { master, child }),
@@ -152,7 +155,7 @@ public class CatalogRelationshipValidatorTests
     [Fact]
     public void Controls_naming_a_state_the_child_does_have_is_not_an_error()
     {
-        var master = S("a", controls: new Dictionary<string, string> { ["b"] = "on" });
+        var master = S("a", controls: new Dictionary<string, LocKey> { ["b"] = TestKeys.Of("on") });
         var child = S("b", extraStates: OnState);
 
         Assert.DoesNotContain(CatalogValidator.ValidateCatalog(new[] { master, child }),
@@ -163,7 +166,7 @@ public class CatalogRelationshipValidatorTests
     public void EnabledWhen_targeting_a_missing_setting_is_an_error()
     {
         var errs = CatalogValidator.ValidateCatalog(
-            new[] { S("a", enabledWhen: new EnabledWhen("ghost", OnState)) });
+            new[] { S("a", enabledWhen: new StateGate("ghost", OnState)) });
 
         Assert.Contains(errs, e => e.Message.Contains("EnabledWhen target 'ghost' is not a known setting"));
     }
@@ -171,14 +174,14 @@ public class CatalogRelationshipValidatorTests
     [Fact]
     public void EnabledWhen_self_reference_is_an_error()
     {
-        Assert.Contains(CatalogValidator.Validate(S("a", enabledWhen: new EnabledWhen("a", OnState))),
+        Assert.Contains(CatalogValidator.Validate(S("a", enabledWhen: new StateGate("a", OnState))),
             e => e.Message.Contains("EnabledWhen cannot reference its own setting"));
     }
 
     [Fact]
     public void EnabledWhen_naming_a_state_the_target_does_not_have_is_an_error()
     {
-        var child = S("a", enabledWhen: new EnabledWhen("b", OnAndGhostStates));
+        var child = S("a", enabledWhen: new StateGate("b", OnAndGhostStates));
         var parent = S("b", extraStates: OnState);
 
         var errs = CatalogValidator.ValidateCatalog(new[] { child, parent });
@@ -188,20 +191,35 @@ public class CatalogRelationshipValidatorTests
     }
 
     [Fact]
+    public void VisibleWhen_is_held_to_the_same_rules_as_EnabledWhen()
+    {
+        var selfGated = S("a", visibleWhen: new StateGate("a", OnState));
+        var unknownTarget = S("c", visibleWhen: new StateGate("ghost", OnState));
+        var badLabel = S("d", visibleWhen: new StateGate("b", OnAndGhostStates));
+        var parent = S("b", extraStates: OnState);
+
+        Assert.Contains(CatalogValidator.Validate(selfGated), e => e.Message.Contains("VisibleWhen cannot reference its own setting"));
+        var errs = CatalogValidator.ValidateCatalog(new[] { unknownTarget, badLabel, parent });
+        Assert.Contains(errs, e => e.Message.Contains("VisibleWhen target 'ghost' is not a known setting"));
+        Assert.Contains(errs, e => e.Message.Contains("VisibleWhen names state 'ghost' on 'b'"));
+        Assert.DoesNotContain(errs, e => e.Message.Contains("VisibleWhen names state 'on'"));
+    }
+
+    [Fact]
     public void EnabledWhen_may_name_a_detect_only_state()
     {
         // A gate OBSERVES a state; it does not demand one. "Still usable while the master reads
         // Mixed" is a sane thing to declare, so the detect-only rule that guards Controls and Links
         // deliberately does not apply here.
-        var child = S("a", enabledWhen: new EnabledWhen("b", NeutralState));
+        var child = S("a", enabledWhen: new StateGate("b", NeutralState));
         var parent = new Setting
         {
             Id = "b",
-            Display = new() { Name = "b", Description = "b" },
+            Display = new() { Name = TestKeys.Of("b"), Description = TestKeys.Of("b") },
             States = new[]
             {
-                new SettingState { Label = "on" },
-                new SettingState { Label = "neutral", IsFallback = true, IsDetectOnly = true },
+                new SettingState { Label = TestKeys.Of("on") },
+                new SettingState { Label = TestKeys.Of("neutral"), IsFallback = true, IsDetectOnly = true },
             },
         };
 

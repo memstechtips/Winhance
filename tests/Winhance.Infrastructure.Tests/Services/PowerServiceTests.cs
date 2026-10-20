@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Windows.Win32.Foundation;
 using Moq;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
@@ -103,7 +102,7 @@ public class PowerServiceTests
         // PowerService is not an apply handler (power-plan apply runs through the catalog engine); the interface
         // method remains only because PowerService is still a discovery handler, and it handles nothing.
 
-        var result = await _sut.TryApplySpecialSettingAsync(SettingIds.PowerPlanSelection, 0);
+        var result = await _sut.TryApplySpecialSettingAsync("power-plan-selection", 0);
 
         result.Should().BeFalse();
     }
@@ -180,6 +179,28 @@ public class PowerServiceTests
         _powerSettingsQueryService
             .Setup(s => s.GetActivePowerPlanAsync())
             .ReturnsAsync(validPlan);
+
+        await _sut.CleanupCorruptWinhancePlanAsync();
+
+        _powerSchemeOperations.Verify(
+            s => s.DeleteScheme(It.IsAny<Guid>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CleanupCorruptWinhancePlanAsync_PlanNamedAroundTheBrand_DoesNotDelete()
+    {
+        // fa.json's name for the plan.
+        var persianPlan = new PowerPlan
+        {
+            Name = "\u0637\u0631\u062D \u0627\u0646\u0631\u0698\u06CC Winhance",
+            Guid = "57696e68-616e-6365-506f-776572000000",
+            IsActive = true
+        };
+
+        _powerSettingsQueryService
+            .Setup(s => s.GetAvailablePowerPlansAsync())
+            .ReturnsAsync(new List<PowerPlan> { persianPlan });
 
         await _sut.CleanupCorruptWinhancePlanAsync();
 

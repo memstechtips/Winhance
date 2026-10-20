@@ -176,6 +176,17 @@
                                 <PathIcon x:Name="ResetDefaultsIcon" Data="{StaticResource WindowsLogoIconPath}"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
+                        <MenuFlyoutSeparator x:Name="IncludeActionsSeparator" Visibility="Collapsed"/>
+                        <MenuFlyoutItem x:Name="IncludeAllItem" Visibility="Collapsed">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE73E;" FontSize="14"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem x:Name="ExcludeAllItem" Visibility="Collapsed">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE711;" FontSize="14"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
                     </MenuFlyout>
                 </DropDownButton.Flyout>
             </DropDownButton>
@@ -245,49 +256,75 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:SectionOverviewItemViewModel">
                                         <StackPanel Spacing="8" Margin="0,0,0,8" HorizontalAlignment="Stretch">
-                                            <controls:SettingsCard
-                                                Description="{x:Bind Feature.GroupDescriptionText, Mode=OneWay}"
-                                                AutomationProperties.Name="{x:Bind Feature.DisplayName, Mode=OneWay}"
-                                                HeaderIcon="{x:Bind IconResourceKey, Mode=OneTime, Converter={StaticResource SectionIconConverter}}"
-                                                IsClickEnabled="True"
-                                                Tag="{x:Bind SectionKey, Mode=OneTime}"
-                                                Click="SectionCard_Click">
-                                                <controls:SettingsCard.Header>
-                                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                                        <TextBlock Text="{x:Bind Feature.DisplayName, Mode=OneWay}" VerticalAlignment="Center"/>
-                                                        <Border Style="{StaticResource NewBadgeBorderStyle}"
-                                                                Visibility="{x:Bind IsNewBadgeVisible, Mode=OneWay}">
-                                                            <TextBlock Text="{x:Bind NewBadgeText, Mode=OneWay}" Style="{StaticResource NewBadgeTextStyle}"/>
-                                                        </Border>
+                                            <Grid>
+                                                <controls:SettingsCard
+                                                    Description="{x:Bind Feature.GroupDescriptionText, Mode=OneWay}"
+                                                    AutomationProperties.Name="{x:Bind Feature.DisplayName, Mode=OneWay}"
+                                                    HeaderIcon="{x:Bind IconResourceKey, Mode=OneTime, Converter={StaticResource SectionIconConverter}}"
+                                                    Padding="{x:Bind CardPadding, Mode=OneWay}"
+                                                    IsClickEnabled="True"
+                                                    Tag="{x:Bind SectionKey, Mode=OneTime}"
+                                                    Click="SectionCard_Click">
+                                                    <controls:SettingsCard.Header>
+                                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                                            <TextBlock Text="{x:Bind Feature.DisplayName, Mode=OneWay}" VerticalAlignment="Center"/>
+                                                            <Border Style="{StaticResource NewBadgeBorderStyle}"
+                                                                    Visibility="{x:Bind IsNewBadgeVisible, Mode=OneWay}">
+                                                                <TextBlock Text="{x:Bind NewBadgeText, Mode=OneWay}" Style="{StaticResource NewBadgeTextStyle}"/>
+                                                            </Border>
+                                                        </StackPanel>
+                                                    </controls:SettingsCard.Header>
+                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                        <InfoBadge Style="{StaticResource SuccessIconInfoBadgeStyle}"
+                                                                   Visibility="{x:Bind IsReviewSuccessBadgeVisible, Mode=OneWay}"/>
+                                                        <InfoBadge Style="{StaticResource AttentionValueInfoBadgeStyle}"
+                                                                   Value="{x:Bind ReviewPendingCount, Mode=OneWay}"
+                                                                   Visibility="{x:Bind IsReviewPendingBadgeVisible, Mode=OneWay}"/>
+                                                        <StackPanel Orientation="Horizontal" Spacing="4"
+                                                                    Visibility="{x:Bind ArePillsVisible, Mode=OneWay}">
+                                                            <Border Style="{StaticResource BadgeRecommendedStyle}" Opacity="{x:Bind RecommendedOpacity, Mode=OneWay}">
+                                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                                    <PathIcon Data="{StaticResource BadgeRecommendedIconPath}" Height="12" Width="12"
+                                                                              VerticalAlignment="Center" Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                                    <TextBlock Text="{x:Bind RecommendedText, Mode=OneWay}" Style="{StaticResource BadgeTextStyle}"
+                                                                               Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                            <Border Style="{StaticResource BadgeDefaultStyle}" Opacity="{x:Bind DefaultOpacity, Mode=OneWay}">
+                                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                                    <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
+                                                                              VerticalAlignment="Center" Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                                                                    <TextBlock Text="{x:Bind DefaultText, Mode=OneWay}" Style="{StaticResource BadgeTextStyle}"
+                                                                               Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </StackPanel>
                                                     </StackPanel>
-                                                </controls:SettingsCard.Header>
-                                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <InfoBadge Style="{StaticResource SuccessIconInfoBadgeStyle}"
-                                                               Visibility="{x:Bind IsReviewSuccessBadgeVisible, Mode=OneWay}"/>
-                                                    <InfoBadge Style="{StaticResource AttentionValueInfoBadgeStyle}"
-                                                               Value="{x:Bind ReviewPendingCount, Mode=OneWay}"
-                                                               Visibility="{x:Bind IsReviewPendingBadgeVisible, Mode=OneWay}"/>
-                                                    <StackPanel Orientation="Horizontal" Spacing="4"
-                                                                Visibility="{x:Bind ArePillsVisible, Mode=OneWay}">
-                                                        <Border Style="{StaticResource BadgeRecommendedStyle}" Opacity="{x:Bind RecommendedOpacity, Mode=OneWay}">
-                                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                                <PathIcon Data="{StaticResource BadgeRecommendedIconPath}" Height="12" Width="12"
-                                                                          VerticalAlignment="Center" Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-                                                                <TextBlock Text="{x:Bind RecommendedText, Mode=OneWay}" Style="{StaticResource BadgeTextStyle}"
-                                                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-                                                            </StackPanel>
-                                                        </Border>
-                                                        <Border Style="{StaticResource BadgeDefaultStyle}" Opacity="{x:Bind DefaultOpacity, Mode=OneWay}">
-                                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                                <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
-                                                                          VerticalAlignment="Center" Foreground="{ThemeResource BadgeDefaultForeground}"/>
-                                                                <TextBlock Text="{x:Bind DefaultText, Mode=OneWay}" Style="{StaticResource BadgeTextStyle}"
-                                                                           Foreground="{ThemeResource BadgeDefaultForeground}"/>
-                                                            </StackPanel>
-                                                        </Border>
-                                                    </StackPanel>
+                                                </controls:SettingsCard>
+                                                <!-- Declared after the card so it sits above it: a click lands on the box, not on
+                                                     the card's navigation. -->
+                                                <StackPanel Orientation="Horizontal" Spacing="8"
+                                                            Visibility="{x:Bind ShowIncludeBox, Mode=OneWay}"
+                                                            HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,0,0">
+                                                    <CheckBox
+                                                        IsChecked="{x:Bind IncludeState, Mode=TwoWay}"
+                                                        IsThreeState="False"
+                                                        AutomationProperties.Name="{x:Bind IncludeAutomationName, Mode=OneWay}"
+                                                        ToolTipService.ToolTip="{x:Bind IncludeToolTip, Mode=OneWay}"
+                                                        MinWidth="0"
+                                                        Padding="0"
+                                                        VerticalAlignment="Center"/>
+                                                    <Grid Width="16" Height="16" VerticalAlignment="Center"
+                                                          Opacity="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource BoolToDimOpacityConverter}}">
+                                                        <fluentIcons:FluentIcon Icon="Link" IconVariant="Regular" FontSize="16"
+                                                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                                Visibility="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                        <fluentIcons:FluentIcon Icon="LinkOff" IconVariant="Regular" FontSize="16"
+                                                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                                Visibility="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                                    </Grid>
                                                 </StackPanel>
-                                            </controls:SettingsCard>
+                                            </Grid>
                                             <winControls:FeatureOutcomeBanner SectionKey="{x:Bind SectionKey, Mode=OneTime}"
                                                                         NavigationRequested="OnOutcomeBannerNavigationRequested"
                                                                         Feature="{x:Bind Feature, Mode=OneWay}"/>

@@ -31,6 +31,9 @@ public class LocalizationKeyReferenceTests
         @"|\bShow(?:Message|(?:Information|Warning|Error|CustomContentDialog|TaskOutputDialog)Async)\(\s*\$?""[^""]",
         RegexOptions.Compiled);
 
+    // No leading \b, so a ToggleSwitch's OnContent/OffContent is caught too.
+    private static readonly Regex HardcodedXamlCaption = new(@"Content=""[A-Za-z]", RegexOptions.Compiled);
+
     // Whole string literals, escapes included; the test flags any longer than the empty "".
     private static readonly Regex StringLiteral = new(@"""(?:[^""\\]|\\.)*""", RegexOptions.Compiled);
 
@@ -40,6 +43,7 @@ public class LocalizationKeyReferenceTests
     [
         Path.Combine("Winhance.Core", "Features", "Common", "Interfaces", "IDialogService.cs"),
         Path.Combine("Winhance.Core", "Features", "Common", "Models", "ConfirmationRequest.cs"),
+        Path.Combine("Winhance.Core", "Features", "Common", "Models", "SummaryRequest.cs"),
     ];
 
     private static HashSet<string> EnglishKeys()
@@ -111,6 +115,31 @@ public class LocalizationKeyReferenceTests
             "dialog titles, messages and button labels must come from a localization key (GetString(\"...\")), " +
             "not an English literal - 28 of the 29 languages would see English. Pass \"\" (or omit the argument) " +
             "to get the localized default instead of writing OK / Cancel / Error yourself:\n" +
+            string.Join("\n", offenders));
+    }
+
+    [Fact]
+    public void XamlCaptions_AreNeverAHardcodedLiteral()
+    {
+        var offenders = new List<string>();
+        var scanned = 0;
+        var xamlFiles = Directory.EnumerateFiles(Path.Combine(SrcDir, "Winhance.UI"), "*.xaml", SearchOption.AllDirectories)
+            .Where(f => !IsBuildOutput(f));
+        foreach (var file in xamlFiles)
+        {
+            scanned++;
+            var lines = File.ReadAllLines(file);
+            for (var i = 0; i < lines.Length; i++)
+            {
+                if (HardcodedXamlCaption.IsMatch(lines[i]))
+                    offenders.Add($"  {Path.GetRelativePath(SrcDir, file)}:{i + 1}: {lines[i].Trim()}");
+            }
+        }
+
+        scanned.Should().BeGreaterThan(10, because: "the scan must actually see the XAML tree");
+        offenders.Should().BeEmpty(because:
+            "a Content caption must bind a localized view-model string - 28 of the 29 languages would see an " +
+            "English literal:\n" +
             string.Join("\n", offenders));
     }
 

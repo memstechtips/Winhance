@@ -9,5 +9,6 @@ public record SettingViewModelDependencies(
     IDispatcherService DispatcherService,
     IDialogService DialogService,
     IRegeditLauncher RegeditLauncher,
-    IApplicationModeService ApplicationModeService
+    IApplicationModeService ApplicationModeService,
+    IFilePickerService FilePickerService
 );

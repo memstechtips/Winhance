@@ -2,7 +2,10 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -18,6 +21,9 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
     private readonly IConfigReviewBadgeService _badgeService;
     private readonly IConfigReviewModeService _reviewModeService;
     private readonly ILocalizationService _localizationService;
+    private readonly ICatalogSettingsRegistry _registry;
+    private readonly ICatalogScopeProvider _scope;
+    private readonly IApplicationModeService _modeService;
 
     private ObservableCollection<SettingItemViewModel>? _observedSettings;
     private readonly List<SettingItemViewModel> _observedItems = new();
@@ -38,7 +44,10 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
         ISettingsFeatureViewModel feature,
         IConfigReviewBadgeService badgeService,
         IConfigReviewModeService reviewModeService,
-        ILocalizationService localizationService)
+        ILocalizationService localizationService,
+        ICatalogSettingsRegistry registry,
+        ICatalogScopeProvider scope,
+        IApplicationModeService modeService)
     {
         SectionKey = sectionKey;
         FeatureId = featureId;
@@ -47,10 +56,15 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
         _badgeService = badgeService;
         _reviewModeService = reviewModeService;
         _localizationService = localizationService;
+        _registry = registry;
+        _scope = scope;
+        _modeService = modeService;
 
         _badgeService.BadgeStateChanged += OnBadgeStateChanged;
         _reviewModeService.ReviewModeChanged += OnReviewModeChanged;
         _localizationService.LanguageChanged += OnLanguageChanged;
+        _modeService.ModeChanged += OnApplicationModeChanged;
+        Feature.PropertyChanged += OnFeaturePropertyChanged;
 
         Attach();
         Refresh();
@@ -100,6 +114,84 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
     [ObservableProperty]
     public partial string NewBadgeText { get; set; } = string.Empty;
 
+    public bool ShowIncludeBox => _modeService.Capabilities().AuthorsIntent;
+
+    public bool IsIncluded => IncludeState is not false;
+
+    // A 20px checkbox, 8px, a 16px glyph, then 12px to the header icon.
+    private const double IncludeBoxGutter = 56;
+
+    public Microsoft.UI.Xaml.Thickness CardPadding => ShowIncludeBox
+        ? new Microsoft.UI.Xaml.Thickness(16 + IncludeBoxGutter, 12, 16, 12)
+        : new Microsoft.UI.Xaml.Thickness(16, 12, 16, 12);
+
+    public string IncludeToolTip => IncludeState is false
+        ? Localized("Setting_Include_Tooltip_Out", "Left out of the file. Tick it to put it back.")
+        : Localized("Setting_Include_Tooltip_In", "Included in the file");
+
+    public string IncludeAutomationName => _localizationService.GetStringOrDefault(
+        "Setting_Include_AutomationName", $"Include {Feature.DisplayName} in the file", Feature.DisplayName);
+
+    // Read off the session over the catalog, not the cards: a section nobody has opened has no cards yet.
+    public bool? IncludeState
+    {
+        get
+        {
+            if (!ShowIncludeBox) return null;
+
+            var settings = IncludableSettings();
+            if (settings.Count == 0) return null;
+
+            bool allIn = true;
+            bool noneIn = true;
+            foreach (var setting in settings)
+            {
+                bool included = _modeService.IsIncluded(setting.Id);
+                allIn &= included;
+                noneIn &= !included;
+            }
+
+            return allIn ? true : noneIn ? false : null;
+        }
+        set
+        {
+            if (value is not bool included) return;
+
+            foreach (var setting in IncludableSettings())
+            {
+                _modeService.SetIncluded(setting.Id, included);
+            }
+
+            // The cards read the session back rather than being assigned it: a card the session refused to exclude
+            // has to stay in, and a parent's own box would cascade over children this loop already reaches.
+            foreach (var card in Feature.Settings)
+            {
+                card.SetIncludedFromSession(_modeService.IsIncluded(card.SettingId));
+            }
+
+            // The only raise when the click changed nothing - without it the box keeps what was clicked.
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsIncluded));
+            OnPropertyChanged(nameof(IncludeToolTip));
+        }
+    }
+
+    // The session never excludes an answer-file setting, so counting one would pin the box to indeterminate.
+    // The registry throws until startup initializes it; a read before then answers indeterminate.
+    private IReadOnlyList<Setting> IncludableSettings()
+    {
+        try
+        {
+            return _registry.GetByFeature(FeatureId, _scope.Current)
+                .Where(setting => !setting.IsAnswerFileOnly)
+                .ToList();
+        }
+        catch (InvalidOperationException)
+        {
+            return Array.Empty<Setting>();
+        }
+    }
+
     // Cheap and idempotent, so it is safe to call from any invalidation trigger.
     public void Refresh()
     {
@@ -126,6 +218,10 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
         {
             NewBadgeText = $"{Localized("Badge_New", "NEW")} {summary.NewCount}";
         }
+
+        OnPropertyChanged(nameof(IncludeState));
+        OnPropertyChanged(nameof(IsIncluded));
+        OnPropertyChanged(nameof(IncludeToolTip));
     }
 
     // A count while diffs are unreviewed, a checkmark once fully reviewed or in the config with no diffs, nothing
@@ -205,17 +301,41 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
             or nameof(SettingItemViewModel.Outcome)
             or nameof(SettingItemViewModel.IsSelected)
             or nameof(SettingItemViewModel.SelectedValue)
-            or nameof(SettingItemViewModel.IsNew))
+            or nameof(SettingItemViewModel.IsNew)
+            or nameof(SettingItemViewModel.IsIncluded))
         {
             Refresh();
         }
+    }
+
+    // The first load replaces Settings rather than filling the collection the constructor attached to.
+    private void OnFeaturePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is null or nameof(ISettingsFeatureViewModel.Settings))
+        {
+            Attach();
+            Refresh();
+        }
+    }
+
+    private void OnApplicationModeChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(ShowIncludeBox));
+        OnPropertyChanged(nameof(CardPadding));
+        OnPropertyChanged(nameof(IncludeState));
+        OnPropertyChanged(nameof(IsIncluded));
+        OnPropertyChanged(nameof(IncludeToolTip));
     }
 
     private void OnBadgeStateChanged(object? sender, EventArgs e) => UpdateReviewBadge();
 
     private void OnReviewModeChanged(object? sender, EventArgs e) => UpdateReviewBadge();
 
-    private void OnLanguageChanged(object? sender, EventArgs e) => Refresh();
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(IncludeAutomationName));
+        Refresh();
+    }
 
     public void Dispose()
     {
@@ -226,5 +346,7 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
         _badgeService.BadgeStateChanged -= OnBadgeStateChanged;
         _reviewModeService.ReviewModeChanged -= OnReviewModeChanged;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        _modeService.ModeChanged -= OnApplicationModeChanged;
+        Feature.PropertyChanged -= OnFeaturePropertyChanged;
     }
 }

@@ -1,5 +1,8 @@
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.Core.Tests.Catalog;
 
@@ -22,10 +25,10 @@ public class DnsAndRestoreDetectorTests
         public string? ActivePowerPlanGuid() => null;
     }
 
-    private static readonly Setting Dummy = new() { Id = "d", Display = new() { Name = "d", Description = "d" } };
+    private static readonly Setting Dummy = new() { Id = "d", Display = new() { Name = TestKeys.Of("d"), Description = TestKeys.Of("d") } };
 
-    private static readonly DnsServerDetector Dns = new("Automatic",
-        new Dictionary<string, string> { ["1.1.1.1"] = "Cloudflare", ["8.8.8.8"] = "Google" });
+    private static readonly DnsServerDetector Dns = new(TestKeys.Of("Automatic"),
+        new Dictionary<string, LocKey> { ["1.1.1.1"] = TestKeys.Of("Cloudflare"), ["8.8.8.8"] = TestKeys.Of("Google") });
 
     [Fact]
     public void Dhcp_resolves_to_automatic()
@@ -39,7 +42,7 @@ public class DnsAndRestoreDetectorTests
     public void Unknown_primary_is_custom()
         => Assert.Null(Dns.Detect(Dummy, new FakeCtx { PrimaryDns = "9.9.9.9" }));
 
-    private static readonly SystemRestoreDetector Restore = new("On", "Off");
+    private static readonly SystemRestoreDetector Restore = new(TestKeys.Of("On"), TestKeys.Of("Off"));
 
     [Fact]
     public void Restore_enabled_resolves_to_on()

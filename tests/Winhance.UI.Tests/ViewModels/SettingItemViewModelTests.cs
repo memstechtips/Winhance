@@ -11,6 +11,7 @@ using Winhance.UI.Features.Optimize.ViewModels;
 using Xunit;
 using Winhance.TestSupport;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.UI.Tests.ViewModels;
 
 public class SettingItemViewModelTests
@@ -45,7 +46,7 @@ public class SettingItemViewModelTests
         _defaultSetting = new Setting
         {
             Id = "test-setting",
-            Display = new() { Name = "Test Setting", Description = "A test setting description" },
+            Display = new() { Name = TestKeys.Of("Test Setting"), Description = TestKeys.Of("A test setting description") },
         };
 
         _defaultConfig = new SettingItemViewModelConfig
@@ -138,7 +139,7 @@ public class SettingItemViewModelTests
         var setting = new Setting
         {
             Id = "act-badge",
-            Display = new() { Name = "Action", Description = "d" },
+            Display = new() { Name = TestKeys.Of("Action"), Description = TestKeys.Of("d") },
         };
         var config = _defaultConfig with
         {
@@ -197,10 +198,10 @@ public class SettingItemViewModelTests
         // The option-warning banner is computed from config.OptionWarnings, not the Setting, so a minimal synthetic Setting suffices.
         var config = _defaultConfig with
         {
-            Setting = new Setting { Id = "gaming-windows-search-service", Display = new() { Name = "Windows Search Indexing Service", Description = "desc" } },
+            Setting = new Setting { Id = "gaming-windows-search-service", Display = new() { Name = TestKeys.Of("Windows Search Indexing Service"), Description = TestKeys.Of("desc") } },
             SettingId = "gaming-windows-search-service",
             InputType = InputType.Selection,
-            OptionWarnings = new string?[] { "WARNING: Disabling WSearch breaks Outlook search.", null },
+            OptionWarnings = new OptionWarning?[] { new("WARNING: Disabling WSearch breaks Outlook search.", false), null },
         };
         var sut = CreateSut(config);
 
@@ -222,7 +223,7 @@ public class SettingItemViewModelTests
     {
         var config = _defaultConfig with
         {
-            Setting = new Setting { Id = "child-setting", Display = new() { Name = "Child", Description = "Child setting" }, UiParentId = "parent-setting" },
+            Setting = new Setting { Id = "child-setting", Display = new() { Name = TestKeys.Of("Child"), Description = TestKeys.Of("Child setting") }, UiParentId = "parent-setting" },
             SettingId = "child-setting"
         };
         var sut = CreateSut(config);
@@ -538,7 +539,7 @@ public class SettingItemViewModelTests
     {
         var config = _defaultConfig with
         {
-            Setting = new Setting { Id = "standard-selection", Display = new() { Name = "Standard Selection", Description = "Non-separate selection" } },
+            Setting = new Setting { Id = "standard-selection", Display = new() { Name = TestKeys.Of("Standard Selection"), Description = TestKeys.Of("Non-separate selection") } },
             SettingId = "standard-selection",
             InputType = InputType.Selection
         };
@@ -747,7 +748,7 @@ public class SettingItemViewModelTests
     {
         var config = _defaultConfig with
         {
-            Setting = new Setting { Id = "advanced-setting", Display = new() { Name = "Advanced", Description = "Requires unlock" }, Availability = new Availability { RequiresAdvancedUnlock = true } },
+            Setting = new Setting { Id = "advanced-setting", Display = new() { Name = TestKeys.Of("Advanced"), Description = TestKeys.Of("Requires unlock") }, Availability = new Availability { RequiresAdvancedUnlock = true } },
             SettingId = "advanced-setting"
         };
         var sut = CreateSut(config);
@@ -1123,11 +1124,11 @@ public class SettingItemViewModelTests
         return new Setting
         {
             Id = id,
-            Display = new() { Name = id, Description = "" },
+            Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
             States = new[]
             {
-                new SettingState { Label = "Enabled", Roles = enabled },
-                new SettingState { Label = "Disabled", Roles = disabled },
+                new SettingState { Label = LocKey.Common.Enabled, Roles = enabled },
+                new SettingState { Label = LocKey.Common.Disabled, Roles = disabled },
             },
         };
     }
@@ -1142,12 +1143,12 @@ public class SettingItemViewModelTests
             var roles = new List<StateRole>();
             if (rec) roles.Add(StateRole.Recommended);
             if (def) roles.Add(StateRole.WindowsDefault);
-            states.Add(new SettingState { Label = label, Roles = roles });
+            states.Add(new SettingState { Label = TestKeys.Of(label), Roles = roles });
         }
         return new Setting
         {
             Id = id,
-            Display = new() { Name = id, Description = "", IsSubjectivePreference = subjective },
+            Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of(""), IsSubjectivePreference = subjective },
             States = states,
         };
     }
@@ -1160,7 +1161,7 @@ public class SettingItemViewModelTests
         return new Setting
         {
             Id = id,
-            Display = new() { Name = id, Description = "" },
+            Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
             Numeric = new() { Min = min, Max = max, Units = units, Recommended = rec, WindowsDefault = def },
         };
     }
@@ -1179,7 +1180,7 @@ public class SettingItemViewModelTests
         return new Setting
         {
             Id = id,
-            Display = new() { Name = id, Description = "" },
+            Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
             Contexts = new[] { PowerContext.AC, PowerContext.DC },
             Targets = new Target[] { new PowerCfgTarget("Power", "sub", "setting", PowerModeSupport.Separate) },
             Numeric = new() { Min = 0, Max = 100, Units = units, Recommended = recommended, WindowsDefault = windowsDefault },
@@ -1193,11 +1194,11 @@ public class SettingItemViewModelTests
     {
         var states = new List<SettingState>();
         foreach (var (label, power) in options)
-            states.Add(new SettingState { Label = label, Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(power) } });
+            states.Add(new SettingState { Label = TestKeys.Of(label), Set = new Dictionary<string, StateValue> { ["Power"] = StateValue.Of(power) } });
         return new Setting
         {
             Id = id,
-            Display = new() { Name = id, Description = "" },
+            Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
             Contexts = new[] { PowerContext.AC, PowerContext.DC },
             Targets = new Target[] { new PowerCfgTarget("Power", "sub", "setting", PowerModeSupport.Separate) },
             States = states,
@@ -1209,8 +1210,8 @@ public class SettingItemViewModelTests
         {
             Setting = setting,
             SettingId = setting.Id,
-            Name = setting.Display.Name,
-            Description = setting.Display.Description,
+            Name = setting.Display.Name.Value,
+            Description = setting.Display.Description.Value,
             InputType = InputType.Toggle,
             IsSelected = false,
         };
@@ -1220,8 +1221,8 @@ public class SettingItemViewModelTests
         {
             Setting = setting,
             SettingId = setting.Id,
-            Name = setting.Display.Name,
-            Description = setting.Display.Description,
+            Name = setting.Display.Name.Value,
+            Description = setting.Display.Description.Value,
             InputType = InputType.Selection,
             IsSelected = false,
         };
@@ -1231,8 +1232,8 @@ public class SettingItemViewModelTests
         {
             Setting = setting,
             SettingId = setting.Id,
-            Name = setting.Display.Name,
-            Description = setting.Display.Description,
+            Name = setting.Display.Name.Value,
+            Description = setting.Display.Description.Value,
             InputType = InputType.NumericRange,
             IsSelected = false,
         };
@@ -1369,8 +1370,8 @@ public class SettingItemViewModelTests
         {
             Setting = setting,
             SettingId = setting.Id,
-            Name = setting.Display.Name,
-            Description = setting.Display.Description,
+            Name = setting.Display.Name.Value,
+            Description = setting.Display.Description.Value,
             InputType = InputType.Toggle,
             IsSelected = false,
         };
@@ -1390,8 +1391,8 @@ public class SettingItemViewModelTests
         {
             Setting = setting,
             SettingId = setting.Id,
-            Name = setting.Display.Name,
-            Description = setting.Display.Description,
+            Name = setting.Display.Name.Value,
+            Description = setting.Display.Description.Value,
             InputType = InputType.Toggle,
             IsSelected = true,
         };
@@ -1411,8 +1412,8 @@ public class SettingItemViewModelTests
         {
             Setting = setting,
             SettingId = setting.Id,
-            Name = setting.Display.Name,
-            Description = setting.Display.Description,
+            Name = setting.Display.Name.Value,
+            Description = setting.Display.Description.Value,
             InputType = InputType.Toggle,
             IsSelected = false,
         };
@@ -1432,8 +1433,8 @@ public class SettingItemViewModelTests
         {
             Setting = setting,
             SettingId = setting.Id,
-            Name = setting.Display.Name,
-            Description = setting.Display.Description,
+            Name = setting.Display.Name.Value,
+            Description = setting.Display.Description.Value,
             InputType = InputType.Toggle,
             IsSelected = true,
         };

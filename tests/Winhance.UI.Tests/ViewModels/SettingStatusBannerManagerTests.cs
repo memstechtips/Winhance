@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Moq;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Xunit;
 
@@ -54,7 +55,7 @@ public class SettingStatusBannerManagerTests
     [Fact]
     public void ComputeBannerForValue_WithMatchingOptionWarning_ReturnsErrorBanner()
     {
-        var optionWarnings = new string?[] { null, "Security risk!" };
+        var optionWarnings = new OptionWarning?[] { null, new("Security risk!", false) };
 
         var result = _manager.ComputeBannerForValue(1, optionWarnings, null, 2, null);
 
@@ -64,9 +65,21 @@ public class SettingStatusBannerManagerTests
     }
 
     [Fact]
+    public void ComputeBannerForValue_WithAdvisoryOptionWarning_ReturnsWarningBanner()
+    {
+        var optionWarnings = new OptionWarning?[] { null, new("Windows only offers this in its own Settings.", true) };
+
+        var result = _manager.ComputeBannerForValue(1, optionWarnings, null, 2, null);
+
+        result.Should().NotBeNull();
+        result!.Value.Message.Should().Be("Windows only offers this in its own Settings.");
+        result.Value.Severity.Should().Be(InfoBarSeverity.Warning);
+    }
+
+    [Fact]
     public void ComputeBannerForValue_WithNonMatchingOptionWarning_ReturnsClear()
     {
-        var optionWarnings = new string?[] { null, "Security risk!" };
+        var optionWarnings = new OptionWarning?[] { null, new("Security risk!", false) };
 
         var result = _manager.ComputeBannerForValue(0, optionWarnings, null, 2, null);
 

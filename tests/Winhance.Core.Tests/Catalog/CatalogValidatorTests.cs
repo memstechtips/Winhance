@@ -1,8 +1,11 @@
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.TestSupport;
 using Xunit;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Core.Tests.Catalog;
 
 public class CatalogValidatorTests
@@ -12,7 +15,10 @@ public class CatalogValidatorTests
     private static RegTarget Reg(string key, string valueName) =>
         new(key, TestPaths, valueName, RegistryValueKind.DWord);
 
-    private static SettingState St(string label, Dictionary<string, StateValue> set,
+    private static AutounattendElement Element(string key) =>
+        new(key, "oobeSystem", "Microsoft-Windows-Shell-Setup", "OOBE/" + key);
+
+    private static SettingState St(LocKey label, Dictionary<string, StateValue> set,
         bool fallback = false, params StateRole[] roles) =>
         new() { Label = label, Set = set, Roles = roles, IsFallback = fallback };
 
@@ -20,10 +26,203 @@ public class CatalogValidatorTests
         IReadOnlyList<PowerContext>? contexts = null, IStateDetector? detector = null) =>
         new()
         {
-            Id = "test-setting", Display = new() { Name = "Test", Description = "Test" },
+            Id = "test-setting", Display = new() { Name = TestKeys.Of("Test"), Description = TestKeys.Of("Test") },
             Targets = targets, States = states, Detector = detector,
             Contexts = contexts ?? new[] { PowerContext.Always },
         };
+
+    private static SettingState Named(string label, string key) =>
+        St(TestKeys.Of(label), new() { [FakeOptionProvider.TargetKey] = StateValue.Of(key) });
+
+    [Fact]
+    public void Every_setting_in_the_catalog_passes_its_own_rules()
+    {
+        var errors = SettingCatalog.All
+            .SelectMany(CatalogValidator.Validate)
+            .Select(e => $"{e.SettingId}: {e.Message}")
+            .ToList();
+
+        Assert.Empty(errors);
+    }
+
+    [Theory]
+    [InlineData(@"HKEY_CLASSES_ROOT\lnkfile")]
+    [InlineData(@"HKCR\lnkfile")]
+    public void A_registry_path_through_classes_root_is_an_error(string path)
+    {
+        var s = Make([new RegTarget("NeverShowExt", [path], "NeverShowExt", RegistryValueKind.String)],
+            [St(TestKeys.Of("On"), new() { ["NeverShowExt"] = StateValue.Of("") }, fallback: true)]);
+
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("HKEY_CLASSES_ROOT"));
+    }
+
+    [Fact]
+    public void A_keyed_selection_with_one_target_and_no_states_is_valid()
+    {
+        Assert.Empty(CatalogValidator.Validate(FakeOptionProvider.SettingFor()));
+    }
+
+    [Fact]
+    public void A_keyed_selection_may_name_its_options_as_states_by_key_alone()
+    {
+        var s = FakeOptionProvider.SettingFor() with
+        {
+            Targets = [.. FakeOptionProvider.SettingFor().Targets, Reg("Type", "BackgroundType") with { ReadOnly = true }],
+            States = [Named("A", "alpha"), Named("B", "beta")],
+        };
+
+        Assert.Empty(CatalogValidator.Validate(s));
+    }
+
+    [Fact]
+    public void A_keyed_state_that_gives_its_key_target_no_string_is_an_error()
+    {
+        var s = FakeOptionProvider.SettingFor() with
+        {
+            States = [St(TestKeys.Of("A"), new() { [FakeOptionProvider.TargetKey] = StateValue.Of(1) })],
+        };
+
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("names no key"));
+    }
+
+    [Fact]
+    public void A_keyed_selection_with_no_key_target_cannot_name_a_state()
+    {
+        var s = FakeOptionProvider.SettingFor() with
+        {
+            Targets = [new RegTarget(FakeOptionProvider.TargetKey, TestPaths, "V", RegistryValueKind.String) { From = OptionValue.Color }],
+            States = [Named("A", "alpha")],
+        };
+
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("names no key"));
+    }
+
+    [Fact]
+    public void Two_keyed_states_with_the_same_key_in_any_case_are_an_error()
+    {
+        var s = FakeOptionProvider.SettingFor() with { States = [Named("A", "alpha"), Named("B", "ALPHA")] };
+
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("repeats the key 'ALPHA'"));
+    }
+
+    [Fact]
+    public void A_keyed_state_may_not_carry_a_role_an_effect_a_control_or_a_link()
+    {
+        var named = Named("A", "alpha");
+        var states = new[]
+        {
+            named with { Roles = [StateRole.Recommended] },
+            named with { Effects = [new ScriptEffect("x", RunContext.User)] },
+            named with { Controls = new Dictionary<string, LocKey> { ["other"] = TestKeys.Of("On") } },
+            named with { Links = [new Link("other", LinkKind.Requires, TestKeys.Of("On"))] },
+        };
+
+        foreach (var state in states)
+        {
+            var s = FakeOptionProvider.SettingFor() with { States = [state] };
+            Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("may not carry roles, effects, controls or links"));
+        }
+    }
+
+    [Fact]
+    public void A_power_plan_list_with_no_target_is_valid()
+    {
+        var s = FakeOptionProvider.SettingFor() with
+        {
+            Options = new(OptionSource.PowerPlans),
+            Targets = System.Array.Empty<Target>(),
+        };
+
+        Assert.Empty(CatalogValidator.Validate(s));
+    }
+
+    [Fact]
+    public void Any_other_keyed_selection_must_write_a_registry_target()
+    {
+        var none = FakeOptionProvider.SettingFor() with { Targets = System.Array.Empty<Target>() };
+        var readOnly = FakeOptionProvider.SettingFor() with { Targets = [Reg("Type", "BackgroundType") with { ReadOnly = true }] };
+
+        Assert.Contains(CatalogValidator.Validate(none), e => e.Message.Contains("at least one registry target that is not ReadOnly"));
+        Assert.Contains(CatalogValidator.Validate(readOnly), e => e.Message.Contains("at least one registry target that is not ReadOnly"));
+    }
+
+    [Fact]
+    public void A_keyed_selection_with_a_numeric_range_is_an_error()
+    {
+        var s = FakeOptionProvider.SettingFor() with { Numeric = new() { Min = 0, Max = 100 } };
+
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("Numeric range"));
+    }
+
+    [Fact]
+    public void A_target_that_takes_a_computed_value_belongs_to_a_keyed_selection()
+    {
+        var keyed = FakeOptionProvider.SettingFor() with
+        {
+            Targets = [.. FakeOptionProvider.SettingFor().Targets, Reg("Locale", "Locale") with { From = OptionValue.LocaleId }],
+        };
+        var live = Make(
+            new[] { Reg("Mode", "Mode") with { From = OptionValue.LocaleId } },
+            new[]
+            {
+                St(TestKeys.Of("Hide"), new() { ["Mode"] = StateValue.Of(0) }),
+                St(TestKeys.Of("Box"), new() { ["Mode"] = StateValue.Of(2) }),
+            });
+
+        Assert.Empty(CatalogValidator.Validate(keyed));
+        Assert.Contains(CatalogValidator.Validate(live), e => e.Message.Contains("takes From LocaleId"));
+    }
+
+    [Theory]
+    [InlineData(OptionSource.TimeZones)]
+    [InlineData(OptionSource.KeyboardLayouts)]
+    public void A_list_read_from_registry_subkeys_must_name_their_path_and_caption(OptionSource source)
+    {
+        const string message = "must name their Path and LabelValue";
+        var named = FakeOptionProvider.SettingFor() with { Options = new(source) { Path = @"HKEY_LOCAL_MACHINE\TEST", LabelValue = "Display" } };
+
+        Assert.DoesNotContain(CatalogValidator.Validate(named), e => e.Message.Contains(message));
+        Assert.Contains(CatalogValidator.Validate(named with { Options = named.Options! with { Path = null } }), e => e.Message.Contains(message));
+        Assert.Contains(CatalogValidator.Validate(named with { Options = named.Options! with { LabelValue = null } }), e => e.Message.Contains(message));
+    }
+
+    [Fact]
+    public void A_list_not_read_from_registry_subkeys_may_not_name_a_path_or_caption()
+    {
+        var withPath = FakeOptionProvider.SettingFor() with { Options = new(OptionSource.RegionalFormats) { Path = @"HKEY_LOCAL_MACHINE\TEST" } };
+        var withCaption = FakeOptionProvider.SettingFor() with { Options = new(OptionSource.RegionalFormats) { LabelValue = "Display" } };
+
+        Assert.Contains(CatalogValidator.Validate(withPath), e => e.Message.Contains("Path and LabelValue would be silently ignored"));
+        Assert.Contains(CatalogValidator.Validate(withCaption), e => e.Message.Contains("Path and LabelValue would be silently ignored"));
+    }
+
+    [Fact]
+    public void Only_a_colour_or_locale_value_list_declares_fixed_keys()
+    {
+        var colors = FakeOptionProvider.SettingFor() with { Options = new(OptionSource.Colors) { Keys = ["#000000"] } };
+        var locale = FakeOptionProvider.SettingFor() with
+        {
+            Options = new(OptionSource.LocaleValues) { Value = OptionValue.ShortDate, Keys = ["dd/MM/yyyy"] },
+        };
+        var formats = FakeOptionProvider.SettingFor() with { Options = new(OptionSource.RegionalFormats) { Keys = ["en-US"] } };
+
+        Assert.DoesNotContain(CatalogValidator.Validate(colors), e => e.Message.Contains("fixed Keys"));
+        Assert.DoesNotContain(CatalogValidator.Validate(locale), e => e.Message.Contains("fixed Keys"));
+        Assert.Contains(CatalogValidator.Validate(formats), e => e.Message.Contains("Only a Colors or LocaleValues list declares fixed Keys"));
+    }
+
+    [Fact]
+    public void A_locale_value_list_must_name_the_value_it_offers()
+    {
+        var unnamed = FakeOptionProvider.SettingFor() with { Options = new(OptionSource.LocaleValues) };
+        var elsewhere = FakeOptionProvider.SettingFor() with
+        {
+            Options = new(OptionSource.RegionalFormats) { Value = OptionValue.ShortDate },
+        };
+
+        Assert.Contains(CatalogValidator.Validate(unnamed), e => e.Message.Contains("must name the Value it offers"));
+        Assert.Contains(CatalogValidator.Validate(elsewhere), e => e.Message.Contains("must name the Value it offers"));
+    }
 
     [Fact]
     public void Valid_setting_has_no_errors()
@@ -32,8 +231,8 @@ public class CatalogValidatorTests
             new[] { Reg("Mode", "SearchboxTaskbarMode") },
             new[]
             {
-                St("Hide", new() { ["Mode"] = StateValue.Of(0) }, roles: new StateRole(RoleKind.Recommended)),
-                St("Box",  new() { ["Mode"] = StateValue.Of(2) }, roles: new StateRole(RoleKind.WindowsDefault)),
+                St(TestKeys.Of("Hide"), new() { ["Mode"] = StateValue.Of(0) }, roles: new StateRole(RoleKind.Recommended)),
+                St(TestKeys.Of("Box"),  new() { ["Mode"] = StateValue.Of(2) }, roles: new StateRole(RoleKind.WindowsDefault)),
             });
         Assert.Empty(CatalogValidator.Validate(s));
     }
@@ -45,8 +244,8 @@ public class CatalogValidatorTests
             new[] { Reg("K", "V") },
             new[]
             {
-                St("A", new() { ["K"] = StateValue.Of(1) }, fallback: true),
-                St("B", new() { ["K"] = StateValue.Of(2) }, fallback: true),
+                St(TestKeys.Of("A"), new() { ["K"] = StateValue.Of(1) }, fallback: true),
+                St(TestKeys.Of("B"), new() { ["K"] = StateValue.Of(2) }, fallback: true),
             });
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("IsFallback"));
     }
@@ -58,8 +257,8 @@ public class CatalogValidatorTests
             new[] { Reg("K", "V") },
             new[]
             {
-                St("A", new() { ["K"] = StateValue.Of(1) }, roles: new StateRole(RoleKind.Recommended)),
-                St("B", new() { ["K"] = StateValue.Of(2) }, roles: new StateRole(RoleKind.Recommended)),
+                St(TestKeys.Of("A"), new() { ["K"] = StateValue.Of(1) }, roles: new StateRole(RoleKind.Recommended)),
+                St(TestKeys.Of("B"), new() { ["K"] = StateValue.Of(2) }, roles: new StateRole(RoleKind.Recommended)),
             });
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("Recommended"));
     }
@@ -71,8 +270,8 @@ public class CatalogValidatorTests
             new[] { Reg("K", "V") },
             new[]
             {
-                St("A", new() { ["K"] = StateValue.Of(1) }, roles: new StateRole(RoleKind.Recommended, PowerContext.AC)),
-                St("B", new() { ["K"] = StateValue.Of(2) }, roles: new StateRole(RoleKind.Recommended, PowerContext.DC)),
+                St(TestKeys.Of("A"), new() { ["K"] = StateValue.Of(1) }, roles: new StateRole(RoleKind.Recommended, PowerContext.AC)),
+                St(TestKeys.Of("B"), new() { ["K"] = StateValue.Of(2) }, roles: new StateRole(RoleKind.Recommended, PowerContext.DC)),
             },
             contexts: new[] { PowerContext.AC, PowerContext.DC });
         Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("Recommended"));
@@ -83,7 +282,7 @@ public class CatalogValidatorTests
     {
         var s = Make(
             new[] { Reg("K", "V") },
-            new[] { St("Broken", new()) });
+            new[] { St(TestKeys.Of("Broken"), new()) });
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("undetectable"));
     }
 
@@ -94,10 +293,23 @@ public class CatalogValidatorTests
             new[] { Reg("K", "V") },
             new[]
             {
-                St("Known", new() { ["K"] = StateValue.Of(1) }),
-                St("Default", new(), fallback: true),
+                St(TestKeys.Of("Known"), new() { ["K"] = StateValue.Of(1) }),
+                St(TestKeys.Of("Default"), new(), fallback: true),
             });
         Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("undetectable"));
+    }
+
+    [Fact]
+    public void Checked_or_Unchecked_outside_the_exact_pair_is_an_error()
+    {
+        var s = Make(
+            new[] { Reg("K", "V") },
+            new[]
+            {
+                St(LocKey.Common.Checked, new() { ["K"] = StateValue.Of(1) }),
+                St(TestKeys.Of("Off"), new() { ["K"] = StateValue.Of(0) }),
+            });
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("Checked/Unchecked"));
     }
 
     [Fact]
@@ -105,7 +317,7 @@ public class CatalogValidatorTests
     {
         var s = Make(
             new[] { Reg("Start", "Start"), Reg("Preload", "IsInputAppPreloadEnabled") },
-            new[] { St("Manual", new() { ["Start"] = StateValue.Of(3) }) });
+            new[] { St(TestKeys.Of("Manual"), new() { ["Start"] = StateValue.Of(3) }) });
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("missing target key"));
     }
 
@@ -114,7 +326,7 @@ public class CatalogValidatorTests
     {
         var s = Make(
             new[] { Reg("Start", "Start") },
-            new[] { St("X", new() { ["Start"] = StateValue.Of(3), ["Ghost"] = StateValue.Of(1) }) });
+            new[] { St(TestKeys.Of("X"), new() { ["Start"] = StateValue.Of(3), ["Ghost"] = StateValue.Of(1) }) });
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("unknown target key"));
     }
 
@@ -123,7 +335,7 @@ public class CatalogValidatorTests
     {
         var s = Make(
             new[] { Reg("K", "A"), Reg("K", "B") },
-            new[] { St("X", new() { ["K"] = StateValue.Of(1) }) });
+            new[] { St(TestKeys.Of("X"), new() { ["K"] = StateValue.Of(1) }) });
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("Duplicate target key"));
     }
 
@@ -133,9 +345,28 @@ public class CatalogValidatorTests
         var detector = new FakeDetector();
         var s = Make(
             new[] { Reg("Start", "Start"), Reg("Preload", "P") },
-            new[] { St("X", new() { ["Start"] = StateValue.Of(3) }) }, // would be "missing Preload" without detector
+            new[] { St(TestKeys.Of("X"), new() { ["Start"] = StateValue.Of(3) }) }, // would be "missing Preload" without detector
             detector: detector);
         Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("missing target key"));
+    }
+
+    [Fact]
+    public void State_with_no_set_and_no_detector_is_an_error()
+    {
+        var s = Make(
+            new[] { Reg("Start", "Start") },
+            new[] { St(TestKeys.Of("X"), new()) });
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("empty Set"));
+    }
+
+    [Fact]
+    public void Custom_detector_lets_a_state_carry_no_set()
+    {
+        var s = Make(
+            new[] { Reg("Start", "Start") },
+            new[] { St(TestKeys.Of("X"), new()) },
+            detector: new FakeDetector());
+        Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("empty Set"));
     }
 
     [Fact]
@@ -147,8 +378,8 @@ public class CatalogValidatorTests
             new[] { Reg("Start", "Start"), Reg("Preload", "P") },
             new[]
             {
-                St("Known",   new() { ["Start"] = StateValue.Of(3), ["Preload"] = StateValue.Of(1) }),
-                St("Default", new() { ["Start"] = StateValue.Of(2) }, fallback: true),
+                St(TestKeys.Of("Known"),   new() { ["Start"] = StateValue.Of(3), ["Preload"] = StateValue.Of(1) }),
+                St(TestKeys.Of("Default"), new() { ["Start"] = StateValue.Of(2) }, fallback: true),
             });
         Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("missing target key"));
     }
@@ -161,8 +392,8 @@ public class CatalogValidatorTests
             new[] { Reg("Start", "Start") },
             new[]
             {
-                St("Known",   new() { ["Start"] = StateValue.Of(3) }),
-                St("Default", new() { ["Start"] = StateValue.Of(2), ["Ghost"] = StateValue.Of(1) }, fallback: true),
+                St(TestKeys.Of("Known"),   new() { ["Start"] = StateValue.Of(3) }),
+                St(TestKeys.Of("Default"), new() { ["Start"] = StateValue.Of(2), ["Ghost"] = StateValue.Of(1) }, fallback: true),
             });
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("unknown target key"));
     }
@@ -173,7 +404,7 @@ public class CatalogValidatorTests
         var s = new Setting
         {
             Id = "act-ok",
-            Display = new() { Name = "n", Description = "d", GroupName = "g" },
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d"), GroupName = TestKeys.Of("g") },
             Effects = new Effect[] { new ScriptEffect("echo hi", RunContext.System) },
         };
         Assert.Empty(CatalogValidator.Validate(s));
@@ -185,9 +416,9 @@ public class CatalogValidatorTests
         var s = new Setting
         {
             Id = "act-bad-states",
-            Display = new() { Name = "n", Description = "d", GroupName = "g" },
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d"), GroupName = TestKeys.Of("g") },
             Effects = new Effect[] { new ScriptEffect("echo hi", RunContext.System) },
-            States = new[] { new SettingState { Label = "Enabled", IsFallback = true } },
+            States = new[] { new SettingState { Label = LocKey.Common.Enabled, IsFallback = true } },
         };
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("stateless Actions"));
     }
@@ -198,7 +429,7 @@ public class CatalogValidatorTests
         var s = new Setting
         {
             Id = "act-bad-targets",
-            Display = new() { Name = "n", Description = "d", GroupName = "g" },
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d"), GroupName = TestKeys.Of("g") },
             Effects = new Effect[] { new ScriptEffect("echo hi", RunContext.System) },
             Targets = new Target[] { Reg("k", "k") },
         };
@@ -211,7 +442,7 @@ public class CatalogValidatorTests
         var s = new Setting
         {
             Id = "does-nothing",
-            Display = new() { Name = "n", Description = "d", GroupName = "g" },
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d"), GroupName = TestKeys.Of("g") },
         };
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("detects nothing and does nothing"));
     }
@@ -222,7 +453,7 @@ public class CatalogValidatorTests
         var s = new Setting
         {
             Id = "range-ok",
-            Display = new() { Name = "n", Description = "d", GroupName = "g" },
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d"), GroupName = TestKeys.Of("g") },
             Targets = new Target[] { Reg("v", "v") },
         };
         Assert.Empty(CatalogValidator.Validate(s));
@@ -231,7 +462,7 @@ public class CatalogValidatorTests
     private static Setting WithId(string id, IReadOnlyList<SettingState> states) =>
         new()
         {
-            Id = id, Display = new() { Name = "n", Description = "d" },
+            Id = id, Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
             Targets = new Target[] { Reg("K", "V") }, States = states,
         };
 
@@ -242,8 +473,8 @@ public class CatalogValidatorTests
             new[] { Reg("K", "V") },
             new[]
             {
-                St("A", new() { ["K"] = StateValue.Of(1) }),
-                new SettingState { Label = "Neutral", IsFallback = true, IsDetectOnly = true,
+                St(TestKeys.Of("A"), new() { ["K"] = StateValue.Of(1) }),
+                new SettingState { Label = TestKeys.Of("Neutral"), IsFallback = true, IsDetectOnly = true,
                     Roles = new[] { StateRole.Recommended } },
             });
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("IsDetectOnly"));
@@ -258,8 +489,8 @@ public class CatalogValidatorTests
             new[] { Reg("K", "V") },
             new[]
             {
-                St("A", new() { ["K"] = StateValue.Of(1) }),
-                new SettingState { Label = "Neutral", IsFallback = true, IsDetectOnly = true,
+                St(TestKeys.Of("A"), new() { ["K"] = StateValue.Of(1) }),
+                new SettingState { Label = TestKeys.Of("Neutral"), IsFallback = true, IsDetectOnly = true,
                     Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } } },
             });
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("IsDetectOnly"));
@@ -273,8 +504,8 @@ public class CatalogValidatorTests
             new[] { Reg("K", "V") },
             new[]
             {
-                St("A", new() { ["K"] = StateValue.Of(1) }, roles: new StateRole(RoleKind.Recommended)),
-                new SettingState { Label = "Neutral", IsFallback = true, IsDetectOnly = true },
+                St(TestKeys.Of("A"), new() { ["K"] = StateValue.Of(1) }, roles: new StateRole(RoleKind.Recommended)),
+                new SettingState { Label = TestKeys.Of("Neutral"), IsFallback = true, IsDetectOnly = true },
             });
         Assert.Empty(CatalogValidator.Validate(s));
     }
@@ -284,16 +515,16 @@ public class CatalogValidatorTests
     {
         var child = WithId("child", new[]
         {
-            St("On", new() { ["K"] = StateValue.Of(1) }),
-            new SettingState { Label = "Neutral", IsFallback = true, IsDetectOnly = true },
+            St(TestKeys.Of("On"), new() { ["K"] = StateValue.Of(1) }),
+            new SettingState { Label = TestKeys.Of("Neutral"), IsFallback = true, IsDetectOnly = true },
         });
         var master = WithId("master", new[]
         {
             new SettingState
             {
-                Label = "Preset",
+                Label = TestKeys.Of("Preset"),
                 Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) },
-                Controls = new Dictionary<string, string> { ["child"] = "Neutral" },
+                Controls = new Dictionary<string, LocKey> { ["child"] = TestKeys.Of("Neutral") },
             },
         });
 
@@ -306,16 +537,16 @@ public class CatalogValidatorTests
     {
         var other = WithId("other", new[]
         {
-            St("On", new() { ["K"] = StateValue.Of(1) }),
-            new SettingState { Label = "Neutral", IsFallback = true, IsDetectOnly = true },
+            St(TestKeys.Of("On"), new() { ["K"] = StateValue.Of(1) }),
+            new SettingState { Label = TestKeys.Of("Neutral"), IsFallback = true, IsDetectOnly = true },
         });
         var owner = WithId("owner", new[]
         {
             new SettingState
             {
-                Label = "On",
+                Label = TestKeys.Of("On"),
                 Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) },
-                Links = new[] { new Link("other", LinkKind.Requires, "Neutral") },
+                Links = new[] { new Link("other", LinkKind.Requires, TestKeys.Of("Neutral")) },
             },
         });
 
@@ -329,21 +560,475 @@ public class CatalogValidatorTests
         // Non-vacuity for the two rules above: the same shape pointed at a real option raises nothing.
         var child = WithId("child", new[]
         {
-            St("On", new() { ["K"] = StateValue.Of(1) }),
-            new SettingState { Label = "Neutral", IsFallback = true, IsDetectOnly = true },
+            St(TestKeys.Of("On"), new() { ["K"] = StateValue.Of(1) }),
+            new SettingState { Label = TestKeys.Of("Neutral"), IsFallback = true, IsDetectOnly = true },
         });
         var master = WithId("master", new[]
         {
             new SettingState
             {
-                Label = "Preset",
+                Label = TestKeys.Of("Preset"),
                 Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) },
-                Controls = new Dictionary<string, string> { ["child"] = "On" },
+                Controls = new Dictionary<string, LocKey> { ["child"] = TestKeys.Of("On") },
             },
         });
 
         Assert.DoesNotContain(CatalogValidator.ValidateCatalog(new[] { master, child }),
             e => e.Message.Contains("detect-only state"));
+    }
+
+    [Fact]
+    public void An_answer_file_only_state_may_write_nothing()
+    {
+        var s = Make(
+            new[] { Element("K") },
+            new[]
+            {
+                St(LocKey.Common.Enabled, new(), roles: new StateRole(RoleKind.WindowsDefault)),
+                St(LocKey.Common.Disabled, new() { ["K"] = StateValue.Of("true") }),
+            });
+        Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("undetectable"));
+        Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("missing target key"));
+    }
+
+    [Fact]
+    public void An_answer_file_only_setting_with_states_needs_one_to_seed_from()
+    {
+        var s = Make(
+            new[] { Element("K") },
+            new[] { St(LocKey.Common.Enabled, new()), St(LocKey.Common.Disabled, new() { ["K"] = StateValue.Of("true") }) });
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("state to seed from"));
+    }
+
+    [Theory]
+    [InlineData(RoleKind.Recommended)]
+    [InlineData(RoleKind.WindowsDefault)]
+    public void Either_role_gives_an_answer_file_only_setting_its_seed(RoleKind role)
+    {
+        var s = Make(
+            new[] { Element("K") },
+            new[]
+            {
+                St(LocKey.Common.Enabled, new()),
+                St(LocKey.Common.Disabled, new() { ["K"] = StateValue.Of("true") }, roles: new StateRole(role)),
+            });
+        Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("state to seed from"));
+    }
+
+    [Fact]
+    public void A_live_setting_may_not_carry_an_answer_file_target()
+    {
+        var s = Make(
+            new Target[] { Reg("R", "V"), Element("K") },
+            new[]
+            {
+                St(LocKey.Common.Enabled, new() { ["R"] = StateValue.Of(1), ["K"] = StateValue.Of("true") }, roles: new StateRole(RoleKind.WindowsDefault)),
+                St(LocKey.Common.Disabled, new() { ["R"] = StateValue.Of(0), ["K"] = StateValue.Absent }),
+            });
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("mixes"));
+    }
+
+    [Fact]
+    public void A_live_setting_may_not_fire_a_setup_command()
+    {
+        var s = Make(
+            new[] { Reg("R", "V") },
+            new[]
+            {
+                St(LocKey.Common.Enabled, new() { ["R"] = StateValue.Of(1) }, roles: new StateRole(RoleKind.WindowsDefault)),
+                St(LocKey.Common.Disabled, new() { ["R"] = StateValue.Of(0) }) with
+                {
+                    Effects = new[] { new AutounattendCommand("specialize", "Microsoft-Windows-Deployment", "cmd.exe /c echo") },
+                },
+            });
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("mixes"));
+    }
+
+    [Fact]
+    public void A_setting_level_machine_effect_keeps_an_element_only_setting_live()
+    {
+        var s = Make(new[] { Element("K") }, Array.Empty<SettingState>()) with
+        {
+            Effects = new[] { new RegistryWriteEffect("HKCU\\S", "V", RegistryValueKind.DWord, 1) },
+        };
+        Assert.False(s.IsAnswerFileOnly);
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("mixes"));
+    }
+
+    [Fact]
+    public void A_setting_level_setup_command_on_a_live_target_is_mixed()
+    {
+        var s = Make(new[] { Reg("R", "V") }, Array.Empty<SettingState>()) with
+        {
+            Effects = new[] { new AutounattendCommand("specialize", "Microsoft-Windows-Deployment", "cmd.exe /c echo") },
+        };
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("mixes"));
+    }
+
+    private static Setting LiveWithScript(ScriptEffect script) =>
+        Make(
+            new[] { Reg("R", "V") },
+            new[]
+            {
+                St(LocKey.Common.Enabled, new() { ["R"] = StateValue.Of(1) }) with { Effects = new[] { script } },
+                St(LocKey.Common.Disabled, new() { ["R"] = StateValue.Of(0) }),
+            });
+
+    [Fact]
+    public void A_live_script_may_not_depend_on_the_apps_an_answer_file_installs()
+    {
+        var s = LiveWithScript(new ScriptEffect("echo hi", RunContext.System) { When = AppsToInstall.Some });
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("the live apply ignores both"));
+    }
+
+    [Fact]
+    public void A_live_script_may_not_wait_for_the_sign_in_after_setup()
+    {
+        var s = LiveWithScript(new ScriptEffect("echo hi", RunContext.SignInAfterSetup));
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("the live apply ignores both"));
+    }
+
+    [Fact]
+    public void A_live_script_that_runs_every_time_is_valid()
+    {
+        Assert.Empty(CatalogValidator.Validate(LiveWithScript(new ScriptEffect("echo hi", RunContext.System))));
+    }
+
+    [Fact]
+    public void An_answer_file_only_script_may_depend_on_the_apps_and_wait_for_the_sign_in_after_setup()
+    {
+        var s = Make(
+            Array.Empty<Target>(),
+            new[]
+            {
+                St(LocKey.Common.Enabled, new(), roles: new StateRole(RoleKind.WindowsDefault)) with
+                {
+                    Effects = new[]
+                    {
+                        new ScriptEffect("echo some", RunContext.System) { When = AppsToInstall.Some },
+                        new ScriptEffect("echo later", RunContext.SignInAfterSetup),
+                    },
+                },
+                St(LocKey.Common.Disabled, new()),
+            });
+
+        Assert.True(s.IsAnswerFileOnly);
+        Assert.Empty(CatalogValidator.Validate(s));
+    }
+
+    [Fact]
+    public void An_answer_file_only_state_may_omit_an_element_it_does_not_write()
+    {
+        var s = Make(
+            new[] { Element("K1"), Element("K2") },
+            new[]
+            {
+                St(LocKey.Common.Enabled, new() { ["K1"] = StateValue.Of("true") }, roles: new StateRole(RoleKind.WindowsDefault)),
+                St(LocKey.Common.Disabled, new() { ["K1"] = StateValue.Absent, ["K2"] = StateValue.Of("true") }),
+            });
+        Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("missing target key"));
+    }
+
+    [Fact]
+    public void Exists_is_not_a_value_an_answer_file_element_can_take()
+    {
+        var s = Make(
+            new[] { Element("K") },
+            new[]
+            {
+                St(LocKey.Common.Enabled, new() { ["K"] = StateValue.Exists }, roles: new StateRole(RoleKind.WindowsDefault)),
+                St(LocKey.Common.Disabled, new() { ["K"] = StateValue.Absent }),
+            });
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("Exists"));
+    }
+
+    private static Setting Typed(IReadOnlyList<Target> targets, IReadOnlyList<SettingState> states) =>
+        Make(targets, states) with { TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything."))) };
+
+    [Fact]
+    public void A_text_setting_may_not_declare_states()
+    {
+        var s = Typed(new[] { Element("K") }, new[] { St(LocKey.Common.Enabled, new() { ["K"] = StateValue.Of("true") }) });
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("may not declare states"));
+    }
+
+    [Fact]
+    public void A_text_setting_may_not_declare_a_numeric_range()
+    {
+        var s = Typed(new[] { Element("K") }, Array.Empty<SettingState>()) with { Numeric = new Numeric { Min = 0, Max = 10 } };
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("Numeric range"));
+    }
+
+    [Fact]
+    public void A_text_setting_may_not_declare_an_option_list()
+    {
+        var s = FakeOptionProvider.SettingFor() with { TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything."))) };
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("option list"));
+    }
+
+    [Fact]
+    public void A_text_setting_needs_somewhere_to_put_what_was_typed()
+    {
+        var s = Typed(Array.Empty<Target>(), Array.Empty<SettingState>());
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("at least one target to write to"));
+    }
+
+    [Fact]
+    public void A_text_setting_may_hand_what_was_typed_to_its_scripts_instead_of_a_target()
+    {
+        var s = Typed(Array.Empty<Target>(), Array.Empty<SettingState>())
+            with { CustomStateScripts = [new ScriptEffect("Move-Folders '{{value}}'", RunContext.User)] };
+
+        Assert.Empty(CatalogValidator.Validate(s));
+    }
+
+    [Fact]
+    public void A_text_setting_may_not_write_to_the_registry()
+    {
+        var s = Typed(new[] { Reg("R", "V") }, Array.Empty<SettingState>());
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("answer-file target"));
+    }
+
+    [Fact]
+    public void A_text_setting_may_read_this_PC_through_the_read_only_target_its_seed_names()
+    {
+        var s = Typed(new Target[] { Element("K"), Reg("this-pc", "Hostname") with { ReadOnly = true } }, Array.Empty<SettingState>())
+            with { TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything.")), SeedKey: "this-pc") };
+
+        Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("answer-file target") || e.Message.Contains("SeedKey"));
+    }
+
+    [Fact]
+    public void A_user_script_target_belongs_to_a_list()
+    {
+        var s = Make(new[] { new AutounattendScript("script", RunContext.System) }, Array.Empty<SettingState>());
+
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("carries the user's own scripts"));
+    }
+
+    [Fact]
+    public void A_user_script_names_one_of_the_two_sections_the_script_has()
+    {
+        var s = Typed(new[] { new AutounattendScript("script", RunContext.SignInAfterSetup) }, Array.Empty<SettingState>());
+
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("not at the sign-in after Setup"));
+    }
+
+    [Fact]
+    public void A_text_seed_must_name_a_read_only_registry_target_on_the_setting()
+    {
+        var s = Typed(new[] { Element("K") }, Array.Empty<SettingState>())
+            with { TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything.")), SeedKey: "nope") };
+
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("SeedKey names 'nope'"));
+    }
+
+    [Fact]
+    public void A_text_setting_may_write_the_desktop_slideshow_instead_of_the_answer_file()
+    {
+        var s = Typed(
+            new Target[]
+            {
+                new DesktopSlideshowTarget("album"),
+                Reg("BackgroundType", "BackgroundType") with { ReadOnly = true },
+                Reg("SlideshowDirectoryPath1", "SlideshowDirectoryPath1") with { ReadOnly = true },
+            },
+            Array.Empty<SettingState>()) with
+        {
+            TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything.")), SeedKey: "album"),
+            CustomStateScripts = [new ScriptEffect("Set-Slideshow '{{value}}'", RunContext.User)],
+        };
+
+        Assert.Empty(CatalogValidator.Validate(s));
+    }
+
+    [Fact]
+    public void A_slideshow_box_without_its_script_is_an_error()
+    {
+        var s = Typed(new Target[] { new DesktopSlideshowTarget("album") }, Array.Empty<SettingState>());
+
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("CustomStateScripts"));
+    }
+
+    [Fact]
+    public void A_slideshow_box_without_the_values_its_album_is_read_from_is_an_error()
+    {
+        var s = Typed(new Target[] { new DesktopSlideshowTarget("album") }, Array.Empty<SettingState>());
+
+        var errors = CatalogValidator.Validate(s);
+
+        Assert.Contains(errors, e => e.Message.Contains("keyed 'BackgroundType'"));
+        Assert.Contains(errors, e => e.Message.Contains("keyed 'SlideshowDirectoryPath1'"));
+    }
+
+    [Fact]
+    public void A_read_only_registry_target_belongs_to_a_setting_that_seeds_itself()
+    {
+        var live = Make(new[] { Reg("R", "V") with { ReadOnly = true } }, new[] { St(LocKey.Common.Enabled, new() { ["R"] = StateValue.Of(1) }) });
+        Assert.Contains(CatalogValidator.Validate(live), e => e.Message.Contains("is ReadOnly, which seeds"));
+    }
+
+    [Fact]
+    public void A_read_only_registry_target_may_sit_on_a_keyed_selection()
+    {
+        var s = FakeOptionProvider.SettingFor() with
+        {
+            Targets = [.. FakeOptionProvider.SettingFor().Targets, Reg("Type", "BackgroundType") with { ReadOnly = true }],
+        };
+
+        Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("is ReadOnly"));
+    }
+
+    [Fact]
+    public void A_keyed_selection_may_declare_an_answer_file_element_beside_its_live_targets()
+    {
+        var s = FakeOptionProvider.SettingFor() with
+        {
+            Targets = [.. FakeOptionProvider.SettingFor().Targets, Element("zone-element")],
+        };
+
+        Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("mixes an answer-file mechanism"));
+    }
+
+    [Fact]
+    public void A_registry_target_cleared_on_apply_must_be_read_only()
+    {
+        var s = Listed(new Target[] { Element("K"), Reg("R", "V") with { ClearedOnApply = true } }, Array.Empty<SettingState>());
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("ClearedOnApply but not ReadOnly"));
+    }
+
+    [Fact]
+    public void A_registry_target_cannot_be_read_only_and_apply_only_at_once()
+    {
+        var s = Listed(new Target[] { Element("K"), Reg("R", "V") with { ReadOnly = true, ApplyOnly = true } }, Array.Empty<SettingState>());
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("both ReadOnly and ApplyOnly"));
+    }
+
+    [Fact]
+    public void A_list_setting_may_carry_read_only_registry_targets_beside_its_element()
+    {
+        var s = Listed(new Target[] { Element("K"), Reg("name", "USERNAME") with { ReadOnly = true } }, Array.Empty<SettingState>());
+        Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("exactly one answer-file element"));
+    }
+
+    [Fact]
+    public void A_list_seed_names_read_only_registry_targets_on_the_setting()
+    {
+        var s = Listed(new Target[] { Element("K"), Reg("name", "USERNAME") with { ReadOnly = true } }, Array.Empty<SettingState>())
+            with
+            {
+                List = new(
+                    [new Field("name", FieldKind.Text, TestKeys.Of("Name"))],
+                    Seed: new Dictionary<string, string> { ["name"] = "name", ["display-name"] = "display-name" }),
+            };
+        var errors = CatalogValidator.Validate(s);
+        Assert.Contains(errors, e => e.Message.Contains("List.Seed names 'display-name'"));
+        Assert.DoesNotContain(errors, e => e.Message.Contains("List.Seed names 'name'"));
+    }
+
+    [Fact]
+    public void A_list_setting_needs_a_field_to_type_into()
+    {
+        var s = Make(new[] { Element("K") }, Array.Empty<SettingState>()) with { List = new([]) };
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("at least one field"));
+    }
+
+    [Fact]
+    public void Two_fields_may_not_share_a_key()
+    {
+        var s = Make(new[] { Element("K") }, Array.Empty<SettingState>()) with
+        {
+            List = new([new Field("name", FieldKind.Text, TestKeys.Of("Name")), new Field("name", FieldKind.Password, TestKeys.Of("Again"))]),
+        };
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("Duplicate field key 'name'"));
+    }
+
+    private static Setting Listed(IReadOnlyList<Target> targets, IReadOnlyList<SettingState> states) =>
+        Make(targets, states) with { List = new([new Field("name", FieldKind.Text, TestKeys.Of("Name"))]) };
+
+    [Fact]
+    public void A_list_setting_may_not_declare_states()
+    {
+        var s = Listed(new[] { Element("K") }, new[] { St(LocKey.Common.Enabled, new() { ["K"] = StateValue.Of("true") }) });
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("may not declare states"));
+    }
+
+    [Fact]
+    public void A_list_setting_needs_the_element_it_writes_into()
+    {
+        var s = Listed(Array.Empty<Target>(), Array.Empty<SettingState>());
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("exactly one answer-file element"));
+    }
+
+    [Fact]
+    public void A_list_setting_may_carry_scripts_instead_of_an_element()
+    {
+        var s = Listed(new[] { new AutounattendScript("script", RunContext.System) }, Array.Empty<SettingState>());
+        Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("exactly one answer-file element"));
+    }
+
+    [Fact]
+    public void A_list_setting_may_change_the_media_instead_of_writing_an_element()
+    {
+        var s = Listed(new[] { new AutounattendMedia("installers") }, Array.Empty<SettingState>());
+        Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("exactly one answer-file element"));
+    }
+
+    [Fact]
+    public void A_file_field_names_the_filter_its_picker_opens_with()
+    {
+        var bare = Listed(new[] { Element("K") }, Array.Empty<SettingState>()) with
+        {
+            List = new([new Field("file", FieldKind.File, TestKeys.Of("File"))]),
+        };
+        var filtered = bare with
+        {
+            List = new([new Field("file", FieldKind.File, TestKeys.Of("File"), Filter: new FileFilter(TestKeys.Of("Files"), "*.exe"))]),
+        };
+
+        Assert.Contains(CatalogValidator.Validate(bare), e => e.Message.Contains("Field 'file': a File field names the filter"));
+        Assert.DoesNotContain(CatalogValidator.Validate(filtered), e => e.Message.Contains("a File field names the filter"));
+    }
+
+    [Fact]
+    public void Only_a_file_field_names_a_picker_filter()
+    {
+        var s = Listed(new[] { Element("K") }, Array.Empty<SettingState>()) with
+        {
+            List = new([new Field("name", FieldKind.Text, TestKeys.Of("Name"), Filter: new FileFilter(TestKeys.Of("Files"), "*.exe"))]),
+        };
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("Field 'name': a File field names the filter"));
+    }
+
+    [Fact]
+    public void A_list_setting_may_not_write_to_the_registry()
+    {
+        var s = Listed(new[] { Reg("R", "V") }, Array.Empty<SettingState>());
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("exactly one answer-file element"));
+    }
+
+    [Fact]
+    public void A_list_setting_writes_one_element_not_two()
+    {
+        var s = Listed(new[] { Element("K1"), Element("K2") }, Array.Empty<SettingState>());
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("exactly one answer-file element"));
+    }
+
+    [Fact]
+    public void A_list_setting_may_not_carry_a_text_rule_as_well()
+    {
+        var s = Listed(new[] { Element("K") }, Array.Empty<SettingState>()) with
+        {
+            TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything."))),
+        };
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("silently ignored"));
+    }
+
+    [Fact]
+    public void A_list_setting_may_not_carry_an_option_list_as_well()
+    {
+        var s = FakeOptionProvider.SettingFor() with { List = new([new Field("name", FieldKind.Text, TestKeys.Of("Name"))]) };
+        Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("option list"));
     }
 
     private sealed class FakeDetector : IStateDetector

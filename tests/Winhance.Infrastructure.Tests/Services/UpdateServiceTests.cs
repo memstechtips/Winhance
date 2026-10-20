@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Optimize.Services;
@@ -11,7 +10,6 @@ namespace Winhance.Infrastructure.Tests.Services;
 public class UpdateServiceTests
 {
     private readonly Mock<ILogService> _mockLogService = new();
-    private readonly Mock<IWindowsRegistryService> _mockRegistryService = new();
     private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
     private readonly Mock<IPowerShellRunner> _mockPowerShellRunner = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
@@ -22,7 +20,6 @@ public class UpdateServiceTests
     {
         _service = new UpdateService(
             _mockLogService.Object,
-            _mockRegistryService.Object,
             _mockProcessExecutor.Object,
             _mockPowerShellRunner.Object,
             _mockFileSystemService.Object,
@@ -93,93 +90,6 @@ public class UpdateServiceTests
         _mockProcessExecutor.Verify(
             p => p.ExecuteAsync("cmd.exe", It.IsAny<string>()),
             Times.AtLeastOnce);
-    }
-
-    [Fact]
-    public async Task GetCurrentUpdatePolicyIndexAsync_CriticalDllsRenamed_Returns3()
-    {
-        _mockFileSystemService.Setup(f => f.GetFileNameWithoutExtension("WaaSMedicSvc.dll"))
-            .Returns("WaaSMedicSvc");
-        _mockFileSystemService.Setup(f => f.GetFileNameWithoutExtension("wuaueng.dll"))
-            .Returns("wuaueng");
-        _mockFileSystemService.Setup(f => f.FileExists(@"C:\Windows\System32\WaaSMedicSvc_BAK.dll"))
-            .Returns(true);
-        _mockFileSystemService.Setup(f => f.FileExists(@"C:\Windows\System32\WaaSMedicSvc.dll"))
-            .Returns(false);
-
-        var result = await _service.GetCurrentUpdatePolicyIndexAsync();
-
-        result.Should().Be(3);
-    }
-
-    [Fact]
-    public async Task GetCurrentUpdatePolicyIndexAsync_UpdatesPaused_Returns2()
-    {
-        _mockFileSystemService.Setup(f => f.GetFileNameWithoutExtension(It.IsAny<string>()))
-            .Returns<string>(s => System.IO.Path.GetFileNameWithoutExtension(s));
-        _mockFileSystemService.Setup(f => f.FileExists(It.Is<string>(p => p.Contains("_BAK"))))
-            .Returns(false);
-
-        _mockRegistryService.Setup(r => r.GetValue(
-            @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
-            "PauseUpdatesStartTime"))
-            .Returns("2025-01-01");
-
-        var result = await _service.GetCurrentUpdatePolicyIndexAsync();
-
-        result.Should().Be(2);
-    }
-
-    [Fact]
-    public async Task GetCurrentUpdatePolicyIndexAsync_SecurityOnlyDefer_Returns1()
-    {
-        _mockFileSystemService.Setup(f => f.GetFileNameWithoutExtension(It.IsAny<string>()))
-            .Returns<string>(s => System.IO.Path.GetFileNameWithoutExtension(s));
-        _mockFileSystemService.Setup(f => f.FileExists(It.Is<string>(p => p.Contains("_BAK"))))
-            .Returns(false);
-
-        _mockRegistryService.Setup(r => r.GetValue(
-            @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
-            "PauseUpdatesStartTime"))
-            .Returns((object?)null);
-        _mockRegistryService.Setup(r => r.GetValue(
-            @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
-            "PauseUpdatesExpiryTime"))
-            .Returns((object?)null);
-        _mockRegistryService.Setup(r => r.GetValue(
-            @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
-            "PausedQualityDate"))
-            .Returns((object?)null);
-        _mockRegistryService.Setup(r => r.GetValue(
-            @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
-            "PausedFeatureDate"))
-            .Returns((object?)null);
-
-        // DeferFeatureUpdates = 1 means security only
-        _mockRegistryService.Setup(r => r.GetValue(
-            @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
-            "DeferFeatureUpdates"))
-            .Returns(1);
-
-        var result = await _service.GetCurrentUpdatePolicyIndexAsync();
-
-        result.Should().Be(1);
-    }
-
-    [Fact]
-    public async Task GetCurrentUpdatePolicyIndexAsync_NormalMode_Returns0()
-    {
-        _mockFileSystemService.Setup(f => f.GetFileNameWithoutExtension(It.IsAny<string>()))
-            .Returns<string>(s => System.IO.Path.GetFileNameWithoutExtension(s));
-        _mockFileSystemService.Setup(f => f.FileExists(It.Is<string>(p => p.Contains("_BAK"))))
-            .Returns(false);
-
-        _mockRegistryService.Setup(r => r.GetValue(It.IsAny<string>(), It.IsAny<string>()))
-            .Returns((object?)null);
-
-        var result = await _service.GetCurrentUpdatePolicyIndexAsync();
-
-        result.Should().Be(0);
     }
 
     private void SetupProcessExecutor()

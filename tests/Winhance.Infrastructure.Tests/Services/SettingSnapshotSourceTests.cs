@@ -1,3 +1,4 @@
+using Winhance.Core.Features.Common.Localization;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
@@ -7,6 +8,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Infrastructure.Features.Common.Services;
+using Winhance.TestSupport;
 using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
@@ -36,6 +38,67 @@ public class SettingSnapshotSourceTests
         choices.Should().ContainSingle().Which.Should().Be(new SettingChoice("t", new ChoiceValue.Toggle(true)));
     }
 
+    [Fact]
+    public async Task CheckBox_MapsIsEnabledAsACheckBox()
+    {
+        Arrange(ParityFixtures.CheckBox("c"), new SettingStateResult { Success = true, IsEnabled = true });
+        var choices = await Sut().CaptureAsync(CatalogScope.CurrentMachine);
+        choices.Should().ContainSingle().Which.Should().Be(new SettingChoice("c", new ChoiceValue.CheckBox(true)));
+    }
+
+    [Fact]
+    public async Task Text_RecordsWhatWasTyped()
+    {
+        Arrange(ParityFixtures.TextSetting("x"), new SettingStateResult { Success = true, CurrentValue = "PC-01" });
+        var choices = await Sut().CaptureAsync(CatalogScope.CurrentMachine);
+        choices.Should().ContainSingle().Which.Should().Be(new SettingChoice("x", new ChoiceValue.Text("PC-01")));
+    }
+
+    [Fact]
+    public async Task Text_EmptyBox_IsStillAnAnswer()
+    {
+        Arrange(ParityFixtures.TextSetting("x"), new SettingStateResult { Success = true, CurrentValue = "" });
+        var choices = await Sut().CaptureAsync(CatalogScope.CurrentMachine);
+        choices.Should().ContainSingle().Which.Should().Be(new SettingChoice("x", new ChoiceValue.Text("")));
+    }
+
+    [Fact]
+    public async Task Text_WithNothingRead_IsOmitted()
+    {
+        Arrange(ParityFixtures.TextSetting("x"), new SettingStateResult { Success = true });
+        (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Should().BeEmpty();
+    }
+
+    private static readonly ChoiceValue.List OneAccount = new(
+    [
+        new ChoiceValue.ListRow(new Dictionary<string, string>
+        {
+            ["name"] = "marco",
+            ["display-name"] = "Marco",
+            ["group"] = "0",
+            ["password"] = "hunter2",
+            ["obscure"] = "true",
+            ["auto-logon"] = "true",
+        }),
+    ]);
+
+    [Fact]
+    public async Task List_RecordsTheRowsThatWereBuilt()
+    {
+        Arrange(ParityFixtures.ListSetting("a"), new SettingStateResult { Success = true, CurrentValue = OneAccount });
+        var choices = await Sut().CaptureAsync(CatalogScope.CurrentMachine);
+        choices.Should().ContainSingle().Which.Should().Be(new SettingChoice("a", OneAccount));
+    }
+
+    [Fact]
+    public async Task List_WithNothingRead_IsAnEmptyList()
+    {
+        Arrange(ParityFixtures.ListSetting("a"), new SettingStateResult { Success = true });
+        var choices = await Sut().CaptureAsync(CatalogScope.CurrentMachine);
+        choices.Should().ContainSingle().Which.Should()
+            .Be(new SettingChoice("a", new ChoiceValue.List([])));
+    }
+
     // A reading the app admits it could not make is not intent. Recording it would write an explicit "off"
     // into the file and disable the setting on the next machine.
     [Fact]
@@ -62,7 +125,7 @@ public class SettingSnapshotSourceTests
     [Fact]
     public async Task Action_MapsIsEnabledAsAToggle()
     {
-        var action = new Setting { Id = "a", Display = new() { Name = "a", Description = "a" } };
+        var action = new Setting { Id = "a", Display = new() { Name = TestKeys.Of("a"), Description = TestKeys.Of("a") } };
         Arrange(action, new SettingStateResult { Success = true, IsEnabled = false });
         (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Single().Value.Should().Be(new ChoiceValue.Toggle(false));
     }
@@ -131,14 +194,14 @@ public class SettingSnapshotSourceTests
 
     private static Setting ScriptOnlyDnsSelection(string id) => new()
     {
-        Id = id, Display = new() { Name = id, Description = id },
+        Id = id, Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of(id)},
         States = new[]
         {
-            new SettingState { Label = "Automatic" },
-            new SettingState { Label = "Cloudflare" },
+            new SettingState { Label = TestKeys.Of("Automatic") },
+            new SettingState { Label = TestKeys.Of("Cloudflare") },
         },
         CustomStateScripts = new[] { new ScriptEffect("Set-DnsClientServerAddress -ServerAddresses @('{{primary}}','{{secondary}}')", RunContext.System) },
-        Detector = new DnsServerDetector("Automatic", new Dictionary<string, string> { ["1.1.1.1"] = "Cloudflare" }),
+        Detector = new DnsServerDetector(TestKeys.Of("Automatic"), new Dictionary<string, LocKey> { ["1.1.1.1"] = TestKeys.Of("Cloudflare") }),
     };
 
     [Fact]
@@ -195,8 +258,14 @@ public class SettingSnapshotSourceTests
     [Fact]
     public async Task PowerPlan_MapsGuidAndName()
     {
-        Arrange(ParityFixtures.PowerPlanSetting(), new SettingStateResult { Success = true, CurrentValue = 0, DynamicSelection = "guid-1", DynamicSelectionName = "Balanced" });
-        (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Single().Value.Should().Be(new ChoiceValue.PowerPlan("guid-1", "Balanced"));
+        Arrange(ParityFixtures.PowerPlanSetting(), new SettingStateResult
+        {
+            Success = true,
+            CurrentValue = 0,
+            DynamicSelection = "guid-1",
+            DynamicOptions = [new DynamicOption("Balanced", "guid-1")],
+        });
+        (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Single().Value.Should().Be(new ChoiceValue.Keyed("guid-1", "Balanced"));
     }
 
     [Fact]
@@ -215,16 +284,19 @@ public class SettingSnapshotSourceTests
         var setting = ParityFixtures.PowerPlanSetting();
         Arrange(setting, new SettingStateResult
         {
-            Success = true, CurrentValue = 0, DynamicSelection = guid, DynamicSelectionName = "MSI Gaming Mode",
+            Success = true,
+            CurrentValue = 0,
+            DynamicSelection = guid,
+            DynamicOptions = [new DynamicOption("MSI Gaming Mode", guid)],
         });
         var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.ExplorerCustomization] = new[] { setting } };
 
         var captured = await Sut().CaptureAsync(CatalogScope.CurrentMachine);
-        var set = new SelectionSet(captured, Array.Empty<AppChoice>(), Array.Empty<AppChoice>(), AutounattendChoices.None);
+        var set = new SelectionSet(captured, Array.Empty<AppChoice>(), Array.Empty<AppChoice>());
         var restored = ConfigFileMapper.FromFile(ConfigFileMapper.ToFile(set, byFeature), byFeature);
 
         restored.Settings.Should().ContainSingle().Which.Value
-            .Should().Be(new ChoiceValue.PowerPlan(guid, "MSI Gaming Mode"));
+            .Should().Be(new ChoiceValue.Keyed(guid, "MSI Gaming Mode"));
     }
 
     [Fact]
@@ -238,7 +310,7 @@ public class SettingSnapshotSourceTests
     }
 
     [Fact]
-    public async Task FeatureOutsideOptimizeAndCustomize_IsSkipped()
+    public async Task FeatureOutsideTheThreeGroups_IsSkipped()
     {
         _registry.Setup(r => r.InitializeAsync()).Returns(Task.CompletedTask);
         _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>()))
@@ -248,10 +320,47 @@ public class SettingSnapshotSourceTests
     }
 
     [Fact]
+    public async Task AutounattendFeature_IsCaptured()
+    {
+        var setting = ParityFixtures.Toggle("w");
+        _registry.Setup(r => r.InitializeAsync()).Returns(Task.CompletedTask);
+        _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>()))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.Autounattend] = new[] { setting } });
+        _states.Setup(s => s.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["w"] = new SettingStateResult { Success = true, IsEnabled = true },
+            });
+
+        var choices = await Sut().CaptureAsync(CatalogScope.CurrentMachine);
+
+        choices.Should().ContainSingle().Which.Should().Be(new SettingChoice("w", new ChoiceValue.Toggle(true)));
+    }
+
+    [Fact]
     public async Task Scope_IncludeOtherOsVersions_IsForwardedToTheRegistry()
     {
         Arrange(ParityFixtures.Toggle("t"), new SettingStateResult { Success = true, IsEnabled = false });
         await Sut().CaptureAsync(new CatalogScope(IncludeOtherOsVersions: true, IncludeOtherHardware: false));
         _registry.Verify(r => r.GetAll(new CatalogScope(true, false)), Times.Once);
+    }
+
+    [Fact]
+    public async Task A_keyed_selection_is_snapshotted_as_its_key_and_the_label_the_machine_showed()
+    {
+        var setting = FakeOptionProvider.SettingFor();
+        Arrange(setting, FakeOptionProvider.StateOn("beta"));
+
+        (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Single().Value
+            .Should().Be(new ChoiceValue.Keyed("beta", "Beta zone"));
+    }
+
+    [Fact]
+    public async Task A_keyed_selection_the_machine_could_not_read_is_not_snapshotted()
+    {
+        var setting = FakeOptionProvider.SettingFor();
+        Arrange(setting, FakeOptionProvider.StateOn(null));
+
+        (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Should().BeEmpty();
     }
 }

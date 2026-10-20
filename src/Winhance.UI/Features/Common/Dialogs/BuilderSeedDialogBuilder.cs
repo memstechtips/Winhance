@@ -13,6 +13,7 @@ internal class BuilderSeedDialogBuilder
 
     private RadioButton _recommendedRadio = null!;
     private RadioButton _windowsDefaultsRadio = null!;
+    private RadioButton _configFileRadio = null!;
 
     public BuilderSeedDialogBuilder(ILocalizationService localization)
     {
@@ -32,6 +33,7 @@ internal class BuilderSeedDialogBuilder
 
         _recommendedRadio = SeedRadio(_localization.GetString("Dialog_BuilderSeed_Recommended"));
         _windowsDefaultsRadio = SeedRadio(_localization.GetString("Dialog_BuilderSeed_WindowsDefaults"));
+        _configFileRadio = SeedRadio(_localization.GetString("Dialog_BuilderSeed_ConfigFile"));
 
         var panel = new StackPanel { Spacing = 12 };
         panel.Children.Add(new TextBlock
@@ -42,6 +44,7 @@ internal class BuilderSeedDialogBuilder
         panel.Children.Add(SeedRadio(_localization.GetString("Dialog_BuilderSeed_CurrentMachine"), isChecked: true));
         panel.Children.Add(_recommendedRadio);
         panel.Children.Add(_windowsDefaultsRadio);
+        panel.Children.Add(_configFileRadio);
 
         dialog.Content = panel;
         return dialog;
@@ -56,6 +59,8 @@ internal class BuilderSeedDialogBuilder
             return BuilderSeed.Recommended;
         if (_windowsDefaultsRadio.IsChecked == true)
             return BuilderSeed.WindowsDefaults;
+        if (_configFileRadio.IsChecked == true)
+            return BuilderSeed.ConfigFile;
         return BuilderSeed.CurrentMachine;
     }
 

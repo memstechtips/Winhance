@@ -1,3 +1,5 @@
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Catalog;
 using Xunit;
 
@@ -10,10 +12,10 @@ public class UpdatePolicyDetectorConformanceTests
 {
     private const string Ux = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings";
 
-    private const string DefaultLabel = "Normal (Windows Default)";
-    private const string DeferLabel = "Security Updates Only (Recommended)";
-    private const string PausedLabel = "Paused for a long time (Unpause in Settings)";
-    private const string DisabledLabel = "Disabled (NOT Recommended, Security Risk)";
+    private static readonly LocKey DefaultLabel = LocKey.Setting.UpdatesPolicyMode.Option0;
+    private static readonly LocKey DeferLabel = LocKey.Setting.UpdatesPolicyMode.Option1;
+    private static readonly LocKey PausedLabel = LocKey.Setting.UpdatesPolicyMode.Option2;
+    private static readonly LocKey DisabledLabel = LocKey.Setting.UpdatesPolicyMode.Option3;
 
     private static readonly Setting UpdatePolicy =
         SettingCatalog.All.First(s => s.Id == "updates-policy-mode");
@@ -48,15 +50,15 @@ public class UpdatePolicyDetectorConformanceTests
 
     [Fact]
     public void Clean_machine_reads_the_windows_default()
-        => Assert.Equal(DefaultLabel, Detect(new Ctx()));
+        => Assert.Equal(DefaultLabel.Value, Detect(new Ctx()));
 
     [Fact]
     public void DeferFeatureUpdates_reads_the_deferred_state()
-        => Assert.Equal(DeferLabel, Detect(WithValues(false, ("DeferFeatureUpdates", 1))));
+        => Assert.Equal(DeferLabel.Value, Detect(WithValues(false, ("DeferFeatureUpdates", 1))));
 
     [Fact]
     public void DeferFeatureUpdates_not_one_is_not_deferred()
-        => Assert.Equal(DefaultLabel, Detect(WithValues(false, ("DeferFeatureUpdates", 0))));
+        => Assert.Equal(DefaultLabel.Value, Detect(WithValues(false, ("DeferFeatureUpdates", 0))));
 
     [Theory]
     [InlineData("PauseUpdatesStartTime")]
@@ -64,20 +66,20 @@ public class UpdatePolicyDetectorConformanceTests
     [InlineData("PausedQualityDate")]
     [InlineData("PausedFeatureDate")]
     public void Any_pause_marker_reads_paused(string valueName)
-        => Assert.Equal(PausedLabel, Detect(WithValues(false, (valueName, "2025-01-01T00:00:00Z"))));
+        => Assert.Equal(PausedLabel.Value, Detect(WithValues(false, (valueName, "2025-01-01T00:00:00Z"))));
 
     [Fact]
     public void Renamed_dlls_read_disabled()
-        => Assert.Equal(DisabledLabel, Detect(new Ctx(dllsRenamed: true)));
+        => Assert.Equal(DisabledLabel.Value, Detect(new Ctx(dllsRenamed: true)));
 
     [Fact]
     public void Disabled_outranks_paused_and_defer()
-        => Assert.Equal(DisabledLabel, Detect(WithValues(true,
+        => Assert.Equal(DisabledLabel.Value, Detect(WithValues(true,
             ("PauseUpdatesStartTime", "2025-01-01T00:00:00Z"), ("DeferFeatureUpdates", 1))));
 
     [Fact]
     public void Paused_outranks_defer()
-        => Assert.Equal(PausedLabel, Detect(WithValues(false,
+        => Assert.Equal(PausedLabel.Value, Detect(WithValues(false,
             ("PauseUpdatesStartTime", "2025-01-01T00:00:00Z"), ("DeferFeatureUpdates", 1))));
 
     [Fact]
@@ -85,9 +87,9 @@ public class UpdatePolicyDetectorConformanceTests
     {
         Assert.NotNull(UpdatePolicy.Detector);
         Assert.IsType<UpdatePolicyDetector>(UpdatePolicy.Detector);
-        var stateLabels = UpdatePolicy.States.Select(s => s.Label).ToHashSet(StringComparer.Ordinal);
+        var stateLabels = UpdatePolicy.States.Select(s => s.Label.Value).ToHashSet(StringComparer.Ordinal);
         foreach (var label in new[] { DefaultLabel, DeferLabel, PausedLabel, DisabledLabel })
-            Assert.Contains(label, stateLabels);
+            Assert.Contains(label.Value, stateLabels);
     }
 
     // UpdateService applies this through the synchronous ApplyExecutor and cannot await, so a

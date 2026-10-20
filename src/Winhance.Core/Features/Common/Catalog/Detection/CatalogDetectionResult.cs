@@ -24,17 +24,10 @@ public sealed record CatalogDetectionResult
     // StateLabel carries the current selection's Value (e.g. the scheme GUID) so the choice resolves by value, no index round-trip.
     public IReadOnlyList<DynamicOption>? Options { get; init; }
 
-    public string? DynamicSelectionName { get; init; }
-
     // Keyed by ValueName ?? "KeyExists"; the source the config-export custom-state path reads.
     public IReadOnlyDictionary<string, object?>? Readings { get; init; }
 
     // The active adapter's IPv4 servers, in adapter order; null for every setting without a DnsServerDetector.
     // A Custom reading has to carry them so another machine can be put on the same servers.
     public IReadOnlyList<string>? DnsServers { get; init; }
-}
-
-public interface ICatalogDetectionService
-{
-    Task<Dictionary<string, CatalogDetectionResult>> DetectAsync(IReadOnlyCollection<Setting> settings);
 }

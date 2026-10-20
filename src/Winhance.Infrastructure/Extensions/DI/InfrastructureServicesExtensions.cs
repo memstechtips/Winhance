@@ -1,10 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Events;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -58,18 +55,20 @@ public static class InfrastructureServicesExtensions
 
         services.AddSingleton<IPowerShellRunner, Winhance.Infrastructure.Features.Common.Utilities.PowerShellRunner>();
 
-        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IDriverCategorizer,
-            Winhance.Infrastructure.Features.AdvancedTools.Helpers.DriverCategorizer>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IDriverCategorizer,
+            Winhance.Infrastructure.Features.WimUtil.Helpers.DriverCategorizer>();
 
         // power-plan-selection is NOT registered as an apply handler, so the apply funnel falls through to the
-        // catalog engine (ApplyRequestResolver -> PowerPlanActivateOp -> WindowsStateWriter.ActivatePowerPlan ->
+        // catalog engine (ApplyRequestResolver -> PowerPlanEffect -> WindowsStateWriter.ActivatePowerPlan ->
         // IPowerPlanActivationService.EnsureActivatedAsync).
         services.AddSingleton<ISpecialSettingHandlerRegistry>(sp =>
             new SpecialSettingHandlerRegistry(() => new Dictionary<string, ISpecialSettingHandler>
             {
-                [SettingIds.UpdatesPolicyMode]  = sp.GetRequiredService<UpdateService>(),
-                [SettingIds.ThemeModeWindows]   = sp.GetRequiredService<ThemeWallpaperApplier>(),
+                ["updates-policy-mode"]  = sp.GetRequiredService<UpdateService>(),
+                ["theme-mode-windows"]   = sp.GetRequiredService<ThemeModeApplier>(),
             }));
+        services.AddSingleton<IOptionProviderRegistry>(sp =>
+            new OptionProviderRegistry(() => sp.GetServices<IOptionProvider>()));
         // Pending Explorer restart state (observed by the bottom bar; cleared by ExplorerRestartService)
         services.AddSingleton<IPendingRestartService, PendingRestartService>();
 
@@ -119,7 +118,8 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IConfigurationApplicationBridgeService, ConfigurationApplicationBridgeService>();
         services.AddSingleton<ISettingSnapshotSource, SettingSnapshotSource>();
         services.AddSingleton<IConfigFileWriter, ConfigFileWriter>();
-        services.AddSingleton<IAutounattendWriter, Winhance.Infrastructure.Features.AdvancedTools.Services.AutounattendWriter>();
+        services.AddSingleton<IFileStore, FileStore>();
+        services.AddSingleton<IAutounattendWriter, Winhance.Infrastructure.Features.Autounattend.Services.AutounattendWriter>();
         services.AddSingleton<IBuilderSeedSource, BuilderSeedSource>();
 
         services.AddSingleton<IPolicyCleanupService, PolicyCleanupService>();
@@ -128,39 +128,39 @@ public static class InfrastructureServicesExtensions
 
         services.AddSingleton<IDismProcessRunner, DismProcessRunner>();
 
-        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IDismImageInfoReader,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.DismImageInfoReader>();
-        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IWimImageService,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.WimImageService>();
-        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IVirtualDiskNative,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.VirtualDiskNative>();
-        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IIsoImageReader,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.VirtualDiskIsoImageReader>();
-        services.AddSingleton<Func<Winhance.Infrastructure.Features.AdvancedTools.Services.IFileSystemImageWrapper>>(
-            _ => () => new Winhance.Infrastructure.Features.AdvancedTools.Services.Imapi2FileSystemImage());
-        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IIsoImageWriter,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.Imapi2IsoImageWriter>();
-        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IFileCopyNative,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.FileCopyNative>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IDismImageInfoReader,
+            Winhance.Infrastructure.Features.WimUtil.Services.DismImageInfoReader>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IWimImageService,
+            Winhance.Infrastructure.Features.WimUtil.Services.WimImageService>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IVirtualDiskNative,
+            Winhance.Infrastructure.Features.WimUtil.Services.VirtualDiskNative>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IIsoImageReader,
+            Winhance.Infrastructure.Features.WimUtil.Services.VirtualDiskIsoImageReader>();
+        services.AddSingleton<Func<Winhance.Infrastructure.Features.WimUtil.Services.IFileSystemImageWrapper>>(
+            _ => () => new Winhance.Infrastructure.Features.WimUtil.Services.Imapi2FileSystemImage());
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IIsoImageWriter,
+            Winhance.Infrastructure.Features.WimUtil.Services.Imapi2IsoImageWriter>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IFileCopyNative,
+            Winhance.Infrastructure.Features.WimUtil.Services.FileCopyNative>();
         services.AddSingleton(TimeProvider.System);
-        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IMediaCopier,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.MediaCopier>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IMediaCopier,
+            Winhance.Infrastructure.Features.WimUtil.Services.MediaCopier>();
         services.AddSingleton<Winhance.Infrastructure.Features.Common.Services.IWmiApi,
             Winhance.Infrastructure.Features.Common.Services.WmiManagementApi>();
-        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IStorageOperations,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.WmiStorageService>();
-        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IUsbMediaWriter,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.StorageApiUsbMediaWriter>();
-        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IIsoService,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.IsoService>();
-        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.IDriverInstallStepWriter,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.DriverInstallStepWriter>();
-        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IAnswerFileValidator,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.AnswerFileValidator>();
-        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IWimCustomizationService,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.WimCustomizationService>();
-        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IAutounattendScriptBuilder,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.AutounattendScriptBuilder>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IStorageOperations,
+            Winhance.Infrastructure.Features.WimUtil.Services.WmiStorageService>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IUsbMediaWriter,
+            Winhance.Infrastructure.Features.WimUtil.Services.StorageApiUsbMediaWriter>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IIsoService,
+            Winhance.Infrastructure.Features.WimUtil.Services.IsoService>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IDriverInstallStepWriter,
+            Winhance.Infrastructure.Features.WimUtil.Services.DriverInstallStepWriter>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IAnswerFileValidator,
+            Winhance.Infrastructure.Features.WimUtil.Services.AnswerFileValidator>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IWimCustomizationService,
+            Winhance.Infrastructure.Features.WimUtil.Services.WimCustomizationService>();
+        services.AddSingleton<Winhance.Core.Features.Autounattend.Interfaces.IWinhancementsScriptBuilder,
+            Winhance.Infrastructure.Features.Autounattend.Services.WinhancementsScriptBuilder>();
 
         services.TryAddSingleton<System.Net.Http.HttpClient>();
 
@@ -172,10 +172,15 @@ public static class InfrastructureServicesExtensions
 
     private static IServiceCollection AddCustomizationServices(this IServiceCollection services)
     {
-        services.AddSingleton<IWallpaperService, WallpaperService>();
+        services.AddSingleton<WindowsThemeService>();
+        services.AddSingleton<IWindowsThemeService>(sp => sp.GetRequiredService<WindowsThemeService>());
+        services.AddSingleton<IOptionProvider>(sp => sp.GetRequiredService<WindowsThemeService>());
+        services.AddSingleton<IDesktopSlideshow, DesktopSlideshow>();
 
-        // ThemeWallpaperApplier's explorer refresh is declarative via the Setting's RestartProcess.
-        services.AddSingleton<ThemeWallpaperApplier>();
+        services.AddSingleton<TimeRegionLanguageService>();
+        services.AddSingleton<IOptionProvider>(sp => sp.GetRequiredService<TimeRegionLanguageService>());
+
+        services.AddSingleton<ThemeModeApplier>();
 
         return services;
     }
@@ -184,6 +189,7 @@ public static class InfrastructureServicesExtensions
     {
         services.AddSingleton<PowerService>();
         services.AddSingleton<IPowerService>(sp => sp.GetRequiredService<PowerService>());
+        services.AddSingleton<IOptionProvider>(sp => sp.GetRequiredService<PowerService>());
 
         services.AddSingleton<UpdateService>();
 

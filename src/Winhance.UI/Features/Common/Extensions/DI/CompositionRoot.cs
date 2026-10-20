@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Winhance.Infrastructure.Extensions.DI;
+using Winhance.UI.Helpers;
 
 namespace Winhance.UI.Features.Common.Extensions.DI;
 
@@ -15,7 +16,7 @@ public static class CompositionRoot
         return services;
     }
 
-    public static IHostBuilder CreateWinhanceHost()
+    public static IHostBuilder CreateWinhanceHost(LaunchOptions? launch = null)
     {
         return Host.CreateDefaultBuilder()
             // The generic host validates the service graph only in the Development environment, which a shipped
@@ -29,6 +30,7 @@ public static class CompositionRoot
             .ConfigureServices((context, services) =>
             {
                 services.ConfigureWinhanceServices();
+                services.AddSingleton(launch ?? LaunchOptions.None);
             });
     }
 }

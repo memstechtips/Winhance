@@ -1,9 +1,13 @@
 using Microsoft.Win32;
+using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Xunit;
+using Winhance.TestSupport;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Core.Tests.Catalog;
 
 public class ApplyRequestResolverTests
@@ -12,7 +16,7 @@ public class ApplyRequestResolverTests
 
     private static RegTarget Reg() => new("k", TestPaths, "V", RegistryValueKind.DWord);
 
-    private static SettingState State(string label, int value, bool fallback = false) => new()
+    private static SettingState State(LocKey label, int value, bool fallback = false) => new()
     {
         Label = label,
         Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(value) },
@@ -22,23 +26,23 @@ public class ApplyRequestResolverTests
     private static Setting ToggleSetting(string id = "t") => new()
     {
         Id = id,
-        Display = new() { Name = "n", Description = "d" },
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
         Targets = new[] { Reg() },
-        States = new[] { State("Enabled", 1), State("Disabled", 0, fallback: true) },
+        States = new[] { State(LocKey.Common.Enabled, 1), State(LocKey.Common.Disabled, 0, fallback: true) },
     };
 
     private static Setting SelectionSetting(string id = "t") => new()
     {
         Id = id,
-        Display = new() { Name = "n", Description = "d" },
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
         Targets = new[] { Reg() },
-        States = new[] { State("OptA", 0), State("OptB", 1) },
+        States = new[] { State(TestKeys.Of("OptA"), 0), State(TestKeys.Of("OptB"), 1) },
     };
 
     private static Setting NumericSetting(string id = "t") => new()
     {
         Id = id,
-        Display = new() { Name = "n", Description = "d" },
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
         Targets = new Target[]
         {
             new PowerCfgTarget("pk", "11111111-1111-1111-1111-111111111111",
@@ -50,7 +54,7 @@ public class ApplyRequestResolverTests
     private static Setting PowerCfgSelectionSetting(string id = "t") => new()
     {
         Id = id,
-        Display = new() { Name = "n", Description = "d" },
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
         Targets = new Target[]
         {
             new PowerCfgTarget("pk", "11111111-1111-1111-1111-111111111111",
@@ -58,9 +62,9 @@ public class ApplyRequestResolverTests
         },
         States = new[]
         {
-            new SettingState { Label = "OptA", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(10) } },
-            new SettingState { Label = "OptB", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(20) } },
-            new SettingState { Label = "OptC", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(30) } },
+            new SettingState { Label = TestKeys.Of("OptA"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(10) } },
+            new SettingState { Label = TestKeys.Of("OptB"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(20) } },
+            new SettingState { Label = TestKeys.Of("OptC"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(30) } },
         },
     };
 
@@ -69,11 +73,11 @@ public class ApplyRequestResolverTests
     private static Setting ScriptCustomStateSetting(string id = "t") => new()
     {
         Id = id,
-        Display = new() { Name = "n", Description = "d" },
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
         States = new[]
         {
-            new SettingState { Label = "Automatic", Effects = new Effect[] { new ScriptEffect("Reset-Dns", RunContext.User) } },
-            new SettingState { Label = "Cloudflare", Effects = new Effect[] { new ScriptEffect("Set-Dns 1.1.1.1", RunContext.User) } },
+            new SettingState { Label = TestKeys.Of("Automatic"), Effects = new Effect[] { new ScriptEffect("Reset-Dns", RunContext.User) } },
+            new SettingState { Label = TestKeys.Of("Cloudflare"), Effects = new Effect[] { new ScriptEffect("Set-Dns 1.1.1.1", RunContext.User) } },
         },
         CustomStateScripts = new[]
         {
@@ -83,6 +87,15 @@ public class ApplyRequestResolverTests
         Detector = new FakeDetector(),
     };
 
+    private static Setting AlbumSetting(string id = "t") => new()
+    {
+        Id = id,
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+        TextBox = new(new TextRule("^.{1,}$", UpperCase: false, TestKeys.Of("A folder.")), Picker: PickerKind.Folder),
+        Targets = new Target[] { new DesktopSlideshowTarget("album") },
+        CustomStateScripts = [new ScriptEffect("Set-Slideshow '{{value}}'", RunContext.User)],
+    };
+
     private static Dictionary<string, object> DnsCustomValues() => new()
     {
         ["DetectedIndex"] = -1,
@@ -90,9 +103,39 @@ public class ApplyRequestResolverTests
         ["secondary"] = "10.5.0.2",
     };
 
+    private static List<string> ScriptsFor(Setting setting, Dictionary<string, object> customValues) =>
+        ApplyRequestResolver.Resolve(setting.Id, enable: true, value: customValues, resetToDefault: false, new[] { setting })!
+            .Select(op => Assert.IsType<ScriptEffect>(Assert.IsType<EffectOp>(op).Effect).Script)
+            .ToList();
+
     private sealed class FakeDetector : IStateDetector
     {
         public string? Detect(Setting setting, IDetectionContext context) => null;
+    }
+
+    [Fact]
+    public void A_slideshow_box_resolves_to_one_op_carrying_the_folder()
+    {
+        var plan = ApplyRequestResolver.Resolve(
+            "t", enable: true, value: @"D:\Albums\Trip", resetToDefault: false, new[] { AlbumSetting() }, new WinBuild(22631));
+
+        var op = Assert.IsType<SlideshowSetOp>(Assert.Single(plan!));
+        Assert.Equal("album", op.Target.Key);
+        Assert.Equal(@"D:\Albums\Trip", op.Folder);
+    }
+
+    [Fact]
+    public void An_empty_slideshow_box_resolves_to_nothing()
+    {
+        Assert.Null(ApplyRequestResolver.Resolve(
+            "t", enable: true, value: string.Empty, resetToDefault: false, new[] { AlbumSetting() }, new WinBuild(22631)));
+    }
+
+    [Fact]
+    public void A_slideshow_box_with_a_value_of_another_shape_returns_null()
+    {
+        Assert.Null(ApplyRequestResolver.Resolve(
+            "t", enable: true, value: 0, resetToDefault: false, new[] { AlbumSetting() }, new WinBuild(22631)));
     }
 
     [Fact]
@@ -112,7 +155,7 @@ public class ApplyRequestResolverTests
         var setting = ToggleSetting();
         var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
             resetToDefault: true, new[] { setting });
-        Assert.Equal(ApplyPlanBuilder.Build(setting, "Disabled", build: null, reset: true), plan);
+        Assert.Equal(ApplyPlanBuilder.Build(setting, LocKey.Common.Disabled, build: null, reset: true), plan);
     }
 
     [Fact]
@@ -140,14 +183,14 @@ public class ApplyRequestResolverTests
             {
                 new SettingState
                 {
-                    Label = "Enabled",
+                    Label = LocKey.Common.Enabled,
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) },
                     Effects = new Effect[] { new ScriptEffect("Enable-ComputerRestore", RunContext.System) },
                 },
                 new SettingState
                 {
-                    Label = "Disabled",
+                    Label = LocKey.Common.Disabled,
                     Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) },
                     Effects = new Effect[] { new ScriptEffect("Disable-ComputerRestore", RunContext.System) },
                 },
@@ -156,7 +199,7 @@ public class ApplyRequestResolverTests
 
         var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
             resetToDefault: true, new[] { setting });
-        Assert.Equal(ApplyPlanBuilder.Build(setting, "Enabled", build: null, reset: true), plan);
+        Assert.Equal(ApplyPlanBuilder.Build(setting, LocKey.Common.Enabled, build: null, reset: true), plan);
     }
 
     [Fact]
@@ -173,13 +216,13 @@ public class ApplyRequestResolverTests
             {
                 new SettingState
                 {
-                    Label = "OptA",
+                    Label = TestKeys.Of("OptA"),
                     Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) },
                     Effects = new Effect[] { new ScriptEffect("a", RunContext.User) },
                 },
                 new SettingState
                 {
-                    Label = "OptB",
+                    Label = TestKeys.Of("OptB"),
                     Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) },
                     Effects = new Effect[] { new ScriptEffect("b", RunContext.User) },
                 },
@@ -191,39 +234,41 @@ public class ApplyRequestResolverTests
         Assert.Null(plan);
     }
 
-    [Fact]
-    public void Dynamic_option_source_with_non_guid_value_returns_null()
+    private static Setting PowerPlanSetting() => new()
     {
-        // A legacy int index needs an async index->GUID lookup the pure resolver can't do -> returns null.
-        var setting = SelectionSetting() with { OptionSource = new PowerPlanOptionSource() };
-        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 1,
-            resetToDefault: false, new[] { setting });
-        Assert.Null(plan);
+        Id = "t",
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+        Options = new(OptionSource.PowerPlans),
+    };
+
+    private static FakeOptionProviderRegistry PowerPlans()
+    {
+        var provider = new Mock<IOptionProvider>();
+        provider.Setup(p => p.Accepts(It.IsAny<Setting>(), It.IsAny<string>()))
+            .Returns((Setting setting, string key) => Guid.TryParse(key, out _));
+        provider.Setup(p => p.EffectFor(It.IsAny<Setting>(), It.IsAny<string>()))
+            .Returns((Setting _, string key) => new PowerPlanEffect(key));
+        return new FakeOptionProviderRegistry(provider.Object);
     }
 
     [Fact]
-    public void Dynamic_option_source_with_guid_string_builds_activate_op()
+    public void Keyed_selection_with_a_refused_or_non_string_value_returns_null()
     {
-        // Live UI selection: the stored value is the scheme GUID string.
-        var setting = SelectionSetting() with { OptionSource = new PowerPlanOptionSource() };
+        var setting = PowerPlanSetting();
+        Assert.Null(ApplyRequestResolver.Resolve("t", enable: true, value: "not-a-guid",
+            resetToDefault: false, new[] { setting }, options: PowerPlans()));
+        Assert.Null(ApplyRequestResolver.Resolve("t", enable: true, value: 1,
+            resetToDefault: false, new[] { setting }, options: PowerPlans()));
+    }
+
+    [Fact]
+    public void Keyed_selection_with_an_accepted_key_builds_the_providers_effect()
+    {
         const string guid = "381b4222-f694-41f0-9685-ff5bb260df2e";
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: guid,
-            resetToDefault: false, new[] { setting });
-        var activate = Assert.IsType<PowerPlanActivateOp>(Assert.Single(plan!));
-        Assert.Equal(guid, activate.Guid);
-    }
-
-    [Fact]
-    public void Dynamic_option_source_with_guid_name_dictionary_builds_activate_op()
-    {
-        // Config-import shape (ConfigurationApplicationBridgeService): { "Guid": ..., "Name": ... }.
-        var setting = SelectionSetting() with { OptionSource = new PowerPlanOptionSource() };
-        const string guid = "381b4222-f694-41f0-9685-ff5bb260df2e";
-        var value = new Dictionary<string, object> { ["Guid"] = guid, ["Name"] = "Balanced" };
-        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: value,
-            resetToDefault: false, new[] { setting });
-        var activate = Assert.IsType<PowerPlanActivateOp>(Assert.Single(plan!));
-        Assert.Equal(guid, activate.Guid);
+            resetToDefault: false, new[] { PowerPlanSetting() }, options: PowerPlans());
+        var effect = Assert.IsType<EffectOp>(Assert.Single(plan!)).Effect;
+        Assert.Equal(guid, Assert.IsType<PowerPlanEffect>(effect).Guid);
     }
 
     [Fact]
@@ -257,7 +302,7 @@ public class ApplyRequestResolverTests
         var setting = ToggleSetting();
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
             resetToDefault: false, new[] { setting });
-        Assert.Equal(ApplyPlanBuilder.Build(setting, "Enabled"), plan);
+        Assert.Equal(ApplyPlanBuilder.Build(setting, LocKey.Common.Enabled), plan);
     }
 
     [Fact]
@@ -266,7 +311,7 @@ public class ApplyRequestResolverTests
         var setting = ToggleSetting();
         var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
             resetToDefault: false, new[] { setting });
-        Assert.Equal(ApplyPlanBuilder.Build(setting, "Disabled"), plan);
+        Assert.Equal(ApplyPlanBuilder.Build(setting, LocKey.Common.Disabled), plan);
     }
 
     [Fact]
@@ -282,13 +327,13 @@ public class ApplyRequestResolverTests
             {
                 new SettingState
                 {
-                    Label = "Enabled",
+                    Label = LocKey.Common.Enabled,
                     Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) },
                     Effects = new Effect[] { new ScriptEffect("Enable-ComputerRestore", RunContext.System) },
                 },
                 new SettingState
                 {
-                    Label = "Disabled",
+                    Label = LocKey.Common.Disabled,
                     Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) },
                     Effects = new Effect[] { new ScriptEffect("Disable-ComputerRestore", RunContext.System) },
                 },
@@ -297,7 +342,7 @@ public class ApplyRequestResolverTests
 
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
             resetToDefault: false, new[] { setting });
-        Assert.Equal(ApplyPlanBuilder.Build(setting, "Enabled"), plan);
+        Assert.Equal(ApplyPlanBuilder.Build(setting, LocKey.Common.Enabled), plan);
     }
 
     [Fact]
@@ -305,18 +350,18 @@ public class ApplyRequestResolverTests
     {
         // A toggle whose Disabled state is the WindowsDefault AND carries a ResetSet (its [1,null]-style target
         // DELETEs on reset though it DETECTs "1-or-absent"). The resolver must route reset to that default state
-        // and build with reset:true, so the plan equals ApplyPlanBuilder.Build(setting, "Disabled", reset:true).
+        // and build with reset:true, so the plan equals ApplyPlanBuilder.Build(setting, LocKey.Common.Disabled, reset:true).
         var setting = new Setting
         {
             Id = "t",
-            Display = new() { Name = "n", Description = "d" },
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
             Targets = new[] { Reg() },
             States = new[]
             {
-                State("Enabled", 1),
+                State(LocKey.Common.Enabled, 1),
                 new SettingState
                 {
-                    Label = "Disabled",
+                    Label = LocKey.Common.Disabled,
                     Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1).OrAbsent() },
@@ -328,7 +373,7 @@ public class ApplyRequestResolverTests
         var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
             resetToDefault: true, new[] { setting });
 
-        Assert.Equal(ApplyPlanBuilder.Build(setting, "Disabled", build: null, reset: true), plan);
+        Assert.Equal(ApplyPlanBuilder.Build(setting, LocKey.Common.Disabled, build: null, reset: true), plan);
     }
 
     [Fact]
@@ -339,19 +384,19 @@ public class ApplyRequestResolverTests
         var setting = new Setting
         {
             Id = "t",
-            Display = new() { Name = "n", Description = "d" },
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
             Targets = new[] { Reg() },
             States = new[]
             {
                 new SettingState
                 {
-                    Label = "Enabled",
+                    Label = LocKey.Common.Enabled,
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) },
                 },
                 new SettingState
                 {
-                    Label = "Disabled",
+                    Label = LocKey.Common.Disabled,
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) },
                     ResetSet = new Dictionary<string, StateValue> { ["k"] = StateValue.Absent },
@@ -366,12 +411,41 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void CheckBox_builds_like_toggle()
+    public void CheckBox_builds_its_own_checked_plan()
     {
-        var setting = ToggleSetting();
+        var setting = ToggleSetting() with
+        {
+            States = new[] { State(LocKey.Common.Checked, 1), State(LocKey.Common.Unchecked, 0, fallback: true) },
+        };
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
             resetToDefault: false, new[] { setting });
-        Assert.Equal(ApplyPlanBuilder.Build(setting, "Enabled"), plan);
+        Assert.Equal(ApplyPlanBuilder.Build(setting, LocKey.Common.Checked), plan);
+    }
+
+    [Fact]
+    public void An_answer_file_only_setting_resolves_to_null()
+    {
+        var setting = ToggleSetting() with
+        {
+            Targets = new Target[] { new AutounattendElement("K", "oobeSystem", "Microsoft-Windows-Shell-Setup", "OOBE/HideEULAPage") },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Absent },
+                    Roles = new[] { StateRole.WindowsDefault },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of("true") },
+                },
+            },
+        };
+
+        Assert.Null(ApplyRequestResolver.Resolve("t", enable: true, value: null,
+            resetToDefault: false, new[] { setting }));
     }
 
     [Fact]
@@ -380,7 +454,7 @@ public class ApplyRequestResolverTests
         var setting = SelectionSetting();
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 1,
             resetToDefault: false, new[] { setting });
-        Assert.Equal(ApplyPlanBuilder.Build(setting, "OptB"), plan);
+        Assert.Equal(ApplyPlanBuilder.Build(setting, TestKeys.Of("OptB")), plan);
     }
 
     [Fact]
@@ -389,7 +463,7 @@ public class ApplyRequestResolverTests
         var setting = new Setting
         {
             Id = "t",
-            Display = new() { Name = "n", Description = "d" },
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
             Effects = new Effect[] { new ScriptEffect("echo hi", RunContext.System) },
         };
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
@@ -453,7 +527,7 @@ public class ApplyRequestResolverTests
         var setting = new Setting
         {
             Id = "t",
-            Display = new() { Name = "n", Description = "d" },
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
             Targets = new Target[]
             {
                 new PowerCfgTarget("pk", "11111111-1111-1111-1111-111111111111",
@@ -462,8 +536,8 @@ public class ApplyRequestResolverTests
             },
             States = new[]
             {
-                new SettingState { Label = "OptA", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(10), ["k"] = StateValue.Of(0) } },
-                new SettingState { Label = "OptB", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(20), ["k"] = StateValue.Of(1) } },
+                new SettingState { Label = TestKeys.Of("OptA"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(10), ["k"] = StateValue.Of(0) } },
+                new SettingState { Label = TestKeys.Of("OptB"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(20), ["k"] = StateValue.Of(1) } },
             },
         };
         var value = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 1 };
@@ -481,7 +555,7 @@ public class ApplyRequestResolverTests
         var setting = new Setting
         {
             Id = "t",
-            Display = new() { Name = "n", Description = "d" },
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
             Targets = new Target[]
             {
                 new PowerCfgTarget("pk", "11111111-1111-1111-1111-111111111111",
@@ -489,9 +563,9 @@ public class ApplyRequestResolverTests
             },
             States = new[]
             {
-                new SettingState { Label = "OptA", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(10) } },
-                new SettingState { Label = "OptB", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(20) } },
-                new SettingState { Label = "OptC", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(30) } },
+                new SettingState { Label = TestKeys.Of("OptA"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(10) } },
+                new SettingState { Label = TestKeys.Of("OptB"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(20) } },
+                new SettingState { Label = TestKeys.Of("OptC"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(30) } },
             },
         };
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: (0, 2),
@@ -509,7 +583,7 @@ public class ApplyRequestResolverTests
         var setting = new Setting
         {
             Id = "t",
-            Display = new() { Name = "n", Description = "d" },
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
             Targets = new Target[]
             {
                 new PowerCfgTarget("pk", "11111111-1111-1111-1111-111111111111",
@@ -517,8 +591,8 @@ public class ApplyRequestResolverTests
             },
             States = new[]
             {
-                new SettingState { Label = "OptA", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(10) } },
-                new SettingState { Label = "OptB", Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(20) } },
+                new SettingState { Label = TestKeys.Of("OptA"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(10) } },
+                new SettingState { Label = TestKeys.Of("OptB"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(20) } },
             },
         };
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: (0, 1),
@@ -561,8 +635,8 @@ public class ApplyRequestResolverTests
         {
             States = new[]
             {
-                new SettingState { Label = "OptA", Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) }, Effects = new Effect[] { new ScriptEffect("s", RunContext.User) } },
-                new SettingState { Label = "OptB", Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) } },
+                new SettingState { Label = TestKeys.Of("OptA"), Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) }, Effects = new Effect[] { new ScriptEffect("s", RunContext.User) } },
+                new SettingState { Label = TestKeys.Of("OptB"), Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) } },
             },
         };
         var customValues = new Dictionary<string, object> { ["V"] = 3 };
@@ -579,12 +653,12 @@ public class ApplyRequestResolverTests
         var setting = new Setting
         {
             Id = "t",
-            Display = new() { Name = "n", Description = "d" },
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
             Targets = new Target[]
             {
                 new RegTarget("k", TestPaths, "V", RegistryValueKind.DWord) { PerNetworkInterface = true },
             },
-            States = new[] { State("OptA", 0), State("OptB", 1) },
+            States = new[] { State(TestKeys.Of("OptA"), 0), State(TestKeys.Of("OptB"), 1) },
         };
         var customValues = new Dictionary<string, object> { ["V"] = 3 };
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: customValues,
@@ -608,6 +682,87 @@ public class ApplyRequestResolverTests
         Assert.Equal(2, scripts.Count);
         Assert.Equal("Set-Dns @('10.5.0.1','10.5.0.2')", scripts[0]);
         Assert.Equal("$t = '{{dohtemplate}}'; netsh add 10.5.0.1 10.5.0.2", scripts[1]);
+    }
+
+    [Theory]
+    [InlineData("1.1.1.1'; calc #")]
+    [InlineData("$(calc)")]
+    [InlineData("1.1.1.1\u2019; calc #")]
+    [InlineData("1.1.1.1; calc")]
+    [InlineData("1.1.1.1 | calc")]
+    [InlineData("`calc`")]
+    [InlineData("1.1.1.1\n")]
+    [InlineData("")]
+    public void A_custom_value_that_is_not_script_safe_leaves_its_placeholder_standing(string primary)
+    {
+        var values = DnsCustomValues();
+        values["primary"] = primary;
+
+        var scripts = ScriptsFor(ScriptCustomStateSetting(), values);
+
+        Assert.Equal("Set-Dns @('{{primary}}','10.5.0.2')", scripts[0]);
+        Assert.Equal("$t = '{{dohtemplate}}'; netsh add {{primary}} 10.5.0.2", scripts[1]);
+    }
+
+    [Fact]
+    public void A_hostile_doh_template_leaves_the_placeholder_the_script_tests_for()
+    {
+        var values = DnsCustomValues();
+        values["dohtemplate"] = "https://x/'; calc #";
+
+        var scripts = ScriptsFor(ScriptCustomStateSetting(), values);
+
+        Assert.Equal("$t = '{{dohtemplate}}'; netsh add 10.5.0.1 10.5.0.2", scripts[1]);
+    }
+
+    [Fact]
+    public void A_config_key_cannot_cut_a_span_out_of_the_script()
+    {
+        var values = new Dictionary<string, object> { ["primary}}','{{secondary"] = "10.5.0.1" };
+
+        var scripts = ScriptsFor(ScriptCustomStateSetting(), values);
+
+        Assert.Equal("Set-Dns @('{{primary}}','{{secondary}}')", scripts[0]);
+    }
+
+    [Fact]
+    public void The_real_dns_scripts_never_carry_a_hostile_custom_value()
+    {
+        var setting = SettingCatalog.Find("gaming-dns-server")!;
+        var values = new Dictionary<string, object>
+        {
+            ["primary"] = "1.1.1.1'; calc #",
+            ["secondary"] = "$(calc)",
+            ["dohtemplate"] = "https://x/'; calc #",
+        };
+
+        var scripts = ScriptsFor(setting, values);
+
+        Assert.Equal(setting.CustomStateScripts.Select(s => s.Script).ToList(), scripts);
+    }
+
+    [Theory]
+    [InlineData("10.5.0.1", "10.5.0.2")]
+    [InlineData("2606:4700:4700::1111", "2606:4700:4700::1001")]
+    public void An_ipv4_or_ipv6_address_fills_its_placeholder(string primary, string secondary)
+    {
+        var values = new Dictionary<string, object> { ["primary"] = primary, ["secondary"] = secondary };
+
+        var scripts = ScriptsFor(ScriptCustomStateSetting(), values);
+
+        Assert.Equal($"Set-Dns @('{primary}','{secondary}')", scripts[0]);
+        Assert.Equal("$t = '{{dohtemplate}}'; netsh add " + primary + " " + secondary, scripts[1]);
+    }
+
+    [Fact]
+    public void A_doh_template_fills_its_placeholder()
+    {
+        var values = DnsCustomValues();
+        values["dohtemplate"] = "https://cloudflare-dns.com/dns-query";
+
+        var scripts = ScriptsFor(ScriptCustomStateSetting(), values);
+
+        Assert.Equal("$t = 'https://cloudflare-dns.com/dns-query'; netsh add 10.5.0.1 10.5.0.2", scripts[1]);
     }
 
     [Fact]
@@ -642,7 +797,7 @@ public class ApplyRequestResolverTests
         var plan = ApplyRequestResolver.Resolve(aliasId, enable: true, value: null,
             resetToDefault: false, SettingCatalog.All, win10);
 
-        Assert.Equal(ApplyPlanBuilder.Build(canonical, "Enabled", win10), plan);
+        Assert.Equal(ApplyPlanBuilder.Build(canonical, LocKey.Common.Enabled, win10), plan);
     }
 
     [Fact]
@@ -657,7 +812,7 @@ public class ApplyRequestResolverTests
         var plan = ApplyRequestResolver.Resolve(aliasId, enable: false, value: null,
             resetToDefault: false, SettingCatalog.All, win10);
 
-        Assert.Equal(ApplyPlanBuilder.Build(canonical, "Disabled", win10), plan);
+        Assert.Equal(ApplyPlanBuilder.Build(canonical, LocKey.Common.Disabled, win10), plan);
     }
 
     [Fact]
@@ -669,7 +824,7 @@ public class ApplyRequestResolverTests
         var setting = SelectionSetting(); // OptA(0), OptB(1); no WindowsDefault state
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 1,
             resetToDefault: true, new[] { setting });
-        Assert.Equal(ApplyPlanBuilder.Build(setting, "OptB", build: null, reset: true), plan);
+        Assert.Equal(ApplyPlanBuilder.Build(setting, TestKeys.Of("OptB"), build: null, reset: true), plan);
     }
 
     [Fact]
@@ -693,7 +848,7 @@ public class ApplyRequestResolverTests
         var setting = new Setting
         {
             Id = "t",
-            Display = new() { Name = "n", Description = "d" },
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
             Effects = new Effect[] { new ScriptEffect("echo hi", RunContext.System) },
         };
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
@@ -712,7 +867,7 @@ public class ApplyRequestResolverTests
         var canonical = SettingCatalog.All.First(s => s.Id == id);
         var plan = ApplyRequestResolver.Resolve(id, enable: false, value: null,
             resetToDefault: true, SettingCatalog.All, win11);
-        Assert.Equal(ApplyPlanBuilder.Build(canonical, "Disabled", win11, reset: true), plan);
+        Assert.Equal(ApplyPlanBuilder.Build(canonical, LocKey.Common.Disabled, win11, reset: true), plan);
     }
 
     [Fact]
@@ -727,6 +882,6 @@ public class ApplyRequestResolverTests
         var canonical = SettingCatalog.All.First(s => s.Id == canonicalId);
         var plan = ApplyRequestResolver.Resolve(aliasId, enable: true, value: null,
             resetToDefault: true, SettingCatalog.All, win10);
-        Assert.Equal(ApplyPlanBuilder.Build(canonical, "Enabled", win10, reset: true), plan);
+        Assert.Equal(ApplyPlanBuilder.Build(canonical, LocKey.Common.Enabled, win10, reset: true), plan);
     }
 }

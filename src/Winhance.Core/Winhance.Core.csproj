@@ -6,6 +6,15 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Winhance.Core.Tests" />
+    <InternalsVisibleTo Include="Winhance.TestSupport" />
+  </ItemGroup>
+
+  <!-- The key generator reads en.json and emits a LocKey member per key. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Winhance.Localization.Generator\Winhance.Localization.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <AdditionalFiles Include="Features\Common\Localization\en.json" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.7"/>

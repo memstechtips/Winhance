@@ -1,3 +1,4 @@
+using Winhance.Core.Features.Common.Localization;
 using Winhance.TestSupport;
 using FluentAssertions;
 using Moq;
@@ -31,7 +32,7 @@ public class SettingItemViewModelDetectOnlyStateTests
         vm.SelectedValue = 2;
 
         vm.DetectOnlySelectedState.Should().NotBeNull();
-        vm.DetectOnlySelectedState!.Label.Should().Be("Mixed");
+        vm.DetectOnlySelectedState!.Label.Should().Be(LocKey.Setting.ThemeModeWindows.Option2);
     }
 
     [Theory]
@@ -62,15 +63,15 @@ public class SettingItemViewModelDetectOnlyStateTests
     public void TheOverlay_ShowsTheStateName_NotTheNotRecognizedText()
     {
         // The whole point: the card names the state. GetString is unstubbed here, so the lookup misses and
-        // the raw catalog Label is the fallback - in the app it resolves Setting_{id}_Option_2.
+        // the state key is the fallback - in the app it resolves Setting_{id}_Option_2.
         var vm = CreateSut();
 
         vm.SelectedValue = 2;
 
         vm.OverlayVisibilityForMode(SettingInputMode.Single)
             .Should().Be(Microsoft.UI.Xaml.Visibility.Visible);
-        vm.OverlayTextForMode(SettingInputMode.Single).Should().Be("Mixed");
-        vm.DetectOnlyStateText.Should().Be("Mixed");
+        vm.OverlayTextForMode(SettingInputMode.Single).Should().Be(LocKey.Setting.ThemeModeWindows.Option2.Value);
+        vm.DetectOnlyStateText.Should().Be(LocKey.Setting.ThemeModeWindows.Option2.Value);
     }
 
     [Fact]
@@ -81,7 +82,7 @@ public class SettingItemViewModelDetectOnlyStateTests
         vm.SelectedValue = 2;
 
         vm.OverlayShowsIconForMode(SettingInputMode.Single).Should().BeFalse();
-        vm.OverlayTooltipForMode(SettingInputMode.Single, toggleLike: false).Should().BeEmpty();
+        vm.OverlayTooltipForMode(SettingInputMode.Single, isTwoState: false).Should().BeEmpty();
     }
 
     [Fact]
@@ -117,12 +118,12 @@ public class SettingItemViewModelDetectOnlyStateTests
             Setting = new Setting
             {
                 Id = "test-master",
-                Display = new() { Name = "Test Master", Description = "d" },
+                Display = new() { Name = TestKeys.Of("Test Master"), Description = TestKeys.Of("d") },
                 States = new[]
                 {
-                    new SettingState { Label = "Light Mode" },
-                    new SettingState { Label = "Dark Mode" },
-                    new SettingState { Label = "Mixed", IsFallback = true, IsDetectOnly = true },
+                    new SettingState { Label = LocKey.Setting.ThemeModeWindows.Option0 },
+                    new SettingState { Label = LocKey.Setting.ThemeModeWindows.Option1 },
+                    new SettingState { Label = LocKey.Setting.ThemeModeWindows.Option2, IsFallback = true, IsDetectOnly = true },
                 },
             },
             SettingId = "test-master",

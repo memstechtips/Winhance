@@ -6,7 +6,9 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
+using Winhance.TestSupport;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Infrastructure.Tests.Services;
 
 public class BulkSettingsActionServiceTests
@@ -81,7 +83,7 @@ public class BulkSettingsActionServiceTests
     // The reset loop + affected-count + ResolveSettingsAsync all read catalog Settings DIRECTLY. Tests
     // construct synthetic Settings with exactly the roles they exercise - no real catalog id is needed.
 
-    private static Display Disp(string id) => new() { Name = $"Setting {id}", Description = $"Description for {id}" };
+    private static Display Disp(string id) => new() { Name = TestKeys.Of($"Setting {id}"), Description = TestKeys.Of($"Description for {id}") };
 
     // A toggle Setting: a Recommended role on Enabled/Disabled means recommend enabling/disabling; a
     // WindowsDefault role on Enabled/Disabled is the reset direction. null = that role absent.
@@ -99,8 +101,8 @@ public class BulkSettingsActionServiceTests
             Display = Disp(id),
             States = new[]
             {
-                new SettingState { Label = "Enabled", Roles = enabledRoles },
-                new SettingState { Label = "Disabled", Roles = disabledRoles },
+                new SettingState { Label = LocKey.Common.Enabled, Roles = enabledRoles },
+                new SettingState { Label = LocKey.Common.Disabled, Roles = disabledRoles },
             },
         };
     }
@@ -115,7 +117,7 @@ public class BulkSettingsActionServiceTests
             var roles = new List<StateRole>();
             if (recommendedIndex == i) roles.Add(new StateRole(RoleKind.Recommended));
             if (defaultIndex == i) roles.Add(new StateRole(RoleKind.WindowsDefault));
-            states.Add(new SettingState { Label = $"Option{i}", Roles = roles });
+            states.Add(new SettingState { Label = TestKeys.Of($"Option{i}"), Roles = roles });
         }
         return new Setting { Id = id, Display = Disp(id), States = states };
     }
@@ -351,7 +353,7 @@ public class BulkSettingsActionServiceTests
     }
 
     // Bulk reset must NOT call ApplySettingAsync for a PowerPlan setting. power-plan-selection's
-    // DERIVED Control is PowerPlan (OptionSource != null): it finds no static default and falls
+    // DERIVED Control is KeyedSelection (Options != null): it finds no static default and falls
     // through WITHOUT applying, but is still counted via the post-chain applied++. Applying it would
     // mean a null-plan Failed reset + a spurious event, so the Times.Never assertion is the regression guard.
     [Fact]
@@ -361,7 +363,7 @@ public class BulkSettingsActionServiceTests
         {
             Id = "power-plan-selection",
             Display = Disp("power-plan-selection"),
-            OptionSource = Mock.Of<IDynamicOptionSource>(),
+            Options = new(OptionSource.PowerPlans),
         };
         SetupRegistry("power-plan-selection", powerPlan);
 

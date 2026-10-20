@@ -40,8 +40,10 @@ public class NativeInteropDisciplineTests
             + Environment.NewLine + string.Join(Environment.NewLine, offenders));
     }
 
-    // A clean Core proves nothing if the scan has stopped matching the attribute. DismApi.cs is the one
-    // file guaranteed to declare imports by hand, so it is the control - and the only file allowed to.
+    // A clean Core proves nothing if the scan has stopped matching the attribute. DismApi.cs is guaranteed to
+    // declare imports by hand, so it is the control. Two files are allowed to, each for a reason CsWin32
+    // cannot answer: DISM has no Win32 metadata, and DesktopBackgroundInterop.cs is compiled a second time by
+    // PowerShell inside the answer file, where a generated binding cannot reach.
     [Fact]
     public void The_scan_still_recognises_a_hand_written_DllImport()
     {
@@ -50,8 +52,9 @@ public class NativeInteropDisciplineTests
         declarations.Should().NotBeEmpty(
             "DismApi.cs declares its DISM imports by hand; a scan that finds none of them has stopped matching");
         declarations.Should().OnlyContain(
-            d => d.RelativePath.EndsWith("DismApi.cs", StringComparison.Ordinal),
-            "any other hand-written interop under Infrastructure needs the justification DISM has");
+            d => d.RelativePath.EndsWith("DismApi.cs", StringComparison.Ordinal)
+                || d.RelativePath.EndsWith("DesktopBackgroundInterop.cs", StringComparison.Ordinal),
+            "any other hand-written interop under Infrastructure needs a reason CsWin32 cannot serve it");
     }
 
     private static (int FilesScanned, List<(string RelativePath, int Line)> Declarations) Scan(string scopedDirectory)

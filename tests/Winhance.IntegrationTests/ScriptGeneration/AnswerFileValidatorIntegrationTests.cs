@@ -1,16 +1,18 @@
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.AdvancedTools.Models;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Infrastructure.Features.AdvancedTools.Services;
+using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.WimUtil.Models;
+using Winhance.Infrastructure.Features.Autounattend;
 using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.Infrastructure.Features.Common.Utilities;
+using Winhance.Infrastructure.Features.WimUtil.Services;
 using Xunit;
 
 namespace Winhance.IntegrationTests.ScriptGeneration;
 
 // The validator with the REAL Windows PowerShell parser behind it: every -Command payload and
-// carried script in the template and in the driver writer's output goes through the parser Setup
+// carried script in the generated file and in the driver writer's output goes through the parser Setup
 // will use, in one powershell.exe process.
 [Trait("Category", "Integration")]
 public class AnswerFileValidatorIntegrationTests
@@ -21,8 +23,9 @@ public class AnswerFileValidatorIntegrationTests
 
     private static AnswerFileValidator Validator() => new(new FileSystemService(), Runner());
 
-    private static string TemplateWithScript() =>
-        AutounattendWriter.LoadTemplate().Replace("<!--SCRIPT_PLACEHOLDER-->", "<![CDATA[Write-Host 'generated']]>", StringComparison.Ordinal);
+    private static string GeneratedWithScript() =>
+        AutounattendDocumentBuilder.Serialize(AutounattendDocumentBuilder.Build(
+            new AutounattendRenderContext("Write-Host 'generated'", "0.0.0", SelectionSet.Empty)));
 
     private static string Fixture(string secondCommand, string carriedScript) =>
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<unattend xmlns=\"urn:schemas-microsoft-com:unattend\" xmlns:wcm=\"http://schemas.microsoft.com/WMIConfig/2002/State\">\n"
@@ -83,23 +86,23 @@ public class AnswerFileValidatorIntegrationTests
     }
 
     [Fact]
-    public async Task TemplateWithAScript_IsClean()
+    public async Task GeneratedWithAScript_IsClean()
     {
-        var report = await ValidateTextAsync(TemplateWithScript());
+        var report = await ValidateTextAsync(GeneratedWithScript());
 
         report.Findings.Should().BeEmpty();
         report.Verdict.Should().Be(AnswerFileVerdict.Clean);
     }
 
     [Fact]
-    public async Task DriverWriterOutput_OverTheTemplate_IsClean()
+    public async Task DriverWriterOutput_OverTheGeneratedFile_IsClean()
     {
         var work = Path.Combine(Path.GetTempPath(), "winhance-work-" + Guid.NewGuid().ToString("N"));
         try
         {
             Directory.CreateDirectory(Path.Combine(work, "sources", "$OEM$", "$$", "Drivers"));
             var xmlPath = Path.Combine(work, "autounattend.xml");
-            await File.WriteAllTextAsync(xmlPath, TemplateWithScript());
+            await File.WriteAllTextAsync(xmlPath, GeneratedWithScript());
             (await new DriverInstallStepWriter(new FileSystemService(), Mock.Of<ILogService>()).EnsureAsync(work)).Should().Be(DriverInstallStepResult.Added);
 
             var report = await Validator().ValidateAsync(xmlPath);

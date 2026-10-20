@@ -1,5 +1,4 @@
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
@@ -22,7 +21,7 @@ internal sealed class BuilderSeedSource : IBuilderSeedSource
 
     public async Task<IReadOnlyList<SettingChoice>> ChoicesForAsync(BuilderSeed seed, CatalogScope scope)
     {
-        if (seed == BuilderSeed.CurrentMachine) return Array.Empty<SettingChoice>();
+        if (seed is BuilderSeed.CurrentMachine or BuilderSeed.ConfigFile) return Array.Empty<SettingChoice>();
 
         await _registry.InitializeAsync().ConfigureAwait(false);
         var build = new WinBuild(_version.GetWindowsBuildNumber(), _version.GetWindowsBuildRevision());
@@ -33,9 +32,9 @@ internal sealed class BuilderSeedSource : IBuilderSeedSource
         {
             foreach (var setting in settings)
             {
-                // The active plan is a machine object PowerPlanActivationService owns, not a role any state
-                // carries; an Action is a one-shot with no state to seed (same exclusion as RecommendedSettingsApplier).
-                if (setting.Id == SettingIds.PowerPlanSelection || setting.Control == ControlKind.Action) continue;
+                if (setting.Control == ControlKind.Action) continue;
+
+                if (setting.SeedsFromThisPc) continue;
 
                 if (ChoiceFor(setting, build, useRecommended) is { } value)
                     choices.Add(new SettingChoice(setting.Id, value));
@@ -51,10 +50,11 @@ internal sealed class BuilderSeedSource : IBuilderSeedSource
         switch (setting.Control)
         {
             case ControlKind.Toggle:
+            case ControlKind.CheckBox:
                 bool? on = useRecommended
-                    ? CatalogToggleState.GetRecommended(setting, build)
-                    : CatalogToggleState.GetDefault(setting, build);
-                return on is { } isOn ? new ChoiceValue.Toggle(isOn) : null;
+                    ? TwoState.GetRecommended(setting, build)
+                    : TwoState.GetDefault(setting, build);
+                return on is { } isOn ? ChoiceValue.TwoState(setting.Control, isOn) : null;
 
             case ControlKind.Selection:
                 object? optionValue = RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended);
@@ -72,6 +72,9 @@ internal sealed class BuilderSeedSource : IBuilderSeedSource
                 if (AcDcOf(numericValue) is { } contexts)
                     return new ChoiceValue.AcDcNumber(ToSystemUnits(contexts.Ac, setting), ToSystemUnits(contexts.Dc, setting));
                 return numericValue is int display ? new ChoiceValue.Number(ToSystemUnits(display, setting)) : null;
+
+            case ControlKind.TextBox:
+                return setting.TextBox?.Default is { } text ? new ChoiceValue.Text(text) : null;
 
             default:
                 return null;

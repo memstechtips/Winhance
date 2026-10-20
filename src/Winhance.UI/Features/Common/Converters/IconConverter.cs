@@ -7,8 +7,42 @@ namespace Winhance.UI.Features.Common.Converters;
 
 public sealed partial class IconConverter : IValueConverter
 {
+    // IconSource form: an IconSourceElement the template declares can bind Opacity; an element a converter returns cannot.
+    public object? Convert(object value, Type targetType, object parameter, string language) =>
+        typeof(IconSource).IsAssignableFrom(targetType) ? BuildSource(value, parameter) : Build(value, parameter);
 
-    public object? Convert(object value, Type targetType, object parameter, string language)
+    internal static IconElement? Build(object value, object? parameter)
+    {
+        if (Resolve(value, parameter!) is not { } icon)
+        {
+            return null;
+        }
+
+        return icon.Pack.ToLowerInvariant() switch
+        {
+            "material" or "materialdesign" => CreatePathIcon(MaterialPathData(icon.Name)),
+            "fluent" => CreateFluentIcon(icon.Name),
+            "appasset" => new BitmapIcon { UriSource = AppAssetUri(icon.Name), ShowAsMonochrome = true },
+            _ => CreatePathIcon(MaterialPathData(icon.Name))
+        };
+    }
+
+    private static IconSource? BuildSource(object value, object parameter)
+    {
+        if (Resolve(value, parameter) is not { } icon)
+        {
+            return null;
+        }
+
+        return icon.Pack.ToLowerInvariant() switch
+        {
+            "fluent" => CreateFluentIconSource(icon.Name),
+            "appasset" => new BitmapIconSource { UriSource = AppAssetUri(icon.Name), ShowAsMonochrome = true },
+            _ => CreatePathIconSource(MaterialPathData(icon.Name)),
+        };
+    }
+
+    internal static (string Name, string Pack)? Resolve(object value, object parameter)
     {
         string? iconName = null;
         string iconPack = "Material";
@@ -28,43 +62,52 @@ public sealed partial class IconConverter : IValueConverter
             iconPack = iconPackProperty?.GetValue(value)?.ToString() ?? "Material";
         }
 
-        if (string.IsNullOrEmpty(iconName))
-        {
-            return null;
-        }
-
-        return iconPack.ToLowerInvariant() switch
-        {
-            "material" or "materialdesign" => CreateMaterialPathIcon(iconName),
-            "fluent" => CreateFluentIcon(iconName),
-            _ => CreateMaterialPathIcon(iconName)
-        };
+        return string.IsNullOrEmpty(iconName) ? null : (iconName, iconPack);
     }
 
-    private static IconElement? CreateMaterialPathIcon(string iconName)
-    {
-        if (Enum.TryParse<MaterialIconKind>(iconName, ignoreCase: true, out var iconKind))
-        {
-            var pathData = MaterialIconDataProvider.GetData(iconKind);
+    private static string? MaterialPathData(string iconName) =>
+        Enum.TryParse<MaterialIconKind>(iconName, ignoreCase: true, out var iconKind)
+            ? MaterialIconDataProvider.GetData(iconKind)
+            : null;
 
-            if (!string.IsNullOrEmpty(pathData))
+    private static Uri AppAssetUri(string fileName) => new($"ms-appx:///Assets/AppIcons/{fileName}");
+
+    private static IconElement? CreatePathIcon(string? pathData)
+    {
+        if (pathData is { Length: > 0 })
+        {
+            try
             {
-                try
+                return new PathIcon
                 {
-                    return new PathIcon
-                    {
-                        Data = GeometryHelper.FromPathData(pathData),
-                        Margin = new Microsoft.UI.Xaml.Thickness(0, 0, 0, 1)
-                    };
-                }
-                catch
-                {
-                    return null;
-                }
+                    Data = GeometryHelper.FromPathData(pathData),
+                    Margin = new Microsoft.UI.Xaml.Thickness(0, 0, 0, 1)
+                };
+            }
+            catch
+            {
+                return null;
             }
         }
 
         return null;
+    }
+
+    private static IconSource? CreatePathIconSource(string? pathData)
+    {
+        if (pathData is not { Length: > 0 })
+        {
+            return null;
+        }
+
+        try
+        {
+            return new PathIconSource { Data = GeometryHelper.FromPathData(pathData) };
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static IconElement? CreateFluentIcon(string iconName)
@@ -80,6 +123,11 @@ public sealed partial class IconConverter : IValueConverter
 
         return null;
     }
+
+    private static IconSource? CreateFluentIconSource(string iconName) =>
+        Enum.TryParse<FluentIcons.Common.Icon>(iconName, ignoreCase: true, out var symbol)
+            ? new FluentIcons.WinUI.FluentIconSource { Icon = symbol, IconVariant = FluentIcons.Common.IconVariant.Regular }
+            : null;
 
     public object ConvertBack(object value, Type targetType, object parameter, string language)
     {

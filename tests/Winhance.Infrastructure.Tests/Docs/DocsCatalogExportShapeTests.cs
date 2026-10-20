@@ -1,6 +1,6 @@
-﻿using System.Text.Json;
+﻿using FluentAssertions;
+using System.Text.Json;
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.TechnicalDetails;
 using Xunit;
 
@@ -10,7 +10,7 @@ public class DocsCatalogExportShapeTests
 {
     private static readonly EnJsonLocalization Loc = EnJsonLocalization.Load();
     private static readonly DocsExport Export = DocsCatalogExport.Build(Loc, "0.0.0");
-    private static readonly string[] IconPacks = { "Material", "Fluent" };
+    private static readonly string[] IconPacks = { "Material", "Fluent", "AppAsset" };
 
     private static DocsSetting Find(string id) =>
         Export.Features.SelectMany(f => f.Settings).Single(s => s.Id == id);
@@ -47,6 +47,38 @@ public class DocsCatalogExportShapeTests
         Assert.Single(matrix.Columns);
     }
 
+    // The website draws these rows in the order they are exported.
+    [Fact]
+    public void The_picture_and_the_colour_document_the_options_every_install_has()
+    {
+        var picture = Find("theme-wallpaper-picture").Matrix!;
+        var color = Find("theme-wallpaper-color").Matrix!;
+
+        picture.Options.Select(o => o.Label).Should().Equal(
+            SettingCatalog.Find("theme-wallpaper-picture")!.States.Select(s => Loc.GetString(s.Label.Value)));
+        picture.Options.Select(o => o.Cells[^1].Text).Should().Equal(
+            @"C:\Windows\Web\Wallpaper\Windows\img0.jpg",
+            @"C:\Windows\Web\Wallpaper\Windows\img19.jpg",
+            @"C:\Windows\Web\4K\Wallpaper\Windows\img0_3840x2160.jpg");
+        color.Options.Should().HaveCount(24);
+        color.Options[0].Label.Should().Be("#FF8C00");
+        color.Options[^1].Label.Should().Be("#000000");
+    }
+
+    [Fact]
+    public void The_desktop_background_parent_exports_as_a_selection_its_children_hang_off()
+    {
+        var parent = Find("theme-wallpaper");
+        var picture = Find("theme-wallpaper-picture");
+
+        Assert.Equal("Selection", parent.Control);
+        Assert.Equal(Loc.GetString("SettingGroup_Background"), parent.Group);
+        Assert.NotNull(parent.Matrix);
+        Assert.Null(parent.UiParentId);
+        Assert.Equal("KeyedSelection", picture.Control);
+        Assert.Equal("theme-wallpaper", picture.UiParentId);
+    }
+
     [Fact]
     public void Every_setting_exports_its_icon_identity()
     {
@@ -54,6 +86,7 @@ public class DocsCatalogExportShapeTests
         Assert.All(settings, s => Assert.False(string.IsNullOrEmpty(s.Icon?.Name), $"{s.Id} has no icon"));
         Assert.All(settings, s => Assert.Contains(s.Icon!.Pack, IconPacks));
         Assert.Equal("MonitorSpeaker", Find("sound-startup").Icon!.Name);
+        Assert.Equal(new DocsIcon("AppAsset", "winhance-rocket-card.png"), Find("autounattend-desktop-shortcut").Icon);
     }
 
     [Fact]
@@ -120,12 +153,18 @@ public class DocsCatalogExportShapeTests
     [Fact]
     public void Option_labels_are_resolved_never_raw_localization_keys()
     {
+        // Reachable only if a resolution path hands back the key text on a miss.
+        static bool LooksLikeARawKey(string label) =>
+            label.StartsWith("Setting_", StringComparison.Ordinal)
+            || label.StartsWith("Template_", StringComparison.Ordinal)
+            || label.StartsWith("ServiceOption_", StringComparison.Ordinal);
+
         static IEnumerable<string> Labels(OptionMatrix? m) =>
             m is null ? [] : m.Options.Select(o => o.Label).Concat(m.CodeBlocks.Select(c => c.Label));
 
         var raw = Export.Features.SelectMany(f => f.Settings)
             .SelectMany(s => Labels(s.Matrix).Concat(Labels(s.MatrixWin10)).Select(l => $"{s.Id}: {l}"))
-            .Where(l => SettingLocalizationKeys.IsLocalizationKey(l.Split(": ", 2)[1]))
+            .Where(l => LooksLikeARawKey(l.Split(": ", 2)[1]))
             .ToList();
 
         Assert.Empty(raw);
@@ -134,5 +173,31 @@ public class DocsCatalogExportShapeTests
         Assert.Equal(Loc.GetString("Setting_sound-communication-ducking_Option_3"), ducking.Options[3].Label);
         var displayTimeout = Find("power-display-timeout").Matrix!;
         Assert.Contains(displayTimeout.Options, o => o.Label == Loc.GetString("Template_TimeIntervals_Option_0"));
+    }
+
+    [Fact]
+    public void A_keyed_selection_documents_its_registry_targets_and_no_options()
+    {
+        // Its options are whatever Windows offers the machine, so there is no build-time list to publish.
+        var zone = Find("region-time-zone");
+
+        zone.Control.Should().Be("KeyedSelection");
+        zone.Group.Should().Be(Loc.GetString("SettingGroup_Time"));
+        zone.Name.Should().Be(Loc.GetString("Setting_region-time-zone_Name"));
+        zone.Matrix.Should().NotBeNull();
+        zone.Matrix!.Options.Should().BeEmpty();
+        zone.Matrix.Groups.Should().Contain(g => g.Paths.Any(p =>
+            p.Full == @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\TimeZoneInformation"));
+    }
+
+    [Fact]
+    public void The_new_feature_carries_its_five_keyed_settings_and_the_six_moved_ones()
+    {
+        var feature = Export.Features.Single(f => f.Id == "TimeRegionLanguage");
+
+        feature.Settings.Should().HaveCount(11);
+        feature.Settings.Take(5).Select(s => s.Control).Should().AllBe("KeyedSelection");
+        feature.Settings.Should().Contain(s => s.Id == "explorer-customization-short-date"
+            && s.Group == Loc.GetString("SettingGroup_Formats"));
     }
 }

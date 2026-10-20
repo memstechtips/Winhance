@@ -18,7 +18,7 @@ public class CrossGroupChildSettingsConformanceTests
 
         var map = only.Display.CrossGroupChildSettings!;
         Assert.Equal(8, map.Count);
-        Assert.Equal("Setting_privacy-ads-promotional-master_Child_Spotlight", map["privacy-rotating-lock-screen"]);
-        Assert.Equal("Setting_privacy-ads-promotional-master_Child_StartSuggestions", map["start-show-suggestions"]);
+        Assert.Equal("Setting_privacy-ads-promotional-master_Child_Spotlight", map["privacy-rotating-lock-screen"].Value);
+        Assert.Equal("Setting_privacy-ads-promotional-master_Child_StartSuggestions", map["start-show-suggestions"].Value);
     }
 }

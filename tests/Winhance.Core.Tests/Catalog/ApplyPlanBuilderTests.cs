@@ -2,7 +2,9 @@ using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Xunit;
+using Winhance.TestSupport;
 
+using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Core.Tests.Catalog;
 
 public class ApplyPlanBuilderTests
@@ -17,16 +19,16 @@ public class ApplyPlanBuilderTests
     private static readonly string[] SoftwareXPath = [@"HKLM\SOFTWARE\X"];
 
     private static Setting Make(IReadOnlyList<Target> targets, params SettingState[] states) =>
-        new() { Id = "t", Display = new() { Name = "t", Description = "t" }, Targets = targets, States = states };
+        new() { Id = "t", Display = new() { Name = TestKeys.Of("t"), Description = TestKeys.Of("t") }, Targets = targets, States = states };
 
     [Fact]
     public void Writes_concrete_value_to_each_mirror_path()
     {
         var setting = Make(
             new[] { Reg("Hide", "HideSCAMeetNow", @"HKCU\A", @"HKLM\B") },
-            new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["Hide"] = StateValue.Of(1) } });
+            new SettingState { Label = TestKeys.Of("On"), Set = new Dictionary<string, StateValue> { ["Hide"] = StateValue.Of(1) } });
 
-        var plan = ApplyPlanBuilder.Build(setting, "On");
+        var plan = ApplyPlanBuilder.Build(setting, TestKeys.Of("On"));
 
         var writes = plan.OfType<RegistryWriteOp>().ToList();
         Assert.Equal(2, writes.Count);
@@ -39,15 +41,15 @@ public class ApplyPlanBuilderTests
     {
         var setting = Make(
             new Target[] { new RegTarget("Start", SvcPath, "Start", RegistryValueKind.DWord) { LockWhenValue = 4 } },
-            new SettingState { Label = "Disabled", Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(4) } },
-            new SettingState { Label = "Manual",   Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(3) } });
+            new SettingState { Label = LocKey.Common.Disabled, Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(4) } },
+            new SettingState { Label = TestKeys.Of("Manual"),   Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(3) } });
 
-        Assert.Collection(ApplyPlanBuilder.Build(setting, "Disabled"),
+        Assert.Collection(ApplyPlanBuilder.Build(setting, LocKey.Common.Disabled),
             op => Assert.IsType<RegistryUnlockKeyOp>(op),
             op => Assert.IsType<RegistryWriteOp>(op),
             op => Assert.IsType<RegistryLockKeyOp>(op));
 
-        Assert.Collection(ApplyPlanBuilder.Build(setting, "Manual"),
+        Assert.Collection(ApplyPlanBuilder.Build(setting, TestKeys.Of("Manual")),
             op => Assert.IsType<RegistryUnlockKeyOp>(op),
             op => Assert.IsType<RegistryWriteOp>(op));
     }
@@ -57,9 +59,9 @@ public class ApplyPlanBuilderTests
     {
         var setting = Make(
             new[] { Reg("Hide", "HideSCAMeetNow", @"HKCU\A", @"HKLM\B") },
-            new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["Hide"] = StateValue.Absent } });
+            new SettingState { Label = TestKeys.Of("Off"), Set = new Dictionary<string, StateValue> { ["Hide"] = StateValue.Absent } });
 
-        var plan = ApplyPlanBuilder.Build(setting, "Off");
+        var plan = ApplyPlanBuilder.Build(setting, TestKeys.Of("Off"));
 
         Assert.Equal(2, plan.OfType<RegistryDeleteOp>().Count());
         Assert.Empty(plan.OfType<RegistryWriteOp>());
@@ -70,9 +72,9 @@ public class ApplyPlanBuilderTests
     {
         var setting = Make(
             new[] { Reg("Start", "Start") },
-            new SettingState { Label = "Manual", Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(3).OrAbsent() } });
+            new SettingState { Label = TestKeys.Of("Manual"), Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(3).OrAbsent() } });
 
-        var op = Assert.Single(ApplyPlanBuilder.Build(setting, "Manual").OfType<RegistryWriteOp>());
+        var op = Assert.Single(ApplyPlanBuilder.Build(setting, TestKeys.Of("Manual")).OfType<RegistryWriteOp>());
         Assert.Equal(3, (int)op.Value);
     }
 
@@ -81,9 +83,9 @@ public class ApplyPlanBuilderTests
     {
         var setting = Make(
             new[] { Reg("Flag", "Flag") },
-            new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["Flag"] = StateValue.Exists } });
+            new SettingState { Label = TestKeys.Of("On"), Set = new Dictionary<string, StateValue> { ["Flag"] = StateValue.Exists } });
 
-        Assert.Single(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryEnsureKeyOp>());
+        Assert.Single(ApplyPlanBuilder.Build(setting, TestKeys.Of("On")).OfType<RegistryEnsureKeyOp>());
     }
 
     [Fact]
@@ -93,12 +95,12 @@ public class ApplyPlanBuilderTests
             new[] { Reg("Start", "Start") },
             new SettingState
             {
-                Label = "Disabled",
+                Label = LocKey.Common.Disabled,
                 Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(4) },
                 Effects = new Effect[] { new ScriptEffect("rename.ps1", RunContext.System) },
             });
 
-        var plan = ApplyPlanBuilder.Build(setting, "Disabled");
+        var plan = ApplyPlanBuilder.Build(setting, LocKey.Common.Disabled);
         Assert.True(plan[^1] is EffectOp);
         Assert.Equal("rename.ps1", ((ScriptEffect)plan.OfType<EffectOp>().Single().Effect).Script);
     }
@@ -109,16 +111,16 @@ public class ApplyPlanBuilderTests
         var reg = Reg("Settings", "Settings", @"HKCU\CabinetState") with { ByteIndex = 4, BitMask = 0x20 };
         var setting = Make(
             new[] { (Target)reg },
-            new SettingState { Label = "On",  Set = new Dictionary<string, StateValue> { ["Settings"] = StateValue.Of(1) } },
-            new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["Settings"] = StateValue.Of(0) } });
+            new SettingState { Label = TestKeys.Of("On"),  Set = new Dictionary<string, StateValue> { ["Settings"] = StateValue.Of(1) } },
+            new SettingState { Label = TestKeys.Of("Off"), Set = new Dictionary<string, StateValue> { ["Settings"] = StateValue.Of(0) } });
 
-        var on = Assert.Single(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryBitSetOp>());
+        var on = Assert.Single(ApplyPlanBuilder.Build(setting, TestKeys.Of("On")).OfType<RegistryBitSetOp>());
         Assert.Equal(4, on.ByteIndex);
         Assert.Equal((byte)0x20, on.BitMask);
         Assert.True(on.Set);
-        Assert.Empty(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryWriteOp>());
+        Assert.Empty(ApplyPlanBuilder.Build(setting, TestKeys.Of("On")).OfType<RegistryWriteOp>());
 
-        Assert.False(Assert.Single(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryBitSetOp>()).Set);
+        Assert.False(Assert.Single(ApplyPlanBuilder.Build(setting, TestKeys.Of("Off")).OfType<RegistryBitSetOp>()).Set);
     }
 
     [Fact]
@@ -127,16 +129,16 @@ public class ApplyPlanBuilderTests
         var reg = Reg("Flags", "Flags", @"HKCU\MouseKeys") with { StringFlagMask = 0x04, StringFlagAbsentBase = 62 };
         var setting = Make(
             new[] { (Target)reg },
-            new SettingState { Label = "On",  Set = new Dictionary<string, StateValue> { ["Flags"] = StateValue.Of(true) } },
-            new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["Flags"] = StateValue.Of(false) } });
+            new SettingState { Label = TestKeys.Of("On"),  Set = new Dictionary<string, StateValue> { ["Flags"] = StateValue.Of(true) } },
+            new SettingState { Label = TestKeys.Of("Off"), Set = new Dictionary<string, StateValue> { ["Flags"] = StateValue.Of(false) } });
 
-        var on = Assert.Single(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryStringFlagSetOp>());
+        var on = Assert.Single(ApplyPlanBuilder.Build(setting, TestKeys.Of("On")).OfType<RegistryStringFlagSetOp>());
         Assert.Equal(0x04, on.FlagMask);
         Assert.Equal(62, on.AbsentBase);
         Assert.True(on.Set);
-        Assert.Empty(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryWriteOp>());
+        Assert.Empty(ApplyPlanBuilder.Build(setting, TestKeys.Of("On")).OfType<RegistryWriteOp>());
 
-        Assert.False(Assert.Single(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryStringFlagSetOp>()).Set);
+        Assert.False(Assert.Single(ApplyPlanBuilder.Build(setting, TestKeys.Of("Off")).OfType<RegistryStringFlagSetOp>()).Set);
     }
 
     [Fact]
@@ -145,15 +147,15 @@ public class ApplyPlanBuilderTests
         var reg = Reg("Settings", "Settings", @"HKCU\StuckRects3") with { ByteIndex = 8, ByteOnly = true };
         var setting = Make(
             new[] { (Target)reg },
-            new SettingState { Label = "On",  Set = new Dictionary<string, StateValue> { ["Settings"] = StateValue.Of(3) } },
-            new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["Settings"] = StateValue.Of(2) } });
+            new SettingState { Label = TestKeys.Of("On"),  Set = new Dictionary<string, StateValue> { ["Settings"] = StateValue.Of(3) } },
+            new SettingState { Label = TestKeys.Of("Off"), Set = new Dictionary<string, StateValue> { ["Settings"] = StateValue.Of(2) } });
 
-        var on = Assert.Single(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryByteSetOp>());
+        var on = Assert.Single(ApplyPlanBuilder.Build(setting, TestKeys.Of("On")).OfType<RegistryByteSetOp>());
         Assert.Equal(8, on.ByteIndex);
         Assert.Equal((byte)3, on.Value);
-        Assert.Empty(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryWriteOp>());
+        Assert.Empty(ApplyPlanBuilder.Build(setting, TestKeys.Of("On")).OfType<RegistryWriteOp>());
 
-        Assert.Equal((byte)2, Assert.Single(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryByteSetOp>()).Value);
+        Assert.Equal((byte)2, Assert.Single(ApplyPlanBuilder.Build(setting, TestKeys.Of("Off")).OfType<RegistryByteSetOp>()).Value);
     }
 
     [Fact]
@@ -162,9 +164,9 @@ public class ApplyPlanBuilderTests
         var reg = Reg("Settings", "Settings", @"HKCU\A", @"HKLM\B") with { ByteIndex = 4, BitMask = 0x20 };
         var setting = Make(
             new[] { (Target)reg },
-            new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["Settings"] = StateValue.Of(1) } });
+            new SettingState { Label = TestKeys.Of("On"), Set = new Dictionary<string, StateValue> { ["Settings"] = StateValue.Of(1) } });
 
-        Assert.Equal(2, ApplyPlanBuilder.Build(setting, "On").OfType<RegistryBitSetOp>().Count());
+        Assert.Equal(2, ApplyPlanBuilder.Build(setting, TestKeys.Of("On")).OfType<RegistryBitSetOp>().Count());
     }
 
     [Fact]
@@ -174,15 +176,15 @@ public class ApplyPlanBuilderTests
             with { CompositeStringKey = "AutoHDREnable" };
         var setting = Make(
             new[] { (Target)reg },
-            new SettingState { Label = "On",  Set = new Dictionary<string, StateValue> { ["DirectXUserGlobalSettings"] = StateValue.Of("1") } },
-            new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["DirectXUserGlobalSettings"] = StateValue.Of("0") } });
+            new SettingState { Label = TestKeys.Of("On"),  Set = new Dictionary<string, StateValue> { ["DirectXUserGlobalSettings"] = StateValue.Of("1") } },
+            new SettingState { Label = TestKeys.Of("Off"), Set = new Dictionary<string, StateValue> { ["DirectXUserGlobalSettings"] = StateValue.Of("0") } });
 
-        var on = Assert.Single(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryCompositeSetOp>());
+        var on = Assert.Single(ApplyPlanBuilder.Build(setting, TestKeys.Of("On")).OfType<RegistryCompositeSetOp>());
         Assert.Equal("AutoHDREnable", on.CompositeKey);
         Assert.Equal("1", on.SubValue);
-        Assert.Empty(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryWriteOp>());
+        Assert.Empty(ApplyPlanBuilder.Build(setting, TestKeys.Of("On")).OfType<RegistryWriteOp>());
 
-        Assert.Equal("0", Assert.Single(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryCompositeSetOp>()).SubValue);
+        Assert.Equal("0", Assert.Single(ApplyPlanBuilder.Build(setting, TestKeys.Of("Off")).OfType<RegistryCompositeSetOp>()).SubValue);
     }
 
     [Fact]
@@ -191,11 +193,11 @@ public class ApplyPlanBuilderTests
         var reg = Reg("Packed", "Packed") with { CompositeStringKey = "SubKey" };
         var setting = Make(
             new[] { (Target)reg },
-            new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["Packed"] = StateValue.Absent } });
+            new SettingState { Label = TestKeys.Of("Off"), Set = new Dictionary<string, StateValue> { ["Packed"] = StateValue.Absent } });
 
-        var op = Assert.Single(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryCompositeSetOp>());
+        var op = Assert.Single(ApplyPlanBuilder.Build(setting, TestKeys.Of("Off")).OfType<RegistryCompositeSetOp>());
         Assert.Null(op.SubValue);
-        Assert.Empty(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryDeleteOp>());
+        Assert.Empty(ApplyPlanBuilder.Build(setting, TestKeys.Of("Off")).OfType<RegistryDeleteOp>());
     }
 
     [Fact]
@@ -206,42 +208,42 @@ public class ApplyPlanBuilderTests
             new[] { Reg("Sentinel", "") },
             new SettingState
             {
-                Label = "On",
+                Label = TestKeys.Of("On"),
                 Set = new Dictionary<string, StateValue> { ["Sentinel"] = StateValue.Of("X") },
                 Effects = new Effect[] { new RegContentEffect("REGDATA-ON") },
             },
             new SettingState
             {
-                Label = "Off",
+                Label = TestKeys.Of("Off"),
                 Set = new Dictionary<string, StateValue> { ["Sentinel"] = StateValue.Absent },
                 Effects = new Effect[] { new RegContentEffect("REGDATA-OFF") },
             });
 
-        var onPlan = ApplyPlanBuilder.Build(setting, "On");
+        var onPlan = ApplyPlanBuilder.Build(setting, TestKeys.Of("On"));
         Assert.Empty(onPlan.OfType<RegistryWriteOp>());
         Assert.Equal("REGDATA-ON", ((RegContentEffect)onPlan.OfType<EffectOp>().Single().Effect).Content);
 
-        var offPlan = ApplyPlanBuilder.Build(setting, "Off");
+        var offPlan = ApplyPlanBuilder.Build(setting, TestKeys.Of("Off"));
         Assert.Empty(offPlan.OfType<RegistryDeleteOp>()); // Absent would normally DELETE; skipped for regcontent
         Assert.Equal("REGDATA-OFF", ((RegContentEffect)offPlan.OfType<EffectOp>().Single().Effect).Content);
     }
 
     [Fact]
-    public void Native_power_effect_rides_alongside_the_registry_write()
+    public void Script_effect_rides_alongside_the_registry_write()
     {
-        // No RegContentEffect -> the registry write is NOT skipped; the native effect rides along after it.
+        // No RegContentEffect -> the registry write is NOT skipped; the script rides along after it.
         var setting = Make(
             new[] { Reg("HibernateEnabled", "HibernateEnabled") },
             new SettingState
             {
-                Label = "On",
+                Label = TestKeys.Of("On"),
                 Set = new Dictionary<string, StateValue> { ["HibernateEnabled"] = StateValue.Of(1) },
-                Effects = new Effect[] { new NativePowerEffect(11, 1) },
+                Effects = new Effect[] { new ScriptEffect("powercfg /hibernate on", RunContext.System) },
             });
 
-        var plan = ApplyPlanBuilder.Build(setting, "On");
+        var plan = ApplyPlanBuilder.Build(setting, TestKeys.Of("On"));
         Assert.Single(plan.OfType<RegistryWriteOp>());
-        Assert.Equal((byte)1, ((NativePowerEffect)plan.OfType<EffectOp>().Single().Effect).Value);
+        Assert.Equal("powercfg /hibernate on", ((ScriptEffect)plan.OfType<EffectOp>().Single().Effect).Script);
     }
 
     [Fact]
@@ -250,16 +252,16 @@ public class ApplyPlanBuilderTests
         var reg = Reg("TcpAckFrequency", "TcpAckFrequency", @"HKLM\...\Interfaces") with { PerNetworkInterface = true };
         var setting = Make(
             new[] { (Target)reg },
-            new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["TcpAckFrequency"] = StateValue.Of(1) } },
-            new SettingState { Label = "On",  Set = new Dictionary<string, StateValue> { ["TcpAckFrequency"] = StateValue.Absent } });
+            new SettingState { Label = TestKeys.Of("Off"), Set = new Dictionary<string, StateValue> { ["TcpAckFrequency"] = StateValue.Of(1) } },
+            new SettingState { Label = TestKeys.Of("On"),  Set = new Dictionary<string, StateValue> { ["TcpAckFrequency"] = StateValue.Absent } });
 
-        var write = Assert.Single(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryPerSubkeyWriteOp>());
+        var write = Assert.Single(ApplyPlanBuilder.Build(setting, TestKeys.Of("Off")).OfType<RegistryPerSubkeyWriteOp>());
         Assert.Equal(@"HKLM\...\Interfaces", write.ParentPath);
         Assert.Equal(1, (int)write.Value);
-        Assert.Empty(ApplyPlanBuilder.Build(setting, "Off").OfType<RegistryWriteOp>());
+        Assert.Empty(ApplyPlanBuilder.Build(setting, TestKeys.Of("Off")).OfType<RegistryWriteOp>());
 
-        Assert.Single(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryPerSubkeyDeleteOp>());
-        Assert.Empty(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryDeleteOp>());
+        Assert.Single(ApplyPlanBuilder.Build(setting, TestKeys.Of("On")).OfType<RegistryPerSubkeyDeleteOp>());
+        Assert.Empty(ApplyPlanBuilder.Build(setting, TestKeys.Of("On")).OfType<RegistryDeleteOp>());
     }
 
     [Fact]
@@ -268,12 +270,12 @@ public class ApplyPlanBuilderTests
         var reg = Reg("AutoColorManagementEnabled", "AutoColorManagementEnabled", @"HKLM\...\MonitorDataStore") with { PerMonitor = true };
         var setting = Make(
             new[] { (Target)reg },
-            new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["AutoColorManagementEnabled"] = StateValue.Of(1) } });
+            new SettingState { Label = TestKeys.Of("On"), Set = new Dictionary<string, StateValue> { ["AutoColorManagementEnabled"] = StateValue.Of(1) } });
 
-        var write = Assert.Single(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryPerSubkeyWriteOp>());
+        var write = Assert.Single(ApplyPlanBuilder.Build(setting, TestKeys.Of("On")).OfType<RegistryPerSubkeyWriteOp>());
         Assert.Equal(@"HKLM\...\MonitorDataStore", write.ParentPath);
         Assert.Equal(1, (int)write.Value);
-        Assert.Empty(ApplyPlanBuilder.Build(setting, "On").OfType<RegistryWriteOp>());
+        Assert.Empty(ApplyPlanBuilder.Build(setting, TestKeys.Of("On")).OfType<RegistryWriteOp>());
     }
 
     [Fact]
@@ -281,19 +283,19 @@ public class ApplyPlanBuilderTests
     {
         var setting = Make(
             new[] { (Target)new TaskTarget("Task", @"\MS\Win\Task") },
-            new SettingState { Label = "On",  Set = new Dictionary<string, StateValue> { ["Task"] = StateValue.Of(true) } },
-            new SettingState { Label = "Off", Set = new Dictionary<string, StateValue> { ["Task"] = StateValue.Of(false) } });
+            new SettingState { Label = TestKeys.Of("On"),  Set = new Dictionary<string, StateValue> { ["Task"] = StateValue.Of(true) } },
+            new SettingState { Label = TestKeys.Of("Off"), Set = new Dictionary<string, StateValue> { ["Task"] = StateValue.Of(false) } });
 
-        Assert.True(ApplyPlanBuilder.Build(setting, "On").OfType<TaskSetOp>().Single().Enabled);
-        Assert.False(ApplyPlanBuilder.Build(setting, "Off").OfType<TaskSetOp>().Single().Enabled);
+        Assert.True(ApplyPlanBuilder.Build(setting, TestKeys.Of("On")).OfType<TaskSetOp>().Single().Enabled);
+        Assert.False(ApplyPlanBuilder.Build(setting, TestKeys.Of("Off")).OfType<TaskSetOp>().Single().Enabled);
     }
 
     [Fact]
     public void Unknown_state_label_throws()
     {
         var setting = Make(new[] { Reg("K", "V") },
-            new SettingState { Label = "On", Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) } });
-        Assert.Throws<System.ArgumentException>(() => ApplyPlanBuilder.Build(setting, "Nope"));
+            new SettingState { Label = TestKeys.Of("On"), Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) } });
+        Assert.Throws<System.ArgumentException>(() => ApplyPlanBuilder.Build(setting, TestKeys.Of("Nope")));
     }
 
     [Fact]
@@ -301,9 +303,9 @@ public class ApplyPlanBuilderTests
     {
         var setting = Make(
             new[] { Reg("A", "A"), Reg("B", "B") },
-            new SettingState { Label = "Default", IsFallback = true, Set = new Dictionary<string, StateValue> { ["A"] = StateValue.Of(1) } });
+            new SettingState { Label = TestKeys.Of("Default"), IsFallback = true, Set = new Dictionary<string, StateValue> { ["A"] = StateValue.Of(1) } });
 
-        var plan = ApplyPlanBuilder.Build(setting, "Default");
+        var plan = ApplyPlanBuilder.Build(setting, TestKeys.Of("Default"));
         Assert.Single(plan.OfType<RegistryWriteOp>());
         Assert.Equal(@"HKEY_LOCAL_MACHINE\TEST", plan.OfType<RegistryWriteOp>().Single().Path);
     }
@@ -314,7 +316,7 @@ public class ApplyPlanBuilderTests
         var setting = new Setting
         {
             Id = "a",
-            Display = new() { Name = "n", Description = "d", GroupName = "g" },
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d"), GroupName = TestKeys.Of("g") },
             Effects = new Effect[]
             {
                 new RegistryWriteEffect(@"HKLM\SOFTWARE\X", "ConfigureStartPins", RegistryValueKind.String, "v") { IsGroupPolicy = true },
@@ -336,7 +338,7 @@ public class ApplyPlanBuilderTests
         var setting = new Setting
         {
             Id = "a",
-            Display = new() { Name = "n", Description = "d", GroupName = "g" },
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d"), GroupName = TestKeys.Of("g") },
             Effects = new Effect[] { new ScriptEffect("echo hi", RunContext.System) },
         };
 
@@ -351,7 +353,7 @@ public class ApplyPlanBuilderTests
         var setting = new Setting
         {
             Id = "a",
-            Display = new() { Name = "n", Description = "d", GroupName = "g" },
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d"), GroupName = TestKeys.Of("g") },
             Effects = new Effect[]
             {
                 new RegistryWriteEffect(@"HKLM\A", "v1", RegistryValueKind.String, "x"),
@@ -376,13 +378,13 @@ public class ApplyPlanBuilderTests
             new[] { Reg("k", "V") },
             new SettingState
             {
-                Label = "Enabled",
+                Label = LocKey.Common.Enabled,
                 Roles = new[] { StateRole.WindowsDefault },
                 Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1).OrAbsent() },
                 ResetSet = new Dictionary<string, StateValue> { ["k"] = StateValue.Absent },
             });
 
-        var plan = ApplyPlanBuilder.Build(setting, "Enabled");
+        var plan = ApplyPlanBuilder.Build(setting, LocKey.Common.Enabled);
 
         Assert.IsType<RegistryDeleteOp>(Assert.Single(plan));
     }
@@ -394,13 +396,13 @@ public class ApplyPlanBuilderTests
             new[] { Reg("k", "V") },
             new SettingState
             {
-                Label = "Enabled",
+                Label = LocKey.Common.Enabled,
                 Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                 Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) },
                 ResetSet = new Dictionary<string, StateValue> { ["k"] = StateValue.Absent },
             });
 
-        Assert.IsType<RegistryDeleteOp>(Assert.Single(ApplyPlanBuilder.Build(setting, "Enabled", Win11)));
-        Assert.IsType<RegistryWriteOp>(Assert.Single(ApplyPlanBuilder.Build(setting, "Enabled", Win10)));
+        Assert.IsType<RegistryDeleteOp>(Assert.Single(ApplyPlanBuilder.Build(setting, LocKey.Common.Enabled, Win11)));
+        Assert.IsType<RegistryWriteOp>(Assert.Single(ApplyPlanBuilder.Build(setting, LocKey.Common.Enabled, Win10)));
     }
 }

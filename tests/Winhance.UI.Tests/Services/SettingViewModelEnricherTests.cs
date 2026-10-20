@@ -58,7 +58,7 @@ public class SettingViewModelEnricherTests
     {
         var config = new SettingItemViewModelConfig
         {
-            Setting = new Setting { Id = settingId, Display = new() { Name = name, Description = "Test Description" } },
+            Setting = new Setting { Id = settingId, Display = new() { Name = TestKeys.Of(name), Description = TestKeys.Of("Test Description") } },
             SettingId = settingId,
             Name = name,
             Description = "Test Description",

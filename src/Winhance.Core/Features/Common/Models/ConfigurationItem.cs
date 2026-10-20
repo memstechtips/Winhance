@@ -36,9 +36,28 @@ public class ConfigurationItem
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, object>? PowerSettings { get; set; }
 
+    // Written beside SelectedKey for the power plan alone: Winhance 26.06.12 reads no other spelling.
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? PowerPlanGuid { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? PowerPlanName { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SelectedKey { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SelectedKeyLabel { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Text { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<Dictionary<string, string>>? Rows { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? SavePasswords { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public CarriedFileItem? File { get; set; }
 }

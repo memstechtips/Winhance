@@ -47,7 +47,7 @@ public class SettingsGroupTests
     {
         var config = new SettingItemViewModelConfig
         {
-            Setting = new Setting { Id = settingId, Display = new() { Name = name, Description = description } },
+            Setting = new Setting { Id = settingId, Display = new() { Name = TestKeys.Of(name), Description = TestKeys.Of(description)} },
             SettingId = settingId,
             Name = name,
             Description = description,
