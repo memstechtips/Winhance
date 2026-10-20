@@ -39,7 +39,10 @@ public class WimImageServiceTests
             _mockLogService.Object,
             _mockLocalization.Object,
             _mockDismRunner.Object,
-            _mockImageInfo.Object);
+            _mockImageInfo.Object)
+        {
+            RetryDelay = TimeSpan.Zero,
+        };
     }
 
     [Fact]
@@ -59,14 +62,15 @@ public class WimImageServiceTests
         _mockFileSystem.Setup(fs => fs.FileExists(It.Is<string>(p => p.Contains("install.wim")))).Returns(true);
         _mockFileSystem.Setup(fs => fs.GetFileSize(It.IsAny<string>())).Returns(5_000_000_000L);
         _mockImageInfo.Setup(d => d.GetImageInfo(@"C:\work\sources\install.wim"))
-            .Returns([new DismImageEntry(1, "Windows 11 Pro"), new DismImageEntry(2, "Windows 11 Home")]);
+            .Returns([new DismImageEntry(1, "Windows 11 Pro", 26300), new DismImageEntry(2, "Windows 11 Home", 26300)]);
 
         var result = await _service.DetectImageFormatAsync(@"C:\work");
 
         result.Should().NotBeNull();
         result!.Format.Should().Be(ImageFormat.Wim);
-        result.ImageCount.Should().Be(2);
-        result.EditionNames.Should().Equal("Windows 11 Pro", "Windows 11 Home");
+        result.Editions.Should().HaveCount(2);
+        result.Editions.Select(e => e.Name).Should().Equal("Windows 11 Pro", "Windows 11 Home");
+        result.Build.Should().Be(26300);
     }
 
     [Fact]
@@ -158,8 +162,243 @@ public class WimImageServiceTests
 
         var info = await _service.DetectImageFormatAsync(@"C:\work");
 
-        info!.ImageCount.Should().Be(2);
-        info.EditionNames.Should().Equal("Windows 11 Home", "Windows 11 Pro");
+        info!.Editions.Should().HaveCount(2);
+        info.Editions.Select(e => e.Name).Should().Equal("Windows 11 Home", "Windows 11 Pro");
+    }
+
+    private const string Wim = @"C:\work\sources\install.wim";
+    private const string KeepWim = @"C:\work\sources\install.keep.wim";
+    private const string OldWim = @"C:\work\sources\install.old.wim";
+    private const string Home = "Windows 11 Home";
+    private const string HomeSingleLanguage = "Windows 11 Home Single Language";
+    private const string Pro = "Windows 11 Pro";
+
+    // A disk of file names: DISM's export creates the destination, moves and deletes act on the set.
+    private HashSet<string> SimulateDisk(params string[] files)
+    {
+        var disk = new HashSet<string>(files, StringComparer.OrdinalIgnoreCase);
+        _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
+        _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns((string p) => disk.Contains(p));
+        _mockFileSystem.Setup(fs => fs.GetFileSize(It.IsAny<string>())).Returns(5_000_000_000L);
+        _mockFileSystem.Setup(fs => fs.GetFileName(It.IsAny<string>())).Returns((string p) => p.Split('\\').Last());
+        _mockFileSystem.Setup(fs => fs.DeleteFile(It.IsAny<string>())).Callback((string p) => disk.Remove(p));
+        _mockFileSystem.Setup(fs => fs.MoveFile(It.IsAny<string>(), It.IsAny<string>()))
+            .Callback((string from, string to) =>
+            {
+                if (!disk.Remove(from)) throw new IOException($"{from} not found");
+                disk.Add(to);
+            });
+        _mockDismRunner.Setup(r => r.CheckDiskSpaceAsync(It.IsAny<string>(), It.IsAny<long>(), It.IsAny<string>())).ReturnsAsync(true);
+        _mockDismRunner
+            .Setup(r => r.RunProcessWithProgressAsync("dism.exe", It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .Callback((string _, string args, IProgress<TaskProgressDetail>? _, CancellationToken _) =>
+                disk.Add(args.Split("/DestinationImageFile:\"")[1].Split('"')[0]))
+            .ReturnsAsync((0, string.Empty));
+        _mockImageInfo.Setup(d => d.GetImageInfo(It.IsAny<string>())).Returns(
+        [
+            new DismImageEntry(1, "Windows 11 Home", 26300, "Core"),
+            new DismImageEntry(2, "Windows 11 Home Single Language", 26300, "CoreSingleLanguage"),
+            new DismImageEntry(3, "Windows 11 Pro", 26300, "Professional"),
+        ]);
+        return disk;
+    }
+
+    private void VerifyExported(params int[] indexes)
+    {
+        foreach (var index in indexes)
+            _mockDismRunner.Verify(r => r.RunProcessWithProgressAsync("dism.exe",
+                It.Is<string>(a => a.Contains($"/SourceIndex:{index} ") && a.Contains(KeepWim)),
+                It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mockDismRunner.Verify(r => r.RunProcessWithProgressAsync(It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Exactly(indexes.Length));
+    }
+
+    [Fact]
+    public async Task DetectImageFormatAsync_CarriesEachEditionsIndexAndEditionId()
+    {
+        SimulateDisk(Wim);
+
+        var info = await _service.DetectImageFormatAsync(@"C:\work");
+
+        info!.Editions.Should().Equal(
+            new ImageEdition(1, "Windows 11 Home", "Core"),
+            new ImageEdition(2, "Windows 11 Home Single Language", "CoreSingleLanguage"),
+            new ImageEdition(3, "Windows 11 Pro", "Professional"));
+    }
+
+    [Fact]
+    public async Task KeepEditionsAsync_ExportsOnlyTheKeptEditionsAndSwapsTheFileIn()
+    {
+        var disk = SimulateDisk(Wim);
+
+        var result = await _service.KeepEditionsAsync(@"C:\work", [Home, Pro]);
+
+        result.Should().Be(new EditionRemovalResult(true));
+        VerifyExported(1, 3);
+        _mockDismRunner.Verify(r => r.RunProcessWithProgressAsync("dism.exe", It.Is<string>(a => a.Contains("/Compress:max")),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        disk.Should().BeEquivalentTo([Wim]);
+        _mockFileSystem.Verify(fs => fs.MoveFile(Wim, OldWim), Times.Once);
+        _mockFileSystem.Verify(fs => fs.MoveFile(KeepWim, Wim), Times.Once);
+    }
+
+    [Fact]
+    public async Task KeepEditionsAsync_KeepsAnEsdAnEsd()
+    {
+        const string esd = @"C:\work\sources\install.esd";
+        var disk = SimulateDisk(esd);
+
+        var result = await _service.KeepEditionsAsync(@"C:\work", [HomeSingleLanguage]);
+
+        result.Should().Be(new EditionRemovalResult(true));
+        _mockDismRunner.Verify(r => r.RunProcessWithProgressAsync("dism.exe",
+            It.Is<string>(a => a.Contains("/SourceIndex:2 ") && a.Contains("install.keep.esd") && a.Contains("/Compress:recovery")),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
+        disk.Should().BeEquivalentTo([esd]);
+    }
+
+    [Fact]
+    public async Task KeepEditionsAsync_ClearsAFileLeftByAnInterruptedRunBeforeExporting()
+    {
+        var disk = SimulateDisk(Wim, KeepWim);
+
+        await _service.KeepEditionsAsync(@"C:\work", [Pro]);
+
+        _mockFileSystem.Verify(fs => fs.DeleteFile(KeepWim), Times.Once);
+        disk.Should().BeEquivalentTo([Wim]);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(false, "Windows 11 Enterprise")]
+    [InlineData(true, Home, HomeSingleLanguage, Pro)]
+    public async Task KeepEditionsAsync_LeavesTheImageAloneWhenThereIsNothingToRemove(bool expected, params string[] names)
+    {
+        var disk = SimulateDisk(Wim);
+
+        var result = await _service.KeepEditionsAsync(@"C:\work", names);
+
+        result.Should().Be(new EditionRemovalResult(expected));
+        VerifyExported();
+        disk.Should().BeEquivalentTo([Wim]);
+    }
+
+    [Fact]
+    public async Task KeepEditionsAsync_DismFailure_DeletesThePartialFileAndKeepsTheOriginal()
+    {
+        var disk = SimulateDisk(Wim);
+        _mockDismRunner
+            .Setup(r => r.RunProcessWithProgressAsync("dism.exe", It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .Callback(() => disk.Add(KeepWim))
+            .ReturnsAsync((5, string.Empty));
+
+        var result = await _service.KeepEditionsAsync(@"C:\work", [Pro]);
+
+        result.Should().Be(EditionRemovalResult.Failed);
+        disk.Should().BeEquivalentTo([Wim]);
+        _mockFileSystem.Verify(fs => fs.MoveFile(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task KeepEditionsAsync_PutsTheOriginalBackWhenTheNewFileCannotTakeItsName()
+    {
+        var disk = SimulateDisk(Wim);
+        _mockFileSystem.Setup(fs => fs.MoveFile(KeepWim, Wim)).Throws(new IOException("in use"));
+
+        var result = await _service.KeepEditionsAsync(@"C:\work", [Pro]);
+
+        result.Should().Be(EditionRemovalResult.Failed);
+        disk.Should().Contain(Wim);
+        disk.Should().NotContain([OldWim, KeepWim]);
+    }
+
+    [Fact]
+    public async Task KeepEditionsAsync_RunAgainWithTheSameNames_KeepsTheSameEditions()
+    {
+        var disk = SimulateDisk(Wim);
+        await _service.KeepEditionsAsync(@"C:\work", [Home, Pro]);
+        _mockImageInfo.Setup(d => d.GetImageInfo(It.IsAny<string>())).Returns(
+        [
+            new DismImageEntry(1, Home, 26300, "Core"),
+            new DismImageEntry(2, Pro, 26300, "Professional"),
+        ]);
+        _mockDismRunner.Invocations.Clear();
+
+        var result = await _service.KeepEditionsAsync(@"C:\work", [Home, Pro]);
+
+        result.Should().Be(new EditionRemovalResult(true));
+        VerifyExported();
+        disk.Should().BeEquivalentTo([Wim]);
+    }
+
+    [Fact]
+    public async Task KeepEditionsAsync_WhenTheOldImageCannotBeDeleted_ReportsWhereItIs()
+    {
+        var disk = SimulateDisk(Wim);
+        _mockFileSystem.Setup(fs => fs.DeleteFile(OldWim)).Throws(new IOException("in use"));
+
+        var result = await _service.KeepEditionsAsync(@"C:\work", [Pro]);
+
+        result.Should().Be(new EditionRemovalResult(true, OldWim));
+        disk.Should().BeEquivalentTo([Wim, OldWim]);
+    }
+
+    [Fact]
+    public async Task KeepEditionsAsync_CancelledDuringTheExport_LeavesTheOriginalImage()
+    {
+        var disk = SimulateDisk(Wim);
+        using var cts = new CancellationTokenSource();
+        _mockDismRunner
+            .Setup(r => r.RunProcessWithProgressAsync("dism.exe", It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), cts.Token))
+            .Callback(() => disk.Add(KeepWim))
+            .ThrowsAsync(new OperationCanceledException());
+
+        var act = () => _service.KeepEditionsAsync(@"C:\work", [Pro], null, cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        disk.Should().BeEquivalentTo([Wim]);
+        _mockFileSystem.Verify(fs => fs.MoveFile(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task KeepEditionsAsync_CancelledOnceTheExportIsDone_StillLeavesTheOriginalImage()
+    {
+        var disk = SimulateDisk(Wim);
+        using var cts = new CancellationTokenSource();
+        _mockDismRunner
+            .Setup(r => r.RunProcessWithProgressAsync("dism.exe", It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .Callback(() =>
+            {
+                disk.Add(KeepWim);
+                cts.Cancel();
+            })
+            .ReturnsAsync((0, string.Empty));
+
+        var act = () => _service.KeepEditionsAsync(@"C:\work", [Pro], null, cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        disk.Should().BeEquivalentTo([Wim]);
+        _mockFileSystem.Verify(fs => fs.MoveFile(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    // Past the swap the editions are gone, so a cancel must not turn a finished removal into a cancelled one.
+    [Fact]
+    public async Task KeepEditionsAsync_CancelledAfterTheSwap_ReportsTheRemovalAndTheOldImage()
+    {
+        var disk = SimulateDisk(Wim);
+        using var cts = new CancellationTokenSource();
+        _mockFileSystem.Setup(fs => fs.MoveFile(KeepWim, Wim)).Callback(() =>
+        {
+            disk.Remove(KeepWim);
+            disk.Add(Wim);
+            cts.Cancel();
+        });
+        _mockFileSystem.Setup(fs => fs.DeleteFile(OldWim)).Throws(new IOException("in use"));
+
+        var result = await _service.KeepEditionsAsync(@"C:\work", [Pro], null, cts.Token);
+
+        result.Should().Be(new EditionRemovalResult(true, OldWim));
+        disk.Should().BeEquivalentTo([Wim, OldWim]);
     }
 
     [Fact]

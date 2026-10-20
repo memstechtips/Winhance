@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Helpers;
 using Winhance.Core.Features.Common.Extensions;
 
@@ -117,20 +118,19 @@ public class DialogService : IDialogService
             string.IsNullOrEmpty(title) ? _localization.GetString("Dialog_Error") : title,
             string.IsNullOrEmpty(buttonText) ? _localization.GetString("Button_OK") : buttonText);
 
-    public async Task<(bool SupportClicked, bool DontShowAgain)> ShowSponsorsDialogAsync(SponsorsDialogMode mode)
+    public async Task ShowSponsorsDialogAsync(SponsorsDialogMode mode)
     {
-        return await ExecuteDialogAsync(async () =>
+        await ExecuteDialogAsync(async () =>
         {
             // GetSponsorsAsync never throws and may return null; the builder
             // handles a null document gracefully.
             var data = await _sponsorsService.GetSponsorsAsync();
 
             var builder = new Dialogs.SponsorsDialogBuilder(_localization, _sponsorsService);
-            var dialog = builder.Build(data, mode, XamlRoot!);
+            var dialog = builder.Build(data, mode);
             ConfigureDialog(dialog);
             await dialog.ShowAsync();
-            return builder.ExtractResult();
-        }, (false, false));
+        });
     }
 
     public async Task<(ImportOption? Option, ImportOptions Options)> ShowConfigImportOptionsDialogAsync()
@@ -178,9 +178,10 @@ public class DialogService : IDialogService
                 itemContainerStyle.Setters.Add(new Setter(ListViewItem.PaddingProperty, new Thickness(0)));
                 itemContainerStyle.Setters.Add(new Setter(ListViewItem.MinHeightProperty, 0d));
 
+                // Plain strings would clip at the dialog edge; each row is a wrapping TextBlock instead.
                 var listView = new ListView
                 {
-                    ItemsSource = items.ToList(),
+                    ItemsSource = items.Select(item => new TextBlock { Text = item, TextWrapping = TextWrapping.Wrap }).ToList(),
                     MaxHeight = 300,
                     SelectionMode = ListViewSelectionMode.None,
                     ItemContainerStyle = itemContainerStyle
@@ -191,11 +192,7 @@ public class DialogService : IDialogService
                     Child = listView,
                     CornerRadius = new CornerRadius(4),
                     Padding = new Thickness(8),
-                    Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent),
-                    BorderBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(
-                        (XamlRoot?.Content as FrameworkElement)?.ActualTheme == ElementTheme.Dark
-                            ? Microsoft.UI.Colors.White : Microsoft.UI.Colors.Black),
-                    BorderThickness = new Thickness(1)
+                    Style = CodeBuiltStyle.Named("CodeBuilt.CardSurface")
                 };
 
                 contentPanel.Children.Add(listContainer);
@@ -254,6 +251,16 @@ public class DialogService : IDialogService
         }, new ConfirmationResponse { Confirmed = false, CheckboxChecked = false });
     }
 
+    public async Task<bool> ShowSummaryAsync(SummaryRequest request)
+    {
+        return await ExecuteDialogAsync(async () =>
+        {
+            var dialog = new Dialogs.SummaryDialogBuilder(_localization).Build(XamlRoot!, request);
+            ConfigureDialog(dialog);
+            return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        }, false);
+    }
+
     public async Task ShowTaskOutputDialogAsync(string title, IReadOnlyList<string> logMessages)
     {
         await ExecuteDialogAsync(async () =>
@@ -271,24 +278,6 @@ public class DialogService : IDialogService
                 builder.StopLiveUpdates();
             }
         });
-    }
-
-    public async Task<bool> ShowTaskOutputConfirmationAsync(string title, IReadOnlyList<string> logMessages, string confirmButtonText, string cancelButtonText)
-    {
-        return await ExecuteDialogAsync(async () =>
-        {
-            var builder = new Dialogs.TaskOutputDialogBuilder(_localization, _taskProgressService);
-            var dialog = builder.Build(XamlRoot!, title, logMessages);
-            dialog.PrimaryButtonText = string.IsNullOrEmpty(confirmButtonText)
-                ? _localization.GetString("Button_OK")
-                : confirmButtonText;
-            dialog.CloseButtonText = string.IsNullOrEmpty(cancelButtonText)
-                ? _localization.GetString("Button_Cancel")
-                : cancelButtonText;
-            ConfigureDialog(dialog);
-            var result = await dialog.ShowAsync();
-            return result == ContentDialogResult.Primary;
-        }, false);
     }
 
     public async Task ShowCustomContentDialogAsync(string title, object content, string closeButtonText = "")

@@ -12,7 +12,7 @@ public class ChoiceValueTests
     public void EveryCase_IsOneOfTheTenKnownShapes()
     {
         var cases = typeof(ChoiceValue).GetNestedTypes().Where(t => t.IsSubclassOf(typeof(ChoiceValue))).Select(t => t.Name).OrderBy(n => n, StringComparer.Ordinal);
-        cases.Should().Equal("AcDcNumber", "AcDcOption", "CheckBox", "CustomValues", "Keyed", "List", "Number", "Option", "Text", "Toggle");
+        cases.Should().Equal("AcDcNumber", "AcDcOption", "CheckBox", "CustomValues", "Keyed", "Keys", "List", "Number", "Option", "Text", "Toggle");
     }
 
     [Fact]

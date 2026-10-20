@@ -11,6 +11,7 @@ public interface IUsbMediaWriter
     void Write(
         RemovableDrive target,
         string workingDirectory,
+        BootFileReplacements replacements,
         IProgress<TaskProgressDetail>? progress,
         CancellationToken cancellationToken);
 }

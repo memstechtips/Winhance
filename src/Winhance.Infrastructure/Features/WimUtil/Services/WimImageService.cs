@@ -14,6 +14,8 @@ internal class WimImageService : IWimImageService
     private readonly IDismProcessRunner _dismProcessRunner;
     private readonly IDismImageInfoReader _dismImageInfoReader;
 
+    internal TimeSpan RetryDelay { get; init; } = TimeSpan.FromSeconds(2);
+
     public WimImageService(
         IFileSystemService fileSystemService,
         ILogService logService,
@@ -153,33 +155,13 @@ internal class WimImageService : IWimImageService
 
             _logService.LogInformation($"Starting conversion: {currentInfo.Format} → {targetFormat}");
 
-            var compressionType = targetFormat == ImageFormat.Esd ? "recovery" : "max";
+            var editions = currentInfo.Editions;
+            _logService.LogInformation($"Converting {editions.Count} image(s)");
 
-            var imageCount = currentInfo.ImageCount > 0 ? currentInfo.ImageCount : 1;
-            _logService.LogInformation($"Converting {imageCount} image(s)");
-
-            for (int i = 1; i <= imageCount; i++)
+            for (var i = 0; i < editions.Count; i++)
             {
-                progress?.Report(new TaskProgressDetail
-                {
-                    StatusText = _localization.GetString("Progress_ConvertingEdition", i.ToString(), imageCount.ToString()),
-                    TerminalOutput = currentInfo.EditionNames.Count >= i
-                        ? currentInfo.EditionNames[i - 1]
-                        : $"Index {i}"
-                });
-
-                // dism.exe, not the DISM API: DismApi.dll services images, it cannot export one.
-                // There is no DismExportImage, and WIMGAPI ships with the ADK rather than the SDK
-                // and cannot open an ESD at all. This shell-out is permanent.
-                var arguments = $"/Export-Image /SourceImageFile:\"{sourceFile}\" /SourceIndex:{i} /DestinationImageFile:\"{targetFile}\" /Compress:{compressionType} /CheckIntegrity";
-
-                _logService.LogInformation($"Exporting index {i}: dism.exe {arguments}");
-
-                var (exitCode, _) = await _dismProcessRunner.RunProcessWithProgressAsync("dism.exe", arguments, progress, cancellationToken).ConfigureAwait(false);
-                if (exitCode != 0)
-                {
-                    throw new Exception($"DISM failed with exit code: {exitCode}");
-                }
+                var status = _localization.GetString("Progress_ConvertingEdition", (i + 1).ToString(), editions.Count.ToString());
+                await ExportAsync(sourceFile, editions[i], targetFile, CompressionFor(targetFormat), status, progress, cancellationToken).ConfigureAwait(false);
             }
 
             await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
@@ -196,34 +178,7 @@ internal class WimImageService : IWimImageService
                 TerminalOutput = $"Deleting {_fileSystemService.GetFileName(sourceFile)}"
             });
 
-            var deleted = false;
-            for (int attempt = 1; attempt <= 5; attempt++)
-            {
-                try
-                {
-                    if (_fileSystemService.FileExists(sourceFile))
-                    {
-                        _fileSystemService.SetFileAttributes(sourceFile, FileAttributes.Normal);
-                        _fileSystemService.DeleteFile(sourceFile);
-                        _logService.LogInformation($"Deleted source file: {sourceFile}");
-                        deleted = true;
-                        break;
-                    }
-                    else
-                    {
-                        deleted = true;
-                        break;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logService.LogWarning($"Attempt {attempt}/5 to delete source file failed: {ex.Message}");
-                    if (attempt < 5)
-                    {
-                        await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
-                    }
-                }
-            }
+            var deleted = await DeleteWithRetryAsync(sourceFile, cancellationToken).ConfigureAwait(false);
 
             var targetFileSize = _fileSystemService.GetFileSize(targetFile);
 
@@ -260,19 +215,7 @@ internal class WimImageService : IWimImageService
         {
             _logService.LogInformation("Image conversion was cancelled");
 
-            if (_fileSystemService.FileExists(targetFile))
-            {
-                try
-                {
-                    _logService.LogInformation($"Cleaning up incomplete target file: {targetFile}");
-                    _fileSystemService.DeleteFile(targetFile);
-                    _logService.LogInformation("Incomplete target file deleted successfully");
-                }
-                catch (Exception cleanupEx)
-                {
-                    _logService.LogWarning($"Could not delete incomplete target file: {cleanupEx.Message}");
-                }
-            }
+            DeleteIncompleteFile(targetFile);
 
             throw;
         }
@@ -284,19 +227,7 @@ internal class WimImageService : IWimImageService
         {
             _logService.LogError($"Error converting image: {ex.Message}", ex);
 
-            if (_fileSystemService.FileExists(targetFile))
-            {
-                try
-                {
-                    _logService.LogInformation($"Cleaning up incomplete target file: {targetFile}");
-                    _fileSystemService.DeleteFile(targetFile);
-                    _logService.LogInformation("Incomplete target file deleted successfully");
-                }
-                catch (Exception cleanupEx)
-                {
-                    _logService.LogWarning($"Could not delete incomplete target file: {cleanupEx.Message}");
-                }
-            }
+            DeleteIncompleteFile(targetFile);
 
             progress?.Report(new TaskProgressDetail
             {
@@ -304,6 +235,117 @@ internal class WimImageService : IWimImageService
                 TerminalOutput = ex.Message
             });
             return false;
+        }
+    }
+
+    public async Task<EditionRemovalResult> KeepEditionsAsync(
+        string workingDirectory,
+        IReadOnlyCollection<string> editionNames,
+        IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        string tempFile = string.Empty;
+
+        try
+        {
+            var currentInfo = await DetectImageFormatAsync(workingDirectory).ConfigureAwait(false);
+            if (currentInfo == null)
+            {
+                _logService.LogError("Could not detect the image to remove editions from");
+                return EditionRemovalResult.Failed;
+            }
+
+            var kept = currentInfo.Editions.Where(e => editionNames.Contains(e.Name)).ToList();
+            if (kept.Count == 0)
+            {
+                _logService.LogError("No edition was chosen to keep");
+                return EditionRemovalResult.Failed;
+            }
+
+            if (kept.Count == currentInfo.Editions.Count)
+            {
+                _logService.LogInformation("Every edition is kept, nothing to remove");
+                return new EditionRemovalResult(true);
+            }
+
+            var sourceFile = currentInfo.FilePath;
+            var extension = currentInfo.Format == ImageFormat.Wim ? "wim" : "esd";
+            var sourcesPath = _fileSystemService.CombinePath(workingDirectory, "sources");
+            tempFile = _fileSystemService.CombinePath(sourcesPath, $"install.keep.{extension}");
+            var backupFile = _fileSystemService.CombinePath(sourcesPath, $"install.old.{extension}");
+
+            await _dismProcessRunner.CheckDiskSpaceAsync(workingDirectory, currentInfo.FileSizeBytes, "Edition removal").ConfigureAwait(false);
+
+            // /Export-Image appends to an existing destination, so a file left by an interrupted run would carry its editions in.
+            if (!await DeleteWithRetryAsync(tempFile, cancellationToken).ConfigureAwait(false)
+                || !await DeleteWithRetryAsync(backupFile, cancellationToken).ConfigureAwait(false))
+            {
+                _logService.LogError("A file left by an earlier edition removal could not be deleted");
+                return EditionRemovalResult.Failed;
+            }
+
+            _logService.LogInformation($"Keeping {kept.Count} of {currentInfo.Editions.Count} editions: {string.Join(", ", kept.Select(e => e.Name))}");
+
+            for (var i = 0; i < kept.Count; i++)
+            {
+                var status = _localization.GetString("Progress_KeepingEdition", (i + 1).ToString(), kept.Count.ToString());
+                await ExportAsync(sourceFile, kept[i], tempFile, CompressionFor(currentInfo.Format), status, progress, cancellationToken).ConfigureAwait(false);
+            }
+
+            if (!_fileSystemService.FileExists(tempFile))
+            {
+                _logService.LogError($"Export finished but {tempFile} is missing");
+                return EditionRemovalResult.Failed;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            progress?.Report(new TaskProgressDetail
+            {
+                StatusText = _localization.GetString("Progress_RemovingOldFile"),
+                TerminalOutput = $"Replacing {_fileSystemService.GetFileName(sourceFile)}"
+            });
+
+            // The original steps aside before the new file takes its name, so no failure point leaves the media without an image.
+            if (!await RetryAsync($"move {sourceFile} aside", () => _fileSystemService.MoveFile(sourceFile, backupFile), cancellationToken).ConfigureAwait(false))
+            {
+                DeleteIncompleteFile(tempFile);
+                return EditionRemovalResult.Failed;
+            }
+
+            try
+            {
+                _fileSystemService.MoveFile(tempFile, sourceFile);
+            }
+            catch
+            {
+                _fileSystemService.MoveFile(backupFile, sourceFile);
+                throw;
+            }
+
+            // The new image has the name by now, so a cancel has nothing left to undo and must not skip the clean-up.
+            var oldImageDeleted = await DeleteWithRetryAsync(backupFile, CancellationToken.None).ConfigureAwait(false);
+            if (!oldImageDeleted)
+                _logService.LogWarning($"Could not delete {backupFile}; it would go onto the ISO");
+
+            _logService.LogInformation($"Image now holds {kept.Count} edition(s), {_fileSystemService.GetFileSize(sourceFile):N0} bytes");
+            return new EditionRemovalResult(true, oldImageDeleted ? null : backupFile);
+        }
+        catch (OperationCanceledException)
+        {
+            _logService.LogInformation("Edition removal was cancelled");
+            DeleteIncompleteFile(tempFile);
+            throw;
+        }
+        catch (InsufficientDiskSpaceException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Error removing editions: {ex.Message}", ex);
+            DeleteIncompleteFile(tempFile);
+            return EditionRemovalResult.Failed;
         }
     }
 
@@ -335,38 +377,16 @@ internal class WimImageService : IWimImageService
 
             _logService.LogInformation($"Deleting {fileName} from {sourcesPath}");
 
-            var deleted = false;
-            for (int attempt = 1; attempt <= 5; attempt++)
+            var deleted = await DeleteWithRetryAsync(filePath, cancellationToken).ConfigureAwait(false);
+            if (deleted)
             {
-                try
+                progress?.Report(new TaskProgressDetail
                 {
-                    if (_fileSystemService.FileExists(filePath))
-                    {
-                        _fileSystemService.SetFileAttributes(filePath, FileAttributes.Normal);
-                        _fileSystemService.DeleteFile(filePath);
-                        _logService.LogInformation($"Successfully deleted {fileName}");
-                        deleted = true;
-
-                        progress?.Report(new TaskProgressDetail
-                        {
-                            StatusText = _localization.GetString("Progress_ImageFileDeleted"),
-                            TerminalOutput = $"{fileName} deleted successfully"
-                        });
-
-                        break;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logService.LogWarning($"Attempt {attempt}/5 to delete {fileName} failed: {ex.Message}");
-                    if (attempt < 5)
-                    {
-                        await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
-                    }
-                }
+                    StatusText = _localization.GetString("Progress_ImageFileDeleted"),
+                    TerminalOutput = $"{fileName} deleted successfully"
+                });
             }
-
-            if (!deleted)
+            else
             {
                 progress?.Report(new TaskProgressDetail
                 {
@@ -386,6 +406,82 @@ internal class WimImageService : IWimImageService
                 TerminalOutput = ex.Message
             });
             return false;
+        }
+    }
+
+    private static string CompressionFor(ImageFormat format) => format == ImageFormat.Esd ? "recovery" : "max";
+
+    private async Task ExportAsync(
+        string sourceFile,
+        ImageEdition edition,
+        string targetFile,
+        string compression,
+        string status,
+        IProgress<TaskProgressDetail>? progress,
+        CancellationToken cancellationToken)
+    {
+        progress?.Report(new TaskProgressDetail { StatusText = status, TerminalOutput = edition.Name });
+
+        // dism.exe, not the DISM API: DismApi.dll services images, it cannot export one.
+        // There is no DismExportImage, and WIMGAPI ships with the ADK rather than the SDK
+        // and cannot open an ESD at all. This shell-out is permanent.
+        var arguments = $"/Export-Image /SourceImageFile:\"{sourceFile}\" /SourceIndex:{edition.Index} /DestinationImageFile:\"{targetFile}\" /Compress:{compression} /CheckIntegrity";
+
+        _logService.LogInformation($"Exporting index {edition.Index}: dism.exe {arguments}");
+
+        var (exitCode, _) = await _dismProcessRunner.RunProcessWithProgressAsync("dism.exe", arguments, progress, cancellationToken).ConfigureAwait(false);
+        if (exitCode != 0)
+        {
+            throw new Exception($"DISM failed with exit code: {exitCode}");
+        }
+    }
+
+    private Task<bool> DeleteWithRetryAsync(string path, CancellationToken cancellationToken) =>
+        RetryAsync($"delete {path}", () =>
+        {
+            if (!_fileSystemService.FileExists(path))
+                return;
+            _fileSystemService.SetFileAttributes(path, FileAttributes.Normal);
+            _fileSystemService.DeleteFile(path);
+            _logService.LogInformation($"Deleted {path}");
+        }, cancellationToken);
+
+    // DISM can hold an image open for a few seconds after it exits.
+    private async Task<bool> RetryAsync(string what, Action action, CancellationToken cancellationToken)
+    {
+        for (int attempt = 1; attempt <= 5; attempt++)
+        {
+            try
+            {
+                action();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logService.LogWarning($"Attempt {attempt}/5 to {what} failed: {ex.Message}");
+                if (attempt < 5)
+                {
+                    await Task.Delay(RetryDelay, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private void DeleteIncompleteFile(string path)
+    {
+        if (string.IsNullOrEmpty(path) || !_fileSystemService.FileExists(path))
+            return;
+
+        try
+        {
+            _fileSystemService.DeleteFile(path);
+            _logService.LogInformation($"Deleted incomplete file: {path}");
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"Could not delete incomplete file {path}: {ex.Message}");
         }
     }
 
@@ -417,8 +513,8 @@ internal class WimImageService : IWimImageService
             Format = format,
             FilePath = imagePath,
             FileSizeBytes = fileSizeBytes,
-            ImageCount = entries.Count,
-            EditionNames = entries.Select(e => e.Name).ToList()
+            Editions = entries.Select(e => new ImageEdition(e.Index, e.Name, e.EditionId)).ToList(),
+            Build = entries[0].Build,
         };
     }
 }

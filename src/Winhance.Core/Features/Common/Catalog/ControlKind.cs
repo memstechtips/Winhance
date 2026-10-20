@@ -10,4 +10,5 @@ public enum ControlKind
     Slider,
     Action,
     KeyedSelection,
+    CheckList,
 }

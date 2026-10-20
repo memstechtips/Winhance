@@ -11,7 +11,7 @@ public interface IWimCustomizationService
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default);
 
-    Task<bool> AddXmlToImageAsync(
+    Task<OperationResult> AddXmlToImageAsync(
         string xmlPath,
         string workingDirectory);
 

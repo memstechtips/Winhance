@@ -17,6 +17,7 @@ public partial class WimStep4IsoViewModel : ObservableObject
     private readonly IWimCustomizationService _wimCustomizationService;
     private readonly IIsoService _isoService;
     private readonly IUsbMediaWriter _usbMediaWriter;
+    private readonly IBootManagerService _bootManagerService;
     private readonly ITaskProgressService _taskProgressService;
     private readonly IProcessExecutor _processExecutor;
     private readonly IDialogService _dialogService;
@@ -49,6 +50,20 @@ public partial class WimStep4IsoViewModel : ObservableObject
 
     public ObservableCollection<RemovableDrive> UsbTargets { get; } = [];
 
+    public ObservableCollection<BootManagerChoice> BootManagerChoices { get; } = [];
+
+    [ObservableProperty]
+    public partial BootManagerChoice? SelectedBootManager { get; set; }
+
+    [ObservableProperty]
+    public partial bool ShowBootManagerChoice { get; set; }
+
+    [ObservableProperty]
+    public partial string BootManagerDescription { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsBootManagerOutdated { get; set; }
+
     public WizardActionCard SelectOutputCard { get; private set; } = new();
 
     public WizardActionCard SelectUsbCard { get; private set; } = new();
@@ -57,6 +72,7 @@ public partial class WimStep4IsoViewModel : ObservableObject
         IWimCustomizationService wimCustomizationService,
         IIsoService isoService,
         IUsbMediaWriter usbMediaWriter,
+        IBootManagerService bootManagerService,
         ITaskProgressService taskProgressService,
         IProcessExecutor processExecutor,
         IDialogService dialogService,
@@ -70,6 +86,7 @@ public partial class WimStep4IsoViewModel : ObservableObject
         _wimCustomizationService = wimCustomizationService;
         _isoService = isoService;
         _usbMediaWriter = usbMediaWriter;
+        _bootManagerService = bootManagerService;
         _taskProgressService = taskProgressService;
         _processExecutor = processExecutor;
         _dialogService = dialogService;
@@ -81,6 +98,7 @@ public partial class WimStep4IsoViewModel : ObservableObject
         _checkState = checkState;
 
         OutputIsoPath = string.Empty;
+        BootManagerDescription = string.Empty;
 
         CreateActionCards();
     }
@@ -107,6 +125,41 @@ public partial class WimStep4IsoViewModel : ObservableObject
             IsEnabled = true
         };
     }
+
+    // Run once the ISO is extracted. On failure the card stays hidden and the media keeps its own boot
+    // manager.
+    public async Task InspectBootManagerAsync()
+    {
+        try
+        {
+            var options = await _bootManagerService.InspectAsync(WorkingDirectory, CancellationToken.None);
+
+            BootManagerChoices.Clear();
+            if (options.Offers2023)
+            {
+                BootManagerChoices.Add(new BootManagerChoice(BootManager.Pca2011, _localizationService.GetString("WIMUtil_BootManager_Pca2011")));
+                BootManagerChoices.Add(new BootManagerChoice(BootManager.Ca2023, _localizationService.GetString("WIMUtil_BootManager_Ca2023")));
+            }
+
+            SelectedBootManager = BootManagerChoices.FirstOrDefault(choice => choice.Value == options.Default);
+            BootManagerDescription = _localizationService.GetString(options.Default == BootManager.Ca2023
+                ? "WIMUtil_Card_BootManager_DescriptionRevoked"
+                : "WIMUtil_Card_BootManager_Description");
+            ShowBootManagerChoice = options.Offers2023;
+            IsBootManagerOutdated = options.IsOutdated;
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"Could not read the media's boot manager: {ex.Message}");
+            BootManagerChoices.Clear();
+            SelectedBootManager = null;
+            ShowBootManagerChoice = false;
+            IsBootManagerOutdated = false;
+        }
+    }
+
+    private Task<BootFileReplacements> PrepareBootFilesAsync(CancellationToken cancellationToken) =>
+        _bootManagerService.PrepareAsync(WorkingDirectory, SelectedBootManager?.Value ?? BootManager.Pca2011, cancellationToken);
 
     [RelayCommand]
     private void SelectIsoDestination() => Destination = WimOutputDestination.Iso;
@@ -159,7 +212,7 @@ public partial class WimStep4IsoViewModel : ObservableObject
         if (!string.IsNullOrEmpty(path))
         {
             OutputIsoPath = path;
-            SelectOutputCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Output")}: {_fileSystemService.GetFileName(OutputIsoPath)}";
+            SelectOutputCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Output")}: {OutputIsoPath}";
         }
     }
 
@@ -210,8 +263,10 @@ public partial class WimStep4IsoViewModel : ObservableObject
 
             _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_CreatingIso"), true);
             var progress = _taskProgressService.CreateDetailedProgress();
+            var token = _taskProgressService.CurrentTaskCancellationSource!.Token;
+            var replacements = await PrepareBootFilesAsync(token);
 
-            var success = await _isoService.CreateIsoAsync(WorkingDirectory, OutputIsoPath, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
+            var success = await _isoService.CreateIsoAsync(WorkingDirectory, OutputIsoPath, replacements, progress, token);
 
             SelectOutputCard.IsEnabled = true;
             SelectOutputCard.Opacity = 1.0;
@@ -291,11 +346,10 @@ public partial class WimStep4IsoViewModel : ObservableObject
             if (report.Findings.Count == 0)
                 return true;
 
-            return await _dialogService.ShowTaskOutputConfirmationAsync(
-                _localizationService.GetString("WIMUtil_AnswerFile_DialogTitle"),
-                AnswerFileReportDialog.Lines(report, _localizationService),
-                _localizationService.GetString("WIMUtil_Button_ContinueAnyway"),
-                _localizationService.GetString("Button_Cancel"));
+            return await _dialogService.ShowSummaryAsync(AnswerFileReportDialog.Request(report, _localizationService) with
+            {
+                ConfirmButtonText = _localizationService.GetString("WIMUtil_Button_ContinueAnyway"),
+            });
         }
         catch (Exception ex)
         {
@@ -346,7 +400,9 @@ public partial class WimStep4IsoViewModel : ObservableObject
             var progress = _taskProgressService.CreateDetailedProgress();
             var token = _taskProgressService.CurrentTaskCancellationSource!.Token;
 
-            await Task.Run(() => _usbMediaWriter.Write(target, WorkingDirectory, progress, token), token);
+            var replacements = await PrepareBootFilesAsync(token);
+
+            await Task.Run(() => _usbMediaWriter.Write(target, WorkingDirectory, replacements, progress, token), token);
 
             IsIsoCreated = true;
             SelectUsbCard.IsComplete = true;

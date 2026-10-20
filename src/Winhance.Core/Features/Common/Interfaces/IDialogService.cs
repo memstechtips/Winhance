@@ -16,7 +16,8 @@ public interface IDialogService
 
     Task ShowErrorAsync(string message, string title = "", string buttonText = "");
 
-    Task<(bool SupportClicked, bool DontShowAgain)> ShowSponsorsDialogAsync(SponsorsDialogMode mode);
+    // A Yes opens the store page from inside the dialog.
+    Task ShowSponsorsDialogAsync(SponsorsDialogMode mode);
 
     Task<(ImportOption? Option, ImportOptions Options)> ShowConfigImportOptionsDialogAsync();
 
@@ -24,9 +25,10 @@ public interface IDialogService
 
     Task<ConfirmationResponse> ShowConfirmationAsync(ConfirmationRequest confirmationRequest);
 
-    Task ShowTaskOutputDialogAsync(string title, IReadOnlyList<string> logMessages);
+    // True only when the request asks a question and the user confirmed it.
+    Task<bool> ShowSummaryAsync(SummaryRequest request);
 
-    Task<bool> ShowTaskOutputConfirmationAsync(string title, IReadOnlyList<string> logMessages, string confirmButtonText, string cancelButtonText);
+    Task ShowTaskOutputDialogAsync(string title, IReadOnlyList<string> logMessages);
 
     Task ShowCustomContentDialogAsync(string title, object content, string closeButtonText = "");
 }

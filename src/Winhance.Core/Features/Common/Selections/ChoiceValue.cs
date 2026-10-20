@@ -57,6 +57,20 @@ public abstract record ChoiceValue
     // Label is what the dropdown showed at save time, so a PC that does not offer the key can still name it in the review.
     public sealed record Keyed(string Key, string Label) : ChoiceValue;
 
+    // The ticked entries of a CheckList, in the order its options list them.
+    public sealed record Keys(IReadOnlyList<string> Values) : ChoiceValue
+    {
+        public bool Equals(Keys? other) => other is not null && Values.SequenceEqual(other.Values);
+
+        public override int GetHashCode()
+        {
+            var hash = new HashCode();
+            foreach (var value in Values)
+                hash.Add(value);
+            return hash.ToHashCode();
+        }
+    }
+
     public static ChoiceValue TwoState(ControlKind kind, bool on) =>
         kind == ControlKind.CheckBox ? new CheckBox(on) : new Toggle(on);
 }

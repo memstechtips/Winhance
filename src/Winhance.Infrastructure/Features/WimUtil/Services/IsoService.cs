@@ -2,6 +2,7 @@ using Winhance.Core.Features.Common.Exceptions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.WimUtil.Interfaces;
+using Winhance.Core.Features.WimUtil.Models;
 
 namespace Winhance.Infrastructure.Features.WimUtil.Services;
 
@@ -152,7 +153,7 @@ internal class IsoService : IIsoService
                     TerminalOutput = $"Source: {attachment.RootPath}"
                 });
 
-                await Task.Run(() => _mediaCopier.CopyTree(attachment.RootPath, workingDirectory, null, null, progress, cancellationToken), cancellationToken).ConfigureAwait(false);
+                await Task.Run(() => _mediaCopier.CopyTree(attachment.RootPath, workingDirectory, null, null, 0, progress, cancellationToken), cancellationToken).ConfigureAwait(false);
 
                 progress?.Report(new TaskProgressDetail
                 {
@@ -211,6 +212,7 @@ internal class IsoService : IIsoService
     public async Task<bool> CreateIsoAsync(
         string workingDirectory,
         string outputPath,
+        BootFileReplacements replacements,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -246,7 +248,7 @@ internal class IsoService : IIsoService
             }
 
             await Task.Run(
-                () => _isoImageWriter.Write(workingDirectory, outputPath, progress, cancellationToken),
+                () => _isoImageWriter.Write(workingDirectory, outputPath, replacements, progress, cancellationToken),
                 cancellationToken).ConfigureAwait(false);
 
             if (!_fileSystemService.FileExists(outputPath))

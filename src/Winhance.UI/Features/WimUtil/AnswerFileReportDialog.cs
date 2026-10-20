@@ -1,4 +1,5 @@
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.WimUtil.Models;
 
 namespace Winhance.UI.Features.WimUtil;
@@ -36,7 +37,11 @@ public static class AnswerFileReportDialog
 
     public static IReadOnlyList<string> Lines(AnswerFileReport report, ILocalizationService localization)
     {
-        var lines = new List<string> { Verdict(report, localization), Summary(report, localization) };
+        // A clean file needs no counts line: "Errors: 0" still reads as a failure, and the terminal colours it red.
+        var lines = new List<string> { Verdict(report, localization) };
+        if (report.Findings.Count > 0)
+            lines.Add(Summary(report, localization));
+
         foreach (var item in Items(report, localization))
         {
             lines.Add(string.Empty);
@@ -46,4 +51,36 @@ public static class AnswerFileReportDialog
         return lines;
     }
 
+    public static SummaryVerdict SummaryVerdict(AnswerFileReport report, ILocalizationService localization) =>
+        new(report.Verdict switch
+            {
+                AnswerFileVerdict.WillFail => SummaryTone.Error,
+                AnswerFileVerdict.MayFail => SummaryTone.Warning,
+                _ => SummaryTone.Success,
+            },
+            Verdict(report, localization),
+            report.Findings.Count > 0 ? Summary(report, localization) : null);
+
+    public static SummarySection FindingsSection(AnswerFileReport report, ILocalizationService localization) =>
+        new(localization.GetString("WIMUtil_AnswerFile_FindingsHeading"),
+            report.Findings
+                .Select(f =>
+                {
+                    var ruleKey = "WIMUtil_AnswerFile_Rule_" + f.Rule;
+                    return new SummaryRow(
+                        SummaryIcon.Status,
+                        localization.GetString(ruleKey),
+                        f.Detail,
+                        f.Location,
+                        f.Severity == AnswerFileSeverity.Error ? SummaryTone.Error : SummaryTone.Warning);
+                })
+                .ToList());
+
+    public static SummaryRequest Request(AnswerFileReport report, ILocalizationService localization) => new()
+    {
+        Title = localization.GetString("WIMUtil_AnswerFile_DialogTitle"),
+        Verdict = SummaryVerdict(report, localization),
+        Sections = report.Findings.Count > 0 ? [FindingsSection(report, localization)] : [],
+        CopyText = string.Join(Environment.NewLine, Lines(report, localization)),
+    };
 }

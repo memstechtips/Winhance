@@ -138,30 +138,46 @@ internal class WimCustomizationService : IWimCustomizationService
         }
     }
 
-    public async Task<bool> AddXmlToImageAsync(string xmlPath, string workingDirectory)
+    public async Task<OperationResult> AddXmlToImageAsync(string xmlPath, string workingDirectory)
     {
         try
         {
             if (!_fileSystemService.FileExists(xmlPath))
             {
-                _logService.LogError($"XML file not found: {xmlPath}");
-                return false;
+                var message = $"XML file not found: {xmlPath}";
+                _logService.LogError(message);
+                return OperationResult.Failed(message);
             }
 
             if (!_fileSystemService.DirectoryExists(workingDirectory))
             {
-                _logService.LogError($"Working directory not found: {workingDirectory}");
-                return false;
+                var message = $"Working directory not found: {workingDirectory}";
+                _logService.LogError(message);
+                return OperationResult.Failed(message);
             }
 
             var destPath = _fileSystemService.CombinePath(workingDirectory, "autounattend.xml");
 
-            // A byte copy, not a read-then-write: the user's file may declare windows-1252 or
-            // utf-16, and writing the decoded string back as UTF-8 leaves that declaration lying
-            // about the bytes underneath it.
-            _fileSystemService.CopyFile(xmlPath, destPath, overwrite: true);
+            if (string.Equals(Path.GetFullPath(xmlPath), Path.GetFullPath(destPath), StringComparison.OrdinalIgnoreCase))
+            {
+                _logService.LogInformation($"autounattend.xml is already in the image: {destPath}");
+            }
+            else
+            {
+                // An autounattend.xml that came off the ISO is read-only and blocks the overwrite.
+                if (_fileSystemService.FileExists(destPath))
+                {
+                    _fileSystemService.SetFileAttributes(destPath, FileAttributes.Normal);
+                }
 
-            _logService.LogInformation($"Added autounattend.xml to image: {destPath}");
+                // A byte copy, not a read-then-write: the user's file may declare windows-1252 or
+                // utf-16, and writing the decoded string back as UTF-8 leaves that declaration lying
+                // about the bytes underneath it.
+                _fileSystemService.CopyFile(xmlPath, destPath, overwrite: true);
+
+                _logService.LogInformation($"Added autounattend.xml to image: {destPath}");
+            }
+
             try
             {
                 await _driverInstallStep.EnsureAsync(workingDirectory).ConfigureAwait(false);
@@ -170,12 +186,12 @@ internal class WimCustomizationService : IWimCustomizationService
             {
                 _logService.LogWarning($"Could not add the driver install step to autounattend.xml: {ex.Message}");
             }
-            return true;
+            return OperationResult.Succeeded();
         }
         catch (Exception ex)
         {
             _logService.LogError($"Error adding XML to image: {ex.Message}", ex);
-            return false;
+            return OperationResult.Failed(ex.Message, ex);
         }
     }
 

@@ -84,40 +84,72 @@ public class WimCustomizationServiceTests
     }
 
     [Fact]
-    public async Task AddXmlToImageAsync_XmlFileNotFound_ReturnsFalse()
+    public async Task AddXmlToImageAsync_XmlFileNotFound_Fails()
     {
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(false);
 
         var result = await _service.AddXmlToImageAsync(@"C:\missing.xml", @"C:\work");
 
-        result.Should().BeFalse();
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain(@"C:\missing.xml");
     }
 
     [Fact]
-    public async Task AddXmlToImageAsync_WorkingDirectoryNotFound_ReturnsFalse()
+    public async Task AddXmlToImageAsync_WorkingDirectoryNotFound_Fails()
     {
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(false);
 
         var result = await _service.AddXmlToImageAsync(@"C:\answer.xml", @"C:\missing_dir");
 
-        result.Should().BeFalse();
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain(@"C:\missing_dir");
     }
 
     [Fact]
-    public async Task AddXmlToImageAsync_ValidInputs_CopiesFileAndReturnsTrue()
+    public async Task AddXmlToImageAsync_ValidInputs_CopiesFileAndSucceeds()
     {
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
 
         var result = await _service.AddXmlToImageAsync(@"C:\answer.xml", @"C:\work");
 
-        result.Should().BeTrue();
+        result.Success.Should().BeTrue();
         _mockFileSystem.Verify(fs => fs.CopyFile(@"C:\answer.xml", @"C:\work\autounattend.xml", true), Times.Once);
     }
 
     [Fact]
-    public async Task AddXmlToImageAsync_CopyThrows_ReturnsFalse()
+    public async Task AddXmlToImageAsync_SelectedFileIsAlreadyTheDestination_SucceedsWithoutCopying()
+    {
+        _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
+        _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
+
+        var result = await _service.AddXmlToImageAsync(@"C:\WIM\autounattend.xml", @"C:\WIM");
+
+        result.Success.Should().BeTrue();
+        _mockFileSystem.Verify(fs => fs.CopyFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+        _mockDriverInstallStep.Verify(d => d.EnsureAsync(@"C:\WIM", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddXmlToImageAsync_DestinationExists_ClearsItsAttributesBeforeCopying()
+    {
+        _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
+        _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
+        var calls = new List<string>();
+        _mockFileSystem.Setup(fs => fs.SetFileAttributes(@"C:\WIM\autounattend.xml", FileAttributes.Normal))
+            .Callback(() => calls.Add("attributes"));
+        _mockFileSystem.Setup(fs => fs.CopyFile(@"C:\answer.xml", @"C:\WIM\autounattend.xml", true))
+            .Callback(() => calls.Add("copy"));
+
+        var result = await _service.AddXmlToImageAsync(@"C:\answer.xml", @"C:\WIM");
+
+        result.Success.Should().BeTrue();
+        calls.Should().Equal("attributes", "copy");
+    }
+
+    [Fact]
+    public async Task AddXmlToImageAsync_CopyThrows_FailsWithTheExceptionMessage()
     {
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
@@ -126,7 +158,9 @@ public class WimCustomizationServiceTests
 
         var result = await _service.AddXmlToImageAsync(@"C:\answer.xml", @"C:\work");
 
-        result.Should().BeFalse();
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Be("Disk error");
+        result.Exception.Should().BeOfType<IOException>();
     }
 
     [Fact]
@@ -280,7 +314,7 @@ public class WimCustomizationServiceTests
     }
 
     [Fact]
-    public async Task AddXmlToImageAsync_EnsureFailure_StillReturnsTrue()
+    public async Task AddXmlToImageAsync_EnsureFailure_StillSucceeds()
     {
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
@@ -290,7 +324,7 @@ public class WimCustomizationServiceTests
 
         var result = await _service.AddXmlToImageAsync(@"C:\answer.xml", @"C:\work");
 
-        result.Should().BeTrue();
+        result.Success.Should().BeTrue();
     }
 
     [Fact]
@@ -301,7 +335,7 @@ public class WimCustomizationServiceTests
 
         var result = await _service.AddXmlToImageAsync(@"C:\answer.xml", @"C:\work");
 
-        result.Should().BeTrue();
+        result.Success.Should().BeTrue();
         _mockDriverInstallStep.Verify(w => w.EnsureAsync(@"C:\work", It.IsAny<CancellationToken>()), Times.Once);
     }
 }

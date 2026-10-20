@@ -43,6 +43,7 @@ public class CardTemplateOutcomeCoverageTests
         "ActionSettingTemplate",
         "TextBoxSettingTemplate",
         "ListSettingTemplate",
+        "CheckListSettingTemplate",
     };
 
     [Fact]

@@ -15,6 +15,14 @@ public interface IWimImageService
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default);
 
+    // Rewrites the image with only these editions; deleting an index in place would leave its files in the image.
+    // Editions are named, not numbered: the rewrite renumbers the ones that stay.
+    Task<EditionRemovalResult> KeepEditionsAsync(
+        string workingDirectory,
+        IReadOnlyCollection<string> editionNames,
+        IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken cancellationToken = default);
+
     Task<bool> DeleteImageFileAsync(
         string workingDirectory,
         ImageFormat format,

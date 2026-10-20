@@ -23,6 +23,16 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
 
     public string WorkingDirectory { get; set; } = string.Empty;
 
+    public bool IsImageLocked
+    {
+        get;
+        set
+        {
+            field = value;
+            UpdateConversionCardState();
+        }
+    }
+
     [ObservableProperty]
     public partial ImageFormatInfo? CurrentImageFormat { get; set; }
 
@@ -87,7 +97,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task ConvertImageFormat()
     {
-        if (CurrentImageFormat == null) return;
+        if (CurrentImageFormat == null || IsImageLocked) return;
 
         if (string.IsNullOrEmpty(WorkingDirectory))
         {
@@ -164,7 +174,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
         {
             IsConverting = false;
             ConvertImageCard.IsProcessing = false;
-            ConvertImageCard.IsEnabled = true;
+            ConvertImageCard.IsEnabled = !IsImageLocked;
             _taskProgressService.CompleteTask();
         }
     }
@@ -210,6 +220,8 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task DeleteWim()
     {
+        if (IsImageLocked) return;
+
         if (string.IsNullOrEmpty(WorkingDirectory))
         {
             await _dialogService.ShowWarningAsync(
@@ -265,6 +277,8 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task DeleteEsd()
     {
+        if (IsImageLocked) return;
+
         if (string.IsNullOrEmpty(WorkingDirectory))
         {
             await _dialogService.ShowWarningAsync(
@@ -341,7 +355,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
         ConvertImageCard.Title = string.Format(_localizationService.GetString("WIMUtil_Card_ConvertImage_Title_Dynamic"), currentFormat, targetFormat);
         ConvertImageCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Current")}: install.{currentFormat.ToLower()} ({currentSize:F2} GB)\n{_localizationService.GetString("WIMUtil_Label_AfterConversion")}: ~{estimatedTargetSize:F2} GB ({sizeChange})";
         ConvertImageCard.ButtonText = string.Format(_localizationService.GetString("WIMUtil_Card_ConvertImage_Button_Dynamic"), targetFormat);
-        ConvertImageCard.IsEnabled = !IsConverting;
+        ConvertImageCard.IsEnabled = !IsConverting && !IsImageLocked;
     }
 
     public void Dispose()

@@ -1,4 +1,5 @@
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.WimUtil.Models;
 
 namespace Winhance.Core.Features.WimUtil.Interfaces;
 
@@ -15,6 +16,7 @@ public interface IIsoService
     Task<bool> CreateIsoAsync(
         string workingDirectory,
         string outputPath,
+        BootFileReplacements replacements,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default);
 }

@@ -59,6 +59,7 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(ISettingSnapshotSource))]
     [InlineData(typeof(IConfigFileWriter))]
     [InlineData(typeof(IAutounattendWriter))]
+    [InlineData(typeof(IAutounattendReader))]
     [InlineData(typeof(IBuilderSeedSource))]
     [InlineData(typeof(IWindowsThemeService))]
     [InlineData(typeof(IFileStore))]

@@ -2,13 +2,15 @@ namespace Winhance.Core.Features.WimUtil.Models;
 
 // BusType is the disk's connection as MSFT_Disk reports it ("USB", "NVMe", ...). It is the filter
 // that keeps internal disks off the list; the picker shows only USB drives and never displays it,
-// so the log line that lists every disk is where the other names surface.
+// so the log line that lists every disk is where the other names surface. HasRemovableMedia is the
+// device's removable-media bit, which flash drives set and USB hard drives and SSDs do not.
 public sealed record RemovableDrive(
     int DiskNumber,
     string Model,
     long SizeBytes,
     string BusType,
-    bool IsSystemDisk)
+    bool IsSystemDisk,
+    bool HasRemovableMedia)
 {
     public double SizeGigabytes => SizeBytes / (1024.0 * 1024 * 1024);
 
