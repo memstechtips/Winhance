@@ -37,8 +37,7 @@ public class BuildContextDetectionTests
         public object? GetValue(string keyPath, string? valueName) => Value;
         public string[] GetSubKeyNames(string keyPath) => Array.Empty<string>();
         public bool KeyExists(string keyPath) => KeyPresent;
-        public string? PrimaryDnsV4OfActiveAdapter() => null;
-        public IReadOnlyList<string> DnsV4ServersOfActiveAdapter() => Array.Empty<string>();
+        public IReadOnlyList<DnsServer> DnsServersOfActiveAdapter() => Array.Empty<DnsServer>();
         public bool IsSystemRestoreEnabled() => false;
         public bool? ScheduledTaskEnabled(string taskPath) => null;
         public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;

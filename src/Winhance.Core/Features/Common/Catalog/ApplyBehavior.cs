@@ -24,6 +24,10 @@ public enum WindowsChange
 
     // NEARLY FREE: one SystemParametersInfo makes the shell re-read the desktop background values now, not at next logon.
     Desktop = 1 << 1,
+
+    // FREE: one key press. Windows saves the LIVE Num Lock state at sign-out over whatever was written, so the key
+    // has to agree with the saved value or the change is lost.
+    NumLock = 1 << 2,
 }
 
 // Reboot is separate (RequiresReboot); a setting may need both.

@@ -50,6 +50,9 @@ internal class ProcessRestartManager(
     {
         var (processes, services) = CollectRestartTargets(new[] { setting });
 
+        if (setting.Apply.NotifyWindows.HasFlag(WindowsChange.NumLock))
+            uiManagementService.MatchNumLockToSavedValue();
+
         // Which broadcast this setting deserves is DECLARED BY THE SETTING (ApplyBehavior.NotifyWindows),
         // next to its confirmation gate and its restart - not inferred from the registry paths it writes.
         return HandleRestartsAsync(processes.FirstOrDefault(), services.FirstOrDefault(), setting.Id,
@@ -98,7 +101,7 @@ internal class ProcessRestartManager(
         // notice has already taken effect and must not ask the user to restart anything.
         if (isExplorer)
         {
-            RegisterExplorerPending(settingId);
+            pendingRestartService.Register(settingId);
             return Task.CompletedTask;
         }
 
@@ -127,20 +130,6 @@ internal class ProcessRestartManager(
             RestartServiceByName(restartService, settingId);
 
         return Task.CompletedTask;
-    }
-
-    // Unless a config import is running - it performs its own single restart at the end and must leave no pending bar behind.
-    private void RegisterExplorerPending(string? settingId)
-    {
-        if (configImportState.IsActive)
-        {
-            logService.Log(LogLevel.Debug,
-                $"Broadcast Explorer-refresh for '{settingId}' (config import restarts at the end)");
-            return;
-        }
-
-        if (!string.IsNullOrEmpty(settingId))
-            pendingRestartService.Register(settingId);
     }
 
     // Which set of messages went out, so the split is visible in the field rather than only in the source.
@@ -216,7 +205,7 @@ internal class ProcessRestartManager(
             LogBroadcastDispatch(batchAffectsTheme, batchAffectsDesktop, settingId: null);
             RunBroadcast(batchAffectsTheme, batchAffectsDesktop, settingId: null);
             foreach (var setting in settings.Where(HasExplorerRestart))
-                RegisterExplorerPending(setting.Id);
+                pendingRestartService.Register(setting.Id);
         }
 
         FlushSets(processes, services);

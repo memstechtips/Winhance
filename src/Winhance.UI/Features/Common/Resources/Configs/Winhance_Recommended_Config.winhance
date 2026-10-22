@@ -50,6 +50,15 @@
         ]
       },
       {
+        "Id": "windows-app-widgets",
+        "Name": "Widgets",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": [
+          "MicrosoftWindows.Client.WebExperience"
+        ]
+      },
+      {
         "Id": "windows-app-camera",
         "Name": "Camera",
         "IsSelected": true,
@@ -728,6 +737,12 @@
             "InputType": 0
           },
           {
+            "Id": "explorer-context-menu-firewall",
+            "Name": "Add 'Windows Firewall' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-context-menu-toggle-extensions",
             "Name": "Add 'Show/Hide Extensions' to Context Menu",
             "IsSelected": false,
@@ -1302,12 +1317,6 @@
           { "Id": "taskbar-copilot-pwa-pin", "Name": "Copilot PWA Pin", "IsSelected": false, "InputType": 0 },
           { "Id": "taskbar-recall-pin", "Name": "Recall Pin", "IsSelected": false, "InputType": 0 },
           {
-            "Id": "taskbar-widgets",
-            "Name": "Show Widgets",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
             "Id": "taskbar-news-and-interests",
             "Name": "Show News and Interests",
             "IsSelected": false,
@@ -1336,47 +1345,6 @@
             "Name": "Taskbar Auto-Hide Hover Delay",
             "InputType": 1,
             "SelectedIndex": 5
-          }
-        ]
-      },
-      "TimeRegionLanguage": {
-        "IsIncluded": true,
-        "Items": [
-          {
-            "Id": "explorer-customization-number-decimal",
-            "Name": "Number Decimal Symbol",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
-            "Id": "explorer-customization-currency-decimal",
-            "Name": "Currency Decimal Symbol",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
-            "Id": "explorer-customization-short-date",
-            "Name": "Short Date Format",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
-            "Id": "explorer-customization-first-day-of-week",
-            "Name": "First Day of Week",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
-            "Id": "explorer-customization-measurement-system",
-            "Name": "Measurement System",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
-            "Id": "explorer-customization-list-separator",
-            "Name": "List Separator",
-            "InputType": 1,
-            "SelectedIndex": 0
           }
         ]
       },
@@ -2208,6 +2176,9 @@
           { "Id": "low-battery-notification", "Name": "Low battery notification", "InputType": 1, "PowerSettings": { "ACIndex": 1, "DCIndex": 1 } },
           { "Id": "low-battery-action", "Name": "Low battery action", "InputType": 1, "PowerSettings": { "ACIndex": 0, "DCIndex": 0 } },
           { "Id": "reserve-battery-level", "Name": "Reserve battery level", "InputType": 2, "PowerSettings": { "ACValue": 7, "DCValue": 7 } },
+          { "Id": "energy-saver-battery-level", "Name": "Energy Saver battery level", "InputType": 2, "PowerSettings": { "ACValue": 0, "DCValue": 40 } },
+          { "Id": "energy-saver-brightness", "Name": "Energy Saver screen brightness", "InputType": 2, "PowerSettings": { "ACValue": 70, "DCValue": 70 } },
+          { "Id": "energy-saver-policy", "Name": "Energy Saver policy", "InputType": 1, "PowerSettings": { "ACIndex": 0, "DCIndex": 1 } },
           { "Id": "ati-powerplay-setting", "Name": "ATI PowerPlay Setting", "InputType": 1, "PowerSettings": { "ACIndex": 2, "DCIndex": 1 } },
           { "Id": "switchable-graphics-gpu-preference", "Name": "GPU Preference", "InputType": 1, "PowerSettings": { "ACIndex": 2, "DCIndex": 1 } },
           {

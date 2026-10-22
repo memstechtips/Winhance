@@ -363,7 +363,12 @@ public static class WindowsAppDefinitions
                     GroupName = "Games",
                     AppxPackageName = ["Microsoft.XboxGamingOverlay"],
                     MsStoreId = "9NZKPSTSNW4P",
-                    CanBeReinstalled = true
+                    CanBeReinstalled = true,
+                    // AMD's chipset driver installs this service on its X3D processors, and reviewers report that it
+                    // finds games through Game Bar to keep them on the V-Cache cores.
+                    MachineWarning = new(
+                        @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\amd3dvcacheSvc",
+                        "Card_Pill_X3DGameBarWarning_Tooltip")
                 },
 
                 new ItemDefinition
@@ -604,6 +609,18 @@ public static class WindowsAppDefinitions
                     WinGetPackageId = ["Microsoft.OneDrive"],
                     CanBeReinstalled = true,
                     RemovalScript = () => OneDriveRemovalScript.GetScript()
+                },
+                new ItemDefinition
+                {
+                    Id = "windows-app-widgets",
+                    Name = "Widgets",
+                    Description = "The Widgets board and the weather on the taskbar (Windows Web Experience Pack)",
+                    GroupName = "System",
+                    AppxPackageName = ["MicrosoftWindows.Client.WebExperience"],
+                    MsStoreId = "9MSSGKG348SP",
+                    CanBeReinstalled = true,
+                    RequiresExplorerRestart = true,
+                    ProcessesToStop = ["Widgets", "WidgetBoard", "WidgetService"]
                 },
                 new ItemDefinition
                 {

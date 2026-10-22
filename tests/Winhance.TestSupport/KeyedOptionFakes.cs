@@ -124,9 +124,7 @@ public sealed class FakeDetectionContext : IPrefetchableDetectionContext
             || _values.Keys.Any(stored => stored.StartsWith($@"{path}\", StringComparison.OrdinalIgnoreCase));
     }
 
-    public string? PrimaryDnsV4OfActiveAdapter() => null;
-
-    public IReadOnlyList<string> DnsV4ServersOfActiveAdapter() => Array.Empty<string>();
+    public IReadOnlyList<DnsServer> DnsServersOfActiveAdapter() => Array.Empty<DnsServer>();
 
     public bool IsSystemRestoreEnabled() => false;
 

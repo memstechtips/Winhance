@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
 using Winhance.UI.Features.Common.Extensions.DI;
@@ -85,6 +86,19 @@ public partial class App : Application
             var launch = LaunchCommandLine.Parse(Environment.GetCommandLineArgs()[1..], message => StartupLogger.Log(message));
             _host = CompositionRoot.CreateWinhanceHost(launch).Build();
             StartupLogger.Log("DI host built successfully");
+
+            // Before anything reads preferences, so a portable copy's first run starts from the installed settings.
+            try
+            {
+                var localAppData = Services.GetRequiredService<IInteractiveUserService>()
+                    .GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                foreach (var path in AppDataPaths.CopyInstalledData(localAppData))
+                    StartupLogger.Log($"Portable: copied {path}");
+            }
+            catch (Exception ex)
+            {
+                StartupLogger.Log($"Portable: copying the installed data failed: {ex.Message}");
+            }
 
             try
             {

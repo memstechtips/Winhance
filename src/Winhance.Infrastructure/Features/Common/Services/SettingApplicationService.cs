@@ -111,7 +111,7 @@ internal class SettingApplicationService(
         var resetToDefault = request.ResetToDefault;
 
         var valueDisplay = value is Dictionary<string, object?> dict
-            ? $"Dictionary[AC:{dict.GetValueOrDefault("ACValue")}, DC:{dict.GetValueOrDefault("DCValue")}]"
+            ? $"Dictionary[{string.Join(", ", dict.Select(kv => $"{kv.Key}:{kv.Value}"))}]"
             : value?.ToString() ?? "null";
 
         logService.Log(LogLevel.Info, $"Applying setting '{settingId}' - Enable: {enable}, Value: {valueDisplay}");
@@ -181,7 +181,7 @@ internal class SettingApplicationService(
         if (settingId == "power-plan-selection" && IsWinhancePowerPlanValue(value))
         {
             var existingPlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync().ConfigureAwait(false);
-            winhancePlanIsNew = !existingPlans.Any(p => PowerPlanCatalog.IsWinhancePowerPlan(p.Guid, p.Name));
+            winhancePlanIsNew = !existingPlans.Any(p => PowerPlanCatalog.IsWinhancePowerPlan(p.Guid));
         }
 
         var specialHandler = specialHandlerRegistry.TryGet(settingId);

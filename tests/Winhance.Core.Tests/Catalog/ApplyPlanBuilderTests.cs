@@ -142,6 +142,24 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
+    public void List_item_target_emits_a_list_item_op_keyed_off_the_payload()
+    {
+        var reg = Reg("Pages", "SettingsPageVisibility", @"HKLM\Explorer") with { ListItem = "home", ListPrefix = "hide:" };
+        var setting = Make(
+            new[] { (Target)reg },
+            new SettingState { Label = TestKeys.Of("On"),  Set = new Dictionary<string, StateValue> { ["Pages"] = StateValue.Of(true) } },
+            new SettingState { Label = TestKeys.Of("Off"), Set = new Dictionary<string, StateValue> { ["Pages"] = StateValue.Of(false).OrAbsent() } });
+
+        var on = Assert.Single(ApplyPlanBuilder.Build(setting, TestKeys.Of("On")));
+        var op = Assert.IsType<RegistryListItemSetOp>(on);
+        Assert.Equal("hide:", op.Prefix);
+        Assert.Equal("home", op.Item);
+        Assert.True(op.Present);
+
+        Assert.False(Assert.Single(ApplyPlanBuilder.Build(setting, TestKeys.Of("Off")).OfType<RegistryListItemSetOp>()).Present);
+    }
+
+    [Fact]
     public void ByteOnly_target_emits_a_byte_set_op_with_the_payload_byte()
     {
         var reg = Reg("Settings", "Settings", @"HKCU\StuckRects3") with { ByteIndex = 8, ByteOnly = true };

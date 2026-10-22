@@ -1,10 +1,10 @@
 using System.Net.NetworkInformation;
-using System.Net.Sockets;
 using Windows.Win32;
 using Windows.Win32.UI.Shell.Common;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Infrastructure.Features.Optimize.Services;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
@@ -21,7 +21,7 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
     private Dictionary<string, bool?> _taskCache = new();
     private Dictionary<string, (int? acValue, int? dcValue)> _powerCache = new();
     private WinBuild? _currentBuild;
-    private IReadOnlyList<string>? _dnsServers;
+    private IReadOnlyList<DnsServer>? _dns;
     private bool _powerPrefetched;
     private string? _activePlanGuid;
     private bool _planPrefetched;
@@ -63,36 +63,14 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
 
     public bool KeyExists(string keyPath) => _reg.KeyExists(keyPath);
 
-    public string? PrimaryDnsV4OfActiveAdapter()
-    {
-        var servers = DnsV4ServersOfActiveAdapter();
-        return servers.Count > 0 ? servers[0] : null;
-    }
-
-    // DnsServerDetector reads this through PrimaryDnsV4OfActiveAdapter and CatalogDetectionService reads it
-    // again for the same setting, so an unmemoized call enumerates every adapter twice per batch.
-    public IReadOnlyList<string> DnsV4ServersOfActiveAdapter() => _dnsServers ??= ReadDnsV4Servers();
-
-    private IReadOnlyList<string> ReadDnsV4Servers()
-    {
-        var activeAdapter = NetworkInterface.GetAllNetworkInterfaces()
+    // Every DNS target of a batch asks, so the adapters are enumerated once. DNS via DHCP leaves NameServer empty;
+    // that reads as the Automatic state.
+    public IReadOnlyList<DnsServer> DnsServersOfActiveAdapter() =>
+        _dns ??= NetworkInterface.GetAllNetworkInterfaces()
             .FirstOrDefault(n => n.OperationalStatus == OperationalStatus.Up
-                && n.NetworkInterfaceType != NetworkInterfaceType.Loopback);
-        if (activeAdapter == null)
-            return System.Array.Empty<string>();
-
-        // DNS via DHCP leaves NameServer empty; that reads as the Automatic state.
-        var nameServer = _reg.GetValue(
-            $@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\{activeAdapter.Id}",
-            "NameServer") as string;
-        if (string.IsNullOrEmpty(nameServer))
-            return System.Array.Empty<string>();
-
-        return activeAdapter.GetIPProperties().DnsAddresses
-            .Where(a => a.AddressFamily == AddressFamily.InterNetwork)
-            .Select(a => a.ToString())
-            .ToList();
-    }
+                && n.NetworkInterfaceType is not (NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel)) is { } adapter
+            ? DnsSettingsService.Read(_reg, adapter.Id)
+            : Array.Empty<DnsServer>();
 
     public bool IsSystemRestoreEnabled() => _restore.IsEnabledForC();
 

@@ -140,7 +140,7 @@ public static class ApplyRequestResolver
                 if (value is Dictionary<string, object> customValues
                     && setting.Targets.Count > 0
                     && setting.Targets.All(t => t is RegTarget
-                        { PerNetworkInterface: false, PerMonitor: false, CompositeStringKey: null, ValueName: not null })
+                        { PerNetworkInterface: false, PerMonitor: false, CompositeStringKey: null, ListItem: null, ValueName: not null })
                     // A Dictionary<string,object?> AC/DC dict is the SAME runtime type as Dictionary<string,object>
                     // (nullable annotations are erased), so require the dict to actually carry one of this
                     // setting's RegTarget ValueNames - an AC/DC dict (ACValue/DCValue keys) does not, and returns null.
@@ -149,15 +149,19 @@ public static class ApplyRequestResolver
                     return ApplyPlanBuilder.BuildRegistryCustomState(setting, customValues);
                 }
 
-                // Script-only CUSTOM state (gaming-dns-server, taskbar-system-tray-icons-11): with no RegTarget
+                // Typed DNS servers: the custom values are keyed by the DNS targets' keys, the way a preset's Set is.
+                if (value is Dictionary<string, object> dnsValues && setting.Targets.OfType<DnsTarget>().Any())
+                    return ApplyPlanBuilder.BuildDnsCustomState(setting, dnsValues);
+
+                // Script-only CUSTOM state (taskbar-system-tray-icons-11): with no RegTarget
                 // there is nothing for the registry route to write, so the setting's CustomStateScripts are the
                 // apply. The no-RegTarget guard is the 2026-07-03 rule from the other side: a Custom state on a
                 // setting that HAS registry targets writes registry values only and never runs a script.
-                if (value is Dictionary<string, object> scriptValues
+                if (value is Dictionary<string, object>
                     && setting.CustomStateScripts.Count > 0
                     && !setting.Targets.OfType<RegTarget>().Any())
                 {
-                    return ApplyPlanBuilder.BuildCustomStateScripts(setting, scriptValues);
+                    return ApplyPlanBuilder.BuildCustomStateScripts(setting);
                 }
 
                 return null; // remaining non-index selection value (string display-name)

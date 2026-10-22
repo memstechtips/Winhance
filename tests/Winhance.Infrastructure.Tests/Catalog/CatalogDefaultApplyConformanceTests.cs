@@ -147,6 +147,7 @@ public class CatalogDefaultApplyConformanceTests
         RegistryBitSetOp b => b.Target.Key == targetKey,
         RegistryByteSetOp y => y.Target.Key == targetKey,
         RegistryCompositeSetOp c => c.Target.Key == targetKey,
+        RegistryListItemSetOp i => i.Target.Key == targetKey,
         RegistryStringFlagSetOp f => f.Target.Key == targetKey,
         _ => false,
     };

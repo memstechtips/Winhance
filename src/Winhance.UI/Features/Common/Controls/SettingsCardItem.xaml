@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:viewModels="using:Winhance.UI.Features.Optimize.ViewModels"
+    xmlns:commonViewModels="using:Winhance.UI.Features.Common.ViewModels"
     xmlns:selectors="using:Winhance.UI.Features.Common.TemplateSelectors"
     xmlns:interfaces="using:Winhance.Core.Features.Common.Interfaces"
     xmlns:fluentIcons="using:FluentIcons.WinUI"
@@ -106,6 +107,7 @@
             <Button
                 Content="{x:Bind ActionButtonText}"
                 Command="{x:Bind RunActionCommand}"
+                Visibility="{x:Bind ShowActionButton, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                 AutomationProperties.Name="{x:Bind A11yName(ActionButtonText), Mode=OneWay}"/>
         </DataTemplate>
 
@@ -117,6 +119,16 @@
             <Button
                 Content="{x:Bind ListAddLabel, Mode=OneWay}"
                 Click="{x:Bind AddRow}"/>
+        </DataTemplate>
+
+        <DataTemplate x:Key="CheckListSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+            <ItemsControl ItemsSource="{x:Bind CheckItems}" IsTabStop="False">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="commonViewModels:CheckListItemViewModel">
+                        <CheckBox Content="{x:Bind Key}" IsChecked="{x:Bind IsChecked, Mode=TwoWay}"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </DataTemplate>
 
         <DataTemplate x:Key="TileSelectionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
@@ -132,14 +144,33 @@
             ActionTemplate="{StaticResource ActionSettingTemplate}"
             TextBoxTemplate="{StaticResource TextBoxSettingTemplate}"
             ListTemplate="{StaticResource ListSettingTemplate}"
+            CheckListTemplate="{StaticResource CheckListSettingTemplate}"
             TileSelectionTemplate="{StaticResource TileSelectionSettingTemplate}"
             PowerSelectionTemplate="{StaticResource PowerSelectionSettingTemplate}"
             PowerNumericTemplate="{StaticResource PowerNumericSettingTemplate}"/>
     </UserControl.Resources>
 
-    <ContentControl
-        Content="{x:Bind Setting, Mode=OneWay}"
-        ContentTemplateSelector="{StaticResource SettingTemplateSelector}"
-        IsTabStop="False"
-        HorizontalContentAlignment="Stretch"/>
+    <!-- A locked setting stays readable: its control is greyed in place and the unlock button sits beside it. -->
+    <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button
+            Visibility="{x:Bind Setting.IsLocked, Mode=OneWay}"
+            Command="{x:Bind Setting.UnlockCommand, Mode=OneWay}"
+            ToolTipService.ToolTip="{x:Bind Setting.ClickToUnlockText, Mode=OneWay}"
+            AutomationProperties.Name="{x:Bind Setting.ClickToUnlockText, Mode=OneWay}"
+            VerticalAlignment="Center"
+            Padding="8">
+            <Grid>
+                <Viewbox Width="16" Height="16" Visibility="{x:Bind Setting.HasFields, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                    <Path Data="{StaticResource PrivacyIconPath}" Fill="#FFA500" Stretch="Uniform"/>
+                </Viewbox>
+                <FontIcon Glyph="&#xE70F;" FontSize="16" Visibility="{x:Bind Setting.HasFields, Mode=OneWay}"/>
+            </Grid>
+        </Button>
+        <ContentControl
+            Content="{x:Bind Setting, Mode=OneWay}"
+            ContentTemplateSelector="{StaticResource SettingTemplateSelector}"
+            IsEnabled="{x:Bind Setting.IsLocked, Mode=OneWay, Converter={StaticResource InverseBooleanConverter}}"
+            IsTabStop="False"
+            HorizontalContentAlignment="Stretch"/>
+    </StackPanel>
 </UserControl>

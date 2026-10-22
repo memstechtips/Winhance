@@ -85,6 +85,27 @@ public class SettingWriteStrategyTests
     }
 
     [Fact]
+    public async Task Live_TellsTheUserWhenTheApplyFails()
+    {
+        ApplyFails();
+
+        await Live().WriteAsync(Request(), new ProgressSpy());
+
+        _dialogService.Verify(d => d.ShowWarningAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once,
+            "a card that only snaps back reads as a Winhance bug when Windows refused the write");
+    }
+
+    [Fact]
+    public async Task Live_DoesNotWarnWhenTheApplySucceeds()
+    {
+        ApplySucceeds();
+
+        await Live().WriteAsync(Request(), new ProgressSpy());
+
+        _dialogService.Verify(d => d.ShowWarningAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Live_RejectsWhenTheApplyThrows()
     {
         _applyService.Setup(s => s.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))

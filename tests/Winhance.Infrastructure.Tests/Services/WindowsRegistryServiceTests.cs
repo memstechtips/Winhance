@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
@@ -45,6 +46,41 @@ public class WindowsRegistryServiceTests
         WindowsRegistryService.ProtectedSubKeyRoots.Should().Contain(@"SOFTWARE\Microsoft\Windows");
         WindowsRegistryService.ProtectedSubKeyRoots.Should().Contain(@"SYSTEM\CurrentControlSet");
         WindowsRegistryService.ProtectedSubKeyRoots.Should().Contain(@"SOFTWARE\Policies");
+    }
+
+    [Fact]
+    public void ProtectedSubKeyRoots_ContainsEveryProtectedBranch()
+    {
+        WindowsRegistryService.ProtectedSubKeyRoots.Should().Contain(WindowsRegistryService.ProtectedBranches);
+        WindowsRegistryService.ProtectedSubKeyRoots.Should().HaveCount(WindowsRegistryService.ProtectedBranches.Count + 3);
+    }
+
+    // Checked on the predicate, not DeleteKey: a gap here would let the test delete a live key.
+    [Theory]
+    [InlineData(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion")]
+    [InlineData(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run")]
+    [InlineData(@"SOFTWARE\Policies\Microsoft")]
+    [InlineData(@"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion")]
+    [InlineData(@"SYSTEM\CurrentControlSet\Control\Session Manager")]
+    [InlineData(@"SYSTEM\CurrentControlSet\Services\WinDefend")]
+    [InlineData(@"SYSTEM\ControlSet001\Services\WinDefend")]
+    [InlineData(@"SYSTEM\ControlSet001")]
+    public void IsProtected_KeyDirectlyUnderACriticalBranch_IsProtected(string subKeyPath)
+    {
+        WindowsRegistryService.IsProtected(subKeyPath).Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsProtected_EveryKeyTheCatalogDeletes_IsAllowed()
+    {
+        var deleted = SettingCatalog.All.SelectMany(s => s.Targets.OfType<RegTarget>()
+                .Where(t => t.ValueName == null || t.IsGroupPolicy).SelectMany(t => t.Paths)
+                .Concat(s.Effects.Concat(s.States.SelectMany(st => st.Effects)).OfType<RegistryWriteEffect>()
+                    .Where(e => e.IsGroupPolicy).Select(e => e.Path)))
+            .Select(path => path.Split('\\', 2)[1])
+            .ToList();
+
+        deleted.Should().NotBeEmpty().And.OnlyContain(path => !WindowsRegistryService.IsProtected(path));
     }
 
     [Fact]

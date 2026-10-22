@@ -8,7 +8,7 @@ using Winhance.TestSupport;
 namespace Winhance.Infrastructure.Tests.Catalog;
 
 // GENERATOR, not an assertion: dumps the live catalog to JSON and splices it into
-// extras/probe/Probe-WinhanceDefaults.template.ps1, producing the self-contained probe Marco drops on a clean
+// extras/probe/Probe-WinhanceDefaults.template.ps1, producing the self-contained probe that is run on a clean
 // VM. Lives in a test project because a PowerShell script cannot read the C# catalog and regex-parsing the
 // source misses shape (build-scoped roles, mirror paths, binary reductions); writes into the repo tree via the
 // CallerFilePath anchor. Run: winhance-harness CatalogProbeManifest

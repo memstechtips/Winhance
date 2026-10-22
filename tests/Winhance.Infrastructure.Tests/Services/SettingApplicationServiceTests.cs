@@ -667,6 +667,30 @@ public class SettingApplicationServiceTests
             It.IsAny<string>(), It.IsAny<ISettingApplicationService>()), Times.Never);
     }
 
+    // A plan the user named after the brand is not the Winhance plan, so creating the real one still stamps it.
+    [Fact]
+    public async Task ApplySettingAsync_OnlyACustomPlanNamedWinhanceExists_StampsRecommendedSettings()
+    {
+        SetupSettingInRegistry("power-plan-selection");
+        _mockPowerQuery
+            .Setup(p => p.GetAvailablePowerPlansAsync())
+            .ReturnsAsync(new List<PowerPlan>
+            {
+                new() { Guid = "0b4f2a9c-5d1e-4c3b-8a7f-6e5d4c3b2a19", Name = "Winhance Quiet" },
+            });
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = "power-plan-selection",
+            Enable = true,
+            SkipValuePrerequisites = true,
+            Value = PowerPlanCatalog.WinhancePowerPlanGuid,
+        });
+
+        _mockRecommended.Verify(r => r.ApplyRecommendedSettingsForFeatureAsync(
+            "power-plan-selection", It.IsAny<ISettingApplicationService>()), Times.Once);
+    }
+
     [Fact]
     public async Task ApplySettingAsync_PowerPlanShape_RendersJustTheName()
     {

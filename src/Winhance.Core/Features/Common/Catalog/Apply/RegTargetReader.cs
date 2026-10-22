@@ -49,6 +49,15 @@ public static class RegTargetReader
             return TargetReading.Absent; // sub-key not present -> absent (the string itself is fine)
         }
 
+        // ";"-separated list after a fixed prefix -> bool. A value in another form (Settings' "showonly:") is not
+        // our list, so the item reads as not in it.
+        if (target.ListItem is { } listItem)
+        {
+            if (raw is not string list)
+                return TargetReading.Malformed;
+            return TargetReading.Of(ListItems(list, target.ListPrefix)?.Contains(listItem, StringComparer.OrdinalIgnoreCase) ?? false);
+        }
+
         // Decimal-string flags bit test -> bool (e.g. accessibility Flags "62")
         if (target.StringFlagMask is { } flagMask)
         {
@@ -87,6 +96,12 @@ public static class RegTargetReader
         // PerNetworkInterface / PerMonitor are not handled here yet.
         return TargetReading.Of(raw);
     }
+
+    // Null when the value does not start with the prefix, so a writer can leave a list it does not own alone.
+    public static List<string>? ListItems(string value, string prefix) =>
+        value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            ? value[prefix.Length..].Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList()
+            : null;
 
     public static RegTarget Target(Setting setting, string key) => setting.Targets.OfType<RegTarget>().First(t => t.Key == key);
 

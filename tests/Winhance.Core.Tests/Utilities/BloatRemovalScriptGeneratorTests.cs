@@ -68,6 +68,19 @@ public class BloatRemovalScriptGeneratorTests
     }
 
     [Fact]
+    public void The_Xbox_fix_redirects_the_Game_Bar_links_and_leaves_Game_DVR_to_its_setting()
+    {
+        var script = BloatRemovalScriptGenerator.GenerateScript(
+            new List<string> { "Microsoft.XboxGamingOverlay" }, new List<string>(),
+            new List<string>(), new List<string>(),
+            includeXboxRegistryFix: true);
+
+        script.Should().Contain(@"HKCR\ms-gamebar\shell\open\command");
+        script.Should().NotContain("GameDVR");
+        script.Should().NotContain("AppCaptureEnabled");
+    }
+
+    [Fact]
     public void GenerateScript_WithTeamsProcessKill_ContainsTeamsKill()
     {
         var script = BloatRemovalScriptGenerator.GenerateScript(

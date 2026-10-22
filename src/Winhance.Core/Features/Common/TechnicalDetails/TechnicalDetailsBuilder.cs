@@ -1,4 +1,4 @@
-﻿using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
@@ -27,10 +27,13 @@ public static class TechnicalDetailsBuilder
         if (setting.Control == ControlKind.KeyedSelection) return BuildKeyedSelectionMatrix(ctx);
         if (setting.Control == ControlKind.TextBox) return BuildTextMatrix(ctx);
         if (setting.Control == ControlKind.List) return BuildListMatrix(ctx);
+        // Its entries come from the media at runtime and it writes nothing into the file, so only the panel's own
+        // sections have anything to say.
+        if (setting.Control == ControlKind.CheckList) return Matrix(ctx, [], [], []);
         if (setting.Control == ControlKind.Action) return BuildActionMatrix(ctx);
         if (setting.States.Count == 0) return BuildNumericMatrix(ctx);
 
-        var targets = setting.Targets.Where(t => t is RegTarget or TaskTarget or PowerCfgTarget or AutounattendTarget).ToList();
+        var targets = setting.Targets.Where(t => t is RegTarget or TaskTarget or PowerCfgTarget or DnsTarget or AutounattendTarget).ToList();
         // No target means no column to build, but the OPTIONS are still real and still carry
         // their roles. Dropping them left a panel listing one "When set to X" code block per
         // option with no way to tell which X is recommended, which is the Windows default, or
@@ -98,6 +101,9 @@ public static class TechnicalDetailsBuilder
             });
         }
 
+        var dnsTargets = targets.OfType<DnsTarget>().ToList();
+        AddDnsColumns(ctx, dnsTargets, columns, groups);
+
         var elementTargets = targets.OfType<AutounattendElement>().ToList();
         var architectureTargets = targets.OfType<AutounattendArchitecture>().ToList();
         AddAnswerFileColumns(ctx, elementTargets, architectureTargets, columns, groups);
@@ -150,6 +156,8 @@ public static class TechnicalDetailsBuilder
             // value does, so the same formatter answers both.
             foreach (var pcfg in powerTargets)
                 cells.Add(new MatrixCell(ValueCell(ctx, state, pcfg.Key)));
+            if (dnsTargets.Count > 0)
+                cells.AddRange(DnsCells(ctx, key => state.Set.TryGetValue(key, out var v) ? v.WritePayload : null));
             foreach (var element in elementTargets)
                 cells.Add(new MatrixCell(ElementCell(ctx, state, element.Key)));
             foreach (var architecture in architectureTargets)
@@ -161,7 +169,7 @@ public static class TechnicalDetailsBuilder
             return cells;
         });
 
-        var (readingLabel, readingCells) = BuildReading(ctx, orderedRegTargets, taskTargets, columns.Count);
+        var (readingLabel, readingCells) = BuildReading(ctx, orderedRegTargets, taskTargets, dnsTargets, columns.Count);
 
         return Matrix(ctx, groups, columns, options, readingLabel, readingCells);
     }
@@ -505,8 +513,9 @@ public static class TechnicalDetailsBuilder
     {
         // ReadOnly targets included: the panel documents what is read as well as what is written.
         var regTargets = ctx.Setting.Targets.OfType<RegTarget>().ToList();
+        var elementTargets = ctx.Setting.Targets.OfType<AutounattendElement>().ToList();
         var reference = ReferenceList(ctx);
-        if (regTargets.Count == 0 && reference.Count == 0)
+        if (regTargets.Count == 0 && elementTargets.Count == 0 && reference.Count == 0)
             return null;
 
         var chip = ctx.Chip(
@@ -516,6 +525,7 @@ public static class TechnicalDetailsBuilder
 
         var columns = new List<MatrixColumn>();
         var groups = new List<MatrixColumnGroup>();
+        AddAnswerFileColumns(ctx, elementTargets, ctx.Setting.Targets.OfType<AutounattendArchitecture>().ToList(), columns, groups);
         AddRegistryColumns(ctx, regTargets, columns, groups, chip);
 
         var rows = new List<MatrixOption>();
@@ -752,6 +762,58 @@ public static class TechnicalDetailsBuilder
         return Matrix(ctx, groups, columns, rows);
     }
 
+    // Windows keeps each family's servers as one comma-separated value and encryption as a flag under each server.
+    // The paths name the adapter and server, so there is no single key to open.
+    private static void AddDnsColumns(
+        BuildContext ctx, IReadOnlyList<DnsTarget> dnsTargets, List<MatrixColumn> columns, List<MatrixColumnGroup> groups)
+    {
+        if (dnsTargets.Count == 0)
+            return;
+
+        foreach (var (path, header, type) in new[]
+        {
+            (@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\{adapter}", "NameServer", "REG_SZ"),
+            (@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters\Interfaces\{adapter}", "NameServer", "REG_SZ"),
+            (@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Dnscache\InterfaceSpecificParameters\{adapter}\DohInterfaceSettings\Doh\{server}", "DohFlags", "REG_QWORD"),
+        })
+        {
+            groups.Add(new MatrixColumnGroup
+            {
+                Label = ctx.Text(TechnicalDetailKeys.GroupRegistry, "Registry"),
+                Kind = MatrixGroupKind.Registry,
+                Description = ctx.Text(TechnicalDetailKeys.DescRegistry,
+                    "Read to determine which option is active, and written when you apply one."),
+                Paths = [new MatrixPath(path, ctx.Text(TechnicalDetailKeys.LabelPath, "Path"))],
+                StartColumn = columns.Count,
+                ColumnSpan = 1,
+            });
+            columns.Add(new MatrixColumn
+            {
+                Header = header,
+                TypeName = type,
+                Chips =
+                [
+                    ctx.Chip(TechnicalDetailKeys.ChipPerNetworkInterface, "per adapter",
+                        TechnicalDetailKeys.ChipPerNetworkInterfaceTooltip,
+                        "Applied separately to every network adapter on this PC."),
+                ],
+            });
+        }
+    }
+
+    // An Automatic NameServer is written empty, and a server without encryption has its flags deleted. IPv6 servers'
+    // flags sit under Doh6, beside Doh.
+    private static IEnumerable<MatrixCell> DnsCells(BuildContext ctx, Func<string, object?> valueOf)
+    {
+        var servers = ApplyPlanBuilder.DnsServers(ctx.Setting, valueOf) ?? [];
+        var encrypted = servers.Where(s => s.Doh != DohMode.Off).Select(s => $"{s.Address}: {s.DohFlags}").ToList();
+        yield return new MatrixCell(FormatConcreteValue(string.Join(",", servers.Where(s => !s.IsIPv6).Select(s => s.Address))));
+        yield return new MatrixCell(FormatConcreteValue(string.Join(",", servers.Where(s => s.IsIPv6).Select(s => s.Address))));
+        yield return new MatrixCell(encrypted.Count > 0
+            ? string.Join(", ", encrypted)
+            : ctx.Text(TechnicalDetailKeys.DeletesKey, "deletes key"));
+    }
+
     private static void AddSlideshowColumns(BuildContext ctx, List<MatrixColumn> columns, List<MatrixColumnGroup> groups)
     {
         foreach (var target in ctx.Setting.Targets.OfType<DesktopSlideshowTarget>())
@@ -936,6 +998,17 @@ public static class TechnicalDetailsBuilder
             }
         }
 
+        foreach (var script in ctx.Setting.Targets.OfType<AutounattendScript>())
+        {
+            notes.Add(new MatrixNote(
+                ctx.Text(TechnicalDetailKeys.EffectUserScript, "Carried as its own file, run by Winhancements.ps1"),
+                script.Run == RunContext.System
+                    ? ctx.Text(TechnicalDetailKeys.DetailUserScriptSystem,
+                        "Runs once on the new PC, as the system, while Windows finishes setting up.")
+                    : ctx.Text(TechnicalDetailKeys.DetailUserScriptUser,
+                        "Runs once for each person who signs in, as that person.")));
+        }
+
         AddConfirmCheckboxNotes(ctx, notes);
 
         return notes;
@@ -1093,7 +1166,8 @@ public static class TechnicalDetailsBuilder
             : ctx.Text(TechnicalDetailKeys.NotWritten, "Not written");
 
     private static (string Label, IReadOnlyList<MatrixCell> Cells) BuildReading(
-        BuildContext ctx, IReadOnlyList<RegTarget> regTargets, IReadOnlyList<TaskTarget> taskTargets, int columnCount)
+        BuildContext ctx, IReadOnlyList<RegTarget> regTargets, IReadOnlyList<TaskTarget> taskTargets,
+        IReadOnlyList<DnsTarget> dnsTargets, int columnCount)
     {
         var snap = ctx.Snapshot;
         if (snap.Outcome == SettingDetectionOutcome.Resolved) return (string.Empty, []);
@@ -1122,6 +1196,8 @@ public static class TechnicalDetailsBuilder
                 cells.Add(new MatrixCell(value is null ? absent : FormatConcreteValue(value)));
         }
         foreach (var _ in taskTargets) cells.Add(new MatrixCell(unreadable));
+        if (dnsTargets.Count > 0)
+            cells.AddRange(DnsCells(ctx, key => snap.Readings?.GetValueOrDefault(key)));
         while (cells.Count < columnCount) cells.Add(MatrixCell.Empty);
 
         return (label, cells);
@@ -1146,13 +1222,13 @@ public static class TechnicalDetailsBuilder
             ctx.Text(TechnicalDetailKeys.SectionSetupCommands, "Windows Setup commands"),
             ctx.Text(TechnicalDetailKeys.SectionSetupCommandsDescription,
                 "Windows Setup runs this command during installation when the matching option is chosen."));
-        CollectSlideshowScripts();
+        CollectTextBoxScripts();
         return blocks;
 
-        // A slideshow box has no state to carry an effect, so its scripts are collected from the setting.
-        void CollectSlideshowScripts()
+        // A text box has no state to carry an effect, so its scripts are collected from the setting.
+        void CollectTextBoxScripts()
         {
-            if (!ctx.Setting.Targets.OfType<DesktopSlideshowTarget>().Any()) return;
+            if (ctx.Setting.Control != ControlKind.TextBox) return;
             foreach (var script in ctx.Setting.CustomStateScripts)
             {
                 blocks.Add(new MatrixCodeBlock(
@@ -1177,7 +1253,7 @@ public static class TechnicalDetailsBuilder
                     _ => null,
                 };
                 if (string.IsNullOrWhiteSpace(body)) continue;
-                blocks.Add(new MatrixCodeBlock(heading, ctx.CodeLabel(state), body, kind, description));
+                blocks.Add(new MatrixCodeBlock(heading, CodeLabel(ctx, state, effect), body, kind, description));
             }
         }
     }
@@ -1214,6 +1290,17 @@ public static class TechnicalDetailsBuilder
             if (setting.States[i].HasRole(kind, build, context)) return i;
         return -1;
     }
+
+    private static string CodeLabel(BuildContext ctx, int? state, Effect effect) => (state, effect) switch
+    {
+        (int index, ScriptEffect { Run: RunContext.SignInAfterSetup }) => ctx.Format(TechnicalDetailKeys.CodeWhenSetToAfterSetup,
+            "When set to {0}, at the first sign-in after Setup restarts", ctx.OptionLabel(index)),
+        (int index, ScriptEffect { When: AppsToInstall.Some }) => ctx.Format(TechnicalDetailKeys.CodeWhenSetToWithApps,
+            "When set to {0}, if the answer file installs apps", ctx.OptionLabel(index)),
+        (int index, ScriptEffect { When: AppsToInstall.None }) => ctx.Format(TechnicalDetailKeys.CodeWhenSetToWithoutApps,
+            "When set to {0}, if the answer file installs no apps", ctx.OptionLabel(index)),
+        _ => ctx.CodeLabel(state),
+    };
 
     private static IEnumerable<(int? stateIndex, Effect effect)> EnumerateEffects(Setting setting)
     {

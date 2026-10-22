@@ -105,8 +105,7 @@ internal sealed class SettingSnapshotSource : ISettingSnapshotSource
                         return new ChoiceValue.CustomValues(custom);
 
                     // A setting with no RegTarget has nothing to key by ValueName, so the loop above finds
-                    // nothing and the machine's actual Custom values would never reach the file. The DNS
-                    // servers behind a Custom reading live in the typed detection result instead.
+                    // nothing; typed DNS servers sit in the readings under their targets' keys instead.
                     // DetectedIndex is dropped on purpose: it says only "this matched no option", which is
                     // not portable. Carrying it would hand the system-tray setting a Custom choice whose
                     // script promotes every icon - the "Show all icons" option, not the state being captured.
@@ -114,6 +113,13 @@ internal sealed class SettingSnapshotSource : ISettingSnapshotSource
                         .Where(kv => kv.Value is not null && kv.Key != "DetectedIndex")
                         .ToDictionary(kv => kv.Key, kv => kv.Value!);
                     return portable.Count > 0 ? new ChoiceValue.CustomValues(portable) : null;
+                }
+                // A preset spells out only its own keys (DNS servers); the machine's other field values (encryption)
+                // would be lost under a bare index, so the file carries every reading instead.
+                if (setting.Fields.Count > 0 && state.Readings is { } readings && index >= 0 && index < setting.States.Count
+                    && readings.Any(kv => kv.Value is not null && !setting.States[index].Set.ContainsKey(kv.Key)))
+                {
+                    return new ChoiceValue.CustomValues(readings.Where(kv => kv.Value is not null).ToDictionary(kv => kv.Key, kv => kv.Value!));
                 }
                 return new ChoiceValue.Option(index);
 

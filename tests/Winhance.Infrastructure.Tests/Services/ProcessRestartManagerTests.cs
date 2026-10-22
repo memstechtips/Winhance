@@ -77,7 +77,7 @@ public class ProcessRestartManagerTests
     }
 
     [Fact]
-    public async Task HandleProcessAndServiceRestartsAsync_Explorer_DuringConfigImport_RegistersNothing()
+    public async Task HandleProcessAndServiceRestartsAsync_Explorer_DuringConfigImport_BroadcastsAndNeverKills()
     {
         _mockConfigImportState.Setup(c => c.IsActive).Returns(true);
         var setting = CreateCatalogSetting("cat-explorer", new RestartProcess("Explorer"));
@@ -86,8 +86,7 @@ public class ProcessRestartManagerTests
         await _sut.LastBroadcastTask;
 
         _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once);
-        _mockPendingRestart.Verify(p => p.Register(It.IsAny<string>()), Times.Never,
-            "config import restarts Explorer itself at the end, so it must leave no bar behind");
+        _mockUiManagement.Verify(u => u.KillProcess(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -193,6 +192,16 @@ public class ProcessRestartManagerTests
             "a declared desktop change must be announced even with no restart to hang it off");
         _mockExplorerRestart.Verify(e => e.BroadcastThemeRefresh(), Times.Never,
             "the desktop rows change no theme, so the expensive half must not be paid for");
+        _mockPendingRestart.Verify(p => p.Register(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_NumLockSetting_MatchesTheLiveKeyToTheSavedValue()
+    {
+        await _sut.HandleProcessAndServiceRestartsAsync(CreateCatalogSetting("cat-numlock", restart: null, notify: WindowsChange.NumLock));
+        await _sut.HandleProcessAndServiceRestartsAsync(CreateCatalogSetting("cat-plain", restart: null));
+
+        _mockUiManagement.Verify(u => u.MatchNumLockToSavedValue(), Times.Once);
         _mockPendingRestart.Verify(p => p.Register(It.IsAny<string>()), Times.Never);
     }
 

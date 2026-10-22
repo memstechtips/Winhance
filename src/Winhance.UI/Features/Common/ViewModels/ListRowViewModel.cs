@@ -50,6 +50,8 @@ public sealed partial class ListFieldViewModel : ObservableObject
 
     public FieldKind Kind => _field.Kind;
 
+    public bool MultiLine => _field.MultiLine;
+
     public bool OneRowOnly => _field.OneRowOnly;
 
     internal FieldCondition? OnlyWhen => _field.OnlyWhen;
@@ -122,6 +124,14 @@ public sealed partial class ListFieldViewModel : ObservableObject
     }
 
     // A password is recorded as typed: a space at either end is part of what the user will type at the sign-in screen.
+    // What a field the user never touched holds: no text, the first option, no tick.
+    internal bool IsEmpty => _field.Kind switch
+    {
+        FieldKind.Selection => _optionIndex == 0,
+        FieldKind.CheckBox => !_checked,
+        _ => !HasText,
+    };
+
     internal string Value => _field.Kind switch
     {
         FieldKind.Selection => _optionIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -186,7 +196,7 @@ public sealed partial class ListRowViewModel : ObservableObject
         Fields.FirstOrDefault(field => string.Equals(field.Key, key, StringComparison.Ordinal));
 
     internal bool IsFilled =>
-        Fields.FirstOrDefault(f => f.Kind == FieldKind.Text) is not { } first || first.HasText;
+        Fields.FirstOrDefault(f => f.Kind is FieldKind.Text or FieldKind.File) is not { } first || first.HasText;
 
     internal ChoiceValue.ListRow ToRow() =>
         new(Fields.ToDictionary(field => field.Key, field => field.Value, StringComparer.Ordinal));
@@ -208,7 +218,7 @@ public sealed partial class ListRowViewModel : ObservableObject
             if (field.OnlyWhen is not { } condition)
                 continue;
 
-            bool met = FieldFor(condition.FieldKey) is { } other && other.OptionIndex == condition.OptionIndex;
+            bool met = FieldFor(condition.FieldKey) is { } other && condition.OptionIndexes.Contains(other.OptionIndex);
             field.IsEnabled = met;
             if (!met)
                 field.ClearTick();

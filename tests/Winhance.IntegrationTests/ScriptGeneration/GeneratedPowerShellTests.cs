@@ -187,4 +187,37 @@ public class GeneratedPowerShellTests
         output.Should().Contain("F1=62");
         output.Should().Contain("F2=58");
     }
+
+    [Fact]
+    public async Task ListItemHelper_WritesWhatWindowsStateWriterWrites()
+    {
+        var key = $"HKCU:\\Software\\WinhanceTests\\{Guid.NewGuid():N}";
+        var calls = new StringBuilder();
+        calls.AppendLine($"$k = '{key}'");
+        calls.AppendLine("Set-RegistryListItem -Path $k -Name Pages -Prefix 'hide:' -Item home -Present $true -Description t");
+        calls.AppendLine("Write-Output ('L1=' + (Get-ItemProperty -Path $k -Name Pages).Pages)");
+        calls.AppendLine("Set-ItemProperty -Path $k -Name Pages -Value 'hide:printers;HOME' -Type String");
+        calls.AppendLine("Set-RegistryListItem -Path $k -Name Pages -Prefix 'hide:' -Item home -Present $false -Description t");
+        calls.AppendLine("Write-Output ('L2=' + (Get-ItemProperty -Path $k -Name Pages).Pages)");
+        calls.AppendLine("Set-RegistryListItem -Path $k -Name Pages -Prefix 'hide:' -Item printers -Present $false -Description t");
+        calls.AppendLine("Write-Output ('L3=' + [bool](Get-ItemProperty -Path $k -Name Pages -ErrorAction SilentlyContinue))");
+        calls.AppendLine("Set-ItemProperty -Path $k -Name Pages -Value 'showonly:display' -Type String");
+        calls.AppendLine("Set-RegistryListItem -Path $k -Name Pages -Prefix 'hide:' -Item home -Present $false -Description t");
+        calls.AppendLine("Write-Output ('L4=' + (Get-ItemProperty -Path $k -Name Pages).Pages)");
+        calls.AppendLine("Remove-Item -Path $k -Recurse -Force");
+
+        var sb = new StringBuilder();
+        sb.AppendLine("function Write-Log { param($Message, $Level) }");
+        ScriptPreambleSection.AppendHelperFunctions(sb, calls.ToString());
+        sb.Append(calls);
+
+        var output = await Runner().RunScriptAsync(sb.ToString());
+
+        // WindowsStateWriter.SetRegistryListItem: only the one entry changes, an emptied list deletes the value, and a
+        // value in another form is left alone when nothing has to be added.
+        output.Should().Contain("L1=hide:home");
+        output.Should().Contain("L2=hide:printers");
+        output.Should().Contain("L3=False");
+        output.Should().Contain("L4=showonly:display");
+    }
 }

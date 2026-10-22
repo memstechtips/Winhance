@@ -4,7 +4,10 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-internal sealed class PendingRestartService(IEventBus eventBus, ILogService logService) : IPendingRestartService
+internal sealed class PendingRestartService(
+    IEventBus eventBus,
+    IConfigImportState configImportState,
+    ILogService logService) : IPendingRestartService
 {
     // Settings are applied from background threads, and in parallel during a bulk apply, so every read
     // and write of the set is gated. PendingSettingIds hands back a copy for the same reason - the UI
@@ -26,6 +29,12 @@ internal sealed class PendingRestartService(IEventBus eventBus, ILogService logS
     {
         if (string.IsNullOrWhiteSpace(settingId))
             return;
+
+        if (configImportState.IsActive)
+        {
+            logService.Log(LogLevel.Debug, $"'{settingId}' applied during a config import, which restarts Explorer at the end");
+            return;
+        }
 
         lock (_gate)
         {

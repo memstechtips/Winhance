@@ -32,6 +32,15 @@
         ]
       },
       {
+        "Id": "windows-app-widgets",
+        "Name": "Widgets",
+        "IsSelected": true,
+        "InputType": 0,
+        "AppxPackageName": [
+          "MicrosoftWindows.Client.WebExperience"
+        ]
+      },
+      {
         "Id": "windows-app-camera",
         "Name": "Camera",
         "IsSelected": true,
@@ -499,6 +508,12 @@
             "InputType": 0
           },
           {
+            "Id": "explorer-context-menu-firewall",
+            "Name": "Setting_explorer-context-menu-firewall_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "explorer-context-menu-toggle-extensions",
             "Name": "Setting_explorer-context-menu-toggle-extensions_Name",
             "IsSelected": false,
@@ -562,6 +577,12 @@
             "Id": "devices-default-printer-management",
             "Name": "Setting_devices-default-printer-management_Name",
             "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "devices-numlock-at-startup",
+            "Name": "Setting_devices-numlock-at-startup_Name",
+            "IsSelected": false,
             "InputType": 0
           },
           {
@@ -667,10 +688,10 @@
             "InputType": 0
           },
           {
-            "Id": "explorer-customization-folder-type-discovery",
-            "Name": "Setting_explorer-customization-folder-type-discovery_Name",
-            "IsSelected": true,
-            "InputType": 0
+            "Id": "explorer-customization-folder-view",
+            "Name": "Setting_explorer-customization-folder-view_Name",
+            "InputType": 1,
+            "SelectedIndex": 0
           },
           {
             "Id": "explorer-customization-folder-tips",
@@ -718,6 +739,18 @@
             "Id": "explorer-customization-legacy-notepad",
             "Name": "Setting_explorer-customization-legacy-notepad_Name",
             "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-notepad-word-wrap",
+            "Name": "Setting_explorer-customization-notepad-word-wrap_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-notepad-status-bar",
+            "Name": "Setting_explorer-customization-notepad-status-bar_Name",
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -1109,12 +1142,6 @@
             "InputType": 0
           },
           {
-            "Id": "taskbar-widgets",
-            "Name": "Setting_taskbar-widgets_Name",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
             "Id": "taskbar-end-task",
             "Name": "Setting_taskbar-end-task_Name",
             "IsSelected": false,
@@ -1124,20 +1151,7 @@
       },
       "TimeRegionLanguage": {
         "IsIncluded": true,
-        "Items": [
-          {
-            "Id": "explorer-customization-first-day-of-week",
-            "Name": "Setting_explorer-customization-first-day-of-week_Name",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
-            "Id": "explorer-customization-list-separator",
-            "Name": "Setting_explorer-customization-list-separator_Name",
-            "InputType": 1,
-            "SelectedIndex": 0
-          }
-        ]
+        "Items": []
       },
       "WindowsTheme": {
         "IsIncluded": true,
@@ -2363,6 +2377,33 @@
             }
           },
           {
+            "Id": "energy-saver-battery-level",
+            "Name": "Setting_energy-saver-battery-level_Name",
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 0,
+              "DCValue": 30
+            }
+          },
+          {
+            "Id": "energy-saver-brightness",
+            "Name": "Setting_energy-saver-brightness_Name",
+            "InputType": 2,
+            "PowerSettings": {
+              "ACValue": 70,
+              "DCValue": 70
+            }
+          },
+          {
+            "Id": "energy-saver-policy",
+            "Name": "Setting_energy-saver-policy_Name",
+            "InputType": 1,
+            "PowerSettings": {
+              "ACIndex": 0,
+              "DCIndex": 1
+            }
+          },
+          {
             "Id": "amd-power-slider-overlay",
             "Name": "Setting_amd-power-slider-overlay_Name",
             "InputType": 1,
@@ -2427,12 +2468,6 @@
           {
             "Id": "security-wpbt-execution",
             "Name": "Setting_security-wpbt-execution_Name",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
-            "Id": "security-defender-scheduled-scan",
-            "Name": "Setting_security-defender-scheduled-scan_Name",
             "IsSelected": true,
             "InputType": 0
           },
@@ -2565,6 +2600,12 @@
           {
             "Id": "privacy-settings-content",
             "Name": "Setting_privacy-settings-content_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-settings-home",
+            "Name": "Setting_privacy-settings-home_Name",
             "IsSelected": true,
             "InputType": 0
           },

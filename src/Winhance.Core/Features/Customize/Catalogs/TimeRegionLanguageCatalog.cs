@@ -229,7 +229,6 @@ public static class TimeRegionLanguageCatalog
                 new SettingState
                 {
                     Label = LocKey.Setting.ExplorerCustomizationFirstDayOfWeek.Option0,
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["iFirstDayOfWeek"] = Of("6").OrAbsent() },
                 },
                 new SettingState
@@ -327,7 +326,6 @@ public static class TimeRegionLanguageCatalog
                 new SettingState
                 {
                     Label = LocKey.Setting.ExplorerCustomizationListSeparator.Option0,
-                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["sList"] = Of(",").OrAbsent() },
                 },
                 new SettingState

@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.Optimize.Interfaces;
+using Winhance.Infrastructure.Features.Optimize.Services;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
 
@@ -17,6 +18,7 @@ internal sealed class WindowsStateWriter : IStateWriter
     private readonly IPowerCfgApplier _powerCfg;
     private readonly IPowerPlanActivationService _activation;
     private readonly IWindowsThemeService _theme;
+    private readonly IDnsSettingsService _dns;
     private readonly ILogService _log;
 
     // Process-launching effects (script / reg import) are deferred to IAsyncEffectRunner rather than blocked on here.
@@ -26,6 +28,7 @@ internal sealed class WindowsStateWriter : IStateWriter
         IPowerCfgApplier powerCfg,
         IPowerPlanActivationService activation,
         IWindowsThemeService theme,
+        IDnsSettingsService dns,
         ILogService log)
     {
         _reg = reg;
@@ -33,6 +36,7 @@ internal sealed class WindowsStateWriter : IStateWriter
         _powerCfg = powerCfg;
         _activation = activation;
         _theme = theme;
+        _dns = dns;
         _log = log;
     }
 
@@ -87,6 +91,30 @@ internal sealed class WindowsStateWriter : IStateWriter
         return _reg.SetValue(path, target.ValueName!, flags.ToString(), target.Type);
     }
 
+    public bool SetRegistryListItem(RegTarget target, string path, string prefix, string item, bool present)
+    {
+        // The other entries belong to whoever put them there (a Group Policy can hide more pages), so only ours
+        // changes. A value in another form is left alone unless the item has to be added.
+        var current = _reg.GetValue(path, target.ValueName!) as string;
+        var items = current is null ? new List<string>() : RegTargetReader.ListItems(current, prefix);
+        if (items is null)
+        {
+            if (!present)
+                return true;
+            items = new List<string>();
+        }
+
+        items.RemoveAll(i => string.Equals(i, item, StringComparison.OrdinalIgnoreCase));
+        if (present)
+            items.Add(item);
+
+        if (items.Count == 0)
+            return current is null || _reg.DeleteValue(path, target.ValueName!);
+        if (!_reg.CreateKey(path))
+            return false;
+        return _reg.SetValue(path, target.ValueName!, prefix + string.Join(';', items), target.Type);
+    }
+
     public bool SetRegistryComposite(RegTarget target, string path, string compositeKey, string? subValue)
     {
         // SetCompositeSubValue does its own CreateKey + re-read-merge-write per call.
@@ -137,6 +165,8 @@ internal sealed class WindowsStateWriter : IStateWriter
         _tasks.SetTaskEnabled(target.TaskPath, enabled).Success;
 
     public bool SetSlideshow(DesktopSlideshowTarget target, string folder) => _theme.SetSlideshow(folder);
+
+    public bool SetDns(IReadOnlyList<DnsServer> servers) => _dns.SetDns(servers);
 
     public bool WritePowerCfgValue(PowerCfgTarget target, PowerContext context, int value) =>
         // Per-context write on the active scheme (battery-gated DC, commit) lives in PowerCfgApplier, where the

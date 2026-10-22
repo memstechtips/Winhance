@@ -35,4 +35,7 @@ public interface IWindowsUIManagementService
     void BroadcastThemeRefresh();
 
     void BroadcastRegionalSettingChange();
+
+    // Presses Num Lock when its live state differs from the user's saved InitialKeyboardIndicators (WindowsChange.NumLock).
+    void MatchNumLockToSavedValue();
 }

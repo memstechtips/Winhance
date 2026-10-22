@@ -3,6 +3,7 @@ using Windows.Win32.Foundation;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
@@ -20,8 +21,7 @@ internal class PowerPlanActivationService(
     IFileSystemService fileSystemService,
     ICatalogSettingsRegistry catalogSettingsRegistry) : IPowerPlanActivationService
 {
-    // A custom plan is duplicated from Balanced, the one scheme every Windows install ships with.
-    private const string BalancedSchemeGuid = "381b4222-f694-41f0-9685-ff5bb260df2e";
+    private const string BalancedSchemeGuid = PowerPlanCatalog.BalancedGuid;
 
     // The three schemes Windows itself owns. None can be recreated by duplication - the only
     // source to duplicate from would be the missing plan itself - so PowerRestoreDefaultPowerSchemes
@@ -240,14 +240,6 @@ internal class PowerPlanActivationService(
 
     private async Task<PowerPlanImportResult> CreateWinhancePowerPlanAsync(PredefinedPowerPlan predefinedPlan)
     {
-        var ultimatePerformancePlan = PowerPlanCatalog.BuiltInPowerPlans
-            .FirstOrDefault(p => p.Name == "Ultimate Performance");
-
-        if (ultimatePerformancePlan == null)
-        {
-            return new PowerPlanImportResult(false, "", "Ultimate Performance plan not found");
-        }
-
         try
         {
             var systemPlans = await powerSettingsQueryService.GetAvailablePowerPlansAsync().ConfigureAwait(false);
@@ -255,8 +247,7 @@ internal class PowerPlanActivationService(
                 string.Equals(p.Guid, predefinedPlan.Guid, StringComparison.OrdinalIgnoreCase));
 
             // Check if plan exists AND is valid (not a ghost/corrupt entry)
-            if (existingPlan != null &&
-                string.Equals(existingPlan.Name?.Trim(), "Winhance Power Plan", StringComparison.OrdinalIgnoreCase))
+            if (existingPlan != null && PowerPlanCatalog.HasWinhanceName(existingPlan.Name))
             {
                 logService.Log(LogLevel.Info, $"Winhance Power Plan already exists with GUID: {existingPlan.Guid}");
                 return new PowerPlanImportResult(true, existingPlan.Guid);
@@ -274,10 +265,10 @@ internal class PowerPlanActivationService(
                 powerSettingsQueryService.InvalidateCache();
             }
 
-            logService.Log(LogLevel.Info, "Creating Winhance Power Plan from Ultimate Performance");
+            logService.Log(LogLevel.Info, "Creating Winhance Power Plan from Balanced");
 
             var dupRc = powerSchemeOperations.DuplicateScheme(
-                Guid.Parse(ultimatePerformancePlan.Guid), Guid.Parse(predefinedPlan.Guid), out var createdGuid);
+                Guid.Parse(BalancedSchemeGuid), Guid.Parse(predefinedPlan.Guid), out var createdGuid);
 
             if (dupRc != (uint)WIN32_ERROR.ERROR_SUCCESS)
             {
@@ -310,7 +301,8 @@ internal class PowerPlanActivationService(
 
     private async Task<PowerPlanImportResult> SimpleBackupRestore(PredefinedPowerPlan targetPlan)
     {
-        var backupDir = Environment.ExpandEnvironmentVariables(@"%LOCALAPPDATA%\Winhance\Backup\PowerPlans");
+        var backupDir = Path.Combine(
+            AppDataPaths.UserRoot(Environment.ExpandEnvironmentVariables("%LOCALAPPDATA%")), "Backup", "PowerPlans");
 
         try
         {

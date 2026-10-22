@@ -22,6 +22,9 @@ public static class PowerOptions
     public static readonly (LocKey Label, int Value)[] EnabledDisabled =
         new (LocKey Label, int Value)[] { (LocKey.Template.EnabledDisabledOption0, 0), (LocKey.Template.EnabledDisabledOption1, 1) };
 
+    public static readonly (LocKey Label, int Value)[] EnergySaverPolicy =
+        new (LocKey Label, int Value)[] { (LocKey.Template.EnergySaverPolicyOption0, 0), (LocKey.Template.EnergySaverPolicyOption1, 1) };
+
     public static readonly (LocKey Label, int Value)[] IntelGraphics =
         new (LocKey Label, int Value)[] { (LocKey.Template.IntelGraphicsOption0, 0), (LocKey.Template.IntelGraphicsOption1, 1), (LocKey.Template.IntelGraphicsOption2, 2) };
 

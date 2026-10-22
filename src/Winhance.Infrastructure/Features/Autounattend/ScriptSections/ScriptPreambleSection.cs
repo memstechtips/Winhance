@@ -342,6 +342,46 @@ Write-Log ""====================================================================
         Write-Log ""Failed to set composite $Path\$Name [$Key] : $($_.Exception.Message)"" ""ERROR""
     }
 }"),
+        ("Set-RegistryListItem", @"function Set-RegistryListItem {
+    param(
+        [string]$Path,
+        [string]$Name,
+        [string]$Prefix,
+        [string]$Item,
+        [bool]$Present,
+        [string]$Description
+    )
+
+    try {
+        $currentValue = Get-ItemProperty -Path $Path -Name $Name -ErrorAction SilentlyContinue
+        $current = if ($null -eq $currentValue) { $null } else { [string]$currentValue.$Name }
+
+        $items = @()
+        if ($current -and $current.StartsWith($Prefix, [StringComparison]::OrdinalIgnoreCase)) {
+            $items = @($current.Substring($Prefix.Length) -split "";"" | ForEach-Object { $_.Trim() } | Where-Object { $_ -and $_ -ne $Item })
+        } elseif ($current -and -not $Present) {
+            Write-Log ""$Description | $Path\$Name is not a $Prefix list, left as it is"" ""INFO""
+            return
+        }
+
+        if ($Present) {
+            $items += $Item
+        }
+
+        if ($items.Count -eq 0) {
+            Remove-ItemProperty -Path $Path -Name $Name -ErrorAction SilentlyContinue
+        } else {
+            if (-not (Test-Path $Path)) {
+                New-Item -Path $Path -Force | Out-Null
+            }
+            Set-ItemProperty -Path $Path -Name $Name -Value ($Prefix + ($items -join "";"")) -Type String -Force
+        }
+        Write-Log ""$Description | $Path\$Name [$Item] = $Present"" ""SUCCESS""
+    }
+    catch {
+        Write-Log ""Failed to set list item $Path\$Name [$Item] : $($_.Exception.Message)"" ""ERROR""
+    }
+}"),
         ("Set-RegistryStringFlag", @"function Set-RegistryStringFlag {
     param(
         [string]$Path,

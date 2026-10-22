@@ -133,7 +133,7 @@ public class RecommendedConfigConformanceTests
 
                 var idx = RecommendedSettingsResolver.GetRecommendedIndex(setting); // registry selection
                 if (idx is null)
-                    return (false, null);
+                    return (false, $"has no Recommended state, so SelectedIndex={FmtInt(item.SelectedIndex)} would be forced on every PC.");
                 if (item.SelectedIndex != idx)
                     return (true, $"recommended SelectedIndex={idx}, config has {FmtInt(item.SelectedIndex)}.");
                 return (true, null);

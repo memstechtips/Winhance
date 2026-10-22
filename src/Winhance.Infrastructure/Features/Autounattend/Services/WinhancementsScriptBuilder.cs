@@ -67,6 +67,13 @@ internal sealed class WinhancementsScriptBuilder : IWinhancementsScriptBuilder
         sb.AppendLine("if (-not $UserCustomizations) {");
         sb.AppendLine();
 
+        // PowerShell maps no HKU: drive by default; the user bridge below maps its own.
+        if (emitted.SystemPassByFeature.Values.Any(text => text.Contains(@"'HKU:\", StringComparison.Ordinal)))
+        {
+            sb.AppendLine("    New-PSDrive -PSProvider Registry -Name HKU -Root HKEY_USERS -ErrorAction SilentlyContinue | Out-Null");
+            sb.AppendLine();
+        }
+
         if (set.WindowsApps.Count > 0)
         {
             _appRemovalSection.AppendScriptsDirectorySetup(sb, "    ");

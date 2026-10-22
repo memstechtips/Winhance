@@ -14,7 +14,7 @@ public class IconCoverageTests
     // Defs that deliberately have NO hosted icon and fall back to a colored Fluent
     // glyph in-app. Keep in sync with package-icons (design spec 2026-06-05, the
     // "Colored Fluent fallback" cases): OpenSSH x2, Hyper-V Platform/Tools, .NET 3.5,
-    // and the AI / Copilot Windows components.
+    // the AI / Copilot Windows components, and Widgets (its package ships only placeholder art).
     private static readonly HashSet<string> IntentionallyNoHostedIcon = new(StringComparer.Ordinal)
     {
         "capability-openssh-client",
@@ -29,6 +29,7 @@ public class IconCoverageTests
         "windows-app-writing-assistant",
         "windows-app-ai-workloads",
         "windows-app-copilot-plus-pc",
+        "windows-app-widgets",
     };
 
     private static HashSet<string> LoadManifestIconKeys()

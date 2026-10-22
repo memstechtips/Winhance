@@ -138,6 +138,8 @@ public class CatalogSettingStateProviderConformanceTests
         ["explorer-customization-number-decimal"] = "locale: separator materialized per-locale at OOBE (B3 locale class)",
         ["explorer-customization-measurement-system"] = "locale: en-US ships Imperial, most others Metric (B3 locale class)",
         ["explorer-customization-currency-decimal"] = "locale: separator materialized per-locale at OOBE (B3 locale class)",
+        ["explorer-customization-first-day-of-week"] = "locale: en-US starts on Sunday, most of Europe on Monday",
+        ["explorer-customization-list-separator"] = "locale: comma-decimal locales such as de-DE ship ';'",
     };
 
     [Fact]

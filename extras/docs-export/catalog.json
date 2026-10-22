@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "winhanceVersion": "26.10.15",
-  "catalogHash": "9d638c667915e7f12a5e73a53674144ac23c0d84721299862136dfdefa104727",
-  "settingCount": 479,
+  "catalogHash": "b409bedb288b6a75f34bf0f8c2a67f4549daa41c8aae0b878ebedf1e315c5964",
+  "settingCount": 482,
   "referenceBuilds": {
     "win10": 19045,
     "win11": 26100
@@ -69315,6 +69315,390 @@
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
             "accessibleSummary": "0 %: Value 0, Current. 7 %: Value 7 (Recommended, Default). Power setting: e73a048d-bf27-4f12-9731-8b2076e8891f, f3c5027d-cd16-4930-aa6b-90db844a8f00."
+          },
+          "matrixWin10": null
+        },
+        {
+          "id": "energy-saver-battery-level",
+          "name": "Energy Saver battery level",
+          "description": "Set the battery percentage at which Energy Saver turns on by itself",
+          "group": "Energy Saver",
+          "icon": {
+            "pack": "Material",
+            "name": "Battery20"
+          },
+          "control": "Slider",
+          "isSubjectivePreference": false,
+          "addedInVersion": "26.10.21",
+          "uiParentId": null,
+          "availability": {
+            "builds": [],
+            "hardware": [
+              "Battery"
+            ],
+            "requiresAdvancedUnlock": false,
+            "message": {
+              "win10": null,
+              "win11": null
+            }
+          },
+          "optionWarnings": [],
+          "matrix": {
+            "groups": [
+              {
+                "label": "Power setting",
+                "kind": "Power",
+                "description": "Read from your active power plan to determine which option is active, and written with powercfg when you apply one.",
+                "paths": [
+                  {
+                    "full": "de830923-a562-41af-a086-e3a2c6bad2da",
+                    "label": "Subgroup",
+                    "hasLabel": true,
+                    "display": "de830923-a562-41af-a086-e3a2c6bad2da"
+                  },
+                  {
+                    "full": "e69653ca-cf7f-4f05-aa73-cb833fa90ad4",
+                    "label": "Setting",
+                    "hasLabel": true,
+                    "display": "e69653ca-cf7f-4f05-aa73-cb833fa90ad4"
+                  }
+                ],
+                "startColumn": 0,
+                "columnSpan": 1,
+                "openRegeditTooltip": "",
+                "hasPaths": true,
+                "canOpenRegedit": false
+              }
+            ],
+            "columns": [
+              {
+                "header": "Value",
+                "typeName": "%",
+                "kind": "Power",
+                "chips": [
+                  {
+                    "text": "any value 0-100 %",
+                    "tooltip": "This setting takes a number rather than a fixed list of options.",
+                    "linkSettingId": "",
+                    "linkText": "",
+                    "hasLink": false
+                  }
+                ],
+                "headerTooltip": "",
+                "hasType": true,
+                "hasChips": true
+              }
+            ],
+            "options": [
+              {
+                "label": "0 %",
+                "cells": [
+                  {
+                    "text": "0",
+                    "isCheck": false,
+                    "hasText": true
+                  }
+                ],
+                "isCurrent": true,
+                "isRecommended": true,
+                "isWindowsDefault": true,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              }
+            ],
+            "optionHeader": "Option",
+            "roleHeader": "Role",
+            "pathLabel": "Path",
+            "valueNameLabel": "Value name",
+            "valueTypeLabel": "Value type",
+            "taskLabel": "Task",
+            "settingLabel": "Options",
+            "settingDescription": "Selecting an option makes the changes shown to the right.",
+            "requirements": [],
+            "optionLinks": [],
+            "optionLinksHeading": "Also sets",
+            "hasOptionLinks": false,
+            "notes": [],
+            "notesHeading": "Also happens when you apply",
+            "notesDetailHeader": "Details",
+            "hasNotes": false,
+            "codeBlocks": [],
+            "hasCode": false,
+            "readingLabel": "",
+            "readingCells": [],
+            "hasReading": false,
+            "currentLabel": "Current",
+            "recommendedLabel": "Recommended",
+            "defaultLabel": "Default",
+            "recommendedTooltip": "What Winhance suggests for most people",
+            "defaultTooltip": "How Windows ships out of the box",
+            "currentTooltip": "This is what your system is set to now",
+            "accessibleSummary": "0 %: Value 0 (Recommended, Default), Current. Power setting: de830923-a562-41af-a086-e3a2c6bad2da, e69653ca-cf7f-4f05-aa73-cb833fa90ad4."
+          },
+          "matrixWin10": null
+        },
+        {
+          "id": "energy-saver-brightness",
+          "name": "Energy Saver screen brightness",
+          "description": "Set how bright the screen stays while Energy Saver is on, as a percentage of normal brightness",
+          "group": "Energy Saver",
+          "icon": {
+            "pack": "Material",
+            "name": "MonitorShimmer"
+          },
+          "control": "Slider",
+          "isSubjectivePreference": true,
+          "addedInVersion": "26.10.21",
+          "uiParentId": null,
+          "availability": {
+            "builds": [],
+            "hardware": [
+              "Battery"
+            ],
+            "requiresAdvancedUnlock": false,
+            "message": {
+              "win10": null,
+              "win11": null
+            }
+          },
+          "optionWarnings": [],
+          "matrix": {
+            "groups": [
+              {
+                "label": "Power setting",
+                "kind": "Power",
+                "description": "Read from your active power plan to determine which option is active, and written with powercfg when you apply one.",
+                "paths": [
+                  {
+                    "full": "de830923-a562-41af-a086-e3a2c6bad2da",
+                    "label": "Subgroup",
+                    "hasLabel": true,
+                    "display": "de830923-a562-41af-a086-e3a2c6bad2da"
+                  },
+                  {
+                    "full": "13d09884-f74e-474a-a852-b6bde8ad03a8",
+                    "label": "Setting",
+                    "hasLabel": true,
+                    "display": "13d09884-f74e-474a-a852-b6bde8ad03a8"
+                  }
+                ],
+                "startColumn": 0,
+                "columnSpan": 1,
+                "openRegeditTooltip": "",
+                "hasPaths": true,
+                "canOpenRegedit": false
+              }
+            ],
+            "columns": [
+              {
+                "header": "Value",
+                "typeName": "%",
+                "kind": "Power",
+                "chips": [
+                  {
+                    "text": "any value 0-100 %",
+                    "tooltip": "This setting takes a number rather than a fixed list of options.",
+                    "linkSettingId": "",
+                    "linkText": "",
+                    "hasLink": false
+                  }
+                ],
+                "headerTooltip": "",
+                "hasType": true,
+                "hasChips": true
+              }
+            ],
+            "options": [
+              {
+                "label": "0 %",
+                "cells": [
+                  {
+                    "text": "0",
+                    "isCheck": false,
+                    "hasText": true
+                  }
+                ],
+                "isCurrent": true,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "70 %",
+                "cells": [
+                  {
+                    "text": "70",
+                    "isCheck": false,
+                    "hasText": true
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": true,
+                "isWindowsDefault": true,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              }
+            ],
+            "optionHeader": "Option",
+            "roleHeader": "Role",
+            "pathLabel": "Path",
+            "valueNameLabel": "Value name",
+            "valueTypeLabel": "Value type",
+            "taskLabel": "Task",
+            "settingLabel": "Options",
+            "settingDescription": "Selecting an option makes the changes shown to the right.",
+            "requirements": [],
+            "optionLinks": [],
+            "optionLinksHeading": "Also sets",
+            "hasOptionLinks": false,
+            "notes": [],
+            "notesHeading": "Also happens when you apply",
+            "notesDetailHeader": "Details",
+            "hasNotes": false,
+            "codeBlocks": [],
+            "hasCode": false,
+            "readingLabel": "",
+            "readingCells": [],
+            "hasReading": false,
+            "currentLabel": "Current",
+            "recommendedLabel": "Recommended",
+            "defaultLabel": "Default",
+            "recommendedTooltip": "What Winhance suggests for most people",
+            "defaultTooltip": "How Windows ships out of the box",
+            "currentTooltip": "This is what your system is set to now",
+            "accessibleSummary": "0 %: Value 0, Current. 70 %: Value 70 (Recommended, Default). Power setting: de830923-a562-41af-a086-e3a2c6bad2da, 13d09884-f74e-474a-a852-b6bde8ad03a8."
+          },
+          "matrixWin10": null
+        },
+        {
+          "id": "energy-saver-policy",
+          "name": "Energy Saver policy",
+          "description": "Choose whether Energy Saver keeps to your own settings (User) or saves more power (Aggressive)",
+          "group": "Energy Saver",
+          "icon": {
+            "pack": "Material",
+            "name": "SpeedometerSlow"
+          },
+          "control": "Selection",
+          "isSubjectivePreference": false,
+          "addedInVersion": "26.10.21",
+          "uiParentId": null,
+          "availability": {
+            "builds": [],
+            "hardware": [
+              "Battery"
+            ],
+            "requiresAdvancedUnlock": false,
+            "message": {
+              "win10": null,
+              "win11": null
+            }
+          },
+          "optionWarnings": [],
+          "matrix": {
+            "groups": [
+              {
+                "label": "Power setting",
+                "kind": "Power",
+                "description": "Read from your active power plan to determine which option is active, and written with powercfg when you apply one.",
+                "paths": [
+                  {
+                    "full": "de830923-a562-41af-a086-e3a2c6bad2da",
+                    "label": "Subgroup",
+                    "hasLabel": true,
+                    "display": "de830923-a562-41af-a086-e3a2c6bad2da"
+                  },
+                  {
+                    "full": "5c5bb349-ad29-4ee2-9d0b-2b25270f7a81",
+                    "label": "Setting",
+                    "hasLabel": true,
+                    "display": "5c5bb349-ad29-4ee2-9d0b-2b25270f7a81"
+                  }
+                ],
+                "startColumn": 0,
+                "columnSpan": 1,
+                "openRegeditTooltip": "",
+                "hasPaths": true,
+                "canOpenRegedit": false
+              }
+            ],
+            "columns": [
+              {
+                "header": "Value",
+                "typeName": "",
+                "kind": "Power",
+                "chips": [],
+                "headerTooltip": "",
+                "hasType": false,
+                "hasChips": false
+              }
+            ],
+            "options": [
+              {
+                "label": "User",
+                "cells": [
+                  {
+                    "text": "0",
+                    "isCheck": false,
+                    "hasText": true
+                  }
+                ],
+                "isCurrent": true,
+                "isRecommended": true,
+                "isWindowsDefault": true,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "Aggressive",
+                "cells": [
+                  {
+                    "text": "1",
+                    "isCheck": false,
+                    "hasText": true
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              }
+            ],
+            "optionHeader": "Option",
+            "roleHeader": "Role",
+            "pathLabel": "Path",
+            "valueNameLabel": "Value name",
+            "valueTypeLabel": "Value type",
+            "taskLabel": "Task",
+            "settingLabel": "Options",
+            "settingDescription": "Selecting an option makes the changes shown to the right.",
+            "requirements": [],
+            "optionLinks": [],
+            "optionLinksHeading": "Also sets",
+            "hasOptionLinks": false,
+            "notes": [],
+            "notesHeading": "Also happens when you apply",
+            "notesDetailHeader": "Details",
+            "hasNotes": false,
+            "codeBlocks": [],
+            "hasCode": false,
+            "readingLabel": "",
+            "readingCells": [],
+            "hasReading": false,
+            "currentLabel": "Current",
+            "recommendedLabel": "Recommended",
+            "defaultLabel": "Default",
+            "recommendedTooltip": "What Winhance suggests for most people",
+            "defaultTooltip": "How Windows ships out of the box",
+            "currentTooltip": "This is what your system is set to now",
+            "accessibleSummary": "User: Value 0 (Recommended, Default), Current. Aggressive: Value 1. Power setting: de830923-a562-41af-a086-e3a2c6bad2da, 5c5bb349-ad29-4ee2-9d0b-2b25270f7a81."
           },
           "matrixWin10": null
         },

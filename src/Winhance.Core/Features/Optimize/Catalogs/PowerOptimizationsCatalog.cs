@@ -1094,6 +1094,90 @@ public static class PowerOptimizationsCatalog
         },
         new()
         {
+            Id = "energy-saver-battery-level",
+            Display = new()
+            {
+                Name = LocKey.Setting.EnergySaverBatteryLevel.Name,
+                Description = LocKey.Setting.EnergySaverBatteryLevel.Description,
+                GroupName = LocKey.SettingGroup.EnergySaver,
+                Icon = MaterialIcons.Battery20,
+                AddedInVersion = "26.10.21",
+            },
+            Availability = new()
+            {
+                Hardware = new[] { HardwareRequirement.Battery },
+                ValidatesExistence = true,
+            },
+            Contexts = new[] { PowerContext.AC, PowerContext.DC },
+            Targets = new Target[]
+            {
+                new PowerCfgTarget("Power", "de830923-a562-41af-a086-e3a2c6bad2da", "e69653ca-cf7f-4f05-aa73-cb833fa90ad4", PowerModeSupport.Separate) { Units = "%" },
+            },
+            Numeric = new()
+            {
+                Min = 0,
+                Max = 100,
+                Units = "%",
+                Recommended = new[] { new ContextValue(PowerContext.AC, 0), new ContextValue(PowerContext.DC, 40) },
+                WindowsDefault = new[] { new ContextValue(PowerContext.AC, 0), new ContextValue(PowerContext.DC, 30) },
+            },
+        },
+        new()
+        {
+            Id = "energy-saver-brightness",
+            Display = new()
+            {
+                Name = LocKey.Setting.EnergySaverBrightness.Name,
+                Description = LocKey.Setting.EnergySaverBrightness.Description,
+                GroupName = LocKey.SettingGroup.EnergySaver,
+                Icon = MaterialIcons.MonitorShimmer,
+                IsSubjectivePreference = true,
+                AddedInVersion = "26.10.21",
+            },
+            Availability = new()
+            {
+                Hardware = new[] { HardwareRequirement.Battery },
+                ValidatesExistence = true,
+            },
+            Contexts = new[] { PowerContext.AC, PowerContext.DC },
+            Targets = new Target[]
+            {
+                new PowerCfgTarget("Power", "de830923-a562-41af-a086-e3a2c6bad2da", "13d09884-f74e-474a-a852-b6bde8ad03a8", PowerModeSupport.Separate) { Units = "%" },
+            },
+            Numeric = new()
+            {
+                Min = 0,
+                Max = 100,
+                Units = "%",
+                Recommended = new[] { new ContextValue(PowerContext.AC, 70), new ContextValue(PowerContext.DC, 70) },
+                WindowsDefault = new[] { new ContextValue(PowerContext.AC, 70), new ContextValue(PowerContext.DC, 70) },
+            },
+        },
+        new()
+        {
+            Id = "energy-saver-policy",
+            Display = new()
+            {
+                Name = LocKey.Setting.EnergySaverPolicy.Name,
+                Description = LocKey.Setting.EnergySaverPolicy.Description,
+                GroupName = LocKey.SettingGroup.EnergySaver,
+                Icon = MaterialIcons.SpeedometerSlow,
+                AddedInVersion = "26.10.21",
+            },
+            Availability = new()
+            {
+                Hardware = new[] { HardwareRequirement.Battery },
+                ValidatesExistence = true,
+            },
+            Contexts = new[] { PowerContext.AC, PowerContext.DC },
+            Targets = new Target[]
+            {
+                new PowerCfgTarget("Power", "de830923-a562-41af-a086-e3a2c6bad2da", "5c5bb349-ad29-4ee2-9d0b-2b25270f7a81", PowerModeSupport.Separate),
+            },
+            States = PowerOptions.SelectionStates(PowerOptions.EnergySaverPolicy, 0, 1, 0, 1),
+        },
+        new()
+        {
             Id = "amd-power-slider-overlay",
             Display = new()
             {

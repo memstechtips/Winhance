@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.Core.Features.SoftwareApps.Utilities;
 using Winhance.Infrastructure.Features.SoftwareApps.Services;
 using Xunit;
 
@@ -19,6 +20,8 @@ public class WindowsAppUninstallServiceTests
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
     private readonly Mock<IMultiScriptProgressService> _multiScriptProgressService = new();
     private readonly Mock<IChangeHistoryService> _changeHistoryService = new();
+    private readonly Mock<ISettingApplicationService> _settingApplicationService = new();
+    private readonly Mock<IPendingRestartService> _pendingRestartService = new();
 
     private WindowsAppUninstallService CreateSut() => new(
         _logService.Object,
@@ -26,7 +29,144 @@ public class WindowsAppUninstallServiceTests
         _bloatRemovalService.Object,
         _taskProgressService.Object,
         _multiScriptProgressService.Object,
-        _changeHistoryService.Object);
+        _changeHistoryService.Object,
+        _settingApplicationService.Object,
+        _pendingRestartService.Object);
+
+    private static readonly ItemDefinition GameBar = new()
+    {
+        Id = "windows-app-xbox-game-bar", Name = "Xbox Game Bar", Description = "", AppxPackageName = ["Microsoft.XboxGamingOverlay"]
+    };
+
+    private static readonly ItemDefinition Cortana = new()
+    {
+        Id = "windows-app-cortana", Name = "Cortana", Description = "", AppxPackageName = ["Microsoft.549981C3F5F10"]
+    };
+
+    private static readonly ItemDefinition Widgets = new()
+    {
+        Id = "windows-app-widgets", Name = "Widgets", Description = "", AppxPackageName = ["MicrosoftWindows.Client.WebExperience"],
+        RequiresExplorerRestart = true
+    };
+
+    private void BloatRemovalReturns(RemovalOutcome outcome) =>
+        _bloatRemovalService
+            .Setup(x => x.ExecuteBloatRemovalAsync(
+                It.IsAny<List<ItemDefinition>>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(outcome);
+
+    private void VerifyGameDvrTurnedOff(Times times) =>
+        _settingApplicationService.Verify(
+            x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r => r.SettingId == GameBarRemoval.GameDvrSettingId && !r.Enable)),
+            times);
+
+    [Fact]
+    public async Task Removing_Game_Bar_turns_Game_DVR_off_once()
+    {
+        _settingApplicationService.Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+        BloatRemovalReturns(RemovalOutcome.Success);
+
+        await CreateSut().UninstallAppsAsync([Cortana, GameBar]);
+
+        VerifyGameDvrTurnedOff(Times.Once());
+    }
+
+    [Fact]
+    public async Task Removing_Widgets_raises_the_Explorer_restart_bar()
+    {
+        BloatRemovalReturns(RemovalOutcome.Success);
+
+        await CreateSut().UninstallAppsAsync([Cortana, Widgets]);
+
+        _pendingRestartService.Verify(p => p.Register("windows-app-widgets"), Times.Once);
+        _pendingRestartService.Verify(p => p.Register("windows-app-cortana"), Times.Never);
+    }
+
+    [Fact]
+    public async Task Removing_Widgets_in_parallel_raises_the_Explorer_restart_bar()
+    {
+        _multiScriptProgressService.Setup(x => x.StartMultiScriptTask(It.IsAny<string[]>())).Returns(new CancellationTokenSource());
+        _multiScriptProgressService.Setup(x => x.CreateScriptProgress(It.IsAny<int>())).Returns(new Progress<TaskProgressDetail>());
+        BloatRemovalReturns(RemovalOutcome.Success);
+
+        await CreateSut().UninstallAppsInParallelAsync([Widgets]);
+
+        _pendingRestartService.Verify(p => p.Register("windows-app-widgets"), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(RemovalOutcome.DeferredToScheduledTask)]
+    [InlineData(RemovalOutcome.Failed)]
+    public async Task An_unfinished_Widgets_removal_raises_no_bar(RemovalOutcome outcome)
+    {
+        BloatRemovalReturns(outcome);
+
+        await CreateSut().UninstallAppsAsync([Widgets]);
+
+        _pendingRestartService.Verify(p => p.Register(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Removing_other_apps_leaves_Game_DVR_alone()
+    {
+        BloatRemovalReturns(RemovalOutcome.Success);
+
+        await CreateSut().UninstallAppsAsync([Cortana]);
+
+        _settingApplicationService.Verify(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task A_failed_Game_Bar_removal_leaves_Game_DVR_alone()
+    {
+        BloatRemovalReturns(RemovalOutcome.Failed);
+
+        await CreateSut().UninstallAppsAsync([GameBar]);
+
+        _settingApplicationService.Verify(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Removing_Game_Bar_on_its_own_card_turns_Game_DVR_off()
+    {
+        _settingApplicationService.Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+        _windowsAppsService.Setup(x => x.GetAppByIdAsync(GameBar.Id)).ReturnsAsync(GameBar);
+        BloatRemovalReturns(RemovalOutcome.Success);
+
+        await CreateSut().UninstallAppAsync(GameBar.Id);
+
+        VerifyGameDvrTurnedOff(Times.Once());
+    }
+
+    [Fact]
+    public async Task Removing_Game_Bar_in_parallel_turns_Game_DVR_off()
+    {
+        _settingApplicationService.Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+        _multiScriptProgressService.Setup(x => x.StartMultiScriptTask(It.IsAny<string[]>())).Returns(new CancellationTokenSource());
+        _multiScriptProgressService.Setup(x => x.CreateScriptProgress(It.IsAny<int>())).Returns(new Progress<TaskProgressDetail>());
+        BloatRemovalReturns(RemovalOutcome.Success);
+
+        await CreateSut().UninstallAppsInParallelAsync([GameBar]);
+
+        VerifyGameDvrTurnedOff(Times.Once());
+    }
+
+    [Fact]
+    public async Task A_Game_DVR_failure_does_not_fail_the_removal()
+    {
+        _settingApplicationService.Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
+            .ThrowsAsync(new InvalidOperationException("registry locked"));
+        BloatRemovalReturns(RemovalOutcome.Success);
+
+        var result = await CreateSut().UninstallAppsAsync([GameBar]);
+
+        result.Success.Should().BeTrue();
+    }
 
     [Fact]
     public async Task UninstallAppAsync_AppNotFound_ReturnsFailed()

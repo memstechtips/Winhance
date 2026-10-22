@@ -36,9 +36,14 @@ internal sealed record DocsSetting(
     DocsAvailability Availability,
     IReadOnlyList<DocsOptionWarning> OptionWarnings,
     OptionMatrix? Matrix,
-    OptionMatrix? MatrixWin10);
+    OptionMatrix? MatrixWin10,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<IReadOnlyList<DocsField>>? Fields);
 
 internal sealed record DocsOptionWarning(string Option, string Text);
+
+// A typed box under the card (the DNS servers), one row per server the way the card lays them out. Builds is
+// empty when every Windows has the box.
+internal sealed record DocsField(string Key, string Kind, string Label, IReadOnlyList<string> Options, IReadOnlyList<DocsBuildRange> Builds);
 
 internal sealed record DocsIcon(string Pack, string Name);
 
@@ -117,8 +122,19 @@ internal static class DocsCatalogExport
             Availability(s, loc),
             OptionWarnings(s, loc),
             win11,
-            sameOnBothBuilds ? null : win10);
+            sameOnBothBuilds ? null : win10,
+            Fields(s, loc));
     }
+
+    private static List<IReadOnlyList<DocsField>>? Fields(Setting s, ILocalizationService loc) =>
+        s.Fields.Count == 0
+            ? null
+            : s.Fields.Select(row => (IReadOnlyList<DocsField>)row.Select(f => new DocsField(
+                f.Key,
+                f.Kind.ToString(),
+                Text(loc, f.Label),
+                f.Options?.Select(o => Text(loc, o)).ToList() ?? [],
+                f.Builds?.Select(r => new DocsBuildRange(Format(r.Min), Format(r.Max))).ToList() ?? [])).ToList()).ToList();
 
     // One option PER STATE, positional: the factory skips IsDetectOnly states, but the builder indexes
     // Snapshot.Options by state index, so skipping here would shift every later label.

@@ -10,7 +10,6 @@ namespace Winhance.Core.Features.Customize.Catalogs;
 public static class StartMenuCustomizationsCatalog
 {
     public const string FeatureId = FeatureIds.StartMenu;
-    public const string FeatureName = "Start Menu";
 
     public static IReadOnlyList<Setting> All { get; } = new Setting[]
     {
@@ -460,6 +459,52 @@ Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinu
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["DisableSearchBoxSuggestions"] = Of(1), ["BingSearchEnabled"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "start-shut-down-dialog-default",
+            Display = new()
+            {
+                Name = LocKey.Setting.StartShutDownDialogDefault.Name,
+                Description = LocKey.Setting.StartShutDownDialogDefault.Description,
+                GroupName = LocKey.SettingGroup.StartMenuSettings,
+                Icon = MaterialIcons.PowerSettings,
+                AddedInVersion = "26.10.02",
+                IsSubjectivePreference = true,
+            },
+            Targets = new Target[]
+            {
+                new RegTarget("Start_PowerButtonAction", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "Start_PowerButtonAction", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Setting.StartShutDownDialogDefault.Option0,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["Start_PowerButtonAction"] = Of(2).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.StartShutDownDialogDefault.Option1,
+                    Set = new Dictionary<string, StateValue> { ["Start_PowerButtonAction"] = Of(4) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.StartShutDownDialogDefault.Option2,
+                    Set = new Dictionary<string, StateValue> { ["Start_PowerButtonAction"] = Of(16) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.StartShutDownDialogDefault.Option3,
+                    Set = new Dictionary<string, StateValue> { ["Start_PowerButtonAction"] = Of(1) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.StartShutDownDialogDefault.Option4,
+                    Set = new Dictionary<string, StateValue> { ["Start_PowerButtonAction"] = Of(256) },
                 },
             },
         },

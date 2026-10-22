@@ -9,7 +9,7 @@ using Xunit.Abstractions;
 namespace Winhance.Core.Tests.TechnicalDetails;
 
 // A null from BuildMatrix makes SettingItemViewModel.HasTechnicalDetails false, which hides the panel AND its
-// toggle bar; six script-driven settings (gaming-dns-server rewrites DNS entirely through PowerShell) silently
+// toggle bar; five script-driven settings silently
 // lost the only window into what they do, and the symptom looked like a UI rendering bug rather than a null
 // from a pure Core function.
 public class TechnicalDetailsCatalogCoverageTests
@@ -49,7 +49,6 @@ public class TechnicalDetailsCatalogCoverageTests
 
     // Pinned by id so a failure says which behaviour broke rather than "one of 400 settings".
     [Theory]
-    [InlineData("gaming-dns-server")]
     [InlineData("system-restore-protection")]
     [InlineData("taskbar-system-tray-icons-11")]
     [InlineData("taskbar-clean")]
@@ -90,18 +89,18 @@ public class TechnicalDetailsCatalogCoverageTests
     }
 
     // gaming-dns-server names every DNS provider it can set and exactly one is both what Winhance suggests and what
-    // Windows ships with; a panel listing a script per option without saying which is that tells the reader nothing actionable.
+    // Windows ships with, beside what each one writes to every adapter: its IPv4 servers, no IPv6 ones, no encryption.
     [Fact]
-    public void TargetLessSetting_KeepsTheRolesOnItsOptions()
+    public void DnsServer_ShowsTheServersEachOptionWritesAndKeepsItsRoles()
     {
-        var setting = SettingCatalog.Find("gaming-dns-server");
-        setting.Should().NotBeNull();
+        var setting = SettingCatalog.Find("gaming-dns-server")!;
 
-        var matrix = TechnicalDetailsBuilder.Build(setting, new SettingStateSnapshot(), FallbackLoc(), Build);
+        var matrix = TechnicalDetailsBuilder.Build(setting, new SettingStateSnapshot(), FallbackLoc(), Build)!;
 
-        matrix!.Options.Should().HaveCount(setting!.States.Count);
-        matrix.Options.Should().OnlyContain(o => o.Label.Length > 0,
-            "every row still names the option it documents");
+        matrix.Columns.Select(c => c.Header).Should().Equal("NameServer", "NameServer", "DohFlags");
+        matrix.Options.Should().HaveCount(setting.States.Count);
+        matrix.Options[1].Cells[0].Text.Should().Be("1.1.1.1,1.0.0.1");
+        matrix.Options[1].Cells[2].Text.Should().Be("deletes key");
         matrix.Options[0].IsRecommended.Should().BeTrue("the first state carries StateRole.Recommended");
         matrix.Options[0].IsWindowsDefault.Should().BeTrue("and StateRole.WindowsDefault with it");
         matrix.Options.Skip(1).Should().OnlyContain(o => !o.IsRecommended && !o.IsWindowsDefault,

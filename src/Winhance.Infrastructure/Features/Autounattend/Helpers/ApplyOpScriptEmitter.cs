@@ -401,6 +401,7 @@ internal sealed class ApplyOpScriptEmitter
         RegistryBitSetOp b => b.Path,
         RegistryByteSetOp y => y.Path,
         RegistryStringFlagSetOp f => f.Path,
+        RegistryListItemSetOp i => i.Path,
         RegistryCompositeSetOp c => c.Path,
         RegistryPerSubkeyWriteOp p => p.ParentPath,
         RegistryPerSubkeyDeleteOp p => p.ParentPath,
@@ -457,6 +458,10 @@ internal sealed class ApplyOpScriptEmitter
 
             case RegistryStringFlagSetOp f:
                 sb.AppendLine($"{indent}Set-RegistryStringFlag -Path '{EscapedPath(f.Path)}' -Name '{EscapedName(f.Target)}' -FlagMask {f.FlagMask} -AbsentBase {f.AbsentBase} -Set ${f.Set} -Description '{desc}'");
+                break;
+
+            case RegistryListItemSetOp i:
+                sb.AppendLine($"{indent}Set-RegistryListItem -Path '{EscapedPath(i.Path)}' -Name '{EscapedName(i.Target)}' -Prefix '{EscapePowerShellString(i.Prefix)}' -Item '{EscapePowerShellString(i.Item)}' -Present ${i.Present} -Description '{desc}'");
                 break;
 
             case RegistryCompositeSetOp c:

@@ -141,6 +141,32 @@ public class PendingRestartViewModelTests
     }
 
     [Fact]
+    public void CanRestart_TurnsOnWhenTheRunningTaskEnds()
+    {
+        _mockPending.Setup(p => p.IsPending).Returns(true);
+        _mockTaskProgress.Setup(t => t.IsTaskRunning).Returns(true);
+        var vm = Create();
+        vm.CanRestart.Should().BeFalse();
+
+        _mockTaskProgress.Setup(t => t.IsTaskRunning).Returns(false);
+        _mockTaskProgress.Raise(t => t.ProgressUpdated += null, _mockTaskProgress.Object, new TaskProgressDetail());
+
+        vm.CanRestart.Should().BeTrue();
+    }
+
+    [Fact]
+    public void TooltipText_NamesAPendingWindowsApp()
+    {
+        _mockPending.Setup(p => p.IsPending).Returns(true);
+        _mockPending.Setup(p => p.PendingSettingIds).Returns(["windows-app-widgets"]);
+        var vm = Create();
+
+        vm.Refresh();
+
+        vm.TooltipText.Should().Be("Widgets");
+    }
+
+    [Fact]
     public void TooltipText_WhenNothingPending_IsEmpty()
     {
         _mockPending.Setup(p => p.IsPending).Returns(false);

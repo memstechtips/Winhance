@@ -55,6 +55,11 @@ public sealed class LiveSettingWriteStrategy : ISettingWriteStrategy
             if (!result.Success)
             {
                 _logService.Log(LogLevel.Warning, $"Setting '{settingId}' apply failed: {result.ErrorMessage}. Reverting UI state.");
+                // Without this the card only snaps back, which reads as a Winhance bug when Windows itself refused
+                // the write (UCPD guards some policy keys, #780).
+                await _dialogService.ShowWarningAsync(
+                    _localizationService.GetString("Setting_NotApplied_Message"),
+                    _localizationService.GetString("Setting_NotApplied_Title"));
                 return SettingWriteResult.Rejected;
             }
 

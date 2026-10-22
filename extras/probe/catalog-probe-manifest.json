@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "catalogHash": "8b767d54a684fe585354cd77784134e0f7efaf09a5039ccac083a430d8320b4e",
-  "settingCount": 442,
+  "catalogHash": "889a5641ce6d3af28ab78671dd9908443afbb1f383929742a6aa69009baeb40f",
+  "settingCount": 445,
   "settings": [
     {
       "id": "theme-mode-windows",
@@ -1805,7 +1805,7 @@
           ],
           "set": {
             "{20D04FE0-3AEA-1069-A2D8-08002B30309D}": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -1993,7 +1993,7 @@
           ],
           "set": {
             "{59031A47-3F72-44A7-89C5-5595FE6B30EE}": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -2091,7 +2091,7 @@
           ],
           "set": {
             "{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -2189,7 +2189,7 @@
           ],
           "set": {
             "{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -7277,7 +7277,7 @@
           ],
           "set": {
             "PersistBrowsers": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -9639,7 +9639,7 @@
           ],
           "set": {
             "NavPaneShowAllCloudStates": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -9825,7 +9825,7 @@
           ],
           "set": {
             "NavPaneShowAllFolders": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -10751,7 +10751,7 @@
               "writePayload": 1
             },
             "System.IsPinnedToNameSpaceTree": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -16644,13 +16644,7 @@
         {
           "label": "Setting_explorer-customization-first-day-of-week_Option_0",
           "isFallback": false,
-          "roles": [
-            {
-              "kind": "WindowsDefault",
-              "context": "Always",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "iFirstDayOfWeek": {
               "acceptsAbsent": true,
@@ -16925,13 +16919,7 @@
         {
           "label": "Setting_explorer-customization-list-separator_Option_0",
           "isFallback": false,
-          "roles": [
-            {
-              "kind": "WindowsDefault",
-              "context": "Always",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "sList": {
               "acceptsAbsent": true,
@@ -19556,7 +19544,7 @@
           ],
           "set": {
             "AllowMUUpdateService": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -20075,7 +20063,7 @@
           ],
           "set": {
             "RestartNotificationsAllowed2": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -22297,7 +22285,7 @@
           ],
           "set": {
             "StartupDelayInMSec": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -22591,7 +22579,7 @@
           ],
           "set": {
             "WholeFileSystem": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -24250,7 +24238,7 @@
           ],
           "set": {
             "EnableGR535": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -26250,7 +26238,7 @@
           ],
           "set": {
             "ServicesPipeTimeout": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -34936,7 +34924,7 @@
           ],
           "set": {
             "AllowDevelopmentWithoutDevLicense": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -37060,7 +37048,7 @@
               "writePayload": null
             },
             "HasAccepted": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -48388,6 +48376,216 @@
         }
       ],
       "states": []
+    },
+    {
+      "id": "energy-saver-battery-level",
+      "feature": "Power",
+      "control": "Slider",
+      "contexts": [
+        "AC",
+        "DC"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [
+          "Battery"
+        ],
+        "validatesExistence": true,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": {
+        "min": 0,
+        "max": 100,
+        "units": "%",
+        "recommended": [
+          {
+            "context": "AC",
+            "value": 0
+          },
+          {
+            "context": "DC",
+            "value": 40
+          }
+        ],
+        "windowsDefault": [
+          {
+            "context": "AC",
+            "value": 0
+          },
+          {
+            "context": "DC",
+            "value": 30
+          }
+        ]
+      },
+      "targets": [
+        {
+          "key": "Power",
+          "joinKey": "Power",
+          "appliesTo": [],
+          "kind": "PowerCfg",
+          "subgroupGuid": "de830923-a562-41af-a086-e3a2c6bad2da",
+          "settingGuid": "e69653ca-cf7f-4f05-aa73-cb833fa90ad4",
+          "mode": "Separate",
+          "units": "%",
+          "checkForHardwareControl": false,
+          "enablementKey": null
+        }
+      ],
+      "states": []
+    },
+    {
+      "id": "energy-saver-brightness",
+      "feature": "Power",
+      "control": "Slider",
+      "contexts": [
+        "AC",
+        "DC"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [
+          "Battery"
+        ],
+        "validatesExistence": true,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": {
+        "min": 0,
+        "max": 100,
+        "units": "%",
+        "recommended": [
+          {
+            "context": "AC",
+            "value": 70
+          },
+          {
+            "context": "DC",
+            "value": 70
+          }
+        ],
+        "windowsDefault": [
+          {
+            "context": "AC",
+            "value": 70
+          },
+          {
+            "context": "DC",
+            "value": 70
+          }
+        ]
+      },
+      "targets": [
+        {
+          "key": "Power",
+          "joinKey": "Power",
+          "appliesTo": [],
+          "kind": "PowerCfg",
+          "subgroupGuid": "de830923-a562-41af-a086-e3a2c6bad2da",
+          "settingGuid": "13d09884-f74e-474a-a852-b6bde8ad03a8",
+          "mode": "Separate",
+          "units": "%",
+          "checkForHardwareControl": false,
+          "enablementKey": null
+        }
+      ],
+      "states": []
+    },
+    {
+      "id": "energy-saver-policy",
+      "feature": "Power",
+      "control": "Selection",
+      "contexts": [
+        "AC",
+        "DC"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [
+          "Battery"
+        ],
+        "validatesExistence": true,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "Power",
+          "joinKey": "Power",
+          "appliesTo": [],
+          "kind": "PowerCfg",
+          "subgroupGuid": "de830923-a562-41af-a086-e3a2c6bad2da",
+          "settingGuid": "5c5bb349-ad29-4ee2-9d0b-2b25270f7a81",
+          "mode": "Separate",
+          "units": null,
+          "checkForHardwareControl": false,
+          "enablementKey": null
+        }
+      ],
+      "states": [
+        {
+          "label": "Template_EnergySaverPolicy_Option_0",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "Recommended",
+              "context": "AC",
+              "appliesTo": []
+            },
+            {
+              "kind": "WindowsDefault",
+              "context": "AC",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "Power": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Template_EnergySaverPolicy_Option_1",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "Recommended",
+              "context": "DC",
+              "appliesTo": []
+            },
+            {
+              "kind": "WindowsDefault",
+              "context": "DC",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "Power": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        }
+      ]
     },
     {
       "id": "amd-power-slider-overlay",

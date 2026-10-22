@@ -10,7 +10,6 @@ namespace Winhance.Core.Features.Customize.Catalogs;
 public static class TaskbarCustomizationsCatalog
 {
     public const string FeatureId = FeatureIds.Taskbar;
-    public const string FeatureName = "Taskbar";
 
     public static IReadOnlyList<Setting> All { get; } = new Setting[]
     {
@@ -675,6 +674,39 @@ public static class TaskbarCustomizationsCatalog
         },
         new()
         {
+            Id = "taskbar-clock-seconds",
+            Display = new()
+            {
+                Name = LocKey.Setting.TaskbarClockSeconds.Name,
+                Description = LocKey.Setting.TaskbarClockSeconds.Description,
+                GroupName = LocKey.SettingGroup.TaskbarBehavior,
+                Icon = MaterialIcons.ClockStart,
+                IsSubjectivePreference = true,
+                AddedInVersion = "26.09.30",
+            },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("ShowSecondsInSystemClock", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "ShowSecondsInSystemClock", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue> { ["ShowSecondsInSystemClock"] = Of(1) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["ShowSecondsInSystemClock"] = Of(0).OrAbsent() },
+                },
+            },
+        },
+        new()
+        {
             Id = "taskbar-copilot",
             Display = new()
             {
@@ -805,43 +837,6 @@ public static class TaskbarCustomizationsCatalog
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["RecallPin"] = Of(0) },
-                },
-            },
-        },
-        new()
-        {
-            Id = "taskbar-widgets",
-            Display = new()
-            {
-                Name = LocKey.Setting.TaskbarWidgets.Name,
-                Description = LocKey.Setting.TaskbarWidgets.Description,
-                GroupName = LocKey.SettingGroup.TaskbarIcons,
-                Icon = MaterialIcons.Widgets,
-            },
-            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("AllowNewsAndInterests", new[]
-                {
-                    @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Dsh",
-                    @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Dsh",
-                }, "AllowNewsAndInterests", RegistryValueKind.DWord) { IsGroupPolicy = true },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["AllowNewsAndInterests"] = Of(1).OrAbsent() },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["AllowNewsAndInterests"] = Of(0) },
                 },
             },
         },

@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.TechnicalDetails;
 using Winhance.UI.Features.Common.Helpers;
+using static Winhance.UI.Features.Common.Helpers.CodeBuiltStyle;
 using WrapPanel = CommunityToolkit.WinUI.Controls.WrapPanel;
 
 namespace Winhance.UI.Features.Common.Controls;
@@ -86,7 +87,6 @@ public sealed partial class OptionMatrixView : UserControl
     private static void OnRegeditCommandChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
         ((OptionMatrixView)d).Rebuild();
 
-    private static Style Named(string key) => (Style)Application.Current.Resources[key];
 
     private void Rebuild()
     {

@@ -47,6 +47,11 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
             targetKey.SetValue(valueName, value, valueKind);
             return true;
         }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            logService.LogWarning($"Windows refused the write to '{keyPath}\\{valueName}': {ex.Message}");
+            return false;
+        }
         catch (Exception ex)
         {
             logService.LogDebug($"Failed to set value '{keyPath}\\{valueName}': {ex.Message}");
@@ -90,14 +95,45 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
     // Prevents accidental deletion of top-level hive branches like HKLM\SOFTWARE.
     private const int MinDeleteDepth = 2;
 
-    internal static readonly HashSet<string> ProtectedSubKeyRoots = new(StringComparer.OrdinalIgnoreCase)
+    // A key directly under one of these is as critical as the branch (Windows NT\CurrentVersion). Policies is not one:
+    // a vendor's whole policy key sits there (Policies\WindowsNotepad) and the policy cleanup deletes it.
+    internal static readonly HashSet<string> ProtectedBranches = new(StringComparer.OrdinalIgnoreCase)
     {
+        @"SOFTWARE\Classes",
+        @"SOFTWARE\Microsoft",
         @"SOFTWARE\Microsoft\Windows",
+        @"SOFTWARE\Microsoft\Windows\CurrentVersion",
         @"SOFTWARE\Microsoft\Windows NT",
-        @"SOFTWARE\Policies",
+        @"SOFTWARE\Microsoft\Windows NT\CurrentVersion",
         @"SYSTEM\CurrentControlSet",
+        @"SYSTEM\CurrentControlSet\Control",
         @"SYSTEM\CurrentControlSet\Services",
     };
+
+    // Declared after ProtectedBranches: static initializers run in file order.
+    internal static readonly HashSet<string> ProtectedSubKeyRoots = new(ProtectedBranches, StringComparer.OrdinalIgnoreCase)
+    {
+        @"SOFTWARE\Policies",
+        @"SOFTWARE\Policies\Microsoft",
+        @"SOFTWARE\Policies\Microsoft\Windows",
+    };
+
+    private const string Wow64Software = @"SOFTWARE\WOW6432Node\";
+    private const string NumberedControlSet = @"SYSTEM\ControlSet";
+
+    internal static bool IsProtected(string subKeyPath)
+    {
+        var path = subKeyPath.Trim('\\');
+        if (path.StartsWith(Wow64Software, StringComparison.OrdinalIgnoreCase))
+            path = @"SOFTWARE\" + path[Wow64Software.Length..];
+        // ControlSet001 is what CurrentControlSet links to.
+        if (path.StartsWith(NumberedControlSet, StringComparison.OrdinalIgnoreCase)
+            && path.Length >= NumberedControlSet.Length + 3
+            && !path.AsSpan(NumberedControlSet.Length, 3).ContainsAnyExceptInRange('0', '9'))
+            path = @"SYSTEM\CurrentControlSet" + path[(NumberedControlSet.Length + 3)..];
+        var parent = path.LastIndexOf('\\') is var i and > 0 ? path[..i] : path;
+        return ProtectedSubKeyRoots.Contains(path) || ProtectedBranches.Contains(parent);
+    }
 
     public bool DeleteKey(string keyPath)
     {
@@ -116,14 +152,10 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
                 return false;
             }
 
-            foreach (var protectedRoot in ProtectedSubKeyRoots)
+            if (IsProtected(subKeyPath))
             {
-                if (subKeyPath.Equals(protectedRoot, StringComparison.OrdinalIgnoreCase))
-                {
-                    logService.Log(LogLevel.Warning,
-                        $"Refusing to delete protected registry key '{keyPath}'");
-                    return false;
-                }
+                logService.Log(LogLevel.Warning, $"Refusing to delete protected registry key '{keyPath}'");
+                return false;
             }
 
             rootKey.DeleteSubKeyTree(subKeyPath, false);

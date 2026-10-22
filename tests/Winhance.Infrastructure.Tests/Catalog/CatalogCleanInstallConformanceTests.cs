@@ -49,7 +49,6 @@ public class CatalogCleanInstallConformanceTests
         ["security-smart-app-control"] = "SAC self-disabled post-update (documented 2 -> 0 drift); image + gold ship Evaluation",
         ["start-disable-bing-search-results"] = "this express VM carries the Copilot-policy BingSearchEnabled=0 write; the declined gold conforms to Enabled",
         ["taskbar-search-box-11"] = "post-update VM state contradicts image + gold (documented drift/tweak on this capture)",
-        ["taskbar-widgets"] = "post-update VM state contradicts image + gold (documented drift/tweak on this capture)",
     };
 
     [Fact]
@@ -349,9 +348,7 @@ public class CatalogCleanInstallConformanceTests
 
         public bool KeyExists(string keyPath) => _keyExists.GetValueOrDefault(keyPath);
 
-        public string? PrimaryDnsV4OfActiveAdapter() => null;
-
-        public IReadOnlyList<string> DnsV4ServersOfActiveAdapter() => Array.Empty<string>();
+        public IReadOnlyList<DnsServer> DnsServersOfActiveAdapter() => Array.Empty<DnsServer>();
 
         public bool IsSystemRestoreEnabled() => false;
 

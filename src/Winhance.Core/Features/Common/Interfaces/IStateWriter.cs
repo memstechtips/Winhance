@@ -14,6 +14,7 @@ public interface IStateWriter
     bool SetRegistryBit(RegTarget target, string path, int byteIndex, byte bitMask, bool set);
     bool SetRegistryByte(RegTarget target, string path, int byteIndex, byte value);
     bool SetRegistryStringFlag(RegTarget target, string path, int flagMask, int absentBase, bool set);
+    bool SetRegistryListItem(RegTarget target, string path, string prefix, string item, bool present);
     bool SetRegistryComposite(RegTarget target, string path, string compositeKey, string? subValue);
     bool WriteRegistryPerSubkey(RegTarget target, string parentPath, object value);
     bool DeleteRegistryPerSubkey(RegTarget target, string parentPath);
@@ -24,6 +25,8 @@ public interface IStateWriter
     bool ActivatePowerPlan(string guid);
 
     bool SetSlideshow(DesktopSlideshowTarget target, string folder);
+
+    bool SetDns(IReadOnlyList<DnsServer> servers);
 
     bool RunEffect(Effect effect);
 }

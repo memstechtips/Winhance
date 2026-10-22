@@ -5,6 +5,7 @@ namespace Winhance.Core.Features.Common.Interfaces;
 // to an explicit user action (IExplorerRestartService). Stores ids only; localizing them is the UI's job.
 public interface IPendingRestartService
 {
+    // Ignored while a config import runs: the import restarts Explorer once at the end and must leave no bar behind.
     void Register(string settingId);
 
     bool IsPending { get; }

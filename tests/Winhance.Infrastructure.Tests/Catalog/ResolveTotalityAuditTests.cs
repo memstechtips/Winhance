@@ -17,18 +17,21 @@ public class ResolveTotalityAuditTests
     private const string Zones = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Time Zones";
     private const string Layouts = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layouts";
 
-    // The reads the five time, region and language lists make. On an empty machine they offer and select nothing,
-    // and the keyed arm would audit no shape at all.
+    // The reads the time, region and language lists make. On an empty machine they offer and select nothing,
+    // and the keyed arm would audit no shape at all. A real PC always has at least one display language.
     private static readonly FakeDetectionContext KeyedMachine = new FakeDetectionContext()
         .Sub(Zones, "UTC")
         .Set($@"{Zones}\UTC", "Display", "(UTC) Coordinated Universal Time")
         .Set(@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\TimeZoneInformation", "TimeZoneKeyName", "UTC")
         .Set(@"HKEY_CURRENT_USER\Control Panel\International", "LocaleName", "en-US")
+        .Set(@"HKEY_CURRENT_USER\Control Panel\International", "sShortDate", "M/d/yyyy")
         .Set(@"HKEY_CURRENT_USER\Control Panel\International\Geo", "Nation", "244")
         .Sub(Layouts, "00000409")
         .Set($@"{Layouts}\00000409", "Layout Text", "US")
         .Set(@"HKEY_CURRENT_USER\Keyboard Layout\Preload", "1", "00000409")
-        .Set(@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Nls\Language", "Default", "0409");
+        .Set(@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Nls\Language", "Default", "0409")
+        .Sub(@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\MUI\UILanguages", "en-US")
+        .Set(@"HKEY_CURRENT_USER\Control Panel\Desktop", "PreferredUILanguages", new[] { "en-US" });
 
     [Fact]
     public void ResolveTotalityAudit_NoReachableShapeReturnsNull()
@@ -105,9 +108,17 @@ public class ResolveTotalityAuditTests
                         Check(true, cs, false, "customstate");
                     }
 
-                    // gaming-dns-server / taskbar-system-tray-icons-11: nothing registry-side to write, so the
-                    // Custom state exports the reconstructed bag and the plan comes from CustomStateScripts.
-                    if (s.CustomStateScripts.Count > 0 && !s.Targets.OfType<RegTarget>().Any())
+                    // Typed DNS servers: the Custom state exports the servers under the DNS targets' keys.
+                    if (s.Targets.OfType<DnsTarget>().Any())
+                    {
+                        var servers = s.Targets.OfType<DnsTarget>()
+                            .Where(t => t is { Part: DnsPart.Address, Slot: DnsSlot.Preferred or DnsSlot.Alternate })
+                            .ToDictionary(t => t.Key, _ => (object)"10.0.0.1");
+                        Check(true, servers, false, "dns-customstate");
+                    }
+                    // taskbar-system-tray-icons-11: nothing registry-side to write, so the Custom state exports the
+                    // reconstructed bag and the plan comes from CustomStateScripts.
+                    else if (s.CustomStateScripts.Count > 0 && !s.Targets.OfType<RegTarget>().Any())
                     {
                         Check(true, new Dictionary<string, object> { ["DetectedIndex"] = -1 }, false, "script-customstate");
                     }

@@ -87,9 +87,6 @@ internal sealed class CatalogDetectionService : ICatalogDetectionService
                         AcValue = acValue,
                         DcValue = dcValue,
                         Readings = readings,
-                        DnsServers = setting.Detector is DnsServerDetector
-                            ? context.DnsV4ServersOfActiveAdapter()
-                            : null,
                     };
                 }
             }
@@ -115,7 +112,8 @@ internal sealed class CatalogDetectionService : ICatalogDetectionService
     {
         var regTargets = setting.Targets.OfType<RegTarget>().ToList();
         var slideshowTargets = setting.Targets.OfType<DesktopSlideshowTarget>().ToList();
-        if (regTargets.Count == 0 && slideshowTargets.Count == 0)
+        var dnsTargets = setting.Targets.OfType<DnsTarget>().ToList();
+        if (regTargets.Count == 0 && slideshowTargets.Count == 0 && dnsTargets.Count == 0)
             return null;
 
         var readings = new Dictionary<string, object?>();
@@ -151,6 +149,9 @@ internal sealed class CatalogDetectionService : ICatalogDetectionService
         // Filed under the target's own Key: a slideshow target has no value name.
         foreach (var target in slideshowTargets)
             readings[target.Key] = _theme.CurrentAlbum(setting, context);
+
+        foreach (var target in dnsTargets)
+            readings[target.Key] = CatalogDiscovery.ReadDns(target, context).Value;
 
         return readings;
     }

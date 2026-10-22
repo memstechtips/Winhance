@@ -16,6 +16,8 @@ public record ItemDefinition : BaseDefinition
     public string? WinGetInstallerOverride { get; init; }
     public bool CanBeReinstalled { get; init; } = true;
     public bool RequiresReboot { get; init; }
+    // The taskbar keeps what the package put there until the shell restarts, so a removal raises the restart-Explorer bar.
+    public bool RequiresExplorerRestart { get; init; }
     public Func<string>? RemovalScript { get; init; }
     // Supports {version}, {arch}, {locale} placeholders.
     public string? RegistryDisplayName { get; init; }
@@ -28,6 +30,9 @@ public record ItemDefinition : BaseDefinition
     // e.g. Microsoft Edge: removing it may break Windows components. Renders an amber Warning pill with a generic
     // localized message, so the flag is reusable without per-item text.
     public bool HasInstabilityWarning { get; init; }
+    // A warning only some PCs get: WindowsAppsService turns HasInstabilityWarning on where RegistryKey exists, and
+    // the pill shows TooltipKey's text instead of the generic one.
+    public MachineWarning? MachineWarning { get; init; }
     public ExternalAppMetadata? ExternalApp { get; init; }
 
     // Mutable runtime state — set by WindowsAppsViewModel/ExternalAppsViewModel
@@ -38,3 +43,5 @@ public record ItemDefinition : BaseDefinition
 
     public string? IconPath { get; set; }
 }
+
+public sealed record MachineWarning(string RegistryKey, string TooltipKey);

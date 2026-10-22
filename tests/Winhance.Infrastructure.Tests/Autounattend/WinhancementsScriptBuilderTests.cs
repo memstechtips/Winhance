@@ -428,6 +428,22 @@ public class WinhancementsScriptBuilderTests
     }
 
     [Fact]
+    public async Task BuildAsync_MapsTheHkuDriveForTheSystemPassOnlyWhenItWritesThere()
+    {
+        var numLock = SettingCatalog.Find("devices-numlock-at-startup")!;
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { { FeatureIds.Explorer, new[] { numLock } } };
+
+        var withHku = await _sut.BuildAsync(SetOf(new SettingChoice(numLock.Id, new ChoiceValue.Toggle(true))), byFeature);
+        var without = await _sut.BuildAsync(SetOf(), byFeature);
+
+        var systemBlock = withHku.IndexOf("if (-not $UserCustomizations)", StringComparison.Ordinal);
+        var drive = withHku.IndexOf("New-PSDrive -PSProvider Registry -Name HKU", systemBlock, StringComparison.Ordinal);
+        drive.Should().BeLessThan(withHku.IndexOf(@"'HKU:\.DEFAULT", systemBlock, StringComparison.Ordinal));
+        without.IndexOf("New-PSDrive", StringComparison.Ordinal)
+            .Should().BeGreaterThan(without.IndexOf("if ($UserCustomizations)", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task BuildAsync_WithCustomizeFeatures_EmitsHkcuInUserBlock()
     {
         // The REAL catalog HKCU toggle (gaming-game-mode, RegTarget AutoGameModeEnabled under

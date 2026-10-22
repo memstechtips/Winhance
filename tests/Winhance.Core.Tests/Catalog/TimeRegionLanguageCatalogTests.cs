@@ -205,8 +205,10 @@ public class TimeRegionLanguageCatalogTests
         SettingCatalog.ById["explorer-customization-first-day-of-week"].States.Select(s => s.Label)
             .Should().Equal(Enumerable.Range(0, 7)
                 .Select(i => TestKeys.Of($"Setting_explorer-customization-first-day-of-week_Option_{i}")));
-        SettingCatalog.ById["explorer-customization-list-separator"].States[0]
-            .HasRole(RoleKind.WindowsDefault).Should().BeTrue("Comma is still the Windows default");
+
+        // Every one of them follows the region format, so no single value is the default or the recommendation.
+        foreach (var id in moved)
+            SettingCatalog.ById[id].States.Should().NotContain(s => s.Roles.Any(), id);
     }
 
     [Fact]

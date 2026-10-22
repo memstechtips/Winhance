@@ -28,8 +28,7 @@ public class RegTargetReaderTests
         public object? GetValue(string keyPath, string? valueName) => _get(keyPath, valueName);
         public bool KeyExists(string keyPath) => _keyExists(keyPath);
         public string[] GetSubKeyNames(string keyPath) => Array.Empty<string>();
-        public string? PrimaryDnsV4OfActiveAdapter() => null;
-        public IReadOnlyList<string> DnsV4ServersOfActiveAdapter() => Array.Empty<string>();
+        public IReadOnlyList<DnsServer> DnsServersOfActiveAdapter() => Array.Empty<DnsServer>();
         public bool IsSystemRestoreEnabled() => false;
         public bool? ScheduledTaskEnabled(string taskPath) => null;
         public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
@@ -64,6 +63,22 @@ public class RegTargetReaderTests
 
         (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => "not-a-number"));
         Assert.False(present);        // unparseable reads as absent, never as a guess
+    }
+
+    [Theory]
+    [InlineData("hide:home", true)]
+    [InlineData("hide:printers; HOME", true)]
+    [InlineData("hide:printers", false)]
+    [InlineData("hide:homegroup", false)]
+    [InlineData("showonly:home", false)]
+    public void List_item_reads_whether_the_item_is_in_the_prefixed_list(string value, bool expected)
+    {
+        var t = new RegTarget("K", HklmA, "SettingsPageVisibility", RegistryValueKind.String) { ListItem = "home", ListPrefix = "hide:" };
+
+        var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => value));
+
+        Assert.True(present);
+        Assert.Equal(expected, val);
     }
 
     [Fact]

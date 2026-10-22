@@ -9,7 +9,6 @@ namespace Winhance.Core.Features.Optimize.Catalogs;
 public static class PrivacyOptimizationsCatalog
 {
     public const string FeatureId = FeatureIds.Privacy;
-    public const string FeatureName = "Privacy & Security";
 
     public static IReadOnlyList<Setting> All { get; } = new Setting[]
     {
@@ -142,6 +141,39 @@ public static class PrivacyOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["PreventDeviceEncryption"] = Of(1) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "security-wpbt-execution",
+            Display = new()
+            {
+                Name = LocKey.Setting.SecurityWpbtExecution.Name,
+                Description = LocKey.Setting.SecurityWpbtExecution.Description,
+                GroupName = LocKey.SettingGroup.Security,
+                Icon = MaterialIcons.Chip,
+                IsSubjectivePreference = true,
+                AddedInVersion = "26.09.30",
+            },
+            Apply = new() { RequiresReboot = true },
+            Targets = new Target[]
+            {
+                new RegTarget("DisableWpbtExecution", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager" }, "DisableWpbtExecution", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["DisableWpbtExecution"] = Of(0).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["DisableWpbtExecution"] = Of(1) },
                 },
             },
         },
@@ -765,6 +797,9 @@ public static class PrivacyOptimizationsCatalog
             Targets = new Target[]
             {
                 new RegTarget("RotatingLockScreenEnabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" }, "RotatingLockScreenEnabled", RegistryValueKind.DWord),
+                // Windows reads this as the Spotlight subscription itself: at 0 the lock screen drops to Picture even with
+                // RotatingLockScreenEnabled at 1 (#788), so turning Spotlight on must write it back.
+                new RegTarget("SubscribedContent-338387Enabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" }, "SubscribedContent-338387Enabled", RegistryValueKind.DWord) { ApplyOnly = true },
             },
             States = new[]
             {
@@ -773,14 +808,14 @@ public static class PrivacyOptimizationsCatalog
                     Label = LocKey.Common.Enabled,
                     Roles = new[] { StateRole.WindowsDefault },
                     Links = new[] { new Link("start-recommended-section", LinkKind.Requires, LocKey.Setting.StartRecommendedSection.Option0) },
-                    Set = new Dictionary<string, StateValue> { ["RotatingLockScreenEnabled"] = Of(1) },
+                    Set = new Dictionary<string, StateValue> { ["RotatingLockScreenEnabled"] = Of(1), ["SubscribedContent-338387Enabled"] = Of(1) },
                 },
                 new SettingState
                 {
                     Label = LocKey.Common.Disabled,
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["RotatingLockScreenEnabled"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["RotatingLockScreenEnabled"] = Of(0), ["SubscribedContent-338387Enabled"] = Of(0) },
                 },
             },
         },
@@ -798,7 +833,6 @@ public static class PrivacyOptimizationsCatalog
             Targets = new Target[]
             {
                 new RegTarget("RotatingLockScreenOverlayEnabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" }, "RotatingLockScreenOverlayEnabled", RegistryValueKind.DWord),
-                new RegTarget("SubscribedContent-338387Enabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" }, "SubscribedContent-338387Enabled", RegistryValueKind.DWord) { ApplyOnly = true },
             },
             States = new[]
             {
@@ -806,22 +840,14 @@ public static class PrivacyOptimizationsCatalog
                 {
                     Label = LocKey.Common.Enabled,
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue>
-                    {
-                        ["RotatingLockScreenOverlayEnabled"] = Of(1).OrAbsent(),
-                        ["SubscribedContent-338387Enabled"] = Of(1),
-                    },
+                    Set = new Dictionary<string, StateValue> { ["RotatingLockScreenOverlayEnabled"] = Of(1).OrAbsent() },
                 },
                 new SettingState
                 {
                     Label = LocKey.Common.Disabled,
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue>
-                    {
-                        ["RotatingLockScreenOverlayEnabled"] = Of(0),
-                        ["SubscribedContent-338387Enabled"] = Of(0),
-                    },
+                    Set = new Dictionary<string, StateValue> { ["RotatingLockScreenOverlayEnabled"] = Of(0) },
                 },
             },
         },
@@ -971,6 +997,41 @@ public static class PrivacyOptimizationsCatalog
                         ["SubscribedContent-353694Enabled"] = Of(0),
                         ["SubscribedContent-353696Enabled"] = Of(0),
                     },
+                },
+            },
+        },
+        new()
+        {
+            Id = "privacy-settings-home",
+            Display = new()
+            {
+                Name = LocKey.Setting.PrivacySettingsHome.Name,
+                Description = LocKey.Setting.PrivacySettingsHome.Description,
+                GroupName = LocKey.SettingGroup.General,
+                Icon = MaterialIcons.Home,
+                AddedInVersion = "26.10.15",
+                IsSubjectivePreference = true,
+            },
+            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
+            Apply = new() { Restart = new RestartProcess("SystemSettings") },
+            // The "Settings Page Visibility" policy: one "hide:" list for every hidden page, so only "home" is ours.
+            Targets = new Target[]
+            {
+                new RegTarget("SettingsPageVisibility", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" }, "SettingsPageVisibility", RegistryValueKind.String) { ListItem = "home", ListPrefix = "hide:" },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["SettingsPageVisibility"] = Of(false).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["SettingsPageVisibility"] = Of(true) },
                 },
             },
         },
@@ -2352,6 +2413,39 @@ public static class PrivacyOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["DisableCocreator"] = Of(1) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "privacy-notepad-ai-features",
+            Display = new()
+            {
+                Name = LocKey.Setting.PrivacyNotepadAiFeatures.Name,
+                Description = LocKey.Setting.PrivacyNotepadAiFeatures.Description,
+                GroupName = LocKey.SettingGroup.WindowsAI,
+                Icon = FluentIcons.NotepadEdit,
+                AddedInVersion = "26.09.30",
+            },
+            Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
+            Targets = new Target[]
+            {
+                new RegTarget("DisableAIFeatures", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\WindowsNotepad" }, "DisableAIFeatures", RegistryValueKind.DWord) { IsGroupPolicy = true },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["DisableAIFeatures"] = Of(0).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.Recommended },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["DisableAIFeatures"] = Of(1) },
                 },
             },
         },

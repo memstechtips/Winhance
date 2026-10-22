@@ -3,6 +3,8 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Catalogs;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.ViewModels;
@@ -73,6 +75,9 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
         _pendingChangedSubscription = _eventBus.Subscribe<PendingRestartChangedEvent>(
             _ => _dispatcherService.RunOnUIThread(Refresh));
 
+        // An app removal raises the bar while its own task is still running, so the button has to re-check when a task ends.
+        _taskProgressService.ProgressUpdated += OnTaskProgressUpdated;
+
         Refresh();
     }
 
@@ -83,7 +88,16 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
         ButtonText = Localize("PendingRestart_Button");
         RestartingText = Localize("PendingRestart_Restarting");
         TooltipText = BuildTooltip();
-        CanRestart = IsBarVisible && !IsRestarting && !_configImportState.IsActive && !_taskProgressService.IsTaskRunning;
+        CanRestart = ComputeCanRestart();
+    }
+
+    private bool ComputeCanRestart() =>
+        IsBarVisible && !IsRestarting && !_configImportState.IsActive && !_taskProgressService.IsTaskRunning;
+
+    private void OnTaskProgressUpdated(object? sender, TaskProgressDetail detail)
+    {
+        if (ComputeCanRestart() != CanRestart)
+            _dispatcherService.RunOnUIThread(() => CanRestart = ComputeCanRestart());
     }
 
     [RelayCommand]
@@ -113,7 +127,8 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
         }
     }
 
-    // Falls back to the catalog's English name, then the raw ID, so an unknown ID degrades rather than throwing.
+    // Settings and Windows apps share the bar. Falls back to the catalog's English name, then the raw ID, so an unknown
+    // ID degrades rather than throwing.
     private string BuildTooltip()
     {
         var names = _pendingRestartService.PendingSettingIds
@@ -128,7 +143,7 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
     {
         var setting = SettingCatalog.Find(settingId);
         if (setting is null)
-            return settingId;
+            return WindowsAppDefinitions.GetWindowsApps().Items.FirstOrDefault(a => a.Id == settingId)?.Name ?? settingId;
 
         var localized = Localize(setting.Display.Name.Value);
         return string.IsNullOrEmpty(localized) ? setting.Display.Name.Value : localized;
@@ -143,6 +158,7 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
             return;
 
         _disposed = true;
+        _taskProgressService.ProgressUpdated -= OnTaskProgressUpdated;
         if (_pendingChangedSubscription != null)
             _eventBus.Unsubscribe(_pendingChangedSubscription);
 

@@ -43,8 +43,7 @@ public class CatalogDetectionModelConformanceTests
             => _vals.TryGetValue((keyPath, valueName), out var v) ? v : null;
         public bool KeyExists(string keyPath) => false;
         public string[] GetSubKeyNames(string keyPath) => Array.Empty<string>();
-        public string? PrimaryDnsV4OfActiveAdapter() => null;
-        public IReadOnlyList<string> DnsV4ServersOfActiveAdapter() => Array.Empty<string>();
+        public IReadOnlyList<DnsServer> DnsServersOfActiveAdapter() => Array.Empty<DnsServer>();
         public bool IsSystemRestoreEnabled() => false;
         public bool? ScheduledTaskEnabled(string taskPath) => null;
         public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
@@ -161,7 +160,6 @@ public class CatalogDetectionModelConformanceTests
     [InlineData("privacy-turn-off-copilot", @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\WindowsCopilot", "TurnOffWindowsCopilot", 1)]
     [InlineData("updates-store-auto-download", @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\WindowsStore", "AutoDownload", 2)]
     [InlineData("gaming-storage-sense", @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\StorageSense", "AllowStorageSenseGlobal", 0)]
-    [InlineData("taskbar-widgets", @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Dsh", "AllowNewsAndInterests", 0)]
     [InlineData("taskbar-news-and-interests", @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Windows Feeds", "EnableFeeds", 0)]
     public void Single_gpo_mirror_clean_is_enabled_and_one_hive_disable_is_disabled(
         string id, string hkcuPath, string valueName, int disabledValue)

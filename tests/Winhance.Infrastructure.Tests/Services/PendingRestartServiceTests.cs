@@ -10,12 +10,13 @@ namespace Winhance.Infrastructure.Tests.Services;
 public class PendingRestartServiceTests
 {
     private readonly Mock<IEventBus> _mockEventBus = new();
+    private readonly Mock<IConfigImportState> _mockImportState = new();
     private readonly Mock<ILogService> _mockLog = new();
     private readonly PendingRestartService _sut;
 
     public PendingRestartServiceTests()
     {
-        _sut = new PendingRestartService(_mockEventBus.Object, _mockLog.Object);
+        _sut = new PendingRestartService(_mockEventBus.Object, _mockImportState.Object, _mockLog.Object);
     }
 
     [Fact]
@@ -88,6 +89,17 @@ public class PendingRestartServiceTests
         _sut.Register("b");
 
         snapshot.Should().ContainSingle("the returned collection must not mutate under the caller");
+    }
+
+    [Fact]
+    public void Register_DuringConfigImport_IsIgnored()
+    {
+        _mockImportState.Setup(s => s.IsActive).Returns(true);
+
+        _sut.Register("explorer-show-file-extensions");
+
+        _sut.IsPending.Should().BeFalse("a config import restarts Explorer itself at the end");
+        _mockEventBus.Verify(b => b.Publish(It.IsAny<PendingRestartChangedEvent>()), Times.Never);
     }
 
     [Fact]

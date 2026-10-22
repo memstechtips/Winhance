@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
+using Windows.Win32.UI.Input.KeyboardAndMouse;
 using Windows.Win32.UI.WindowsAndMessaging;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -21,11 +22,16 @@ internal class WindowsUIManagementService : IWindowsUIManagementService
     // value appears in long-standing AutoHotkey samples. Best-effort by construction: callers keep the kill as fallback.
     private const uint WM_SHELL_GRACEFUL_EXIT = 0x5B4;
 
-    private readonly ILogService _logService;
+    private const string KeyboardKey = @"HKEY_CURRENT_USER\Control Panel\Keyboard";
+    private const int NumLockIndicator = 0x02;
 
-    public WindowsUIManagementService(ILogService logService)
+    private readonly ILogService _logService;
+    private readonly IWindowsRegistryService _registry;
+
+    public WindowsUIManagementService(ILogService logService, IWindowsRegistryService registry)
     {
         _logService = logService;
+        _registry = registry;
     }
 
     public bool IsProcessRunning(string processName)
@@ -238,6 +244,29 @@ internal class WindowsUIManagementService : IWindowsUIManagementService
         catch (Exception ex)
         {
             _logService.LogError("Error broadcasting theme refresh", ex);
+        }
+    }
+
+    public void MatchNumLockToSavedValue()
+    {
+        try
+        {
+            // Read through the registry service so an elevated run as another admin reads the signed-in user's hive.
+            if (_registry.GetValue(KeyboardKey, "InitialKeyboardIndicators") is not string raw || !long.TryParse(raw, out var saved))
+                return;
+
+            bool wantOn = (saved & NumLockIndicator) != 0;
+            bool isOn = (PInvoke.GetKeyState((int)VIRTUAL_KEY.VK_NUMLOCK) & 1) != 0;
+            if (wantOn == isOn)
+                return;
+
+            // Num Lock is an extended key; scan code 0x45 is what the keyboard itself sends.
+            PInvoke.keybd_event((byte)VIRTUAL_KEY.VK_NUMLOCK, 0x45, KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY, 0);
+            PInvoke.keybd_event((byte)VIRTUAL_KEY.VK_NUMLOCK, 0x45, KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY | KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP, 0);
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError("Error matching Num Lock to the saved setting", ex);
         }
     }
 
