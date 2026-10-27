@@ -299,6 +299,29 @@ public class ApplyOpScriptEmitterTests
         SystemText(result).Should().Contain("schtasks /Change");
     }
 
+    // The task list is double-quoted, where a doubled quote prints twice (#797).
+    [Fact]
+    public void Task_DescriptionWithApostrophe_IsNotDoubledInsideDoubleQuotes()
+    {
+        var setting = new Setting
+        {
+            Id = "maps-task",
+            Display = new Display { Name = TestKeys.Of("Maps"), Description = TestKeys.Of("Disable if you don't use the Maps app") },
+            Targets = new Target[] { new TaskTarget("T", @"\Microsoft\Windows\Maps\MapsUpdateTask") },
+            States = new[]
+            {
+                new SettingState { Label = LocKey.Common.Enabled, Set = new Dictionary<string, StateValue> { ["T"] = StateValue.Of(true) } },
+                new SettingState { Label = LocKey.Common.Disabled, Set = new Dictionary<string, StateValue> { ["T"] = StateValue.Of(false) } },
+            },
+        };
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [ParityCatalog.FeatureId] = new[] { setting } };
+
+        var result = Emit(byFeature, new SettingChoice(setting.Id, new ChoiceValue.Toggle(false)));
+
+        SystemText(result).Should().Contain("Desc=\"Disable if you don't use the Maps app\"");
+        SystemText(result).Should().NotContain("don''t");
+    }
+
     [Fact]
     public void SelectionOption_WritesThatStatesPayload()
     {

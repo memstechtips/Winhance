@@ -49,14 +49,14 @@ public sealed record Setting
     public StateGate? VisibleWhen { get; init; }
 
     // Never applied to a machine. A ReadOnly registry target only seeds the card from this PC, and a state's
-    // ScriptEffect, or a text box's CustomStateScripts, is run by Winhancements.ps1 on the new install. An option
+    // ScriptEffect, or a text box's or option list's CustomStateScripts, is run by Winhancements.ps1 on the new install. An option
     // list normally means a reading off this machine, but a card whose every target is an answer-file element is
     // offering choices for media this PC has never seen, so there is nothing here to detect or apply.
     public bool IsAnswerFileOnly =>
         Detector is null && Numeric is null
         && (Options is null || Targets.All(t => t is AutounattendTarget))
         && (Targets.Any(t => t is AutounattendTarget) || Effects.Count > 0 || States.Any(s => s.Effects.Count > 0)
-            || (TextBox is not null && CustomStateScripts.Count > 0))
+            || ((TextBox is not null || Options is not null) && CustomStateScripts.Count > 0))
         && Targets.All(t => t is AutounattendTarget || t is RegTarget { ReadOnly: true })
         && Effects.All(e => e is AutounattendCommand or AutounattendFirstLogonCommand)
         && States.SelectMany(s => s.Effects).All(e => e is AutounattendCommand or AutounattendFirstLogonCommand or ScriptEffect);

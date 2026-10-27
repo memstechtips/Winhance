@@ -189,6 +189,9 @@ public class LocalizationUntranslatedValueTests
     private static readonly string[] UntranslatablePrefixes =
     [
         "Setting_explorer-customization-short-date_Option_",
+
+        // A drive letter is the same letter in every language Windows ships in.
+        "Setting_autounattend-user-folders-letter_Option_",
     ];
 
     private static bool IsUntranslatable(string key) =>

@@ -42,6 +42,9 @@ public enum OptionSource
     // Every distinct value the offered regional formats write for one locale value. A card keyed on a value the
     // region-format card also writes has to offer all of them, or choosing a format leaves it "Not recognized".
     LocaleValues,
+
+    // The labels of this PC's fixed, non-USB volumes. Only a suggestion list: the new PC is matched by label at setup.
+    VolumeLabels,
 }
 
 public enum OptionValue

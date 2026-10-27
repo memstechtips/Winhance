@@ -49,8 +49,10 @@ public class GeneratedPowerShellTests
                 ControlKind.Toggle or ControlKind.Action => new ChoiceValue.Toggle(true),
                 ControlKind.CheckBox => new ChoiceValue.CheckBox(true),
                 // The Winhance card's first option writes no script; the other two carry the install script, the shortcut
-                // only in a file that installs apps, as this one does.
-                ControlKind.Selection => new ChoiceValue.Option(setting.Id == "autounattend-desktop-shortcut" ? winhanceCardOption : 0),
+                // only in a file that installs apps, as this one does. The user folders' first option keeps them on C:, so
+                // the two runs take the drive-by-role and the drive-by-label children through the parser between them.
+                ControlKind.Selection => new ChoiceValue.Option(
+                    setting.Id is "autounattend-desktop-shortcut" or "autounattend-user-folders" ? winhanceCardOption : 0),
                 ControlKind.Slider => new ChoiceValue.AcDcNumber(600, 300),
                 ControlKind.KeyedSelection => KeyedChoice(setting.Id),
                 // The slideshow album applies through a script, so it needs a folder for that script to be parsed.
@@ -80,6 +82,7 @@ public class GeneratedPowerShellTests
         "theme-wallpaper-picture" => new ChoiceValue.Keyed(@"C:\Windows\Web\Wallpaper\Windows\img0.jpg", "Windows 11 light"),
         "theme-wallpaper-color" => new ChoiceValue.Keyed("#FF8C00", "#FF8C00"),
         "explorer-customization-short-date" => new ChoiceValue.Keyed("dd/MM/yyyy", "dd/MM/yyyy"),
+        "autounattend-user-folders-label" => new ChoiceValue.Keyed("Mom's data", "Mom's data"),
         _ => throw new InvalidOperationException($"{settingId} is keyed but names no live key here, so the parse gate would skip it"),
     };
 

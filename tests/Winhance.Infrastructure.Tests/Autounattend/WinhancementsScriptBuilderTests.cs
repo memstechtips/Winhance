@@ -262,34 +262,55 @@ public class WinhancementsScriptBuilderTests
     }
 
     [Fact]
-    public async Task BuildAsync_MovesTheUserFoldersInTheUserBlockToTheTypedLocation()
+    public async Task BuildAsync_UserFoldersByRole_FindsTheDriveAtSetupAndMovesTheFoldersAtSignIn()
     {
         var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
         {
             [FeatureIds.Autounattend] = SettingCatalog.ByFeature[FeatureIds.Autounattend],
         };
 
-        var result = await _sut.BuildAsync(SetOf(new SettingChoice("autounattend-user-folders", new ChoiceValue.Text(@"D:\Mom's PC"))), byFeature);
+        var result = await _sut.BuildAsync(SetOf(new SettingChoice("autounattend-user-folders", new ChoiceValue.Option(1))), byFeature);
 
-        var userBlockIndex = result.IndexOf("if ($UserCustomizations)", StringComparison.Ordinal);
-        result.IndexOf("$base = 'D:\\Mom''s PC'", StringComparison.Ordinal).Should().BeGreaterThan(userBlockIndex);
+        // The preamble opens with its own if ($UserCustomizations) guard, so the user block is the last one.
+        var systemBlockIndex = result.IndexOf("if (-not $UserCustomizations) {", StringComparison.Ordinal);
+        var userBlockIndex = result.LastIndexOf("if ($UserCustomizations) {", StringComparison.Ordinal);
+        systemBlockIndex.Should().BeGreaterThan(0);
+        result.IndexOf("'Mode', 'Role'", StringComparison.Ordinal).Should().BeInRange(systemBlockIndex, userBlockIndex);
+        result.IndexOf("'Letter', 'D'", StringComparison.Ordinal).Should().BeInRange(systemBlockIndex, userBlockIndex);
+        result.IndexOf(@"ExpandEnvironmentVariables('Users\%USERNAME%')", StringComparison.Ordinal).Should().BeGreaterThan(userBlockIndex);
         result.Should().Contain("User Shell Folders").And.NotContain("{{value}}");
+        result.Should().NotMatchRegex(@"'Mode', 'Role'\)\s*Write-Log", "the scripts log their own outcome");
     }
 
-    // The answer file carries only what it uses: an empty box, or a set that never reached the card, writes nothing.
     [Fact]
-    public async Task BuildAsync_LeavesTheUserFoldersOutWhenTheBoxIsEmpty()
+    public async Task BuildAsync_UserFoldersByRole_LeavesOutTheLabelTheOtherModeHides()
     {
         var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
         {
             [FeatureIds.Autounattend] = SettingCatalog.ByFeature[FeatureIds.Autounattend],
         };
 
-        var empty = await _sut.BuildAsync(SetOf(new SettingChoice("autounattend-user-folders", new ChoiceValue.Text(string.Empty))), byFeature);
+        var result = await _sut.BuildAsync(SetOf(
+            new SettingChoice("autounattend-user-folders", new ChoiceValue.Option(1)),
+            new SettingChoice("autounattend-user-folders-label-typed", new ChoiceValue.Text("Data"))), byFeature);
+
+        result.Should().Contain("'Mode', 'Role'").And.NotContain("'Label', 'Data'");
+    }
+
+    // The answer file carries only what it uses: kept in C:\Users, or a set that never reached the card, writes nothing.
+    [Fact]
+    public async Task BuildAsync_LeavesTheUserFoldersOutWhenTheyStayOnC()
+    {
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
+        {
+            [FeatureIds.Autounattend] = SettingCatalog.ByFeature[FeatureIds.Autounattend],
+        };
+
+        var kept = await _sut.BuildAsync(SetOf(new SettingChoice("autounattend-user-folders", new ChoiceValue.Option(0))), byFeature);
         var untouched = await _sut.BuildAsync(SelectionSet.Empty, byFeature);
 
-        empty.Should().NotContain("User Shell Folders");
-        untouched.Should().NotContain("User Shell Folders");
+        kept.Should().NotContain("User Shell Folders").And.NotContain(@"Winhance\UserFolders");
+        untouched.Should().NotContain("User Shell Folders").And.NotContain(@"Winhance\UserFolders");
     }
 
     [Fact]

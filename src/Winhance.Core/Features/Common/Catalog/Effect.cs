@@ -18,6 +18,9 @@ public sealed record ScriptEffect(string Script, RunContext Run) : Effect
 {
     // Answer file only: Some keeps the script out of a file that installs no apps, None out of one that does.
     public AppsToInstall When { get; init; } = AppsToInstall.Either;
+
+    // Answer file only: the script logs its own SUCCESS or WARNING, so the file adds no SUCCESS line after it.
+    public bool LogsOwnOutcome { get; init; }
 }
 
 public sealed record RegContentEffect(string Content) : Effect;

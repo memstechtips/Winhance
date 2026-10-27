@@ -1,5 +1,6 @@
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Infrastructure.Features.Autounattend.Services;
 using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.Infrastructure.Features.Customize.Services;
 using Winhance.Infrastructure.Features.Optimize.Services;
@@ -29,5 +30,6 @@ internal static class OptionProviderFixtures
             PowerService(),
             new TimeRegionLanguageService(),
             ThemeService(Mock.Of<ILocalizationService>()),
+            new VolumeLabelService(Mock.Of<IWmiApi>()),
         });
 }

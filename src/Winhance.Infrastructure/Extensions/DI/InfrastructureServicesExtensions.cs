@@ -173,6 +173,9 @@ public static class InfrastructureServicesExtensions
             Winhance.Infrastructure.Features.WimUtil.Services.AppStagingService>();
         services.AddSingleton<Winhance.Core.Features.Autounattend.Interfaces.IWinhancementsScriptBuilder,
             Winhance.Infrastructure.Features.Autounattend.Services.WinhancementsScriptBuilder>();
+        services.AddSingleton<Winhance.Infrastructure.Features.Autounattend.Services.VolumeLabelService>();
+        services.AddSingleton<IOptionProvider>(sp =>
+            sp.GetRequiredService<Winhance.Infrastructure.Features.Autounattend.Services.VolumeLabelService>());
 
         services.TryAddSingleton<System.Net.Http.HttpClient>();
 

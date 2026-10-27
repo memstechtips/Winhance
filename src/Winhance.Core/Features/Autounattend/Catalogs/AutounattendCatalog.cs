@@ -430,34 +430,255 @@ public static class AutounattendCatalog
                 Icon = MaterialIcons.FolderAccount,
                 AddedInVersion = "26.10.02",
             },
-            // Any text passes: a drive the new PC lacks is reported in its log, never refused here, so the rule's
-            // message is never shown and reuses the placeholder key. An empty box writes nothing at all.
+            // The choices only record what to look for. The new PC's drives are not known until setup runs on it, so
+            // the folder card's scripts find the drive there, by its role or label, never by a letter typed here.
+            States =
+            [
+                new() { Label = LocKey.Setting.AutounattendUserFolders.Option0, Roles = [StateRole.Recommended, StateRole.WindowsDefault] },
+                new() { Label = LocKey.Setting.AutounattendUserFolders.Option1, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Mode', 'Role')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFolders.Option2, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Mode', 'Label')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFolders.Option3, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Mode', 'Label')", RunContext.System) { LogsOwnOutcome = true }] },
+            ],
+        },
+        new()
+        {
+            Id = "autounattend-user-folders-label",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendUserFoldersLabel.Name,
+                Description = LocKey.Setting.AutounattendUserFoldersLabel.Description,
+                GroupName = LocKey.SettingGroup.Accounts,
+                Icon = MaterialIcons.Harddisk,
+                AddedInVersion = "26.10.02",
+            },
+            // This PC's labels are only suggestions: the new PC is searched for the label at setup.
+            Options = new(OptionSource.VolumeLabels) { NoChoiceLabel = LocKey.Setting.AutounattendUserFoldersLabel.OptionNone },
+            CustomStateScripts = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Label', '{{value}}')", RunContext.System) { LogsOwnOutcome = true }],
+            UiParentId = "autounattend-user-folders",
+            VisibleWhen = new("autounattend-user-folders", [LocKey.Setting.AutounattendUserFolders.Option2]),
+        },
+        new()
+        {
+            Id = "autounattend-user-folders-label-typed",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendUserFoldersLabelTyped.Name,
+                Description = LocKey.Setting.AutounattendUserFoldersLabelTyped.Description,
+                GroupName = LocKey.SettingGroup.Accounts,
+                Icon = MaterialIcons.Harddisk,
+                AddedInVersion = "26.10.02",
+            },
+            TextBox = new(new TextRule("^.{1,32}$", UpperCase: false, LocKey.Setting.AutounattendUserFoldersLabelTyped.Error)),
+            CustomStateScripts = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Label', '{{value}}')", RunContext.System) { LogsOwnOutcome = true }],
+            UiParentId = "autounattend-user-folders",
+            VisibleWhen = new("autounattend-user-folders", [LocKey.Setting.AutounattendUserFolders.Option3]),
+        },
+        new()
+        {
+            Id = "autounattend-user-folders-min-size",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendUserFoldersMinSize.Name,
+                Description = LocKey.Setting.AutounattendUserFoldersMinSize.Description,
+                GroupName = LocKey.SettingGroup.Accounts,
+                Icon = MaterialIcons.RulerSquare,
+                AddedInVersion = "26.10.02",
+            },
+            // An empty box sets no minimum.
+            TextBox = new(new TextRule("^(?:[1-9][0-9]{0,5})?$", UpperCase: false, LocKey.Setting.AutounattendUserFoldersMinSize.Error)),
+            CustomStateScripts = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'MinSizeGB', '{{value}}')", RunContext.System) { LogsOwnOutcome = true }],
+            UiParentId = "autounattend-user-folders",
+            VisibleWhen = new("autounattend-user-folders", [LocKey.Setting.AutounattendUserFolders.Option1]),
+        },
+        new()
+        {
+            Id = "autounattend-user-folders-drive-type",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendUserFoldersDriveType.Name,
+                Description = LocKey.Setting.AutounattendUserFoldersDriveType.Description,
+                GroupName = LocKey.SettingGroup.Accounts,
+                Icon = MaterialIcons.Harddisk,
+                AddedInVersion = "26.10.02",
+            },
+            // Get-PhysicalDisk's MediaType names the two.
+            States =
+            [
+                new() { Label = LocKey.Setting.AutounattendUserFoldersDriveType.Option0, Roles = [StateRole.Recommended, StateRole.WindowsDefault] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersDriveType.Option1, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'MediaType', 'SSD')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersDriveType.Option2, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'MediaType', 'HDD')", RunContext.System) { LogsOwnOutcome = true }] },
+            ],
+            UiParentId = "autounattend-user-folders",
+            VisibleWhen = new("autounattend-user-folders", [LocKey.Setting.AutounattendUserFolders.Option1]),
+        },
+        new()
+        {
+            Id = "autounattend-user-folders-blank",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendUserFoldersBlank.Name,
+                Description = LocKey.Setting.AutounattendUserFoldersBlank.Description,
+                GroupName = LocKey.SettingGroup.Accounts,
+                Icon = MaterialIcons.HarddiskPlus,
+                AddedInVersion = "26.10.02",
+            },
+            // Only a disk with no partitions at all is ever formatted.
+            States =
+            [
+                new() { Label = LocKey.Common.Enabled, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'PrepareBlankDisk', '1')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Common.Disabled, Roles = [StateRole.Recommended, StateRole.WindowsDefault] },
+            ],
+            UiParentId = "autounattend-user-folders",
+            EnabledWhen = new("autounattend-user-folders", [LocKey.Setting.AutounattendUserFolders.Option1, LocKey.Setting.AutounattendUserFolders.Option2, LocKey.Setting.AutounattendUserFolders.Option3]),
+        },
+        new()
+        {
+            Id = "autounattend-user-folders-letter",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendUserFoldersLetter.Name,
+                Description = LocKey.Setting.AutounattendUserFoldersLetter.Description,
+                GroupName = LocKey.SettingGroup.Accounts,
+                Icon = MaterialIcons.AlphaCBox,
+                AddedInVersion = "26.10.02",
+            },
+            // The letter is given to the drive once it is found; it never decides which drive that is.
+            States =
+            [
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option0, Roles = [StateRole.Recommended, StateRole.WindowsDefault], Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'D')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option1, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'E')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option2, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'F')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option3, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'G')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option4, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'H')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option5, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'I')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option6, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'J')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option7, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'K')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option8, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'L')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option9, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'M')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option10, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'N')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option11, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'O')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option12, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'P')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option13, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'Q')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option14, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'R')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option15, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'S')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option16, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'T')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option17, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'U')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option18, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'V')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option19, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'W')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option20, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'X')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option21, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'Y')", RunContext.System) { LogsOwnOutcome = true }] },
+                new() { Label = LocKey.Setting.AutounattendUserFoldersLetter.Option22, Effects = [new ScriptEffect(@"[Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Letter', 'Z')", RunContext.System) { LogsOwnOutcome = true }] },
+            ],
+            UiParentId = "autounattend-user-folders",
+            EnabledWhen = new("autounattend-user-folders", [LocKey.Setting.AutounattendUserFolders.Option1, LocKey.Setting.AutounattendUserFolders.Option2, LocKey.Setting.AutounattendUserFolders.Option3]),
+        },
+        new()
+        {
+            Id = "autounattend-user-folders-folder",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendUserFoldersFolder.Name,
+                Description = LocKey.Setting.AutounattendUserFoldersFolder.Description,
+                GroupName = LocKey.SettingGroup.Accounts,
+                Icon = MaterialIcons.FolderAccount,
+                AddedInVersion = "26.10.02",
+            },
             TextBox = new(
-                new TextRule("^.*$", UpperCase: false, LocKey.Setting.AutounattendUserFolders.Placeholder),
-                Placeholder: LocKey.Setting.AutounattendUserFolders.Placeholder),
-            // Runs as each account at its first sign-in, before the restart that follows it, so Explorer starts on
-            // the new folders. User Shell Folders is what Explorer reads; Windows rebuilds Shell Folders from it.
+                new TextRule(@"^[^:*?""<>|]+$", UpperCase: false, LocKey.Setting.AutounattendUserFoldersFolder.Error),
+                Default: @"Users\%USERNAME%"),
+            // Last on the page, so every record the cards above write is in place when the system script reads it.
+            // The system script runs once before anyone signs in: it finds the drive, formats it only when asked and
+            // only when it has no partitions, gives it its letter and records its root. The user script runs as each
+            // account at its first sign-in, before the restart that follows it, so Explorer starts on the new
+            // folders. User Shell Folders is what Explorer reads; Windows rebuilds Shell Folders from it. A value is
+            // changed only once its folder exists and takes a file, and nothing is overwritten or deleted.
             CustomStateScripts =
             [
-                new ScriptEffect(@"$base = '{{value}}'
-$root = [System.IO.Path]::Combine($base.TrimEnd('\') + '\', $env:USERNAME)
-$drive = [System.IO.Path]::GetPathRoot($root)
-if ($drive -and (Test-Path -LiteralPath $drive)) {
+                new ScriptEffect(@"try {
+    $rec = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Winhance\UserFolders' -ErrorAction Stop
+    $winDisk = (Get-Partition -DriveLetter $env:SystemDrive[0] -ErrorAction Stop).DiskNumber
+    $internal = @(Get-Disk -ErrorAction Stop | Where-Object { $_.BusType -notin 'USB', 'SD', 'MMC' })
+    $others = @($internal | Where-Object { -not $_.IsBoot -and -not $_.IsSystem -and $_.Number -ne $winDisk })
+    $blank = @($others | Where-Object { $_.PartitionStyle -eq 'RAW' -or $_.NumberOfPartitions -eq 0 })
+    $label = 'Data'
+    $volume = $null
+    $disk = $null
+    if ($rec.Mode -eq 'Label') {
+        $label = $rec.Label
+        $volume = Get-Volume -ErrorAction Stop | Where-Object { $_.DriveType -eq 'Fixed' -and $_.FileSystemLabel -eq $label -and ($_ | Get-Partition -ErrorAction SilentlyContinue).DiskNumber -in $internal.Number } | Select-Object -First 1
+        if (-not $volume -and $rec.PrepareBlankDisk) { $disk = $blank | Sort-Object Size -Descending | Select-Object -First 1 }
+        if (-not $volume -and -not $disk) { throw ""no internal drive is labelled '$label'"" }
+    } else {
+        $fits = @($others | Where-Object { ($rec.PrepareBlankDisk -or $_.Number -notin $blank.Number) -and (-not $rec.MinSizeGB -or $_.Size -ge [int64]$rec.MinSizeGB * 1GB) -and (-not $rec.MediaType -or (Get-PhysicalDisk | Where-Object DeviceId -eq ""$($_.Number)"").MediaType -eq $rec.MediaType) })
+        $disk = $fits | Sort-Object Size -Descending | Select-Object -First 1
+        if (-not $disk) { throw 'no other internal drive matches' }
+        if ($disk.Number -notin $blank.Number) {
+            $volume = Get-Partition -DiskNumber $disk.Number -ErrorAction Stop | Get-Volume -ErrorAction SilentlyContinue | Where-Object { $_.DriveType -eq 'Fixed' -and $_.FileSystem } | Sort-Object Size -Descending | Select-Object -First 1
+            if (-not $volume) { throw ""disk $($disk.Number) has no formatted volume"" }
+        }
+    }
+    if (-not $volume) {
+        if ($disk.IsOffline) { Set-Disk -Number $disk.Number -IsOffline $false -ErrorAction Stop }
+        if ($disk.PartitionStyle -eq 'RAW') { Initialize-Disk -Number $disk.Number -PartitionStyle GPT -ErrorAction Stop }
+        $volume = New-Partition -DiskNumber $disk.Number -UseMaximumSize -ErrorAction Stop | Format-Volume -FileSystem NTFS -NewFileSystemLabel $label -Confirm:$false -ErrorAction Stop
+        Write-Log ""User folders: formatted blank disk $($disk.Number) as NTFS '$label'"" ""INFO""
+    }
+    $want = $rec.Letter
+    $letter = ""$($volume.DriveLetter)"".Trim([char]0)
+    if ($letter -ne $want) {
+        $holder = Get-CimInstance Win32_Volume -Filter ""DriveLetter = '${want}:'"" -ErrorAction Stop
+        if ($holder.DriveType -in 2, 5) {
+            $used = @((Get-CimInstance Win32_Volume -ErrorAction Stop).DriveLetter)
+            $spare = [char[]]'ZYXWVUTSRQPONMLKJIHGFE' | Where-Object { ""${_}:"" -notin $used -and ""$_"" -ne $want } | Select-Object -First 1
+            $holder | Set-CimInstance -Property @{ DriveLetter = ""${spare}:"" } -ErrorAction Stop
+            $holder = $null
+        }
+        if ($holder) {
+            Write-Log ""User folders: ${want}: belongs to another fixed drive, so their drive keeps its own letter"" ""WARNING""
+        } else {
+            Get-CimInstance Win32_Volume -ErrorAction Stop | Where-Object DeviceID -eq $volume.Path | Set-CimInstance -Property @{ DriveLetter = ""${want}:"" } -ErrorAction Stop
+            $letter = $want
+        }
+    }
+    if (-not $letter) { throw ""the drive has no letter and ${want}: is taken"" }
+    [Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\UserFolders', 'Root', ""${letter}:\"")
+    Write-Log ""User folders: using ${letter}:\ ($($volume.FileSystemLabel))"" ""INFO""
+} catch {
+    Write-Log ""User folders stay in C:\Users: $($_.Exception.Message)"" ""WARNING""
+}", RunContext.System) { LogsOwnOutcome = true },
+                new ScriptEffect(@"$root = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Winhance\UserFolders' -ErrorAction SilentlyContinue).Root
+if (-not $root) {
+    Write-Log ""User folders stay in C:\Users: setup found no drive for them"" ""WARNING""
+} else {
+    $base = Join-Path $root ([Environment]::ExpandEnvironmentVariables('{{value}}'))
     $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders'
     $folders = [ordered]@{ 'Desktop' = 'Desktop'; 'Personal' = 'Documents'; '{374DE290-123F-4565-9164-39C4925E467B}' = 'Downloads'; 'My Music' = 'Music'; 'My Pictures' = 'Pictures'; 'My Video' = 'Videos' }
+    $failed = @()
     foreach ($name in $folders.Keys) {
-        $target = Join-Path $root $folders[$name]
-        $current = [Environment]::ExpandEnvironmentVariables([string](Get-ItemProperty -Path $key -Name $name -ErrorAction SilentlyContinue).$name)
-        New-Item -Path $target -ItemType Directory -Force | Out-Null
-        if ($current -and $current -ne $target -and (Test-Path -LiteralPath $current)) {
-            Get-ChildItem -LiteralPath $current -Force | Move-Item -Destination $target -Force -ErrorAction SilentlyContinue
+        try {
+            $target = Join-Path $base $folders[$name]
+            New-Item -Path $target -ItemType Directory -Force -ErrorAction Stop | Out-Null
+            $probe = Join-Path $target ""$([guid]::NewGuid()).tmp""
+            [System.IO.File]::WriteAllText($probe, '')
+            Remove-Item -LiteralPath $probe -Force -ErrorAction Stop
+            $current = [Environment]::ExpandEnvironmentVariables([string](Get-ItemProperty -Path $key -Name $name -ErrorAction SilentlyContinue).$name)
+            if ($current -and $current -ne $target -and (Test-Path -LiteralPath $current)) {
+                Get-ChildItem -LiteralPath $current -Force | Where-Object { -not (Test-Path -LiteralPath (Join-Path $target $_.Name)) } | Move-Item -Destination $target -ErrorAction SilentlyContinue
+            }
+            Set-ItemProperty -Path $key -Name $name -Value $target -Type ExpandString -ErrorAction Stop
+        } catch {
+            $failed += ""$($folders[$name]) ($($_.Exception.Message))""
         }
-        Set-ItemProperty -Path $key -Name $name -Value $target -Type ExpandString
     }
-} else {
-    Write-Log ""User folders left in place: $base is not on a drive this PC has"" ""WARNING""
-}", RunContext.User),
+    if ($failed) {
+        Write-Log ""User folders: not set on ${base}: $($failed -join '; ')"" ""WARNING""
+    } else {
+        Write-Log ""User folders: all six now on $base"" ""SUCCESS""
+    }
+}", RunContext.User) { LogsOwnOutcome = true },
             ],
+            UiParentId = "autounattend-user-folders",
+            EnabledWhen = new("autounattend-user-folders", [LocKey.Setting.AutounattendUserFolders.Option1, LocKey.Setting.AutounattendUserFolders.Option2, LocKey.Setting.AutounattendUserFolders.Option3]),
         },
         new()
         {

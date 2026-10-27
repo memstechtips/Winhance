@@ -515,8 +515,9 @@ public static class TechnicalDetailsBuilder
         var regTargets = ctx.Setting.Targets.OfType<RegTarget>().ToList();
         var elementTargets = ctx.Setting.Targets.OfType<AutounattendElement>().ToList();
         var reference = ReferenceList(ctx);
+        // A list that only feeds a script still documents that script.
         if (regTargets.Count == 0 && elementTargets.Count == 0 && reference.Count == 0)
-            return null;
+            return HasDocumentableContent(ctx) ? Matrix(ctx, [], [], []) : null;
 
         var chip = ctx.Chip(
             TechnicalDetailKeys.ChipKeyedOptions, "options come from Windows",
@@ -1222,13 +1223,13 @@ public static class TechnicalDetailsBuilder
             ctx.Text(TechnicalDetailKeys.SectionSetupCommands, "Windows Setup commands"),
             ctx.Text(TechnicalDetailKeys.SectionSetupCommandsDescription,
                 "Windows Setup runs this command during installation when the matching option is chosen."));
-        CollectTextBoxScripts();
+        CollectSettingScripts();
         return blocks;
 
-        // A text box has no state to carry an effect, so its scripts are collected from the setting.
-        void CollectTextBoxScripts()
+        // A text box or a list Windows supplies has no state to carry an effect, so its scripts are collected from the setting.
+        void CollectSettingScripts()
         {
-            if (ctx.Setting.Control != ControlKind.TextBox) return;
+            if (ctx.Setting.Control is not (ControlKind.TextBox or ControlKind.KeyedSelection)) return;
             foreach (var script in ctx.Setting.CustomStateScripts)
             {
                 blocks.Add(new MatrixCodeBlock(

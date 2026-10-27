@@ -22,6 +22,7 @@ public class OptionProviderRegistryTests
         OptionSource.Colors => "#FF8C00",
         OptionSource.LocaleValues => "dd/MM/yyyy",
         OptionSource.DisplayLanguages => "en-US",
+        OptionSource.VolumeLabels => "Data",
         _ => throw new ArgumentOutOfRangeException(nameof(source), source, "A new option list needs a sample key here."),
     };
 

@@ -13,7 +13,10 @@ public class CatalogCustomStateScriptsConformanceTests
 {
     private static readonly (string Id, int Count, RunContext[] Runs)[] Expected =
     {
-        ("autounattend-user-folders", 1, new[] { RunContext.User }),
+        ("autounattend-user-folders-folder", 2, new[] { RunContext.System, RunContext.User }),
+        ("autounattend-user-folders-label", 1, new[] { RunContext.System }),
+        ("autounattend-user-folders-label-typed", 1, new[] { RunContext.System }),
+        ("autounattend-user-folders-min-size", 1, new[] { RunContext.System }),
         ("explorer-customization-shortcut-arrow", 1, new[] { RunContext.System }),
         ("gaming-dns-server", 1, new[] { RunContext.User }),
         ("gaming-touch-keyboard-service", 1, new[] { RunContext.System }),

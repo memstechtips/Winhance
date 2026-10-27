@@ -155,6 +155,12 @@ internal sealed class ApplyOpScriptEmitter
         {
             foreach (var setting in settings.Where(s => s.IsAnswerFileOnly))
             {
+                // A card greyed out or hidden by another's choice is not used, so its scripts stay out of the file.
+                if ((setting.EnabledWhen ?? setting.VisibleWhen) is { } gate && byId.TryGetValue(gate.OtherId, out var gating)
+                    && SelectionSet.ChosenState(gating, chosenById.GetValueOrDefault(gate.OtherId)) is { } gatingState
+                    && !gate.States.Contains(gatingState.Label))
+                    continue;
+
                 EmitAnswerFileScripts(
                     setting, chosenById.GetValueOrDefault(setting.Id), externalAppIds, installOptions, apps, featureId, TextFor, signIn, systemIndent, userIndent, signInIndent);
             }
@@ -350,12 +356,18 @@ internal sealed class ApplyOpScriptEmitter
         string userIndent,
         string signInIndent)
     {
-        // A text box has no state to carry an effect: its scripts run only when the box holds text, which fills {{value}}.
+        // A text box or option list has no state to carry an effect: its scripts run only when the box holds text, or
+        // an option is picked, which fills {{value}}.
         IEnumerable<ScriptEffect>? effects;
         string? entered = null;
         if (setting.Control == ControlKind.TextBox)
         {
             entered = value is ChoiceValue.Text typed ? typed.Value : setting.TextBox!.Default;
+            effects = string.IsNullOrEmpty(entered) ? null : setting.CustomStateScripts;
+        }
+        else if (setting.Control == ControlKind.KeyedSelection)
+        {
+            entered = (value as ChoiceValue.Keyed)?.Key;
             effects = string.IsNullOrEmpty(entered) ? null : setting.CustomStateScripts;
         }
         else
@@ -378,7 +390,7 @@ internal sealed class ApplyOpScriptEmitter
         {
             var filled = script with { Script = script.Script.Replace("{{external-app-ids}}", ids).Replace("{{install-options}}", installOptions).Replace("{{value}}", typedText) };
             if (filled.Run == RunContext.SignInAfterSetup)
-                AppendScript(signIn, signInIndent, setting, filled.Script, logDesc);
+                AppendScript(signIn, signInIndent, setting, filled.Script, logDesc, filled.LogsOwnOutcome);
             else
                 AppendScriptEffect(text, systemIndent, userIndent, setting, filled, logDesc);
         }
@@ -388,9 +400,9 @@ internal sealed class ApplyOpScriptEmitter
         FeatureText text, string systemIndent, string userIndent, Setting setting, ScriptEffect script, string desc)
     {
         if (script.Run == RunContext.User)
-            AppendScript(text.User, userIndent, setting, script.Script, desc);
+            AppendScript(text.User, userIndent, setting, script.Script, desc, script.LogsOwnOutcome);
         else
-            AppendScript(text.System, systemIndent, setting, script.Script, desc);
+            AppendScript(text.System, systemIndent, setting, script.Script, desc, script.LogsOwnOutcome);
     }
 
     private static string? RegistryPathOf(ApplyOp op) => op switch
@@ -488,7 +500,7 @@ internal sealed class ApplyOpScriptEmitter
         }
     }
 
-    private void AppendScript(StringBuilder sb, string indent, Setting setting, string script, string desc)
+    private void AppendScript(StringBuilder sb, string indent, Setting setting, string script, string desc, bool logsOwnOutcome = false)
     {
         if (string.IsNullOrEmpty(script))
             return;
@@ -497,7 +509,8 @@ internal sealed class ApplyOpScriptEmitter
         sb.AppendLine($"{indent}# PowerShell script for: {NameOf(setting)}");
         sb.AppendLine($"{indent}try {{");
         AppendScriptBody(sb, indent, script);
-        sb.AppendLine($"{indent}    Write-Log \"{desc}\" \"SUCCESS\"");
+        if (!logsOwnOutcome)
+            sb.AppendLine($"{indent}    Write-Log \"{desc}\" \"SUCCESS\"");
         sb.AppendLine($"{indent}}} catch {{");
         sb.AppendLine($"{indent}    Write-Log \"Failed: {desc} - $($_.Exception.Message)\" \"ERROR\"");
         sb.AppendLine($"{indent}}}");

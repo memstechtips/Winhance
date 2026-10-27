@@ -71,6 +71,11 @@ public class EnabledWhenConformanceTests
             ("autounattend-disk", new[] { "Setting_autounattend-disk_Option_1", "Setting_autounattend-disk_Option_2" }),
         ["autounattend-disk-recovery-size"] =
             ("autounattend-disk", new[] { "Setting_autounattend-disk_Option_1", "Setting_autounattend-disk_Option_2" }),
+
+        // These only matter once a drive is to be found.
+        ["autounattend-user-folders-blank"] = ("autounattend-user-folders", new[] { "Setting_autounattend-user-folders_Option_1", "Setting_autounattend-user-folders_Option_2", "Setting_autounattend-user-folders_Option_3" }),
+        ["autounattend-user-folders-letter"] = ("autounattend-user-folders", new[] { "Setting_autounattend-user-folders_Option_1", "Setting_autounattend-user-folders_Option_2", "Setting_autounattend-user-folders_Option_3" }),
+        ["autounattend-user-folders-folder"] = ("autounattend-user-folders", new[] { "Setting_autounattend-user-folders_Option_1", "Setting_autounattend-user-folders_Option_2", "Setting_autounattend-user-folders_Option_3" }),
     };
 
     // Not drawn at all rather than greyed: the background kind decides which of these mean anything.
@@ -83,6 +88,12 @@ public class EnabledWhenConformanceTests
         ["theme-wallpaper-interval"] = ("theme-wallpaper", new[] { "Setting_theme-wallpaper_Option_2" }),
         ["theme-wallpaper-shuffle"] = ("theme-wallpaper", new[] { "Setting_theme-wallpaper_Option_2" }),
         ["autounattend-media-editions-list"] = ("autounattend-media-editions", new[] { "Setting_autounattend-media-editions_Option_2" }),
+
+        // Each describes one way of finding the drive, so only its own mode draws it.
+        ["autounattend-user-folders-label"] = ("autounattend-user-folders", new[] { "Setting_autounattend-user-folders_Option_2" }),
+        ["autounattend-user-folders-label-typed"] = ("autounattend-user-folders", new[] { "Setting_autounattend-user-folders_Option_3" }),
+        ["autounattend-user-folders-min-size"] = ("autounattend-user-folders", new[] { "Setting_autounattend-user-folders_Option_1" }),
+        ["autounattend-user-folders-drive-type"] = ("autounattend-user-folders", new[] { "Setting_autounattend-user-folders_Option_1" }),
     };
 
     // The other half of the authoring, and the half a "children of an off parent are dead" instinct keeps re-adding.

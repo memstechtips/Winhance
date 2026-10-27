@@ -32,6 +32,13 @@ public class AutounattendCatalogTests
         "autounattend-accounts",
         "autounattend-oobe-network",
         "autounattend-user-folders",
+        "autounattend-user-folders-label",
+        "autounattend-user-folders-label-typed",
+        "autounattend-user-folders-min-size",
+        "autounattend-user-folders-drive-type",
+        "autounattend-user-folders-blank",
+        "autounattend-user-folders-letter",
+        "autounattend-user-folders-folder",
         "autounattend-setup-language",
         "autounattend-licence-page",
         "autounattend-oem-registration-page",
@@ -63,6 +70,13 @@ public class AutounattendCatalogTests
         ControlKind.TextBox,
         ControlKind.Selection,
         ControlKind.List,
+        ControlKind.Selection,
+        ControlKind.Selection,
+        ControlKind.KeyedSelection,
+        ControlKind.TextBox,
+        ControlKind.TextBox,
+        ControlKind.Selection,
+        ControlKind.Toggle,
         ControlKind.Selection,
         ControlKind.TextBox,
         ControlKind.KeyedSelection,
@@ -202,6 +216,10 @@ $bytes[21] = 34
         ("autounattend-disk", LocKey.Setting.AutounattendDisk.Option0, LocKey.Setting.AutounattendDisk.Option0),
         ("autounattend-account", LocKey.Setting.AutounattendAccount.Option0, LocKey.Setting.AutounattendAccount.Option1),
         ("autounattend-oobe-network", LocKey.Setting.AutounattendOobeNetwork.Option1, LocKey.Setting.AutounattendOobeNetwork.Option0),
+        ("autounattend-user-folders", LocKey.Setting.AutounattendUserFolders.Option0, LocKey.Setting.AutounattendUserFolders.Option0),
+        ("autounattend-user-folders-drive-type", LocKey.Setting.AutounattendUserFoldersDriveType.Option0, LocKey.Setting.AutounattendUserFoldersDriveType.Option0),
+        ("autounattend-user-folders-blank", LocKey.Common.Disabled, LocKey.Common.Disabled),
+        ("autounattend-user-folders-letter", LocKey.Setting.AutounattendUserFoldersLetter.Option0, LocKey.Setting.AutounattendUserFoldersLetter.Option0),
         ("autounattend-licence-page", LocKey.Common.Disabled, LocKey.Common.Enabled),
         ("autounattend-oem-registration-page", LocKey.Common.Disabled, LocKey.Common.Enabled),
         ("autounattend-network-page", LocKey.Common.Disabled, LocKey.Common.Enabled),
@@ -466,21 +484,118 @@ $bytes[21] = 34
         cleanup.Description.Should().NotBeNullOrEmpty();
     }
 
-    // An empty box is the default and leaves every folder where Windows puts it.
+    // The cards only record what to look for; the drive is found on the new PC, so no card names a letter to find it by.
     [Fact]
-    public void The_user_folders_box_starts_empty_and_moves_the_six_folders_as_each_account()
+    public void The_user_folders_card_stays_on_C_by_default_and_records_how_to_find_the_drive()
     {
-        var setting = S("autounattend-user-folders");
+        var states = S("autounattend-user-folders").States;
+
+        states.Should().HaveCount(4);
+        states[0].Effects.Should().BeEmpty();
+        states[0].HasRole(RoleKind.Recommended).Should().BeTrue();
+        states[1].Effects.Cast<ScriptEffect>().Single().Script.Should().Contain("'Mode', 'Role'");
+        states[2].Effects.Cast<ScriptEffect>().Single().Script.Should().Contain("'Mode', 'Label'");
+        states[3].Effects.Cast<ScriptEffect>().Single().Script.Should().Contain("'Mode', 'Label'");
+        foreach (var record in states.SelectMany(st => st.Effects).Cast<ScriptEffect>())
+        {
+            record.Run.Should().Be(RunContext.System);
+            record.LogsOwnOutcome.Should().BeTrue("a record written is not a folder moved");
+        }
+    }
+
+    [Theory]
+    [InlineData("autounattend-user-folders-label", "2")]
+    [InlineData("autounattend-user-folders-label-typed", "3")]
+    [InlineData("autounattend-user-folders-min-size", "1")]
+    [InlineData("autounattend-user-folders-drive-type", "1")]
+    [InlineData("autounattend-user-folders-blank", "1,2,3")]
+    [InlineData("autounattend-user-folders-letter", "1,2,3")]
+    [InlineData("autounattend-user-folders-folder", "1,2,3")]
+    public void Each_user_folders_child_is_used_only_by_the_choices_it_belongs_to(string id, string options)
+    {
+        var parent = S("autounattend-user-folders");
+        var setting = S(id);
+
+        // A row for one way of finding the drive is hidden in the others; the rest are greyed while folders stay on C:.
+        var gate = setting.EnabledWhen ?? setting.VisibleWhen;
+        setting.UiParentId.Should().Be(parent.Id);
+        gate!.OtherId.Should().Be(parent.Id);
+        gate.States.Should().Equal(options.Split(',').Select(i => parent.States[i[0] - '0'].Label));
+    }
+
+    [Fact]
+    public void The_label_list_offers_this_PCs_labels_and_records_the_one_picked()
+    {
+        var setting = S("autounattend-user-folders-label");
+
+        setting.Options!.Source.Should().Be(OptionSource.VolumeLabels);
+        setting.Options.NoChoiceLabel.Should().Be(LocKey.Setting.AutounattendUserFoldersLabel.OptionNone);
+        setting.CustomStateScripts.Single().Script.Should().Contain("'Label', '{{value}}'");
+        S("autounattend-user-folders-label-typed").CustomStateScripts.Single().Script.Should().Contain("'Label', '{{value}}'");
+    }
+
+    [Fact]
+    public void The_size_and_type_filters_start_empty_and_on_any_drive()
+    {
+        var size = S("autounattend-user-folders-min-size");
+        size.TextBox!.Default.Should().BeNull();
+        size.TextBox.Rule.Matches("").Should().BeTrue();
+        size.TextBox.Rule.Matches("500").Should().BeTrue();
+        size.TextBox.Rule.Matches("0").Should().BeFalse();
+
+        var type = S("autounattend-user-folders-drive-type").States;
+        type[0].Effects.Should().BeEmpty();
+        type[1].Effects.Cast<ScriptEffect>().Single().Script.Should().Contain("'MediaType', 'SSD'");
+        type[2].Effects.Cast<ScriptEffect>().Single().Script.Should().Contain("'MediaType', 'HDD'");
+    }
+
+    [Fact]
+    public void The_letter_dropdown_offers_D_to_Z_and_starts_on_D()
+    {
+        var states = S("autounattend-user-folders-letter").States;
+
+        states.Should().HaveCount(23);
+        for (int i = 0; i < states.Count; i++)
+        {
+            var letter = (char)('D' + i);
+            states[i].Label.Value.Should().Be($"Setting_autounattend-user-folders-letter_Option_{i}");
+            states[i].Effects.Cast<ScriptEffect>().Single().Script.Should().Contain($"'Letter', '{letter}'");
+        }
+        states[0].HasRole(RoleKind.Recommended).Should().BeTrue();
+    }
+
+    [Fact]
+    public void The_folder_box_finds_the_drive_once_as_the_system_then_moves_the_six_folders_as_each_account()
+    {
+        var setting = S("autounattend-user-folders-folder");
 
         setting.Control.Should().Be(ControlKind.TextBox);
-        setting.TextBox!.Default.Should().BeNull();
-        setting.TextBox.Rule.Matches(@"Q:\no such drive").Should().BeTrue("a drive the new PC lacks is reported there, never refused here");
-        var script = setting.CustomStateScripts.Should().ContainSingle().Which;
-        script.Run.Should().Be(RunContext.User);
-        script.Script.Should().Contain("$base = '{{value}}'")
-            .And.Contain(@"HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders");
+        setting.TextBox!.Default.Should().Be(@"Users\%USERNAME%");
+        setting.TextBox.Rule.Matches(@"D:\Users").Should().BeFalse("the drive is found, never typed");
+        setting.Should().BeSameAs(AutounattendCatalog.All.Last(s => s.UiParentId == "autounattend-user-folders"),
+            "the records the other cards write are in place before its scripts read them");
+
+        var scripts = setting.CustomStateScripts;
+        scripts.Select(s => s.Run).Should().Equal(RunContext.System, RunContext.User);
+        scripts.Should().OnlyContain(s => s.LogsOwnOutcome);
+
+        var system = scripts[0].Script;
+        system.Should().Contain("$_.BusType -notin 'USB', 'SD', 'MMC'")
+            .And.Contain("-not $_.IsBoot -and -not $_.IsSystem")
+            .And.Contain("$_.PartitionStyle -eq 'RAW' -or $_.NumberOfPartitions -eq 0")
+            .And.Contain("$_.FileSystemLabel -eq $label")
+            .And.Contain("'Root'")
+            .And.Contain("\"WARNING\"")
+            .And.NotContain("\"SUCCESS\"");
+
+        var user = scripts[1].Script;
+        user.Should().Contain("ExpandEnvironmentVariables('{{value}}')")
+            .And.Contain(@"HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders")
+            .And.Contain("\"SUCCESS\"")
+            .And.Contain("\"WARNING\"")
+            .And.NotContain("Move-Item -Destination $target -Force");
         foreach (var value in new[] { "'Desktop'", "'Personal'", "'{374DE290-123F-4565-9164-39C4925E467B}'", "'My Music'", "'My Pictures'", "'My Video'" })
-            script.Script.Should().Contain(value);
+            user.Should().Contain(value);
     }
 
     [Fact]
