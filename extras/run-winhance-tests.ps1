@@ -34,6 +34,10 @@ param (
 $ErrorActionPreference = "Stop"
 $solutionDir = Resolve-Path "$PSScriptRoot\.."
 
+# MSBuild otherwise keeps one worker per core alive for about 15 minutes after the build, in case another
+# build follows. These runs share the PC with other work, so the workers exit with the build instead.
+$env:MSBUILDDISABLENODEREUSE = "1"
+
 # Redirect build outputs to a local disk when the repo is on a network share (otherwise a project can
 # silently link a stale prebuilt dll and ignore source edits, or the build fails writing the share's
 # obj\). No-op on a local repo.
@@ -130,6 +134,17 @@ function Run-TestProject {
     }
 }
 
+# The compiler servers (the SDK's and Visual Studio's) also idle on after a build; shut them so the memory
+# comes back as soon as the run ends.
+function Stop-BuildServers {
+    try { dotnet build-server shutdown 2>&1 | Out-Null } catch { }
+    $msbuild = Find-MSBuild
+    $vbcs = if ($msbuild) { Join-Path (Split-Path $msbuild) "Roslyn\VBCSCompiler.exe" }
+    if ($vbcs -and (Test-Path $vbcs)) {
+        try { & $vbcs -shutdown 2>&1 | Out-Null } catch { }
+    }
+}
+
 function Find-MSBuild {
     # WinUI3/WindowsAppSDK projects cannot be built by the .NET SDK alone - the XAML compiler needs
     # the MSVC toolset - so require BOTH components, same as build-and-package.ps1 does.
@@ -188,6 +203,12 @@ function Invoke-UITestProject {
         return "buildfailed"
     }
     Write-Host "  Build succeeded (Winhance.UI compiled)" -ForegroundColor Green
+    # An environment problem, not a code one: VS 2022 MSBuild builds .NET 10 but Microsoft does not
+    # support it. The fix is installing Visual Studio 2026 on the build machine.
+    if ($buildOutput -match 'NETSDK1233') {
+        Write-Host "  WARNING NETSDK1233: built with VS 2022 MSBuild, which does not support .NET 10. Install Visual Studio 2026." -ForegroundColor Yellow
+        Add-Log "WARNING NETSDK1233: $msbuildPath does not support .NET 10"
+    }
 
     # Locate the built assembly. When the repo is on a share, Use-LocalBuildOutputs.ps1 has
     # redirected bin\ to WINHANCE_LOCAL_BUILD_ROOT, so the in-tree path does not exist.
@@ -292,6 +313,49 @@ function Invoke-UITestProject {
     return "pass"
 }
 
+function Test-VulnerablePackages {
+    # NuGet audit only warns (NU1901-NU1904) and the test output is quiet, so a vulnerable transitive
+    # slips through every green run. Asking NuGet directly makes it a gate failure instead.
+    # Returns $true when clean, $false when a package is flagged, $null when the check could not run.
+    $ErrorActionPreference = "Continue"
+    $sln = Join-Path $solutionDir "Winhance.sln"
+    Write-Host ""
+    Write-Host "  Checking NuGet packages for known vulnerabilities..." -ForegroundColor Cyan
+    $restore = & dotnet restore $sln --verbosity quiet 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  Vulnerability check NOT RUN: restore failed (see the log)" -ForegroundColor Yellow
+        Add-Log "### Vulnerability check: restore failed"; Add-Log $restore
+        return $null
+    }
+    $raw = & dotnet list $sln package --vulnerable --include-transitive --format json 2>$null | Out-String
+    try { $report = $raw | ConvertFrom-Json }
+    catch {
+        Write-Host "  Vulnerability check NOT RUN: unreadable output (see the log)" -ForegroundColor Yellow
+        Add-Log "### Vulnerability check: unreadable output"; Add-Log $raw
+        return $null
+    }
+    $hits = @()
+    foreach ($project in $report.projects) {
+        foreach ($framework in $project.frameworks) {
+            foreach ($package in @($framework.topLevelPackages) + @($framework.transitivePackages)) {
+                foreach ($vuln in $package.vulnerabilities) {
+                    $hits += "{0} {1} ({2}) {3}" -f $package.id, $package.resolvedVersion, $vuln.severity, $vuln.advisoryurl
+                }
+            }
+        }
+    }
+    $hits = @($hits | Sort-Object -Unique)
+    Add-Log "### Vulnerability check"
+    if ($hits.Count -eq 0) {
+        Write-Host "  No vulnerable packages" -ForegroundColor Green
+        Add-Log "clean"
+        return $true
+    }
+    Write-Host "  VULNERABLE PACKAGES - pin a patched version in the csproj:" -ForegroundColor Red
+    foreach ($hit in $hits) { Write-Host "    $hit" -ForegroundColor Red; Add-Log $hit }
+    return $false
+}
+
 function Resolve-UIResult {
     # Turns Invoke-UITestProject's status into a console line + the shared failure tally.
     # Returns $true when the UI gate passed.
@@ -363,6 +427,7 @@ if ($UIOnly) {
     Write-Host "  mode:    UI only (build Winhance.UI.Tests -> compiles Winhance.UI)" -ForegroundColor Cyan
 
     $uiOk = Resolve-UIResult -Result (Invoke-UITestProject) -MSBuildRequired $true
+    if ((Test-VulnerablePackages) -eq $false) { $uiOk = $false }
 
     Write-Host ""
     Write-Host ("=" * 60) -ForegroundColor Cyan
@@ -372,12 +437,14 @@ if ($UIOnly) {
         Write-Host ("  Time:    {0}s" -f ((Get-Date) - $startTime).TotalSeconds.ToString('F1')) -ForegroundColor White
         Write-Host ("=" * 60) -ForegroundColor Cyan
         Write-Host ""
+        Stop-BuildServers
         exit 0
     }
     Write-Host "  UI gate: FAIL" -ForegroundColor Red
     Write-Host ("  Time:    {0}s" -f ((Get-Date) - $startTime).TotalSeconds.ToString('F1')) -ForegroundColor White
     Write-Host ("=" * 60) -ForegroundColor Cyan
     Write-Host ""
+    Stop-BuildServers
     exit 1
 }
 
@@ -408,6 +475,8 @@ if (-not $IntegrationOnly) {
 Run-TestProject `
     -Name "Integration Tests" `
     -ProjectPath "$solutionDir\tests\Winhance.IntegrationTests\Winhance.IntegrationTests.csproj"
+
+if ((Test-VulnerablePackages) -eq $false) { $failedProjects += "Vulnerable NuGet packages" }
 
 # Summary
 $elapsed = (Get-Date) - $startTime
@@ -453,11 +522,13 @@ if ($failedProjects.Count -gt 0) {
         Write-Host "    - $proj" -ForegroundColor Red
     }
     Write-Host ""
+    Stop-BuildServers
     exit 1
 }
 else {
     Write-Host ""
     Write-Host "  All tests passed." -ForegroundColor Green
     Write-Host ""
+    Stop-BuildServers
     exit 0
 }

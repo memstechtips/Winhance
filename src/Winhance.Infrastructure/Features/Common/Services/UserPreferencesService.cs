@@ -285,8 +285,11 @@ internal class UserPreferencesService : IUserPreferencesService
         }
     }
 
+    // Same lock as the writers: File.WriteAllTextAsync does not share the file for reading, so an unlocked read
+    // during a save throws "being used by another process" and quietly hands back the default.
     public T GetPreference<T>(string key, T defaultValue)
     {
+        _fileLock.Wait();
         try
         {
             string filePath = GetPreferencesFilePath();
@@ -359,6 +362,10 @@ internal class UserPreferencesService : IUserPreferencesService
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error getting preference '{key}' synchronously: {ex.Message}");
+        }
+        finally
+        {
+            _fileLock.Release();
         }
 
         return defaultValue;

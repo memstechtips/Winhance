@@ -34,43 +34,63 @@ public class RegImportServiceTests
     }
 
     [Fact]
-    public async Task RunRegImportAsync_NonOts_WritesTempFileAndImportsViaCmd()
+    public async Task RunRegImportAsync_NonOts_ImportsContentUnchanged()
     {
         _interactiveUser.Setup(i => i.IsOtsElevation).Returns(false);
         _fileSystem.Setup(f => f.GetTempPath()).Returns(@"C:\Temp");
         _processExecutor
-            .Setup(p => p.ExecuteAsync("cmd.exe", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.ExecuteAsync("reg.exe", It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ProcessExecutionResult { ExitCode = 0 });
 
-        await _sut.RunRegImportAsync("REGDATA");
+        await _sut.RunRegImportAsync("[HKEY_CURRENT_USER\\Software\\A]");
 
-        _fileSystem.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), "REGDATA", It.IsAny<CancellationToken>()), Times.Once);
-        _processExecutor.Verify(p => p.ExecuteAsync("cmd.exe", It.Is<string>(s => s.Contains("reg import")), It.IsAny<CancellationToken>()), Times.Once);
+        _fileSystem.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), "[HKEY_CURRENT_USER\\Software\\A]", It.IsAny<CancellationToken>()), Times.Once);
+        _processExecutor.Verify(p => p.ExecuteAsync("reg.exe", It.Is<string>(s => s.StartsWith("import ")), It.IsAny<CancellationToken>()), Times.Once);
         _fileSystem.Verify(f => f.DeleteFile(It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
-    public async Task RunRegImportAsync_Ots_RunsRegImportAsInteractiveUser()
+    public async Task RunRegImportAsync_Ots_ImportsElevatedWithHkcuSectionsInSignedInUsersHive()
     {
+        const string sid = "S-1-5-21-1-2-3-1001";
         _interactiveUser.Setup(i => i.IsOtsElevation).Returns(true);
-        _interactiveUser.Setup(i => i.HasInteractiveUserToken).Returns(true);
-        _interactiveUser.Setup(i => i.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData))
-            .Returns(@"C:\Users\Bob\AppData\Local");
-        _interactiveUser
-            .Setup(i => i.RunProcessAsInteractiveUserAsync(
-                "reg.exe", It.IsAny<string>(),
-                It.IsAny<Action<string>?>(), It.IsAny<Action<string>?>(),
-                It.IsAny<CancellationToken>(), It.IsAny<int>(), It.IsAny<Action<string>?>()))
-            .ReturnsAsync(new InteractiveProcessResult(0, "", ""));
+        _interactiveUser.Setup(i => i.InteractiveUserSid).Returns(sid);
+        _fileSystem.Setup(f => f.GetTempPath()).Returns(@"C:\Temp");
+        _processExecutor
+            .Setup(p => p.ExecuteAsync("reg.exe", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessExecutionResult { ExitCode = 0 });
+        string? written = null;
+        _fileSystem
+            .Setup(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback((string _, string content, CancellationToken _) => written = content)
+            .Returns(Task.CompletedTask);
 
-        await _sut.RunRegImportAsync("REGDATA");
+        await _sut.RunRegImportAsync(
+            "[HKEY_CURRENT_USER\\Software\\A]\r\n\"Path\"=\"HKEY_CURRENT_USER\\\\Keep\"\r\n" +
+            "[-HKEY_CURRENT_USER\\Software\\B]\r\n[HKEY_LOCAL_MACHINE\\SOFTWARE\\C]\r\n");
 
-        _fileSystem.Verify(f => f.CreateDirectory(It.IsAny<string>()), Times.Once);
+        written.Should().Be(
+            $"[HKEY_USERS\\{sid}\\Software\\A]\r\n\"Path\"=\"HKEY_CURRENT_USER\\\\Keep\"\r\n" +
+            $"[-HKEY_USERS\\{sid}\\Software\\B]\r\n[HKEY_LOCAL_MACHINE\\SOFTWARE\\C]\r\n");
+        _processExecutor.Verify(p => p.ExecuteAsync("reg.exe", It.Is<string>(s => s.StartsWith("import ")), It.IsAny<CancellationToken>()), Times.Once);
         _interactiveUser.Verify(i => i.RunProcessAsInteractiveUserAsync(
-            "reg.exe", It.Is<string>(s => s.Contains("import")),
+            It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<Action<string>?>(), It.IsAny<Action<string>?>(),
-            It.IsAny<CancellationToken>(), It.IsAny<int>(), It.IsAny<Action<string>?>()), Times.Once);
-        _processExecutor.Verify(p => p.ExecuteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<CancellationToken>(), It.IsAny<int>(), It.IsAny<Action<string>?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RunRegImportAsync_NonZeroExit_ThrowsAndStillDeletesTempFile()
+    {
+        _interactiveUser.Setup(i => i.IsOtsElevation).Returns(false);
+        _fileSystem.Setup(f => f.GetTempPath()).Returns(@"C:\Temp");
+        _processExecutor
+            .Setup(p => p.ExecuteAsync("reg.exe", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessExecutionResult { ExitCode = 1, StandardError = "ERROR: Error accessing the registry." });
+
+        var act = async () => await _sut.RunRegImportAsync("REGDATA");
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*Error accessing the registry*");
         _fileSystem.Verify(f => f.DeleteFile(It.IsAny<string>()), Times.Once);
     }
 

@@ -135,14 +135,18 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
         return ProtectedSubKeyRoots.Contains(path) || ProtectedBranches.Contains(parent);
     }
 
+    // An absent key or value is the state a delete asks for, so it succeeds. OpenSubKey returns null only when
+    // the key is missing; a refused open throws and still fails.
     public bool DeleteKey(string keyPath)
     {
         try
         {
-            if (!KeyExists(keyPath))
-                return true;
-
             var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
+            using (var existing = rootKey.OpenSubKey(subKeyPath, false))
+            {
+                if (existing == null)
+                    return true;
+            }
 
             var segments = subKeyPath.Split('\\', StringSplitOptions.RemoveEmptyEntries);
             if (segments.Length < MinDeleteDepth)
@@ -175,7 +179,7 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
             var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
             using var key = rootKey.OpenSubKey(subKeyPath, true);
             if (key == null)
-                return false;
+                return true;
 
             key.DeleteValue(valueName, false);
             return true;

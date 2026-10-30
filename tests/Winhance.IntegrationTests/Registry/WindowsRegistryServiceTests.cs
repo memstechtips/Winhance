@@ -1,3 +1,5 @@
+using System.Security.AccessControl;
+using System.Security.Principal;
 using FluentAssertions;
 using Microsoft.Win32;
 using Moq;
@@ -96,6 +98,55 @@ public class WindowsRegistryServiceTests : IDisposable
 
         result.Should().BeTrue();
         _service.ValueExists(path, "ToDelete").Should().BeFalse();
+    }
+
+    [Fact]
+    public void DeleteValue_WhenValueIsAbsent_ReturnsTrue()
+    {
+        var path = TestPath("DeleteAbsentValueTest");
+        _service.SetValue(path, "Other", 1, RegistryValueKind.DWord);
+
+        _service.DeleteValue(path, "NeverWritten").Should().BeTrue();
+    }
+
+    [Fact]
+    public void DeleteValue_WhenKeyIsAbsent_ReturnsTrue()
+    {
+        _service.DeleteValue(TestPath("MissingKey_" + Guid.NewGuid().ToString("N")), "Anything")
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public void DeleteKey_WhenKeyIsAbsent_ReturnsTrue()
+    {
+        _service.DeleteKey(TestPath("MissingKey_" + Guid.NewGuid().ToString("N"))).Should().BeTrue();
+    }
+
+    [Fact]
+    public void DeleteValue_WhenWindowsRefusesTheWrite_ReturnsFalse()
+    {
+        var path = TestPath("DeniedDeleteTest");
+        _service.SetValue(path, "Kept", 1, RegistryValueKind.DWord);
+        var denySetValue = new RegistryAccessRule(
+            WindowsIdentity.GetCurrent().User!, RegistryRights.SetValue, AccessControlType.Deny);
+        using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(
+            $@"{_testKeyRoot}\DeniedDeleteTest",
+            RegistryKeyPermissionCheck.ReadWriteSubTree,
+            RegistryRights.ReadPermissions | RegistryRights.ChangePermissions)!;
+        var security = key.GetAccessControl();
+        security.AddAccessRule(denySetValue);
+        key.SetAccessControl(security);
+
+        try
+        {
+            _service.DeleteValue(path, "Kept").Should().BeFalse();
+            _service.ValueExists(path, "Kept").Should().BeTrue();
+        }
+        finally
+        {
+            security.RemoveAccessRule(denySetValue);
+            key.SetAccessControl(security);
+        }
     }
 
     [Fact]

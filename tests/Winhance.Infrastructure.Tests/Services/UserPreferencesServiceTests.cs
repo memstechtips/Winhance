@@ -303,4 +303,28 @@ public class UserPreferencesServiceTests
 
         result.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task GetPreference_WhileSaveInFlight_WaitsForTheWrite()
+    {
+        var writeGate = new TaskCompletionSource();
+        string? written = null;
+        _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
+        _mockFileSystemService.Setup(f => f.ReadAllTextAsync(It.IsAny<string>(), default)).ReturnsAsync("{}");
+        _mockFileSystemService
+            .Setup(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), default))
+            .Callback<string, string, System.Threading.CancellationToken>((_, content, _) => written = content)
+            .Returns(writeGate.Task);
+        _mockFileSystemService.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns(() => written ?? "{}");
+
+        var save = _service.SetPreferenceAsync("InitialConfigBackupCompleted", true);
+        var read = Task.Run(() => _service.GetPreference("InitialConfigBackupCompleted", false));
+
+        (await Task.WhenAny(read, Task.Delay(200))).Should().NotBeSameAs(read);
+        _mockFileSystemService.Verify(f => f.ReadAllText(It.IsAny<string>()), Times.Never);
+
+        writeGate.SetResult();
+        await save;
+        (await read).Should().BeTrue();
+    }
 }

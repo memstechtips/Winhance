@@ -21,7 +21,6 @@ internal class WindowsAsyncEffectRunner(
                     return true;
 
                 case RegContentEffect r:
-                    // A non-zero reg.exe exit is logged by the service, not treated as failure.
                     await regImport.RunRegImportAsync(r.Content).ConfigureAwait(false);
                     return true;
 
