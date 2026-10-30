@@ -9,7 +9,7 @@ namespace Winhance.IntegrationTests.Localization;
 public class LocalizationJsonValidityTests
 {
     private static readonly string LocalizationFolder =
-        Path.Combine(TestContext.SolutionDir, "src", "Winhance.UI", "Features", "Common", "Localization");
+        Path.Combine(TestContext.SolutionDir, "src", "Winhance.Core", "Features", "Common", "Localization");
 
     public static IEnumerable<object[]> AllJsonFiles()
     {

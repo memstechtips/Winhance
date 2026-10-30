@@ -23,7 +23,7 @@ public class LocalizationDuplicateValueReportTests
     // duplication is a consequence of the naming contract.
     private static readonly string[] ContractualPrefixes =
     [
-        // Computed from a catalog Setting.Id / group name / power-plan name by SettingLocalizationKeys.
+        // Computed from a catalog Setting.Id / group name / power-plan name by the key generator.
         "Setting_", "SettingGroup_", "PowerPlan_", "_Meta_",
         // SettingStatusBannerManager builds these as prefix + ("Toggle" | "Selection") at runtime.
         "Common_MalformedBanner_", "Common_UndeterminedBanner_", "Common_CustomBanner_",
@@ -94,7 +94,7 @@ public class LocalizationDuplicateValueReportTests
                 _output.WriteLine($"    {k}");
         }
 
-        // Report-only, like DeadKeys_Report. Read the output when you want to consolidate.
+        // Report-only. Read the output when you want to consolidate.
         collapsible.Should().NotBeNull();
     }
 }

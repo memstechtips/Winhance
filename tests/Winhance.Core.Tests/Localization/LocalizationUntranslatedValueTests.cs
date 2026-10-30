@@ -92,8 +92,9 @@ public class LocalizationUntranslatedValueTests
         "SettingGroup_Microsoft_Office_AI",
         "Setting_privacy-edge-devtools-ai_Name",
 
-        // Windows Setup searches for the answer file by the literal name autounattend.xml.
+        // Windows Setup finds the answer file by the literal name autounattend.xml; the feature is named after it.
         "Builder_Mode_Target_Autounattend",
+        "Feature_Autounattend_Name",
 
         // Resolver brand plus its IP address. Options 0, 2 and 3 of the same setting are prose
         // ("Automatic (DHCP)", "Cloudflare Malware Blocking (1.1.1.2)") and are translated everywhere, so a
@@ -140,6 +141,40 @@ public class LocalizationUntranslatedValueTests
         "Common_MalformedState_ShortLabel",
         "Common_UndeterminedState_ShortLabel",
         "Common_CustomState_ShortLabel",
+
+        // Product names: WIMUtil, and Unattend, Microsoft's own word for the answer file (unattend.xml).
+        "Nav_WimUtil",
+        "Nav_Autounattend",
+
+        // The two built-in Windows group names, as the answer file spells them.
+        "AutounattendAccounts_Group_Administrators",
+        "AutounattendAccounts_Group_Users",
+
+        // Processor names, written the same way in every Windows UI language.
+        "Setting_autounattend-architecture-x64_Name",
+        "Setting_autounattend-architecture-arm64_Name",
+        "Setting_autounattend-architecture-x86_Name",
+
+        // The 13 Windows edition names Microsoft ships; options 0, 14 and 15 are prose every locale translates.
+        "Setting_autounattend-edition_Option_1",
+        "Setting_autounattend-edition_Option_2",
+        "Setting_autounattend-edition_Option_3",
+        "Setting_autounattend-edition_Option_4",
+        "Setting_autounattend-edition_Option_5",
+        "Setting_autounattend-edition_Option_6",
+        "Setting_autounattend-edition_Option_7",
+        "Setting_autounattend-edition_Option_8",
+        "Setting_autounattend-edition_Option_9",
+        "Setting_autounattend-edition_Option_10",
+        "Setting_autounattend-edition_Option_11",
+        "Setting_autounattend-edition_Option_12",
+        "Setting_autounattend-edition_Option_13",
+
+        // A framework's product name and its version number, with no word beside them.
+        "Setting_autounattend-netfx3_Name",
+
+        // Named by the product alone; the two Windows 11 pictures carry a theme word every locale translates.
+        "Setting_theme-wallpaper-picture_Option_windows-10",
     ];
 
     // Every option label of this setting is a date pattern ("M/d/yyyy") mirroring the literal it writes to
@@ -167,6 +202,16 @@ public class LocalizationUntranslatedValueTests
     // The counts are non-vacuity guards: a broken path or glob would otherwise hand every tier a clean bill.
     // The two subset checks guard the same way against silent decay - rename a file (zh-Hans to zh-CN) and
     // rule 1's bar stops being reachable, rename a key and its exemption goes on being trusted forever.
+    [Fact]
+    public void TheWinhancePlanName_KeepsTheBrandTheCodeMatchesOn_InEveryLocale()
+    {
+        foreach (var (locale, values) in LoadLocales())
+            values.GetValueOrDefault("PowerPlan_WinhancePowerPlan_Name", string.Empty)
+                .Should().Contain("Winhance",
+                    "{0} names the scheme PowerService identifies by its brand when Windows assigns its own GUID",
+                    locale);
+    }
+
     private static Dictionary<string, Dictionary<string, string>> LoadLocales()
     {
         var locales = Directory.GetFiles(RepoPaths.LocalizationDir(), "*.json")

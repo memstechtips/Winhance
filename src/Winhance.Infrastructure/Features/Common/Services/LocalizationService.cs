@@ -83,6 +83,8 @@ internal class LocalizationService : ILocalizationService
             // Winhance's own localization uses a JSON-based system and does not
             // rely on the thread's CurrentCulture for number/date formatting.
             CultureInfo.CurrentUICulture = culture;
+            // Thread-pool threads, where the region lists read display names, take their UI culture from this static.
+            CultureInfo.DefaultThreadCurrentUICulture = culture;
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 
             LanguageChanged?.Invoke(this, EventArgs.Empty);

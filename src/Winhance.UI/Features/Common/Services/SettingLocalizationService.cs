@@ -44,8 +44,9 @@ public class SettingLocalizationService : ISettingLocalizationService
                 if (childSetting == null) continue;
 
                 var featureName = GetFeatureName(childSettingId);
-                var groupNameKey = $"SettingGroup_{childSetting.Display.GroupName?.Replace(" ", "_")}";
-                var localizedGroupName = _localization.GetString(groupNameKey);
+                var localizedGroupName = childSetting.Display.GroupName is { } childGroup
+                    ? _localization.GetString(childGroup.Value)
+                    : string.Empty;
                 var groupKey = $"{featureName} ({localizedGroupName})";
 
                 if (!groupedSettings.TryGetValue(groupKey, out var groupItems))
@@ -54,7 +55,7 @@ public class SettingLocalizationService : ISettingLocalizationService
                     groupedSettings[groupKey] = groupItems;
                 }
 
-                var localizedChildName = _localization.GetString(localizationKey);
+                var localizedChildName = _localization.GetString(localizationKey.Value);
                 if (!string.IsNullOrEmpty(localizedChildName))
                 {
                     groupItems.Add(localizedChildName);
