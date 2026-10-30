@@ -211,6 +211,11 @@ internal sealed class WinhancementsScriptBuilder : IWinhancementsScriptBuilder
         sb.AppendLine("        # ================================================================");
         sb.AppendLine("        # SYSTEM path: detect user, check marker, launch child as user");
         sb.AppendLine("        # ================================================================");
+        sb.AppendLine($"        if (Test-Path '{ScriptPaths.UnattendUpdatesDirectory}') {{");
+        sb.AppendLine("            Write-Log \"Windows updates are installing; user customizations run after their restart\" \"INFO\"");
+        sb.AppendLine("            exit 0");
+        sb.AppendLine("        }");
+        sb.AppendLine();
         sb.AppendLine("        Write-Log \"UserCustomizations running as SYSTEM, detecting logged-in user...\" \"INFO\"");
         sb.AppendLine();
         sb.AppendLine("        if (-not (Test-Path \"HKU:\\\")) {");

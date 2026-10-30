@@ -12,7 +12,7 @@ using Winhance.UI.Features.WimUtil.Models;
 
 namespace Winhance.UI.Features.WimUtil.ViewModels;
 
-public partial class WimStep4IsoViewModel : ObservableObject
+public partial class WimStep5IsoViewModel : ObservableObject
 {
     private readonly IWimCustomizationService _wimCustomizationService;
     private readonly IIsoService _isoService;
@@ -27,8 +27,19 @@ public partial class WimStep4IsoViewModel : ObservableObject
     private readonly ILogService _logService;
     private readonly IAnswerFileValidator _answerFileValidator;
     private readonly AnswerFileCheckState _checkState;
+    private readonly IOfflineServicingService _offlineServicingService;
 
     public string WorkingDirectory { get; set; } = string.Empty;
+
+    public bool IsBuiltIntoImage { get; set; }
+
+    public bool IsReadyForServicing { get; set; }
+
+    // Raised once servicing has moved staged items out of the media folder and into the image.
+    public event EventHandler<OfflineServicingResult>? ImageServiced;
+
+    [ObservableProperty]
+    public partial bool IsCreatingMedia { get; set; }
 
     [ObservableProperty]
     public partial string OutputIsoPath { get; set; }
@@ -43,6 +54,9 @@ public partial class WimStep4IsoViewModel : ObservableObject
 
     [ObservableProperty]
     public partial RemovableDrive? SelectedUsbTarget { get; set; }
+
+    [ObservableProperty]
+    public partial bool ShowUsbHardDrives { get; set; }
 
     public bool IsIsoDestination => Destination == WimOutputDestination.Iso;
 
@@ -68,7 +82,7 @@ public partial class WimStep4IsoViewModel : ObservableObject
 
     public WizardActionCard SelectUsbCard { get; private set; } = new();
 
-    public WimStep4IsoViewModel(
+    public WimStep5IsoViewModel(
         IWimCustomizationService wimCustomizationService,
         IIsoService isoService,
         IUsbMediaWriter usbMediaWriter,
@@ -81,7 +95,8 @@ public partial class WimStep4IsoViewModel : ObservableObject
         IFilePickerService filePickerService,
         ILogService logService,
         IAnswerFileValidator answerFileValidator,
-        AnswerFileCheckState checkState)
+        AnswerFileCheckState checkState,
+        IOfflineServicingService offlineServicingService)
     {
         _wimCustomizationService = wimCustomizationService;
         _isoService = isoService;
@@ -96,6 +111,7 @@ public partial class WimStep4IsoViewModel : ObservableObject
         _logService = logService;
         _answerFileValidator = answerFileValidator;
         _checkState = checkState;
+        _offlineServicingService = offlineServicingService;
 
         OutputIsoPath = string.Empty;
         BootManagerDescription = string.Empty;
@@ -171,6 +187,12 @@ public partial class WimStep4IsoViewModel : ObservableObject
         await RefreshUsbTargets();
     }
 
+    partial void OnShowUsbHardDrivesChanged(bool value)
+    {
+        if (IsUsbDestination)
+            _ = RefreshUsbTargetsCommand.ExecuteAsync(null);
+    }
+
     [RelayCommand]
     private async Task RefreshUsbTargets()
     {
@@ -178,7 +200,8 @@ public partial class WimStep4IsoViewModel : ObservableObject
         {
             SelectUsbCard.IsProcessing = true;
             var previous = SelectedUsbTarget?.DiskNumber;
-            var targets = await Task.Run(_usbMediaWriter.GetCandidateTargets);
+            var includeHardDrives = ShowUsbHardDrives;
+            var targets = await Task.Run(() => _usbMediaWriter.GetCandidateTargets(includeHardDrives));
 
             UsbTargets.Clear();
             foreach (var target in targets)
@@ -186,8 +209,9 @@ public partial class WimStep4IsoViewModel : ObservableObject
                 UsbTargets.Add(target);
             }
 
-            SelectedUsbTarget = UsbTargets.FirstOrDefault(t => t.DiskNumber == previous) ?? UsbTargets.FirstOrDefault();
-            SelectUsbCard.Description = SelectedUsbTarget is null
+            // Never a default on a USB hard drive: it is the likelier one to hold someone's backups.
+            SelectedUsbTarget = UsbTargets.FirstOrDefault(t => t.DiskNumber == previous) ?? UsbTargets.FirstOrDefault(t => t.HasRemovableMedia);
+            SelectUsbCard.Description = UsbTargets.Count == 0
                 ? _localizationService.GetString("WIMUtil_Label_NoUsbFound")
                 : _localizationService.GetString("WIMUtil_Card_SelectUsb_Description");
         }
@@ -219,6 +243,19 @@ public partial class WimStep4IsoViewModel : ObservableObject
     [RelayCommand]
     private async Task CreateMedia()
     {
+        IsCreatingMedia = true;
+        try
+        {
+            await CreateMediaCoreAsync();
+        }
+        finally
+        {
+            IsCreatingMedia = false;
+        }
+    }
+
+    private async Task CreateMediaCoreAsync()
+    {
         if (string.IsNullOrEmpty(WorkingDirectory))
         {
             await _dialogService.ShowWarningAsync(
@@ -227,16 +264,39 @@ public partial class WimStep4IsoViewModel : ObservableObject
             return;
         }
 
-        // Steps 2 and 3 already ensured this; here it only self-heals and must never block output.
-        try
+        if (IsBuiltIntoImage && !IsReadyForServicing && _offlineServicingService.HasStagedItems(WorkingDirectory))
         {
-            var driverStep = await _wimCustomizationService.EnsureDriverInstallStepAsync(WorkingDirectory);
-            if (driverStep is DriverInstallStepResult.Added or DriverInstallStepResult.CreatedXml)
-                _logService.LogWarning($"Driver install step was missing at media-creation time; repaired as {driverStep}");
+            await _dialogService.ShowWarningAsync(
+                _localizationService.GetString("WIMUtil_Msg_ServicingNotPrepared"),
+                _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
+            return;
         }
-        catch (Exception ex)
+
+        // Steps 2 and 3 already ensured this; here it only self-heals and must never block output.
+        // Image mode skips it: servicing removes these steps, or re-ensures the ones it could not build in.
+        if (!IsBuiltIntoImage)
         {
-            _logService.LogWarning($"Could not verify the driver install step: {ex.Message}");
+            try
+            {
+                var driverStep = await _wimCustomizationService.EnsureDriverInstallStepAsync(WorkingDirectory);
+                if (driverStep is DriverInstallStepResult.Added or DriverInstallStepResult.CreatedXml)
+                    _logService.LogWarning($"Driver install step was missing at media-creation time; repaired as {driverStep}");
+            }
+            catch (Exception ex)
+            {
+                _logService.LogWarning($"Could not verify the driver install step: {ex.Message}");
+            }
+
+            try
+            {
+                var updateStep = await _wimCustomizationService.EnsureUpdateInstallStepAsync(WorkingDirectory);
+                if (updateStep is UpdateInstallStepResult.Added or UpdateInstallStepResult.CreatedXml)
+                    _logService.LogWarning($"Update install step was missing at media-creation time; repaired as {updateStep}");
+            }
+            catch (Exception ex)
+            {
+                _logService.LogWarning($"Could not verify the update install step: {ex.Message}");
+            }
         }
 
         if (Destination == WimOutputDestination.Usb)
@@ -245,6 +305,7 @@ public partial class WimStep4IsoViewModel : ObservableObject
             return;
         }
 
+        var answerFileChanged = false;
         try
         {
             if (string.IsNullOrEmpty(OutputIsoPath))
@@ -264,6 +325,7 @@ public partial class WimStep4IsoViewModel : ObservableObject
             _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_CreatingIso"), true);
             var progress = _taskProgressService.CreateDetailedProgress();
             var token = _taskProgressService.CurrentTaskCancellationSource!.Token;
+            answerFileChanged = await ServiceImageIfNeededAsync(progress, token);
             var replacements = await PrepareBootFilesAsync(token);
 
             var success = await _isoService.CreateIsoAsync(WorkingDirectory, OutputIsoPath, replacements, progress, token);
@@ -329,7 +391,41 @@ public partial class WimStep4IsoViewModel : ObservableObject
         {
             _taskProgressService.CompleteTask();
         }
+
+        if (answerFileChanged)
+            await RecheckServicedAnswerFileAsync();
     }
+
+    // True when servicing rewrote autounattend.xml (built-in items drop their setup steps), so the file
+    // AnswerFileAcceptedAsync checked is no longer the one on the media.
+    private async Task<bool> ServiceImageIfNeededAsync(IProgress<TaskProgressDetail> progress, CancellationToken token)
+    {
+        if (!IsBuiltIntoImage || !_offlineServicingService.HasStagedItems(WorkingDirectory))
+            return false;
+
+        progress.Report(new TaskProgressDetail { StatusText = _localizationService.GetString("WIMUtil_Status_Servicing") });
+        var result = await _offlineServicingService.ServiceAsync(WorkingDirectory, progress, token);
+        ImageServiced?.Invoke(this, result);
+        if (result.AnyFellBack)
+        {
+            await _dialogService.ShowWarningAsync(
+                _localizationService.GetString(FellBackMessageKey(result)),
+                _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
+        }
+        return result.Drivers != ServicedItemOutcome.NotStaged || result.Update != ServicedItemOutcome.NotStaged;
+    }
+
+    private Task RecheckServicedAnswerFileAsync() =>
+        _checkState.RecheckAfterChangeAsync(
+            _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml"),
+            _answerFileValidator, _dialogService, _localizationService, _logService);
+
+    private static string FellBackMessageKey(OfflineServicingResult result) => (result.Drivers, result.Update) switch
+    {
+        (ServicedItemOutcome.FellBackToSetup, ServicedItemOutcome.FellBackToSetup) => "WIMUtil_Msg_ServicingFellBack_Both",
+        (ServicedItemOutcome.FellBackToSetup, _) => "WIMUtil_Msg_ServicingFellBack_Drivers",
+        _ => "WIMUtil_Msg_ServicingFellBack_Update",
+    };
 
     // The last look at the file Setup will read, once the destination itself is valid. Findings are
     // shown with Continue anyway / Cancel; a check that cannot run is logged and never stops the media.
@@ -391,6 +487,7 @@ public partial class WimStep4IsoViewModel : ObservableObject
             return;
         }
 
+        var answerFileChanged = false;
         try
         {
             SelectUsbCard.IsEnabled = false;
@@ -400,6 +497,8 @@ public partial class WimStep4IsoViewModel : ObservableObject
             var progress = _taskProgressService.CreateDetailedProgress();
             var token = _taskProgressService.CurrentTaskCancellationSource!.Token;
 
+            // Before the writer erases the stick, so a servicing failure leaves the drive as it was.
+            answerFileChanged = await ServiceImageIfNeededAsync(progress, token);
             var replacements = await PrepareBootFilesAsync(token);
 
             await Task.Run(() => _usbMediaWriter.Write(target, WorkingDirectory, replacements, progress, token), token);
@@ -411,6 +510,15 @@ public partial class WimStep4IsoViewModel : ObservableObject
             await _dialogService.ShowInformationAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_UsbWriteSuccess"), target.Model),
                 _localizationService.GetStringOrDefault("Dialog_Success", "Success"));
+        }
+        catch (InsufficientDiskSpaceException spaceEx)
+        {
+            _taskProgressService.FailTask();
+            SelectUsbCard.HasFailed = true;
+            SelectUsbCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace"), spaceEx.DriveName);
+            await _dialogService.ShowWarningAsync(
+                string.Format(_localizationService.GetString("WIMUtil_Msg_InsufficientSpace_Create"), spaceEx.DriveName, spaceEx.RequiredGB.ToString("F2"), spaceEx.AvailableGB.ToString("F2"), (spaceEx.RequiredGB - spaceEx.AvailableGB).ToString("F2")),
+                string.Format(_localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace"), spaceEx.DriveName));
         }
         catch (UsbMediaErasedException erased) when (erased.WasCancelled)
         {
@@ -449,5 +557,14 @@ public partial class WimStep4IsoViewModel : ObservableObject
             SelectUsbCard.Opacity = 1.0;
             _taskProgressService.CompleteTask();
         }
+
+        if (answerFileChanged)
+            await RecheckServicedAnswerFileAsync();
     }
+}
+
+public enum WimOutputDestination
+{
+    Iso,
+    Usb,
 }

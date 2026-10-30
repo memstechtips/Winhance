@@ -23,6 +23,13 @@ public interface IWimImageService
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default);
 
+    // Offline servicing mounts index 1, and DISM cannot mount an ESD.
+    Task<EditionRemovalResult> KeepEditionAsWimAsync(
+        string workingDirectory,
+        string editionName,
+        IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken cancellationToken = default);
+
     Task<bool> DeleteImageFileAsync(
         string workingDirectory,
         ImageFormat format,

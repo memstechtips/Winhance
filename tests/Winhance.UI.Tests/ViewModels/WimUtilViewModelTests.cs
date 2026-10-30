@@ -38,6 +38,8 @@ public class WimUtilViewModelTests : IDisposable
     private readonly Mock<IEventBus> _mockEventBus = new();
     private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
     private readonly Mock<IBuilderModeEntry> _mockBuilderModeEntry = new();
+    private readonly Mock<IWindowsUpdateStager> _mockUpdateStager = new();
+    private readonly Mock<IOfflineServicingService> _mockOfflineServicingService = new();
     private readonly WimUtilSession _session = new();
     private readonly WimUtilViewModel _sut;
 
@@ -104,7 +106,10 @@ public class WimUtilViewModelTests : IDisposable
             _mockBuilderModeEntry.Object,
             _mockEventBus.Object,
             _session,
-            Mock.Of<ITargetWindowsService>());
+            Mock.Of<ITargetWindowsService>(),
+            Mock.Of<IWindowsUpdateListService>(),
+            _mockUpdateStager.Object,
+            _mockOfflineServicingService.Object);
     }
 
     public void Dispose()
@@ -121,6 +126,7 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step2.Should().NotBeNull();
         _sut.Step3.Should().NotBeNull();
         _sut.Step4.Should().NotBeNull();
+        _sut.Step5.Should().NotBeNull();
     }
 
     [Fact]
@@ -136,6 +142,7 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step2.WorkingDirectory.Should().Be(expected);
         _sut.Step3.WorkingDirectory.Should().Be(expected);
         _sut.Step4.WorkingDirectory.Should().Be(expected);
+        _sut.Step5.WorkingDirectory.Should().Be(expected);
     }
 
     [Fact]
@@ -145,6 +152,7 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step2State.Should().NotBeNull();
         _sut.Step3State.Should().NotBeNull();
         _sut.Step4State.Should().NotBeNull();
+        _sut.Step5State.Should().NotBeNull();
     }
 
     [Fact]
@@ -156,7 +164,7 @@ public class WimUtilViewModelTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_Step2Through4_AreNotExpandedOrAvailable()
+    public void Constructor_Step2Through5_AreNotExpandedOrAvailable()
     {
         _sut.Step2State.IsExpanded.Should().BeFalse();
         _sut.Step2State.IsAvailable.Should().BeFalse();
@@ -166,6 +174,16 @@ public class WimUtilViewModelTests : IDisposable
 
         _sut.Step4State.IsExpanded.Should().BeFalse();
         _sut.Step4State.IsAvailable.Should().BeFalse();
+
+        _sut.Step5State.IsExpanded.Should().BeFalse();
+        _sut.Step5State.IsAvailable.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Constructor_Step4AndStep5States_CarryTheirStepNumbers()
+    {
+        _sut.Step4State.StepNumber.Should().Be(4);
+        _sut.Step5State.StepNumber.Should().Be(5);
     }
 
     [Fact]
@@ -243,39 +261,9 @@ public class WimUtilViewModelTests : IDisposable
 
 
     [Fact]
-    public void SelectedIsoPath_ForwardsToStep1()
-    {
-        _sut.SelectedIsoPath.Should().Be(_sut.Step1.SelectedIsoPath);
-    }
-
-    [Fact]
     public void WorkingDirectory_ForwardsToStep1()
     {
         _sut.WorkingDirectory.Should().Be(_sut.Step1.WorkingDirectory);
-    }
-
-    [Fact]
-    public void IsExtractionComplete_ForwardsToStep1()
-    {
-        _sut.IsExtractionComplete.Should().Be(_sut.Step1.IsExtractionComplete);
-    }
-
-    [Fact]
-    public void OutputIsoPath_ForwardsToStep4()
-    {
-        _sut.OutputIsoPath.Should().Be(_sut.Step4.OutputIsoPath);
-    }
-
-    [Fact]
-    public void SelectIsoFileCommand_ForwardsToStep1()
-    {
-        _sut.SelectIsoFileCommand.Should().BeSameAs(_sut.Step1.SelectIsoFileCommand);
-    }
-
-    [Fact]
-    public void ConvertImageFormatCommand_ForwardsToImageFormat()
-    {
-        _sut.ConvertImageFormatCommand.Should().BeSameAs(_sut.ImageFormat.ConvertImageFormatCommand);
     }
 
     [Fact]
@@ -285,15 +273,15 @@ public class WimUtilViewModelTests : IDisposable
     }
 
     [Fact]
-    public void ExtractAndAddSystemDriversCommand_ForwardsToStep3()
+    public void CreateMediaCommand_ForwardsToStep5()
     {
-        _sut.ExtractAndAddSystemDriversCommand.Should().BeSameAs(_sut.Step3.ExtractAndAddSystemDriversCommand);
+        _sut.CreateMediaCommand.Should().BeSameAs(_sut.Step5.CreateMediaCommand);
     }
 
     [Fact]
-    public void CreateMediaCommand_ForwardsToStep4()
+    public void AddWindowsUpdateCard_ForwardsToStep4()
     {
-        _sut.CreateMediaCommand.Should().BeSameAs(_sut.Step4.CreateMediaCommand);
+        _sut.AddWindowsUpdateCard.Should().BeSameAs(_sut.Step4.AddWindowsUpdateCard);
     }
 
     [Fact]
@@ -305,6 +293,7 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step2.WorkingDirectory.Should().Be("C:\\NewWorkDir");
         _sut.Step3.WorkingDirectory.Should().Be("C:\\NewWorkDir");
         _sut.Step4.WorkingDirectory.Should().Be("C:\\NewWorkDir");
+        _sut.Step5.WorkingDirectory.Should().Be("C:\\NewWorkDir");
     }
 
     [Fact]
@@ -386,21 +375,47 @@ public class WimUtilViewModelTests : IDisposable
             .ReturnsAsync(new ImageDetectionResult());
         _sut.Step1.IsExtractionComplete = true;
         _sut.Step4State.IsExpanded = false;
+        _sut.Step5State.IsExpanded = false;
 
         _sut.Step2.IsRemovingEditions = true;
 
         _sut.Step2State.IsAvailable.Should().BeFalse();
         _sut.Step3State.IsAvailable.Should().BeFalse();
         _sut.Step4State.IsAvailable.Should().BeFalse();
+        _sut.Step5State.IsAvailable.Should().BeFalse();
         _sut.Step4State.StatusText.Should().Be("WIMUtil_Status_RemovingEditions");
+        _sut.Step5State.StatusText.Should().Be("WIMUtil_Status_RemovingEditions");
         _sut.NavigateToStepCommand.Execute("4");
         _sut.Step4State.IsExpanded.Should().BeFalse();
+        _sut.NavigateToStepCommand.Execute("5");
+        _sut.Step5State.IsExpanded.Should().BeFalse();
 
         _sut.Step2.IsRemovingEditions = false;
 
         _sut.Step2State.IsAvailable.Should().BeTrue();
         _sut.Step3State.IsAvailable.Should().BeTrue();
         _sut.Step4State.IsAvailable.Should().BeTrue();
+        _sut.Step5State.IsAvailable.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Step4Header_SaysSoWhenNoUpdateWasAdded()
+    {
+        _sut.Step1.IsExtractionComplete = true;
+
+        _sut.Step4State.IsAvailable.Should().BeTrue();
+        _sut.Step4State.StatusText.Should().Be("WIMUtil_Status_NoUpdateAdded");
+    }
+
+    [Fact]
+    public void Step4Header_ShowsUpdateAddedOnceTheUpdateIsStaged()
+    {
+        _sut.Step1.IsExtractionComplete = true;
+
+        _sut.Step4.IsUpdateAdded = true;
+
+        _sut.Step4State.IsComplete.Should().BeTrue();
+        _sut.Step4State.StatusText.Should().Be("WIMUtil_Status_UpdateAdded");
     }
 
     [Fact]
@@ -611,5 +626,208 @@ public class WimUtilViewModelTests : IDisposable
             .Setup(c => c.AddDriversAsync(It.IsAny<string>(), null, It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         _mockFileSystemService.Setup(f => f.FileExists(It.Is<string>(x => x.EndsWith("autounattend.xml", StringComparison.Ordinal)))).Returns(true);
+    }
+
+    private ServicingChoice BuiltIntoImage => _sut.ServicingChoices.Single(c => c.BuiltIntoImage);
+
+    [Fact]
+    public void SelectedServicing_ForwardsToImageFormatAndRaisesIsBuiltIntoImage()
+    {
+        var raised = new List<string?>();
+        _sut.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        _sut.SelectedServicing = BuiltIntoImage;
+
+        _sut.ImageFormat.IsBuiltIntoImage.Should().BeTrue();
+        _sut.IsBuiltIntoImage.Should().BeTrue();
+        raised.Should().Contain(nameof(WimUtilViewModel.IsBuiltIntoImage))
+            .And.Contain(nameof(WimUtilViewModel.ShowConvertImageCard))
+            .And.Contain(nameof(WimUtilViewModel.ServicingCardDescription));
+        _sut.ServicingCardDescription.Should().Be("WIMUtil_Servicing_BuiltIn_Detail");
+    }
+
+    [Fact]
+    public void ImageMode_HidesTheConvertHeaderWithItsCard()
+    {
+        _sut.ShowOptionalConvertText.Should().BeTrue();
+        var raised = new List<string?>();
+        _sut.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        _sut.SelectedServicing = BuiltIntoImage;
+
+        _sut.ShowConvertImageCard.Should().BeFalse();
+        _sut.ShowOptionalConvertText.Should().BeFalse();
+        raised.Should().Contain(nameof(WimUtilViewModel.ShowOptionalConvertText));
+    }
+
+    [Fact]
+    public void ImageMode_PushesTheFlagToSteps2To5()
+    {
+        _sut.SelectedServicing = BuiltIntoImage;
+
+        _sut.Step2.IsBuiltIntoImage.Should().BeTrue();
+        _sut.Step3.IsBuiltIntoImage.Should().BeTrue();
+        _sut.Step4.IsBuiltIntoImage.Should().BeTrue();
+        _sut.Step5.IsBuiltIntoImage.Should().BeTrue();
+
+        _sut.SelectedServicing = _sut.ServicingChoices.Single(c => !c.BuiltIntoImage);
+
+        _sut.Step5.IsBuiltIntoImage.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ImageMode_TellsStep5WhenTheImageIsReady()
+    {
+        _sut.SelectedServicing = BuiltIntoImage;
+
+        _sut.ImageFormat.CurrentImageFormat = new ImageFormatInfo
+        {
+            Format = ImageFormat.Wim,
+            Editions = [new ImageEdition(1, "Windows 11 Pro", "Professional")],
+        };
+
+        _sut.Step5.IsReadyForServicing.Should().BeTrue();
+        _sut.EditionCardDescription.Should().Be("WIMUtil_Card_Edition_Description_Ready");
+    }
+
+    [Fact]
+    public void ImageMode_Step3AndStep4HeadersSayStep5BuildsThemIn()
+    {
+        _sut.Step1.IsExtractionComplete = true;
+        _sut.Step3.AreDriversAdded = true;
+        _sut.Step4.IsUpdateAdded = true;
+
+        _sut.SelectedServicing = BuiltIntoImage;
+
+        _sut.Step3State.StatusText.Should().Be("WIMUtil_Status_DriversReadyForImage");
+        _sut.Step4State.StatusText.Should().Be("WIMUtil_Status_UpdateReadyForImage");
+    }
+
+    [Fact]
+    public void RemovingEditions_LocksTheServicingChoiceUntilItEnds()
+    {
+        _mockWimImageService
+            .Setup(w => w.DetectAllImageFormatsAsync(It.IsAny<string>()))
+            .ReturnsAsync(new ImageDetectionResult());
+        _sut.CanChangeServicing.Should().BeTrue();
+
+        _sut.Step2.IsRemovingEditions = true;
+        _sut.CanChangeServicing.Should().BeFalse();
+
+        _sut.Step2.IsRemovingEditions = false;
+        _sut.CanChangeServicing.Should().BeTrue();
+    }
+
+    [Fact]
+    public void CreatingMedia_LocksStep1AndTheServicingChoiceUntilItEnds()
+    {
+        _sut.Step5.IsCreatingMedia = true;
+
+        _sut.Step1State.IsAvailable.Should().BeFalse();
+        _sut.CanChangeServicing.Should().BeFalse();
+        _sut.ImageFormat.IsImageLocked.Should().BeTrue();
+        _sut.NavigateToStepCommand.Execute("1");
+        _sut.Step1State.IsExpanded.Should().BeTrue();
+
+        _sut.Step5.IsCreatingMedia = false;
+
+        _sut.Step1State.IsAvailable.Should().BeTrue();
+        _sut.CanChangeServicing.Should().BeTrue();
+        _sut.ImageFormat.IsImageLocked.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CreatingMedia_EndingDoesNotUnlockTheImageWhileEditionsAreBeingRemoved()
+    {
+        _sut.Step2.IsRemovingEditions = true;
+        _sut.Step5.IsCreatingMedia = true;
+
+        _sut.Step5.IsCreatingMedia = false;
+
+        _sut.ImageFormat.IsImageLocked.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(true, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    public void ShowServicingTimeNote_OnlyInImageModeWithSomethingStagedOnDisk(bool imageMode, bool staged, bool expected)
+    {
+        _mockOfflineServicingService.Setup(o => o.HasStagedItems(It.IsAny<string>())).Returns(staged);
+        _sut.SelectedServicing = _sut.ServicingChoices.Single(c => c.BuiltIntoImage == imageMode);
+
+        _sut.ShowServicingTimeNote.Should().Be(expected);
+    }
+
+    [Fact]
+    public void ShowServicingTimeNote_HeldFlagsWithNothingStaged_StaysHidden()
+    {
+        _mockOfflineServicingService.Setup(o => o.HasStagedItems(It.IsAny<string>())).Returns(false);
+        _sut.SelectedServicing = _sut.ServicingChoices.Single(c => c.BuiltIntoImage);
+        _sut.Step3.AreDriversAdded = true;
+        _sut.Step4.IsUpdateAdded = true;
+
+        _sut.ShowServicingTimeNote.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ShowServicingTimeNote_ReopenedMediaAlreadyHoldingDrivers_Shows()
+    {
+        _mockOfflineServicingService.Setup(o => o.HasStagedItems(It.IsAny<string>())).Returns(true);
+        _sut.SelectedServicing = _sut.ServicingChoices.Single(c => c.BuiltIntoImage);
+
+        _sut.Step3.AreDriversAdded.Should().BeFalse();
+        _sut.ShowServicingTimeNote.Should().BeTrue();
+    }
+
+    [Fact]
+    public void LanguageChanged_RaisesTheServicingWarningTexts()
+    {
+        var changed = new List<string?>();
+        _sut.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        _mockLocalizationService.Raise(l => l.LanguageChanged += null, this, EventArgs.Empty);
+
+        changed.Should().Contain(new[]
+        {
+            nameof(_sut.HostDismWarningText),
+            nameof(_sut.MountFolderWarningText),
+            nameof(_sut.ShowUsbHardDrivesText),
+            nameof(_sut.ShowUsbHardDrivesWarningText),
+        });
+    }
+
+    [Theory]
+    [InlineData(ServicedItemOutcome.Added, false)]
+    [InlineData(ServicedItemOutcome.FellBackToSetup, true)]
+    public async Task ImageServiced_StepsThreeAndFourShowWhatIsStillOnTheMedia(ServicedItemOutcome drivers, bool driversStillOnMedia)
+    {
+        const string workDir = "C:\\WorkDir";
+        _sut.Step1.WorkingDirectory = workDir;
+        _mockWimCustomizationService.Setup(w => w.AreDriversOnMedia(workDir)).Returns(driversStillOnMedia);
+        _sut.Step3.AreDriversAdded = true;
+        _sut.Step4.IsUpdateAdded = true;
+        _sut.Step5.IsBuiltIntoImage = true;
+        _sut.Step5.IsReadyForServicing = true;
+        _sut.Step5.OutputIsoPath = "D:\\Output\\test.iso";
+        _mockTaskProgressService.Setup(t => t.CurrentTaskCancellationSource).Returns(new CancellationTokenSource());
+        _mockTaskProgressService.Setup(t => t.CreateDetailedProgress()).Returns(new Progress<TaskProgressDetail>());
+        _mockOfflineServicingService.Setup(o => o.HasStagedItems(workDir)).Returns(true);
+        _mockOfflineServicingService
+            .Setup(o => o.ServiceAsync(workDir, It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OfflineServicingResult(drivers, ServicedItemOutcome.Added));
+        _mockUpdateStager.Setup(s => s.IsStaged(workDir)).Returns(false);
+        _mockIsoService
+            .Setup(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
+                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _sut.Step3.AreDriversAdded.Should().Be(driversStillOnMedia);
+        _sut.Step4.IsUpdateAdded.Should().BeFalse();
     }
 }

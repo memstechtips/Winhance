@@ -249,6 +249,7 @@
                                     <StackPanel Visibility="{x:Bind ViewModel.ShowConversionCard, Mode=OneWay}">
 
                                         <TextBlock Text="{x:Bind ViewModel.OptionalConvertText}"
+                                                   Visibility="{x:Bind ViewModel.ShowOptionalConvertText, Mode=OneWay}"
                                                    Style="{StaticResource BodyStrongTextBlockStyle}"
                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                    Margin="4,4,0,8"/>
@@ -315,10 +316,57 @@
                                             </InfoBar.Content>
                                         </InfoBar>
 
-                                        <!-- Convert card (hidden when both formats exist) -->
+                                        <!-- Convert card (hidden when both formats exist or the image gets serviced) -->
                                         <ContentPresenter Content="{x:Bind ViewModel.ConvertImageCard}"
                                                           ContentTemplate="{StaticResource WizardActionCardTemplate}"
-                                                          Visibility="{x:Bind ViewModel.BothFormatsExist, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                                          Visibility="{x:Bind ViewModel.ShowConvertImageCard, Mode=OneWay}"/>
+
+                                        <controls:SettingsCard Header="{x:Bind ViewModel.ServicingCardTitle, Mode=OneWay}"
+                                                               Description="{x:Bind ViewModel.ServicingCardDescription, Mode=OneWay}"
+                                                               Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                               Margin="0,8,0,8">
+                                            <controls:SettingsCard.HeaderIcon>
+                                                <fluentIcons:FluentIcon Icon="WrenchScrewdriver" IconVariant="Regular"/>
+                                            </controls:SettingsCard.HeaderIcon>
+                                            <ComboBox MinWidth="200"
+                                                      ItemsSource="{x:Bind ViewModel.ServicingChoices}"
+                                                      SelectedItem="{x:Bind ViewModel.SelectedServicing, Mode=TwoWay}"
+                                                      DisplayMemberPath="DisplayText"
+                                                      IsEnabled="{x:Bind ViewModel.CanChangeServicing, Mode=OneWay}"
+                                                      AutomationProperties.Name="{x:Bind ViewModel.ServicingCardTitle, Mode=OneWay}"/>
+                                        </controls:SettingsCard>
+
+                                        <controls:SettingsCard Header="{x:Bind ViewModel.EditionCardTitle, Mode=OneWay}"
+                                                               Description="{x:Bind ViewModel.EditionCardDescription, Mode=OneWay}"
+                                                               Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                               Margin="0,0,0,8"
+                                                               Visibility="{x:Bind ViewModel.ShowEditionCard, Mode=OneWay}">
+                                            <controls:SettingsCard.HeaderIcon>
+                                                <fluentIcons:FluentIcon Icon="HardDrive" IconVariant="Regular"/>
+                                            </controls:SettingsCard.HeaderIcon>
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <ComboBox MinWidth="200"
+                                                          ItemsSource="{x:Bind ViewModel.EditionChoices}"
+                                                          SelectedItem="{x:Bind ViewModel.SelectedEdition, Mode=TwoWay}"
+                                                          DisplayMemberPath="Name"
+                                                          AutomationProperties.Name="{x:Bind ViewModel.EditionCardTitle, Mode=OneWay}"/>
+                                                <Button Content="{x:Bind ViewModel.PrepareServicingButtonText, Mode=OneWay}"
+                                                        Command="{x:Bind ViewModel.PrepareImageForServicingCommand}"
+                                                        Style="{StaticResource AccentButtonStyle}"/>
+                                            </StackPanel>
+                                        </controls:SettingsCard>
+
+                                        <commonControls:QuietInfoBar IsOpen="{x:Bind ViewModel.ShowHostDismWarning, Mode=OneWay}"
+                                                                     IsClosable="False"
+                                                                     Severity="Warning"
+                                                                     Message="{x:Bind ViewModel.HostDismWarningText, Mode=OneWay}"
+                                                                     Margin="0,0,0,8"/>
+
+                                        <commonControls:QuietInfoBar IsOpen="{x:Bind ViewModel.ShowMountFolderWarning, Mode=OneWay}"
+                                                                     IsClosable="False"
+                                                                     Severity="Warning"
+                                                                     Message="{x:Bind ViewModel.MountFolderWarningText, Mode=OneWay}"
+                                                                     Margin="0,0,0,8"/>
                                     </StackPanel>
 
                                     <!-- Download Windows ISO section -->
@@ -664,7 +712,7 @@
                     </Border>
 
 
-                    <!-- STEP 4: Create ISO -->
+                    <!-- STEP 4: Add Windows Update -->
                     <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                             BorderThickness="1"
@@ -687,14 +735,11 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <Viewbox Grid.Column="0"
-                                                 Width="24" Height="24"
-                                                 VerticalAlignment="Center"
-                                                 Margin="0,0,16,0">
-                                            <Path Data="{StaticResource WrenchClockIconPath}"
-                                                  Fill="{ThemeResource TextFillColorPrimaryBrush}"
-                                                  Stretch="Uniform"/>
-                                        </Viewbox>
+                                        <fluentIcons:FluentIcon Grid.Column="0"
+                                                  Icon="ArrowSync" IconVariant="Regular"
+                                                  FontSize="24"
+                                                  VerticalAlignment="Center"
+                                                  Margin="0,0,16,0"/>
 
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                             <TextBlock Text="{x:Bind ViewModel.Step4State.Title, Mode=OneWay}"
@@ -733,6 +778,91 @@
 
                                 <!-- Step 4 Content -->
                                 <StackPanel Visibility="{x:Bind ViewModel.Step4State.IsExpanded, Mode=OneWay}"
+                                            Padding="16,0,16,16"
+                                            Spacing="0">
+
+                                    <ContentPresenter Content="{x:Bind ViewModel.AddWindowsUpdateCard}"
+                                                      ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Disabled overlay (SmokeFill) -->
+                            <Border Background="{ThemeResource SmokeFillColorDefaultBrush}"
+                                    CornerRadius="4"
+                                    Visibility="{x:Bind ViewModel.Step4State.IsLocked, Mode=OneWay}"/>
+                        </Grid>
+                    </Border>
+
+
+                    <!-- STEP 5: Create ISO -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4">
+                        <Grid>
+                            <StackPanel>
+                                <!-- Step 5 Header -->
+                                <Button Padding="16,12"
+                                        Command="{x:Bind ViewModel.NavigateToStepCommand}"
+                                        CommandParameter="5"
+                                        AutomationProperties.Name="{x:Bind ViewModel.Step5State.Title, Mode=OneWay}"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent"
+                                        BorderThickness="0">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <Viewbox Grid.Column="0"
+                                                 Width="24" Height="24"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,16,0">
+                                            <Path Data="{StaticResource WrenchClockIconPath}"
+                                                  Fill="{ThemeResource TextFillColorPrimaryBrush}"
+                                                  Stretch="Uniform"/>
+                                        </Viewbox>
+
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{x:Bind ViewModel.Step5State.Title, Mode=OneWay}"
+                                                       Style="{StaticResource SubtitleTextBlockStyle}"
+                                                       FontSize="16"/>
+                                            <TextBlock Text="{x:Bind ViewModel.Step5State.StatusText, Mode=OneWay}"
+                                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                        </StackPanel>
+
+                                        <!-- Locked: padlock -->
+                                        <Viewbox Grid.Column="2" Width="16" Height="16"
+                                                 VerticalAlignment="Center"
+                                                 Visibility="{x:Bind ViewModel.Step5State.IsLocked, Mode=OneWay}">
+                                            <fluentIcons:FluentIcon Icon="LockClosed" IconVariant="Color"/>
+                                        </Viewbox>
+                                        <!-- Complete: check circle -->
+                                        <Viewbox Grid.Column="2" Width="20" Height="20"
+                                                 VerticalAlignment="Center"
+                                                 Visibility="{x:Bind ViewModel.Step5State.IsComplete, Mode=OneWay}">
+                                            <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"/>
+                                        </Viewbox>
+                                        <!-- Normal: chevron -->
+                                        <fluentIcons:FluentIcon Grid.Column="2"
+                                                  Icon="ChevronDown" IconVariant="Regular"
+                                                  FontSize="{StaticResource SectionChevronFontSize}"
+                                                  VerticalAlignment="Center"
+                                                  Visibility="{x:Bind ViewModel.Step5State.ShowChevron, Mode=OneWay}"
+                                                  RenderTransformOrigin="0.5,0.5">
+                                            <fluentIcons:FluentIcon.RenderTransform>
+                                                <RotateTransform Angle="{x:Bind ViewModel.Step5State.ChevronRotation, Mode=OneWay}"/>
+                                            </fluentIcons:FluentIcon.RenderTransform>
+                                        </fluentIcons:FluentIcon>
+                                    </Grid>
+                                </Button>
+
+                                <!-- Step 5 Content -->
+                                <StackPanel Visibility="{x:Bind ViewModel.Step5State.IsExpanded, Mode=OneWay}"
                                             Padding="16,0,16,16"
                                             Spacing="0">
 
@@ -807,6 +937,12 @@
                                                                  Message="{x:Bind ViewModel.BootManagerOutdatedText}"
                                                                  Margin="0,0,0,8"/>
 
+                                    <commonControls:QuietInfoBar IsOpen="{x:Bind ViewModel.ShowServicingTimeNote, Mode=OneWay}"
+                                                                 IsClosable="False"
+                                                                 Severity="Informational"
+                                                                 Message="{x:Bind ViewModel.ServicingTimeText, Mode=OneWay}"
+                                                                 Margin="0,0,0,8"/>
+
                                     <!-- Select Output Card -->
                                     <ContentPresenter Content="{x:Bind ViewModel.SelectOutputCard}"
                                                       ContentTemplate="{StaticResource WizardActionCardTemplate}"
@@ -824,6 +960,16 @@
                                                   PlaceholderText="{x:Bind ViewModel.NoUsbSelectedText}"
                                                   HorizontalAlignment="Stretch"
                                                   Margin="0,0,0,4"/>
+
+                                        <StackPanel>
+                                            <CheckBox Content="{x:Bind ViewModel.ShowUsbHardDrivesText, Mode=OneWay}"
+                                                      IsChecked="{x:Bind ViewModel.ShowUsbHardDrives, Mode=TwoWay}"/>
+                                            <TextBlock Text="{x:Bind ViewModel.ShowUsbHardDrivesWarningText, Mode=OneWay}"
+                                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       TextWrapping="Wrap"
+                                                       Margin="32,0,0,0"/>
+                                        </StackPanel>
 
                                         <InfoBar IsOpen="True"
                                                  IsClosable="False"
@@ -844,7 +990,7 @@
                             <!-- Disabled overlay (SmokeFill) -->
                             <Border Background="{ThemeResource SmokeFillColorDefaultBrush}"
                                     CornerRadius="4"
-                                    Visibility="{x:Bind ViewModel.Step4State.IsLocked, Mode=OneWay}"/>
+                                    Visibility="{x:Bind ViewModel.Step5State.IsLocked, Mode=OneWay}"/>
                         </Grid>
                     </Border>
 

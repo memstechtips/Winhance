@@ -38,6 +38,9 @@ public partial class WimStep1ViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsExtractionComplete { get; set; }
 
+    // Raised each time a folder becomes the media, which IsExtractionComplete cannot signal once it is already true.
+    public event EventHandler? MediaReady;
+
     public WizardActionCard SelectIsoCard { get; private set; } = new();
     public WizardActionCard SelectDirectoryCard { get; private set; } = new();
 
@@ -123,6 +126,7 @@ public partial class WimStep1ViewModel : ObservableObject
                 WorkingDirectory = selectedPath;
                 SelectDirectoryCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Using")}: {WorkingDirectory}";
                 IsExtractionComplete = true;
+                MediaReady?.Invoke(this, EventArgs.Empty);
             }
             else
             {
@@ -205,6 +209,7 @@ public partial class WimStep1ViewModel : ObservableObject
                 await _dialogService.ShowInformationAsync(
                     _localizationService.GetString("WIMUtil_Msg_ExtractionComplete"),
                     _localizationService.GetString("WIMUtil_Status_IsoExtractionSuccess"));
+                MediaReady?.Invoke(this, EventArgs.Empty);
             }
             else
             {

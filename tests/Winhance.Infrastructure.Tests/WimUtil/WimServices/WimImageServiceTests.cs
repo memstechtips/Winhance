@@ -258,6 +258,36 @@ public class WimImageServiceTests
     }
 
     [Fact]
+    public async Task KeepEditionsAsync_EsdAllKept_StillReturnsEarly()
+    {
+        const string esd = @"C:\work\sources\install.esd";
+        var disk = SimulateDisk(esd);
+
+        var result = await _service.KeepEditionsAsync(@"C:\work", [Home, HomeSingleLanguage, Pro]);
+
+        result.Should().Be(new EditionRemovalResult(true));
+        VerifyExported();
+        disk.Should().BeEquivalentTo([esd]);
+    }
+
+    [Fact]
+    public async Task KeepEditionAsWimAsync_EsdSingleEdition_ExportsToWimWithMaxCompression()
+    {
+        const string esd = @"C:\work\sources\install.esd";
+        var disk = SimulateDisk(esd);
+        _mockImageInfo.Setup(d => d.GetImageInfo(It.IsAny<string>())).Returns([new DismImageEntry(1, Pro, 26300, "Professional")]);
+
+        var result = await _service.KeepEditionAsWimAsync(@"C:\work", Pro);
+
+        result.Should().Be(new EditionRemovalResult(true));
+        _mockDismRunner.Verify(r => r.RunProcessWithProgressAsync("dism.exe",
+            It.Is<string>(a => a.Contains("/SourceIndex:1 ") && a.Contains(KeepWim) && a.Contains("/Compress:max")),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mockDismRunner.Verify(r => r.CheckDiskSpaceAsync(It.IsAny<string>(), 10_000_000_000L, It.IsAny<string>()), Times.Once);
+        disk.Should().BeEquivalentTo([Wim]);
+    }
+
+    [Fact]
     public async Task KeepEditionsAsync_ClearsAFileLeftByAnInterruptedRunBeforeExporting()
     {
         var disk = SimulateDisk(Wim, KeepWim);

@@ -31,7 +31,7 @@ public class UsbTargetSelectionTests
             new RemovableDrive(2, "SanDisk Ultra",     61_530_439_680L, "USB",  IsSystemDisk: false, HasRemovableMedia: true),
         });
 
-        var targets = BuildWriter().GetCandidateTargets();
+        var targets = BuildWriter().GetCandidateTargets(includeUsbHardDrives: false);
 
         targets.Should().ContainSingle().Which.DiskNumber.Should().Be(2);
     }
@@ -44,7 +44,7 @@ public class UsbTargetSelectionTests
             new RemovableDrive(0, "Odd controller", 500_000_000_000L, "USB", IsSystemDisk: true, HasRemovableMedia: true),
         });
 
-        var targets = BuildWriter().GetCandidateTargets();
+        var targets = BuildWriter().GetCandidateTargets(includeUsbHardDrives: false);
 
         targets.Should().BeEmpty();
     }
@@ -57,7 +57,7 @@ public class UsbTargetSelectionTests
             new RemovableDrive(1, "Seagate Barracuda", 4_000_787_030_016L, "SATA", IsSystemDisk: false, HasRemovableMedia: false),
         });
 
-        var targets = BuildWriter().GetCandidateTargets();
+        var targets = BuildWriter().GetCandidateTargets(includeUsbHardDrives: false);
 
         targets.Should().BeEmpty();
     }
@@ -71,9 +71,53 @@ public class UsbTargetSelectionTests
             new RemovableDrive(2, "SanDisk Ultra",  61_530_439_680L, "USB", IsSystemDisk: false, HasRemovableMedia: true),
         });
 
-        var targets = BuildWriter().GetCandidateTargets();
+        var targets = BuildWriter().GetCandidateTargets(includeUsbHardDrives: false);
 
         targets.Should().ContainSingle().Which.DiskNumber.Should().Be(2);
+    }
+
+    [Fact]
+    public void GetCandidateTargets_UsbHardDriveWithOptIn_IsOffered()
+    {
+        _operations.Setup(o => o.GetDisks()).Returns(new[]
+        {
+            new RemovableDrive(3, "WD Elements", 2_000_398_934_016L, "USB", IsSystemDisk: false, HasRemovableMedia: false),
+            new RemovableDrive(2, "SanDisk Ultra",  61_530_439_680L, "USB", IsSystemDisk: false, HasRemovableMedia: true),
+        });
+
+        var targets = BuildWriter().GetCandidateTargets(includeUsbHardDrives: true);
+
+        targets.Select(t => t.DiskNumber).Should().Equal(2, 3);
+    }
+
+    [Fact]
+    public void GetCandidateTargets_WithOptIn_StillRefusesSystemAndNonUsbDisks()
+    {
+        _operations.Setup(o => o.GetDisks()).Returns(new[]
+        {
+            new RemovableDrive(0, "Odd controller", 500_000_000_000L, "USB", IsSystemDisk: true, HasRemovableMedia: false),
+            new RemovableDrive(1, "Seagate Barracuda", 4_000_787_030_016L, "SATA", IsSystemDisk: false, HasRemovableMedia: false),
+        });
+
+        var targets = BuildWriter().GetCandidateTargets(includeUsbHardDrives: true);
+
+        targets.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Write_UsbHardDriveTheUserOptedInTo_IsNotRefusedAsAnUnknownTarget()
+    {
+        var hardDrive = new RemovableDrive(3, "WD Elements", 2_000_398_934_016L, "USB", IsSystemDisk: false, HasRemovableMedia: false);
+        GivenStick(hardDrive, (@"sources\install.wim", 3_000_000_000L));
+        _operations.Setup(o => o.GetDriveLetters(3)).Returns([]);
+        _operations.Setup(o => o.CreateBootPartition(3, It.IsAny<long>())).Returns(1);
+        _operations.Setup(o => o.CreateInstallPartition(3)).Returns(2);
+        _operations.Setup(o => o.AssignDriveLetter(3, 1)).Returns('E');
+        _operations.Setup(o => o.AssignDriveLetter(3, 2)).Returns('F');
+
+        BuildWriter().Write(hardDrive, @"C:\work", BootFileReplacements.None, null, CancellationToken.None);
+
+        _operations.Verify(o => o.Clear(3), Times.Once);
     }
 
     [Fact]

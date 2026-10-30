@@ -78,7 +78,11 @@ public class DriverInstallStepWriterTests
 
     private DriverInstallStepWriter Sut() => new(_files.Object, _log.Object);
 
-    private void StageDrivers() => _files.Setup(f => f.DirectoryExists(StagedDir)).Returns(true);
+    private void StageDrivers()
+    {
+        _files.Setup(f => f.DirectoryExists(StagedDir)).Returns(true);
+        _files.Setup(f => f.GetFiles(StagedDir, "*", SearchOption.AllDirectories)).Returns([StagedDir + "\\net\\net.inf"]);
+    }
 
     private void MediaXml(string content)
     {
@@ -135,6 +139,17 @@ public class DriverInstallStepWriterTests
 
         result.Should().Be(DriverInstallStepResult.NoDriversStaged);
         _files.Verify(f => f.ReadAllTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _files.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task EnsureAsync_EmptyDriversFolder_TouchesNothing()
+    {
+        _files.Setup(f => f.DirectoryExists(StagedDir)).Returns(true);
+
+        var result = await Sut().EnsureAsync(Work);
+
+        result.Should().Be(DriverInstallStepResult.NoDriversStaged);
         _files.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -629,5 +644,87 @@ foreach( $file in $Document.unattend.Extensions.File ) {
             OrderOf(Described(component, AutounattendScripts.ExtractDescription)).Should().Be("1");
             OrderOf(MarkerCommand(component)).Should().Be("2");
         }
+    }
+
+    [Fact]
+    public async Task EnsureAsync_ReadOnlyAnswerFile_ClearsTheFlagBeforeWriting()
+    {
+        StageDrivers();
+        MediaXml(TemplateShapedXml);
+        var steps = new List<string>();
+        _files.Setup(f => f.SetFileAttributes(XmlPath, FileAttributes.Normal)).Callback(() => steps.Add("clear"));
+        _files
+            .Setup(f => f.WriteAllTextAsync(XmlPath, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback(() => steps.Add("write"))
+            .Returns(Task.CompletedTask);
+
+        await Sut().EnsureAsync(Work);
+
+        steps.Should().Equal("clear", "write");
+    }
+
+    [Fact]
+    public async Task EnsureAsync_NoAnswerFileYet_HasNoAttributesToClear()
+    {
+        StageDrivers();
+
+        await Sut().EnsureAsync(Work);
+
+        _files.Verify(f => f.SetFileAttributes(It.IsAny<string>(), It.IsAny<FileAttributes>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task EnsureAsync_ComponentWithoutRunSynchronous_PutsItInSchemaOrder()
+    {
+        StageDrivers();
+        MediaXml(@"<?xml version=""1.0"" encoding=""utf-8""?>
+<unattend xmlns=""urn:schemas-microsoft-com:unattend"" xmlns:wcm=""http://schemas.microsoft.com/WMIConfig/2002/State"">
+  <settings pass=""specialize"">
+    <component name=""Microsoft-Windows-Deployment"" processorArchitecture=""amd64"" publicKeyToken=""31bf3856ad364e35"" language=""neutral"" versionScope=""nonSxS"">
+      <ComputerName>PC</ComputerName>
+    </component>
+  </settings>
+</unattend>");
+
+        await Sut().EnsureAsync(Work);
+
+        SpecializeComponent(Written(), "amd64").Elements().Select(e => e.Name.LocalName)
+            .Should().Equal("RunSynchronous", "ComputerName");
+    }
+
+    [Fact]
+    public async Task RemoveAsync_AfterEnsure_LeavesNoMarkerAndClosesTheOrderGap()
+    {
+        StageDrivers();
+        MediaXml(TemplateShapedXml);
+        var sut = Sut();
+        await sut.EnsureAsync(Work);
+        MediaXml(_written!);
+
+        var removed = await sut.RemoveAsync(Work);
+
+        removed.Should().BeTrue();
+        var doc = Written();
+        foreach (var architecture in new[] { "x86", "arm64", "amd64" })
+            CountDescribed(SpecializeComponent(doc, architecture), DriverInstallStepWriter.Marker).Should().Be(0);
+        ScriptFiles(doc).Should().BeEmpty();
+
+        var x86 = SpecializeComponent(doc, "x86");
+        Commands(x86).Select(OrderOf).Should().Equal("1", "4", "5");
+        OrderOf(Described(x86, DisableDescription)).Should().Be("5");
+        CountDescribed(x86, AutounattendScripts.ExtractDescription).Should().Be(1);
+        ExtensionsOf(doc).Elements(X + "File").Should().ContainSingle()
+            .Which.Value.Should().Be("Write-Host 'kept'");
+    }
+
+    [Fact]
+    public async Task RemoveAsync_NoStep_ReturnsFalseAndDoesNotSave()
+    {
+        MediaXml(TemplateShapedXml);
+
+        var removed = await Sut().RemoveAsync(Work);
+
+        removed.Should().BeFalse();
+        _files.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

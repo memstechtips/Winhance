@@ -238,11 +238,27 @@ internal class WimImageService : IWimImageService
         }
     }
 
-    public async Task<EditionRemovalResult> KeepEditionsAsync(
+    public Task<EditionRemovalResult> KeepEditionsAsync(
         string workingDirectory,
         IReadOnlyCollection<string> editionNames,
         IProgress<TaskProgressDetail>? progress = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        RewriteKeepingAsync(workingDirectory, editionNames, null, progress, cancellationToken);
+
+    public Task<EditionRemovalResult> KeepEditionAsWimAsync(
+        string workingDirectory,
+        string editionName,
+        IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken cancellationToken = default) =>
+        RewriteKeepingAsync(workingDirectory, [editionName], ImageFormat.Wim, progress, cancellationToken);
+
+    // A null targetFormat keeps the image in the format it is in.
+    private async Task<EditionRemovalResult> RewriteKeepingAsync(
+        string workingDirectory,
+        IReadOnlyCollection<string> editionNames,
+        ImageFormat? targetFormat,
+        IProgress<TaskProgressDetail>? progress,
+        CancellationToken cancellationToken)
     {
         string tempFile = string.Empty;
 
@@ -262,19 +278,22 @@ internal class WimImageService : IWimImageService
                 return EditionRemovalResult.Failed;
             }
 
-            if (kept.Count == currentInfo.Editions.Count)
+            var format = targetFormat ?? currentInfo.Format;
+            if (kept.Count == currentInfo.Editions.Count && format == currentInfo.Format)
             {
                 _logService.LogInformation("Every edition is kept, nothing to remove");
                 return new EditionRemovalResult(true);
             }
 
             var sourceFile = currentInfo.FilePath;
-            var extension = currentInfo.Format == ImageFormat.Wim ? "wim" : "esd";
             var sourcesPath = _fileSystemService.CombinePath(workingDirectory, "sources");
-            tempFile = _fileSystemService.CombinePath(sourcesPath, $"install.keep.{extension}");
-            var backupFile = _fileSystemService.CombinePath(sourcesPath, $"install.old.{extension}");
+            var targetFile = _fileSystemService.CombinePath(sourcesPath, $"install.{ExtensionOf(format)}");
+            tempFile = _fileSystemService.CombinePath(sourcesPath, $"install.keep.{ExtensionOf(format)}");
+            var backupFile = _fileSystemService.CombinePath(sourcesPath, $"install.old.{ExtensionOf(currentInfo.Format)}");
 
-            await _dismProcessRunner.CheckDiskSpaceAsync(workingDirectory, currentInfo.FileSizeBytes, "Edition removal").ConfigureAwait(false);
+            // An ESD exported to a WIM roughly doubles in size, the same factor ConvertImageAsync reserves.
+            var requiredSpace = format == currentInfo.Format ? currentInfo.FileSizeBytes : currentInfo.FileSizeBytes * 2;
+            await _dismProcessRunner.CheckDiskSpaceAsync(workingDirectory, requiredSpace, "Edition removal").ConfigureAwait(false);
 
             // /Export-Image appends to an existing destination, so a file left by an interrupted run would carry its editions in.
             if (!await DeleteWithRetryAsync(tempFile, cancellationToken).ConfigureAwait(false)
@@ -289,7 +308,7 @@ internal class WimImageService : IWimImageService
             for (var i = 0; i < kept.Count; i++)
             {
                 var status = _localization.GetString("Progress_KeepingEdition", (i + 1).ToString(), kept.Count.ToString());
-                await ExportAsync(sourceFile, kept[i], tempFile, CompressionFor(currentInfo.Format), status, progress, cancellationToken).ConfigureAwait(false);
+                await ExportAsync(sourceFile, kept[i], tempFile, CompressionFor(format), status, progress, cancellationToken).ConfigureAwait(false);
             }
 
             if (!_fileSystemService.FileExists(tempFile))
@@ -315,7 +334,7 @@ internal class WimImageService : IWimImageService
 
             try
             {
-                _fileSystemService.MoveFile(tempFile, sourceFile);
+                _fileSystemService.MoveFile(tempFile, targetFile);
             }
             catch
             {
@@ -328,7 +347,7 @@ internal class WimImageService : IWimImageService
             if (!oldImageDeleted)
                 _logService.LogWarning($"Could not delete {backupFile}; it would go onto the ISO");
 
-            _logService.LogInformation($"Image now holds {kept.Count} edition(s), {_fileSystemService.GetFileSize(sourceFile):N0} bytes");
+            _logService.LogInformation($"Image now holds {kept.Count} edition(s), {_fileSystemService.GetFileSize(targetFile):N0} bytes");
             return new EditionRemovalResult(true, oldImageDeleted ? null : backupFile);
         }
         catch (OperationCanceledException)
@@ -410,6 +429,8 @@ internal class WimImageService : IWimImageService
     }
 
     private static string CompressionFor(ImageFormat format) => format == ImageFormat.Esd ? "recovery" : "max";
+
+    private static string ExtensionOf(ImageFormat format) => format == ImageFormat.Esd ? "esd" : "wim";
 
     private async Task ExportAsync(
         string sourceFile,
@@ -515,6 +536,8 @@ internal class WimImageService : IWimImageService
             FileSizeBytes = fileSizeBytes,
             Editions = entries.Select(e => new ImageEdition(e.Index, e.Name, e.EditionId)).ToList(),
             Build = entries[0].Build,
+            Ubr = entries[0].Ubr,
+            Architecture = entries[0].Architecture,
         };
     }
 }

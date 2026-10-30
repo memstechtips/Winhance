@@ -15,6 +15,11 @@ public static class ScriptPaths
     // WIMUtil stages these under the media's sources\$OEM$\$1, which Setup copies to the same paths on C:.
     public const string UnattendAppsDirectory = @"C:\ProgramData\Winhance\Unattend\Apps";
 
+    public const string UnattendUpdatesDirectory = @"C:\ProgramData\Winhance\Unattend\Updates";
+
+    // DISM finds a target update's checkpoints in the folder it sits in, so the folder holds that update's .msu files and nothing else.
+    public const string UnattendUpdatesMediaDirectory = @"sources\$OEM$\$1\ProgramData\Winhance\Unattend\Updates";
+
     public const string UnattendOwnInstallersDirectory = @"C:\ProgramData\Winhance\Unattend\Apps\Custom";
 
     public const string UnattendUserScriptsDirectory = @"C:\ProgramData\Winhance\Unattend\Scripts\Custom";

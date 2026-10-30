@@ -26,6 +26,8 @@ public class DriverInstallStepWriterGeneratedFileTests
         files.Setup(f => f.CombinePath(It.IsAny<string[]>()))
             .Returns((string[] parts) => string.Join("\\", parts));
         files.Setup(f => f.DirectoryExists("C:\\work\\sources\\$OEM$\\$$\\Drivers")).Returns(true);
+        files.Setup(f => f.GetFiles("C:\\work\\sources\\$OEM$\\$$\\Drivers", "*", SearchOption.AllDirectories))
+            .Returns(["C:\\work\\sources\\$OEM$\\$$\\Drivers\\net\\net.inf"]);
         files.Setup(f => f.FileExists("C:\\work\\autounattend.xml")).Returns(true);
         files.Setup(f => f.ReadAllTextAsync("C:\\work\\autounattend.xml", It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedFile());

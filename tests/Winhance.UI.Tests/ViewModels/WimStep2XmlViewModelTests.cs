@@ -572,6 +572,54 @@ public class WimStep2XmlViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task PickUpMediaAnswerFileAsync_AWinhanceFileOnTheMedia_OpensItsChoicesLikeAPickedOne()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        var config = new WinhanceConfigFile();
+        _mockFileSystemService.Setup(f => f.FileExists(GeneratedXmlPath)).Returns(true);
+        _mockAutounattendReader.Setup(r => r.ReadAsync(GeneratedXmlPath)).ReturnsAsync(new WinhanceAnswerFile("26.10.27", config));
+
+        await _sut.PickUpMediaAnswerFileAsync();
+
+        _sut.IsXmlAdded.Should().BeTrue();
+        _sut.SelectedXmlPath.Should().Be(GeneratedXmlPath);
+        _sut.SelectXmlCard.IsComplete.Should().BeTrue();
+        _sut.SelectXmlCard.Description.Should().Be("WIMUtil_Card_SelectXML_OnMedia_Description");
+        _mockAnswerFileValidator.Verify(v => v.ValidateAsync(GeneratedXmlPath, It.IsAny<CancellationToken>()), Times.Once);
+        _mockBuilderModeEntry.Verify(e => e.EnterFromAsync(BuilderTarget.Autounattend, config), Times.Once);
+    }
+
+    [Fact]
+    public async Task PickUpMediaAnswerFileAsync_ACustomFileOnTheMedia_KeepsItWithoutAsking()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _mockFileSystemService.Setup(f => f.FileExists(GeneratedXmlPath)).Returns(true);
+
+        await _sut.PickUpMediaAnswerFileAsync();
+
+        _sut.IsXmlAdded.Should().BeTrue();
+        _sut.XmlStatus.Should().Be("WIMUtil_Status_XmlOnMedia");
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task PickUpMediaAnswerFileAsync_NoFileOnTheNewMedia_ClearsTheOldOne()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _mockFileSystemService.Setup(f => f.FileExists(GeneratedXmlPath)).Returns(true);
+        await _sut.PickUpMediaAnswerFileAsync();
+        _sut.WorkingDirectory = "D:\\Other";
+
+        await _sut.PickUpMediaAnswerFileAsync();
+
+        _sut.IsXmlAdded.Should().BeFalse();
+        _sut.SelectedXmlPath.Should().BeEmpty();
+        _sut.SelectXmlCard.IsComplete.Should().BeFalse();
+        _sut.SelectXmlCard.Description.Should().Be("WIMUtil_Card_SelectXML_Description");
+        _sut.XmlStatus.Should().Be("WIMUtil_Status_NoXmlAdded");
+    }
+
+    [Fact]
     public void IsAutounattendSession_FollowsModeChanged()
     {
         _sut.IsAutounattendSession.Should().BeFalse();
@@ -1511,5 +1559,53 @@ public class WimStep2XmlViewModelTests : IDisposable
         await _sut.StartAutounattendSessionCommand.ExecuteAsync(null);
 
         _session.Editions.Should().BeEmpty();
+    }
+
+    private void ArrangeProOnlyImage(int chosenOption, bool builtIntoImage)
+    {
+        ArrangeMediaEditions(KeepAll, null, new ChoiceValue.Option(chosenOption));
+        _session.Editions = [new(1, "Windows 11 Pro", "Professional")];
+        _sut.IsBuiltIntoImage = builtIntoImage;
+        _mockLocalizationService
+            .Setup(l => l.GetString("WIMUtil_Generate_Plan_ChosenNotOnMedia_Detail", It.IsAny<object[]>()))
+            .Returns((string _, object[] args) => (string)args[0]);
+    }
+
+    private void VerifyNoChosenNotOnMediaRow() =>
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            Rows(r).Any(row => row.Title == "WIMUtil_Generate_Plan_ChosenNotOnMedia"))), Times.Never);
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_ImageModeChosenEditionDiffers_WarnsWithTheEditionTheImageHolds()
+    {
+        ArrangeProOnlyImage(chosenOption: 1, builtIntoImage: true);
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r => Rows(r).Any(row =>
+            row.Title == "WIMUtil_Generate_Plan_ChosenNotOnMedia" && row.Detail == "Windows 11 Pro" && row.Tone == SummaryTone.Warning))), Times.Once);
+    }
+
+    // 4 is the Pro the image holds; 0 is "Ask me during setup", which names no edition.
+    [Theory]
+    [InlineData(4)]
+    [InlineData(0)]
+    public async Task GenerateWinhanceXmlCommand_ImageModeNoConflictingEdition_NoRow(int chosenOption)
+    {
+        ArrangeProOnlyImage(chosenOption, builtIntoImage: true);
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        VerifyNoChosenNotOnMediaRow();
+    }
+
+    [Fact]
+    public async Task GenerateWinhanceXmlCommand_SetupMode_NoChosenNotOnMediaRow()
+    {
+        ArrangeProOnlyImage(chosenOption: 1, builtIntoImage: false);
+
+        await _sut.GenerateWinhanceXmlCommand.ExecuteAsync(null);
+
+        VerifyNoChosenNotOnMediaRow();
     }
 }

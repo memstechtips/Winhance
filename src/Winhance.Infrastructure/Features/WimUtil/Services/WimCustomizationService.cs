@@ -14,6 +14,7 @@ internal class WimCustomizationService : IWimCustomizationService
     private readonly IDriverCategorizer _driverCategorizer;
     private readonly IDismProcessRunner _dismProcessRunner;
     private readonly IDriverInstallStepWriter _driverInstallStep;
+    private readonly IUpdateInstallStepWriter _updateInstallStep;
 
     private const string UnattendedWinstallXmlUrl = "https://raw.githubusercontent.com/memstechtips/UnattendedWinstall/main/autounattend.xml";
 
@@ -24,7 +25,8 @@ internal class WimCustomizationService : IWimCustomizationService
         ILocalizationService localization,
         IDriverCategorizer driverCategorizer,
         IDismProcessRunner dismProcessRunner,
-        IDriverInstallStepWriter driverInstallStep)
+        IDriverInstallStepWriter driverInstallStep,
+        IUpdateInstallStepWriter updateInstallStep)
     {
         _fileSystemService = fileSystemService;
         _logService = logService;
@@ -33,7 +35,10 @@ internal class WimCustomizationService : IWimCustomizationService
         _driverCategorizer = driverCategorizer;
         _dismProcessRunner = dismProcessRunner;
         _driverInstallStep = driverInstallStep;
+        _updateInstallStep = updateInstallStep;
     }
+
+    public bool AreDriversOnMedia(string workingDirectory) => DriverStaging.HasAnyOnMedia(_fileSystemService, workingDirectory);
 
     public async Task<bool> AddDriversAsync(
         string workingDirectory,
@@ -43,12 +48,8 @@ internal class WimCustomizationService : IWimCustomizationService
     {
         try
         {
-            // The media ROOT, not sources\. KB 2686316 publishes the paths Setup actually scans and
-            // every one is a drive root (C:\$WinPEDriver$, D:\, E:\, X:\) - Setup enumerates drive
-            // letters and probes each root. Nothing documents a sources\ variant, so the storage
-            // drivers sat somewhere Setup never looked.
-            var winpeDriverPath = _fileSystemService.CombinePath(workingDirectory, "$WinpeDriver$");
-            var oemDriverPath = _fileSystemService.CombinePath(workingDirectory, "sources", "$OEM$", "$$", "Drivers");
+            var winpeDriverPath = DriverStaging.WinpeFolderOf(_fileSystemService, workingDirectory);
+            var oemDriverPath = DriverStaging.FolderOf(_fileSystemService, workingDirectory);
 
             if (string.IsNullOrEmpty(driverSourcePath))
             {
@@ -186,6 +187,15 @@ internal class WimCustomizationService : IWimCustomizationService
             {
                 _logService.LogWarning($"Could not add the driver install step to autounattend.xml: {ex.Message}");
             }
+
+            try
+            {
+                await _updateInstallStep.EnsureAsync(workingDirectory).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logService.LogWarning($"Could not add the update install step to autounattend.xml: {ex.Message}");
+            }
             return OperationResult.Succeeded();
         }
         catch (Exception ex)
@@ -241,4 +251,10 @@ internal class WimCustomizationService : IWimCustomizationService
 
     public Task<DriverInstallStepResult> EnsureDriverInstallStepAsync(string xmlPath, string workingDirectory, CancellationToken cancellationToken = default) =>
         _driverInstallStep.EnsureAsync(xmlPath, workingDirectory, cancellationToken);
+
+    public Task<UpdateInstallStepResult> EnsureUpdateInstallStepAsync(string workingDirectory, CancellationToken cancellationToken = default) =>
+        _updateInstallStep.EnsureAsync(workingDirectory, cancellationToken);
+
+    public Task<UpdateInstallStepResult> EnsureUpdateInstallStepAsync(string xmlPath, string workingDirectory, CancellationToken cancellationToken = default) =>
+        _updateInstallStep.EnsureAsync(xmlPath, workingDirectory, cancellationToken);
 }

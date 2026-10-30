@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.WimUtil.Interfaces;
-using Winhance.Core.Features.WimUtil.Models;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.WimUtil.Models;
@@ -22,9 +21,32 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
     private readonly IResourceService _resourceService;
     private readonly IAnswerFileValidator _answerFileValidator;
     private readonly AnswerFileCheckState _checkState;
+    private string? _customDriversFolder;
     private bool _disposed;
 
-    public string WorkingDirectory { get; set; } = string.Empty;
+    public string WorkingDirectory
+    {
+        get;
+        set
+        {
+            if (field == value)
+                return;
+            field = value;
+            RefreshDriversAdded();
+        }
+    } = string.Empty;
+
+    public bool IsBuiltIntoImage
+    {
+        get;
+        set
+        {
+            if (field == value)
+                return;
+            field = value;
+            RefreshCardText();
+        }
+    }
 
     [ObservableProperty]
     public partial bool AreDriversAdded { get; set; }
@@ -64,7 +86,6 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
         {
             IconPath = _resourceService.GetResourceIconPath("MemoryArrowDownIconPath"),
             Title = _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Title"),
-            Description = _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Description"),
             ButtonText = _localizationService.GetString("WIMUtil_Card_ExtractDrivers_Button"),
             ButtonCommand = ExtractAndAddSystemDriversCommand,
             IsEnabled = true
@@ -74,11 +95,34 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
         {
             IconPath = _resourceService.GetResourceIconPath("ExplorerIconPath"),
             Title = _localizationService.GetString("WIMUtil_Card_CustomDrivers_Title"),
-            Description = _localizationService.GetString("WIMUtil_Card_CustomDrivers_Description"),
             ButtonText = _localizationService.GetString("WIMUtil_Card_CustomDrivers_Button"),
             ButtonCommand = SelectAndAddCustomDriversCommand,
             IsEnabled = true
         };
+
+        RefreshCardText();
+    }
+
+    // Read from the media, so a reopened folder that already holds drivers shows them and servicing clearing them shows too.
+    public void RefreshDriversAdded()
+    {
+        AreDriversAdded = !string.IsNullOrEmpty(WorkingDirectory) && _wimCustomizationService.AreDriversOnMedia(WorkingDirectory);
+        if (AreDriversAdded)
+            return;
+
+        ExtractSystemDriversCard.IsComplete = false;
+        SelectCustomDriversCard.IsComplete = false;
+    }
+
+    // The XAML binds these card instances, so a mode change rewrites their text in place.
+    private void RefreshCardText()
+    {
+        var extractKey = IsBuiltIntoImage ? "WIMUtil_Card_ExtractDrivers_Description_Image" : "WIMUtil_Card_ExtractDrivers_Description";
+        var customKey = IsBuiltIntoImage ? "WIMUtil_Card_CustomDrivers_Description_Image" : "WIMUtil_Card_CustomDrivers_Description";
+        ExtractSystemDriversCard.Description = _localizationService.GetString(extractKey);
+        SelectCustomDriversCard.Description = _customDriversFolder is { } folder
+            ? $"{_localizationService.GetString("WIMUtil_Label_Selected")}: {folder}"
+            : _localizationService.GetString(customKey);
     }
 
     [RelayCommand]
@@ -122,10 +166,9 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
 
             if (success)
             {
-                AreDriversAdded = true;
                 ExtractSystemDriversCard.IsComplete = true;
                 await _dialogService.ShowInformationAsync(
-                    _localizationService.GetString("WIMUtil_Msg_DriversSuccess"),
+                    _localizationService.GetString(IsBuiltIntoImage ? "WIMUtil_Msg_DriversSuccess_Image" : "WIMUtil_Msg_DriversSuccess"),
                     _localizationService.GetStringOrDefault("Dialog_Success", "Success"));
                 addedDrivers = true;
             }
@@ -151,6 +194,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
         finally
         {
             _taskProgressService.CompleteTask();
+            RefreshDriversAdded();
         }
 
         if (addedDrivers)
@@ -198,7 +242,8 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
 
             SelectCustomDriversCard.IsProcessing = true;
             SelectCustomDriversCard.IsEnabled = false;
-            SelectCustomDriversCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Selected")}: {selectedPath}";
+            _customDriversFolder = selectedPath;
+            RefreshCardText();
 
             _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_AddingCustomDrivers"), true);
             var progress = _taskProgressService.CreateDetailedProgress();
@@ -212,10 +257,9 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
 
             if (success)
             {
-                AreDriversAdded = true;
                 SelectCustomDriversCard.IsComplete = true;
                 await _dialogService.ShowInformationAsync(
-                    _localizationService.GetString("WIMUtil_Msg_DriverFilesAdded"),
+                    _localizationService.GetString(IsBuiltIntoImage ? "WIMUtil_Msg_DriverFilesAdded_Image" : "WIMUtil_Msg_DriverFilesAdded"),
                     _localizationService.GetStringOrDefault("Dialog_Success", "Success"));
                 addedDrivers = true;
             }
@@ -241,6 +285,7 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
         finally
         {
             _taskProgressService.CompleteTask();
+            RefreshDriversAdded();
         }
 
         if (addedDrivers)
@@ -250,34 +295,12 @@ public partial class WimStep3DriversViewModel : ObservableObject, IDisposable
     // Adding drivers rewrites autounattend.xml, so the copy on the media is re-checked once the
     // progress task is over (the task-output dialog would otherwise attach to a running task).
     // Storage-only drivers stage nothing under $OEM$ and create no XML; then there is nothing to check.
-    // Step 2 already showed these findings; the dialog returns only when adding drivers changed them.
     private async Task CheckAnswerFileAsync()
     {
-        try
-        {
-            var answerFile = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
-            if (!_fileSystemService.FileExists(answerFile))
-                return;
-
-            var previous = _checkState.LastReport;
-            var report = await _answerFileValidator.ValidateAsync(answerFile);
-            _checkState.Publish(answerFile, report);
-            if (report.Findings.Count > 0 && !SameFindings(report, previous))
-            {
-                await _dialogService.ShowSummaryAsync(AnswerFileReportDialog.Request(report, _localizationService));
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.LogWarning($"Could not check autounattend.xml: {ex.Message}");
-        }
+        var answerFile = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
+        if (_fileSystemService.FileExists(answerFile))
+            await _checkState.RecheckAfterChangeAsync(answerFile, _answerFileValidator, _dialogService, _localizationService, _logService);
     }
-
-    // The driver step shifts line numbers below its insertion point, so sameness ignores Location.
-    private static bool SameFindings(AnswerFileReport report, AnswerFileReport? previous) =>
-        previous is not null
-        && report.Findings.Select(f => (f.Rule, f.Severity, f.Detail))
-            .SequenceEqual(previous.Findings.Select(f => (f.Rule, f.Severity, f.Detail)));
 
     public void Dispose()
     {

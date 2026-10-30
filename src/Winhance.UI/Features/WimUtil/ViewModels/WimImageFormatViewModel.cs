@@ -1,5 +1,7 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Winhance.Core.Features.Common.Exceptions;
 using Winhance.Core.Features.WimUtil.Interfaces;
 using Winhance.Core.Features.WimUtil.Models;
 using Winhance.Core.Features.Common.Interfaces;
@@ -12,16 +14,33 @@ namespace Winhance.UI.Features.WimUtil.ViewModels;
 
 public partial class WimImageFormatViewModel : ObservableObject, IDisposable
 {
+    private const string EditionSettingId = "autounattend-edition";
+
     private readonly IWimImageService _wimImageService;
     private readonly ITaskProgressService _taskProgressService;
     private readonly IDialogService _dialogService;
     private readonly IDispatcherService _dispatcherService;
     private readonly ILocalizationService _localizationService;
     private readonly ILogService _logService;
+    private readonly IFileSystemService _fileSystemService;
+    private readonly IAutounattendReader _autounattendReader;
+    private readonly IOfflineServicingService _offlineServicingService;
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _disposed;
+    private bool _rebuildingChoices;
 
-    public string WorkingDirectory { get; set; } = string.Empty;
+    public string WorkingDirectory
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+            field = value;
+
+            // Another folder is another image, so the mode goes back to the one that works with any image.
+            SelectedServicing = ServicingChoices.FirstOrDefault(choice => !choice.BuiltIntoImage);
+        }
+    } = string.Empty;
 
     public bool IsImageLocked
     {
@@ -30,22 +49,49 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
         {
             field = value;
             UpdateConversionCardState();
+            PrepareImageForServicingCommand.NotifyCanExecuteChanged();
         }
     }
 
+    public ObservableCollection<ServicingChoice> ServicingChoices { get; } = [];
+
     [ObservableProperty]
+    public partial ServicingChoice? SelectedServicing { get; set; }
+
+    public ObservableCollection<ImageEdition> EditionChoices { get; } = [];
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(PrepareImageForServicingCommand))]
+    public partial ImageEdition? SelectedEdition { get; set; }
+
+    [ObservableProperty]
+    public partial bool ShowHostDismWarning { get; set; }
+
+    [ObservableProperty]
+    public partial bool ShowMountFolderWarning { get; set; }
+
+    public bool IsBuiltIntoImage => SelectedServicing?.BuiltIntoImage == true;
+
+    // One edition in a WIM is the only shape DISM can mount and service at index 1.
+    public bool IsImageReadyForServicing =>
+        CurrentImageFormat is { Format: ImageFormat.Wim, Editions.Count: 1 } && !BothFormatsExist;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(PrepareImageForServicingCommand))]
     public partial ImageFormatInfo? CurrentImageFormat { get; set; }
 
     [ObservableProperty]
     public partial bool ShowConversionCard { get; set; }
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(PrepareImageForServicingCommand))]
     public partial bool IsConverting { get; set; }
 
     [ObservableProperty]
     public partial string ConversionStatus { get; set; }
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(PrepareImageForServicingCommand))]
     public partial bool BothFormatsExist { get; set; }
 
     [ObservableProperty]
@@ -65,7 +111,10 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
         IDialogService dialogService,
         IDispatcherService dispatcherService,
         ILocalizationService localizationService,
-        ILogService logService)
+        ILogService logService,
+        IFileSystemService fileSystemService,
+        IAutounattendReader autounattendReader,
+        IOfflineServicingService offlineServicingService)
     {
         _wimImageService = wimImageService;
         _taskProgressService = taskProgressService;
@@ -73,13 +122,69 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
         _dispatcherService = dispatcherService;
         _localizationService = localizationService;
         _logService = logService;
+        _fileSystemService = fileSystemService;
+        _autounattendReader = autounattendReader;
+        _offlineServicingService = offlineServicingService;
 
         ConversionStatus = string.Empty;
         WimFileSize = string.Empty;
         EsdFileSize = string.Empty;
 
         CreateActionCards();
+        RefreshLocalizedText();
     }
+
+    public void RefreshLocalizedText()
+    {
+        var builtIn = IsBuiltIntoImage;
+        _rebuildingChoices = true;
+        try
+        {
+            ServicingChoices.Clear();
+            ServicingChoices.Add(new ServicingChoice(false, _localizationService.GetString("WIMUtil_Servicing_DuringSetup")));
+            ServicingChoices.Add(new ServicingChoice(true, _localizationService.GetString("WIMUtil_Servicing_BuiltIn")));
+        }
+        finally
+        {
+            _rebuildingChoices = false;
+        }
+        SelectedServicing = ServicingChoices.First(choice => choice.BuiltIntoImage == builtIn);
+    }
+
+    // Clearing the list makes the bound ComboBox write null back; passed on, that flips every step to During setup and back.
+    partial void OnSelectedServicingChanged(ServicingChoice? oldValue, ServicingChoice? newValue)
+    {
+        if (_rebuildingChoices || oldValue?.BuiltIntoImage == newValue?.BuiltIntoImage)
+            return;
+
+        OnPropertyChanged(nameof(IsBuiltIntoImage));
+        UpdateHostDismWarning();
+        ShowMountFolderWarning = IsBuiltIntoImage
+            && !string.IsNullOrEmpty(WorkingDirectory)
+            && !_offlineServicingService.CanMountFor(WorkingDirectory);
+        if (CurrentImageFormat is not null)
+            UpdateConversionCardState();
+    }
+
+    partial void OnCurrentImageFormatChanged(ImageFormatInfo? value)
+    {
+        var kept = SelectedEdition?.Name;
+        EditionChoices.Clear();
+        foreach (var edition in value?.Editions ?? [])
+            EditionChoices.Add(edition);
+        SelectedEdition = EditionChoices.FirstOrDefault(e => e.Name == kept) ?? EditionChoices.FirstOrDefault();
+
+        OnPropertyChanged(nameof(IsImageReadyForServicing));
+        UpdateHostDismWarning();
+    }
+
+    partial void OnBothFormatsExistChanged(bool value) => OnPropertyChanged(nameof(IsImageReadyForServicing));
+
+    // An older DISM may not service a newer image; the service falls back to setup when it cannot.
+    private void UpdateHostDismWarning() =>
+        ShowHostDismWarning = IsBuiltIntoImage
+            && CurrentImageFormat is { } image
+            && Environment.OSVersion.Version.Build < image.Build;
 
     private void CreateActionCards()
     {
@@ -176,6 +281,102 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
             ConvertImageCard.IsProcessing = false;
             ConvertImageCard.IsEnabled = !IsImageLocked;
             _taskProgressService.CompleteTask();
+        }
+    }
+
+    private bool CanPrepareImageForServicing() =>
+        SelectedEdition is not null && !IsConverting && !IsImageLocked && !BothFormatsExist && !IsImageReadyForServicing;
+
+    [RelayCommand(CanExecute = nameof(CanPrepareImageForServicing))]
+    private async Task PrepareImageForServicing()
+    {
+        if (!CanPrepareImageForServicing() || SelectedEdition is not { } edition) return;
+
+        var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+        {
+            Message = _localizationService.GetString("WIMUtil_Msg_PrepareServicing_Confirm", edition.Name),
+            Title = _localizationService.GetString("WIMUtil_Card_PrepareServicing_Title"),
+            ConfirmButtonText = _localizationService.GetString("Button_Yes"),
+            CancelButtonText = _localizationService.GetString("Button_No"),
+        })).Confirmed;
+        if (!confirmed) return;
+
+        try
+        {
+            IsConverting = true;
+            var cancellation = _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_PreparingImage"), true);
+            var result = await _wimImageService.KeepEditionAsWimAsync(
+                WorkingDirectory, edition.Name, _taskProgressService.CreateDetailedProgress(), cancellation.Token);
+
+            await DetectImageFormatAsync();
+            if (!result.Removed)
+            {
+                _taskProgressService.FailTask();
+                await _dialogService.ShowErrorAsync(
+                    _localizationService.GetString("WIMUtil_Msg_PrepareServicing_Failed"),
+                    _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
+                return;
+            }
+
+            if (result.LeftoverImage is { } leftover)
+            {
+                await _dialogService.ShowWarningAsync(
+                    _localizationService.GetString("WIMUtil_Generate_Summary_OldImageLeft", leftover),
+                    _localizationService.GetStringOrDefault("Dialog_Warning", "Warning"));
+            }
+            await WarnIfAnswerFilePicksAnotherAsync(edition);
+        }
+        catch (OperationCanceledException)
+        {
+            _taskProgressService.CancelTask();
+        }
+        catch (InsufficientDiskSpaceException spaceEx)
+        {
+            _taskProgressService.FailTask();
+            await _dialogService.ShowWarningAsync(
+                string.Format(_localizationService.GetString("WIMUtil_Msg_InsufficientSpace_Prepare"), spaceEx.DriveName, spaceEx.RequiredGB.ToString("F2"), spaceEx.AvailableGB.ToString("F2"), (spaceEx.RequiredGB - spaceEx.AvailableGB).ToString("F2")),
+                string.Format(_localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace"), spaceEx.DriveName));
+        }
+        catch (Exception ex)
+        {
+            _taskProgressService.FailTask();
+            _logService.LogError($"Error keeping one edition: {ex.Message}", ex);
+            await _dialogService.ShowErrorAsync(
+                _localizationService.GetString("WIMUtil_Msg_PrepareServicing_Failed"),
+                _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
+        }
+        finally
+        {
+            IsConverting = false;
+            _taskProgressService.CompleteTask();
+        }
+    }
+
+    // Only a file Winhance made says which edition it picks; any other answer file is left alone.
+    private async Task WarnIfAnswerFilePicksAnotherAsync(ImageEdition kept)
+    {
+        var answerFile = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
+        if (!_fileSystemService.FileExists(answerFile))
+            return;
+
+        int? picked;
+        try
+        {
+            picked = (await _autounattendReader.ReadAsync(answerFile))?.Config?.Autounattend.Features.Values
+                .SelectMany(section => section.Items)
+                .FirstOrDefault(item => item.Id == EditionSettingId)?.SelectedIndex;
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"Could not read the edition autounattend.xml picks: {ex.Message}");
+            return;
+        }
+
+        if (MediaEditions.PicksAnother(picked, kept.EditionId))
+        {
+            await _dialogService.ShowWarningAsync(
+                _localizationService.GetString("WIMUtil_Msg_AnswerFilePicksAnotherEdition", kept.Name),
+                _localizationService.GetString("WIMUtil_Generate_Plan_ChosenNotOnMedia"));
         }
     }
 
@@ -355,7 +556,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
         ConvertImageCard.Title = string.Format(_localizationService.GetString("WIMUtil_Card_ConvertImage_Title_Dynamic"), currentFormat, targetFormat);
         ConvertImageCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Current")}: install.{currentFormat.ToLower()} ({currentSize:F2} GB)\n{_localizationService.GetString("WIMUtil_Label_AfterConversion")}: ~{estimatedTargetSize:F2} GB ({sizeChange})";
         ConvertImageCard.ButtonText = string.Format(_localizationService.GetString("WIMUtil_Card_ConvertImage_Button_Dynamic"), targetFormat);
-        ConvertImageCard.IsEnabled = !IsConverting && !IsImageLocked;
+        ConvertImageCard.IsEnabled = !IsConverting && !IsImageLocked && !IsBuiltIntoImage;
     }
 
     public void Dispose()

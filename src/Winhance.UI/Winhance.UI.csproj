@@ -44,10 +44,10 @@
     <DefineConstants>DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <StartupObject>Winhance.UI.Program</StartupObject>
     <!-- Version information -->
-    <Version>26.10.15</Version>
-    <FileVersion>26.10.15</FileVersion>
-    <AssemblyVersion>26.10.15</AssemblyVersion>
-    <InformationalVersion>v26.10.15</InformationalVersion>
+    <Version>26.10.24</Version>
+    <FileVersion>26.10.24</FileVersion>
+    <AssemblyVersion>26.10.24</AssemblyVersion>
+    <InformationalVersion>v26.10.24</InformationalVersion>
     <Copyright>Copyright © Marco du Plessis</Copyright>
   </PropertyGroup>
 
@@ -136,6 +136,13 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Assets\Sponsors\logos\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- Windows update list snapshot - offline fallback for WindowsUpdateListService -->
+  <ItemGroup>
+    <Content Include="Assets\Updates\updates.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

@@ -221,11 +221,14 @@ public class WimStep1ViewModelTests
         _mockFileSystemService
             .Setup(f => f.GetFileName("D:\\ExtractedIso\\boot"))
             .Returns("boot");
+        var mediaReady = 0;
+        _sut.MediaReady += (_, _) => mediaReady++;
 
         await _sut.SelectWorkingDirectoryCommand.ExecuteAsync(null);
 
         _sut.WorkingDirectory.Should().Be("D:\\ExtractedIso");
         _sut.IsExtractionComplete.Should().BeTrue();
+        mediaReady.Should().Be(1);
 
         // The card's tick says it worked; a dialog repeating that is one more click for nothing.
         _mockDialogService.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
@@ -328,11 +331,14 @@ public class WimStep1ViewModelTests
                 It.IsAny<IProgress<Core.Features.Common.Models.TaskProgressDetail>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        var mediaReady = 0;
+        _sut.MediaReady += (_, _) => mediaReady++;
 
         await _sut.StartIsoExtractionCommand.ExecuteAsync(null);
 
         _sut.IsExtractionComplete.Should().BeTrue();
         _sut.IsExtracting.Should().BeFalse();
+        mediaReady.Should().Be(1);
     }
 
     [Fact]

@@ -9,6 +9,12 @@ public record ImageFormatInfo
 
     // Every edition on one medium shares a build; 0 when DISM did not report one.
     public int Build { get; init; }
+
+    // The update level of the media's build (the part after the dot in 26100.1742); 0 when unknown.
+    public int Ubr { get; init; }
+
+    // "x64", "arm64", "x86", or "" when DISM did not report a known one.
+    public string Architecture { get; init; } = string.Empty;
 }
 
 // EditionId is the image's own id (Professional, CoreSingleLanguage), the same in every UI language.

@@ -33,7 +33,7 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
         _logService = logService;
     }
 
-    public IReadOnlyList<RemovableDrive> GetCandidateTargets()
+    public IReadOnlyList<RemovableDrive> GetCandidateTargets(bool includeUsbHardDrives)
     {
         var disks = _operations.GetDisks();
 
@@ -45,11 +45,12 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
                 $"Disk {disk.DiskNumber}: {disk.Model}, {disk.BusType}, system={disk.IsSystemDisk}, removable={disk.HasRemovableMedia}");
         }
 
-        // USB hard drives and SSDs stay off the list, as Rufus keeps them off by default: they are
-        // usually someone's backup drive, and one wrong pick erases it.
+        // USB hard drives and SSDs stay off the list unless the user opts in, as Rufus does: they are
+        // usually someone's backup drive, and one wrong pick erases it. Some fast flash drives report
+        // as fixed media too, which is why the opt-in exists. It relaxes only the removable-media bit.
         return disks
             .Where(disk => !disk.IsSystemDisk
-                        && disk.HasRemovableMedia
+                        && (includeUsbHardDrives || disk.HasRemovableMedia)
                         && disk.BusType.Equals(UsbBusType, StringComparison.OrdinalIgnoreCase))
             .OrderBy(disk => disk.DiskNumber)
             .ToArray();
@@ -65,8 +66,9 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
         // The system disk is refused here as well as in the picker: the picker is a UI list a
         // caller can bypass, and MSFT_Disk's own 42010 arrives only after the wipe has started.
         // The whole record is compared because Windows reuses disk numbers: a drive plugged in
-        // after the picked one was pulled can hold its number.
-        if (!GetCandidateTargets().Contains(target))
+        // after the picked one was pulled can hold its number. Fixed-media USB drives pass here:
+        // whether the picker offered one is the user's opt-in, not a safety rule.
+        if (!GetCandidateTargets(includeUsbHardDrives: true).Contains(target))
         {
             throw new InvalidOperationException(
                 $"Disk {target.DiskNumber} ({target.Model}) is not a USB flash drive.");

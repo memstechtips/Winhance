@@ -223,6 +223,7 @@ public class AnswerFileValidatorTests
         var writerFiles = new Mock<IFileSystemService>();
         writerFiles.Setup(f => f.CombinePath(It.IsAny<string[]>())).Returns((string[] parts) => string.Join("\\", parts));
         writerFiles.Setup(f => f.DirectoryExists("C:\\work\\sources\\$OEM$\\$$\\Drivers")).Returns(true);
+        writerFiles.Setup(f => f.GetFiles("C:\\work\\sources\\$OEM$\\$$\\Drivers", "*", SearchOption.AllDirectories)).Returns(["net.inf"]);
         writerFiles.Setup(f => f.FileExists(XmlPath)).Returns(true);
         writerFiles.Setup(f => f.ReadAllTextAsync(XmlPath, It.IsAny<CancellationToken>())).ReturnsAsync(GeneratedWithScript());
         string? written = null;

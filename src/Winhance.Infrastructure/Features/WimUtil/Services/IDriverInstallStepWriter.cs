@@ -7,4 +7,7 @@ internal interface IDriverInstallStepWriter
     Task<DriverInstallStepResult> EnsureAsync(string workingDirectory, CancellationToken cancellationToken = default);
 
     Task<DriverInstallStepResult> EnsureAsync(string xmlPath, string workingDirectory, CancellationToken cancellationToken = default);
+
+    // True when the answer file changed.
+    Task<bool> RemoveAsync(string workingDirectory, CancellationToken cancellationToken = default);
 }

@@ -5,7 +5,8 @@ namespace Winhance.Core.Features.WimUtil.Interfaces;
 
 public interface IUsbMediaWriter
 {
-    IReadOnlyList<RemovableDrive> GetCandidateTargets();
+    // USB hard drives and SSDs (fixed media over USB) are listed only when includeUsbHardDrives is set.
+    IReadOnlyList<RemovableDrive> GetCandidateTargets(bool includeUsbHardDrives);
 
     // Destroys everything on the drive. The caller owns the confirmation.
     void Write(

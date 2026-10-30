@@ -23,4 +23,11 @@ public static class MediaEditions
 
     public static int? OptionFor(string editionId) =>
         OptionByEditionId.TryGetValue(editionId, out var option) ? option : null;
+
+    // False for the options that name no edition: ask during setup, a custom key, the firmware key.
+    private static bool NamesAnEdition(int option) => OptionByEditionId.ContainsValue(option);
+
+    // Setup installs the image's one edition whatever the answer file picks, so a pick naming another edition misleads.
+    public static bool PicksAnother(int? option, string keptEditionId) =>
+        option is { } pick && NamesAnEdition(pick) && OptionFor(keptEditionId) != pick;
 }

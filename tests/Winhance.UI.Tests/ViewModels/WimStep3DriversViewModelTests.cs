@@ -25,6 +25,7 @@ public class WimStep3DriversViewModelTests : IDisposable
     private readonly Mock<IResourceService> _mockResourceService = new();
     private readonly Mock<IAnswerFileValidator> _mockAnswerFileValidator = new();
     private readonly AnswerFileCheckState _checkState = new();
+    private bool _driversOnMedia;
 
     private readonly WimStep3DriversViewModel _sut;
 
@@ -33,6 +34,9 @@ public class WimStep3DriversViewModelTests : IDisposable
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+        _mockWimCustomizationService
+            .Setup(s => s.AreDriversOnMedia("C:\\WorkDir"))
+            .Returns(() => _driversOnMedia);
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
             .Returns((string key, object[] _) => key);
@@ -153,12 +157,35 @@ public class WimStep3DriversViewModelTests : IDisposable
             .Setup(s => s.AddDriversAsync(
                 "C:\\WorkDir", null,
                 It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Callback(() => _driversOnMedia = true)
             .ReturnsAsync(true);
 
         await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
 
         _sut.AreDriversAdded.Should().BeTrue();
         _sut.ExtractSystemDriversCard.IsComplete.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(false, "WIMUtil_Msg_DriversSuccess")]
+    [InlineData(true, "WIMUtil_Msg_DriversSuccess_Image")]
+    public async Task ExtractAndAddSystemDriversCommand_OnSuccess_SaysWhereTheDriversGo(bool builtIntoImage, string messageKey)
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _sut.IsBuiltIntoImage = builtIntoImage;
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+        _mockWimCustomizationService
+            .Setup(s => s.AddDriversAsync(
+                "C:\\WorkDir", null,
+                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Callback(() => _driversOnMedia = true)
+            .ReturnsAsync(true);
+
+        await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowInformationAsync(messageKey, It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -318,6 +345,7 @@ public class WimStep3DriversViewModelTests : IDisposable
             .Setup(s => s.AddDriversAsync(
                 "C:\\WorkDir", "C:\\DriverDir",
                 It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Callback(() => _driversOnMedia = true)
             .ReturnsAsync(true);
 
         await _sut.SelectAndAddCustomDriversCommand.ExecuteAsync(null);
@@ -431,6 +459,7 @@ public class WimStep3DriversViewModelTests : IDisposable
             .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
         _mockWimCustomizationService
             .Setup(s => s.AddDriversAsync("C:\\WorkDir", null, It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Callback(() => _driversOnMedia = true)
             .ReturnsAsync(true);
     }
 
@@ -552,11 +581,100 @@ public class WimStep3DriversViewModelTests : IDisposable
         _mockFileSystemService.Setup(f => f.GetFiles("C:\\DriverDir", "*", SearchOption.AllDirectories)).Returns(OneDriverInf);
         _mockWimCustomizationService
             .Setup(s => s.AddDriversAsync("C:\\WorkDir", "C:\\DriverDir", It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Callback(() => _driversOnMedia = true)
             .ReturnsAsync(true);
 
         await _sut.SelectAndAddCustomDriversCommand.ExecuteAsync(null);
 
         _sut.SelectCustomDriversCard.IsComplete.Should().BeTrue();
         _mockAnswerFileValidator.Verify(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public void IsBuiltIntoImage_SwitchesTheCardTextToTheImageWording()
+    {
+        _sut.IsBuiltIntoImage = true;
+
+        _sut.ExtractSystemDriversCard.Description.Should().Be("WIMUtil_Card_ExtractDrivers_Description_Image");
+        _sut.SelectCustomDriversCard.Description.Should().Be("WIMUtil_Card_CustomDrivers_Description_Image");
+
+        _sut.IsBuiltIntoImage = false;
+
+        _sut.ExtractSystemDriversCard.Description.Should().Be("WIMUtil_Card_ExtractDrivers_Description");
+        _sut.SelectCustomDriversCard.Description.Should().Be("WIMUtil_Card_CustomDrivers_Description");
+    }
+
+    [Fact]
+    public void IsBuiltIntoImage_Unchanged_LeavesTheCardTextAlone()
+    {
+        _sut.ExtractSystemDriversCard.Description = "Drivers added";
+
+        _sut.IsBuiltIntoImage = false;
+
+        _sut.ExtractSystemDriversCard.Description.Should().Be("Drivers added");
+    }
+
+    [Fact]
+    public void RefreshDriversAdded_NothingOnTheMedia_MarksBothCardsAndTheStepNotAdded()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _sut.AreDriversAdded = true;
+        _sut.ExtractSystemDriversCard.IsComplete = true;
+        _sut.SelectCustomDriversCard.IsComplete = true;
+
+        _sut.RefreshDriversAdded();
+
+        _sut.AreDriversAdded.Should().BeFalse();
+        _sut.ExtractSystemDriversCard.IsComplete.Should().BeFalse();
+        _sut.SelectCustomDriversCard.IsComplete.Should().BeFalse();
+    }
+
+    [Fact]
+    public void RefreshDriversAdded_DriversStillOnTheMedia_KeepsTheStepAdded()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _driversOnMedia = true;
+        _sut.ExtractSystemDriversCard.IsComplete = true;
+
+        _sut.RefreshDriversAdded();
+
+        _sut.AreDriversAdded.Should().BeTrue();
+        _sut.ExtractSystemDriversCard.IsComplete.Should().BeTrue();
+    }
+
+    [Fact]
+    public void WorkingDirectory_SetToMediaThatAlreadyHoldsDrivers_ShowsThemAdded()
+    {
+        _driversOnMedia = true;
+
+        _sut.WorkingDirectory = "C:\\WorkDir";
+
+        _sut.AreDriversAdded.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task WorkingDirectory_ChangedAfterAddingDrivers_ReadsTheNewFolder()
+    {
+        ArrangeExtractSucceeds();
+        await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
+        _sut.AreDriversAdded.Should().BeTrue();
+
+        _sut.WorkingDirectory = "D:\\OtherWork";
+
+        _sut.AreDriversAdded.Should().BeFalse();
+        _sut.ExtractSystemDriversCard.IsComplete.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ExtractAndAddSystemDriversCommand_ReportsSuccessButNothingReachedTheMedia_StaysNotAdded()
+    {
+        ArrangeExtractSucceeds();
+        _mockWimCustomizationService
+            .Setup(s => s.AddDriversAsync("C:\\WorkDir", null, It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
+
+        _sut.AreDriversAdded.Should().BeFalse();
     }
 }

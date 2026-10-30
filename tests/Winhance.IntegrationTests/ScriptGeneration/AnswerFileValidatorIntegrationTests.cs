@@ -101,6 +101,7 @@ public class AnswerFileValidatorIntegrationTests
         try
         {
             Directory.CreateDirectory(Path.Combine(work, "sources", "$OEM$", "$$", "Drivers"));
+            File.WriteAllText(Path.Combine(work, "sources", "$OEM$", "$$", "Drivers", "net.inf"), "");
             var xmlPath = Path.Combine(work, "autounattend.xml");
             await File.WriteAllTextAsync(xmlPath, GeneratedWithScript());
             (await new DriverInstallStepWriter(new FileSystemService(), Mock.Of<ILogService>()).EnsureAsync(work)).Should().Be(DriverInstallStepResult.Added);

@@ -232,3 +232,13 @@ CloseServiceHandle
 SC_MANAGER_CONNECT
 SERVICE_PAUSE_CONTINUE
 SERVICE_CONTROL_PARAMCHANGE
+
+// Whether a downloaded .msu carries a valid Microsoft Authenticode signature, and who signed it (wintrust.dll, crypt32.dll)
+WinVerifyTrust
+WINTRUST_DATA
+WINTRUST_FILE_INFO
+WINTRUST_ACTION_GENERIC_VERIFY_V2
+CryptQueryObject
+CryptMsgGetParam
+CryptMsgClose
+CMSG_ENCODED_MESSAGE

@@ -60,6 +60,8 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
         }
     }
 
+    public bool IsBuiltIntoImage { get; set; }
+
     [ObservableProperty]
     public partial string SelectedXmlPath { get; set; }
 
@@ -454,6 +456,35 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
         }
     }
 
+    // Media from an earlier build or a custom ISO can already carry an answer file, and it installs just as if it had been picked.
+    public async Task PickUpMediaAnswerFileAsync()
+    {
+        try
+        {
+            ClearOtherXmlCardCompletions(string.Empty);
+            var path = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
+            if (string.IsNullOrEmpty(WorkingDirectory) || !_fileSystemService.FileExists(path))
+            {
+                SelectedXmlPath = string.Empty;
+                IsXmlAdded = false;
+                XmlStatus = _localizationService.GetString("WIMUtil_Status_NoXmlAdded");
+                return;
+            }
+
+            SelectedXmlPath = path;
+            IsXmlAdded = true;
+            XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlOnMedia");
+            SelectXmlCard.Description = _localizationService.GetString("WIMUtil_Card_SelectXML_OnMedia_Description");
+            SelectXmlCard.IsComplete = true;
+            await CheckAnswerFileAsync();
+            await OpenWinhanceFileAsync(path);
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Error reading the answer file on the media: {ex.Message}", ex);
+        }
+    }
+
     [RelayCommand]
     private async Task OpenSchneegansXmlGenerator()
     {
@@ -583,6 +614,14 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
                 Tone: SummaryTone.Warning));
         }
 
+        if (editions.ChosenNotOnMedia)
+        {
+            rows.Add(new(SummaryIcon.Status,
+                _localizationService.GetString("WIMUtil_Generate_Plan_ChosenNotOnMedia"),
+                _localizationService.GetString("WIMUtil_Generate_Plan_ChosenNotOnMedia_Detail", editions.Kept[0].Name),
+                Tone: SummaryTone.Warning));
+        }
+
         rows.Add(new(SummaryIcon.Check,
             _localizationService.GetString("WIMUtil_Generate_Plan_Check"),
             _localizationService.GetString("WIMUtil_Generate_Plan_Check_Detail")));
@@ -693,6 +732,8 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
         // An edition outside the table has no option either, and must not pass for a choice that names none.
         bool IsChosen(ImageEdition e) => chosen is { } picked && MediaEditions.OptionFor(e.EditionId) == picked;
 
+        var chosenNotOnMedia = IsBuiltIntoImage && editions is [var only] && MediaEditions.PicksAnother(chosen, only.EditionId);
+
         var keep = set.StateOf(MediaEditionsId)?.Label;
         var kept =
             keep == LocKey.Setting.AutounattendMediaEditions.Option1
@@ -702,11 +743,11 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
             : editions.ToList();
 
         if (kept.Count == 0)
-            return new EditionPlan(editions, [], NoneMatched: editions.Count > 0, RemovesChosen: false);
+            return new EditionPlan(editions, [], NoneMatched: editions.Count > 0, RemovesChosen: false, ChosenNotOnMedia: chosenNotOnMedia);
 
         var removed = editions.Except(kept).ToList();
         return new EditionPlan(kept, removed, NoneMatched: false,
-            RemovesChosen: removed.Any(IsChosen) && !kept.Any(IsChosen));
+            RemovesChosen: removed.Any(IsChosen) && !kept.Any(IsChosen), ChosenNotOnMedia: chosenNotOnMedia);
     }
 
     // The file is already on the media, so a failed or cancelled removal still leaves media that installs, with
@@ -753,7 +794,8 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
     }
 
     private sealed record EditionPlan(
-        IReadOnlyList<ImageEdition> Kept, IReadOnlyList<ImageEdition> Removed, bool NoneMatched, bool RemovesChosen);
+        IReadOnlyList<ImageEdition> Kept, IReadOnlyList<ImageEdition> Removed, bool NoneMatched, bool RemovesChosen,
+        bool ChosenNotOnMedia);
 
     private sealed record EditionOutcome(EditionRemovalResult Result, bool Cancelled);
 
@@ -792,6 +834,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IDisposable
 
     internal void ClearOtherXmlCardCompletions(string exceptCard)
     {
+        SelectXmlCard.Description = _localizationService.GetString("WIMUtil_Card_SelectXML_Description");
         if (exceptCard != "generate") GenerateWinhanceXmlCard.IsComplete = false;
         if (exceptCard != "download") DownloadXmlCard.IsComplete = false;
         if (exceptCard != "select") SelectXmlCard.IsComplete = false;

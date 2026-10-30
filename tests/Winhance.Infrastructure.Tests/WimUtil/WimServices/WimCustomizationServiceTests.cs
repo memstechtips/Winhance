@@ -18,6 +18,7 @@ public class WimCustomizationServiceTests
     private readonly Mock<IDriverCategorizer> _mockDriverCategorizer = new();
     private readonly Mock<IDismProcessRunner> _mockDismRunner = new();
     private readonly Mock<IDriverInstallStepWriter> _mockDriverInstallStep = new();
+    private readonly Mock<IUpdateInstallStepWriter> _mockUpdateInstallStep = new();
     private readonly WimCustomizationService _service;
 
     public WimCustomizationServiceTests()
@@ -42,7 +43,8 @@ public class WimCustomizationServiceTests
             _mockLocalization.Object,
             _mockDriverCategorizer.Object,
             _mockDismRunner.Object,
-            _mockDriverInstallStep.Object);
+            _mockDriverInstallStep.Object,
+            _mockUpdateInstallStep.Object);
     }
 
     // The DownloadUnattendedWinstallXmlAsync path-validation tests guard issue #506.

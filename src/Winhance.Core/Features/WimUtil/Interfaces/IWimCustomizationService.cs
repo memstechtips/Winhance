@@ -5,6 +5,9 @@ namespace Winhance.Core.Features.WimUtil.Interfaces;
 
 public interface IWimCustomizationService
 {
+    // Either driver folder: servicing moves the $OEM$ drivers into the image, and the storage drivers stay for Setup.
+    bool AreDriversOnMedia(string workingDirectory);
+
     Task<bool> AddDriversAsync(
         string workingDirectory,
         string? driverSourcePath = null,
@@ -25,6 +28,15 @@ public interface IWimCustomizationService
         CancellationToken cancellationToken = default);
 
     Task<DriverInstallStepResult> EnsureDriverInstallStepAsync(
+        string xmlPath,
+        string workingDirectory,
+        CancellationToken cancellationToken = default);
+
+    Task<UpdateInstallStepResult> EnsureUpdateInstallStepAsync(
+        string workingDirectory,
+        CancellationToken cancellationToken = default);
+
+    Task<UpdateInstallStepResult> EnsureUpdateInstallStepAsync(
         string xmlPath,
         string workingDirectory,
         CancellationToken cancellationToken = default);

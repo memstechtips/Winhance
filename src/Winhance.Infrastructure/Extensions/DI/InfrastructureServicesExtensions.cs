@@ -165,10 +165,20 @@ public static class InfrastructureServicesExtensions
             Winhance.Infrastructure.Features.WimUtil.Services.BootManagerService>();
         services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IDriverInstallStepWriter,
             Winhance.Infrastructure.Features.WimUtil.Services.DriverInstallStepWriter>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IUpdateInstallStepWriter,
+            Winhance.Infrastructure.Features.WimUtil.Services.UpdateInstallStepWriter>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IAuthenticodeVerifier,
+            Winhance.Infrastructure.Features.WimUtil.Services.AuthenticodeVerifier>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IWindowsUpdateListService,
+            Winhance.Infrastructure.Features.WimUtil.Services.WindowsUpdateListService>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IWindowsUpdateStager,
+            Winhance.Infrastructure.Features.WimUtil.Services.WindowsUpdateStager>();
         services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IAnswerFileValidator,
             Winhance.Infrastructure.Features.WimUtil.Services.AnswerFileValidator>();
         services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IWimCustomizationService,
             Winhance.Infrastructure.Features.WimUtil.Services.WimCustomizationService>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IOfflineServicingService,
+            Winhance.Infrastructure.Features.WimUtil.Services.OfflineServicingService>();
         services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IAppStagingService,
             Winhance.Infrastructure.Features.WimUtil.Services.AppStagingService>();
         services.AddSingleton<Winhance.Core.Features.Autounattend.Interfaces.IWinhancementsScriptBuilder,

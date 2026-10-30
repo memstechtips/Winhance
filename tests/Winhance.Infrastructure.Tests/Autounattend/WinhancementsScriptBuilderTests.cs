@@ -90,6 +90,18 @@ public class WinhancementsScriptBuilderTests
     }
 
     [Fact]
+    public async Task BuildAsync_SystemPath_ExitsFirstWhileWindowsUpdatesAreStaged()
+    {
+        var result = await _sut.BuildAsync(SelectionSet.Empty, new Dictionary<string, IReadOnlyList<Setting>>());
+
+        var guard = result.IndexOf("if (Test-Path 'C:\\ProgramData\\Winhance\\Unattend\\Updates') {", StringComparison.Ordinal);
+        guard.Should().BeGreaterThan(0);
+        result.IndexOf("UserCustomizations running as SYSTEM", StringComparison.Ordinal).Should().BeGreaterThan(guard);
+        result[guard..result.IndexOf("UserCustomizations running as SYSTEM", StringComparison.Ordinal)]
+            .Should().Contain("user customizations run after their restart").And.Contain("exit 0");
+    }
+
+    [Fact]
     public async Task BuildAsync_EmptySet_CarriesOnlyTheHelpersTheUserBridgeCalls()
     {
         var result = await _sut.BuildAsync(SelectionSet.Empty, new Dictionary<string, IReadOnlyList<Setting>>());

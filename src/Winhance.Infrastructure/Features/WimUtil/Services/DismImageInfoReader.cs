@@ -14,6 +14,14 @@ internal sealed class DismImageInfoReader : IDismImageInfoReader
         _logService = logService;
     }
 
+    internal static string ArchitectureName(uint processorArchitecture) => processorArchitecture switch
+    {
+        0 => "x86",
+        9 => "x64",
+        12 => "arm64",
+        _ => "",
+    };
+
     public IReadOnlyList<DismImageEntry> GetImageInfo(string imagePath)
     {
         // Bracketing the native call is the only diagnostic there is: a struct declared with the
@@ -39,7 +47,9 @@ internal sealed class DismImageInfoReader : IDismImageInfoReader
                         (int)info.ImageIndex,
                         Marshal.PtrToStringUni(info.ImageName) ?? string.Empty,
                         (int)info.Build,
-                        Marshal.PtrToStringUni(info.EditionId) ?? string.Empty))
+                        Marshal.PtrToStringUni(info.EditionId) ?? string.Empty,
+                        (int)info.SpBuild,
+                        ArchitectureName(info.Architecture)))
                     .ToArray();
             }
             finally

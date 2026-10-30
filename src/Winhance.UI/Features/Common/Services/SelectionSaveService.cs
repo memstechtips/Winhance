@@ -101,7 +101,7 @@ public sealed class SelectionSaveService : ISelectionSaveService
         IReadOnlyList<StagedApp> staged = [];
         if (media is { Length: > 0 })
         {
-            // The save already worked, so a failed driver step is only logged.
+            // The save already worked, so a failed driver or update step is only logged.
             try
             {
                 await _wim.EnsureDriverInstallStepAsync(written, media);
@@ -109,6 +109,15 @@ public sealed class SelectionSaveService : ISelectionSaveService
             catch (Exception ex)
             {
                 _log.Log(LogLevel.Warning, $"Could not add the driver install step to {written}: {ex.Message}");
+            }
+
+            try
+            {
+                await _wim.EnsureUpdateInstallStepAsync(written, media);
+            }
+            catch (Exception ex)
+            {
+                _log.Log(LogLevel.Warning, $"Could not add the update install step to {written}: {ex.Message}");
             }
 
             staged = await StageAppsAsync(selections, media, options.ReportSuccessInDialog);
