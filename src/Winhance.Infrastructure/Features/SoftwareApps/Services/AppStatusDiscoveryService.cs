@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
-using Microsoft.Win32;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -15,7 +14,7 @@ internal class AppStatusDiscoveryService(
     IWinGetBootstrapper winGetBootstrapper,
     IWinGetDetectionService winGetDetectionService,
     IChocolateyService chocolateyService,
-    IInteractiveUserService interactiveUserService,
+    IWindowsRegistryService registry,
     IAppxPackageSource appxPackageSource) : IAppStatusDiscoveryService
 {
     private HashSet<string>? _cachedWinGetPackageIds;
@@ -23,6 +22,7 @@ internal class AppStatusDiscoveryService(
     public void InvalidateCache()
     {
         _cachedWinGetPackageIds = null;
+        winGetDetectionService.InvalidateInstalledPackages();
     }
 
     public async Task<Dictionary<string, bool>> GetInstallationStatusBatchAsync(IEnumerable<ItemDefinition> definitions)
@@ -34,11 +34,14 @@ internal class AppStatusDiscoveryService(
 
         try
         {
-            var apps = definitionList.Where(d => d.AppxPackageName?.Length > 0).ToList();
+            // WebView2 has no AppX package, so a Windows app with only an uninstall key counts too
+            var apps = definitionList.Where(d => d.AppxPackageName?.Length > 0
+                || (string.IsNullOrEmpty(d.CapabilityName) && string.IsNullOrEmpty(d.OptionalFeatureName)
+                    && (!string.IsNullOrEmpty(d.RegistrySubKeyName) || !string.IsNullOrEmpty(d.RegistryDisplayName)))).ToList();
             var capabilities = definitionList.Where(d => !string.IsNullOrEmpty(d.CapabilityName)).ToList();
             var features = definitionList.Where(d => !string.IsNullOrEmpty(d.OptionalFeatureName)).ToList();
 
-            int capCount = 0, featCount = 0, appxCount = 0, wingetCount = 0;
+            int capCount = 0, featCount = 0, appxCount = 0, wingetCount = 0, registryCount = 0;
 
             if (capabilities.Count > 0)
             {
@@ -81,7 +84,7 @@ internal class AppStatusDiscoveryService(
                 var installedPackageNames = await appxPackageSource.GetInstalledPackageNamesAsync().ConfigureAwait(false);
                 foreach (var app in apps)
                 {
-                    if (app.AppxPackageName!.Any(name => installedPackageNames.Contains(name)))
+                    if (app.AppxPackageName?.Any(name => installedPackageNames.Contains(name)) == true)
                     {
                         result[app.Id] = true;
                         appxCount++;
@@ -116,6 +119,31 @@ internal class AppStatusDiscoveryService(
                     }
                 }
 
+                // A Click-to-Run install (OneNote) is neither AppX nor winget; its uninstall key is its only trace.
+                var byRegistry = apps
+                    .Where(a => !result.ContainsKey(a.Id) || !result[a.Id])
+                    .Where(a => !string.IsNullOrEmpty(a.RegistrySubKeyName) || !string.IsNullOrEmpty(a.RegistryDisplayName))
+                    .ToList();
+
+                if (byRegistry.Count > 0)
+                {
+                    var regInfo = await GetRegistryUninstallInfoAsync().ConfigureAwait(false);
+                    foreach (var app in byRegistry)
+                    {
+                        var matched =
+                            (!string.IsNullOrEmpty(app.RegistrySubKeyName)
+                                && regInfo.AllKeyNames.Any(k => MatchesPattern(k, app.RegistrySubKeyName!)))
+                            || (!string.IsNullOrEmpty(app.RegistryDisplayName)
+                                && regInfo.DisplayNames.Any(dn => MatchesPattern(dn, app.RegistryDisplayName!)));
+                        if (matched)
+                        {
+                            result[app.Id] = true;
+                            registryCount++;
+                            logService.LogInformation($"Installed (Registry): {app.Name}");
+                        }
+                    }
+                }
+
                 foreach (var app in apps)
                 {
                     if (!result.ContainsKey(app.Id))
@@ -125,7 +153,7 @@ internal class AppStatusDiscoveryService(
 
             var notFoundCount = result.Count(kvp => !kvp.Value);
             logService.LogInformation(
-                $"Detection complete: {capCount} via Capability, {featCount} via Feature, {appxCount} via AppX, {wingetCount} via WinGet, {notFoundCount} not found");
+                $"Detection complete: {capCount} via Capability, {featCount} via Feature, {appxCount} via AppX, {wingetCount} via WinGet, {registryCount} via Registry, {notFoundCount} not found");
 
             return result;
         }
@@ -545,61 +573,15 @@ internal class AppStatusDiscoveryService(
 
         await Task.Run(() =>
         {
-            // OTS: redirect HKCU to HKU\{interactive user SID} so we read
-            // the standard user's uninstall keys, not the admin's.
-            var hkcuUninstallPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
-            RegistryKey hkcuHive;
-            string hkcuPath;
-
-            if (interactiveUserService.IsOtsElevation && interactiveUserService.InteractiveUserSid != null)
+            foreach (var entry in UninstallRegistryReader.ReadAll(registry))
             {
-                hkcuHive = Registry.Users;
-                hkcuPath = $@"{interactiveUserService.InteractiveUserSid}\{hkcuUninstallPath}";
-            }
-            else
-            {
-                hkcuHive = Registry.CurrentUser;
-                hkcuPath = hkcuUninstallPath;
-            }
+                allKeyNames.Add(entry.KeyName);
+                if (entry.IsSystemComponent)
+                    continue;
 
-            var registryPaths = new[]
-            {
-                (Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
-                (Registry.LocalMachine, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
-                (hkcuHive, hkcuPath)
-            };
-
-            foreach (var (hive, path) in registryPaths)
-            {
-                try
-                {
-                    using var key = hive.OpenSubKey(path);
-                    if (key == null) continue;
-
-                    foreach (var subKeyName in key.GetSubKeyNames())
-                    {
-                        try
-                        {
-                            using var subKey = key.OpenSubKey(subKeyName);
-                            if (subKey == null) continue;
-
-                            // Always add to AllKeyNames (includes SystemComponent=1)
-                            allKeyNames.Add(subKeyName);
-
-                            var systemComponent = subKey.GetValue("SystemComponent");
-                            if (systemComponent is int value && value == 1)
-                                continue;
-
-                            keyNames.Add(subKeyName);
-
-                            var displayName = subKey.GetValue("DisplayName") as string;
-                            if (!string.IsNullOrEmpty(displayName))
-                                displayNames.Add(displayName);
-                        }
-                        catch (Exception ex) { logService.LogDebug($"Failed to read registry subkey '{subKeyName}': {ex.Message}"); }
-                    }
-                }
-                catch (Exception ex) { logService.LogDebug($"Failed to open registry key for uninstall enumeration: {ex.Message}"); }
+                keyNames.Add(entry.KeyName);
+                if (entry.DisplayName.Length > 0)
+                    displayNames.Add(entry.DisplayName);
             }
         }).ConfigureAwait(false);
 

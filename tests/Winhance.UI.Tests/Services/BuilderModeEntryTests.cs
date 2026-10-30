@@ -7,6 +7,8 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.WimUtil.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
@@ -32,6 +34,7 @@ public class BuilderModeEntryTests
     private readonly Mock<ITargetWindowsService> _targetWindows = new();
     private readonly Mock<IFilePickerService> _picker = new();
     private readonly Mock<IAutounattendReader> _reader = new();
+    private readonly Mock<IInstallOptionsService> _installOptions = new();
 
     public BuilderModeEntryTests()
     {
@@ -56,7 +59,8 @@ public class BuilderModeEntryTests
         _configLoad.Object,
         _targetWindows.Object,
         _picker.Object,
-        _reader.Object);
+        _reader.Object,
+        _installOptions.Object);
 
     private void ArrangePicked(string? path)
     {
@@ -221,6 +225,36 @@ public class BuilderModeEntryTests
         _mode.Verify(m => m.SetIncluded(PrivacyToggles[1].Id, false), Times.Once);
         _mode.Verify(m => m.SetIncluded(PrivacyToggles[0].Id, It.IsAny<bool>()), Times.Never);
         _eventBus.Verify(b => b.Publish(It.IsAny<BuilderSeededEvent>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task EnterFrom_EditsTheFilesInstallOptions_AndLeavingBuilderDropsThem()
+    {
+        var config = ArrangeFileHoldingTheFirstToggle();
+        var carried = new InstallOptionsStore { Defaults = InstallOptions.Default with { Interactive = true } };
+        config.AppInstallOptions = carried;
+        var sut = Sut();
+        _mode.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+
+        await sut.EnterFromAsync(BuilderTarget.Config, config);
+
+        _installOptions.Verify(o => o.BeginSession(carried), Times.Once);
+        _installOptions.Invocations.Clear();
+        _mode.Setup(m => m.CurrentMode).Returns(WinhanceMode.Normal);
+        _mode.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+        _installOptions.Verify(o => o.EndSession(), Times.Once);
+    }
+
+    [Fact]
+    public async Task FreshBuilder_StartsFromThisPcsSavedInstallOptions()
+    {
+        ArrangeIntroAlreadyDismissed();
+        var saved = new InstallOptionsStore { Defaults = InstallOptions.Default with { Scope = InstallScope.User } };
+        _installOptions.Setup(o => o.Current).Returns(saved);
+
+        await Sut().EnterAsync(BuilderTarget.Config);
+
+        _installOptions.Verify(o => o.BeginSession(saved), Times.Once);
     }
 
     [Fact]

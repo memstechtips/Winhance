@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Helpers;
 using Xunit;
 
@@ -20,6 +21,23 @@ public class LaunchCommandLineTests
         options.InstallsApps.Should().BeFalse();
         options.ConfigFile.Should().BeNull();
         _errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Parse_InstallOptions_ReadsWhatTheAnswerFileWrote()
+    {
+        var written = new InstallOptionsStore { Defaults = InstallOptions.Default with { Architecture = InstallArchitecture.X86 } };
+
+        var options = Parse("--install-apps", "firefox", "--install-options", written.ToArgument());
+
+        options.InstallOptions!.Defaults.Should().Be(written.Defaults);
+        _errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Parse_UnreadableInstallOptions_FallBackToThisPcsOwn()
+    {
+        Parse("--install-apps", "firefox", "--install-options", "not base64!").InstallOptions.Should().BeNull();
     }
 
     [Fact]

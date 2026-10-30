@@ -15,9 +15,10 @@ internal class RemovalScriptUpdateService : IRemovalScriptUpdateService
 
     private static readonly ScriptInfo[] Scripts =
     {
-        new("EdgeRemoval", EdgeRemovalScript.ScriptVersion, GetContent: EdgeRemovalScript.GetScript),
+        new(EdgeRemovalScript.ScriptName, EdgeRemovalScript.ScriptVersion,
+            UpdateContent: existing => EdgeRemovalScript.GetScript(EdgeRemovalScript.RemovesWebView2(existing))),
         new("OneDriveRemoval", OneDriveRemovalScript.ScriptVersion, GetContent: OneDriveRemovalScript.GetScript),
-        new("BloatRemoval", BloatRemovalScriptGenerator.ScriptVersion,
+        new(BloatRemovalScriptGenerator.ScriptName, BloatRemovalScriptGenerator.ScriptVersion,
             UpdateContent: BloatRemovalScriptGenerator.UpdateScriptTemplate,
             RunAfterUpdate: false)
     };

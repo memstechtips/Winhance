@@ -2,6 +2,8 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
 
@@ -23,6 +25,7 @@ public class ConfigApplicationExecutionServiceTests
     private readonly Mock<IReviewModeViewModelCoordinator> _mockVmCoordinator = new();
     private readonly Mock<IPolicyCleanupService> _mockPolicyCleanupService = new();
     private readonly Mock<IChangeHistoryService> _mockChangeHistoryService = new();
+    private readonly Mock<IInstallOptionsService> _mockInstallOptions = new();
 
     public ConfigApplicationExecutionServiceTests()
     {
@@ -59,7 +62,51 @@ public class ConfigApplicationExecutionServiceTests
             _mockConfigLoadService.Object,
             _mockVmCoordinator.Object,
             _mockPolicyCleanupService.Object,
-            _mockChangeHistoryService.Object);
+            _mockChangeHistoryService.Object,
+            _mockInstallOptions.Object);
+    }
+
+    [Fact]
+    public async Task ExecuteConfigImportAsync_ConfigCarriesInstallOptions_AppsInstallWithThem()
+    {
+        var carried = new InstallOptionsStore { Defaults = InstallOptions.Default with { Scope = InstallScope.Machine } };
+        var config = new WinhanceConfigFile
+        {
+            ExternalApps = new ConfigSection { Items = [new ConfigurationItem { Id = "app1", Name = "App 1" }] },
+            AppInstallOptions = carried,
+        };
+        _mockConfigLoadService
+            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<WinhanceConfigFile>()))
+            .Returns(new List<string>());
+        var calls = new List<string>();
+        _mockInstallOptions.Setup(o => o.BeginSession(carried)).Callback(() => calls.Add("begin"));
+        _mockInstallOptions.Setup(o => o.EndSession()).Callback(() => calls.Add("end"));
+        _mockConfigAppSelectionService
+            .Setup(s => s.ProcessExternalAppsInstallationAsync(It.IsAny<ConfigSection>()))
+            .Callback(() => calls.Add("install"))
+            .Returns(Task.CompletedTask);
+
+        await CreateService().ExecuteConfigImportAsync(config, new ImportOptions { ProcessExternalAppsInstallation = true });
+
+        calls.Should().Equal("begin", "install", "end");
+    }
+
+    [Fact]
+    public async Task ExecuteConfigImportAsync_OlderConfigWithoutInstallOptions_KeepsThisPcsOwn()
+    {
+        var config = new WinhanceConfigFile
+        {
+            ExternalApps = new ConfigSection { Items = [new ConfigurationItem { Id = "app1", Name = "App 1" }] },
+        };
+        _mockConfigLoadService
+            .Setup(s => s.DetectIncompatibleSettings(It.IsAny<WinhanceConfigFile>()))
+            .Returns(new List<string>());
+
+        await CreateService().ExecuteConfigImportAsync(config, new ImportOptions { ProcessExternalAppsInstallation = true });
+
+        _mockConfigAppSelectionService.Verify(s => s.ProcessExternalAppsInstallationAsync(It.IsAny<ConfigSection>()), Times.Once);
+        _mockInstallOptions.Verify(o => o.BeginSession(It.IsAny<InstallOptionsStore>()), Times.Never);
+        _mockInstallOptions.Verify(o => o.EndSession(), Times.Never);
     }
 
     [Fact]

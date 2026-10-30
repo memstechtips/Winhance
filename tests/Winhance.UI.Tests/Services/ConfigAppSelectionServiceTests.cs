@@ -368,6 +368,34 @@ public class ConfigAppSelectionServiceTests
     }
 
     [Fact]
+    public async Task SelectExternalAppsFromConfigAsync_RebuildsWinGetPicksBeforeMatching()
+    {
+        var items = new ObservableCollection<AppItemViewModel>();
+        _mockExternalAppsVM.Setup(v => v.IsInitialized).Returns(true);
+        _mockExternalAppsVM.Setup(v => v.Items).Returns(items);
+        _mockExternalAppsVM
+            .Setup(v => v.AddSearchItems(It.IsAny<IEnumerable<string>>()))
+            .Callback<IEnumerable<string>>(ids =>
+            {
+                foreach (var id in ids)
+                    items.Add(CreateAppItemViewModel(id, id));
+            });
+
+        var configSection = new ConfigSection
+        {
+            Items = new List<ConfigurationItem>
+            {
+                new ConfigurationItem { Id = "winget-VideoLAN.VLC", Name = "VLC media player", WinGetPackageId = "VideoLAN.VLC" }
+            }
+        };
+
+        var service = CreateService();
+        await service.SelectExternalAppsFromConfigAsync(configSection);
+
+        items.Should().ContainSingle().Which.IsSelected.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task SelectExternalAppsFromConfigAsync_MatchesById()
     {
         var app = CreateAppItemViewModel("ext1", "External App 1");
@@ -470,11 +498,31 @@ public class ConfigAppSelectionServiceTests
             .Returns(new ObservableCollection<AppItemViewModel> { app1, app2 });
 
         var service = CreateService();
-        await service.ProcessExternalAppsFromUserSelectionAsync(new List<string> { "ext1" });
+        await service.ProcessExternalAppsFromUserSelectionAsync(new List<string> { "ext1" }, remove: false);
 
         app1.IsSelected.Should().BeTrue();
         app2.IsSelected.Should().BeFalse();
         _mockExternalAppsVM.Verify(v => v.InstallApps(true), Times.Once);
+        _mockExternalAppsVM.Verify(v => v.UninstallAppsAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task ProcessExternalAppsFromUserSelectionAsync_WhenRemoving_UninstallsInsteadOfInstalling()
+    {
+        var app1 = CreateAppItemViewModel("ext1", "App 1");
+        var app2 = CreateAppItemViewModel("ext2", "App 2");
+
+        _mockExternalAppsVM.Setup(v => v.IsInitialized).Returns(true);
+        _mockExternalAppsVM.Setup(v => v.Items)
+            .Returns(new ObservableCollection<AppItemViewModel> { app1, app2 });
+
+        var service = CreateService();
+        await service.ProcessExternalAppsFromUserSelectionAsync(new List<string> { "ext2" }, remove: true);
+
+        app1.IsSelected.Should().BeFalse();
+        app2.IsSelected.Should().BeTrue();
+        _mockExternalAppsVM.Verify(v => v.UninstallAppsAsync(), Times.Once);
+        _mockExternalAppsVM.Verify(v => v.InstallApps(It.IsAny<bool>()), Times.Never);
     }
 
     [Fact]
@@ -487,7 +535,7 @@ public class ConfigAppSelectionServiceTests
             .Returns(new ObservableCollection<AppItemViewModel> { app1 });
 
         var service = CreateService();
-        await service.ProcessExternalAppsFromUserSelectionAsync(new List<string> { "nonexistent" });
+        await service.ProcessExternalAppsFromUserSelectionAsync(new List<string> { "nonexistent" }, remove: false);
 
         app1.IsSelected.Should().BeFalse();
         _mockExternalAppsVM.Verify(v => v.InstallApps(It.IsAny<bool>()), Times.Never);

@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.WimUtil.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
@@ -32,6 +33,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     private readonly Mock<IHardwareFilterService> _mockHardwareFilter = new();
     private readonly Mock<ITargetWindowsService> _mockTargetWindows = new();
     private readonly WimUtilSession _wimUtilSession = new();
+    private readonly Mock<IInstallOptionsService> _mockInstallOptions = new();
 
     private ConfigReviewOrchestrationService? _service;
 
@@ -73,7 +75,8 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             _mockChangeHistoryService.Object,
             _mockHardwareFilter.Object,
             _mockTargetWindows.Object,
-            _wimUtilSession);
+            _wimUtilSession,
+            _mockInstallOptions.Object);
         return _service;
     }
 
@@ -861,6 +864,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             s => s.ClearWindowsAppsSelectionAsync(),
             Times.Never);
         _mockConfigReviewModeService.Verify(r => r.ExitReviewMode(), Times.Once);
+        _mockInstallOptions.Verify(o => o.EndSession(), Times.Once);
     }
 
     [Fact]

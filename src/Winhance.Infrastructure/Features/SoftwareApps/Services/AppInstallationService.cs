@@ -20,8 +20,7 @@ internal class AppInstallationService(
     ITaskProgressService taskProgressService,
     IFileSystemService fileSystemService,
     IChangeHistoryService changeHistory,
-    IStagedAppInstaller stagedAppInstaller,
-    IUserPreferencesService preferences) : IAppInstallationService
+    IStagedAppInstaller stagedAppInstaller) : IAppInstallationService
 {
     // Enabling a feature or capability is handed to a PowerShell window Winhance does not watch, so
     // every servicing path reports this rather than an install it cannot vouch for.
@@ -67,7 +66,7 @@ internal class AppInstallationService(
             }
             else
             {
-                result = await externalAppsService.InstallAppForAllUsersAsync(app, progress).ConfigureAwait(false);
+                result = await externalAppsService.InstallAppOnNewPcAsync(app, progress).ConfigureAwait(false);
 
                 // The Store route installs for the signed-in user only, so it is the last resort for an app that also ships as a Store package.
                 if (!result.Success && app.AppxPackageName?.Length > 0)
@@ -199,9 +198,7 @@ internal class AppInstallationService(
                 }
                 else
                 {
-                    var result = preferences.GetPreference(UserPreferenceKeys.InstallAppsForAllUsers, false)
-                        ? await externalAppsService.InstallAppForAllUsersAsync(app, progress).ConfigureAwait(false)
-                        : await externalAppsService.InstallAppAsync(app, progress).ConfigureAwait(false);
+                    var result = await externalAppsService.InstallAppAsync(app, progress).ConfigureAwait(false);
                     if (result.Success)
                     {
                         logService.Log(LogLevel.Success, $"Successfully installed app '{app.Id}'");
@@ -226,36 +223,48 @@ internal class AppInstallationService(
 
     private async Task CleanupDedicatedRemovalArtifactsAsync(ItemDefinition app)
     {
-        if (app.Id == "windows-app-edge" || app.Id == "windows-app-onedrive")
+        if (app.RemovalScriptFileName is not { } scriptName)
+            return;
+
+        var taskName = app.RemovalScriptName!;
+        var isEdgeScript = taskName == EdgeRemovalScript.ScriptName;
+        if (isEdgeScript && EdgeRemovalScript.RemovesWebView2(app.RemovalScript!()))
         {
-            var scriptName = CreateScriptName(app.Id);
-            var scriptPath = fileSystemService.CombinePath(ScriptPaths.ScriptsDirectory, scriptName);
-            var taskName = scriptName.Replace(".ps1", "");
+            await KeepEdgeRemovedAsync(scriptName).ConfigureAwait(false);
+            return;
+        }
 
-            if (fileSystemService.FileExists(scriptPath))
-            {
-                fileSystemService.DeleteFile(scriptPath);
-                logService.LogInformation($"Deleted obsolete script: {scriptPath}");
-            }
+        var scriptPath = fileSystemService.CombinePath(ScriptPaths.ScriptsDirectory, scriptName);
 
-            await scheduledTaskService.UnregisterScheduledTaskAsync(taskName).ConfigureAwait(false);
-            logService.LogInformation($"Cleaned up artifacts for reinstalled app: {app.Id}");
+        if (fileSystemService.FileExists(scriptPath))
+        {
+            fileSystemService.DeleteFile(scriptPath);
+            logService.LogInformation($"Deleted obsolete script: {scriptPath}");
+        }
 
-            if (app.Id == "windows-app-edge")
-            {
-                await CleanupOpenWebSearchAsync().ConfigureAwait(false);
-            }
+        await scheduledTaskService.UnregisterScheduledTaskAsync(taskName).ConfigureAwait(false);
+        logService.LogInformation($"Cleaned up artifacts for reinstalled app: {app.Id}");
+
+        if (isEdgeScript)
+        {
+            await CleanupOpenWebSearchAsync().ConfigureAwait(false);
         }
     }
 
-    private static string CreateScriptName(string appId)
+    // Bringing WebView2 back leaves Edge removed, so a full-mode script drops to Edge-only instead of being
+    // deleted. The startup task runs the file, so rewriting it is enough.
+    private async Task KeepEdgeRemovedAsync(string scriptName)
     {
-        return appId switch
-        {
-            "windows-app-edge" => "EdgeRemoval.ps1",
-            "windows-app-onedrive" => "OneDriveRemoval.ps1",
-            _ => throw new NotSupportedException($"No dedicated script defined for {appId}")
-        };
+        var scriptPath = fileSystemService.CombinePath(ScriptPaths.ScriptsDirectory, scriptName);
+        if (!fileSystemService.FileExists(scriptPath))
+            return;
+
+        var content = await fileSystemService.ReadAllTextAsync(scriptPath).ConfigureAwait(false);
+        if (!EdgeRemovalScript.RemovesWebView2(content))
+            return;
+
+        await fileSystemService.WriteAllTextAsync(scriptPath, EdgeRemovalScript.GetScript()).ConfigureAwait(false);
+        logService.LogInformation("EdgeRemoval script now removes Edge only, so WebView2 stays installed");
     }
 
     private async Task CleanupOpenWebSearchAsync()

@@ -100,7 +100,7 @@ public class WinGetPackageInstallerTests
     [InlineData("  ")]
     public async Task InstallPackageAsync_WithNullOrEmptyPackageId_ThrowsArgumentException(string? packageId)
     {
-        var act = () => _sut.InstallPackageAsync(packageId!);
+        var act = () => _sut.InstallPackageAsync(packageId!, null, null, null, InstallOptions.Default, CancellationToken.None);
 
         await act.Should().ThrowAsync<ArgumentException>()
             .WithParameterName(nameof(packageId));
@@ -113,7 +113,7 @@ public class WinGetPackageInstallerTests
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
         _comSession.ComInitTimedOut = true;
 
-        var result = await _sut.InstallPackageAsync("Test.Package");
+        var result = await _sut.InstallPackageAsync("Test.Package", null, null, null, InstallOptions.Default, CancellationToken.None);
 
         // If winget IS available on this machine, it would try to
         // actually install "Test.Package" which would fail differently.
@@ -133,7 +133,7 @@ public class WinGetPackageInstallerTests
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
         _comSession.ComInitTimedOut = true;
 
-        var result = await _sut.InstallPackageAsync("Test.Package", displayName: "My App");
+        var result = await _sut.InstallPackageAsync("Test.Package", null, "My App", null, InstallOptions.Default, CancellationToken.None);
 
         _mockTaskProgressService.Verify(
             t => t.UpdateProgress(It.IsAny<int>(), It.IsAny<string>()),
@@ -147,7 +147,7 @@ public class WinGetPackageInstallerTests
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
         _comSession.ComInitTimedOut = true;
 
-        var result = await _sut.InstallPackageAsync("Test.Package");
+        var result = await _sut.InstallPackageAsync("Test.Package", null, null, null, InstallOptions.Default, CancellationToken.None);
 
         // The 10% progress update is the prerequisites check
         _mockTaskProgressService.Verify(
@@ -162,7 +162,7 @@ public class WinGetPackageInstallerTests
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
         _comSession.ComInitTimedOut = true;
 
-        await _sut.InstallPackageAsync("Test.Package");
+        await _sut.InstallPackageAsync("Test.Package", null, null, null, InstallOptions.Default, CancellationToken.None);
 
         _mockLocalization.Verify(
             l => l.GetString("Progress_WinGet_CheckingPrerequisites", It.IsAny<object[]>()),
@@ -244,17 +244,42 @@ public class WinGetPackageInstallerTests
     }
 
     [Fact]
-    public void InstallArguments_ForAllUsers_EndsWithMachineScope()
+    public void InstallArguments_DefaultOptions_MatchTheIdExactlyAndAddNoOptionFlags()
     {
-        WinGetPackageInstaller.InstallArguments("VideoLAN.VLC", "winget", null, forAllUsers: true)
-            .Should().EndWith(" --scope machine");
+        var arguments = WinGetPackageInstaller.InstallArguments("VideoLAN.VLC", "winget", null, InstallOptions.Default);
+
+        arguments.Should().StartWith("install --id VideoLAN.VLC --exact --silent ")
+            .And.EndWith(" --source winget")
+            .And.NotContain("--scope")
+            .And.NotContain("--architecture")
+            .And.NotContain("--interactive");
+    }
+
+    [Theory]
+    [InlineData(InstallScope.User, " --scope user")]
+    [InlineData(InstallScope.Machine, " --scope machine")]
+    public void InstallArguments_Scope_NamesTheScope(InstallScope scope, string flag)
+    {
+        WinGetPackageInstaller.InstallArguments("VideoLAN.VLC", "winget", null, InstallOptions.Default with { Scope = scope })
+            .Should().EndWith(flag);
+    }
+
+    [Theory]
+    [InlineData(InstallArchitecture.X64, " --architecture x64")]
+    [InlineData(InstallArchitecture.X86, " --architecture x86")]
+    [InlineData(InstallArchitecture.Arm64, " --architecture arm64")]
+    public void InstallArguments_Architecture_NamesTheArchitecture(InstallArchitecture architecture, string flag)
+    {
+        WinGetPackageInstaller.InstallArguments("VideoLAN.VLC", "winget", null, InstallOptions.Default with { Architecture = architecture })
+            .Should().EndWith(flag);
     }
 
     [Fact]
-    public void InstallArguments_DefaultScope_NamesNoScope()
+    public void InstallArguments_Interactive_ReplacesSilent()
     {
-        WinGetPackageInstaller.InstallArguments("VideoLAN.VLC", "winget", null, forAllUsers: false)
-            .Should().NotContain("--scope");
+        WinGetPackageInstaller.InstallArguments("VideoLAN.VLC", "winget", null, InstallOptions.Default with { Interactive = true })
+            .Should().Contain(" --interactive ")
+            .And.NotContain("--silent");
     }
 
     [Fact]

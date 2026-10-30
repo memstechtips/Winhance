@@ -23,7 +23,7 @@ public class AppStatusDiscoveryServiceTests
     private readonly Mock<IWinGetBootstrapper> _mockWinGetBootstrapper = new();
     private readonly Mock<IWinGetDetectionService> _mockWinGetDetection = new();
     private readonly Mock<IChocolateyService> _mockChocolatey = new();
-    private readonly Mock<IInteractiveUserService> _mockInteractiveUser = new();
+    private readonly Mock<IWindowsRegistryService> _mockRegistry = new();
     private readonly Mock<IAppxPackageSource> _mockAppxPackageSource = new();
     private readonly AppStatusDiscoveryService _service;
 
@@ -38,7 +38,7 @@ public class AppStatusDiscoveryServiceTests
             _mockWinGetBootstrapper.Object,
             _mockWinGetDetection.Object,
             _mockChocolatey.Object,
-            _mockInteractiveUser.Object,
+            _mockRegistry.Object,
             _mockAppxPackageSource.Object);
     }
 
@@ -438,6 +438,87 @@ public class AppStatusDiscoveryServiceTests
 
         result.Should().ContainKey("calc");
         result["calc"].Should().BeTrue();
+    }
+
+    private void GivenUninstallKey(string root, string keyName, params (string Name, object Value)[] values)
+    {
+        _mockRegistry.Setup(r => r.GetSubKeyNames(root)).Returns([keyName]);
+        foreach (var (name, value) in values)
+            _mockRegistry.Setup(r => r.GetValue($@"{root}\{keyName}", name)).Returns(value);
+    }
+
+    [Fact]
+    public async Task GetInstallationStatusBatchAsync_AppFoundOnlyByItsUninstallKey_ReturnsTrue()
+    {
+        GivenUninstallKey(UninstallRegistryReader.User, "OneNoteFreeRetail - en-us", ("SystemComponent", 1));
+        var definition = CreateAppxDefinition("windows-app-note", "Winhance.Test.NotInstalled") with
+        {
+            RegistrySubKeyName = "OneNoteFreeRetail - {locale}",
+        };
+
+        var result = await _service.GetInstallationStatusBatchAsync(new[] { definition });
+
+        result["windows-app-note"].Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetInstallationStatusBatchAsync_WindowsAppWithOnlyAnUninstallKey_ReturnsTrue()
+    {
+        GivenUninstallKey(UninstallRegistryReader.Machine32, "Microsoft EdgeWebView", ("DisplayName", "Microsoft Edge WebView2 Runtime"));
+        var definition = new ItemDefinition
+        {
+            Id = "windows-app-edge-webview",
+            Name = "Microsoft Edge WebView2 and EdgeUpdate",
+            Description = "",
+            RegistrySubKeyName = "Microsoft EdgeWebView",
+            WinGetPackageId = ["Microsoft.EdgeWebView2Runtime"]
+        };
+
+        var result = await _service.GetInstallationStatusBatchAsync(new[] { definition });
+
+        result["windows-app-edge-webview"].Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetExternalAppsInstallationStatusAsync_NameEqualsAVisibleUninstallKey_ReturnsTrueViaRegistry()
+    {
+        GivenUninstallKey(UninstallRegistryReader.Machine32, "Contoso Tool");
+        var definition = CreateExternalAppDefinition("ext-contoso", "Contoso Tool");
+
+        var result = await _service.GetExternalAppsInstallationStatusAsync(new[] { definition });
+
+        result["ext-contoso"].Should().BeTrue();
+        definition.DetectedVia.Should().Be(Core.Features.SoftwareApps.Enums.DetectionSource.Registry);
+    }
+
+    [Fact]
+    public async Task GetExternalAppsInstallationStatusAsync_NameEqualsAHiddenUninstallKey_ReturnsFalse()
+    {
+        GivenUninstallKey(UninstallRegistryReader.Machine, "Contoso Tool", ("DisplayName", "Contoso Tool"), ("SystemComponent", 1));
+        var definition = CreateExternalAppDefinition("ext-contoso", "Contoso Tool");
+
+        var result = await _service.GetExternalAppsInstallationStatusAsync(new[] { definition });
+
+        result["ext-contoso"].Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetExternalAppsInstallationStatusAsync_NameEqualsADisplayNameWithoutAnUninstaller_ReturnsTrue()
+    {
+        GivenUninstallKey(UninstallRegistryReader.Machine, "{A1B2}", ("DisplayName", "Contoso Tool"));
+        var definition = CreateExternalAppDefinition("ext-contoso", "Contoso Tool");
+
+        var result = await _service.GetExternalAppsInstallationStatusAsync(new[] { definition });
+
+        result["ext-contoso"].Should().BeTrue();
+    }
+
+    [Fact]
+    public void InvalidateCache_AlsoDropsTheWinGetInstalledList()
+    {
+        _service.InvalidateCache();
+
+        _mockWinGetDetection.Verify(w => w.InvalidateInstalledPackages(), Times.Once);
     }
 
     [Fact]

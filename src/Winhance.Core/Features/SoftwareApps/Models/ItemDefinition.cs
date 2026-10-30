@@ -19,6 +19,13 @@ public record ItemDefinition : BaseDefinition
     // The taskbar keeps what the package put there until the shell restarts, so a removal raises the restart-Explorer bar.
     public bool RequiresExplorerRestart { get; init; }
     public Func<string>? RemovalScript { get; init; }
+    // The script's name without ".ps1", also its startup task and log slot. Items that share a name share one file.
+    public string? RemovalScriptName { get; init; }
+    public string? RemovalScriptFileName => RemovalScriptName is null ? null : RemovalScriptName + ".ps1";
+    // Its scheduled task fires at boot instead of at sign-in. Items that share a script must agree.
+    public bool RemovalScriptRunsAtStartup { get; init; }
+    // Ids of items this item's script removes as well, so selecting one of them beside this item needs no run of its own.
+    public string[]? AlsoRemoves { get; init; }
     // Supports {version}, {arch}, {locale} placeholders.
     public string? RegistryDisplayName { get; init; }
     // Supports {version}, {arch}, {locale}; matched against SubKeyNames including SystemComponent=1 entries.

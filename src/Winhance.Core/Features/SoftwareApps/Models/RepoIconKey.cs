@@ -1,6 +1,6 @@
 namespace Winhance.Core.Features.SoftwareApps.Models;
 
-// external-app-* -> external/<winget|choco|stripped-id>; windows-app-* -> windows/<appx-identity>;
+// external-app-* -> external/<winget|choco|stripped-id>; winget-* -> external/<winget>; windows-app-* -> windows/<appx-identity>;
 // capability-* / feature-* -> windows/<name>. All lowercased.
 public static class RepoIconKey
 {
@@ -16,12 +16,11 @@ public static class RepoIconKey
             return $"icons/external/{key.ToLowerInvariant()}.png";
         }
 
+        if (WinGetPackageItem.Is(def.Id))
+            return def.WinGetPackageId is [var packageId, ..] ? $"icons/external/{packageId.ToLowerInvariant()}.png" : null;
+
         if (def.Id.StartsWith("windows-app-", System.StringComparison.Ordinal))
-        {
-            if (def.AppxPackageName is not { Length: > 0 } a || string.IsNullOrEmpty(a[0]))
-                return null;
-            return $"icons/windows/{a[0].ToLowerInvariant()}.png";
-        }
+            return WindowsCandidates(def).FirstOrDefault();
 
         if (def.Id.StartsWith("capability-", System.StringComparison.Ordinal))
         {
@@ -42,7 +41,14 @@ public static class RepoIconKey
 
     public static System.Collections.Generic.IEnumerable<string> WindowsCandidates(ItemDefinition def)
     {
-        if (def.AppxPackageName is null) yield break;
+        // WebView2 is a Windows app without an AppX package, so its icon is the winget one
+        if (def.AppxPackageName is not { Length: > 0 })
+        {
+            if (def.WinGetPackageId is [var packageId, ..])
+                yield return $"icons/external/{packageId.ToLowerInvariant()}.png";
+            yield break;
+        }
+
         foreach (var a in def.AppxPackageName)
             if (!string.IsNullOrEmpty(a))
                 yield return $"icons/windows/{a.ToLowerInvariant()}.png";

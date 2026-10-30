@@ -192,6 +192,7 @@ public static class ConfigFileMapper
         file.Autounattend = new FeatureGroupSection { IsIncluded = autounattend.Count > 0, Features = autounattend };
         file.WindowsApps = new ConfigSection { IsIncluded = true, Items = set.WindowsApps.Select(AppItem).ToList() };
         file.ExternalApps = new ConfigSection { IsIncluded = true, Items = set.ExternalApps.Select(AppItem).ToList() };
+        file.AppInstallOptions = set.InstallOptions?.For(set.ExternalApps.Select(app => app.Id));
         return file;
     }
 

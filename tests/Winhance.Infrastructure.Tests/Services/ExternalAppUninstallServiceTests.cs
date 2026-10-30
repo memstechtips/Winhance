@@ -14,7 +14,7 @@ public class ExternalAppUninstallServiceTests
     private readonly Mock<IWinGetPackageInstaller> _winGetPackageInstaller = new();
     private readonly Mock<IChocolateyService> _chocolateyService = new();
     private readonly Mock<ILogService> _logService = new();
-    private readonly Mock<IInteractiveUserService> _interactiveUserService = new();
+    private readonly Mock<IWindowsRegistryService> _registry = new();
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
     private readonly Mock<IProcessExecutor> _processExecutor = new();
 
@@ -22,7 +22,7 @@ public class ExternalAppUninstallServiceTests
         _winGetPackageInstaller.Object,
         _chocolateyService.Object,
         _logService.Object,
-        _interactiveUserService.Object,
+        _registry.Object,
         _taskProgressService.Object,
         _processExecutor.Object);
 
@@ -216,5 +216,72 @@ public class ExternalAppUninstallServiceTests
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("No uninstall method available");
+    }
+
+    private void GivenUninstallKeys(string root, params (string KeyName, string? DisplayName, string? UninstallString)[] keys)
+    {
+        _registry.Setup(r => r.GetSubKeyNames(root)).Returns(keys.Select(k => k.KeyName).ToArray());
+        foreach (var (keyName, displayName, uninstallString) in keys)
+        {
+            _registry.Setup(r => r.GetValue($@"{root}\{keyName}", "DisplayName")).Returns(displayName);
+            _registry.Setup(r => r.GetValue($@"{root}\{keyName}", "UninstallString")).Returns(uninstallString);
+        }
+    }
+
+    [Fact]
+    public async Task UninstallAsync_RegistryDetected_RunsTheUninstallStringOfTheMatchingKey()
+    {
+        GivenUninstallKeys(UninstallRegistryReader.User,
+            ("Other", "Other App", @"""C:\Other\remove.exe"""),
+            ("Contoso", "Contoso Tool 2.1", @"""C:\Contoso\remove.exe"" /x"));
+        var item = new ItemDefinition
+        {
+            Id = "contoso", Name = "Contoso", Description = "",
+            DetectedVia = DetectionSource.Registry, RegistryDisplayName = "Contoso Tool {version}",
+        };
+
+        var result = await CreateSut().UninstallAsync(item);
+
+        result.Success.Should().BeTrue();
+        _processExecutor.Verify(
+            p => p.ShellExecuteAsync(@"C:\Contoso\remove.exe", "/x", true, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UninstallAsync_MatchingKeyIsAHiddenSystemComponent_StillUsesItsUninstallString()
+    {
+        GivenUninstallKeys(UninstallRegistryReader.Machine, ("ContosoKey", null, @"C:\Contoso\remove.exe"));
+        _registry.Setup(r => r.GetValue($@"{UninstallRegistryReader.Machine}\ContosoKey", "SystemComponent")).Returns(1);
+        var item = new ItemDefinition
+        {
+            Id = "contoso", Name = "Contoso", Description = "",
+            DetectedVia = DetectionSource.Registry, RegistrySubKeyName = "ContosoKey",
+        };
+
+        var result = await CreateSut().UninstallAsync(item);
+
+        result.Success.Should().BeTrue();
+        _processExecutor.Verify(
+            p => p.ShellExecuteAsync(@"C:\Contoso\remove.exe", It.IsAny<string>(), true, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UninstallAsync_FirstMatchingKeyHasNoUninstallString_UsesTheNextMatch()
+    {
+        GivenUninstallKeys(UninstallRegistryReader.Machine, ("Contoso", "Contoso Tool", null));
+        GivenUninstallKeys(UninstallRegistryReader.Machine32, ("Contoso32", "Contoso Tool", @"C:\Contoso32\remove.exe"));
+        var item = new ItemDefinition
+        {
+            Id = "contoso", Name = "Contoso Tool", Description = "", DetectedVia = DetectionSource.Registry,
+        };
+
+        var result = await CreateSut().UninstallAsync(item);
+
+        result.Success.Should().BeTrue();
+        _processExecutor.Verify(
+            p => p.ShellExecuteAsync(@"C:\Contoso32\remove.exe", It.IsAny<string>(), true, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }

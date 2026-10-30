@@ -1,19 +1,24 @@
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Catalogs;
+using Winhance.Core.Features.SoftwareApps.Utilities;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 internal class ScriptMigrationService : IScriptMigrationService
 {
+    private static readonly string[] TaskNames =
+    [
+        BloatRemovalScriptGenerator.ScriptName,
+        .. WindowsAppDefinitions.GetWindowsApps().Items.Select(a => a.RemovalScriptName).OfType<string>().Distinct(),
+    ];
+
     private readonly ILogService _logService;
     private readonly IScheduledTaskService _scheduledTaskService;
     private readonly IUserPreferencesService _prefsService;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IFileSystemService _fileSystemService;
-
-    private static readonly string[] TaskNames = { "BloatRemoval", "EdgeRemoval", "OneDriveRemoval" };
-    private static readonly string[] ScriptNames = { "BloatRemoval.ps1", "EdgeRemoval.ps1", "OneDriveRemoval.ps1" };
 
     public ScriptMigrationService(
         ILogService logService,
@@ -112,7 +117,7 @@ internal class ScriptMigrationService : IScriptMigrationService
     {
         int renamedCount = 0;
 
-        foreach (var scriptName in ScriptNames)
+        foreach (var scriptName in TaskNames.Select(n => n + ".ps1"))
         {
             try
             {

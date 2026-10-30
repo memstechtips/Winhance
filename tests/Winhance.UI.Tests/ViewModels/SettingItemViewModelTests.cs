@@ -324,6 +324,17 @@ public class SettingItemViewModelTests
     }
 
     [Fact]
+    public void UpdateStateFromEvent_DuringItsOwnApply_LeavesIsSelectedToTheWriteResult()
+    {
+        var sut = CreateSut();
+        sut.IsApplying = true;
+
+        sut.UpdateStateFromEvent(true, null);
+
+        sut.IsSelected.Should().BeFalse();
+    }
+
+    [Fact]
     public void UpdateStateFromEvent_CheckBoxType_UpdatesIsSelected()
     {
         var config = _defaultConfig with { InputType = InputType.CheckBox };

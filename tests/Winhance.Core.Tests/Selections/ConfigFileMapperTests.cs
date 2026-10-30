@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.TestSupport;
 using Xunit;
 
@@ -453,5 +454,30 @@ public class ConfigFileMapperTests
         var file = ConfigFileMapper.ToFile(SelectionSet.Empty, byFeature);
         file.Optimize.Features.Should().BeEmpty();
         file.Optimize.IsIncluded.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ToFile_InstallOptions_CarryTheDefaultsAndOnlyTheFilesOwnApps()
+    {
+        var x86 = InstallOptions.Default with { Architecture = InstallArchitecture.X86 };
+        var options = new InstallOptionsStore
+        {
+            Defaults = InstallOptions.Default with { Scope = InstallScope.Machine },
+            Apps = new(StringComparer.Ordinal) { ["in-file"] = x86, ["not-in-file"] = x86 },
+        };
+        var set = SelectionSet.Empty with { ExternalApps = [new AppChoice("in-file", "In file", null, null, null, "Pub.InFile")], InstallOptions = options };
+
+        var file = ConfigFileMapper.ToFile(set, new Dictionary<string, IReadOnlyList<Setting>>());
+
+        file.AppInstallOptions!.Defaults.Should().Be(options.Defaults);
+        file.AppInstallOptions.Apps.Should().ContainSingle().Which.Key.Should().Be("in-file");
+    }
+
+    [Fact]
+    public void ToFile_InstallOptionsThatChangeNothing_AreLeftOut()
+    {
+        var set = SelectionSet.Empty with { InstallOptions = new InstallOptionsStore() };
+
+        ConfigFileMapper.ToFile(set, new Dictionary<string, IReadOnlyList<Setting>>()).AppInstallOptions.Should().BeNull();
     }
 }

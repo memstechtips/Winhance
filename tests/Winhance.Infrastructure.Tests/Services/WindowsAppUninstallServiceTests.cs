@@ -192,7 +192,8 @@ public class WindowsAppUninstallServiceTests
             Id = "windows-app-edge",
             Name = "Microsoft Edge",
             Description = "Edge browser",
-            RemovalScript = () => "echo removal"
+            RemovalScript = () => "echo removal",
+            RemovalScriptName = "EdgeRemoval"
         };
 
         _windowsAppsService
@@ -427,7 +428,8 @@ public class WindowsAppUninstallServiceTests
                 Id = "windows-app-edge",
                 Name = "Edge",
                 Description = "Edge",
-                RemovalScript = () => "echo edge"
+                RemovalScript = () => "echo edge",
+                RemovalScriptName = "EdgeRemoval"
             }
         };
 
@@ -449,6 +451,35 @@ public class WindowsAppUninstallServiceTests
             Times.Once);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Edge_and_WebView2_together_run_one_script_and_log_both(bool parallel)
+    {
+        var edge = new ItemDefinition { Id = "windows-app-edge", Name = "Edge", Description = "", RemovalScript = () => "edge", RemovalScriptName = "EdgeRemoval" };
+        var webView = new ItemDefinition { Id = "windows-app-edge-webview", Name = "WebView2", Description = "", RemovalScript = () => "full", RemovalScriptName = "EdgeRemoval", AlsoRemoves = ["windows-app-edge"] };
+        _multiScriptProgressService.Setup(x => x.StartMultiScriptTask(It.IsAny<string[]>())).Returns(new CancellationTokenSource());
+        _multiScriptProgressService.Setup(x => x.CreateScriptProgress(It.IsAny<int>())).Returns(new Progress<TaskProgressDetail>());
+        _bloatRemovalService
+            .Setup(x => x.ExecuteDedicatedScriptAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RemovalOutcome.Success);
+
+        var sut = CreateSut();
+        var result = parallel
+            ? await sut.UninstallAppsInParallelAsync([edge, webView])
+            : await sut.UninstallAppsAsync([edge, webView]);
+
+        result.Success.Should().BeTrue();
+        _bloatRemovalService.Verify(
+            x => x.ExecuteDedicatedScriptAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _bloatRemovalService.Verify(
+            x => x.ExecuteDedicatedScriptAsync(webView, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _changeHistoryService.Verify(x => x.LogAppChange("Edge", AppChangeKind.Removed), Times.Once);
+        _changeHistoryService.Verify(x => x.LogAppChange("WebView2", AppChangeKind.Removed), Times.Once);
+    }
+
     [Fact]
     public async Task UninstallAppsAsync_MixedApps_ExecutesBothPaths()
     {
@@ -460,7 +491,8 @@ public class WindowsAppUninstallServiceTests
                 Id = "windows-app-edge",
                 Name = "Edge",
                 Description = "Edge",
-                RemovalScript = () => "echo edge"
+                RemovalScript = () => "echo edge",
+                RemovalScriptName = "EdgeRemoval"
             },
             new()
             {
@@ -558,7 +590,8 @@ public class WindowsAppUninstallServiceTests
                 Id = "windows-app-edge",
                 Name = "Edge",
                 Description = "Edge",
-                RemovalScript = () => "echo edge"
+                RemovalScript = () => "echo edge",
+                RemovalScriptName = "EdgeRemoval"
             }
         };
 
@@ -663,14 +696,16 @@ public class WindowsAppUninstallServiceTests
                 Id = "windows-app-edge",
                 Name = "Edge",
                 Description = "Edge",
-                RemovalScript = () => "echo edge"
+                RemovalScript = () => "echo edge",
+                RemovalScriptName = "EdgeRemoval"
             },
             new()
             {
                 Id = "windows-app-onedrive",
                 Name = "OneDrive",
                 Description = "OneDrive",
-                RemovalScript = () => "echo onedrive"
+                RemovalScript = () => "echo onedrive",
+                RemovalScriptName = "OneDriveRemoval"
             }
         };
 
@@ -710,7 +745,8 @@ public class WindowsAppUninstallServiceTests
                 Id = "windows-app-edge",
                 Name = "Edge",
                 Description = "Edge",
-                RemovalScript = () => "echo edge"
+                RemovalScript = () => "echo edge",
+                RemovalScriptName = "EdgeRemoval"
             },
             new()
             {
@@ -827,7 +863,8 @@ public class WindowsAppUninstallServiceTests
                 Id = "windows-app-edge",
                 Name = "Edge",
                 Description = "Edge",
-                RemovalScript = () => "echo edge"
+                RemovalScript = () => "echo edge",
+                RemovalScriptName = "EdgeRemoval"
             }
         };
 

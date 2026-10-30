@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Services;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Dialogs;
 using Winhance.UI.Features.Common.Helpers;
@@ -287,6 +288,9 @@ internal sealed class StartupUiCoordinator
 
         if (launch.InstallsApps && page != null)
         {
+            var installOptions = App.Services.GetRequiredService<IInstallOptionsService>();
+            if (launch.InstallOptions is { } carried)
+                installOptions.BeginSession(carried);
             try
             {
                 await page.ViewModel.InstallOnNewPcAsync(launch.InstallApps, launch.InstallFolder);
@@ -295,6 +299,11 @@ internal sealed class StartupUiCoordinator
             {
                 StartupLogger.Log($"Installing the apps for this PC failed: {ex.Message}");
                 _logService?.LogError("Installing the apps for this PC failed", ex);
+            }
+            finally
+            {
+                if (launch.InstallOptions is not null)
+                    installOptions.EndSession();
             }
         }
 

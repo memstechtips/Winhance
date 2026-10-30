@@ -1,4 +1,5 @@
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Core.Features.Common.Selections;
 
@@ -10,6 +11,8 @@ public sealed record SelectionSet(
     IReadOnlyList<AppChoice> ExternalApps)
 {
     public IReadOnlyList<CarriedFile> Files { get; init; } = Array.Empty<CarriedFile>();
+
+    public InstallOptionsStore? InstallOptions { get; init; }
 
     public static readonly SelectionSet Empty =
         new(Array.Empty<SettingChoice>(), Array.Empty<AppChoice>(), Array.Empty<AppChoice>());

@@ -1,6 +1,7 @@
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
@@ -12,21 +13,26 @@ public sealed class SelectionSetBuilder : ISelectionSetBuilder
     private readonly IApplicationModeService _mode;
     private readonly ICatalogScopeProvider _scopeProvider;
     private readonly ICatalogSettingsRegistry _registry;
+    private readonly IInstallOptionsService _installOptions;
 
-    public SelectionSetBuilder(ISettingSnapshotSource snapshot, IAppSelectionSource apps, IApplicationModeService mode, ICatalogScopeProvider scopeProvider, ICatalogSettingsRegistry registry)
+    public SelectionSetBuilder(ISettingSnapshotSource snapshot, IAppSelectionSource apps, IApplicationModeService mode, ICatalogScopeProvider scopeProvider, ICatalogSettingsRegistry registry, IInstallOptionsService installOptions)
     {
         _snapshot = snapshot;
         _apps = apps;
         _mode = mode;
         _scopeProvider = scopeProvider;
         _registry = registry;
+        _installOptions = installOptions;
     }
 
     public CatalogScope CurrentScope => _scopeProvider.Current;
 
     // The scope provider admits answer-file-only settings in Builder alone, and this path runs outside it.
     public async Task<SelectionSet> FromMachineAsync() =>
-        new(await _snapshot.CaptureAsync(CurrentScope with { IncludeAnswerFileOnly = true }), await _apps.CheckedWindowsAppsAsync(), await _apps.CheckedExternalAppsAsync());
+        new(await _snapshot.CaptureAsync(CurrentScope with { IncludeAnswerFileOnly = true }), await _apps.CheckedWindowsAppsAsync(), await _apps.CheckedExternalAppsAsync())
+        {
+            InstallOptions = _installOptions.Current,
+        };
 
     public async Task<SelectionSet> FromMachineForBackupAsync() =>
         new(await _snapshot.CaptureAsync(CurrentScope), await _apps.InstalledWindowsAppsAsync(), Array.Empty<AppChoice>());
@@ -57,6 +63,9 @@ public sealed class SelectionSetBuilder : ISelectionSetBuilder
             .Where(setting => _mode.IsIncluded(setting.Id))
             .Select(setting => new SettingChoice(setting.Id, new ChoiceValue.Toggle(true))));
 
-        return new SelectionSet(settings, await _apps.CheckedWindowsAppsAsync(), await _apps.CheckedExternalAppsAsync());
+        return new SelectionSet(settings, await _apps.CheckedWindowsAppsAsync(), await _apps.CheckedExternalAppsAsync())
+        {
+            InstallOptions = _installOptions.Current,
+        };
     }
 }

@@ -4,6 +4,8 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
@@ -17,6 +19,7 @@ public class SelectionSetBuilderTests
     private readonly Mock<IApplicationModeService> _mode = new();
     private readonly Mock<ICatalogScopeProvider> _scopeProvider = new();
     private readonly Mock<ICatalogSettingsRegistry> _registry = new();
+    private readonly Mock<IInstallOptionsService> _installOptions = new();
 
     public SelectionSetBuilderTests()
     {
@@ -37,7 +40,7 @@ public class SelectionSetBuilderTests
     }
 
     private SelectionSetBuilder CreateSut() =>
-        new(_snapshot.Object, _apps.Object, _mode.Object, _scopeProvider.Object, _registry.Object);
+        new(_snapshot.Object, _apps.Object, _mode.Object, _scopeProvider.Object, _registry.Object, _installOptions.Object);
 
     // Real catalog settings: ConfigFileMapper.ToFile writes through the Setting's own targets and states.
     private const string RemoteAssistance = "security-remote-assistance";
@@ -74,6 +77,17 @@ public class SelectionSetBuilderTests
         _snapshot.Verify(s => s.CaptureAsync(
             new CatalogScope(IncludeOtherOsVersions: false, IncludeOtherHardware: false, IncludeAnswerFileOnly: true)), Times.Once);
         _apps.Verify(a => a.InstalledWindowsAppsAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task FromMachineAndFromBuilder_CarryTheCurrentInstallOptions()
+    {
+        var current = new InstallOptionsStore { Defaults = InstallOptions.Default with { Interactive = true } };
+        _installOptions.Setup(o => o.Current).Returns(current);
+        var sut = CreateSut();
+
+        (await sut.FromMachineAsync()).InstallOptions.Should().BeSameAs(current);
+        (await sut.FromBuilderSessionAsync()).InstallOptions.Should().BeSameAs(current);
     }
 
     [Fact]

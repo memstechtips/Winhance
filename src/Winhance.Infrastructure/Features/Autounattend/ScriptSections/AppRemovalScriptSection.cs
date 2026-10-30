@@ -1,6 +1,7 @@
 using System.Text;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.SoftwareApps.Catalogs;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.SoftwareApps.Utilities;
 
@@ -8,6 +9,10 @@ namespace Winhance.Infrastructure.Features.Autounattend.ScriptSections;
 
 internal class AppRemovalScriptSection
 {
+    private static readonly List<ItemDefinition> DedicatedScriptItems = WindowsAppDefinitions.GetWindowsApps().Items
+        .Where(a => a.RemovalScript != null)
+        .ToList();
+
     public void AppendScriptsDirectorySetup(StringBuilder sb, string indent = "")
     {
         sb.AppendLine($"{indent}$scriptsDir = \"{ScriptPaths.ScriptsDirectoryLiteral}\"");
@@ -26,20 +31,13 @@ internal class AppRemovalScriptSection
         var capabilities = new List<string>();
         var optionalFeatures = new List<string>();
         var specialApps = new List<string>();
-        var edgeRemovalNeeded = false;
-        var oneDriveRemovalNeeded = false;
+        var dedicatedItems = new List<ItemDefinition>();
 
         foreach (var app in selectedApps)
         {
-            if (app.Id == "windows-app-edge")
+            if (DedicatedScriptItems.FirstOrDefault(d => d.Id == app.Id) is { } dedicated)
             {
-                edgeRemovalNeeded = true;
-                continue;
-            }
-
-            if (app.Id == "windows-app-onedrive")
-            {
-                oneDriveRemovalNeeded = true;
+                dedicatedItems.Add(dedicated);
                 continue;
             }
 
@@ -63,6 +61,10 @@ internal class AppRemovalScriptSection
             }
         }
 
+        var dedicatedScripts = DedicatedRemovalScripts.OnePerScript(dedicatedItems)
+            .OrderBy(d => DedicatedScriptItems.FindIndex(x => x.RemovalScriptName == d.RemovalScriptName))
+            .ToList();
+
         sb.AppendLine($"{indent}# ============================================================================");
         sb.AppendLine($"{indent}# WINDOWS APPS REMOVAL");
         sb.AppendLine($"{indent}# ============================================================================");
@@ -70,18 +72,14 @@ internal class AppRemovalScriptSection
 
         if (regularApps.Count > 0 || capabilities.Count > 0 || optionalFeatures.Count > 0 || specialApps.Count > 0)
         {
-            AppendEmbeddedScript(sb, "BloatRemoval", "bloatRemoval",
+            AppendEmbeddedScript(sb, BloatRemovalScriptGenerator.ScriptName, VariableNameOf(BloatRemovalScriptGenerator.ScriptName),
                 GenerateBloatRemovalScriptContent(regularApps, capabilities, optionalFeatures, specialApps), indent);
         }
 
-        if (edgeRemovalNeeded)
+        foreach (var item in dedicatedScripts)
         {
-            AppendEmbeddedScript(sb, "EdgeRemoval", "edgeRemoval", EdgeRemovalScript.GetScript(), indent);
-        }
-
-        if (oneDriveRemovalNeeded)
-        {
-            AppendEmbeddedScript(sb, "OneDriveRemoval", "oneDriveRemoval", OneDriveRemovalScript.GetScript(), indent);
+            var name = item.RemovalScriptName!;
+            AppendEmbeddedScript(sb, name, VariableNameOf(name), item.RemovalScript!(), indent);
         }
 
         sb.AppendLine();
@@ -90,17 +88,14 @@ internal class AppRemovalScriptSection
 
         if (regularApps.Count > 0 || capabilities.Count > 0 || optionalFeatures.Count > 0 || specialApps.Count > 0)
         {
-            sb.AppendLine($"{indent}$scriptsToExecute += @{{Path = \"$scriptsDir\\BloatRemoval.ps1\"; Name = \"BloatRemoval\"; TriggerType = \"Logon\"}}");
+            sb.AppendLine($"{indent}$scriptsToExecute += @{{Path = \"$scriptsDir\\{BloatRemovalScriptGenerator.ScriptName}.ps1\"; Name = \"{BloatRemovalScriptGenerator.ScriptName}\"; TriggerType = \"Logon\"}}");
         }
 
-        if (edgeRemovalNeeded)
+        foreach (var item in dedicatedScripts)
         {
-            sb.AppendLine($"{indent}$scriptsToExecute += @{{Path = \"$scriptsDir\\EdgeRemoval.ps1\"; Name = \"EdgeRemoval\"; TriggerType = \"Startup\"}}");
-        }
-
-        if (oneDriveRemovalNeeded)
-        {
-            sb.AppendLine($"{indent}$scriptsToExecute += @{{Path = \"$scriptsDir\\OneDriveRemoval.ps1\"; Name = \"OneDriveRemoval\"; TriggerType = \"Logon\"}}");
+            var name = item.RemovalScriptName!;
+            var trigger = item.RemovalScriptRunsAtStartup ? "Startup" : "Logon";
+            sb.AppendLine($"{indent}$scriptsToExecute += @{{Path = \"$scriptsDir\\{name}.ps1\"; Name = \"{name}\"; TriggerType = \"{trigger}\"}}");
         }
 
         sb.AppendLine();
@@ -155,6 +150,8 @@ internal class AppRemovalScriptSection
         sb.AppendLine($"{indent}}}");
         sb.AppendLine();
     }
+
+    private static string VariableNameOf(string scriptName) => char.ToLowerInvariant(scriptName[0]) + scriptName[1..];
 
     private string GenerateBloatRemovalScriptContent(List<string> packages, List<string> capabilities, List<string> optionalFeatures, List<string> specialApps)
     {

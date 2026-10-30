@@ -1,4 +1,5 @@
 using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Infrastructure.Features.Autounattend.Helpers;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
@@ -9,6 +10,6 @@ internal class LegacyCapabilityService : ILegacyCapabilityService
     // (Get-Command, DISM module 3.0 on build 26100, 2026-08-26), so the asymmetry with the feature
     // statement is forced by the cmdlets - passing it would fail the command at runtime.
     public string BuildEnableStatement(IReadOnlyList<string> capabilityNames) =>
-        string.Join("; ", capabilityNames.Select(n => $"Add-WindowsCapability -Online -Name '{n.Replace("'", "''")}'"));
+        string.Join("; ", capabilityNames.Select(n => $"Add-WindowsCapability -Online -Name '{PowerShellScriptUtilities.EscapePowerShellString(n)}'"));
 
 }

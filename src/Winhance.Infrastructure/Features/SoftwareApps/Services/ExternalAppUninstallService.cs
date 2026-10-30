@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using Microsoft.Win32;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Enums;
@@ -12,7 +11,7 @@ internal class ExternalAppUninstallService(
     IWinGetPackageInstaller winGetPackageInstaller,
     IChocolateyService chocolateyService,
     ILogService logService,
-    IInteractiveUserService interactiveUserService,
+    IWindowsRegistryService registry,
     ITaskProgressService taskProgressService,
     IProcessExecutor processExecutor) : IExternalAppUninstallService
 {
@@ -86,12 +85,12 @@ internal class ExternalAppUninstallService(
             if (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0)
             {
                 packageId = item.WinGetPackageId[0];
-                source = "winget";
+                source = WinGetSources.WinGet;
             }
             else if (!string.IsNullOrEmpty(item.MsStoreId))
             {
                 packageId = item.MsStoreId;
-                source = "msstore";
+                source = WinGetSources.MsStore;
             }
             else
             {
@@ -384,96 +383,45 @@ internal class ExternalAppUninstallService(
     {
         return await Task.Run(() =>
         {
-            // OTS: redirect HKCU to HKU\{interactive user SID} so we read
-            // the standard user's uninstall keys, not the admin's.
-            var hkcuUninstallPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
-            RegistryKey hkcuHive;
-            string hkcuPath;
-
-            if (interactiveUserService.IsOtsElevation && interactiveUserService.InteractiveUserSid != null)
+            foreach (var entry in UninstallRegistryReader.ReadAll(registry))
             {
-                hkcuHive = Registry.Users;
-                hkcuPath = $@"{interactiveUserService.InteractiveUserSid}\{hkcuUninstallPath}";
-            }
-            else
-            {
-                hkcuHive = Registry.CurrentUser;
-                hkcuPath = hkcuUninstallPath;
-            }
-
-            var registryPaths = new[]
-            {
-                (Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
-                (Registry.LocalMachine, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
-                (hkcuHive, hkcuPath)
-            };
-
-            foreach (var (hive, path) in registryPaths)
-            {
-                try
+                if (MatchesUninstallKey(item, entry) && !string.IsNullOrEmpty(entry.UninstallString))
                 {
-                    using var key = hive.OpenSubKey(path);
-                    if (key == null) continue;
-
-                    foreach (var subKeyName in key.GetSubKeyNames())
-                    {
-                        try
-                        {
-                            using var subKey = key.OpenSubKey(subKeyName);
-                            if (subKey == null) continue;
-
-                            var regDisplayName = subKey.GetValue("DisplayName")?.ToString();
-
-                            // Prefer explicit definition patterns when provided (e.g. AutoHotkey v1's
-                            // "AutoHotkey 1.{version}"), since item.Name ("AutoHotkey v1") won't
-                            // fuzzy-match the actual registry DisplayName ("AutoHotkey 1.1.37.02").
-                            bool matched = false;
-
-                            if (!string.IsNullOrEmpty(item.RegistrySubKeyName)
-                                && AppStatusDiscoveryService.MatchesPattern(subKeyName, item.RegistrySubKeyName!))
-                            {
-                                matched = true;
-                            }
-
-                            if (!matched
-                                && !string.IsNullOrEmpty(item.RegistryDisplayName)
-                                && !string.IsNullOrEmpty(regDisplayName)
-                                && AppStatusDiscoveryService.MatchesPattern(regDisplayName!, item.RegistryDisplayName!))
-                            {
-                                matched = true;
-                            }
-
-                            // Only fall back to fuzzy name matching when the definition didn't
-                            // pin down a precise registry pattern. Apps that set RegistryDisplayName
-                            // or RegistrySubKeyName (e.g. XnView, Steam) do so to AVOID collateral
-                            // hits like "XnView MP" — fuzzy fallback would re-introduce that bug.
-                            if (!matched
-                                && string.IsNullOrEmpty(item.RegistryDisplayName)
-                                && string.IsNullOrEmpty(item.RegistrySubKeyName)
-                                && !string.IsNullOrEmpty(regDisplayName)
-                                && IsFuzzyMatch(item.Name, regDisplayName!))
-                            {
-                                matched = true;
-                            }
-
-                            if (matched)
-                            {
-                                var uninstallString = subKey.GetValue("UninstallString")?.ToString();
-                                if (!string.IsNullOrEmpty(uninstallString))
-                                {
-                                    logService.LogInformation($"Found uninstall string for {item.Name}: {uninstallString}");
-                                    return (true, uninstallString);
-                                }
-                            }
-                        }
-                        catch (Exception ex) { logService.LogDebug($"Failed to read registry subkey '{subKeyName}': {ex.Message}"); }
-                    }
+                    logService.LogInformation($"Found uninstall string for {item.Name}: {entry.UninstallString}");
+                    return (true, entry.UninstallString);
                 }
-                catch (Exception ex) { logService.LogDebug($"Failed to open registry key for uninstall lookup: {ex.Message}"); }
             }
 
             return (false, string.Empty);
         }).ConfigureAwait(false);
+    }
+
+    private bool MatchesUninstallKey(ItemDefinition item, UninstallEntry entry)
+    {
+        // Prefer explicit definition patterns when provided (e.g. AutoHotkey v1's
+        // "AutoHotkey 1.{version}"), since item.Name ("AutoHotkey v1") won't
+        // fuzzy-match the actual registry DisplayName ("AutoHotkey 1.1.37.02").
+        if (!string.IsNullOrEmpty(item.RegistrySubKeyName)
+            && AppStatusDiscoveryService.MatchesPattern(entry.KeyName, item.RegistrySubKeyName))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrEmpty(item.RegistryDisplayName)
+            && entry.DisplayName.Length > 0
+            && AppStatusDiscoveryService.MatchesPattern(entry.DisplayName, item.RegistryDisplayName))
+        {
+            return true;
+        }
+
+        // Only fall back to fuzzy name matching when the definition didn't
+        // pin down a precise registry pattern. Apps that set RegistryDisplayName
+        // or RegistrySubKeyName (e.g. XnView, Steam) do so to AVOID collateral
+        // hits like "XnView MP" - fuzzy fallback would re-introduce that bug.
+        return string.IsNullOrEmpty(item.RegistryDisplayName)
+            && string.IsNullOrEmpty(item.RegistrySubKeyName)
+            && entry.DisplayName.Length > 0
+            && IsFuzzyMatch(item.Name, entry.DisplayName);
     }
 
     private bool IsFuzzyMatch(string searchName, string registryName)

@@ -2,7 +2,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models;
 
 public static class OneDriveRemovalScript
 {
-    public const string ScriptVersion = "1.2";
+    public const string ScriptVersion = "1.3";
 
     public static string GetScript()
     {
@@ -176,43 +176,48 @@ catch {
 
 $uninstallExecuted = $false
 
-# Check HKLM first (system-wide installation)
-$hklmUninstallKey = ""HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe""
-Write-Log ""Checking HKLM uninstall registry key: $hklmUninstallKey""
+# Check HKLM (system-wide installation) in both registry views
+$hklmUninstallKeys = @(
+    ""HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe"",
+    ""HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe""
+)
 
-try {
-    $uninstallString = reg.exe query $hklmUninstallKey /v UninstallString 2>$null
-    if ($LASTEXITCODE -eq 0 -and $uninstallString) {
-        $uninstallLine = $uninstallString | Where-Object { $_ -match ""UninstallString"" } | Select-Object -First 1
-        if ($uninstallLine -match ""REG_SZ\s+(.+)"") {
-            $uninstallCommand = $matches[1].Trim()
-            Write-Log ""Found HKLM uninstall command: $uninstallCommand""
+foreach ($hklmUninstallKey in $hklmUninstallKeys) {
+    Write-Log ""Checking HKLM uninstall registry key: $hklmUninstallKey""
+    try {
+        $uninstallString = reg.exe query $hklmUninstallKey /v UninstallString 2>$null
+        if ($LASTEXITCODE -eq 0 -and $uninstallString) {
+            $uninstallLine = $uninstallString | Where-Object { $_ -match ""UninstallString"" } | Select-Object -First 1
+            if ($uninstallLine -match ""REG_SZ\s+(.+)"") {
+                $uninstallCommand = $matches[1].Trim()
+                Write-Log ""Found HKLM uninstall command: $uninstallCommand""
 
-            Write-Log ""Stopping OneDrive processes""
-            Stop-Process -Name ""*OneDrive*"" -Force -ErrorAction SilentlyContinue | Out-Null
+                Write-Log ""Stopping OneDrive processes""
+                Stop-Process -Name ""*OneDrive*"" -Force -ErrorAction SilentlyContinue | Out-Null
 
-            Write-Log ""Executing HKLM registry-based uninstaller""
+                Write-Log ""Executing HKLM registry-based uninstaller""
 
-            if ($uninstallCommand -match '^""([^""]+)""(.*)') {
-                $exePath = $matches[1]
-                $arguments = $matches[2].Trim()
-                Write-Log ""Command: '$exePath' Arguments: '$arguments'""
-                Start-Process -FilePath $exePath -ArgumentList $arguments -WindowStyle Hidden -Wait | Out-Null
+                if ($uninstallCommand -match '^""([^""]+)""(.*)') {
+                    $exePath = $matches[1]
+                    $arguments = $matches[2].Trim()
+                    Write-Log ""Command: '$exePath' Arguments: '$arguments'""
+                    Start-Process -FilePath $exePath -ArgumentList $arguments -WindowStyle Hidden -Wait | Out-Null
+                } else {
+                    Write-Log ""Command: '$uninstallCommand'""
+                    cmd.exe /c $uninstallCommand 2>&1 | Out-Null
+                }
+                Write-Log ""HKLM registry-based uninstaller completed""
+                $uninstallExecuted = $true
             } else {
-                Write-Log ""Command: '$uninstallCommand'""
-                cmd.exe /c $uninstallCommand 2>&1 | Out-Null
+                Write-Log ""Could not parse UninstallString from HKLM registry output""
             }
-            Write-Log ""HKLM registry-based uninstaller completed""
-            $uninstallExecuted = $true
         } else {
-            Write-Log ""Could not parse UninstallString from HKLM registry output""
+            Write-Log ""OneDrive uninstall registry key not found: $hklmUninstallKey""
         }
-    } else {
-        Write-Log ""OneDrive uninstall registry key not found in HKLM""
     }
-}
-catch {
-    Write-Log ""HKLM registry-based uninstall failed: $($_.Exception.Message)""
+    catch {
+        Write-Log ""HKLM registry-based uninstall failed: $($_.Exception.Message)""
+    }
 }
 
 # Check HKU if HKLM didn't execute (user-specific installation)
@@ -266,13 +271,14 @@ if (-not $uninstallExecuted -and $targetUser) {
 Write-Log ""Starting cleanup tasks""
 
 # 3.1: Delete OneDrive registry keys
-$hklmUninstallKey = ""HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe""
-Write-Log ""Deleting HKLM OneDrive uninstall registry key: $hklmUninstallKey""
-reg.exe delete $hklmUninstallKey /f 2>&1 | Out-Null
-if ($LASTEXITCODE -eq 0) {
-    Write-Log ""HKLM registry key deleted successfully""
-} else {
-    Write-Log ""HKLM registry key not found or already deleted""
+foreach ($hklmUninstallKey in $hklmUninstallKeys) {
+    Write-Log ""Deleting HKLM OneDrive uninstall registry key: $hklmUninstallKey""
+    reg.exe delete $hklmUninstallKey /f 2>&1 | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Log ""HKLM registry key deleted successfully""
+    } else {
+        Write-Log ""HKLM registry key not found or already deleted""
+    }
 }
 
 if ($targetUser -and $userSID) {
@@ -374,6 +380,7 @@ $systemPaths = @(
     ""C:\Windows\System32\OneDriveSetup.exe"",
     ""C:\Windows\SysWOW64\OneDriveSetup.exe"",
     ""C:\Program Files\Microsoft OneDrive"",
+    ""C:\Program Files (x86)\Microsoft OneDrive"",
     ""C:\ProgramData\Microsoft OneDrive""
 )
 

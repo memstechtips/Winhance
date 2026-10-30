@@ -1,6 +1,7 @@
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
@@ -13,6 +14,7 @@ internal class ChocolateyService : IChocolateyService
     private readonly IFileSystemService _fileSystemService;
     private readonly object _installCheckLock = new();
     private bool? _isInstalled;
+    private const int SearchPageSize = 30;
 
     public ChocolateyService(
         ILogService logService,
@@ -98,7 +100,7 @@ internal class ChocolateyService : IChocolateyService
         }
     }
 
-    public async Task<bool> InstallPackageAsync(string chocoPackageId, string? displayName = null, CancellationToken cancellationToken = default)
+    public async Task<bool> InstallPackageAsync(string chocoPackageId, string? displayName, InstallOptions options, CancellationToken cancellationToken)
     {
         displayName ??= chocoPackageId;
 
@@ -114,7 +116,8 @@ internal class ChocolateyService : IChocolateyService
             _taskProgressService?.UpdateProgress(10, _localization.GetString("Progress_Choco_InstallingPackage", displayName));
             _logService.LogInformation($"Installing '{chocoPackageId}' via Chocolatey...");
 
-            var (success, alreadyInstalled) = await RunChocoInstallAsync(chocoPath, chocoPackageId, displayName, cancellationToken).ConfigureAwait(false);
+            var arguments = InstallArguments(chocoPackageId, options);
+            var (success, alreadyInstalled) = await RunChocoInstallAsync(chocoPath, chocoPackageId, arguments, displayName, cancellationToken).ConfigureAwait(false);
 
             // Choco exits 0 with "xxx already installed" when its lib folder still has the
             // package record even though the actual app is gone. We're in the install path
@@ -125,7 +128,7 @@ internal class ChocolateyService : IChocolateyService
             {
                 _logService.LogWarning($"Chocolatey reports '{chocoPackageId}' as already-installed but Winhance detection saw it as missing. Clearing stale record and retrying install.");
                 await CleanupStalePackageRecordAsync(chocoPackageId, displayName, cancellationToken).ConfigureAwait(false);
-                (success, alreadyInstalled) = await RunChocoInstallAsync(chocoPath, chocoPackageId, displayName, cancellationToken).ConfigureAwait(false);
+                (success, alreadyInstalled) = await RunChocoInstallAsync(chocoPath, chocoPackageId, arguments, displayName, cancellationToken).ConfigureAwait(false);
 
                 if (alreadyInstalled)
                 {
@@ -155,13 +158,24 @@ internal class ChocolateyService : IChocolateyService
         }
     }
 
+    // Chocolatey has no scope or architecture switch beyond forcing the 32-bit installer.
+    internal static string InstallArguments(string chocoPackageId, InstallOptions options)
+    {
+        var arguments = $"install {chocoPackageId} -y --no-progress --ignore-checksums";
+        if (options.Architecture == InstallArchitecture.X86)
+            arguments += " --forcex86";
+        if (options.Interactive)
+            arguments += " --not-silent";
+        return arguments;
+    }
+
     private async Task<(bool success, bool alreadyInstalled)> RunChocoInstallAsync(
-        string chocoPath, string chocoPackageId, string displayName, CancellationToken ct)
+        string chocoPath, string chocoPackageId, string arguments, string displayName, CancellationToken ct)
     {
         bool alreadyInstalled = false;
         var result = await _processExecutor.ExecuteWithStreamingAsync(
             chocoPath,
-            $"install {chocoPackageId} -y --no-progress --ignore-checksums",
+            arguments,
             onOutputLine: line =>
             {
                 _logService.LogInformation(line);
@@ -383,14 +397,7 @@ internal class ChocolateyService : IChocolateyService
 
             var execResult = await _processExecutor.ExecuteAsync(chocoPath, "list -r", cts.Token).ConfigureAwait(false);
 
-            foreach (var line in execResult.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-            {
-                var parts = line.Split('|');
-                if (parts.Length >= 2 && !string.IsNullOrWhiteSpace(parts[0]))
-                {
-                    result.Add(parts[0].Trim());
-                }
-            }
+            result.UnionWith(ParseIds(execResult.StandardOutput));
 
             _logService.LogInformation($"Chocolatey: Found {result.Count} installed packages");
         }
@@ -405,6 +412,140 @@ internal class ChocolateyService : IChocolateyService
 
         return result;
     }
+
+    public async Task<IReadOnlyList<string>> SearchPackagesAsync(string query, CancellationToken cancellationToken = default)
+    {
+        var chocoPath = FindChocoExecutable();
+        var term = SearchTerm(query);
+        if (chocoPath == null || term.Length == 0)
+            return [];
+
+        try
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(20));
+            var execResult = await _processExecutor.ExecuteAsync(chocoPath, $"search \"{term}\" -r --page-size={SearchPageSize}", cts.Token).ConfigureAwait(false);
+            return ParseIds(execResult.StandardOutput);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logService.LogWarning($"Chocolatey search for '{term}' timed out");
+            return [];
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logService.LogWarning($"Chocolatey search for '{term}' failed: {ex.Message}");
+            return [];
+        }
+    }
+
+    public async Task<IReadOnlyDictionary<string, string>?> GetOutdatedPackagesAsync(CancellationToken cancellationToken = default)
+    {
+        var chocoPath = FindChocoExecutable();
+        if (chocoPath == null)
+            return new Dictionary<string, string>();
+
+        try
+        {
+            // outdated asks the feed about every installed package, so it takes much longer than list.
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(90));
+            var execResult = await _processExecutor.ExecuteAsync(chocoPath, "outdated -r --ignore-unfound", cts.Token).ConfigureAwait(false);
+            var outdated = ParseOutdated(execResult.StandardOutput);
+            _logService.LogInformation($"Chocolatey: {outdated.Count} packages have updates");
+            return outdated;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logService.LogWarning("Chocolatey update check timed out");
+            return null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logService.LogWarning($"Chocolatey update check failed: {ex.Message}");
+            return null;
+        }
+    }
+
+    // -r prints id|installed|available|pinned per outdated package.
+    internal static IReadOnlyDictionary<string, string> ParseOutdated(string output)
+    {
+        var outdated = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var parts = line.Trim().Split('|');
+            if (parts.Length >= 4 && parts[0].Length > 0 && parts[2].Length > 0
+                && !string.Equals(parts[3], "true", StringComparison.OrdinalIgnoreCase))
+                outdated[parts[0]] = parts[2];
+        }
+        return outdated;
+    }
+
+    public async Task<bool> UpgradePackageAsync(string chocoPackageId, string? displayName = null, CancellationToken cancellationToken = default)
+    {
+        displayName ??= chocoPackageId;
+
+        var chocoPath = FindChocoExecutable();
+        if (chocoPath == null)
+        {
+            _logService.LogError("Chocolatey executable not found");
+            return false;
+        }
+
+        try
+        {
+            var status = _localization.GetString("Progress_Updating", displayName);
+            _taskProgressService?.UpdateProgress(10, status);
+            var result = await _processExecutor.ExecuteWithStreamingAsync(
+                chocoPath,
+                $"upgrade {chocoPackageId} -y --no-progress",
+                onOutputLine: line =>
+                {
+                    _logService.LogInformation(line);
+                    _taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
+                    {
+                        Progress = 50,
+                        StatusText = status,
+                        TerminalOutput = line,
+                    });
+                },
+                ct: cancellationToken).ConfigureAwait(false);
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (result.ExitCode != 0)
+            {
+                _logService.LogError($"Chocolatey upgrade of '{chocoPackageId}' failed (exit code {result.ExitCode}): {result.StandardError}");
+                return false;
+            }
+
+            _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_UpdatedSuccess", displayName));
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            _logService.LogInformation($"Chocolatey upgrade of '{chocoPackageId}' was cancelled");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Error upgrading '{chocoPackageId}' via Chocolatey: {ex.Message}");
+            return false;
+        }
+    }
+
+    // The term goes inside quotes on choco's command line, so only characters a package name can hold survive.
+    internal static string SearchTerm(string query) =>
+        new string(query.Where(c => char.IsLetterOrDigit(c) || c is ' ' or '.' or '-' or '_' or '+').ToArray()).Trim();
+
+    // -r prints one id|version line per package.
+    internal static IReadOnlyList<string> ParseIds(string output) =>
+        output.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Split('|'))
+            .Where(parts => parts.Length >= 2 && !string.IsNullOrWhiteSpace(parts[0]))
+            .Select(parts => parts[0].Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
     private string? FindChocoExecutable()
     {

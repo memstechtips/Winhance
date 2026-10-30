@@ -1,3 +1,5 @@
+using Winhance.Core.Features.SoftwareApps.Models;
+
 namespace Winhance.Core.Features.Common.Models;
 
 public class WinhanceConfigFile
@@ -12,6 +14,9 @@ public class WinhanceConfigFile
     public int? TargetBuild { get; set; }
     public ConfigSection WindowsApps { get; set; } = new ConfigSection();
     public ConfigSection ExternalApps { get; set; } = new ConfigSection();
+
+    // How the External Apps install. Absent in older files, and then the applying PC's own install options are used.
+    public InstallOptionsStore? AppInstallOptions { get; set; }
     public FeatureGroupSection Customize { get; set; } = new FeatureGroupSection();
     public FeatureGroupSection Optimize { get; set; } = new FeatureGroupSection();
     public FeatureGroupSection Autounattend { get; set; } = new FeatureGroupSection();

@@ -23,6 +23,7 @@ public class ReviewModeViewModelCoordinatorTests
     private readonly Mock<IThemeService> _themeService = new();
 
     private readonly Mock<IExternalAppsService> _externalAppsService = new();
+    private readonly Mock<IStagedAppInstaller> _stagedAppInstaller = new();
     private readonly Mock<ITaskProgressService> _extProgressService = new();
     private readonly Mock<ILogService> _extLogService = new();
     private readonly Mock<IDialogService> _extDialogService = new();
@@ -85,7 +86,10 @@ public class ReviewModeViewModelCoordinatorTests
 
     private ExternalAppsViewModel CreateExternalAppsVm() => new(
         _externalAppsService.Object,
+        new Mock<IInstalledAppsService>().Object,
         _appInstallationService.Object,
+        _stagedAppInstaller.Object,
+        new Mock<IInstallOptionsService>().Object,
         _extProgressService.Object,
         _extLogService.Object,
         _extDialogService.Object,
@@ -104,7 +108,8 @@ public class ReviewModeViewModelCoordinatorTests
         _configReviewBadgeService.Object,
         _scheduledTaskService.Object,
         _fileSystemService.Object,
-        _applicationModeService.Object);
+        _applicationModeService.Object,
+        new Mock<ISaveFilePicker>().Object);
 
     // OptimizeViewModel and CustomizeViewModel need many dependencies, so the coordinator gets null-safe
     // placeholders for them (tests exercising ReapplyReviewDiffsToExistingSettings need separate handling).

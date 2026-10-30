@@ -78,6 +78,22 @@ public class AppItemViewModelTests
     }
 
     [Fact]
+    public void CategoryDisplayName_UsesTheTranslatedGroupName()
+    {
+        var translated = "Navigateurs";
+        _mockLocalization.Setup(l => l.TryGetString("ExternalApps_Category_Browsers", out translated)).Returns(true);
+
+        CreateViewModel(_defaultDefinition with { GroupName = "Browsers" }).CategoryDisplayName.Should().Be("Navigateurs");
+    }
+
+    [Fact]
+    public void CategoryDisplayName_WithoutATranslation_ShowsTheGroupName()
+    {
+        CreateViewModel(_defaultDefinition with { GroupName = "3D/Mixed Reality" })
+            .CategoryDisplayName.Should().Be("3D/Mixed Reality");
+    }
+
+    [Fact]
     public void GroupName_WhenNull_ReturnsEmptyString()
     {
         var def = new ItemDefinition

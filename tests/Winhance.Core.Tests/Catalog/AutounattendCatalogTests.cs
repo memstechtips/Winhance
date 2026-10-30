@@ -540,6 +540,7 @@ $bytes[21] = 34
             .And.Contain("{{external-app-ids}}")
             .And.Contain($"-File `\"{InstallWinhanceScript}`\"")
             .And.Contain("--install-apps")
+            .And.Contain("--install-options")
             .And.Contain("$bytes[21] = 34")
             .And.NotContain("irm 'https://get.winhance.net'");
 

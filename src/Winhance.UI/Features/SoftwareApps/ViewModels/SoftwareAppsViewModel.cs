@@ -5,6 +5,8 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Features.SoftwareApps.Models;
 using Winhance.UI.Features.SoftwareApps.Views;
@@ -23,6 +25,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     private readonly IScheduledTaskService _scheduledTaskService;
     private readonly IFileSystemService _fileSystemService;
     private readonly IApplicationModeService _applicationModeService;
+    private readonly ISaveFilePicker _saveFilePicker;
     private bool _isSubscribed;
 
     public SoftwareAppsViewModel(
@@ -36,7 +39,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         IConfigReviewBadgeService configReviewBadgeService,
         IScheduledTaskService scheduledTaskService,
         IFileSystemService fileSystemService,
-        IApplicationModeService applicationModeService)
+        IApplicationModeService applicationModeService,
+        ISaveFilePicker saveFilePicker)
     {
         WindowsAppsViewModel = windowsAppsViewModel;
         ExternalAppsViewModel = externalAppsViewModel;
@@ -49,6 +53,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         _scheduledTaskService = scheduledTaskService;
         _fileSystemService = fileSystemService;
         _applicationModeService = applicationModeService;
+        _saveFilePicker = saveFilePicker;
 
         // SearchText first: the tab-change handlers forward it to the child ViewModels.
         SearchText = string.Empty;
@@ -63,6 +68,9 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     [ObservableProperty]
     public partial bool IsExternalAppsTabSelected { get; set; }
+
+    // A config review chooses an action for the ticked apps instead of running one.
+    public bool IsActionButtonVisible => !IsInReviewMode;
 
     [ObservableProperty]
     public partial string SearchText { get; set; }
@@ -207,26 +215,55 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     public string PageTitle => _localizationService.GetString("Category_SoftwareApps_Title");
     public string PageDescription => _localizationService.GetString("Category_SoftwareApps_StatusText");
-    public string SearchPlaceholder => _localizationService.GetStringOrDefault("Common_Search_Placeholder", "Search apps...");
+    public string SearchPlaceholder => _localizationService.GetStringOrDefault("Common_Search_Placeholder", "Type here to search...");
     public string WindowsAppsTabText => _localizationService.GetString("SoftwareApps_Tab_WindowsApps");
     public string ExternalAppsTabText => _localizationService.GetString("SoftwareApps_Tab_ExternalApps");
+    public string PackageSearchPlaceholder => _localizationService.GetString("ExternalApps_PackageSearch_Placeholder");
     public string InstallButtonText => _localizationService.GetString("SoftwareApps_Button_InstallSelected");
+
+    // On External Software the Install button also updates, so its label names what it will do with the ticked rows.
+    // Builder and a config review only choose apps to install, whatever this PC has an update for.
+    public string PrimaryActionText
+    {
+        get
+        {
+            if (!IsExternalAppsTabSelected || !_applicationModeService.Capabilities().AppliesToSystem)
+                return InstallButtonText;
+
+            var selected = ExternalAppsViewModel.Items.Where(a => a.IsSelected).ToList();
+            var updates = selected.Count(a => a.HasUpdate);
+            var key = updates == 0 ? "SoftwareApps_Button_InstallSelected"
+                : updates == selected.Count ? "SoftwareApps_Button_UpdateSelected"
+                : "SoftwareApps_Button_InstallOrUpdateSelected";
+            return _localizationService.GetString(key);
+        }
+    }
+
     public string RefreshButtonText => _localizationService.GetString("Button_Refresh");
     public string HelpButtonText => _localizationService.GetString("Button_Help");
+    public string InstallOptionsButtonText => _localizationService.GetString("ExternalApps_InstallOptions_Button");
+    public string InstallOptionsMenuText => _localizationService.GetString("ExternalApps_InstallOptions_Menu");
 
     public string ViewModeTableTooltip => _localizationService.GetString("ViewMode_Table");
     public string ViewModeCardTooltip => _localizationService.GetString("ViewMode_Card");
     public string ViewModeCompactTooltip => _localizationService.GetString("ViewMode_Compact");
 
-    public string SortButtonText => _localizationService.GetStringOrDefault("SoftwareApps_Sort_Button", "Sort");
+    public string ViewMenuText => _localizationService.GetString("View_Menu");
+
     public string SortInstalledFirstText => _localizationService.GetStringOrDefault("SoftwareApps_Sort_NameAZInstalledFirst", "Name A-Z (Installed First)");
     public string SortNameAscText => _localizationService.GetStringOrDefault("SoftwareApps_Sort_NameAZ", "Name A-Z");
     public string SortNameDescText => _localizationService.GetStringOrDefault("SoftwareApps_Sort_NameZA", "Name Z-A");
 
-    public string SortTableHintText => _localizationService.GetStringOrDefault("SoftwareApps_Sort_TableHint", "Click a column header to sort by it in ascending or descending order.");
+    public string FilterAllText => _localizationService.GetString("SoftwareApps_Filter_All");
+    public string FilterInstalledText => _localizationService.GetString("SoftwareApps_ShowInstalledOnly");
+    public string FilterUpdatesText => _localizationService.GetString("SoftwareApps_ShowUpdatesOnly");
 
-    // In Table view sorting is by clicking a column header, so the button is disabled there.
-    public bool IsSortButtonEnabled => !IsTableView;
+    public string ExportListText => _localizationService.GetString("SoftwareApps_ExportList");
+
+    public string SortTableHintText => _localizationService.GetStringOrDefault("SoftwareApps_Sort_TableHint", "Sort with the column headers");
+
+    // In Table view sorting is by clicking a column header, so the sort items are disabled there.
+    public bool IsSortEnabled => !IsTableView;
 
     // Table-view column header texts. Applied to the DataGrid columns in code-behind
     // (SoftwareAppsPage.LocalizeColumnHeaders) because CommunityToolkit DataGrid columns
@@ -237,6 +274,12 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public string ColumnHeaderStatus => _localizationService.GetStringOrDefault("SoftwareApps_Column_Status", "Status");
     public string ColumnHeaderInstallable => _localizationService.GetStringOrDefault("SoftwareApps_Column_Installable", "Installable");
     public string ColumnHeaderGroup => _localizationService.GetStringOrDefault("SoftwareApps_Column_Group", "Group");
+    public string ColumnHeaderVersion => _localizationService.GetString("SoftwareApps_Column_Version");
+    public string ColumnHeaderUpdate => _localizationService.GetString("SoftwareApps_Column_Update");
+    public string ColumnHeaderInstalledOn => _localizationService.GetString("SoftwareApps_Column_InstalledOn");
+    public string ColumnHeaderSize => _localizationService.GetString("SoftwareApps_Column_Size");
+    private string ColumnHeaderPublisher => _localizationService.GetStringOrDefault("SoftwareApps_Column_Publisher", "Publisher");
+    private string ColumnHeaderPackageId => _localizationService.GetStringOrDefault("SoftwareApps_Column_PackageId", "Package ID");
 
     public string ReviewWindowsAppsBannerText
     {
@@ -264,27 +307,52 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     public string RemoveButtonText => _localizationService.GetString("SoftwareApps_Button_UninstallSelected");
 
-    public bool IsLoading => IsWindowsAppsTabSelected
-        ? WindowsAppsViewModel.IsLoading
-        : ExternalAppsViewModel.IsLoading;
+    public bool IsLoading => IsWindowsAppsTabSelected ? WindowsAppsViewModel.IsLoading : ExternalAppsViewModel.IsLoading;
 
     partial void OnViewModeChanged(SoftwareAppsViewMode value)
     {
-        _userPreferencesService.SetPreferenceAsync("SoftwareAppsViewMode", value.ToString()).FireAndForget(_logService);
+        _userPreferencesService.SetPreferenceAsync(UserPreferenceKeys.SoftwareAppsViewMode, value.ToString()).FireAndForget(_logService);
         OnPropertyChanged(nameof(IsCardView));
         OnPropertyChanged(nameof(IsTableView));
         OnPropertyChanged(nameof(IsCompactView));
-        OnPropertyChanged(nameof(IsSortButtonEnabled));
+        OnPropertyChanged(nameof(IsSortEnabled));
     }
 
     partial void OnSortModeChanged(AppSortMode value)
     {
-        _userPreferencesService.SetPreferenceAsync("SoftwareAppsSortMode", value.ToString()).FireAndForget(_logService);
+        _userPreferencesService.SetPreferenceAsync(UserPreferenceKeys.SoftwareAppsSortMode, value.ToString()).FireAndForget(_logService);
         WindowsAppsViewModel.SortMode = value;
         ExternalAppsViewModel.SortMode = value;
         OnPropertyChanged(nameof(IsSortInstalledFirst));
         OnPropertyChanged(nameof(IsSortNameAsc));
         OnPropertyChanged(nameof(IsSortNameDesc));
+    }
+
+    public AppFilter CurrentFilter => IsWindowsAppsTabSelected ? WindowsAppsViewModel.Filter : ExternalAppsViewModel.Filter;
+
+    public bool IsFilterAll => CurrentFilter == AppFilter.All;
+    public bool IsFilterInstalled => CurrentFilter == AppFilter.Installed;
+    public bool IsFilterUpdates => CurrentFilter == AppFilter.UpdatesAvailable;
+
+    // All and Installed apply to both tabs and are remembered. Updates available exists on External Software only and
+    // lasts for the session, so Windows Apps keeps the filter it had.
+    public void SetFilter(AppFilter value)
+    {
+        ExternalAppsViewModel.Filter = value;
+        if (value != AppFilter.UpdatesAvailable)
+        {
+            WindowsAppsViewModel.Filter = value;
+            _userPreferencesService.SetPreferenceAsync(UserPreferenceKeys.SoftwareAppsFilter, value.ToString()).FireAndForget(_logService);
+        }
+        NotifyFilterChanged();
+    }
+
+    private void NotifyFilterChanged()
+    {
+        OnPropertyChanged(nameof(CurrentFilter));
+        OnPropertyChanged(nameof(IsFilterAll));
+        OnPropertyChanged(nameof(IsFilterInstalled));
+        OnPropertyChanged(nameof(IsFilterUpdates));
     }
 
     partial void OnSearchTextChanged(string value)
@@ -311,6 +379,9 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         OnPropertyChanged(nameof(IsLoading));
         OnPropertyChanged(nameof(CurrentInstallAction));
         OnPropertyChanged(nameof(CurrentRemoveAction));
+        OnPropertyChanged(nameof(IsInstallAccent));
+        OnPropertyChanged(nameof(IsRemoveAccent));
+        NotifyFilterChanged();
         UpdateButtonStates();
     }
 
@@ -326,6 +397,9 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         OnPropertyChanged(nameof(IsLoading));
         OnPropertyChanged(nameof(CurrentInstallAction));
         OnPropertyChanged(nameof(CurrentRemoveAction));
+        OnPropertyChanged(nameof(IsInstallAccent));
+        OnPropertyChanged(nameof(IsRemoveAccent));
+        NotifyFilterChanged();
         UpdateButtonStates();
     }
 
@@ -336,42 +410,48 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         OnPropertyChanged(nameof(SearchPlaceholder));
         OnPropertyChanged(nameof(WindowsAppsTabText));
         OnPropertyChanged(nameof(ExternalAppsTabText));
-        OnPropertyChanged(nameof(ExternalAppsTabLockedTooltip));
+        OnPropertyChanged(nameof(PackageSearchPlaceholder));
         OnPropertyChanged(nameof(BuilderWindowsAppsBannerText));
         OnPropertyChanged(nameof(BuilderExternalAppsBannerText));
         OnPropertyChanged(nameof(InstallButtonText));
+        OnPropertyChanged(nameof(PrimaryActionText));
         OnPropertyChanged(nameof(RemoveButtonText));
         OnPropertyChanged(nameof(RefreshButtonText));
         OnPropertyChanged(nameof(HelpButtonText));
+        OnPropertyChanged(nameof(InstallOptionsButtonText));
         OnPropertyChanged(nameof(ViewModeTableTooltip));
         OnPropertyChanged(nameof(ViewModeCardTooltip));
         OnPropertyChanged(nameof(ViewModeCompactTooltip));
-        OnPropertyChanged(nameof(SortButtonText));
+        OnPropertyChanged(nameof(ViewMenuText));
         OnPropertyChanged(nameof(SortInstalledFirstText));
         OnPropertyChanged(nameof(SortNameAscText));
         OnPropertyChanged(nameof(SortNameDescText));
         OnPropertyChanged(nameof(SortTableHintText));
+        OnPropertyChanged(nameof(FilterAllText));
+        OnPropertyChanged(nameof(FilterInstalledText));
+        OnPropertyChanged(nameof(FilterUpdatesText));
+        OnPropertyChanged(nameof(ExportListText));
+        OnPropertyChanged(nameof(ColumnHeaderUpdate));
         OnPropertyChanged(nameof(ColumnHeaderName));
         OnPropertyChanged(nameof(ColumnHeaderDescription));
         OnPropertyChanged(nameof(ColumnHeaderType));
         OnPropertyChanged(nameof(ColumnHeaderStatus));
         OnPropertyChanged(nameof(ColumnHeaderInstallable));
         OnPropertyChanged(nameof(ColumnHeaderGroup));
+        OnPropertyChanged(nameof(ColumnHeaderVersion));
+        OnPropertyChanged(nameof(ColumnHeaderInstalledOn));
+        OnPropertyChanged(nameof(ColumnHeaderSize));
         OnPropertyChanged(nameof(ReviewWindowsAppsBannerText));
         OnPropertyChanged(nameof(ReviewExternalAppsBannerText));
     }
 
     private void ChildViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(WindowsAppsViewModel.HasSelectedItems) ||
-            e.PropertyName == nameof(ExternalAppsViewModel.HasSelectedItems) ||
-            e.PropertyName == nameof(WindowsAppsViewModel.IsTaskRunning) ||
-            e.PropertyName == nameof(ExternalAppsViewModel.IsTaskRunning))
+        if (e.PropertyName is nameof(WindowsAppsViewModel.HasSelectedItems) or nameof(WindowsAppsViewModel.IsTaskRunning))
         {
             UpdateButtonStates();
         }
-        else if (e.PropertyName == nameof(WindowsAppsViewModel.IsLoading) ||
-                 e.PropertyName == nameof(ExternalAppsViewModel.IsLoading))
+        else if (e.PropertyName == nameof(WindowsAppsViewModel.IsLoading))
         {
             OnPropertyChanged(nameof(IsLoading));
         }
@@ -399,6 +479,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         UpdateSelectedCounts();
     }
 
+    partial void OnIsInReviewModeChanged(bool value) => OnPropertyChanged(nameof(IsActionButtonVisible));
+
     private void UpdateSelectedCounts()
     {
         if (!IsInReviewMode)
@@ -422,18 +504,14 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     public bool IsBuilderModeActive => IsBuilderMode;
 
-    // Autounattend removes Windows apps from the image and can't install external apps
-    // (those install post-setup, and that path isn't built yet) — lock the External Apps
-    // tab while the Autounattend target is active.
-    public bool IsExternalAppsTabLocked =>
+    private bool IsAutounattendTarget =>
         IsBuilderMode && _applicationModeService.CurrentBuilderTarget == BuilderTarget.Autounattend;
 
-    public bool IsExternalAppsTabEnabled => !IsExternalAppsTabLocked;
+    // The answer file removes the checked Windows Apps and installs the checked External Apps, so each tab has one
+    // action. Its button is drawn in the accent colour and does nothing when clicked; the other stays disabled.
+    public bool IsInstallAccent => IsAutounattendTarget && IsExternalAppsTabSelected;
 
-    public string? ExternalAppsTabLockedTooltip =>
-        IsExternalAppsTabLocked
-            ? (_localizationService.GetStringOrDefault("SoftwareApps_ExternalTab_AutounattendLocked", "External Apps in autounattend is an upcoming feature."))
-            : null;
+    public bool IsRemoveAccent => IsAutounattendTarget && IsWindowsAppsTabSelected;
 
     public string BuilderWindowsAppsBannerText =>
         _applicationModeService.CurrentBuilderTarget == BuilderTarget.Autounattend
@@ -441,22 +519,27 @@ public partial class SoftwareAppsViewModel : BaseViewModel
             : (_localizationService.GetStringOrDefault("SoftwareApps_Builder_Banner_Config", "These selections are saved to the config. You choose whether to install or uninstall them when you import."));
 
     public string BuilderExternalAppsBannerText =>
-        _localizationService.GetStringOrDefault("SoftwareApps_Builder_Banner_Config", "These selections are saved to the config. You choose whether to install or uninstall them when you import.");
+        _applicationModeService.CurrentBuilderTarget == BuilderTarget.Autounattend
+            ? (_localizationService.GetStringOrDefault("SoftwareApps_Builder_Banner_Autounattend_ExternalApps", "Checked apps will be installed for everyone on the new PC after setup."))
+            : (_localizationService.GetStringOrDefault("SoftwareApps_Builder_Banner_Config", "These selections are saved to the config. You choose whether to install or uninstall them when you import."));
 
     private void OnApplicationModeChanged(object? sender, EventArgs e)
     {
-        // If the External Apps tab just got locked (Builder + Autounattend) while open,
-        // move the user to Windows Apps so they aren't stranded on a disabled tab.
-        if (IsExternalAppsTabLocked && IsExternalAppsTabSelected)
+        var capabilities = _applicationModeService.Capabilities();
+        ExternalAppsViewModel.AuthorsIntent = capabilities.AuthorsIntent;
+
+        // Updates are this PC's, so a mode that picks apps for a file goes back to the remembered filter, which Windows
+        // Apps still holds.
+        if (!capabilities.AppliesToSystem && ExternalAppsViewModel.Filter == AppFilter.UpdatesAvailable)
         {
-            IsWindowsAppsTabSelected = true;
+            ExternalAppsViewModel.Filter = WindowsAppsViewModel.Filter;
+            NotifyFilterChanged();
         }
 
         UpdateButtonStates();
         OnPropertyChanged(nameof(IsBuilderModeActive));
-        OnPropertyChanged(nameof(IsExternalAppsTabLocked));
-        OnPropertyChanged(nameof(IsExternalAppsTabEnabled));
-        OnPropertyChanged(nameof(ExternalAppsTabLockedTooltip));
+        OnPropertyChanged(nameof(IsInstallAccent));
+        OnPropertyChanged(nameof(IsRemoveAccent));
         OnPropertyChanged(nameof(BuilderWindowsAppsBannerText));
         OnPropertyChanged(nameof(BuilderExternalAppsBannerText));
     }
@@ -471,8 +554,9 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         // from, so the gate cannot lag behind a transition that has already happened.
         if (!_applicationModeService.Capabilities().AppliesToSystem)
         {
-            CanInstallItems = false;
-            CanRemoveItems = false;
+            // A button bound to a command that cannot execute draws disabled, so the accent one must stay executable.
+            CanInstallItems = IsInstallAccent;
+            CanRemoveItems = IsRemoveAccent;
         }
         else if (IsWindowsAppsTabSelected)
         {
@@ -492,17 +576,19 @@ public partial class SoftwareAppsViewModel : BaseViewModel
             CanRemoveItems = false;
         }
 
+        OnPropertyChanged(nameof(PrimaryActionText));
         InstallSelectedItemsCommand.NotifyCanExecuteChanged();
         RemoveSelectedItemsCommand.NotifyCanExecuteChanged();
     }
 
-    // Idempotent; called from each Initialize* entry point so any of them can be the first call without ordering assumptions.
+    // Idempotent; called from each Initialize* entry point, so any of them can be the first call without ordering
+    // assumptions.
     private void EnsureSubscriptions()
     {
         if (_isSubscribed) return;
         _isSubscribed = true;
 
-        var savedViewMode = _userPreferencesService.GetPreference("SoftwareAppsViewMode", "Card");
+        var savedViewMode = _userPreferencesService.GetPreference(UserPreferenceKeys.SoftwareAppsViewMode, "Card");
         ViewMode = savedViewMode switch
         {
             "Compact" => SoftwareAppsViewMode.Compact,
@@ -510,13 +596,23 @@ public partial class SoftwareAppsViewModel : BaseViewModel
             _ => SoftwareAppsViewMode.Card,
         };
 
-        var savedSortMode = _userPreferencesService.GetPreference("SoftwareAppsSortMode", "NameAscInstalledFirst");
+        var savedSortMode = _userPreferencesService.GetPreference(UserPreferenceKeys.SoftwareAppsSortMode, "NameAscInstalledFirst");
         SortMode = savedSortMode switch
         {
             "NameAsc" => AppSortMode.NameAsc,
             "NameDesc" => AppSortMode.NameDesc,
             _ => AppSortMode.NameAscInstalledFirst,
         };
+
+        // A preferences file written before SoftwareAppsFilter existed holds the choice as this bool.
+        var legacyFilter = _userPreferencesService.GetPreference("SoftwareAppsShowInstalledOnly", false)
+            ? nameof(AppFilter.Installed)
+            : nameof(AppFilter.All);
+        var savedFilter = _userPreferencesService.GetPreference(UserPreferenceKeys.SoftwareAppsFilter, legacyFilter);
+        var filter = savedFilter == nameof(AppFilter.Installed) ? AppFilter.Installed : AppFilter.All;
+        WindowsAppsViewModel.Filter = filter;
+        ExternalAppsViewModel.Filter = filter;
+        NotifyFilterChanged();
 
         WindowsAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
         ExternalAppsViewModel.PropertyChanged += ChildViewModel_PropertyChanged;
@@ -526,6 +622,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
         _applicationModeService.ModeChanged += OnApplicationModeChanged;
 
+        ExternalAppsViewModel.AuthorsIntent = _applicationModeService.Capabilities().AuthorsIntent;
         UpdateButtonStates();
     }
 
@@ -541,8 +638,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         }
     }
 
-    // Cold-start fires this in the background (Helpers.StartupUiCoordinator); the tab's own loading overlay covers
-    // a click before resolution completes.
+    // Cold-start fires this in the background (Helpers.StartupUiCoordinator); until it finishes the tab shows only
+    // its loader (ExternalAppsViewModel.IsContentReady).
     public async Task InitializeExternalAppsAsync()
     {
         EnsureSubscriptions();
@@ -573,13 +670,16 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     [RelayCommand(CanExecute = nameof(CanInstallItems))]
     private async Task InstallSelectedItemsAsync()
     {
+        if (!_applicationModeService.Capabilities().AppliesToSystem)
+            return;
+
         if (IsWindowsAppsTabSelected)
         {
             await WindowsAppsViewModel.InstallAppsAsync();
         }
-        else
+        else if (IsExternalAppsTabSelected)
         {
-            await ExternalAppsViewModel.InstallAppsAsync();
+            await ExternalAppsViewModel.InstallOrUpdateSelectedAsync();
         }
         UpdateButtonStates();
     }
@@ -587,6 +687,9 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     [RelayCommand(CanExecute = nameof(CanRemoveItems))]
     private async Task RemoveSelectedItemsAsync()
     {
+        if (!_applicationModeService.Capabilities().AppliesToSystem)
+            return;
+
         if (IsWindowsAppsTabSelected)
         {
             await WindowsAppsViewModel.RemoveAppsAsync();
@@ -595,6 +698,14 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         {
             await ExternalAppsViewModel.UninstallAppsAsync();
         }
+        UpdateButtonStates();
+    }
+
+    public async Task InstallOnNewPcAsync(IReadOnlyList<string> ids, string? ownInstallersFolder)
+    {
+        SelectExternalAppsTab();
+        await InitializeExternalAppsAsync();
+        await ExternalAppsViewModel.InstallOnNewPcAsync(ids, ownInstallersFolder);
         UpdateButtonStates();
     }
 
@@ -646,6 +757,77 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public void SelectExternalAppsTab()
     {
         IsExternalAppsTabSelected = true;
+    }
+
+    // The whole tab, not the filtered view, in the Table view's columns plus publisher and package id, so two exports a
+    // month apart compare line by line. A package search result lives only as long as its search, so it is left out
+    // unless the PC has it.
+    [RelayCommand]
+    private async Task ExportListAsync()
+    {
+        var tab = IsWindowsAppsTabSelected ? "WindowsApps" : "ExternalApps";
+        var path = _saveFilePicker.PickSavePath(
+            _localizationService.GetString("SoftwareApps_ExportList_DialogTitle"),
+            "CSV Files",
+            "*.csv",
+            $"Winhance_{tab}_{DateTime.Now:yyyyMMdd}.csv",
+            "csv");
+        if (path is null)
+            return;
+
+        var csv = IsWindowsAppsTabSelected
+            ? AppListCsv.Build(WindowsAppsColumns(), WindowsAppsViewModel.Items)
+            : AppListCsv.Build(ExternalAppsColumns(), ExternalAppsViewModel.Items.Where(IsExported));
+        try
+        {
+            // Without the byte-order mark Excel reads the file in the ANSI code page and garbles non-English names.
+            await _fileSystemService.WriteAllTextAsync(path, "\uFEFF" + csv);
+            _logService.Log(LogLevel.Info, $"Exported the {tab} list to {path}");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logService.Log(LogLevel.Error, $"Could not export the {tab} list to {path}: {ex.Message}", ex);
+            await _dialogService.ShowErrorAsync(ex.Message);
+        }
+    }
+
+    internal IReadOnlyList<(string Header, Func<AppItemViewModel, string> Value)> WindowsAppsColumns() =>
+    [
+        (ColumnHeaderName, app => app.Name),
+        (ColumnHeaderDescription, app => app.Description),
+        (ColumnHeaderType, app => app.ItemTypeDescription),
+        (ColumnHeaderGroup, app => app.CategoryDisplayName),
+        (ColumnHeaderStatus, app => app.InstalledStatusText),
+        (ColumnHeaderInstallable, app => app.ReinstallableStatusText),
+        (ColumnHeaderPackageId, app => app.Definition.AppxPackageName?.FirstOrDefault()
+            ?? app.Definition.CapabilityName ?? app.Definition.OptionalFeatureName ?? string.Empty),
+    ];
+
+    internal IReadOnlyList<(string Header, Func<AppItemViewModel, string> Value)> ExternalAppsColumns() =>
+    [
+        (ColumnHeaderName, app => app.Name),
+        (ColumnHeaderDescription, app => app.Description),
+        (ColumnHeaderGroup, app => app.CategoryDisplayName),
+        (ColumnHeaderVersion, app => app.Version),
+        (ColumnHeaderUpdate, app => app.AvailableVersion),
+        (ColumnHeaderInstalledOn, app => app.InstalledOnText),
+        (ColumnHeaderSize, app => app.SizeText),
+        (ColumnHeaderStatus, app => app.InstalledStatusText),
+        (ColumnHeaderPublisher, app => app.Installed?.Publisher ?? string.Empty),
+        (ColumnHeaderPackageId, app => app.Definition.WinGetPackageId?.FirstOrDefault() ?? app.Installed?.WinGetId
+            ?? app.Definition.MsStoreId ?? app.Installed?.MsStoreId ?? app.Definition.ChocoPackageId
+            ?? app.Definition.AppxPackageName?.FirstOrDefault() ?? app.Installed?.PackageName ?? string.Empty),
+    ];
+
+    internal static bool IsExported(AppItemViewModel app) => !PackageSearchItem.Is(app.Id) || app.IsInstalled;
+
+    // The tray can call this before the page has ever loaded, and the saved filter read on first load must not
+    // replace the one set here.
+    public void ShowAppUpdates()
+    {
+        EnsureSubscriptions();
+        IsExternalAppsTabSelected = true;
+        SetFilter(AppFilter.UpdatesAvailable);
     }
 
     protected override void Dispose(bool disposing)

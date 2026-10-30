@@ -86,7 +86,7 @@ internal class WindowsAppUninstallService(
 
             logService.LogInformation($"START: {apps.Count} total apps to process");
 
-            var scriptApps = apps.Where(a => a.RemovalScript != null).ToList();
+            var scriptApps = DedicatedRemovalScripts.OnePerScript(apps);
             var regularApps = apps.Where(a => a.RemovalScript == null).ToList();
 
             logService.LogInformation($"Categorization: ScriptApps={scriptApps.Count}, RegularApps={regularApps.Count}");
@@ -101,10 +101,14 @@ internal class WindowsAppUninstallService(
                 foreach (var app in scriptApps)
                 {
                     var outcome = await bloatRemovalService.ExecuteDedicatedScriptAsync(app, progress, cancellationToken).ConfigureAwait(false);
+                    var removed = RemovedByScript(app, apps);
                     if (outcome is RemovalOutcome.Success or RemovalOutcome.DeferredToScheduledTask)
-                        changeHistory.LogAppChange(app.Name, AppChangeKind.Removed);
+                    {
+                        foreach (var item in removed)
+                            changeHistory.LogAppChange(item.Name, AppChangeKind.Removed);
+                    }
                     if (outcome == RemovalOutcome.Success)
-                        RaiseExplorerRestartIfNeeded([app]);
+                        RaiseExplorerRestartIfNeeded(removed);
                     if (outcome == RemovalOutcome.DeferredToScheduledTask) anyDeferred = true;
                 }
                 logService.LogInformation("Step 2 DONE");
@@ -168,16 +172,16 @@ internal class WindowsAppUninstallService(
 
             logService.LogInformation($"START: {apps.Count} total apps to process");
 
-            var scriptApps = apps.Where(a => a.RemovalScript != null).ToList();
+            var scriptApps = DedicatedRemovalScripts.OnePerScript(apps);
             var regularApps = apps.Where(a => a.RemovalScript == null).ToList();
 
             logService.LogInformation($"ScriptApps={scriptApps.Count}, RegularApps={regularApps.Count}");
 
             var slotNames = new List<string>();
             foreach (var app in scriptApps)
-                slotNames.Add(GetScriptSlotName(app));
+                slotNames.Add(app.RemovalScriptName!);
             if (regularApps.Count > 0)
-                slotNames.Add("BloatRemoval");
+                slotNames.Add(BloatRemovalScriptGenerator.ScriptName);
 
             var cts = multiScriptProgressService.StartMultiScriptTask(slotNames.ToArray());
             var cancellationToken = cts.Token;
@@ -223,10 +227,14 @@ internal class WindowsAppUninstallService(
                 // the last result (if regularApps.Count > 0) is the batch outcome for regular apps.
                 for (int i = 0; i < scriptApps.Count; i++)
                 {
+                    var removed = RemovedByScript(scriptApps[i], apps);
                     if (results[i] is RemovalOutcome.Success or RemovalOutcome.DeferredToScheduledTask)
-                        changeHistory.LogAppChange(scriptApps[i].Name, AppChangeKind.Removed);
+                    {
+                        foreach (var item in removed)
+                            changeHistory.LogAppChange(item.Name, AppChangeKind.Removed);
+                    }
                     if (results[i] == RemovalOutcome.Success)
-                        RaiseExplorerRestartIfNeeded([scriptApps[i]]);
+                        RaiseExplorerRestartIfNeeded(removed);
                 }
                 if (regularApps.Count > 0)
                 {
@@ -314,10 +322,6 @@ internal class WindowsAppUninstallService(
             pendingRestartService.Register(app.Id);
     }
 
-    private static string GetScriptSlotName(ItemDefinition app) => app.Id switch
-    {
-        "windows-app-edge" => "EdgeRemoval",
-        "windows-app-onedrive" => "OneDriveRemoval",
-        _ => app.Name
-    };
+    private static List<ItemDefinition> RemovedByScript(ItemDefinition scriptApp, List<ItemDefinition> apps) =>
+        [scriptApp, .. apps.Where(a => scriptApp.AlsoRemoves?.Contains(a.Id) == true)];
 }

@@ -421,6 +421,13 @@ else {
     Write-Host "Skipping tests (-SkipTests)..." -ForegroundColor Yellow
 }
 
+# Step 3b: Check the External Apps' winget ids. A warning only: winget being down must not block a release.
+Write-Host "Checking External Apps winget ids..." -ForegroundColor Green
+& "$scriptRoot\Test-PackageIds.ps1"
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Some apps have no live winget id. Winhance hides them until their ids are fixed." -ForegroundColor Yellow
+}
+
 # Step 4: Sign the application executable using the cert resolved at script start
 $mainExecutable = "$publishOutputPath\Winhance.exe"
 if ($shouldSign -and $certificate) {

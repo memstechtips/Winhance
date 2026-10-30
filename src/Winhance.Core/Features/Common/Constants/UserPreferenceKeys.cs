@@ -16,4 +16,17 @@ public static class UserPreferenceKeys
     public const string ShowNewBadges = "ShowNewBadges";
     public const string HighestSeenAddedInVersion = "HighestSeenAddedInVersion";
     public const string UiZoomFactor = "UiZoomFactor";
+    public const string SupportAskedAt = "SupportAskedAt";
+    public const string InstallAppsForAllUsers = "InstallAppsForAllUsers";
+    public const string AppInstallOptions = "AppInstallOptions";
+    public const string CloseToTray = "CloseToTray";
+    public const string MinimizeToTray = "MinimizeToTray";
+    public const string TrayHintShown = "TrayHintShown";
+    public const string AppUpdateCheckFrequency = "AppUpdateCheckFrequency";
+    public const string AppUpdateAction = "AppUpdateAction";
+    public const string LastAppUpdateCheck = "LastAppUpdateCheck";
+    public const string LastNotifiedAppUpdates = "LastNotifiedAppUpdates";
+    public const string SoftwareAppsViewMode = "SoftwareAppsViewMode";
+    public const string SoftwareAppsSortMode = "SoftwareAppsSortMode";
+    public const string SoftwareAppsFilter = "SoftwareAppsFilter";
 }

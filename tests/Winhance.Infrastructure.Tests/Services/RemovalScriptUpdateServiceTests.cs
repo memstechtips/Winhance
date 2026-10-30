@@ -2,6 +2,7 @@ using Moq;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Catalogs;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.SoftwareApps.Utilities;
 using Winhance.Infrastructure.Features.Common.Services;
@@ -34,6 +35,21 @@ public class RemovalScriptUpdateServiceTests
 
     private static string MakeScriptContent(string version) =>
         $"<#\n  .SYNOPSIS\n      Script Version: {version}\n#>";
+
+    [Fact]
+    public async Task CheckAndUpdateScriptsAsync_ChecksEveryRemovalScript()
+    {
+        await _service.CheckAndUpdateScriptsAsync();
+
+        string[] names =
+        [
+            BloatRemovalScriptGenerator.ScriptName,
+            .. WindowsAppDefinitions.GetWindowsApps().Items.Select(a => a.RemovalScriptName).OfType<string>().Distinct(),
+        ];
+        Assert.Equal(3, names.Length);
+        foreach (var name in names)
+            _mockFileSystem.Verify(x => x.FileExists(ScriptPath(name)), Times.Once, name);
+    }
 
     [Fact]
     public async Task CheckAndUpdateScriptsAsync_ScriptsUpToDate_NoChanges()
@@ -100,7 +116,7 @@ public class RemovalScriptUpdateServiceTests
 
         await _service.CheckAndUpdateScriptsAsync();
 
-        // EdgeRemoval uses GetContent (full replacement), runs after update
+        // The two dedicated scripts run after update
         _mockFileSystem.Verify(
             x => x.WriteAllText(ScriptPath("EdgeRemoval"), It.IsAny<string>()), Times.Once);
         _mockScheduledTask.Verify(
@@ -120,6 +136,28 @@ public class RemovalScriptUpdateServiceTests
         _mockLog.Verify(
             x => x.LogInformation(It.Is<string>(s => s.Contains("Updating")), It.IsAny<string>()),
             Times.Exactly(3));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CheckAndUpdateScriptsAsync_OutdatedEdgeScript_KeepsItsWebView2Mode(bool removeWebView2)
+    {
+        var outdated = EdgeRemovalScript.GetScript(removeWebView2)
+            .Replace("Script Version: " + EdgeRemovalScript.ScriptVersion, "Script Version: 1.6");
+        _mockFileSystem.Setup(x => x.FileExists(ScriptPath("EdgeRemoval"))).Returns(true);
+        _mockFileSystem.Setup(x => x.ReadAllText(ScriptPath("EdgeRemoval"))).Returns(outdated);
+        _mockScheduledTask
+            .Setup(x => x.RunScheduledTaskAsync(It.IsAny<string>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        await _service.CheckAndUpdateScriptsAsync();
+
+        _mockFileSystem.Verify(
+            x => x.WriteAllText(ScriptPath("EdgeRemoval"), It.Is<string>(s =>
+                EdgeRemovalScript.RemovesWebView2(s) == removeWebView2
+                && s.Contains("Script Version: " + EdgeRemovalScript.ScriptVersion))),
+            Times.Once);
     }
 
     [Fact]

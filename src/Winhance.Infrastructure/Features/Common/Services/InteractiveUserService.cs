@@ -129,7 +129,29 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
             return await RunProcessNormalAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs).ConfigureAwait(false);
         }
 
-        return await RunProcessWithTokenAsync(fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine).ConfigureAwait(false);
+        return await RunProcessWithTokenAsync(_interactiveUserToken, fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine).ConfigureAwait(false);
+    }
+
+    public async Task<InteractiveProcessResult?> RunProcessAsShellUserAsync(
+        string fileName,
+        string arguments,
+        Action<string>? onOutputLine = null,
+        Action<string>? onErrorLine = null,
+        CancellationToken cancellationToken = default,
+        int timeoutMs = 300_000,
+        Action<string>? onProgressLine = null)
+    {
+        if (!TryCaptureShellToken(out HANDLE token))
+            return null;
+
+        try
+        {
+            return await RunProcessWithTokenAsync(token, fileName, arguments, onOutputLine, onErrorLine, cancellationToken, timeoutMs, onProgressLine).ConfigureAwait(false);
+        }
+        finally
+        {
+            PInvoke.CloseHandle(token);
+        }
     }
 
     private async Task<InteractiveProcessResult> RunProcessNormalAsync(
@@ -152,6 +174,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
     }
 
     private async Task<InteractiveProcessResult> RunProcessWithTokenAsync(
+        HANDLE token,
         string fileName,
         string arguments,
         Action<string>? onOutputLine,
@@ -186,7 +209,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
 
         try
         {
-            IntPtr envBlock = CreateEnvironmentBlockFor(_interactiveUserToken);
+            IntPtr envBlock = CreateEnvironmentBlockFor(token);
             var processHandle = HANDLE.Null;
 
             try
@@ -203,7 +226,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
                 var creationFlags = PROCESS_CREATION_FLAGS.CREATE_NO_WINDOW | PROCESS_CREATION_FLAGS.CREATE_UNICODE_ENVIRONMENT;
 
                 if (!TryCreateProcessWithToken(
-                    _interactiveUserToken,
+                    token,
                     commandLine,
                     creationFlags,
                     envBlock,
@@ -679,19 +702,22 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
             "Users", username);
     }
 
-    public IShellRelaunchToken? CaptureShellRelaunchToken()
+    public IShellRelaunchToken? CaptureShellRelaunchToken() =>
+        TryCaptureShellToken(out HANDLE token) ? new ShellRelaunchToken(token, _logService) : null;
+
+    // Deliberately NOT gated on _isOtsElevation. When an admin runs Winhance elevated as themselves there is no OTS, so the
+    // interactive-user paths fall through to an elevated Process.Start: that cannot bring the shell back, and winget
+    // refuses to uninstall a per-user package from it. The live explorer.exe carries the user's unelevated token.
+    private bool TryCaptureShellToken(out HANDLE token)
     {
-        // Deliberately NOT gated on _isOtsElevation. When Marco runs Winhance elevated as himself
-        // there is no OTS, so LaunchProcessAsInteractiveUser would fall through to Process.Start -
-        // and an elevated Process.Start cannot bring the shell back. Harvest a token from the live
-        // explorer.exe instead, while it still exists.
+        token = HANDLE.Null;
         try
         {
             uint consoleSessionId = PInvoke.WTSGetActiveConsoleSessionId();
             if (consoleSessionId == 0xFFFFFFFF)
             {
-                _logService.Log(LogLevel.Warning, "No active console session - cannot capture a shell relaunch token");
-                return null;
+                _logService.Log(LogLevel.Warning, "No active console session - cannot capture the shell token");
+                return false;
             }
 
             foreach (var proc in Process.GetProcessesByName("explorer"))
@@ -707,11 +733,10 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
 
                     try
                     {
-                        if (TryDuplicatePrimaryToken(tokenHandle, out HANDLE duplicatedToken))
+                        if (TryDuplicatePrimaryToken(tokenHandle, out token))
                         {
-                            _logService.Log(LogLevel.Debug,
-                                $"Captured a shell relaunch token from explorer.exe (PID {proc.Id})");
-                            return new ShellRelaunchToken(duplicatedToken, _logService);
+                            _logService.Log(LogLevel.Debug, $"Captured the shell token from explorer.exe (PID {proc.Id})");
+                            return true;
                         }
 
                         _logService.Log(LogLevel.Warning,
@@ -733,13 +758,13 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
                 }
             }
 
-            _logService.Log(LogLevel.Warning, "No usable explorer.exe found to capture a shell relaunch token from");
-            return null;
+            _logService.Log(LogLevel.Warning, "No usable explorer.exe found to capture the shell token from");
+            return false;
         }
         catch (Exception ex)
         {
-            _logService.LogError("Failed to capture a shell relaunch token", ex);
-            return null;
+            _logService.LogError("Failed to capture the shell token", ex);
+            return false;
         }
     }
 

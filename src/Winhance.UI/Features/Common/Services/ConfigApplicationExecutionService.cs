@@ -3,6 +3,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Extensions;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -22,6 +23,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
     private readonly IReviewModeViewModelCoordinator _vmCoordinator;
     private readonly IPolicyCleanupService _policyCleanupService;
     private readonly IChangeHistoryService _changeHistoryService;
+    private readonly IInstallOptionsService _installOptions;
 
     public ConfigApplicationExecutionService(
         ILogService logService,
@@ -37,7 +39,8 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         IConfigLoadService configLoadService,
         IReviewModeViewModelCoordinator vmCoordinator,
         IPolicyCleanupService policyCleanupService,
-        IChangeHistoryService changeHistoryService)
+        IChangeHistoryService changeHistoryService,
+        IInstallOptionsService installOptions)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -53,6 +56,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         _vmCoordinator = vmCoordinator;
         _policyCleanupService = policyCleanupService;
         _changeHistoryService = changeHistoryService;
+        _installOptions = installOptions;
     }
 
     public async Task ExecuteConfigImportAsync(WinhanceConfigFile config, ImportOptions dialogOptions)
@@ -191,7 +195,17 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
             // Process External Apps AFTER success dialog dismissal (needs UI thread)
             if (hasExternalApps && importOptions.ProcessExternalAppsInstallation)
             {
-                await _configAppSelectionService.ProcessExternalAppsInstallationAsync(config.ExternalApps);
+                if (config.AppInstallOptions is { } carried)
+                    _installOptions.BeginSession(carried);
+                try
+                {
+                    await _configAppSelectionService.ProcessExternalAppsInstallationAsync(config.ExternalApps);
+                }
+                finally
+                {
+                    if (config.AppInstallOptions is not null)
+                        _installOptions.EndSession();
+                }
             }
             else if (hasExternalApps && importOptions.ProcessExternalAppsRemoval)
             {

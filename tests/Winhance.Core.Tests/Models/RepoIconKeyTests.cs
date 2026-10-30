@@ -22,6 +22,14 @@ public class RepoIconKeyTests
     }
 
     [Fact]
+    public void For_WinGetSearchPick_UsesItsPackageId()
+    {
+        var def = WinGetPackageItem.Create("VideoLAN.VLC", "VLC media player");
+
+        RepoIconKey.For(def).Should().Be("icons/external/videolan.vlc.png");
+    }
+
+    [Fact]
     public void For_ExternalApp_OnlyChocoPackageId_UsesChoco()
     {
         var def = new ItemDefinition
@@ -87,6 +95,21 @@ public class RepoIconKeyTests
         };
 
         RepoIconKey.For(def).Should().BeNull();
+    }
+
+    [Fact]
+    public void For_WindowsApp_NoAppxButWinGetId_ReturnsWinGetExternalPath()
+    {
+        var def = new ItemDefinition
+        {
+            Id = "windows-app-edge-webview",
+            Name = "Microsoft Edge WebView2 and EdgeUpdate",
+            Description = "WebView2 runtime",
+            WinGetPackageId = ["Microsoft.EdgeWebView2Runtime"],
+        };
+
+        RepoIconKey.For(def).Should().Be("icons/external/microsoft.edgewebview2runtime.png");
+        RepoIconKey.WindowsCandidates(def).Should().Equal("icons/external/microsoft.edgewebview2runtime.png");
     }
 
     [Fact]

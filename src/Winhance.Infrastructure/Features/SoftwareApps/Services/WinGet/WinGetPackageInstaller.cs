@@ -52,11 +52,8 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
         }
     }
 
-    public Task<PackageInstallResult> InstallPackageAsync(string packageId, string? source = null, string? displayName = null, string? installerOverride = null, CancellationToken cancellationToken = default)
-        => InstallCoreAsync(packageId, InstallArguments(packageId, source, installerOverride, forAllUsers: false), displayName, WinGetOperation.Install, cancellationToken);
-
-    public Task<PackageInstallResult> InstallPackageForAllUsersAsync(string packageId, string? source, string? displayName, string? installerOverride, CancellationToken cancellationToken)
-        => InstallCoreAsync(packageId, InstallArguments(packageId, source, installerOverride, forAllUsers: true), displayName, WinGetOperation.Install, cancellationToken);
+    public Task<PackageInstallResult> InstallPackageAsync(string packageId, string? source, string? displayName, string? installerOverride, InstallOptions options, CancellationToken cancellationToken)
+        => InstallCoreAsync(packageId, InstallArguments(packageId, source, installerOverride, options), displayName, WinGetOperation.Install, cancellationToken);
 
     public async Task<PackageInstallResult> UpgradePackageAsync(string packageId, string? source, string? displayName, CancellationToken cancellationToken)
     {
@@ -95,15 +92,24 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
         return string.IsNullOrEmpty(source) ? arguments : arguments + $" --source {source}";
     }
 
-    internal static string InstallArguments(string packageId, string? source, string? installerOverride, bool forAllUsers)
+    // --interactive shows the installer's own screens; --disable-interactivity only stops winget itself prompting.
+    internal static string InstallArguments(string packageId, string? source, string? installerOverride, InstallOptions options)
     {
-        var arguments = $"install --id {packageId} --silent --accept-package-agreements --accept-source-agreements --force --disable-interactivity";
+        var mode = options.Interactive ? "--interactive" : "--silent";
+        var arguments = $"install --id {packageId} --exact {mode} --accept-package-agreements --accept-source-agreements --force --disable-interactivity";
         if (!string.IsNullOrEmpty(source))
             arguments += $" --source {source}";
         if (!string.IsNullOrWhiteSpace(installerOverride))
             arguments += $" --override \"{installerOverride}\"";
-        if (forAllUsers)
-            arguments += " --scope machine";
+        if (options.Scope != InstallScope.Default)
+            arguments += options.Scope == InstallScope.Machine ? " --scope machine" : " --scope user";
+        arguments += options.Architecture switch
+        {
+            InstallArchitecture.X64 => " --architecture x64",
+            InstallArchitecture.X86 => " --architecture x86",
+            InstallArchitecture.Arm64 => " --architecture arm64",
+            _ => "",
+        };
         return arguments;
     }
 

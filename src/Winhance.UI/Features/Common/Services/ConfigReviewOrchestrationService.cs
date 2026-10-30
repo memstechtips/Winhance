@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Extensions;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.WimUtil.Models;
 
@@ -31,6 +32,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     private readonly IHardwareFilterService _hardwareFilter;
     private readonly ITargetWindowsService _targetWindows;
     private readonly WimUtilSession _wimUtilSession;
+    private readonly IInstallOptionsService _installOptions;
 
     public ConfigReviewOrchestrationService(
         ILogService logService,
@@ -50,7 +52,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         IChangeHistoryService changeHistoryService,
         IHardwareFilterService hardwareFilter,
         ITargetWindowsService targetWindows,
-        WimUtilSession wimUtilSession)
+        WimUtilSession wimUtilSession,
+        IInstallOptionsService installOptions)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -70,6 +73,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _hardwareFilter = hardwareFilter;
         _targetWindows = targetWindows;
         _wimUtilSession = wimUtilSession;
+        _installOptions = installOptions;
 
         _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
 
@@ -166,6 +170,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             // mid-entry window before that chain lands is accepted and self-healing.
 
             await _configReviewModeService.EnterReviewModeAsync(config, isWindowsDefaults, setAside);
+            if (config.AppInstallOptions is { } carried)
+                _installOptions.BeginSession(carried);
 
             if (config.WindowsApps.Items.Count > 0)
             {
@@ -185,6 +191,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         {
             _logService.Log(LogLevel.Error, $"Error entering review mode: {ex.Message}");
             _configReviewModeService.ExitReviewMode();
+            _installOptions.EndSession();
             _dialogService.ShowMessage(_localizationService.GetString("Config_Review_EnterError", ex.Message), _localizationService.GetString("Dialog_Error"));
         }
     }
@@ -354,6 +361,11 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             _configReviewModeService.ExitReviewMode();
             _dialogService.ShowMessage(_localizationService.GetString("Config_Apply_Error", ex.Message), _localizationService.GetString("Dialog_Error"));
         }
+        finally
+        {
+            // Not at ExitReviewMode: review is left before the apps install, and they install with the config's options.
+            _installOptions.EndSession();
+        }
     }
 
     public async Task CancelReviewModeAsync()
@@ -368,6 +380,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         // fired by ExitReviewMode() through OnReviewModeChanged.
 
         _configReviewModeService.ExitReviewMode();
+        _installOptions.EndSession();
         _logService.Log(LogLevel.Info, "Review mode cancelled - selections preserved");
     }
 
@@ -388,6 +401,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             CreatedAt = original.CreatedAt,
             WindowsApps = original.WindowsApps,   // Apps are filtered by checkbox selection, not diffs
             ExternalApps = original.ExternalApps,
+            AppInstallOptions = original.AppInstallOptions,
         };
 
         filtered.Optimize = FilterFeatureGroupByApprovals(original.Optimize, approvedSettingIds);

@@ -1,6 +1,7 @@
 using System.Text;
 using FluentAssertions;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.SoftwareApps.Catalogs;
 using Winhance.Infrastructure.Features.Autounattend.ScriptSections;
 using Xunit;
 
@@ -99,6 +100,73 @@ public class AppRemovalScriptSectionTests
 
         var output = sb.ToString();
         output.Should().Contain("EdgeRemoval");
+    }
+
+    [Theory]
+    [InlineData(false, true, false)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, true)]
+    public async Task AppendBloatRemovalScriptAsync_EdgeScript_CarriesTheWebView2Mode(bool webView, bool edge, bool removesWebView2)
+    {
+        var sb = new StringBuilder();
+        var apps = new List<AppChoice>();
+        if (edge)
+            apps.Add(new AppChoice("windows-app-edge", "Microsoft Edge", EdgePackage, null, null, null));
+        if (webView)
+            apps.Add(new AppChoice("windows-app-edge-webview", "Microsoft Edge WebView2 and EdgeUpdate", null, null, null, "Microsoft.EdgeWebView2Runtime"));
+
+        await _sut.AppendBloatRemovalScriptAsync(sb, apps, "    ");
+
+        var output = sb.ToString();
+        output.Split("# Create EdgeRemoval.ps1 script").Should().HaveCount(2);
+        output.Should().Contain(removesWebView2 ? "$RemoveWebView2 = $true" : "$RemoveWebView2 = $false");
+    }
+
+    [Fact]
+    public void Catalog_RemovalScriptAndItsName_AreSetTogether()
+    {
+        var items = WindowsAppDefinitions.GetWindowsApps().Items;
+
+        items.Should().Contain(a => a.RemovalScript != null)
+            .And.OnlyContain(a => (a.RemovalScript == null) == string.IsNullOrEmpty(a.RemovalScriptName));
+    }
+
+    [Fact]
+    public void Catalog_ItemsSharingARemovalScript_AgreeOnItsTrigger()
+    {
+        var sharedScripts = WindowsAppDefinitions.GetWindowsApps().Items
+            .Where(a => a.RemovalScriptName != null)
+            .GroupBy(a => a.RemovalScriptName);
+
+        sharedScripts.Should().OnlyContain(g => g.Select(a => a.RemovalScriptRunsAtStartup).Distinct().Count() == 1);
+    }
+
+    [Theory]
+    [InlineData("windows-app-edge", "Startup")]
+    [InlineData("windows-app-edge-webview", "Startup")]
+    [InlineData("windows-app-onedrive", "Logon")]
+    public async Task AppendBloatRemovalScriptAsync_DedicatedScript_UsesTheCatalogTrigger(string appId, string trigger)
+    {
+        var app = WindowsAppDefinitions.GetWindowsApps().Items.Single(a => a.Id == appId);
+        var sb = new StringBuilder();
+
+        await _sut.AppendBloatRemovalScriptAsync(sb, [new AppChoice(app.Id, app.Name, null, null, null, null)], "    ");
+
+        sb.ToString().Should().Contain($"Name = \"{app.RemovalScriptName}\"; TriggerType = \"{trigger}\"");
+    }
+
+    [Fact]
+    public async Task AppendBloatRemovalScriptAsync_EveryDedicatedScriptApp_EmitsItsCatalogScriptName()
+    {
+        foreach (var app in WindowsAppDefinitions.GetWindowsApps().Items.Where(a => a.RemovalScriptName != null))
+        {
+            var sb = new StringBuilder();
+
+            await _sut.AppendBloatRemovalScriptAsync(sb, [new AppChoice(app.Id, app.Name, null, null, null, null)], "    ");
+
+            sb.ToString().Should().Contain($"# Create {app.RemovalScriptName}.ps1 script", because: app.Id);
+            sb.ToString().Should().Contain($"Name = \"{app.RemovalScriptName}\"", because: app.Id);
+        }
     }
 
     [Fact]

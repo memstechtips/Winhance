@@ -148,6 +148,7 @@ internal sealed class ApplyOpScriptEmitter
         foreach (var choice in set.Settings)
             chosenById[SettingIdAliases.Normalize(choice.SettingId)] = choice.Value;
         var externalAppIds = string.Join(",", set.ExternalApps.Select(a => a.Id));
+        var installOptions = set.InstallOptions?.For(set.ExternalApps.Select(a => a.Id))?.ToArgument() ?? string.Empty;
         var apps = set.ExternalApps.Count > 0 || OwnInstaller.From(set).Count > 0 ? AppsToInstall.Some : AppsToInstall.None;
         var signIn = new StringBuilder();
         foreach (var (featureId, settings) in byFeature)
@@ -155,7 +156,7 @@ internal sealed class ApplyOpScriptEmitter
             foreach (var setting in settings.Where(s => s.IsAnswerFileOnly))
             {
                 EmitAnswerFileScripts(
-                    setting, chosenById.GetValueOrDefault(setting.Id), externalAppIds, apps, featureId, TextFor, signIn, systemIndent, userIndent, signInIndent);
+                    setting, chosenById.GetValueOrDefault(setting.Id), externalAppIds, installOptions, apps, featureId, TextFor, signIn, systemIndent, userIndent, signInIndent);
             }
         }
 
@@ -340,6 +341,7 @@ internal sealed class ApplyOpScriptEmitter
         Setting setting,
         ChoiceValue? value,
         string externalAppIds,
+        string installOptions,
         AppsToInstall apps,
         string featureId,
         Func<string, FeatureText> textFor,
@@ -369,12 +371,12 @@ internal sealed class ApplyOpScriptEmitter
 
         var text = textFor(featureId);
         var logDesc = EscapeForDoubleQuotedString(Describe(setting));
-        // The ids and the typed text land inside single-quoted PowerShell literals.
+        // The ids and the typed text land inside single-quoted PowerShell literals; the options are base64.
         var ids = EscapePowerShellString(externalAppIds)!;
         var typedText = EscapePowerShellString(entered) ?? string.Empty;
         foreach (var script in scripts)
         {
-            var filled = script with { Script = script.Script.Replace("{{external-app-ids}}", ids).Replace("{{value}}", typedText) };
+            var filled = script with { Script = script.Script.Replace("{{external-app-ids}}", ids).Replace("{{install-options}}", installOptions).Replace("{{value}}", typedText) };
             if (filled.Run == RunContext.SignInAfterSetup)
                 AppendScript(signIn, signInIndent, setting, filled.Script, logDesc);
             else

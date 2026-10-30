@@ -31,8 +31,9 @@ public sealed class AppSelectionSource : IAppSelectionSource
     public async Task<IReadOnlyList<AppChoice>> CheckedExternalAppsAsync()
     {
         if (!_externalApps.IsInitialized) await _externalApps.LoadItemsAsync();
-        return _externalApps.Items.Where(i => i.IsSelected)
-            .Select(i => new AppChoice(i.Id, i.Name, null, null, null, i.Definition.WinGetPackageId is { Length: > 0 } ids ? ids[0] : null))
+        // An installed app the catalog does not list travels by its package id; with none, another PC cannot install it.
+        return _externalApps.Items.Where(i => i.IsSelected && !(i.IsOtherInstalled && i.PackageId is null))
+            .Select(i => new AppChoice(i.PackageId ?? i.Id, i.Name, null, null, null, i.Definition.WinGetPackageId is { Length: > 0 } ids ? ids[0] : null))
             .ToList();
     }
 

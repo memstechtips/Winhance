@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -37,7 +36,6 @@ public class AppInstallationServiceTests
     private readonly Mock<IFileSystemService> _fileSystemService = new();
     private readonly Mock<IChangeHistoryService> _changeHistoryService = new();
     private readonly Mock<IStagedAppInstaller> _stagedAppInstaller = new();
-    private readonly Mock<IUserPreferencesService> _preferences = new();
     private IReadOnlyList<string>? _statements;
     private string? _label;
 
@@ -53,8 +51,7 @@ public class AppInstallationServiceTests
         _taskProgressService.Object,
         _fileSystemService.Object,
         _changeHistoryService.Object,
-        _stagedAppInstaller.Object,
-        _preferences.Object);
+        _stagedAppInstaller.Object);
 
     [Fact]
     public async Task InstallAppAsync_WindowsStoreApp_RoutesToWindowsAppsService()
@@ -116,22 +113,21 @@ public class AppInstallationServiceTests
     }
 
     [Fact]
-    public async Task InstallAppAsync_ExternalApp_WithAllUsersPreference_InstallsForAllUsers()
+    public async Task InstallAppAsync_ExternalApp_LeavesTheScopeToTheInstallOptions()
     {
         var sut = CreateSut();
-        _preferences.Setup(p => p.GetPreference(UserPreferenceKeys.InstallAppsForAllUsers, false)).Returns(true);
         _bloatRemovalService
             .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
             .ReturnsAsync(true);
         _externalAppsService
-            .Setup(x => x.InstallAppForAllUsersAsync(WinGetApp, It.IsAny<IProgress<TaskProgressDetail>?>()))
+            .Setup(x => x.InstallAppAsync(WinGetApp, It.IsAny<IProgress<TaskProgressDetail>?>()))
             .ReturnsAsync(OperationResult<bool>.Succeeded(true));
 
         var result = await sut.InstallAppAsync(WinGetApp);
 
         result.Success.Should().BeTrue();
         _externalAppsService.Verify(
-            x => x.InstallAppAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Never);
+            x => x.InstallAppOnNewPcAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Never);
     }
 
     [Fact]
@@ -241,6 +237,8 @@ public class AppInstallationServiceTests
             Id = "windows-app-edge",
             Name = "Microsoft Edge",
             Description = "Edge browser",
+            RemovalScript = () => EdgeRemovalScript.GetScript(),
+            RemovalScriptName = "EdgeRemoval",
             WinGetPackageId = new[] { "Microsoft.Edge" },
             AppxPackageName = new[] { "Microsoft.MicrosoftEdge" }
         };
@@ -274,6 +272,70 @@ public class AppInstallationServiceTests
         _fileSystemService.Verify(x => x.DeleteFile(It.IsAny<string>()), Times.AtLeastOnce);
         _scheduledTaskService.Verify(x => x.UnregisterScheduledTaskAsync("EdgeRemoval"), Times.Once);
         _scheduledTaskService.Verify(x => x.UnregisterScheduledTaskAsync("OpenWebSearchRepair"), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task InstallAppAsync_WebView2_KeepsEdgeRemoved(bool scriptRemovesWebView2)
+    {
+        var item = new ItemDefinition
+        {
+            Id = "windows-app-edge-webview",
+            Name = "Microsoft Edge WebView2 and EdgeUpdate",
+            Description = "",
+            WinGetPackageId = ["Microsoft.EdgeWebView2Runtime"],
+            RemovalScript = () => EdgeRemovalScript.GetScript(removeWebView2: true),
+            RemovalScriptName = "EdgeRemoval",
+            AlsoRemoves = ["windows-app-edge"]
+        };
+        _bloatRemovalService
+            .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
+            .ReturnsAsync(true);
+        _fileSystemService.Setup(x => x.CombinePath(It.IsAny<string[]>())).Returns("C:\\test\\EdgeRemoval.ps1");
+        _fileSystemService.Setup(x => x.FileExists("C:\\test\\EdgeRemoval.ps1")).Returns(true);
+        _fileSystemService
+            .Setup(x => x.ReadAllTextAsync("C:\\test\\EdgeRemoval.ps1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EdgeRemovalScript.GetScript(scriptRemovesWebView2));
+
+        await CreateSut().InstallAppAsync(item);
+
+        _fileSystemService.Verify(
+            x => x.WriteAllTextAsync("C:\\test\\EdgeRemoval.ps1",
+                It.Is<string>(s => !EdgeRemovalScript.RemovesWebView2(s)), It.IsAny<CancellationToken>()),
+            scriptRemovesWebView2 ? Times.Once() : Times.Never());
+        _fileSystemService.Verify(x => x.DeleteFile(It.IsAny<string>()), Times.Never);
+        _scheduledTaskService.Verify(x => x.UnregisterScheduledTaskAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_OtherItemWhoseScriptRemovesMore_DeletesItsOwnScriptAndTask()
+    {
+        var item = new ItemDefinition
+        {
+            Id = "windows-app-suite",
+            Name = "Suite",
+            Description = "",
+            WinGetPackageId = ["Example.Suite"],
+            RemovalScript = () => "# suite",
+            RemovalScriptName = "SuiteRemoval",
+            AlsoRemoves = ["windows-app-suite-part"]
+        };
+        _bloatRemovalService
+            .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
+            .ReturnsAsync(true);
+        _fileSystemService.Setup(x => x.CombinePath(It.IsAny<string[]>())).Returns("C:\\test\\SuiteRemoval.ps1");
+        _fileSystemService.Setup(x => x.FileExists("C:\\test\\SuiteRemoval.ps1")).Returns(true);
+        _scheduledTaskService
+            .Setup(x => x.UnregisterScheduledTaskAsync(It.IsAny<string>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        await CreateSut().InstallAppAsync(item);
+
+        _fileSystemService.Verify(x => x.DeleteFile("C:\\test\\SuiteRemoval.ps1"), Times.Once);
+        _fileSystemService.Verify(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _scheduledTaskService.Verify(x => x.UnregisterScheduledTaskAsync("SuiteRemoval"), Times.Once);
+        _scheduledTaskService.Verify(x => x.UnregisterScheduledTaskAsync("OpenWebSearchRepair"), Times.Never);
     }
 
     [Fact]
@@ -394,11 +456,11 @@ public class AppInstallationServiceTests
     }
 
     private void ArrangeOnlineInstallForAllUsers(ItemDefinition app) => _externalAppsService
-        .Setup(x => x.InstallAppForAllUsersAsync(app, It.IsAny<IProgress<TaskProgressDetail>?>()))
+        .Setup(x => x.InstallAppOnNewPcAsync(app, It.IsAny<IProgress<TaskProgressDetail>?>()))
         .ReturnsAsync(OperationResult<bool>.Succeeded(true));
 
     private void VerifyOnlineInstallForAllUsers(ItemDefinition app, Times times) => _externalAppsService.Verify(
-        x => x.InstallAppForAllUsersAsync(app, It.IsAny<IProgress<TaskProgressDetail>?>()), times);
+        x => x.InstallAppOnNewPcAsync(app, It.IsAny<IProgress<TaskProgressDetail>?>()), times);
 
     [Fact]
     public async Task InstallOnNewPcAsync_StagedInstallSucceeds_SkipsTheOnlineRoute()
@@ -473,7 +535,7 @@ public class AppInstallationServiceTests
             AppxPackageName = ["Microsoft.WinApp"]
         };
         _externalAppsService
-            .Setup(x => x.InstallAppForAllUsersAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()))
+            .Setup(x => x.InstallAppOnNewPcAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()))
             .ReturnsAsync(OperationResult<bool>.Failed("no machine installer"));
         _windowsAppsService
             .Setup(x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()))
@@ -499,7 +561,7 @@ public class AppInstallationServiceTests
             AppxPackageName = ["Microsoft.WinApp"]
         };
         _externalAppsService
-            .Setup(x => x.InstallAppForAllUsersAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()))
+            .Setup(x => x.InstallAppOnNewPcAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()))
             .ReturnsAsync(OperationResult<bool>.Succeeded(true));
 
         var result = await sut.InstallOnNewPcAsync(item);

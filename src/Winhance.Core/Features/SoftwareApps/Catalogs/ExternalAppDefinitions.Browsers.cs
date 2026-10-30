@@ -18,18 +18,6 @@ public static partial class ExternalAppDefinitions
                 {
                     new ItemDefinition
                     {
-                        Id = "external-app-edge-webview",
-                        Name = "Microsoft EdgeWebView",
-                        Description = "WebView2 runtime for Windows applications",
-                        RegistrySubKeyName = "Microsoft EdgeWebView",
-                        RegistryDisplayName = "Microsoft Edge WebView2 Runtime",
-                        GroupName = "Browsers",
-                        WinGetPackageId = ["Microsoft.EdgeWebView2Runtime"],
-                        ChocoPackageId = "webview2-runtime",
-                        WebsiteUrl = "https://developer.microsoft.com/en-us/microsoft-edge/webview2/",
-                    },
-                    new ItemDefinition
-                    {
                         Id = "external-app-thorium",
                         Name = "Thorium",
                         Description = "Chromium-based browser with enhanced privacy features",

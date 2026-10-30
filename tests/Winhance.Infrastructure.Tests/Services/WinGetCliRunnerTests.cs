@@ -163,6 +163,34 @@ public class WinGetCliRunnerTests
         note.Should().Contain("cancelled");
     }
 
+    [Fact]
+    public async Task RunAsync_AsShellUser_RunsThroughTheShellTokenEvenWithoutOts()
+    {
+        var helper = new Mock<IInteractiveUserService>();
+        helper.Setup(h => h.RunProcessAsShellUserAsync(
+                "winget.exe", "uninstall --id Some.Package", It.IsAny<Action<string>?>(), It.IsAny<Action<string>?>(),
+                It.IsAny<CancellationToken>(), 0, It.IsAny<Action<string>?>()))
+            .ReturnsAsync(new InteractiveProcessResult(0, "Successfully uninstalled", ""));
+
+        var result = await WinGetCliRunner.RunAsync(
+            "uninstall --id Some.Package",
+            exePathOverride: "winget.exe",
+            interactiveUserService: helper.Object,
+            asShellUser: true);
+
+        result.ExitCode.Should().Be(0);
+        result.StandardOutput.Should().Be("Successfully uninstalled");
+        helper.Verify(h => h.RunProcessAsInteractiveUserAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Action<string>?>(), It.IsAny<Action<string>?>(),
+            It.IsAny<CancellationToken>(), It.IsAny<int>(), It.IsAny<Action<string>?>()), Times.Never);
+    }
+
+    [Fact]
+    public void NoAdminUninstallForUserScope_IsTheCodeWingetPrints()
+    {
+        WinGetExitCodes.NoAdminUninstallForUserScope.Should().Be(-1978335107);
+    }
+
     private static WinGetCliRunner.WinGetCliResult KilledBy(WinGetCliRunner.TerminationReason reason)
         => new(-1, "", "", reason);
 

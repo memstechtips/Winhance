@@ -1,8 +1,11 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Settings.ViewModels;
 using Xunit;
 using Winhance.TestSupport;
@@ -19,6 +22,8 @@ public class SettingsViewModelTests
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<ISystemBackupService> _mockBackupService = new();
     private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
+    private readonly Mock<IScheduledTaskService> _mockScheduledTaskService = new();
+    private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
 
     public SettingsViewModelTests()
     {
@@ -43,6 +48,11 @@ public class SettingsViewModelTests
             .Returns(WinhanceTheme.System);
     }
 
+    private void GivenSignInTaskIsThisUsers(bool registered = true) =>
+        _mockScheduledTaskService
+            .Setup(s => s.IsSignInTaskRegisteredForAsync(SettingsViewModel.SignInTaskName, It.IsAny<string?>()))
+            .ReturnsAsync(registered);
+
     private SettingsViewModel CreateViewModel()
     {
         return new SettingsViewModel(
@@ -53,7 +63,164 @@ public class SettingsViewModelTests
             _mockConfigurationService.Object,
             _mockLogService.Object,
             _mockBackupService.Object,
-            _mockTaskProgressService.Object);
+            _mockTaskProgressService.Object,
+            _mockScheduledTaskService.Object,
+            _mockInteractiveUserService.Object);
+    }
+
+    [Fact]
+    public void Turning_on_start_in_tray_registers_the_sign_in_task_with_the_tray_flag()
+    {
+        _mockScheduledTaskService
+            .Setup(s => s.RegisterSignInTaskAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+        var vm = CreateViewModel();
+
+        vm.StartInTrayAtSignIn = true;
+
+        _mockScheduledTaskService.Verify(s => s.RegisterSignInTaskAsync(SettingsViewModel.SignInTaskName, It.IsAny<string>(), TrayController.StartInTrayFlag), Times.Once);
+        vm.StartInTrayAtSignIn.Should().BeTrue();
+    }
+
+    [Fact]
+    public void A_failed_sign_in_task_puts_the_switch_back()
+    {
+        _mockScheduledTaskService
+            .Setup(s => s.RegisterSignInTaskAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(OperationResult.Failed("Access denied"));
+        var vm = CreateViewModel();
+
+        vm.StartInTrayAtSignIn = true;
+
+        vm.StartInTrayAtSignIn.Should().BeFalse();
+    }
+
+    [Fact]
+    public void The_start_in_tray_switch_shows_whether_the_sign_in_task_exists_without_registering_it()
+    {
+        GivenSignInTaskIsThisUsers();
+
+        var vm = CreateViewModel();
+
+        vm.StartInTrayAtSignIn.Should().BeTrue();
+        _mockScheduledTaskService.Verify(
+            s => s.RegisterSignInTaskAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _mockScheduledTaskService.Verify(s => s.UnregisterScheduledTaskAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void A_late_answer_about_the_sign_in_task_does_not_undo_a_switch_the_user_flipped()
+    {
+        var registered = new TaskCompletionSource<bool>();
+        _mockScheduledTaskService
+            .Setup(s => s.IsSignInTaskRegisteredForAsync(SettingsViewModel.SignInTaskName, It.IsAny<string?>()))
+            .Returns(registered.Task);
+        _mockScheduledTaskService
+            .Setup(s => s.RegisterSignInTaskAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+        var vm = CreateViewModel();
+
+        vm.StartInTrayAtSignIn = true;
+        registered.SetResult(false);
+
+        vm.StartInTrayAtSignIn.Should().BeTrue();
+    }
+
+    [Fact]
+    public void The_start_in_tray_switch_is_available_when_Winhance_runs_as_the_signed_in_user()
+    {
+        var vm = CreateViewModel();
+
+        vm.CanStartInTrayAtSignIn.Should().BeTrue();
+        vm.StartInTrayDescription.Should().Be("Settings_StartInTray_Description");
+    }
+
+    [Fact]
+    public void Under_another_accounts_administrator_rights_the_start_in_tray_switch_is_off_limits_and_says_why()
+    {
+        _mockInteractiveUserService.Setup(i => i.IsOtsElevation).Returns(true);
+
+        var vm = CreateViewModel();
+
+        vm.CanStartInTrayAtSignIn.Should().BeFalse();
+        vm.StartInTrayDescription.Should().Be("Settings_StartInTray_OtsUnavailable");
+        vm.StartInTrayAtSignIn.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Under_another_accounts_administrator_rights_the_signed_in_users_own_task_can_only_be_turned_off()
+    {
+        _mockInteractiveUserService.Setup(i => i.IsOtsElevation).Returns(true);
+        _mockInteractiveUserService.Setup(i => i.InteractiveUserSid).Returns("S-1-5-21-1-2-3-1001");
+        _mockScheduledTaskService
+            .Setup(s => s.IsSignInTaskRegisteredForAsync(SettingsViewModel.SignInTaskName, "S-1-5-21-1-2-3-1001"))
+            .ReturnsAsync(true);
+        _mockScheduledTaskService
+            .Setup(s => s.UnregisterScheduledTaskAsync(SettingsViewModel.SignInTaskName))
+            .ReturnsAsync(OperationResult.Succeeded());
+        var vm = CreateViewModel();
+        vm.StartInTrayAtSignIn.Should().BeTrue();
+        vm.CanStartInTrayAtSignIn.Should().BeTrue();
+        vm.StartInTrayDescription.Should().Be("Settings_StartInTray_OtsUnavailable");
+        var changed = new List<string?>();
+        vm.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        vm.StartInTrayAtSignIn = false;
+
+        _mockScheduledTaskService.Verify(s => s.UnregisterScheduledTaskAsync(SettingsViewModel.SignInTaskName), Times.Once);
+        vm.CanStartInTrayAtSignIn.Should().BeFalse();
+        changed.Should().Contain(nameof(SettingsViewModel.CanStartInTrayAtSignIn));
+    }
+
+    [Fact]
+    public void A_sign_in_task_another_user_registered_leaves_the_switch_off()
+    {
+        _mockScheduledTaskService.Setup(s => s.IsTaskRegisteredAsync(SettingsViewModel.SignInTaskName)).ReturnsAsync(true);
+        GivenSignInTaskIsThisUsers(registered: false);
+
+        var vm = CreateViewModel();
+
+        vm.StartInTrayAtSignIn.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Turning_off_start_in_tray_removes_this_users_sign_in_task()
+    {
+        GivenSignInTaskIsThisUsers();
+        _mockScheduledTaskService
+            .Setup(s => s.UnregisterScheduledTaskAsync(SettingsViewModel.SignInTaskName))
+            .ReturnsAsync(OperationResult.Succeeded());
+        var vm = CreateViewModel();
+
+        vm.StartInTrayAtSignIn = false;
+
+        _mockScheduledTaskService.Verify(s => s.UnregisterScheduledTaskAsync(SettingsViewModel.SignInTaskName), Times.Once);
+    }
+
+    [Fact]
+    public void Turning_off_start_in_tray_leaves_a_task_another_user_registered_since()
+    {
+        GivenSignInTaskIsThisUsers();
+        var vm = CreateViewModel();
+        GivenSignInTaskIsThisUsers(registered: false);
+
+        vm.StartInTrayAtSignIn = false;
+
+        _mockScheduledTaskService.Verify(s => s.UnregisterScheduledTaskAsync(It.IsAny<string>()), Times.Never);
+        vm.StartInTrayAtSignIn.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Update_dropdowns_offer_every_choice_and_save_the_pick()
+    {
+        var vm = CreateViewModel();
+
+        vm.UpdateCheckOptions.Select(o => o.Value).Should().Equal(AppUpdateCheckFrequency.Off, AppUpdateCheckFrequency.Daily, AppUpdateCheckFrequency.Weekly);
+        vm.UpdateActionOptions.Should().HaveCount(2);
+
+        vm.SelectedUpdateCheckOption = vm.UpdateCheckOptions.Single(o => Equals(o.Value, AppUpdateCheckFrequency.Weekly));
+
+        _mockPreferencesService.Verify(p => p.SetPreferenceAsync(UserPreferenceKeys.AppUpdateCheckFrequency, AppUpdateCheckFrequency.Weekly), Times.Once);
     }
 
     [Fact]
@@ -284,7 +451,7 @@ public class SettingsViewModelTests
 
         var vm = CreateViewModel();
 
-        vm.PageTitle.Should().Be("Settings");
+        vm.PageTitle.Should().Be("Winhance Settings");
     }
 
     [Fact]

@@ -585,7 +585,25 @@ public static class WindowsAppDefinitions
                     WinGetPackageId = ["Microsoft.Edge"],
                     MsStoreId = "XPFFTQ037JWMHS",
                     CanBeReinstalled = true,
-                    RemovalScript = () => EdgeRemovalScript.GetScript()
+                    RemovalScript = () => EdgeRemovalScript.GetScript(),
+                    RemovalScriptName = "EdgeRemoval",
+                    RemovalScriptRunsAtStartup = true
+                },
+                new ItemDefinition
+                {
+                    Id = "windows-app-edge-webview",
+                    Name = "Microsoft Edge WebView2 and EdgeUpdate",
+                    Description = "Removes Edge too. Widgets and apps built on WebView2 stop working",
+                    HasInstabilityWarning = true,
+                    GroupName = "Browsers",
+                    RegistrySubKeyName = "Microsoft EdgeWebView",
+                    RegistryDisplayName = "Microsoft Edge WebView2 Runtime",
+                    WinGetPackageId = ["Microsoft.EdgeWebView2Runtime"],
+                    CanBeReinstalled = true,
+                    RemovalScript = () => EdgeRemovalScript.GetScript(removeWebView2: true),
+                    RemovalScriptName = "EdgeRemoval",
+                    RemovalScriptRunsAtStartup = true,
+                    AlsoRemoves = ["windows-app-edge"]
                 },
                 new ItemDefinition
                 {
@@ -608,7 +626,8 @@ public static class WindowsAppDefinitions
                     AppxPackageName = ["Microsoft.OneDriveSync"],
                     WinGetPackageId = ["Microsoft.OneDrive"],
                     CanBeReinstalled = true,
-                    RemovalScript = () => OneDriveRemovalScript.GetScript()
+                    RemovalScript = () => OneDriveRemovalScript.GetScript(),
+                    RemovalScriptName = "OneDriveRemoval"
                 },
                 new ItemDefinition
                 {

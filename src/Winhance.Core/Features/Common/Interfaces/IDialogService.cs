@@ -1,6 +1,7 @@
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Core.Features.Common.Interfaces;
 
@@ -22,6 +23,9 @@ public interface IDialogService
     Task<(ImportOption? Option, ImportOptions Options)> ShowConfigImportOptionsDialogAsync();
 
     Task<BuilderSeed?> ShowBuilderSeedDialogAsync();
+
+    // Null when cancelled. appName null = the defaults dialog (no follow-defaults switch).
+    Task<InstallOptionsChoice?> ShowInstallOptionsDialogAsync(string? appName, InstallOptionsChoice current);
 
     Task<ConfirmationResponse> ShowConfirmationAsync(ConfirmationRequest confirmationRequest);
 

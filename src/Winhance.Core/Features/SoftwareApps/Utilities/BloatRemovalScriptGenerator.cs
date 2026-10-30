@@ -7,6 +7,7 @@ namespace Winhance.Core.Features.SoftwareApps.Utilities;
 
 public static class BloatRemovalScriptGenerator
 {
+    public const string ScriptName = "BloatRemoval";
     public const string ScriptVersion = "2.3";
     private static readonly ConcurrentDictionary<string, Regex> ArrayPatternCache = new();
 

@@ -1,7 +1,9 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
+using Winhance.TestSupport;
 using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
@@ -13,6 +15,8 @@ public class WinGetDetectionServiceTests
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
+    private readonly ManualTimeProvider _clock = new();
+    private int _walks;
     private readonly WinGetComSession _comSession;
     private readonly WinGetDetectionService _sut;
 
@@ -24,7 +28,70 @@ public class WinGetDetectionServiceTests
             _comSession,
             _mockLogService.Object,
             _mockInteractiveUserService.Object,
-            _mockFileSystemService.Object);
+            _mockFileSystemService.Object,
+            _clock);
+    }
+
+    private Task<List<WinGetInstalledPackage>?> Walk()
+    {
+        _walks++;
+        return Task.FromResult<List<WinGetInstalledPackage>?>([new WinGetInstalledPackage("7zip.7zip", "7-Zip", "24.09", "winget", null)]);
+    }
+
+    [Fact]
+    public async Task GetOrWalkInstalledAsync_SecondCallSoonAfter_ReusesTheWalk()
+    {
+        var first = await _sut.GetOrWalkInstalledAsync(_ => Walk(), CancellationToken.None);
+        _clock.Advance(TimeSpan.FromSeconds(30));
+        var second = await _sut.GetOrWalkInstalledAsync(_ => Walk(), CancellationToken.None);
+
+        _walks.Should().Be(1);
+        second.Should().BeSameAs(first);
+    }
+
+    [Fact]
+    public async Task GetOrWalkInstalledAsync_AfterInvalidate_WalksAgain()
+    {
+        await _sut.GetOrWalkInstalledAsync(_ => Walk(), CancellationToken.None);
+        _sut.InvalidateInstalledPackages();
+        await _sut.GetOrWalkInstalledAsync(_ => Walk(), CancellationToken.None);
+
+        _walks.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetOrWalkInstalledAsync_AfterAMinute_WalksAgain()
+    {
+        await _sut.GetOrWalkInstalledAsync(_ => Walk(), CancellationToken.None);
+        _clock.Advance(TimeSpan.FromSeconds(61));
+        await _sut.GetOrWalkInstalledAsync(_ => Walk(), CancellationToken.None);
+
+        _walks.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetOrWalkInstalledAsync_FailedWalk_IsNotKept()
+    {
+        var failed = await _sut.GetOrWalkInstalledAsync(_ => Task.FromResult<List<WinGetInstalledPackage>?>(null), CancellationToken.None);
+        await _sut.GetOrWalkInstalledAsync(_ => Walk(), CancellationToken.None);
+
+        failed.Should().BeNull();
+        _walks.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetOrWalkInstalledAsync_InvalidatedWhileWalking_DoesNotKeepThatWalk()
+    {
+        var running = new TaskCompletionSource<List<WinGetInstalledPackage>?>();
+        var stale = _sut.GetOrWalkInstalledAsync(_ => running.Task, CancellationToken.None);
+        _sut.InvalidateInstalledPackages();
+        running.SetResult([new WinGetInstalledPackage("Old.App", "Old", "1.0", "winget", null)]);
+        await stale;
+
+        var fresh = await _sut.GetOrWalkInstalledAsync(_ => Walk(), CancellationToken.None);
+
+        _walks.Should().Be(1);
+        fresh!.Single().Id.Should().Be("7zip.7zip");
     }
 
     [Fact]
@@ -116,6 +183,26 @@ public class WinGetDetectionServiceTests
         var result = await _sut.GetInstallerTypeAsync(packageId!);
 
         result.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task SearchPackagesAsync_WithBlankQuery_ReturnsEmpty(string query)
+    {
+        var result = await _sut.SearchPackagesAsync(query);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task SearchPackagesAsync_WhenComTimedOut_ReturnsEmpty()
+    {
+        _comSession.ComInitTimedOut = true;
+
+        var result = await _sut.SearchPackagesAsync("vlc");
+
+        result.Should().BeEmpty();
     }
 
     [Fact]

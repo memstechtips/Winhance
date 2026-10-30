@@ -71,6 +71,8 @@ public class LocalizationUntranslatedValueTests
         "Setting_privacy-word-copilot_Name",
         // "Multi-Plane Overlay (MPO)" - the DirectX presentation path, named in English in Microsoft's docs.
         "Setting_gaming-disable-mpo_Name",
+        // "ARM64" - the processor architecture winget's --architecture names; it has no localized form.
+        "InstallOptions_Architecture_Arm64",
         // The Windows release names, and the surname of the author of the online answer-file generator next
         // to the file format it emits. The ten locales that differ only reorder them ("XML de Schneegans").
         "WIMUtil_ButtonWindows10",

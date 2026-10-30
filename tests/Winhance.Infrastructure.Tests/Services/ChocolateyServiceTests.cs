@@ -2,6 +2,7 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.SoftwareApps.Services;
 using Xunit;
 
@@ -131,7 +132,7 @@ public class ChocolateyServiceTests
     [Fact]
     public async Task InstallPackageAsync_WhenChocoNotFound_ReturnsFalse()
     {
-        var result = await _sut.InstallPackageAsync("notepadplusplus");
+        var result = await _sut.InstallPackageAsync("notepadplusplus", null, InstallOptions.Default, CancellationToken.None);
 
         result.Should().BeFalse();
         _mockLog.Verify(l => l.LogError(It.Is<string>(s => s.Contains("not found")), It.IsAny<Exception?>(), It.IsAny<string>()), Times.Once);
@@ -159,7 +160,7 @@ public class ChocolateyServiceTests
             _mockProcessExecutor.Object,
             _mockFileSystem.Object);
 
-        var result = await sut.InstallPackageAsync("notepadplusplus", "Notepad++");
+        var result = await sut.InstallPackageAsync("notepadplusplus", "Notepad++", InstallOptions.Default, CancellationToken.None);
 
         result.Should().BeTrue();
     }
@@ -186,7 +187,7 @@ public class ChocolateyServiceTests
             _mockProcessExecutor.Object,
             _mockFileSystem.Object);
 
-        var act = () => sut.InstallPackageAsync("pkg");
+        var act = () => sut.InstallPackageAsync("pkg", null, InstallOptions.Default, CancellationToken.None);
 
         await act.Should().ThrowAsync<OperationCanceledException>();
     }
@@ -215,9 +216,41 @@ public class ChocolateyServiceTests
             _mockProcessExecutor.Object,
             _mockFileSystem.Object);
 
-        var act = () => sut.InstallPackageAsync("pkg", cancellationToken: cancelled.Token);
+        var act = () => sut.InstallPackageAsync("pkg", null, InstallOptions.Default, cancelled.Token);
 
         await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public void InstallArguments_DefaultOptions_AddNoOptionFlags()
+    {
+        ChocolateyService.InstallArguments("vlc", InstallOptions.Default)
+            .Should().Be("install vlc -y --no-progress --ignore-checksums");
+    }
+
+    [Fact]
+    public void InstallArguments_X86_ForcesThe32BitInstaller()
+    {
+        ChocolateyService.InstallArguments("vlc", InstallOptions.Default with { Architecture = InstallArchitecture.X86 })
+            .Should().EndWith(" --forcex86");
+    }
+
+    [Fact]
+    public void InstallArguments_Interactive_ShowsTheInstaller()
+    {
+        ChocolateyService.InstallArguments("vlc", InstallOptions.Default with { Interactive = true })
+            .Should().EndWith(" --not-silent");
+    }
+
+    [Theory]
+    [InlineData(InstallArchitecture.X64, InstallScope.Default)]
+    [InlineData(InstallArchitecture.Arm64, InstallScope.Default)]
+    [InlineData(InstallArchitecture.Default, InstallScope.User)]
+    [InlineData(InstallArchitecture.Default, InstallScope.Machine)]
+    public void InstallArguments_OptionsChocolateyCannotHonour_AddNothing(InstallArchitecture architecture, InstallScope scope)
+    {
+        ChocolateyService.InstallArguments("vlc", new InstallOptions { Architecture = architecture, Scope = scope })
+            .Should().Be(ChocolateyService.InstallArguments("vlc", InstallOptions.Default));
     }
 
     [Fact]
@@ -325,4 +358,52 @@ public class ChocolateyServiceTests
         result.Contains("Git").Should().BeTrue();
         result.Contains("GIT").Should().BeTrue();
     }
+
+    [Fact]
+    public void Search_reads_one_id_per_line_and_drops_duplicates()
+    {
+        ChocolateyService.ParseIds("vlc|3.0.21\r\nvlc.portable|3.0.21\r\nVLC|3.0.20\r\n\r\nnot a package line\r\n")
+            .Should().Equal("vlc", "vlc.portable");
+    }
+
+    [Fact]
+    public async Task GetOutdatedPackagesAsync_WithoutChocolatey_HasNothingOutdated()
+    {
+        var outdated = await _sut.GetOutdatedPackagesAsync();
+
+        outdated.Should().NotBeNull().And.BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetOutdatedPackagesAsync_WhenTheCheckFails_ReturnsNull()
+    {
+        _mockFileSystem
+            .Setup(f => f.FileExists(@"C:\ProgramData\chocolatey\bin\choco.exe"))
+            .Returns(true);
+        _mockProcessExecutor
+            .Setup(p => p.ExecuteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("choco is broken"));
+
+        var outdated = await _sut.GetOutdatedPackagesAsync();
+
+        outdated.Should().BeNull();
+    }
+
+    [Fact]
+    public void Outdated_reads_the_newer_version_and_skips_pinned_packages()
+    {
+        var outdated = ChocolateyService.ParseOutdated(
+            "vlc|3.0.20|3.0.21|false\r\ngit|2.44.0|2.46.0|true\r\nChocolatey detected noise\r\n7zip|23.1|24.9|false\r\n");
+
+        outdated.Should().HaveCount(2);
+        outdated["VLC"].Should().Be("3.0.21");
+        outdated["7zip"].Should().Be("24.9");
+    }
+
+    [Theory]
+    [InlineData("notepad++", "notepad++")]
+    [InlineData("vlc\" & del C:\\", "vlc  del C")]
+    [InlineData("  7-zip  ", "7-zip")]
+    public void The_search_term_keeps_only_characters_a_package_name_can_hold(string query, string expected) =>
+        ChocolateyService.SearchTerm(query).Should().Be(expected);
 }

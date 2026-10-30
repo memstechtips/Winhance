@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Catalogs;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.Infrastructure.Features.Autounattend.Helpers;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
@@ -22,7 +23,8 @@ internal class ExternalAppsService(
     IInteractiveUserService interactiveUserService,
     IFileSystemService fileSystemService,
     IProcessExecutor processExecutor,
-    IChangeHistoryService changeHistory) : IExternalAppsService
+    IChangeHistoryService changeHistory,
+    IInstallOptionsService installOptions) : IExternalAppsService
 {
     public string DomainName => FeatureIds.ExternalApps;
 
@@ -39,7 +41,75 @@ internal class ExternalAppsService(
         return Task.FromResult<IEnumerable<ItemDefinition>>(ExternalAppDefinitions.GetExternalApps().Items);
     }
 
-    public async Task<OperationResult<bool>> InstallAppAsync(ItemDefinition item, IProgress<TaskProgressDetail>? progress = null)
+    // winget first; Chocolatey adds only what neither winget nor the catalog has. The two name the same app differently
+    // (VideoLAN.VLC / vlc, Notepad++ / notepadplusplus), so a Chocolatey id is compared with the catalog's Chocolatey
+    // ids and with each winget result's name and last id segment, all squashed to letters and digits.
+    public async Task<PackageSearchResult> SearchPackagesAsync(string query, CancellationToken cancellationToken = default)
+    {
+        var catalog = ExternalAppDefinitions.GetExternalApps().Items;
+        var catalogPackageIds = catalog.SelectMany(item => item.WinGetPackageId ?? []).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var searchChocolatey = await chocolateyService.IsChocolateyInstalledAsync(cancellationToken).ConfigureAwait(false);
+        var winGetSearch = winGetDetectionService.SearchPackagesAsync(query, cancellationToken);
+        var chocoSearch = searchChocolatey ? chocolateyService.SearchPackagesAsync(query, cancellationToken) : Task.FromResult<IReadOnlyList<string>>([]);
+        await Task.WhenAll(winGetSearch, chocoSearch).ConfigureAwait(false);
+
+        var winGetResults = winGetSearch.Result.Where(match => !catalogPackageIds.Contains(match.Id)).ToList();
+        var known = catalog.Select(item => item.ChocoPackageId).OfType<string>()
+            .Concat(catalog.Select(item => item.Name))
+            .Concat(winGetSearch.Result.Select(match => match.Name))
+            .Concat(winGetSearch.Result.Select(match => match.Id[(match.Id.LastIndexOf('.') + 1)..]))
+            .Select(Squash)
+            .ToHashSet(StringComparer.Ordinal);
+
+        // A pick is saved by its id, so a result whose id a saved file could not carry is not offered.
+        var items = winGetResults.Select(match => WinGetPackageItem.Create(match.Id, match.Name))
+            .Concat(chocoSearch.Result.Where(id => !known.Contains(Squash(id))).Select(ChocoPackageItem.Create))
+            .Where(item => PackageSearchItem.FromId(item.Id) is not null)
+            .ToList();
+        return new PackageSearchResult(items, searchChocolatey);
+    }
+
+    internal static string Squash(string name) =>
+        new string(name.Replace("+", "plus", StringComparison.Ordinal).Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+
+    public async Task<IReadOnlyCollection<string>> GetUnavailableAppIdsAsync(IEnumerable<ItemDefinition> items, CancellationToken cancellationToken = default)
+    {
+        var wingetOnly = items
+            .Where(item => item.WinGetPackageId is { Length: > 0 }
+                && string.IsNullOrEmpty(item.MsStoreId)
+                && string.IsNullOrEmpty(item.ChocoPackageId)
+                && item.ExternalApp?.RequiresDirectDownload != true
+                && !WinGetPackageItem.Is(item.Id))
+            .ToList();
+        if (wingetOnly.Count == 0)
+            return [];
+
+        var packageIds = wingetOnly.SelectMany(item => item.WinGetPackageId!).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var missing = (await winGetDetectionService.FindMissingPackageIdsAsync(packageIds, cancellationToken).ConfigureAwait(false))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var unavailable = wingetOnly
+            .Where(item => item.WinGetPackageId!.All(missing.Contains))
+            .Select(item => item.Id)
+            .ToList();
+        foreach (var id in unavailable)
+            logService.LogWarning($"'{id}' is hidden: winget no longer has its package and it has no other source");
+
+        return unavailable;
+    }
+
+    public Task<OperationResult<bool>> InstallAppAsync(ItemDefinition item, IProgress<TaskProgressDetail>? progress = null)
+        => InstallAsync(item, progress, installOptions.EffectiveFor(item.Id));
+
+    // An answer file installs for everyone on the new PC unless its install options chose a scope.
+    public Task<OperationResult<bool>> InstallAppOnNewPcAsync(ItemDefinition item, IProgress<TaskProgressDetail>? progress = null)
+    {
+        var options = installOptions.EffectiveFor(item.Id);
+        return InstallAsync(item, progress, options.Scope == InstallScope.Default ? options with { Scope = InstallScope.Machine } : options);
+    }
+
+    private async Task<OperationResult<bool>> InstallAsync(ItemDefinition item, IProgress<TaskProgressDetail>? progress, InstallOptions options)
     {
         var cancellationToken = taskProgressService.GetCurrentCancellationToken();
 
@@ -57,9 +127,9 @@ internal class ExternalAppsService(
             var sources = new List<(string packageId, string source)>();
 
             if (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0)
-                sources.Add((item.WinGetPackageId[0], "winget"));
+                sources.Add((item.WinGetPackageId[0], WinGetSources.WinGet));
             if (!string.IsNullOrEmpty(item.MsStoreId))
-                sources.Add((item.MsStoreId, "msstore"));
+                sources.Add((item.MsStoreId, WinGetSources.MsStore));
 
             PackageInstallResult? lastResult = null;
 
@@ -70,7 +140,20 @@ internal class ExternalAppsService(
                     var installerType = await winGetDetectionService.GetInstallerTypeAsync(pkgId, cancellationToken).ConfigureAwait(false);
                     var isPortable = IsPortableInstallerType(installerType);
 
-                    lastResult = await winGetPackageInstaller.InstallPackageAsync(pkgId, src, item.Name, item.WinGetInstallerOverride, cancellationToken).ConfigureAwait(false);
+                    // The Store installs per user whatever winget is asked.
+                    var sourceOptions = src == WinGetSources.MsStore ? InstallOptions.Default
+                        : isPortable ? options with { Scope = InstallScope.Default }
+                        : options;
+
+                    lastResult = await winGetPackageInstaller.InstallPackageAsync(pkgId, src, item.Name, item.WinGetInstallerOverride, sourceOptions, cancellationToken).ConfigureAwait(false);
+
+                    // Any failure with a chosen scope gets the default-scope attempt whatever the exit code, so an app
+                    // that only ships an installer for the other scope still installs.
+                    if (!lastResult.Success && sourceOptions.Scope != InstallScope.Default)
+                    {
+                        logService.LogWarning($"Install for scope {sourceOptions.Scope} failed for '{item.Name}' ({lastResult.FailureReason}), trying the default scope");
+                        lastResult = await winGetPackageInstaller.InstallPackageAsync(pkgId, src, item.Name, item.WinGetInstallerOverride, sourceOptions with { Scope = InstallScope.Default }, cancellationToken).ConfigureAwait(false);
+                    }
 
                     if (lastResult.Success)
                     {
@@ -104,7 +187,7 @@ internal class ExternalAppsService(
 
                     if (chocoReady)
                     {
-                        var chocoSuccess = await chocolateyService.InstallPackageAsync(item.ChocoPackageId, item.Name, cancellationToken).ConfigureAwait(false);
+                        var chocoSuccess = await chocolateyService.InstallPackageAsync(item.ChocoPackageId, item.Name, options, cancellationToken).ConfigureAwait(false);
                         if (chocoSuccess)
                         {
                             if (IsChocoPortablePackage(item.ChocoPackageId))
@@ -328,10 +411,10 @@ internal class ExternalAppsService(
     {
         var script = $@"
 $WshShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut('{shortcutPath.Replace("'", "''")}')
-$Shortcut.TargetPath = '{targetPath.Replace("'", "''")}'
-$Shortcut.WorkingDirectory = '{workingDir?.Replace("'", "''")}'
-$Shortcut.Description = '{description.Replace("'", "''")}'
+$Shortcut = $WshShell.CreateShortcut('{PowerShellScriptUtilities.EscapePowerShellString(shortcutPath)}')
+$Shortcut.TargetPath = '{PowerShellScriptUtilities.EscapePowerShellString(targetPath)}'
+$Shortcut.WorkingDirectory = '{PowerShellScriptUtilities.EscapePowerShellString(workingDir)}'
+$Shortcut.Description = '{PowerShellScriptUtilities.EscapePowerShellString(description)}'
 $Shortcut.Save()
 ";
 

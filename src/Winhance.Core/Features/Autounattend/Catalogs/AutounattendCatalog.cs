@@ -644,6 +644,7 @@ $bytes[21] = 34
 # Installs Winhance, then starts it with the apps chosen for this PC. Exit 0 once Winhance is installed and started, 1 when that failed.
 $ErrorActionPreference = 'Stop'
 $apps = '{{external-app-ids}}'
+$options = '{{install-options}}'
 $installer = 'C:\ProgramData\Winhance\Unattend\Winhance.Installer.exe'
 $winhance = ""$env:ProgramFiles\Winhance\Winhance.exe""
 $ownInstallers = 'C:\ProgramData\Winhance\Unattend\Apps\Custom'
@@ -660,6 +661,7 @@ try {
     }
     $arguments = @()
     if ($apps) { $arguments += ""--install-apps $apps"" }
+    if ($options) { $arguments += ""--install-options $options"" }
     if (Test-Path $ownInstallers) { $arguments += ""--install-folder `""$ownInstallers`"""" }
     if ($arguments) { Start-Process $winhance ($arguments -join ' ') }
     Remove-Item 'C:\Users\Default\Desktop\Install Winhance.lnk', ""$env:USERPROFILE\Desktop\Install Winhance.lnk"", $PSCommandPath -ErrorAction SilentlyContinue
@@ -693,6 +695,7 @@ $bytes[21] = 34
 # Installs Winhance, then starts it with the apps chosen for this PC. Exit 0 once Winhance is installed and started, 1 when that failed.
 $ErrorActionPreference = 'Stop'
 $apps = '{{external-app-ids}}'
+$options = '{{install-options}}'
 $installer = 'C:\ProgramData\Winhance\Unattend\Winhance.Installer.exe'
 $winhance = ""$env:ProgramFiles\Winhance\Winhance.exe""
 $ownInstallers = 'C:\ProgramData\Winhance\Unattend\Apps\Custom'
@@ -709,6 +712,7 @@ try {
     }
     $arguments = @()
     if ($apps) { $arguments += ""--install-apps $apps"" }
+    if ($options) { $arguments += ""--install-options $options"" }
     if (Test-Path $ownInstallers) { $arguments += ""--install-folder `""$ownInstallers`"""" }
     if ($arguments) { Start-Process $winhance ($arguments -join ' ') }
     Remove-Item 'C:\Users\Default\Desktop\Install Winhance.lnk', ""$env:USERPROFILE\Desktop\Install Winhance.lnk"", $PSCommandPath -ErrorAction SilentlyContinue

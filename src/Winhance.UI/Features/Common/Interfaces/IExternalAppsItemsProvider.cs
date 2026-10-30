@@ -8,6 +8,7 @@ public interface IExternalAppsItemsProvider
     bool IsInitialized { get; }
     Task LoadItemsAsync();
     ObservableCollection<AppItemViewModel> Items { get; }
+    void AddSearchItems(IEnumerable<string> ids);
     Task InstallApps(bool skipConfirmation = false);
     Task UninstallAppsAsync();
 }

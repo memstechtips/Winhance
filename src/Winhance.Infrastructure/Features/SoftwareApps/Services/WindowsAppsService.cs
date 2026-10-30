@@ -80,7 +80,7 @@ internal class WindowsAppsService(
 
                 logService?.LogInformation($"Attempting to install {item.Name} using WinGet...");
                 var cancellationToken = taskProgressService.GetCurrentCancellationToken();
-                var installResult = await winGetPackageInstaller.InstallPackageAsync(packageId!, source, item.Name, cancellationToken: cancellationToken).ConfigureAwait(false);
+                var installResult = await winGetPackageInstaller.InstallPackageAsync(packageId!, source, item.Name, null, InstallOptions.Default, cancellationToken).ConfigureAwait(false);
 
                 if (installResult.Success)
                 {
@@ -107,7 +107,7 @@ internal class WindowsAppsService(
                             logService?.LogInformation("Update policy changed to Paused. Retrying WinGet installation...");
 
                             var cancellationToken2 = taskProgressService.GetCurrentCancellationToken();
-                            var retryResult = await winGetPackageInstaller.InstallPackageAsync(packageId!, source, item.Name, cancellationToken: cancellationToken2).ConfigureAwait(false);
+                            var retryResult = await winGetPackageInstaller.InstallPackageAsync(packageId!, source, item.Name, null, InstallOptions.Default, cancellationToken2).ConfigureAwait(false);
                             if (retryResult.Success)
                             {
                                 return OperationResult<bool>.Succeeded(true);

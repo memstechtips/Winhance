@@ -5,6 +5,8 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Helpers;
 using Winhance.Core.Features.Common.Extensions;
@@ -18,17 +20,20 @@ public class DialogService : IDialogService
     private readonly ILogService _logService;
     private readonly ITaskProgressService _taskProgressService;
     private readonly ISponsorsService _sponsorsService;
+    private readonly IInstallOptionsService _installOptions;
     private readonly SemaphoreSlim _dialogSemaphore = new(1, 1);
 
     // Must be set by MainWindow after content is loaded.
     public XamlRoot? XamlRoot { get; set; }
 
-    public DialogService(ILocalizationService localization, ILogService logService, ITaskProgressService taskProgressService, ISponsorsService sponsorsService)
+    public DialogService(ILocalizationService localization, ILogService logService, ITaskProgressService taskProgressService, ISponsorsService sponsorsService,
+        IInstallOptionsService installOptions)
     {
         _localization = localization;
         _logService = logService;
         _taskProgressService = taskProgressService;
         _sponsorsService = sponsorsService;
+        _installOptions = installOptions;
     }
 
     private void ConfigureDialog(ContentDialog dialog)
@@ -155,6 +160,18 @@ public class DialogService : IDialogService
             var result = await dialog.ShowAsync();
             return builder.ExtractResult(result);
         }, (BuilderSeed?)null);
+    }
+
+    public async Task<InstallOptionsChoice?> ShowInstallOptionsDialogAsync(string? appName, InstallOptionsChoice current)
+    {
+        return await ExecuteDialogAsync(async () =>
+        {
+            var builder = new Dialogs.InstallOptionsDialogBuilder(_localization);
+            var dialog = builder.Build(appName, current, _installOptions.Defaults);
+            ConfigureDialog(dialog);
+            var result = await dialog.ShowAsync();
+            return builder.ExtractResult(result);
+        }, (InstallOptionsChoice?)null);
     }
 
     public async Task<ConfirmationResponse> ShowConfirmationAsync(ConfirmationRequest confirmationRequest)

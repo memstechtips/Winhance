@@ -152,6 +152,19 @@ public class SettingApplicationServiceTests
         _mockRestart.Verify(r => r.HandleProcessAndServiceRestartsAsync(It.IsAny<Setting>()), Times.Once);
     }
 
+    [Fact]
+    public async Task ApplySettingAsync_EveryWriteRefused_AsksForNoRestart()
+    {
+        var id = RealPairedToggleId();
+        SetupSettingInRegistry(id);
+        _mockStateWriter.SetReturnsDefault(false);
+
+        var result = await _service.ApplySettingAsync(new ApplySettingRequest { SettingId = id, Enable = true });
+
+        result.Success.Should().BeFalse();
+        _mockRestart.Verify(r => r.HandleProcessAndServiceRestartsAsync(It.IsAny<Setting>()), Times.Never);
+    }
+
     [Theory]
     [InlineData(22631)] // Windows 11: only the HiddenByDefault write target is live; the Win10 key-delete is gated out.
     [InlineData(19045)] // Windows 10: only the KeyExists key-delete target is live; the Win11 write is gated out.

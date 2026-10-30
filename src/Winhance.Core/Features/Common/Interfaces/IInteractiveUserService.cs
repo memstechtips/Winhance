@@ -25,6 +25,17 @@ public interface IInteractiveUserService
         int timeoutMs = 300_000,
         Action<string>? onProgressLine = null);
 
+    // NOT gated on OTS: runs at the signed-in user's normal, unelevated level using the live explorer.exe's token.
+    // Null when no shell token can be captured.
+    Task<InteractiveProcessResult?> RunProcessAsShellUserAsync(
+        string fileName,
+        string arguments,
+        Action<string>? onOutputLine = null,
+        Action<string>? onErrorLine = null,
+        CancellationToken cancellationToken = default,
+        int timeoutMs = 300_000,
+        Action<string>? onProgressLine = null);
+
     // Falls back to Process.Start when not OTS or no token is available.
     void LaunchProcessAsInteractiveUser(string fileName, string arguments = "");
 

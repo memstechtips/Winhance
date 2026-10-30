@@ -1,6 +1,7 @@
 using Windows.Management.Deployment;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
@@ -8,8 +9,15 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 internal class AppxPackageSource(
     ILogService logService,
     IPowerShellRunner powerShellRunner,
-    IWmiApi wmiApi) : IAppxPackageSource
+    IWmiApi wmiApi,
+    IInteractiveUserService interactiveUser) : IAppxPackageSource
 {
+    // Store apps are registered per user. Elevated with another admin's password (OTS), Winhance runs as that admin,
+    // but the cards are for the person signed in, whose apps can differ by dozens.
+    private const int ElementNotFoundHResult = unchecked((int)0x80070490);
+
+    private string PackageUser => interactiveUser.IsOtsElevation ? interactiveUser.InteractiveUserSid ?? "" : "";
+
     public async Task<HashSet<string>> GetInstalledPackageNamesAsync(CancellationToken cancellationToken = default)
     {
         var packageNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -21,7 +29,7 @@ internal class AppxPackageSource(
             await Task.Run(() =>
             {
                 var packageManager = new PackageManager();
-                foreach (var package in packageManager.FindPackagesForUser(""))
+                foreach (var package in packageManager.FindPackagesForUser(PackageUser))
                 {
                     linkedCts.Token.ThrowIfCancellationRequested();
                     try
@@ -45,27 +53,99 @@ internal class AppxPackageSource(
         {
             logService.LogWarning("PackageManager enumeration timed out after 15s, falling back to WMI");
 
-            var wmiResult = await GetInstalledAppxPackageNamesViaWmiAsync().ConfigureAwait(false);
-            if (wmiResult.Count > 0)
-                return wmiResult;
-
-            logService.LogWarning("WMI also returned 0 results, trying Get-AppxPackage");
-            return await GetInstalledAppxPackageNamesViaPowerShellAsync().ConfigureAwait(false);
+            return await FallBackAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             logService.LogWarning($"PackageManager failed ({ex.Message}), falling back to WMI");
 
+            return await FallBackAsync().ConfigureAwait(false);
+        }
+
+        return packageNames;
+    }
+
+    public async Task<IReadOnlyList<StorePackage>> GetStorePackagesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await Task.Run(() =>
+            {
+                var packages = new List<StorePackage>();
+                foreach (var package in new PackageManager().FindPackagesForUser(PackageUser))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    try
+                    {
+                        packages.Add(Describe(package));
+                    }
+                    catch (Exception ex)
+                    {
+                        logService.LogWarning($"PackageManager enumeration skipped an entry: {ex.Message}");
+                    }
+                }
+                return packages;
+            }, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logService.LogWarning($"Store package enumeration failed: {ex.Message}");
+            return [];
+        }
+    }
+
+    // DisplayName comes back empty, or as the raw ms-resource string, when the package's resources cannot be loaded.
+    private static StorePackage Describe(Windows.ApplicationModel.Package package)
+    {
+        var id = package.Id;
+        var version = $"{id.Version.Major}.{id.Version.Minor}.{id.Version.Build}.{id.Version.Revision}";
+        var displayName = package.DisplayName;
+        if (string.IsNullOrWhiteSpace(displayName) || displayName.StartsWith("ms-resource:", StringComparison.OrdinalIgnoreCase))
+            displayName = id.Name;
+
+        return new StorePackage(id.Name, id.FamilyName, displayName, version)
+        {
+            Publisher = package.PublisherDisplayName,
+            InstalledOn = InstalledOn(package),
+            IsFramework = package.IsFramework,
+            IsResource = package.IsResourcePackage || package.IsBundle,
+            IsSystem = package.SignatureKind == Windows.ApplicationModel.PackageSignatureKind.System,
+        };
+    }
+
+    // InstalledDate throws ERROR_NOT_FOUND for a package the calling account does not have itself, which under OTS
+    // is about half of the signed-in user's list. The package is still theirs; only the date is unknown.
+    private static DateTime? InstalledOn(Windows.ApplicationModel.Package package)
+    {
+        try
+        {
+            var installed = package.InstalledDate;
+            return installed.Year > 1601 ? installed.LocalDateTime : null;
+        }
+        catch (Exception ex) when (ex.HResult == ElementNotFoundHResult)
+        {
+            return null;
+        }
+    }
+
+    // WMI cannot be asked for another user's packages, so under OTS only Get-AppxPackage can stand in.
+    private async Task<HashSet<string>> FallBackAsync()
+    {
+        if (!interactiveUser.IsOtsElevation)
+        {
             var wmiResult = await GetInstalledAppxPackageNamesViaWmiAsync().ConfigureAwait(false);
             if (wmiResult.Count > 0)
                 return wmiResult;
 
             logService.LogWarning("WMI also returned 0 results, trying Get-AppxPackage");
-            return await GetInstalledAppxPackageNamesViaPowerShellAsync().ConfigureAwait(false);
         }
-
-        return packageNames;
+        return await GetInstalledAppxPackageNamesViaPowerShellAsync().ConfigureAwait(false);
     }
+
+    internal static string GetAppxPackageScript(string packageUser) =>
+        packageUser.Length > 0
+            ? $"Get-AppxPackage -User '{packageUser}' | Select-Object -ExpandProperty Name"
+            : "Get-AppxPackage | Select-Object -ExpandProperty Name";
 
     internal async Task<HashSet<string>> GetInstalledAppxPackageNamesViaWmiAsync()
     {
@@ -114,8 +194,7 @@ internal class AppxPackageSource(
         {
             logService.LogInformation("Fetching installed AppX packages via Get-AppxPackage...");
 
-            var output = await powerShellRunner.RunScriptAsync(
-                "Get-AppxPackage | Select-Object -ExpandProperty Name").ConfigureAwait(false);
+            var output = await powerShellRunner.RunScriptAsync(GetAppxPackageScript(PackageUser)).ConfigureAwait(false);
 
             if (!string.IsNullOrWhiteSpace(output))
             {

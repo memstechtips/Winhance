@@ -21,7 +21,6 @@ public static partial class ExternalAppDefinitions
                         Name = "RustDesk",
                         Description = "Fast Open-Source Remote Access and Support Software",
                         GroupName = "Remote Access",
-                        WinGetPackageId = ["RustDesk.RustDesk"],
                         ChocoPackageId = "rustdesk",
                         WebsiteUrl = "https://rustdesk.com/",
                     },

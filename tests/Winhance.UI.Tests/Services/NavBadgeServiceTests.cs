@@ -51,6 +51,7 @@ public class NavBadgeServiceTests : IDisposable
             new Mock<IInstalledAppsService>().Object,
             mockAppInstallService.Object,
             new Mock<IStagedAppInstaller>().Object,
+            new Mock<IInstallOptionsService>().Object,
             mockProgressService.Object,
             mockLogService.Object,
             mockDialogService.Object,

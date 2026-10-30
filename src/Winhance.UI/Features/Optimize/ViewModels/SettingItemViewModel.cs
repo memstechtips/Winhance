@@ -1925,7 +1925,10 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         {
             if (InputType == InputType.Toggle || InputType == InputType.CheckBox)
             {
-                IsSelected = isEnabled;
+                // A self-apply decides IsSelected itself once the write returns. Taking the event's value here would
+                // show a refused write as done: the event carries what was asked for, not what Windows kept (#780).
+                if (!IsApplying)
+                    IsSelected = isEnabled;
                 // An EXTERNAL apply (config import, bulk apply, relationship refresh) just wrote a known
                 // state - the toggle is no longer Custom. Guarded with !IsApplying: the service publishes
                 // SettingAppliedEvent even on partial FAILURE, and for a self-apply the event bounce is

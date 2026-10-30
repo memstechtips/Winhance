@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.SoftwareApps.Models;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Xunit;
 using Winhance.TestSupport;
@@ -65,7 +66,7 @@ public class WindowsAppsViewModelTests
     {
         var sut = CreateSut();
 
-        sut.StatusText.Should().Be("Ready");
+        sut.StatusText.Should().BeEmpty();
         sut.SearchText.Should().BeEmpty();
         sut.IsLoading.Should().BeFalse();
         sut.IsInitialized.Should().BeFalse();
@@ -153,6 +154,23 @@ public class WindowsAppsViewModelTests
         sut.Items.Should().HaveCount(2);
         sut.IsInitialized.Should().BeTrue();
         sut.IsLoading.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task The_cards_list_nothing_until_the_status_check_has_sorted_them()
+    {
+        IEnumerable<string>? listedMidLoad = null;
+        _windowsAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(new List<ItemDefinition> { CreateTestItem("a", "Alpha"), CreateTestItem("z", "Zulu") });
+        var sut = CreateSut();
+        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .Callback(() => listedMidLoad = sut.WindowsAppsFiltered.Select(a => a.Definition.Id).ToList())
+            .ReturnsAsync(new Dictionary<string, bool> { ["a"] = false, ["z"] = true });
+
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+
+        listedMidLoad.Should().BeEmpty();
+        sut.WindowsAppsFiltered.Select(a => a.Definition.Id).Should().Equal("z", "a");
     }
 
     [Fact]
@@ -504,5 +522,119 @@ public class WindowsAppsViewModelTests
             It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Once);
         _appInstallationService.Verify(s => s.InstallAppAsync(
             It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<bool>()), Times.Never);
+        sut.IsEnableHandedOffNoteVisible.Should().BeTrue();
+        sut.EnableHandedOffNoteText.Should().Be("WindowsApps_EnableHandedOff");
+    }
+
+    [Fact]
+    public async Task The_content_is_ready_only_after_the_load_has_finished()
+    {
+        bool? readyMidLoad = null;
+        _windowsAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(new List<ItemDefinition> { CreateTestItem("a", "Alpha") });
+        var sut = CreateSut();
+        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .Callback(() => readyMidLoad = sut.IsContentReady)
+            .ReturnsAsync(new Dictionary<string, bool> { ["a"] = true });
+
+        sut.IsContentReady.Should().BeFalse();
+
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+
+        readyMidLoad.Should().BeFalse();
+        sut.IsContentReady.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task A_refresh_hides_the_content_until_it_finishes()
+    {
+        bool? readyMidRefresh = null;
+        _windowsAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(new List<ItemDefinition> { CreateTestItem("a", "Alpha") });
+        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, bool> { ["a"] = true });
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .Callback(() => readyMidRefresh = sut.IsContentReady)
+            .ReturnsAsync(new Dictionary<string, bool> { ["a"] = true });
+
+        await sut.RefreshInstallationStatusAsync();
+
+        readyMidRefresh.Should().BeFalse();
+        sut.IsContentReady.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task A_listener_that_throws_as_the_load_ends_does_not_leave_the_content_hidden()
+    {
+        _windowsAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(new List<ItemDefinition> { CreateTestItem("a", "Alpha") });
+        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, bool> { ["a"] = true });
+        var sut = CreateSut();
+        sut.SelectedItemsChanged += (_, _) => throw new InvalidOperationException("listener failed");
+
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+
+        sut.IsInitialized.Should().BeTrue();
+        sut.IsContentReady.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task The_installed_filter_lists_only_installed_apps()
+    {
+        _windowsAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(new List<ItemDefinition> { CreateTestItem("a", "Alpha"), CreateTestItem("z", "Zulu") });
+        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, bool> { ["a"] = false, ["z"] = true });
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+
+        sut.Filter = AppFilter.Installed;
+
+        sut.WindowsAppsFiltered.Select(a => a.Id).Should().Equal("z");
+
+        sut.Filter = AppFilter.All;
+
+        sut.WindowsAppsFiltered.Select(a => a.Id).Should().Equal("z", "a");
+    }
+
+    [Fact]
+    public async Task A_removal_deferred_to_the_next_startup_shows_its_note_and_marks_nothing_uninstalled()
+    {
+        _windowsAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(new List<ItemDefinition> { CreateTestItem("a", "Alpha") });
+        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, bool> { ["a"] = true });
+        _windowsAppUninstallService.Setup(s => s.UninstallAppsInParallelAsync(It.IsAny<List<ItemDefinition>>(), It.IsAny<bool>()))
+            .ReturnsAsync(OperationResult<int>.DeferredSuccess(1, "Items will be removed at next startup"));
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        sut.Items[0].IsSelected = true;
+
+        await sut.RemoveApps(skipConfirmation: true);
+
+        sut.IsRemovalDeferredNoteVisible.Should().BeTrue();
+        sut.RemovalDeferredNoteText.Should().Be("WindowsApps_RemovalDeferred");
+        sut.Items[0].IsInstalled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task A_removal_that_ran_now_shows_no_note()
+    {
+        _windowsAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(new List<ItemDefinition> { CreateTestItem("a", "Alpha") });
+        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+            .ReturnsAsync(new Dictionary<string, bool> { ["a"] = true });
+        _windowsAppUninstallService.Setup(s => s.UninstallAppsInParallelAsync(It.IsAny<List<ItemDefinition>>(), It.IsAny<bool>()))
+            .ReturnsAsync(OperationResult<int>.Succeeded(1));
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        sut.Items[0].IsSelected = true;
+
+        await sut.RemoveApps(skipConfirmation: true);
+
+        sut.IsRemovalDeferredNoteVisible.Should().BeFalse();
     }
 }

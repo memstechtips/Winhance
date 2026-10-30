@@ -5,6 +5,8 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
@@ -29,6 +31,8 @@ public sealed class BuilderModeEntry : IBuilderModeEntry
     private readonly ITargetWindowsService _targetWindows;
     private readonly IFilePickerService _filePicker;
     private readonly IAutounattendReader _autounattendReader;
+    private readonly IInstallOptionsService _installOptions;
+    private bool _installOptionsOpen;
 
     public BuilderModeEntry(
         IApplicationModeService mode,
@@ -46,7 +50,8 @@ public sealed class BuilderModeEntry : IBuilderModeEntry
         IConfigLoadService configLoadService,
         ITargetWindowsService targetWindows,
         IFilePickerService filePicker,
-        IAutounattendReader autounattendReader)
+        IAutounattendReader autounattendReader,
+        IInstallOptionsService installOptions)
     {
         _mode = mode;
         _configurationService = configurationService;
@@ -64,6 +69,8 @@ public sealed class BuilderModeEntry : IBuilderModeEntry
         _targetWindows = targetWindows;
         _filePicker = filePicker;
         _autounattendReader = autounattendReader;
+        _installOptions = installOptions;
+        _mode.ModeChanged += OnModeChanged;
     }
 
     public async Task<bool> EnterAsync(BuilderTarget target)
@@ -88,6 +95,7 @@ public sealed class BuilderModeEntry : IBuilderModeEntry
                 await _configurationService.CancelReviewModeAsync();
 
             _mode.EnterBuilderMode(target);
+            OpenInstallOptions(null);
 
             // After entering, never before: entering clears the session, so choices recorded first would be lost.
             if (seed.Value != BuilderSeed.CurrentMachine)
@@ -146,6 +154,7 @@ public sealed class BuilderModeEntry : IBuilderModeEntry
             await _registry.InitializeAsync();
 
             _mode.EnterBuilderMode(target);
+            OpenInstallOptions(config.AppInstallOptions);
 
             // Before the scope is read, or a choice for a Windows version this PC is not on falls out of the file.
             await _targetWindows.SetAsync(config.TargetBuild);
@@ -197,5 +206,21 @@ public sealed class BuilderModeEntry : IBuilderModeEntry
         }
 
         return response.Confirmed;
+    }
+
+    // A fresh file starts from this PC's saved options; leaving Builder drops whatever the session authored.
+    private void OpenInstallOptions(InstallOptionsStore? carried)
+    {
+        _installOptions.EndSession();
+        _installOptions.BeginSession(carried ?? _installOptions.Current);
+        _installOptionsOpen = true;
+    }
+
+    private void OnModeChanged(object? sender, EventArgs e)
+    {
+        if (!_installOptionsOpen || _mode.CurrentMode == WinhanceMode.Builder)
+            return;
+        _installOptions.EndSession();
+        _installOptionsOpen = false;
     }
 }

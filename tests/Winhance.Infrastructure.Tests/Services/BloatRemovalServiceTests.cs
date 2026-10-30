@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Exceptions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Catalogs;
 using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.SoftwareApps.Services;
@@ -36,13 +37,19 @@ public class BloatRemovalServiceTests
         AppxPackageName = new[] { appxName },
     };
 
-    private static ItemDefinition CreateDedicatedScriptApp(string id, string name, Func<string> removalScript) => new()
+    private static ItemDefinition CreateDedicatedScriptApp(string id, string name, Func<string> removalScript)
     {
-        Id = id,
-        Name = name,
-        Description = $"Description for {id}",
-        RemovalScript = removalScript,
-    };
+        var catalogItem = WindowsAppDefinitions.GetWindowsApps().Items.FirstOrDefault(a => a.Id == id);
+        return new()
+        {
+            Id = id,
+            Name = name,
+            Description = $"Description for {id}",
+            RemovalScript = removalScript,
+            RemovalScriptName = catalogItem?.RemovalScriptName,
+            RemovalScriptRunsAtStartup = catalogItem?.RemovalScriptRunsAtStartup ?? false,
+        };
+    }
 
     [Fact]
     public async Task ExecuteDedicatedScriptAsync_EdgeApp_CreatesAndRunsEdgeRemovalScript()
@@ -86,22 +93,6 @@ public class BloatRemovalServiceTests
             It.Is<string>(p => p.Contains("OneDriveRemoval.ps1")),
             "# OneDrive removal script",
             It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task ExecuteDedicatedScriptAsync_UnsupportedAppId_ThrowsNotSupportedException()
-    {
-        var app = CreateDedicatedScriptApp("windows-app-unknown", "Unknown",
-            () => "# script");
-
-        _mockFileSystem
-            .Setup(f => f.CombinePath(It.IsAny<string[]>()))
-            .Returns((string[] paths) => string.Join("\\", paths));
-
-        // The NotSupportedException from CreateScriptName will be caught by the catch block
-        var result = await _service.ExecuteDedicatedScriptAsync(app);
-
-        result.Should().Be(RemovalOutcome.Failed);
     }
 
     [Fact]
@@ -342,6 +333,31 @@ $specialApps = @()";
             It.Is<RemovalScript>(rs =>
                 rs.Name == "EdgeRemoval" &&
                 rs.RunOnStartup == true)), Times.Once);
+    }
+
+    [Fact]
+    public async Task PersistRemovalScriptsAsync_EdgeAndWebView2_RegisterOneTask()
+    {
+        var apps = new List<ItemDefinition>
+        {
+            CreateDedicatedScriptApp("windows-app-edge", "Microsoft Edge", () => "# Edge script"),
+            CreateDedicatedScriptApp("windows-app-edge-webview", "Microsoft Edge WebView2 and EdgeUpdate", () => "# Full script"),
+        };
+
+        _mockFileSystem
+            .Setup(f => f.CombinePath(It.IsAny<string[]>()))
+            .Returns((string[] paths) => string.Join("\\", paths));
+        _mockFileSystem.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
+        _mockFileSystem
+            .Setup(f => f.ReadAllTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("# Full script");
+        _mockScheduledTask
+            .Setup(s => s.RegisterScheduledTaskAsync(It.IsAny<RemovalScript>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+
+        await _service.PersistRemovalScriptsAsync(apps);
+
+        _mockScheduledTask.Verify(s => s.RegisterScheduledTaskAsync(It.Is<RemovalScript>(rs => rs.Name == "EdgeRemoval")), Times.Once);
     }
 
     [Fact]

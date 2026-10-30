@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Catalogs;
+using Winhance.Core.Features.SoftwareApps.Utilities;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 
@@ -10,38 +12,33 @@ public class RemovalStatusContainerViewModel(
     ILogService logService,
     IFileSystemService fileSystemService) : INotifyPropertyChanged, IDisposable
 {
-    public ObservableCollection<RemovalStatusViewModel> RemovalStatusItems { get; } = new()
+    // A catalog script with no entry here still gets a row, with the bloat look.
+    private static readonly Dictionary<string, (string IconPath, string ActiveColor)> Looks = new()
     {
-        new RemovalStatusViewModel(
-            "Bloat Removal",
-            "DeleteSweepIconPath",
-            "#00FF3C",
-            "BloatRemoval.ps1",
-            "BloatRemoval",
-            scheduledTaskService,
-            logService,
-            fileSystemService),
-
-        new RemovalStatusViewModel(
-            "Microsoft Edge",
-            "MicrosoftEdgeIconPath",
-            "#0078D4",
-            "EdgeRemoval.ps1",
-            "EdgeRemoval",
-            scheduledTaskService,
-            logService,
-            fileSystemService),
-
-        new RemovalStatusViewModel(
-            "OneDrive",
-            "MicrosoftOneDriveIconPath",
-            "#0078D4",
-            "OneDriveRemoval.ps1",
-            "OneDriveRemoval",
-            scheduledTaskService,
-            logService,
-            fileSystemService)
+        [BloatRemovalScriptGenerator.ScriptName] = ("DeleteSweepIconPath", "#00FF3C"),
+        ["EdgeRemoval"] = ("MicrosoftEdgeIconPath", "#0078D4"),
+        ["OneDriveRemoval"] = ("MicrosoftOneDriveIconPath", "#0078D4"),
     };
+
+    public ObservableCollection<RemovalStatusViewModel> RemovalStatusItems { get; } = new(
+        WindowsAppDefinitions.GetWindowsApps().Items
+            .Where(a => a.RemovalScriptName != null).DistinctBy(a => a.RemovalScriptName)
+            .Select(a => (Label: a.Name, ScriptName: a.RemovalScriptName!))
+            .Prepend(("Bloat Removal", BloatRemovalScriptGenerator.ScriptName))
+            .Select(row =>
+            {
+                var (label, scriptName) = row;
+                var (iconPath, activeColor) = Looks.GetValueOrDefault(scriptName, Looks[BloatRemovalScriptGenerator.ScriptName]);
+                return new RemovalStatusViewModel(
+                    label,
+                    iconPath,
+                    activeColor,
+                    scriptName + ".ps1",
+                    scriptName,
+                    scheduledTaskService,
+                    logService,
+                    fileSystemService);
+            }));
 
     public async Task RefreshAllStatusesAsync()
     {

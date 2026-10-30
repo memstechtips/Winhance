@@ -320,7 +320,8 @@ public class ConfigLoadService : IConfigLoadService
             Optimize = filteredOptimize,
             Customize = filteredCustomize,
             WindowsApps = config.WindowsApps,
-            ExternalApps = config.ExternalApps
+            ExternalApps = config.ExternalApps,
+            AppInstallOptions = config.AppInstallOptions,
         };
     }
 

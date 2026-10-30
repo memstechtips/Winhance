@@ -11,11 +11,12 @@ public class AppxPackageSourceTests
     private readonly Mock<ILogService> _mockLog = new();
     private readonly Mock<IPowerShellRunner> _mockPowerShellRunner = new();
     private readonly FakeWmiApi _wmiApi = new();
+    private readonly Mock<IInteractiveUserService> _interactiveUser = new();
     private readonly AppxPackageSource _service;
 
     public AppxPackageSourceTests()
     {
-        _service = new AppxPackageSource(_mockLog.Object, _mockPowerShellRunner.Object, _wmiApi);
+        _service = new AppxPackageSource(_mockLog.Object, _mockPowerShellRunner.Object, _wmiApi, _interactiveUser.Object);
     }
 
     [Fact]
@@ -70,5 +71,18 @@ public class AppxPackageSourceTests
         var result = await _service.GetInstalledAppxPackageNamesViaWmiAsync();
 
         result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GetAppxPackageScript_ForTheProcessUser_ListsItsOwnPackages()
+    {
+        AppxPackageSource.GetAppxPackageScript("").Should().Be("Get-AppxPackage | Select-Object -ExpandProperty Name");
+    }
+
+    [Fact]
+    public void GetAppxPackageScript_ForTheSignedInUserUnderOts_AsksForThatUser()
+    {
+        AppxPackageSource.GetAppxPackageScript("S-1-5-21-1-2-3-1001")
+            .Should().Be("Get-AppxPackage -User 'S-1-5-21-1-2-3-1001' | Select-Object -ExpandProperty Name");
     }
 }

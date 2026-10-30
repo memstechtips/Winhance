@@ -34,6 +34,21 @@ public class ExternalAppsServiceTests
     private readonly Mock<IFileSystemService> _fileSystemService = new();
     private readonly Mock<IProcessExecutor> _processExecutor = new();
     private readonly Mock<IChangeHistoryService> _changeHistoryService = new();
+    private readonly Mock<IInstallOptionsService> _installOptions = new();
+
+    private static readonly InstallOptions MachineScope = new() { Scope = InstallScope.Machine };
+
+    private static readonly InstallOptions AllOptions = new()
+    {
+        Scope = InstallScope.User,
+        Architecture = InstallArchitecture.X86,
+        Interactive = true,
+    };
+
+    public ExternalAppsServiceTests()
+    {
+        _installOptions.Setup(x => x.EffectiveFor(It.IsAny<string>())).Returns(InstallOptions.Default);
+    }
 
     private ExternalAppsService CreateSut() => new(
         _logService.Object,
@@ -48,7 +63,8 @@ public class ExternalAppsServiceTests
         _interactiveUserService.Object,
         _fileSystemService.Object,
         _processExecutor.Object,
-        _changeHistoryService.Object);
+        _changeHistoryService.Object,
+        _installOptions.Object);
 
     [Fact]
     public void DomainName_ReturnsExternalApps()
@@ -97,7 +113,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Succeeded());
 
         var result = await sut.InstallAppAsync(item);
@@ -123,7 +139,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "9NBLGGH4NNS1", "msstore", "Store App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                "9NBLGGH4NNS1", "msstore", "Store App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Succeeded());
 
         var result = await sut.InstallAppAsync(item);
@@ -241,16 +257,16 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.DualApp", "winget", "Dual Source App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                "Publisher.DualApp", "winget", "Dual Source App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Succeeded());
 
         var result = await sut.InstallAppAsync(item);
 
         result.Success.Should().BeTrue();
         _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
-            "Publisher.DualApp", "winget", "Dual Source App", It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
+            "Publisher.DualApp", "winget", "Dual Source App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()), Times.Once);
         _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
-            "9NBLGGH12345", "msstore", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+            "9NBLGGH12345", "msstore", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -272,19 +288,19 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.DualApp", "winget", "Dual Source App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                "Publisher.DualApp", "winget", "Dual Source App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.PackageNotFound, "Not found"));
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "9NBLGGH12345", "msstore", "Dual Source App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                "9NBLGGH12345", "msstore", "Dual Source App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Succeeded());
 
         var result = await sut.InstallAppAsync(item);
 
         result.Success.Should().BeTrue();
         _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
-            "9NBLGGH12345", "msstore", "Dual Source App", It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
+            "9NBLGGH12345", "msstore", "Dual Source App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -306,7 +322,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.HashMismatchOrInstallError, "Hash mismatch"));
 
         _chocolateyService
@@ -314,13 +330,13 @@ public class ExternalAppsServiceTests
             .ReturnsAsync(true);
 
         _chocolateyService
-            .Setup(x => x.InstallPackageAsync("chocoapp", "Choco App", It.IsAny<CancellationToken>()))
+            .Setup(x => x.InstallPackageAsync("chocoapp", "Choco App", It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var result = await sut.InstallAppAsync(item);
 
         result.Success.Should().BeTrue();
-        _chocolateyService.Verify(x => x.InstallPackageAsync("chocoapp", "Choco App", It.IsAny<CancellationToken>()), Times.Once);
+        _chocolateyService.Verify(x => x.InstallPackageAsync("chocoapp", "Choco App", It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -340,13 +356,13 @@ public class ExternalAppsServiceTests
             .ReturnsAsync(true);
 
         _chocolateyService
-            .Setup(x => x.InstallPackageAsync("chocoonlyapp", "Choco Only App", It.IsAny<CancellationToken>()))
+            .Setup(x => x.InstallPackageAsync("chocoonlyapp", "Choco Only App", It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var result = await sut.InstallAppAsync(item);
 
         result.Success.Should().BeTrue();
-        _chocolateyService.Verify(x => x.InstallPackageAsync("chocoonlyapp", "Choco Only App", It.IsAny<CancellationToken>()), Times.Once);
+        _chocolateyService.Verify(x => x.InstallPackageAsync("chocoonlyapp", "Choco Only App", It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -370,7 +386,7 @@ public class ExternalAppsServiceTests
             .ReturnsAsync(true);
 
         _chocolateyService
-            .Setup(x => x.InstallPackageAsync("chocoonlyapp", "Choco Only App", It.IsAny<CancellationToken>()))
+            .Setup(x => x.InstallPackageAsync("chocoonlyapp", "Choco Only App", It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var result = await sut.InstallAppAsync(item);
@@ -398,7 +414,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.DownloadError, "Download error"));
 
         _chocolateyService
@@ -410,7 +426,7 @@ public class ExternalAppsServiceTests
             .ReturnsAsync(true);
 
         _chocolateyService
-            .Setup(x => x.InstallPackageAsync("chocoapp", "Choco App", It.IsAny<CancellationToken>()))
+            .Setup(x => x.InstallPackageAsync("chocoapp", "Choco App", It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var result = await sut.InstallAppAsync(item);
@@ -438,7 +454,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
 
         _chocolateyService
@@ -477,7 +493,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                "Publisher.ChocoApp", "winget", "Choco App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
 
         _chocolateyService
@@ -522,7 +538,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.FallbackApp", "winget", "Fallback App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                "Publisher.FallbackApp", "winget", "Fallback App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.PackageNotFound, "Not found"));
 
         _directDownloadService
@@ -555,7 +571,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.AllFailApp", "winget", "All Fail App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                "Publisher.AllFailApp", "winget", "All Fail App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "Failed"));
 
         var result = await sut.InstallAppAsync(item);
@@ -588,7 +604,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.FallbackFailApp", "winget", "Fallback Fail App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                "Publisher.FallbackFailApp", "winget", "Fallback Fail App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
 
         _directDownloadService
@@ -623,7 +639,7 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.FallbackThrowApp", "winget", "Fallback Throw App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                "Publisher.FallbackThrowApp", "winget", "Fallback Throw App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
 
         _directDownloadService
@@ -659,14 +675,14 @@ public class ExternalAppsServiceTests
 
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.FullFallbackApp", "winget", "Full Fallback App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                "Publisher.FullFallbackApp", "winget", "Full Fallback App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "WinGet failed"));
 
         _chocolateyService
             .Setup(x => x.IsChocolateyInstalledAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         _chocolateyService
-            .Setup(x => x.InstallPackageAsync("fullfallbackapp", "Full Fallback App", It.IsAny<CancellationToken>()))
+            .Setup(x => x.InstallPackageAsync("fullfallbackapp", "Full Fallback App", It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         _directDownloadService
@@ -704,70 +720,51 @@ public class ExternalAppsServiceTests
     }
 
     [Fact]
-    public async Task InstallAppForAllUsersAsync_MachineWideSucceeds_SkipsTheDefaultScope()
+    public async Task InstallAppOnNewPcAsync_MachineWideSucceeds_SkipsTheDefaultScope()
     {
         var sut = CreateSut();
         _winGetDetectionService
             .Setup(x => x.GetInstallerTypeAsync("Publisher.ExtApp", It.IsAny<CancellationToken>()))
             .ReturnsAsync("exe");
         _winGetPackageInstaller
-            .Setup(x => x.InstallPackageForAllUsersAsync(
-                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), MachineScope, It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Succeeded());
 
-        var result = await sut.InstallAppForAllUsersAsync(WinGetApp);
+        var result = await sut.InstallAppOnNewPcAsync(WinGetApp);
 
         result.Success.Should().BeTrue();
         _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
-            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), InstallOptions.Default, It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
     [Fact]
-    public async Task InstallAppForAllUsersAsync_MachineWideFails_TriesTheDefaultScopeForTheSameId()
+    public async Task InstallAppOnNewPcAsync_MachineWideFails_TriesTheDefaultScopeForTheSameId()
     {
         var sut = CreateSut();
         _winGetDetectionService
             .Setup(x => x.GetInstallerTypeAsync("Publisher.ExtApp", It.IsAny<CancellationToken>()))
             .ReturnsAsync("exe");
         _winGetPackageInstaller
-            .Setup(x => x.InstallPackageForAllUsersAsync(
-                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), MachineScope, It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "No machine-scope installer"));
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), InstallOptions.Default, It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Succeeded());
 
-        var result = await sut.InstallAppForAllUsersAsync(WinGetApp);
+        var result = await sut.InstallAppOnNewPcAsync(WinGetApp);
 
         result.Success.Should().BeTrue();
         _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
-            "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), InstallOptions.Default, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task InstallAppAsync_NeverAsksForAMachineWideInstall()
-    {
-        var sut = CreateSut();
-        _winGetDetectionService
-            .Setup(x => x.GetInstallerTypeAsync("Publisher.ExtApp", It.IsAny<CancellationToken>()))
-            .ReturnsAsync("exe");
-        _winGetPackageInstaller
-            .Setup(x => x.InstallPackageAsync(
-                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(PackageInstallResult.Succeeded());
-
-        await sut.InstallAppAsync(WinGetApp);
-
-        _winGetPackageInstaller.Verify(x => x.InstallPackageForAllUsersAsync(
-            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task InstallAppForAllUsersAsync_PortableInstaller_SkipsTheMachineWideAttempt()
+    public async Task InstallAppOnNewPcAsync_PortableInstaller_SkipsTheMachineWideAttempt()
     {
         var sut = CreateSut();
         _winGetDetectionService
@@ -775,15 +772,174 @@ public class ExternalAppsServiceTests
             .ReturnsAsync("portable");
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), InstallOptions.Default, It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Succeeded());
 
-        var result = await sut.InstallAppForAllUsersAsync(WinGetApp);
+        var result = await sut.InstallAppOnNewPcAsync(WinGetApp);
 
         result.Success.Should().BeTrue();
-        _winGetPackageInstaller.Verify(x => x.InstallPackageForAllUsersAsync(
-            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+        _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), MachineScope, It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_DefaultOptions_NeverAsksForAScope()
+    {
+        var sut = CreateSut();
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("Publisher.ExtApp", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("exe");
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Succeeded());
+
+        await sut.InstallAppAsync(WinGetApp);
+
+        _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
+            It.Is<InstallOptions>(o => o.Scope != InstallScope.Default), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task InstallAppOnNewPcAsync_AnswerFileChoseOnlyMe_InstallsForTheUser()
+    {
+        var sut = CreateSut();
+        var own = new InstallOptions { Scope = InstallScope.User, Architecture = InstallArchitecture.X86 };
+        _installOptions.Setup(x => x.EffectiveFor("ext-app")).Returns(own);
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("Publisher.ExtApp", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("exe");
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), own, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Succeeded());
+
+        var result = await sut.InstallAppOnNewPcAsync(WinGetApp);
+
+        result.Success.Should().BeTrue();
+        _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
+            "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), own, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_AppHasItsOwnOptions_InstallsWithThem()
+    {
+        var sut = CreateSut();
+        var own = new InstallOptions { Architecture = InstallArchitecture.Arm64, Interactive = true };
+        _installOptions.Setup(x => x.EffectiveFor("ext-app")).Returns(own);
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("Publisher.ExtApp", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("exe");
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), own, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Succeeded());
+
+        var result = await sut.InstallAppAsync(WinGetApp);
+
+        result.Success.Should().BeTrue();
+        _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
+            "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), own, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_StoreSource_NeverGetsTheOptions()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition { Id = "store-app", Name = "Store App", Description = "Store only", MsStoreId = "9NBLGGH4NNS1" };
+        _installOptions.Setup(x => x.EffectiveFor("store-app")).Returns(AllOptions);
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("9NBLGGH4NNS1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("msstore");
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "9NBLGGH4NNS1", "msstore", "Store App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Succeeded());
+
+        await sut.InstallAppAsync(item);
+
+        _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
+            "9NBLGGH4NNS1", "msstore", "Store App", It.IsAny<string?>(), InstallOptions.Default, It.IsAny<CancellationToken>()),
+            Times.Once);
+        _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_PortablePackage_DropsTheScopeAndKeepsTheRest()
+    {
+        var sut = CreateSut();
+        var withoutScope = AllOptions with { Scope = InstallScope.Default };
+        _installOptions.Setup(x => x.EffectiveFor("ext-app")).Returns(AllOptions);
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("Publisher.ExtApp", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("portable");
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Succeeded());
+
+        await sut.InstallAppAsync(WinGetApp);
+
+        _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
+            "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), withoutScope, It.IsAny<CancellationToken>()),
+            Times.Once);
+        _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_ChosenScopeFails_RetriesOnceWithTheDefaultScope()
+    {
+        var sut = CreateSut();
+        var withoutScope = AllOptions with { Scope = InstallScope.Default };
+        _installOptions.Setup(x => x.EffectiveFor("ext-app")).Returns(AllOptions);
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("Publisher.ExtApp", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("exe");
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), AllOptions, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "No user-scope installer"));
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), withoutScope, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Succeeded());
+
+        var result = await sut.InstallAppAsync(WinGetApp);
+
+        result.Success.Should().BeTrue();
+        _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
+            "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), AllOptions, It.IsAny<CancellationToken>()),
+            Times.Once);
+        _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
+            "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), withoutScope, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_Chocolatey_GetsTheOptions()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition { Id = "choco-only-app", Name = "Choco Only App", Description = "Choco only", ChocoPackageId = "chocoonlyapp" };
+        _installOptions.Setup(x => x.EffectiveFor("choco-only-app")).Returns(AllOptions);
+        _chocolateyService
+            .Setup(x => x.IsChocolateyInstalledAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _chocolateyService
+            .Setup(x => x.InstallPackageAsync("chocoonlyapp", "Choco Only App", AllOptions, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await sut.InstallAppAsync(item);
+
+        result.Success.Should().BeTrue();
     }
 
     [Fact]

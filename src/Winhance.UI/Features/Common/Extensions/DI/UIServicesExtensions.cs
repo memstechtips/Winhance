@@ -54,6 +54,7 @@ public static class UIServicesExtensions
 
         services.AddSingleton<IWindowsVersionFilterService, WindowsVersionFilterService>();
         services.AddSingleton<IHardwareFilterService, HardwareFilterService>();
+        services.AddSingleton<ITargetWindowsService, TargetWindowsService>();
         services.AddSingleton<ICatalogScopeProvider, CatalogScopeProvider>();
 
         services.AddSingleton<IConfigLoadService, ConfigLoadService>();
@@ -133,6 +134,7 @@ public static class UIServicesExtensions
         services.AddSingleton<WimUtilSession>();
         services.AddSingleton<WimUtilViewModel>();
         services.AddSingleton<AutounattendViewModel>();
+        services.AddSingleton<AutounattendPageViewModel>();
 
         // Concrete VMs for XAML binding; interface aliases for service-layer decoupling.
         services.AddSingleton<WindowsAppsViewModel>();
@@ -140,6 +142,11 @@ public static class UIServicesExtensions
         services.AddSingleton<ExternalAppsViewModel>();
         services.AddSingleton<IExternalAppsItemsProvider>(sp => sp.GetRequiredService<ExternalAppsViewModel>());
         services.AddSingleton<SoftwareAppsViewModel>();
+
+        // Tray icon and the background app update check
+        services.AddSingleton<ISystemTrayIcon, SystemTrayIcon>();
+        services.AddSingleton<AppUpdateMonitor>();
+        services.AddSingleton<TrayController>();
 
         return services;
     }

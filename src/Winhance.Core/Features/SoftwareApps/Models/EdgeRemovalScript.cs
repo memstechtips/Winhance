@@ -2,9 +2,15 @@ namespace Winhance.Core.Features.SoftwareApps.Models;
 
 public static class EdgeRemovalScript
 {
-    public const string ScriptVersion = "1.4";
+    public const string ScriptName = "EdgeRemoval";
 
-    public static string GetScript()
+    public const string ScriptVersion = "1.8";
+
+    private const string FullModeLine = "$RemoveWebView2 = $true";
+
+    public static bool RemovesWebView2(string script) => script.Contains(FullModeLine, StringComparison.Ordinal);
+
+    public static string GetScript(bool removeWebView2 = false)
     {
         return @"
 <#
@@ -16,8 +22,9 @@ public static class EdgeRemovalScript
       This script detects and removes Microsoft Edge installations including:
       - Legacy UWP Edge (pre-Chromium)
       - Chromium-based Edge (current version)
-      - EdgeUpdate components
-      - EdgeWebView2 is NOT removed
+      " + (removeWebView2
+            ? "- EdgeWebView2, EdgeUpdate and EdgeCore, so Widgets and apps that need WebView2 stop working"
+            : "- EdgeUpdate and EdgeWebView2 are NOT removed, so WebView2 keeps getting updates") + @"
 
       This script is designed to run in any context: user sessions, SYSTEM account, or scheduled tasks.
 
@@ -46,6 +53,8 @@ If (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]:
         Exit
     }
 }
+
+" + (removeWebView2 ? FullModeLine : "$RemoveWebView2 = $false") + @"
 
 # Setup logging
 $logFolder = ""C:\ProgramData\Winhance\Logs""
@@ -99,15 +108,10 @@ function Test-LegacyEdgeInstalled {
 
 # Function to test if Chromium Edge is installed
 function Test-ChromiumEdgeInstalled {
-    # Check folders first (fastest)
-    $edgeFolders = @(""Edge"", ""EdgeCore"", ""EdgeUpdate"")
-    $programFiles = @($env:ProgramFiles, ${env:ProgramFiles(x86)})
-
-    foreach ($pf in $programFiles) {
-        foreach ($folder in $edgeFolders) {
-            if (Test-Path ""$pf\Microsoft\$folder"") {
-                return $true
-            }
+    # Only the Edge folder counts: EdgeUpdate and EdgeCore stay for WebView2 and Copilot
+    foreach ($pf in @($env:ProgramFiles, ${env:ProgramFiles(x86)})) {
+        if (Test-Path ""$pf\Microsoft\Edge"") {
+            return $true
         }
     }
 
@@ -123,7 +127,11 @@ function Test-ChromiumEdgeInstalled {
 # Function to stop Edge-related processes
 function Stop-EdgeProcesses {
     Write-Log ""Stopping Edge-related processes and services""
-    $stop = ""MicrosoftEdgeUpdate"", ""OneDrive"", ""WidgetService"", ""Widgets"", ""msedge"", ""Resume"", ""CrossDeviceResume"", ""msedgewebview2""
+    $stop = ""MicrosoftEdgeUpdate"", ""msedge"", ""Resume"", ""CrossDeviceResume""
+    # WebView2 and the apps hosting it only close when WebView2 itself is being removed
+    if ($RemoveWebView2) {
+        $stop += ""msedgewebview2"", ""OneDrive"", ""WidgetService"", ""Widgets""
+    }
     $stop | ForEach-Object {
         $processCount = (Get-Process -Name $_ -ErrorAction SilentlyContinue).Count
         if ($processCount -gt 0) {
@@ -334,7 +342,116 @@ if (`$htm -and `$htm -notlike ""*ie_to_edge_stub*"") {
 
 }
 
-# Function to remove Chromium Edge and EdgeUpdate
+# Edge's uninstaller unpins its taskbar icon only for the user it runs as, and deleting the pinned .lnk does not
+# unpin it, so a SYSTEM run leaves a blank icon. Taskband keeps the pins as two parallel lists: Favorites holds
+# 0x00 + DWORD size + item per pin and ends in 0xFF, FavoritesResolve holds DWORD size + shell link per pin.
+# Returns both lists without the Edge pin, or $null when there is no Edge pin or the lists do not line up
+function Remove-EdgePinEntry([byte[]]$favorites, [byte[]]$resolve) {
+    $edgeLink = [BitConverter]::ToString([Text.Encoding]::Unicode.GetBytes(""Microsoft Edge.lnk""))
+    $favoriteEntries = @()
+    $i = 0
+    while ($i + 5 -le $favorites.Length -and $favorites[$i] -eq 0) {
+        $size = 5 + [BitConverter]::ToUInt32($favorites, $i + 1)
+        $favoriteEntries += ,@($i, $size)
+        $i += $size
+    }
+    $resolveEntries = @()
+    $j = 0
+    while ($j + 4 -le $resolve.Length) {
+        $size = 4 + [BitConverter]::ToUInt32($resolve, $j)
+        if ($size -eq 4 -or $j + $size -gt $resolve.Length) { break }
+        $resolveEntries += ,@($j, $size)
+        $j += $size
+    }
+    if ($i -gt $favorites.Length -or $favoriteEntries.Count -ne $resolveEntries.Count) { return $null }
+
+    $edgeIndex = -1
+    for ($k = 0; $k -lt $favoriteEntries.Count; $k++) {
+        $favoriteHex = [BitConverter]::ToString($favorites, $favoriteEntries[$k][0], $favoriteEntries[$k][1])
+        $resolveHex = [BitConverter]::ToString($resolve, $resolveEntries[$k][0], $resolveEntries[$k][1])
+        if ($favoriteHex.Contains($edgeLink) -and $resolveHex.Contains($edgeLink)) { $edgeIndex = $k; break }
+    }
+    if ($edgeIndex -lt 0) { return $null }
+
+    $newFavorites = New-Object System.Collections.Generic.List[byte]
+    $newResolve = New-Object System.Collections.Generic.List[byte]
+    for ($k = 0; $k -lt $favoriteEntries.Count; $k++) {
+        if ($k -eq $edgeIndex) { continue }
+        $newFavorites.AddRange([byte[]]$favorites[$favoriteEntries[$k][0]..($favoriteEntries[$k][0] + $favoriteEntries[$k][1] - 1)])
+        $newResolve.AddRange([byte[]]$resolve[$resolveEntries[$k][0]..($resolveEntries[$k][0] + $resolveEntries[$k][1] - 1)])
+    }
+    if ($i -lt $favorites.Length) { $newFavorites.AddRange([byte[]]$favorites[$i..($favorites.Length - 1)]) }
+    if ($j -lt $resolve.Length) { $newResolve.AddRange([byte[]]$resolve[$j..($resolve.Length - 1)]) }
+    @{ Favorites = $newFavorites.ToArray(); Resolve = $newResolve.ToArray() }
+}
+
+function Remove-EdgeTaskbarPins {
+    Write-Log ""Removing Edge taskbar pins""
+    $profileList = ""HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList""
+    # Each profile is checked once, so a signed-out user's NTUSER.DAT is not loaded on every boot. A run that just
+    # removed Edge checks them all again.
+    $doneKey = ""HKLM:\SOFTWARE\Winhance\EdgeTaskbarUnpinned""
+    if ($removedSomething) { Remove-Item $doneKey -Recurse -Force -ErrorAction SilentlyContinue }
+    if (-not (Test-Path $doneKey)) { New-Item $doneKey -Force | Out-Null }
+    $removedCount = 0
+    $signedInSids = @()
+
+    foreach ($sidKey in Get-ChildItem $profileList -ErrorAction SilentlyContinue) {
+        $sid = $sidKey.PSChildName
+        if ($null -ne (Get-ItemProperty $doneKey -Name $sid -ErrorAction SilentlyContinue)) { continue }
+        $profilePath = (Get-ItemProperty $sidKey.PSPath -ErrorAction SilentlyContinue).ProfileImagePath
+        if (-not $profilePath -or -not (Test-Path ""$profilePath\NTUSER.DAT"")) { continue }
+
+        $hive = ""Registry::HKEY_USERS\$sid""
+        $loaded = $false
+        if (-not (Test-Path $hive)) {
+            # Left mounted by a failed unload, or held open by another process: try again next boot
+            if (Test-Path ""Registry::HKEY_USERS\WinhanceEdgePin"") { continue }
+            reg.exe load ""HKU\WinhanceEdgePin"" ""$profilePath\NTUSER.DAT"" 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) { Write-Log ""Could not load the registry hive of $sid""; continue }
+            $hive = ""Registry::HKEY_USERS\WinhanceEdgePin""
+            $loaded = $true
+        }
+
+        try {
+            $taskband = ""$hive\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband""
+            $values = Get-ItemProperty $taskband -ErrorAction SilentlyContinue
+            if ($values.Favorites -and $values.FavoritesResolve) {
+                $pins = Remove-EdgePinEntry $values.Favorites $values.FavoritesResolve
+                if ($pins) {
+                    Set-ItemProperty $taskband -Name Favorites -Value $pins.Favorites -Type Binary
+                    Set-ItemProperty $taskband -Name FavoritesResolve -Value $pins.Resolve -Type Binary
+                    $removedCount++
+                    if (-not $loaded) { $signedInSids += $sid }
+                }
+            }
+            New-ItemProperty $doneKey -Name $sid -Value 1 -PropertyType DWord -Force | Out-Null
+        }
+        finally {
+            if ($loaded) {
+                # reg unload fails while PowerShell still holds handles into the hive
+                $values = $null
+                [GC]::Collect()
+                [GC]::WaitForPendingFinalizers()
+                reg.exe unload ""HKU\WinhanceEdgePin"" 2>&1 | Out-Null
+                if ($LASTEXITCODE -ne 0) { Write-Log ""Could not unload the registry hive of $sid"" }
+            }
+        }
+    }
+
+    Write-Log ""Removed the Edge taskbar pin for $removedCount user(s)""
+
+    # A running Explorer keeps showing the pin it loaded at sign-in; Windows restarts the shell when it ends
+    foreach ($process in Get-CimInstance Win32_Process -Filter ""Name='explorer.exe'"" -ErrorAction SilentlyContinue) {
+        $owner = Invoke-CimMethod -InputObject $process -MethodName GetOwnerSid -ErrorAction SilentlyContinue
+        if ($owner.Sid -in $signedInSids) {
+            Stop-Process -Id $process.ProcessId -Force -ErrorAction SilentlyContinue
+            Write-Log ""Restarted Explorer for $($owner.Sid)""
+        }
+    }
+}
+
+# Function to remove Chromium Edge
 function Remove-ChromiumEdge {
     # Remove Chromium Edge
     Write-Log ""Starting Edge Chromium uninstallation process""
@@ -349,7 +466,7 @@ function Remove-ChromiumEdge {
     $edgeUninstallCount = 0
     foreach ($key in $uninstallKeys) {
         $displayName = (Get-ItemProperty $key.PSPath -ErrorAction SilentlyContinue).DisplayName
-        if ($displayName -like ""*Microsoft Edge*"") {
+        if ($displayName -eq ""Microsoft Edge"") {
             $uninstallString = (Get-ItemProperty $key.PSPath).UninstallString
             if ($uninstallString) {
                 $edgeUninstallCount++
@@ -380,69 +497,6 @@ function Remove-ChromiumEdge {
     Remove-Item -Recurse -Force $edgePath -ErrorAction SilentlyContinue | Out-Null
     Write-Log ""Edge Chromium uninstallation process completed""
 
-    # Remove EdgeUpdate
-    Write-Log ""Starting EdgeUpdate removal process""
-    # Find EdgeUpdate executables
-    Write-Log ""Searching for EdgeUpdate executables""
-    $edgeupdate = @()
-    $searchPaths = @(""LocalApplicationData"", ""ProgramFilesX86"", ""ProgramFiles"")
-    foreach ($pathType in $searchPaths) {
-        $folder = [Environment]::GetFolderPath($pathType)
-        $searchPattern = ""$folder\Microsoft\EdgeUpdate\*.*.*.*\MicrosoftEdgeUpdate.exe""
-        $foundFiles = Get-ChildItem $searchPattern -Recurse -ErrorAction SilentlyContinue
-        if ($foundFiles) {
-            $edgeupdate += $foundFiles.FullName
-        }
-    }
-    if ($edgeupdate.Count -gt 0) {
-        Write-Log ""Found $($edgeupdate.Count) EdgeUpdate executable(s)""
-    } else {
-        Write-Log ""No EdgeUpdate executables found""
-    }
-    # Backup ClientState registry if it exists (important, or else webview won't work)
-    $backupRegFile = ""$env:TEMP\EdgeUpdate_ClientState_Backup_$(Get-Date -Format 'yyyyMMdd_HHmmss').reg""
-    $clientStatePath = ""HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\ClientState""
-    if (Test-Path $clientStatePath) {
-        Write-Log ""Backing up EdgeUpdate ClientState registry""
-        cmd /c ""reg export `""HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\ClientState`"" `""$backupRegFile`"" /y"" 2>$null
-        if (Test-Path $backupRegFile) {
-            Write-Log ""Successfully created registry backup at $backupRegFile""
-        } else {
-            Write-Log ""Warning: Failed to create registry backup""
-        }
-    } else {
-        Write-Log ""No EdgeUpdate ClientState registry found to backup""
-    }
-    # Uninstall EdgeUpdate executables
-    Write-Log ""Processing EdgeUpdate uninstallation""
-    foreach ($path in $edgeupdate) {
-        if (Test-Path $path) {
-            # Unregister service
-            Write-Log ""Unregistering EdgeUpdate service from $path""
-            Start-Process -FilePath $path -ArgumentList ""/unregsvc"" -Wait -WindowStyle Hidden -ErrorAction SilentlyContinue
-            # Wait for processes to finish
-            $waitCount = 0
-            do {
-                Start-Sleep 3
-                $runningProcesses = Get-Process -Name ""setup"", ""MicrosoftEdge*"" -ErrorAction SilentlyContinue | Where-Object { $_.Path -like ""*\Microsoft\Edge*"" }
-            } while ($runningProcesses -and $waitCount++ -lt 20)
-            # Run uninstall if file still exists
-            if (Test-Path $path) {
-                Write-Log ""Running EdgeUpdate uninstaller from $path""
-                Start-Process -FilePath $path -ArgumentList ""/uninstall"" -Wait -WindowStyle Hidden -ErrorAction SilentlyContinue
-            }
-        }
-    }
-    # Restore ClientState backup
-    if ((Test-Path $backupRegFile)) {
-        Write-Log ""Restoring EdgeUpdate ClientState registry from backup""
-        cmd /c ""reg import `""$backupRegFile`"""" 2>$null
-        Remove-Item $backupRegFile -ErrorAction SilentlyContinue
-        Write-Log ""Registry restore completed and backup file cleaned up""
-    } else {
-        Write-Log ""No registry backup file found to restore""
-    }
-    Write-Log ""EdgeUpdate removal process completed""
 }
 
 function Remove-EdgeRegistryKeys {
@@ -452,14 +506,12 @@ function Remove-EdgeRegistryKeys {
         ""HKLM:\SOFTWARE\Microsoft\Edge"",
         ""HKLM:\SOFTWARE\WOW6432Node\Microsoft\Edge"",
         ""HKCU:\Software\Microsoft\Edge"",
-        ""HKCU:\Software\Microsoft\EdgeUpdate"",
         ""HKLM:\SOFTWARE\Clients\StartMenuInternet\Microsoft Edge"",
         ""HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe"",
         ""HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\MicrosoftEdge"",
         ""HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge"",
-        ""HKLM:\SYSTEM\CurrentControlSet\Services\Eventlog\Application\Edge"",
-        ""HKLM:\SYSTEM\CurrentControlSet\Services\Eventlog\Application\edgeupdate"",
-        ""HKLM:\SYSTEM\CurrentControlSet\Services\Eventlog\Application\edgeupdatem""
+        ""HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge"",
+        ""HKLM:\SYSTEM\CurrentControlSet\Services\Eventlog\Application\Edge""
     )
 
     $removedCount = 0
@@ -487,10 +539,7 @@ function Remove-EdgeRegistryKeys {
     Write-Log ""Removed $removedValuesCount registry value(s)""
 
     $patterns = @(
-        @{Root = ""HKLM:\SOFTWARE\Classes""; Pattern = ""MicrosoftEdgeUpdate*""},
-        @{Root = ""HKLM:\SOFTWARE\Classes""; Pattern = ""MSEdge*""},
-        @{Root = ""HKLM:\SOFTWARE\Classes\WOW6432Node""; Pattern = ""MicrosoftEdgeUpdate*""},
-        @{Root = ""HKLM:\SOFTWARE\WOW6432Node\Classes""; Pattern = ""MicrosoftEdgeUpdate*""}
+        @{Root = ""HKLM:\SOFTWARE\Classes""; Pattern = ""MSEdge*""}
     )
 
     $removedPatternCount = 0
@@ -527,7 +576,6 @@ function Remove-AdditionalEdgeFolders {
     Write-Log ""Starting additional Edge folder cleanup""
 
     $systemPaths = @(
-        ""C:\ProgramData\Microsoft\EdgeUpdate"",
         ""C:\Windows\Temp\MsEdgeCrashpad""
     )
 
@@ -553,6 +601,69 @@ function Remove-AdditionalEdgeFolders {
     }
 
     Write-Log ""Removed $removedCount additional Edge folder(s)""
+}
+
+function Test-WebView2Installed {
+    $x86 = ${env:ProgramFiles(x86)}
+    $paths = @(
+        ""$x86\Microsoft\EdgeWebView"",
+        ""$x86\Microsoft\EdgeUpdate"",
+        ""$x86\Microsoft\EdgeCore"",
+        ""HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate"",
+        ""HKLM:\SYSTEM\CurrentControlSet\Services\edgeupdate"",
+        ""HKLM:\SYSTEM\CurrentControlSet\Services\edgeupdatem""
+    )
+    return [bool]($paths | Where-Object { Test-Path $_ })
+}
+
+function Remove-WebView2AndEdgeUpdate {
+    # EdgeUpdate goes first: while it exists it re-registers a deleted WebView2 and leaves it half installed
+    Write-Log ""Removing EdgeUpdate services and tasks""
+    foreach ($service in ""edgeupdate"", ""edgeupdatem"") {
+        if (Get-Service -Name $service -ErrorAction SilentlyContinue) {
+            Stop-Service -Name $service -Force -ErrorAction SilentlyContinue
+            sc.exe delete $service 2>&1 | Out-Null
+            Write-Log ""Deleted service: $service""
+        }
+    }
+    Get-ScheduledTask -TaskName ""MicrosoftEdgeUpdate*"" -ErrorAction SilentlyContinue | ForEach-Object {
+        Unregister-ScheduledTask -TaskName $_.TaskName -TaskPath $_.TaskPath -Confirm:$false -ErrorAction SilentlyContinue
+        Write-Log ""Deleted scheduled task: $($_.TaskName)""
+    }
+
+    # Start search and Widgets hold WebView2 files open and Windows restarts them, so stop and delete in a loop
+    $x86 = ${env:ProgramFiles(x86)}
+    $folders = @(""$x86\Microsoft\EdgeUpdate"", ""$x86\Microsoft\EdgeWebView"", ""$x86\Microsoft\EdgeCore"", ""$env:ProgramData\Microsoft\EdgeUpdate"")
+    for ($attempt = 1; $attempt -le 5 -and ($folders | Where-Object { Test-Path $_ }); $attempt++) {
+        Get-Process -Name MicrosoftEdgeUpdate, msedgewebview2, SearchHost, Widgets, WidgetBoard, WidgetService -ErrorAction SilentlyContinue |
+            Stop-Process -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
+        $folders | Where-Object { Test-Path $_ } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    foreach ($folder in $folders) {
+        if (Test-Path $folder) { Write-Log ""Could not fully remove: $folder"" } else { Write-Log ""Removed: $folder"" }
+    }
+
+    $keys = @(
+        ""HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate"",
+        ""HKLM:\SOFTWARE\Microsoft\EdgeUpdate"",
+        ""HKCU:\Software\Microsoft\EdgeUpdate"",
+        ""HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView"",
+        ""HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView"",
+        ""HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\edgeupdate"",
+        ""HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\edgeupdatem""
+    )
+    $removedKeys = 0
+    foreach ($key in $keys) {
+        if (Test-Path $key) {
+            Remove-Item $key -Recurse -Force -ErrorAction SilentlyContinue
+            $removedKeys++
+        }
+    }
+    Get-ChildItem -Path ""HKLM:\SOFTWARE\Classes"" -ErrorAction SilentlyContinue |
+        Where-Object { $_.PSChildName -like ""MicrosoftEdgeUpdate*"" } |
+        ForEach-Object { Remove-Item $_.PSPath -Recurse -Force -ErrorAction SilentlyContinue; $removedKeys++ }
+    Write-Log ""Removed $removedKeys EdgeUpdate and WebView2 registry key(s)""
 }
 
 Write-Host ""Starting Edge removal process. See $logFile for details.""
@@ -616,10 +727,9 @@ if ($chromiumInstalled) {
 
 # Only do cleanup if we removed something
 if ($removedSomething) {
-    # Cleanup: Remove folders containing Edge (Edge, EdgeCore, EdgeUpdate) or Temp but exclude EdgeWebView
+    # EdgeCore holds the files WebView2 and Copilot hard-link to, so only the WebView2 removal below deletes it
     Write-Log ""Starting cleanup of Microsoft Edge folders""
-    $edgeFolders = Get-ChildItem -Path ""$env:SystemDrive\Program Files (x86)\Microsoft"" -Directory -ErrorAction SilentlyContinue |
-    Where-Object { ($_.Name -like ""*Edge*"" -or $_.Name -like ""*Temp*"") -and $_.Name -notlike ""*EdgeWebView*"" }
+    $edgeFolders = Get-ChildItem -Path ""$env:SystemDrive\Program Files (x86)\Microsoft"" -Directory -Filter ""Edge"" -ErrorAction SilentlyContinue
     if ($edgeFolders) {
         Write-Log ""Found $($edgeFolders.Count) Edge-related folder(s) to remove""
         $edgeFolders | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
@@ -631,6 +741,15 @@ if ($removedSomething) {
     Remove-EdgeShortcuts
     Remove-EdgeRegistryKeys
     Remove-AdditionalEdgeFolders
+} elseif (Test-Path ""HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge"") {
+    # winget still lists Edge as installed while this uninstall entry survives the files
+    Write-Log ""Edge files are gone but its uninstall entry remains. Cleaning up registry.""
+    Remove-EdgeRegistryKeys
+}
+
+if ($RemoveWebView2 -and (Test-WebView2Installed)) {
+    Write-Log ""WebView2 or EdgeUpdate detected. Proceeding with removal.""
+    Remove-WebView2AndEdgeUpdate
 }
 
 # Redirect MSEdgeHTM to our stub so links resolving through it go to the default browser
@@ -646,15 +765,19 @@ if (Test-Path $stubPath) {
 # Install or repair Edge protocol redirect (runs even if Edge was already removed, only acts if redirect is missing or broken)
 Install-EdgeProtocolRedirect
 
+if (-not (Test-ChromiumEdgeInstalled)) {
+    Remove-EdgeTaskbarPins
+}
+
 # Always check for and delete Edge scheduled tasks
 Write-Log ""Checking for Edge scheduled tasks""
 try {
     $edgeTasks = Get-ScheduledTask -TaskName ""*Edge*"" -ErrorAction SilentlyContinue
     if ($edgeTasks) {
         foreach ($task in $edgeTasks) {
-            # Skip the EdgeRemoval task
-            if ($task.TaskName -eq ""EdgeRemoval"") {
-                Write-Log ""Skipping EdgeRemoval task: $($task.TaskName)""
+            # EdgeUpdate's own tasks keep WebView2 updated unless WebView2 is being removed too
+            if ($task.TaskName -eq ""EdgeRemoval"" -or ($task.TaskName -like ""MicrosoftEdgeUpdate*"" -and -not $RemoveWebView2)) {
+                Write-Log ""Skipping task: $($task.TaskName)""
                 continue
             }
             

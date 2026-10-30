@@ -136,8 +136,9 @@ internal static class WinGetCliRunner
     // kill when no stdout/stderr/progress arrives for this long; the timer resets on every line, so slow-but-progressing
     // installs keep renewing their deadline. exePathOverride forces a binary (e.g. the bundled copy when installing
     // AppInstaller itself). interactiveUserService + OTS runs winget as the interactive user so packages land in the
-    // right scope. onProgressLine gets the transient \r fragments; only \r\n lines reach onOutputLine. Cancellation
-    // kills the process tree.
+    // right scope. asShellUser runs it unelevated as the signed-in user instead, whether or not OTS is in play.
+    // onProgressLine gets the transient \r fragments; only \r\n lines reach onOutputLine. Cancellation kills the
+    // process tree.
     public static async Task<WinGetCliResult> RunAsync(
         string arguments,
         Action<string>? onOutputLine = null,
@@ -147,7 +148,8 @@ internal static class WinGetCliRunner
         string? exePathOverride = null,
         IInteractiveUserService? interactiveUserService = null,
         Action<string>? onProgressLine = null,
-        int idleTimeoutMs = 0)
+        int idleTimeoutMs = 0,
+        bool asShellUser = false)
     {
         var exePath = exePathOverride ?? GetWinGetExePath(interactiveUserService)
             ?? throw new FileNotFoundException("winget.exe not found. Bundled CLI may be missing.");
@@ -206,6 +208,17 @@ internal static class WinGetCliRunner
                 ResetIdle(capturedIdleCts, capturedIdleMs);
                 onProgressLine?.Invoke(line);
             };
+
+            if (asShellUser && interactiveUserService != null)
+            {
+                var shellResult = await interactiveUserService.RunProcessAsShellUserAsync(
+                    exePath, arguments, wrapOutput, wrapError, linkedCts.Token, timeoutMs: 0, onProgressLine: wrapProgress).ConfigureAwait(false);
+                if (shellResult != null)
+                {
+                    return new WinGetCliResult(shellResult.ExitCode, shellResult.StandardOutput, shellResult.StandardError,
+                        GetTerminationReason(shellResult.ExitCode));
+                }
+            }
 
             // OTS: run winget as the interactive user so packages install to their scope. The helper's own
             // wall-clock stays off (0): linkedCts already carries wall-clock, idle and caller cancellation.

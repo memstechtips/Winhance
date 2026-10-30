@@ -212,6 +212,7 @@ public static class InfrastructureServicesExtensions
     {
         services.AddSingleton<IWindowsAppsService, WindowsAppsService>();
         services.AddSingleton<IExternalAppsService, ExternalAppsService>();
+        services.AddSingleton<IInstallOptionsService, InstallOptionsService>();
         services.AddSingleton<IAppInstallationService, AppInstallationService>();
         services.AddSingleton<IWindowsAppUninstallService, WindowsAppUninstallService>();
 

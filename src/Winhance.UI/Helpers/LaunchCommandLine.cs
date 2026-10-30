@@ -1,4 +1,5 @@
 using System.CommandLine;
+using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Services;
 
 namespace Winhance.UI.Helpers;
@@ -8,6 +9,8 @@ public sealed record LaunchOptions(IReadOnlyList<string> InstallApps, string? In
     public static LaunchOptions None { get; } = new([], null, null);
 
     public bool StartInTray { get; init; }
+
+    public InstallOptionsStore? InstallOptions { get; init; }
 
     public bool InstallsApps => InstallApps.Count > 0 || InstallFolder is not null;
 }
@@ -25,6 +28,11 @@ internal static class LaunchCommandLine
         Description = "A folder of staged installers to run after the apps.",
     };
 
+    private static readonly Option<string?> InstallOptionsArgument = new("--install-options")
+    {
+        Description = "How to install those apps, as the answer file wrote it.",
+    };
+
     private static readonly Option<string?> ConfigFile = new("--config")
     {
         Description = "A saved .winhance config to apply.",
@@ -35,7 +43,7 @@ internal static class LaunchCommandLine
         Description = "Start hidden in the system tray. The sign-in task passes it.",
     };
 
-    private static readonly RootCommand Root = new("Winhance") { Options = { InstallApps, InstallFolder, ConfigFile, Tray } };
+    private static readonly RootCommand Root = new("Winhance") { Options = { InstallApps, InstallFolder, InstallOptionsArgument, ConfigFile, Tray } };
 
     internal static LaunchOptions Parse(string[] args, Action<string> logError)
     {
@@ -52,6 +60,10 @@ internal static class LaunchCommandLine
 
         var ids = result.GetValue(InstallApps)
             ?.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries) ?? [];
-        return new LaunchOptions(ids, result.GetValue(InstallFolder), result.GetValue(ConfigFile)) { StartInTray = result.GetValue(Tray) };
+        return new LaunchOptions(ids, result.GetValue(InstallFolder), result.GetValue(ConfigFile))
+        {
+            StartInTray = result.GetValue(Tray),
+            InstallOptions = InstallOptionsStore.FromArgument(result.GetValue(InstallOptionsArgument)),
+        };
     }
 }

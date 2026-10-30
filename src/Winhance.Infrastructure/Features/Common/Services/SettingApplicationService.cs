@@ -73,8 +73,10 @@ internal class SettingApplicationService(
 
         // The apply engine performs no process/service restarts, so run them here explicitly - so a setting
         // that restarts Explorer/a service on apply still takes visual effect. This respects an active
-        // SuppressRestarts scope (the applyRecommended-Action branch), so it does not double-restart.
-        await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
+        // SuppressRestarts scope (the applyRecommended-Action branch), so it does not double-restart. A setting whose
+        // every write was refused changed nothing, so it asks for no restart either.
+        if (result.Failed + deferredFailures.Count < applyPlan.Total)
+            await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
 
         if (result.AllSucceeded && deferredFailures.Count == 0)
             return OperationResult.Succeeded();

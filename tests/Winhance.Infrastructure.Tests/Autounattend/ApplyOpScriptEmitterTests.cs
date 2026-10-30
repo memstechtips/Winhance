@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using FluentAssertions;
 using Microsoft.Win32;
 using Moq;
@@ -5,13 +6,14 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.WimUtil.Models;
 using Winhance.Infrastructure.Features.Autounattend.Helpers;
 using Winhance.TestSupport;
 using Xunit;
 
-using Winhance.Core.Features.Common.Localization;
 namespace Winhance.Infrastructure.Tests.Autounattend;
 
 public class ApplyOpScriptEmitterTests
@@ -856,7 +858,9 @@ public class ApplyOpScriptEmitterTests
         off.Warnings.Should().BeEmpty();
     }
 
-    private EmitResult EmitAppIdsScript(params AppChoice[] apps)
+    private EmitResult EmitAppIdsScript(params AppChoice[] apps) => EmitAppIdsScript(null, apps);
+
+    private EmitResult EmitAppIdsScript(InstallOptionsStore? options, params AppChoice[] apps)
     {
         var setting = new Setting
         {
@@ -864,14 +868,28 @@ public class ApplyOpScriptEmitterTests
             Display = new Display { Name = TestKeys.Of("App ids"), Description = TestKeys.Of("Hands the apps to the new install") },
             States = new[]
             {
-                new SettingState { Label = LocKey.Common.Enabled, Effects = new Effect[] { new ScriptEffect("$apps = '{{external-app-ids}}'", RunContext.System) } },
+                new SettingState { Label = LocKey.Common.Enabled, Effects = new Effect[] { new ScriptEffect("$apps = '{{external-app-ids}}'; $options = '{{install-options}}'", RunContext.System) } },
                 new SettingState { Label = LocKey.Common.Disabled },
             },
         };
         var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [ParityCatalog.FeatureId] = new[] { setting } };
 
-        return _sut.Emit(new SelectionSet(new[] { new SettingChoice(setting.Id, new ChoiceValue.Toggle(true)) }, NoApps, apps),
-                         byFeature, ParityCatalog.Build, SystemIndent, UserIndent);
+        var set = new SelectionSet(new[] { new SettingChoice(setting.Id, new ChoiceValue.Toggle(true)) }, NoApps, apps) { InstallOptions = options };
+        return _sut.Emit(set, byFeature, ParityCatalog.Build, SystemIndent, UserIndent);
+    }
+
+    [Fact]
+    public void AnswerFileScript_CarriesTheFilesInstallOptions_AndNothingWhenThereAreNone()
+    {
+        var chrome = new AppChoice("google-chrome", "Google Chrome", null, null, null, "Google.Chrome");
+        var options = new InstallOptionsStore { Defaults = InstallOptions.Default with { Scope = InstallScope.User } };
+
+        var carried = SystemText(EmitAppIdsScript(options, chrome));
+        var none = SystemText(EmitAppIdsScript(chrome));
+
+        var written = Regex.Match(carried, @"\$options = '([^']*)'").Groups[1].Value;
+        InstallOptionsStore.FromArgument(written)!.Defaults.Should().Be(options.Defaults);
+        none.Should().Contain("$options = ''").And.NotContain("{{install-options}}");
     }
 
     [Fact]
