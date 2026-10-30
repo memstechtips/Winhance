@@ -1,3 +1,4 @@
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Core.Features.Common.Extensions;
@@ -30,4 +31,15 @@ public static class LocalizationServiceExtensions
             return format;
         }
     }
+
+    // A setting's name key is its own fallback, so a setting with no translation shows its key, never "[key]".
+    public static string SettingName(this ILocalizationService? localizationService, Setting setting) =>
+        localizationService.GetStringOrDefault(setting.Display.Name.Value, setting.Display.Name.Value);
+
+    // The catalog knows which feature owns a setting; the id's prefix does not always name it. Each surface passes the
+    // text it shows for a setting no feature owns or whose feature name has no translation.
+    public static string FeatureName(this ILocalizationService? localizationService, string settingId, string fallback) =>
+        SettingCatalog.FeatureById.TryGetValue(settingId, out var featureId)
+            ? localizationService.GetStringOrDefault($"Feature_{featureId}_Name", fallback)
+            : fallback;
 }

@@ -14,6 +14,9 @@ public interface IDispatcherService
 
     void RunOnUIThread(DispatcherQueuePriority priority, Action action);
 
+    // Queued even when already on the UI thread, so the work in progress finishes first.
+    void Enqueue(Action action);
+
     Task RunOnUIThreadAsync(Func<Task> asyncAction);
 
     Task RunOnUIThreadAsync(DispatcherQueuePriority priority, Func<Task> asyncAction);

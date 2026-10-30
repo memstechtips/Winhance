@@ -218,6 +218,11 @@
                                 <PathIcon Data="{StaticResource NewBoxIconPath}"/>
                             </ToggleMenuFlyoutItem.Icon>
                         </ToggleMenuFlyoutItem>
+                        <MenuFlyoutSeparator x:Name="StateFilterSeparator"/>
+                        <RadioMenuFlyoutItem x:Name="StateFilterAllItem"/>
+                        <RadioMenuFlyoutItem x:Name="StateFilterRecommendedItem"/>
+                        <RadioMenuFlyoutItem x:Name="StateFilterWindowsDefaultItem"/>
+                        <RadioMenuFlyoutItem x:Name="StateFilterCustomItem"/>
                         <MenuFlyoutSeparator x:Name="ShowOnlyChangesSeparator" Visibility="Collapsed"/>
                         <ToggleMenuFlyoutItem x:Name="ShowOnlyChangesToggleItem" Visibility="Collapsed">
                             <ToggleMenuFlyoutItem.Icon>

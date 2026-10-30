@@ -4,6 +4,7 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Xunit;
@@ -586,6 +587,20 @@ public class SectionPageViewModelTests
         vm.CurrentSectionKey = "SectionB";
 
         _mockFeatureVms[1].Verify(v => v.ApplySearchFilter(string.Empty), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void HasNoSearchResults_WhenAStateFilterHidesEveryCard_ReturnsTrue()
+    {
+        var vm = CreateViewModel();
+        var raisedProperties = new List<string>();
+        vm.PropertyChanged += (_, e) => raisedProperties.Add(e.PropertyName!);
+
+        vm.StateFilter = SettingStateFilter.Custom;
+
+        raisedProperties.Should().Contain(nameof(vm.HasNoSearchResults));
+        vm.HasNoSearchResults.Should().BeTrue();
+        vm.NoResultsText.Should().Be("View_StateFilter_NoResults");
     }
 
     [Fact]

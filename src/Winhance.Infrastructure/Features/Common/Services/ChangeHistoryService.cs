@@ -116,9 +116,7 @@ internal class ChangeHistoryService(
         if (!fileSystemService.DirectoryExists(directory))
             fileSystemService.CreateDirectory(directory);
 
-        var header = localizationService.GetString("ChangeHistory_FileHeader");
-        if (string.IsNullOrEmpty(header))
-            header = "Changes made by Winhance are listed below (newest at the bottom).";
+        var header = localizationService.GetStringOrDefault("ChangeHistory_FileHeader", "Changes made by Winhance are listed below (newest at the bottom).");
         // Use AppendAllText with Utf8Bom so the file is created with the BOM preamble.
         // File.WriteAllText (the 2-arg overload) writes UTF-8 without BOM; AppendAllText
         // with UTF8Encoding(true) writes the BOM on the first call when the file is new.

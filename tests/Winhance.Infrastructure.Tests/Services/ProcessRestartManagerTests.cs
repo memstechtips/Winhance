@@ -104,6 +104,23 @@ public class ProcessRestartManagerTests
     }
 
     [Fact]
+    public async Task FlushCoalescedRestartsAsync_ExplorerNameInAnyCase_Registers_AndRegionBroadcastDoesNot()
+    {
+        var settings = new[]
+        {
+            CreateCatalogSetting("shell-lower", new RestartProcess("explorer")),
+            CreateCatalogSetting("region", new RestartProcess("intl")),
+        };
+
+        await _sut.FlushCoalescedRestartsAsync(settings);
+
+        _mockPendingRestart.Verify(p => p.Register("shell-lower"), Times.Once);
+        _mockPendingRestart.Verify(p => p.Register("region"), Times.Never);
+        _mockUiManagement.Verify(u => u.BroadcastRegionalSettingChange(), Times.Once);
+        _mockExplorerRestart.Verify(e => e.RestartAsync(), Times.Never);
+    }
+
+    [Fact]
     public async Task FlushCoalescedRestartsAsync_Explorer_RegistersInsteadOfRestarting()
     {
         var settings = new[]

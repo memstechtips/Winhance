@@ -46,6 +46,12 @@ public sealed partial class SectionDetailPage : Page
             Path = new PropertyPath(nameof(navigation.PageViewModel.HasNoSearchResults)),
             Mode = BindingMode.OneWay,
         });
+        SettingsList.SetBinding(SettingsListView.NoResultsTextProperty, new Binding
+        {
+            Source = navigation.PageViewModel,
+            Path = new PropertyPath(nameof(navigation.PageViewModel.NoResultsText)),
+            Mode = BindingMode.OneWay,
+        });
 
         if (!string.IsNullOrWhiteSpace(navigation.SearchText))
         {

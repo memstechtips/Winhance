@@ -1,5 +1,4 @@
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Helpers;
@@ -61,3 +60,15 @@ public static class FeatureBadgeAggregator
             unrecognized, malformed, undetermined);
     }
 }
+
+// Two independent axes, deliberately kept apart: Recommended/Default counts say WHERE the settings sit relative
+// to our advice (always shown as N/total); Unrecognized/Malformed/Undetermined say WHY detection could not place
+// a setting (shown only when non-zero, with the control's own icon).
+public sealed record FeatureBadgeSummary(
+    int TotalWithBadgeData,
+    int RecommendedCount,
+    int DefaultCount,
+    int NewCount,
+    int UnrecognizedCount,
+    int MalformedCount,
+    int UndeterminedCount);

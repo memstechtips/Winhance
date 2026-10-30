@@ -1,10 +1,10 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
-using Winhance.UI.Features.Customize.Interfaces;
 using Winhance.UI.Features.Customize.ViewModels;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Xunit;
@@ -36,7 +36,7 @@ public class CustomizeViewModelTests
         _mockLocalizationService.MirrorTryGetString();
     }
 
-    private IEnumerable<ICustomizationFeatureViewModel> CreateFeatureViewModels()
+    private IEnumerable<ISettingsFeatureViewModel> CreateFeatureViewModels()
     {
         var moduleIds = new[]
         {
@@ -47,10 +47,10 @@ public class CustomizeViewModelTests
             FeatureIds.TimeRegionLanguage,
         };
 
-        var viewModels = new List<ICustomizationFeatureViewModel>();
+        var viewModels = new List<ISettingsFeatureViewModel>();
         foreach (var moduleId in moduleIds)
         {
-            var mock = new Mock<ICustomizationFeatureViewModel>();
+            var mock = new Mock<ISettingsFeatureViewModel>();
             mock.Setup(vm => vm.ModuleId).Returns(moduleId);
             mock.Setup(vm => vm.DisplayName).Returns($"{moduleId} Display");
             mock.Setup(vm => vm.SettingsCount).Returns(0);
@@ -75,6 +75,27 @@ public class CustomizeViewModelTests
             _mockModeService.Object);
 
         vm.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Constructor_IgnoresFeaturesOutsideItsSections()
+    {
+        var foreign = new Mock<ISettingsFeatureViewModel>();
+        foreign.Setup(vm => vm.ModuleId).Returns(FeatureIds.Privacy);
+        var features = CreateFeatureViewModels().Append(foreign.Object);
+
+        var vm = new CustomizeViewModel(
+            _mockLogService.Object,
+            _mockLocalizationService.Object,
+            features,
+            _mockBadgeService.Object,
+            _mockReviewModeService.Object,
+            _mockRegistry.Object,
+            _mockScope.Object,
+            _mockModeService.Object);
+
+        vm.OverviewItems.Should().HaveCount(CustomizeViewModel.Sections.Count);
+        foreign.VerifyAdd(f => f.PropertyChanged += It.IsAny<PropertyChangedEventHandler>(), Times.Never);
     }
 
     [Fact]

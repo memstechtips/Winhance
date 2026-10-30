@@ -72,6 +72,10 @@ public class BaseSettingsFeatureViewModelTests
             .Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
             .Returns<Func<Task>>(asyncAction => asyncAction());
 
+        _mockDispatcherService
+            .Setup(d => d.Enqueue(It.IsAny<Action>()))
+            .Callback<Action>(action => action());
+
         _mockEventBus
             .Setup(e => e.Subscribe(It.IsAny<Action<SettingAppliedEvent>>()))
             .Returns(new Mock<ISubscriptionToken>().Object);
@@ -285,6 +289,16 @@ public class BaseSettingsFeatureViewModelTests
         var vm = CreateViewModel();
 
         vm.DisplayName.Should().Be("Test Feature");
+    }
+
+    [Fact]
+    public void DisplayName_WithNoTranslation_FallsBackToTheModuleId()
+    {
+        _mockLocalizationService.MissingKey(TestableSettingsFeatureViewModel.TestDisplayNameKey);
+
+        var vm = CreateViewModel();
+
+        vm.DisplayName.Should().Be(TestableSettingsFeatureViewModel.TestModuleId);
     }
 
     [Fact]
@@ -1934,6 +1948,177 @@ public class BaseSettingsFeatureViewModelTests
         vm.Settings.Should().HaveCount(2);
         vm.Settings[0].Should().NotBeSameAs(beforeExit);
         VerifyNoSubsetLoad();
+    }
+
+    private SettingItemViewModel AtRecommended(string id, string name) =>
+        CreateSettingItem(id, name, isSelected: true, stateLabels: ToggleStates, firstStateRoles: RecommendedRole);
+
+    private SettingItemViewModel OffRecommended(string id, string name) =>
+        CreateSettingItem(id, name, isSelected: false, stateLabels: ToggleStates, firstStateRoles: RecommendedRole);
+
+    private static async Task SearchAsync(TestableSettingsFeatureViewModel vm, string text)
+    {
+        var filtered = new TaskCompletionSource();
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(vm.IsVisibleInSearch))
+                filtered.TrySetResult();
+        };
+
+        vm.SearchText = text;
+        await filtered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task StateFilter_Recommended_HidesACardAwayFromRecommended()
+    {
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            AtRecommended("at", "At"),
+            OffRecommended("off", "Off"),
+        });
+        await vm.LoadSettingsAsync();
+
+        vm.SetViewFilter(SettingStateFilter.Recommended, onlyChanges: null);
+
+        vm.Settings.Single(s => s.SettingId == "at").IsVisible.Should().BeTrue();
+        vm.Settings.Single(s => s.SettingId == "off").IsVisible.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task StateFilter_Custom_ShowsOnlyCardsAtNeitherRecommendedNorDefault()
+    {
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            AtRecommended("recommended", "Recommended"),
+            CreateSettingItem("default", "Default", isSelected: true, stateLabels: ToggleStates,
+                firstStateRoles: [StateRole.WindowsDefault]),
+            OffRecommended("custom", "Custom"),
+            CreateSettingItem("action", "Action", inputType: InputType.Action),
+        });
+        await vm.LoadSettingsAsync();
+
+        vm.SetViewFilter(SettingStateFilter.Custom, onlyChanges: null);
+
+        vm.Settings.Where(s => s.IsVisible).Select(s => s.SettingId).Should().Equal("custom");
+    }
+
+    [Fact]
+    public async Task StateFilter_CombinesWithSearch()
+    {
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            AtRecommended("alpha-at", "Alpha one"),
+            AtRecommended("beta-at", "Beta one"),
+            OffRecommended("alpha-off", "Alpha two"),
+        });
+        await vm.LoadSettingsAsync();
+        vm.SetViewFilter(SettingStateFilter.Recommended, onlyChanges: null);
+
+        await SearchAsync(vm, "Alpha");
+
+        vm.Settings.Where(s => s.IsVisible).Select(s => s.SettingId).Should().Equal("alpha-at");
+    }
+
+    [Fact]
+    public async Task Search_KeepsShowOnlyChanges()
+    {
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem("changed", "Setting changed"),
+            CreateSettingItem("unchanged", "Setting unchanged"),
+        });
+        await vm.LoadSettingsAsync();
+        vm.SetViewFilter(SettingStateFilter.All, onlyChanges: id => id == "changed");
+
+        await SearchAsync(vm, "Setting");
+
+        vm.Settings.Where(s => s.IsVisible).Select(s => s.SettingId).Should().Equal("changed");
+    }
+
+    [Fact]
+    public async Task StateFilter_Recommended_ReShowsACardAnApplyMovedToRecommended()
+    {
+        Action<SettingAppliedEvent>? handler = null;
+        _mockEventBus
+            .Setup(e => e.Subscribe(It.IsAny<Action<SettingAppliedEvent>>()))
+            .Callback<Action<SettingAppliedEvent>>(h => handler = h)
+            .Returns(new Mock<ISubscriptionToken>().Object);
+
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel> { OffRecommended("card", "Card") });
+        await vm.LoadSettingsAsync();
+        vm.SetViewFilter(SettingStateFilter.Recommended, onlyChanges: null);
+        vm.Settings[0].IsVisible.Should().BeFalse();
+
+        handler.Should().NotBeNull();
+        handler!(new SettingAppliedEvent("card", isEnabled: true));
+
+        vm.Settings[0].IsVisible.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task StateFilter_ABurstOfBadgeChanges_RefiltersOnce()
+    {
+        var queued = new List<Action>();
+        _mockDispatcherService
+            .Setup(d => d.Enqueue(It.IsAny<Action>()))
+            .Callback<Action>(queued.Add);
+
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            OffRecommended("a", "A"),
+            OffRecommended("b", "B"),
+            OffRecommended("c", "C"),
+        });
+        await vm.LoadSettingsAsync();
+        vm.SetViewFilter(SettingStateFilter.Recommended, onlyChanges: null);
+
+        foreach (var setting in vm.Settings)
+            setting.UpdateStateFromEvent(isEnabled: true, value: null);
+
+        queued.Should().ContainSingle();
+        queued[0]();
+        vm.Settings.Should().OnlyContain(s => s.IsVisible);
+    }
+
+    [Fact]
+    public async Task StateFilter_AChildThatMatches_BringsBackItsParent()
+    {
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            OffRecommended("parent", "Parent"),
+            CreateSettingItem("child", "Child", isSelected: true, uiParentId: "parent",
+                stateLabels: ToggleStates, firstStateRoles: RecommendedRole),
+        });
+        await vm.LoadSettingsAsync();
+
+        vm.SetViewFilter(SettingStateFilter.Recommended, onlyChanges: null);
+
+        vm.Settings.Where(s => s.IsVisible).Select(s => s.SettingId).Should().BeEquivalentTo("parent", "child");
+    }
+
+    [Fact]
+    public async Task StateFilter_AParentThatMatches_LeavesItsFailingChildrenHidden()
+    {
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            AtRecommended("parent", "Parent"),
+            CreateSettingItem("child", "Child", isSelected: false, uiParentId: "parent",
+                stateLabels: ToggleStates, firstStateRoles: RecommendedRole),
+        });
+        await vm.LoadSettingsAsync();
+
+        vm.SetViewFilter(SettingStateFilter.Recommended, onlyChanges: null);
+
+        vm.Settings.Where(s => s.IsVisible).Select(s => s.SettingId).Should().Equal("parent");
     }
 
     private static BadgePillState RecommendedPill(SettingItemViewModel setting) =>

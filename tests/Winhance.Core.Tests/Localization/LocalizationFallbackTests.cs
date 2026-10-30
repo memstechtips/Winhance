@@ -15,6 +15,12 @@ public class LocalizationFallbackTests
         @"(_localizationService|_localization|localizationService)\??\.GetString\([^;]*?\)\s*\?\?",
         RegexOptions.Compiled | RegexOptions.Singleline);
 
+    // string.IsNullOrEmpty(localization.GetString(key)) is the same dead check written as a condition: the miss
+    // is "[key]", never empty. Covers the inline call only; a result stored in a local and tested later is not caught.
+    private static readonly Regex DeadEmptyCheck = new(
+        @"IsNullOr(Empty|WhiteSpace)\(\s*\w*[lL]ocali[sz]ation\w*\??\.GetString\(",
+        RegexOptions.Compiled);
+
     [Fact]
     public void NoSourceFile_UsesTheUnreachableGetStringFallback()
     {
@@ -24,9 +30,8 @@ public class LocalizationFallbackTests
                      Path.Combine(RepoPaths.SolutionDir(), "src"), "*.cs", SearchOption.AllDirectories))
         {
             var text = File.ReadAllText(file);
-            if (!DeadFallback.IsMatch(text)) continue;
 
-            foreach (Match match in DeadFallback.Matches(text))
+            foreach (Match match in DeadFallback.Matches(text).Concat(DeadEmptyCheck.Matches(text)))
             {
                 int line = text.Take(match.Index).Count(c => c == '\n') + 1;
                 offenders.Add($"{Path.GetFileName(file)}:{line}");
@@ -47,6 +52,10 @@ public class LocalizationFallbackTests
             .Should().BeTrue();
         DeadFallback.IsMatch(@"localizationService?.GetString(key) ?? fallback")
             .Should().BeTrue();
+        DeadEmptyCheck.IsMatch(@"string.IsNullOrEmpty(localization.GetString(key))")
+            .Should().BeTrue();
+        DeadEmptyCheck.IsMatch(@"string.IsNullOrWhiteSpace(_localizationService?.GetString(key))")
+            .Should().BeTrue();
     }
 
     [Fact]
@@ -56,6 +65,8 @@ public class LocalizationFallbackTests
         DeadFallback.IsMatch(@"doc.RootElement.GetProperty(""tag_name"").GetString() ?? ""v0.0.0""")
             .Should().BeFalse();
         DeadFallback.IsMatch(@"je.GetString() ?? """"")
+            .Should().BeFalse();
+        DeadEmptyCheck.IsMatch(@"string.IsNullOrEmpty(element.GetString())")
             .Should().BeFalse();
     }
 }

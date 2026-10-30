@@ -33,7 +33,12 @@ public interface ISectionPageViewModel : INotifyPropertyChanged
 
     ObservableCollection<SearchSuggestionItem> SearchSuggestions { get; }
 
+    // Set by the page so the empty-list message also covers a filter that hides every card.
+    SettingStateFilter StateFilter { get; set; }
+
     bool HasNoSearchResults { get; }
+
+    string NoResultsText { get; }
 
     // One item per section, in declaration order - the page iterates these instead of a static Sections list plus
     // a key-to-ViewModel lookup, so "the sections of this page" has one meaning.

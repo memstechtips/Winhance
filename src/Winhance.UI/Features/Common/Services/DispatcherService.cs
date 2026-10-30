@@ -44,6 +44,12 @@ public class DispatcherService : IDispatcherService
         }
     }
 
+    public void Enqueue(Action action)
+    {
+        EnsureInitialized();
+        _dispatcherQueue!.TryEnqueue(() => action());
+    }
+
     public async Task RunOnUIThreadAsync(Func<Task> asyncAction)
     {
         await RunOnUIThreadAsync(DispatcherQueuePriority.Normal, asyncAction);

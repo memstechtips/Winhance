@@ -13,6 +13,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.ViewModels;
 using ISettingsLoadingService = Winhance.UI.Features.Common.Interfaces.ISettingsLoadingService;
 
@@ -248,7 +249,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
         catch (Exception ex)
         {
-            _logService.Log(LogLevel.Warning, $"Related-card refresh failed in {GetType().Name}: {ex.Message}");
+            _logService.Log(LogLevel.Warning, $"Related-card refresh failed in {ModuleId}: {ex.Message}");
         }
     }
 
@@ -294,7 +295,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     }
 
     // A feature's name key is its id: FeatureNameKeys_FollowTheirFeatureId fails the gate if one ever does not.
-    private string GetDisplayName() => _localizationService.GetString($"Feature_{ModuleId}_Name");
+    private string GetDisplayName() => _localizationService.GetStringOrDefault($"Feature_{ModuleId}_Name", ModuleId);
 
     private async void OnLanguageChanged(object? sender, EventArgs e)
     {
@@ -469,49 +470,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             {
                 token.ThrowIfCancellationRequested();
 
-                bool featureMatches = string.IsNullOrWhiteSpace(value) ||
-                    (SearchMatchesFeatureName && DisplayName.Contains(value, StringComparison.OrdinalIgnoreCase));
-
-                _dispatcherService.RunOnUIThread(() =>
-                {
-                    if (featureMatches)
-                    {
-                        foreach (var setting in Settings)
-                        {
-                            setting.IsVisible = true;
-                        }
-                    }
-                    else
-                    {
-                        foreach (var setting in Settings)
-                        {
-                            setting.UpdateVisibility(value);
-                        }
-
-                        foreach (var kvp in _childrenByParentId)
-                        {
-                            if (_settingsById.TryGetValue(kvp.Key, out var parent) && parent.IsVisible)
-                            {
-                                foreach (var child in kvp.Value)
-                                    child.IsVisible = true;
-                            }
-                        }
-
-                        foreach (var kvp in _childrenByParentId)
-                        {
-                            if (kvp.Value.Any(c => c.EffectiveIsVisible))
-                            {
-                                if (_settingsById.TryGetValue(kvp.Key, out var parent))
-                                    parent.IsVisible = true;
-                            }
-                        }
-                    }
-
-                    RefreshLastChild();
-
-                    OnPropertyChanged(nameof(HasVisibleSettings));
-                    OnPropertyChanged(nameof(IsVisibleInSearch));
-                });
+                _dispatcherService.RunOnUIThread(ApplyVisibility);
             }
             catch (OperationCanceledException)
             {
@@ -561,7 +520,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             OnPropertyChanged(nameof(GroupDescriptionText));
 
             _settingsLoaded = true;
-            _logService.Log(LogLevel.Info, $"{GetType().Name}: Successfully loaded {Settings.Count} settings, HasVisibleSettings={HasVisibleSettings}");
+            _logService.Log(LogLevel.Info, $"{ModuleId}: Successfully loaded {Settings.Count} settings, HasVisibleSettings={HasVisibleSettings}");
         }
         catch (Exception ex)
         {
@@ -640,7 +599,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
         catch (Exception ex)
         {
-            _logService.Log(LogLevel.Warning, $"Error refreshing setting states in {GetType().Name}: {ex.Message}");
+            _logService.Log(LogLevel.Warning, $"Error refreshing setting states in {ModuleId}: {ex.Message}");
         }
     }
 
@@ -686,6 +645,62 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     // On a page of several features, text inside a feature's name shows that whole feature.
     protected virtual bool SearchMatchesFeatureName => true;
+
+    private SettingStateFilter _stateFilter;
+    private Func<string, bool>? _onlyChanges;
+    private bool _visibilityPending;
+
+    // Show Only Changes replaces the state filter rather than combining with it: a pending change is the
+    // question the review asks, and a card the import changes is rarely at the state it is filtered for.
+    public void SetViewFilter(SettingStateFilter stateFilter, Func<string, bool>? onlyChanges)
+    {
+        _stateFilter = stateFilter;
+        _onlyChanges = onlyChanges;
+        ApplyVisibility();
+    }
+
+    private bool PassesViewFilter(SettingItemViewModel setting) =>
+        _onlyChanges is { } onlyChanges
+            ? onlyChanges(setting.SettingId)
+            : setting.MatchesStateFilter(_stateFilter);
+
+    // The only writer of IsVisible. Search pulls a matched parent's children in with it; the view filter then
+    // applies to each card on its own, and a child that survives brings its parent back, because the parent's
+    // expander is where the child renders.
+    private void ApplyVisibility()
+    {
+        var search = SearchText ?? string.Empty;
+        bool featureMatches = string.IsNullOrWhiteSpace(search) ||
+            (SearchMatchesFeatureName && DisplayName.Contains(search, StringComparison.OrdinalIgnoreCase));
+
+        var shown = new HashSet<SettingItemViewModel>(Settings.Where(s => featureMatches || s.MatchesSearch(search)));
+
+        if (!featureMatches)
+        {
+            foreach (var (parentId, children) in _childrenByParentId)
+            {
+                if (_settingsById.TryGetValue(parentId, out var parent) && shown.Contains(parent))
+                    shown.UnionWith(children);
+            }
+        }
+
+        shown.RemoveWhere(s => !PassesViewFilter(s));
+
+        foreach (var (parentId, children) in _childrenByParentId)
+        {
+            if (children.Any(c => c.ParentIsVisible && shown.Contains(c))
+                && _settingsById.TryGetValue(parentId, out var parent))
+                shown.Add(parent);
+        }
+
+        foreach (var setting in Settings)
+            setting.IsVisible = shown.Contains(setting);
+
+        RefreshLastChild();
+
+        OnPropertyChanged(nameof(HasVisibleSettings));
+        OnPropertyChanged(nameof(IsVisibleInSearch));
+    }
 
     private void RefreshLastChild()
     {
@@ -749,6 +764,26 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         {
             RefreshDeclaredGates();
         }
+        else if (e.PropertyName is nameof(SettingItemViewModel.IsAtRecommended) or nameof(SettingItemViewModel.IsAtDefault)
+            && _stateFilter != SettingStateFilter.All && _onlyChanges is null)
+        {
+            QueueApplyVisibility();
+        }
+    }
+
+    // A bulk apply or refresh moves the badges one card at a time, so the filter runs once after the burst
+    // instead of once per card.
+    private void QueueApplyVisibility()
+    {
+        if (_visibilityPending)
+            return;
+
+        _visibilityPending = true;
+        _dispatcherService.Enqueue(() =>
+        {
+            _visibilityPending = false;
+            ApplyVisibility();
+        });
     }
 
     // Every per-card index this feature holds is derived from Settings, and nothing else holds per-card
@@ -797,6 +832,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
 
         RefreshDeclaredGates();
+        ApplyVisibility();
     }
 
     private void RebuildGroupedSettings()

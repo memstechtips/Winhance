@@ -36,6 +36,13 @@ public sealed partial class SettingsListView : UserControl
             typeof(SettingsListView),
             new PropertyMetadata(false));
 
+    public static readonly DependencyProperty NoResultsTextProperty =
+        DependencyProperty.Register(
+            nameof(NoResultsText),
+            typeof(string),
+            typeof(SettingsListView),
+            new PropertyMetadata(string.Empty));
+
     public static readonly DependencyProperty HeaderProperty =
         DependencyProperty.Register(
             nameof(Header),
@@ -75,8 +82,11 @@ public sealed partial class SettingsListView : UserControl
         set => SetValue(HasNoSearchResultsProperty, value);
     }
 
-    public string NoSearchResultsText =>
-        App.Services.GetRequiredService<ILocalizationService>().GetString("Common_Search_NoResults");
+    public string NoResultsText
+    {
+        get => (string)GetValue(NoResultsTextProperty);
+        set => SetValue(NoResultsTextProperty, value);
+    }
 
     // Inside this control's scroller: a page that wraps its own ScrollView around the list gets two fighting over the wheel.
     public object? Header
@@ -95,6 +105,7 @@ public sealed partial class SettingsListView : UserControl
     {
         this.InitializeComponent();
         SettingsListViewControl.LosingFocus += ListView_LosingFocus;
+        NoResultsText = App.Services.GetRequiredService<ILocalizationService>().GetString("Common_Search_NoResults");
 
         // Listening on the UserControl root lets us see the key even after the inner
         // ListView marks it handled during focus traversal (issue #581).

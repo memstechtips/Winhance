@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
+using Winhance.TestSupport;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Xunit;
@@ -37,6 +38,7 @@ public class PowerOptimizationsViewModelTests
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+        _mockLocalizationService.MirrorTryGetString();
 
         _mockDispatcherService
             .Setup(d => d.RunOnUIThread(It.IsAny<Action>()))

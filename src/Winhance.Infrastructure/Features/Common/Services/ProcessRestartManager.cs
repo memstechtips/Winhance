@@ -15,9 +15,6 @@ internal class ProcessRestartManager(
     IWindowsThemeService windowsThemeService,
     ILogService logService) : IProcessRestartManager
 {
-    // Explorer is never restarted here; it goes to the pending-restart bar (HandleRestartsAsync).
-    private const string ExplorerTarget = "Explorer";
-
     // Past this a broadcast becomes a WARNING in the user's own log: a silent two-second stall is what started this.
     private const int SlowBroadcastMs = 500;
 
@@ -67,8 +64,7 @@ internal class ProcessRestartManager(
     private Task HandleRestartsAsync(string? restartProcess, string? restartService, string settingId,
         bool themeAffecting, bool desktopAffecting)
     {
-        bool isExplorer = !string.IsNullOrEmpty(restartProcess)
-            && restartProcess.Equals(ExplorerTarget, StringComparison.OrdinalIgnoreCase);
+        bool isExplorer = RestartProcess.NamesExplorer(restartProcess);
 
         // Two INDEPENDENT reasons to tell Windows something changed:
         //   NotifyWindows - the setting DECLARES a notice (the theme settings; no restart needed), and
@@ -194,7 +190,7 @@ internal class ProcessRestartManager(
         // the USER decides when the shell goes down. Register every Explorer-carrying setting and drop
         // the target from the flush set. Skipping this would quietly reintroduce the kill through every
         // bulk path (apply-recommended, reset-section).
-        if (processes.Remove(ExplorerTarget))
+        if (processes.Remove(RestartProcess.ExplorerName))
         {
             // ONE broadcast for the whole batch, and it carries the theme set only when at least one of
             // the applied settings could actually change the theme. Synchronous here on purpose: FlushSets
@@ -204,7 +200,7 @@ internal class ProcessRestartManager(
             bool batchAffectsDesktop = settings.Any(WantsDesktopNotice);
             LogBroadcastDispatch(batchAffectsTheme, batchAffectsDesktop, settingId: null);
             RunBroadcast(batchAffectsTheme, batchAffectsDesktop, settingId: null);
-            foreach (var setting in settings.Where(HasExplorerRestart))
+            foreach (var setting in settings.Where(s => RestartTarget.IsExplorer(s.Apply.Restart)))
                 pendingRestartService.Register(setting.Id);
         }
 
@@ -219,10 +215,6 @@ internal class ProcessRestartManager(
 
     private static bool WantsDesktopNotice(Setting setting) =>
         setting.Apply.NotifyWindows.HasFlag(WindowsChange.Desktop);
-
-    private static bool HasExplorerRestart(Setting setting) =>
-        setting.Apply.Restart is RestartProcess rp
-        && rp.Name.Equals(ExplorerTarget, StringComparison.OrdinalIgnoreCase);
 
     // Reads process / service restarts from ApplyBehavior.Restart (a single RestartTarget) - no setting
     // sets both.
@@ -261,7 +253,7 @@ internal class ProcessRestartManager(
     // pending instead. Only intl (a broadcast) and genuine process kills remain.
     private void RestartProcessByName(string processName, string? settingIdForLog)
     {
-        if (processName.Equals("intl", StringComparison.OrdinalIgnoreCase))
+        if (processName.Equals(RestartProcess.IntlName, StringComparison.OrdinalIgnoreCase))
         {
             logService.Log(LogLevel.Info,
                 settingIdForLog != null

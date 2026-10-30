@@ -3,7 +3,6 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.ViewModels;
-using Winhance.UI.Features.Customize.Interfaces;
 
 namespace Winhance.UI.Features.Customize.ViewModels;
 
@@ -27,7 +26,7 @@ public partial class CustomizeViewModel : SectionPageViewModel<SectionInfo>
         new("TimeRegionLanguage", FeatureIds.TimeRegionLanguage),
     };
 
-    // Named properties for XAML binding (typed as interface, not concrete)
+    // Per-feature handles for ReviewModeViewModelCoordinator, which re-applies review state feature by feature.
     public ISettingsFeatureViewModel ExplorerViewModel { get; }
     public ISettingsFeatureViewModel StartMenuViewModel { get; }
     public ISettingsFeatureViewModel TaskbarViewModel { get; }
@@ -37,13 +36,13 @@ public partial class CustomizeViewModel : SectionPageViewModel<SectionInfo>
     public CustomizeViewModel(
         ILogService logService,
         ILocalizationService localizationService,
-        IEnumerable<ICustomizationFeatureViewModel> featureViewModels,
+        IEnumerable<ISettingsFeatureViewModel> featureViewModels,
         IConfigReviewBadgeService badgeService,
         IConfigReviewModeService reviewModeService,
         ICatalogSettingsRegistry registry,
         ICatalogScopeProvider scope,
         IApplicationModeService modeService)
-        : base(logService, localizationService, featureViewModels.Cast<ISettingsFeatureViewModel>(),
+        : base(logService, localizationService, featureViewModels.Where(vm => Sections.Any(s => s.ModuleId == vm.ModuleId)),
                badgeService, reviewModeService, registry, scope, modeService)
     {
         InitializeSectionMappings();

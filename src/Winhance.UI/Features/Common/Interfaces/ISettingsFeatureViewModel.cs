@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Interfaces;
@@ -31,5 +32,7 @@ public interface ISettingsFeatureViewModel : INotifyPropertyChanged, IDisposable
     Task RefreshSettingStatesAsync();
 
     void ApplySearchFilter(string searchText);
+
+    void SetViewFilter(SettingStateFilter stateFilter, Func<string, bool>? onlyChanges);
 
 }

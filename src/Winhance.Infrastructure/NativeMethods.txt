@@ -79,7 +79,7 @@ WM_THEMECHANGED
 
 // Num Lock's live state, matched to the saved setting (user32.dll)
 GetKeyState
-keybd_event
+SendInput
 VIRTUAL_KEY
 
 // ConPTY: a pseudoconsole so winget sees isatty(stdout) and emits progress bars (kernel32.dll)

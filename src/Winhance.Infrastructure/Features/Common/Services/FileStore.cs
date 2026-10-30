@@ -1,6 +1,7 @@
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.Customize.Interfaces;
@@ -11,15 +12,6 @@ internal sealed class FileStore(IFileSystemService files, ILogService log, IWind
 {
     // Only logged, never refused. Windows Setup reads the whole answer file into memory before it runs it.
     private const long LargeFileBytes = 16L * 1024 * 1024;
-
-    // A reserved device name resolves to the device with any extension on it, so NUL.jpg discards the bytes written
-    // and leaves the desktop pointed at a device rather than at a picture.
-    private static readonly HashSet<string> ReservedDeviceNames = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "CON", "PRN", "AUX", "NUL",
-        "COM0", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-        "LPT0", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
-    };
 
     public async Task<SelectionSet> LoadAsync(SelectionSet set)
     {
@@ -131,7 +123,7 @@ internal sealed class FileStore(IFileSystemService files, ILogService log, IWind
         if (Path.GetFileName(file.Destination) is not { Length: > 0 } name
             || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
             || !PictureFileConstants.IsPicture(name)
-            || ReservedDeviceNames.Contains(Path.GetFileNameWithoutExtension(name)))
+            || WindowsFileNames.IsReservedDeviceName(name))
         {
             log.Log(LogLevel.Warning, $"The file '{file.SettingId}' carries was ignored: '{file.Destination}' does not name a picture.");
             return null;

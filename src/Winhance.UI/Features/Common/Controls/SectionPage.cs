@@ -43,6 +43,11 @@ public sealed record SectionPageChrome(
     ToggleMenuFlyoutItem TechnicalDetailsToggle,
     ToggleMenuFlyoutItem InfoBadgesToggle,
     ToggleMenuFlyoutItem NewBadgesToggle,
+    MenuFlyoutSeparator StateFilterSeparator,
+    RadioMenuFlyoutItem StateFilterAllItem,
+    RadioMenuFlyoutItem StateFilterRecommendedItem,
+    RadioMenuFlyoutItem StateFilterWindowsDefaultItem,
+    RadioMenuFlyoutItem StateFilterCustomItem,
     ToggleMenuFlyoutItem ShowOnlyChangesToggle,
     MenuFlyoutSeparator ShowOnlyChangesSeparator,
     MenuFlyoutItem IncludeAllItem,
@@ -71,6 +76,8 @@ public abstract class SectionPage : Page
     private bool _isInfoBadgesVisible = true;
     private bool _isNewBadgesVisible = true;
     private bool _showOnlyChanges;
+    private SettingStateFilter _stateFilter;
+    private (RadioMenuFlyoutItem Item, SettingStateFilter Filter)[] _stateFilterItems = [];
 
     // x:Bind in the XAML still resolves against each page's concrete property, so bindings are unaffected by this indirection.
     protected abstract ISectionPageViewModel PageViewModel { get; }
@@ -95,6 +102,25 @@ public abstract class SectionPage : Page
         chrome.InfoBadgesToggle.Click += ViewInfoBadges_Click;
         chrome.NewBadgesToggle.Click += ViewNewBadges_Click;
         chrome.ShowOnlyChangesToggle.Click += ViewShowOnlyChanges_Click;
+
+        _stateFilterItems =
+        [
+            (chrome.StateFilterAllItem, SettingStateFilter.All),
+            (chrome.StateFilterRecommendedItem, SettingStateFilter.Recommended),
+            (chrome.StateFilterWindowsDefaultItem, SettingStateFilter.WindowsDefault),
+            (chrome.StateFilterCustomItem, SettingStateFilter.Custom),
+        ];
+        // Answer-file cards author a file rather than read this PC, so their badge state is nothing to filter by.
+        var stateFilterVisibility = IsAnswerFilePage ? Visibility.Collapsed : Visibility.Visible;
+        chrome.StateFilterSeparator.Visibility = stateFilterVisibility;
+        foreach (var (item, _) in _stateFilterItems)
+        {
+            // Radio groups are matched by name across the whole UI thread, and Optimize and Customize are both
+            // cached pages with this same menu.
+            item.GroupName = GetType().Name + "StateFilter";
+            item.Visibility = stateFilterVisibility;
+            item.Click += ViewStateFilter_Click;
+        }
         chrome.ContentFrame.Navigated += InnerContentFrame_Navigated;
         chrome.SearchBox.SuggestionChosen += SearchBox_SuggestionChosen;
         chrome.SearchBox.QuerySubmitted += SearchBox_QuerySubmitted;
@@ -171,9 +197,6 @@ public abstract class SectionPage : Page
 
             SetDropdownLabels();
             await InitializeViewTogglesAsync();
-
-            if (_showOnlyChanges)
-                ApplyShowOnlyChangesFilter();
 
             LogStartup("OnNavigatedTo complete");
         }
@@ -257,11 +280,6 @@ public abstract class SectionPage : Page
             ? nav.SectionKey
             : "Overview";
         UpdateContentVisibility();
-
-        // Cascade the "Show Only Changes" filter to the newly navigated sub-page
-        // so it doesn't need a toggle off/on to re-apply.
-        if (_showOnlyChanges)
-            ApplyShowOnlyChangesFilter();
     }
 
     private void UpdateContentVisibility()
@@ -348,6 +366,10 @@ public abstract class SectionPage : Page
         _chrome.ShowOnlyChangesToggle.Text = Localized("View_ShowOnlyChanges", "Show Only Changes");
         ToolTipService.SetToolTip(_chrome.ShowOnlyChangesToggle,
             Localized("View_ShowOnlyChanges_Tooltip", "Show only settings with pending changes from the imported config"));
+        _chrome.StateFilterAllItem.Text = Localized("View_StateFilter_All", "All settings");
+        _chrome.StateFilterRecommendedItem.Text = Localized("InfoBadge_Recommended", "Recommended");
+        _chrome.StateFilterWindowsDefaultItem.Text = Localized("View_StateFilter_WindowsDefault", "Windows default");
+        _chrome.StateFilterCustomItem.Text = Localized("View_StateFilter_Custom", "Custom");
 
         _chrome.IncludeAllItem.Text = Localized("QuickActions_IncludeAll", "Include All Settings");
         _chrome.ExcludeAllItem.Text = Localized("QuickActions_ExcludeAll", "Exclude All Settings");
@@ -368,13 +390,24 @@ public abstract class SectionPage : Page
                 UserPreferenceKeys.ShowInfoBadges, true);
             _isNewBadgesVisible = await _userPreferencesService.GetPreferenceAsync(
                 UserPreferenceKeys.ShowNewBadges, true);
+            if (!IsAnswerFilePage)
+            {
+                var savedStateFilter = await _userPreferencesService.GetPreferenceAsync(
+                    UserPreferenceKeys.SettingsStateFilter, nameof(SettingStateFilter.All));
+                _stateFilter = Enum.TryParse<SettingStateFilter>(savedStateFilter, out var stateFilter) && Enum.IsDefined(stateFilter)
+                    ? stateFilter
+                    : SettingStateFilter.All;
+            }
         }
 
         _chrome.TechnicalDetailsToggle.IsChecked = _isTechnicalDetailsVisible;
         _chrome.InfoBadgesToggle.IsChecked = _isInfoBadgesVisible;
         _chrome.NewBadgesToggle.IsChecked = _isNewBadgesVisible;
+        foreach (var (item, filter) in _stateFilterItems)
+            item.IsChecked = filter == _stateFilter;
 
         SyncViewStateToSettings();
+        ApplyViewFilter();
     }
 
     private void SyncViewStateToSettings()
@@ -414,37 +447,42 @@ public abstract class SectionPage : Page
         await SavePreferenceAsync(UserPreferenceKeys.ShowNewBadges, _isNewBadgesVisible);
     }
 
-    private async Task SavePreferenceAsync(string key, bool value)
+    private async Task SavePreferenceAsync<T>(string key, T value)
     {
         if (_userPreferencesService != null)
             await _userPreferencesService.SetPreferenceAsync(key, value);
     }
 
+    protected async void ViewStateFilter_Click(object sender, RoutedEventArgs e)
+    {
+        _stateFilter = _stateFilterItems.First(pair => ReferenceEquals(pair.Item, sender)).Filter;
+        ApplyViewFilter();
+        await SavePreferenceAsync(UserPreferenceKeys.SettingsStateFilter, _stateFilter.ToString());
+    }
+
     protected void ViewShowOnlyChanges_Click(object sender, RoutedEventArgs e)
     {
         _showOnlyChanges = _chrome.ShowOnlyChangesToggle.IsChecked;
-        ApplyShowOnlyChangesFilter();
+        ApplyViewFilter();
     }
 
-    private void ApplyShowOnlyChangesFilter()
+    // Each feature owns its cards' visibility, so the filter is handed down and the feature combines it with its
+    // own search; a section opened later already holds it.
+    private void ApplyViewFilter()
     {
-        foreach (var setting in SettingsInScope())
-        {
-            if (_showOnlyChanges)
-            {
-                // Visibility is decided by the service's diff dictionary — the same
-                // source that drives TotalChanges / ReviewedChanges and the Apply gate.
-                // Per-VM flags lag behind the service when a sub-page's ViewModels haven't been hydrated
-                // yet and would hide rows the user still needs to review (issue #665). See ReviewModeFilter
-                // for context.
-                setting.IsVisible = ReviewModeFilter.ShouldShowInReviewQueue(
-                    setting.SettingId, _configReviewService);
-            }
-            else
-            {
-                setting.UpdateVisibility(PageViewModel.SearchText ?? string.Empty);
-            }
-        }
+        foreach (var (item, _) in _stateFilterItems)
+            item.IsEnabled = !_showOnlyChanges;
+
+        // Read from the service's diff dictionary, the source behind TotalChanges and the Apply gate. Per-card
+        // flags lag behind it for a section whose ViewModels are not hydrated yet, and would hide rows the user
+        // still has to review (#665).
+        Func<string, bool>? onlyChanges = _showOnlyChanges
+            ? id => ReviewModeFilter.ShouldShowInReviewQueue(id, _configReviewService)
+            : null;
+
+        foreach (var item in PageViewModel.OverviewItems)
+            item.Feature.SetViewFilter(_stateFilter, onlyChanges);
+        PageViewModel.StateFilter = _stateFilter;
     }
 
     // The open section's settings when one is open, otherwise every section's.
@@ -643,19 +681,20 @@ public abstract class SectionPage : Page
             if (_showOnlyChanges)
             {
                 _showOnlyChanges = false;
-                ApplyShowOnlyChangesFilter();
+                ApplyViewFilter();
             }
         }
 
         UpdateIncludeActionsForAuthoring();
     }
 
+    private bool IsAnswerFilePage => PageViewModel.OverviewItems
+        .All(item => FeatureDefinitions.AutounattendFeatures.Contains(item.FeatureId));
+
     // An answer-file setting is always in the file, so a page of them has nothing to include or leave out.
     private void UpdateIncludeActionsForAuthoring()
     {
-        bool hasIncludableSection = PageViewModel.OverviewItems
-            .Any(item => !FeatureDefinitions.AutounattendFeatures.Contains(item.FeatureId));
-        var visibility = _applicationModeService.Capabilities().AuthorsIntent && hasIncludableSection
+        var visibility = _applicationModeService.Capabilities().AuthorsIntent && !IsAnswerFilePage
             ? Visibility.Visible
             : Visibility.Collapsed;
 

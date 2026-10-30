@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
@@ -11,13 +10,9 @@ internal class SponsorsService : ISponsorsService
     private const string LiveBase = "https://raw.githubusercontent.com/memstechtips/Winhance/sponsors/sponsors/";
     private const string LiveUrl = LiveBase + "sponsors.json";
     private const string UserAgent = "Winhance-Sponsors-Loader";
-    private const int TimeoutSeconds = 4;
+    private const int TimeoutSeconds = LiveJsonFeed<SponsorsDocument>.TimeoutSeconds;
     private const string LastGoodFileName = "sponsors.json";
     private const string LogoFolderName = "logos";
-
-    // raw.githubusercontent.com's 503s flap per cache node (measured 2026-09-09): most clear on the very next request.
-    // Only a failure that comes back fast is retried; a timeout already cost 4 s, and the exit dialog waits on this.
-    private static readonly int[] RetryDelaysMs = [500, 1000];
 
     // Winhance can sit in the tray for weeks. A fallback list is older than the live one from the start, so it is
     // replaced sooner.
@@ -30,9 +25,8 @@ internal class SponsorsService : ISponsorsService
     private readonly HttpClient _httpClient;
     private readonly ILogService _logService;
     private readonly IFileSystemService _fileSystemService;
-    private readonly IInteractiveUserService _interactiveUserService;
     private readonly TimeProvider _timeProvider;
-    private readonly Func<int, CancellationToken, Task> _delay;
+    private readonly LiveJsonFeed<SponsorsDocument> _feed;
 
     private SponsorsDocument? _cached;
     private bool _cachedIsLive;
@@ -63,9 +57,11 @@ internal class SponsorsService : ISponsorsService
         _httpClient = httpClient;
         _logService = logService;
         _fileSystemService = fileSystemService;
-        _interactiveUserService = interactiveUserService;
         _timeProvider = timeProvider;
-        _delay = delay ?? ((ms, token) => Task.Delay(ms, token));
+        _feed = new LiveJsonFeed<SponsorsDocument>(
+            httpClient, logService, fileSystemService, interactiveUserService, delay,
+            "sponsors", LiveUrl, UserAgent, LastGoodFileName,
+            json => JsonSerializer.Deserialize<SponsorsDocument>(json));
     }
 
     // Test seam: the refetch GetSponsorsAsync last started, so a test can wait for it.
@@ -92,8 +88,8 @@ internal class SponsorsService : ISponsorsService
             // The bundled snapshot is as old as the release, so the last list this PC fetched is the better fallback.
             var live = await TryFetchLiveAsync(cancellationToken).ConfigureAwait(false);
             var document = live
-                ?? await TryLoadAsync(_fileSystemService.CombinePath(LastGoodFolder(), LastGoodFileName), "the last good fetch").ConfigureAwait(false)
-                ?? await TryLoadAsync(BundledPath, "the bundled snapshot").ConfigureAwait(false);
+                ?? await _feed.LoadLastGoodAsync().ConfigureAwait(false)
+                ?? await _feed.LoadAsync(BundledPath, "the bundled snapshot").ConfigureAwait(false);
 
             if (document is null)
                 _logService.Log(LogLevel.Warning, "No sponsor data available.");
@@ -112,8 +108,8 @@ internal class SponsorsService : ISponsorsService
     public async Task<SponsorsDocument?> GetSnapshotAsync()
     {
         return _cached
-            ?? await TryLoadAsync(_fileSystemService.CombinePath(LastGoodFolder(), LastGoodFileName), "the last good fetch").ConfigureAwait(false)
-            ?? await TryLoadAsync(BundledPath, "the bundled snapshot").ConfigureAwait(false);
+            ?? await _feed.LoadLastGoodAsync().ConfigureAwait(false)
+            ?? await _feed.LoadAsync(BundledPath, "the bundled snapshot").ConfigureAwait(false);
     }
 
     // A logo is re-downloaded only when the live list changed since the last fetch or its file is missing, so a
@@ -123,7 +119,7 @@ internal class SponsorsService : ISponsorsService
         if (_fetchedLive is null)
             return;
 
-        string folder = _fileSystemService.CombinePath(LastGoodFolder(), LogoFolderName);
+        string folder = _fileSystemService.CombinePath(_feed.LastGoodFolder, LogoFolderName);
         foreach (string logo in _fetchedLive.Sponsors.Select(s => s.Logo).OfType<string>().Where(l => l.Length > 0).Distinct())
         {
             string path = _fileSystemService.CombinePath(folder, Path.GetFileName(logo));
@@ -162,7 +158,7 @@ internal class SponsorsService : ISponsorsService
 
         var sources = new List<string>();
 
-        string cached = _fileSystemService.CombinePath(LastGoodFolder(), LogoFolderName, Path.GetFileName(sponsor.Logo));
+        string cached = _fileSystemService.CombinePath(_feed.LastGoodFolder, LogoFolderName, Path.GetFileName(sponsor.Logo));
         if (_fileSystemService.FileExists(cached))
             sources.Add(new Uri(cached).AbsoluteUri);
 
@@ -201,106 +197,12 @@ internal class SponsorsService : ISponsorsService
 
     private async Task<SponsorsDocument?> TryFetchLiveAsync(CancellationToken cancellationToken)
     {
-        foreach (int delayMs in RetryDelaysMs)
-        {
-            var (document, retry) = await TryFetchOnceAsync(cancellationToken).ConfigureAwait(false);
-            if (document is not null || !retry)
-                return document;
-
-            await _delay(delayMs, cancellationToken).ConfigureAwait(false);
-        }
-
-        return (await TryFetchOnceAsync(cancellationToken).ConfigureAwait(false)).Document;
-    }
-
-    private async Task<(SponsorsDocument? Document, bool Retry)> TryFetchOnceAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            cts.CancelAfter(TimeSpan.FromSeconds(TimeoutSeconds));
-
-            using var request = new HttpRequestMessage(HttpMethod.Get, LiveUrl);
-            request.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
-
-            HttpResponseMessage response = await _httpClient.SendAsync(request, cts.Token).ConfigureAwait(false);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logService.Log(LogLevel.Warning, $"Live sponsors fetch returned {(int)response.StatusCode}.");
-                return (null, (int)response.StatusCode >= 500);
-            }
-
-            string json = await response.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
-            if (JsonSerializer.Deserialize<SponsorsDocument>(json) is not { } document)
-                return (null, false);
-
-            _logService.Log(LogLevel.Info, "Loaded sponsors from the live URL.");
-            _liveListChanged = await ReadLastGoodAsync().ConfigureAwait(false) != json;
-            _fetchedLive = document;
-            await SaveLastGoodAsync(json).ConfigureAwait(false);
-            return (document, false);
-        }
-        catch (HttpRequestException ex)
-        {
-            _logService.Log(LogLevel.Warning, $"Live sponsors fetch failed ({ex.Message}).");
-            return (null, true);
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Warning, $"Live sponsors fetch failed ({ex.Message}).");
-            return (null, false);
-        }
-    }
-
-    private async Task SaveLastGoodAsync(string json)
-    {
-        try
-        {
-            string folder = LastGoodFolder();
-            _fileSystemService.CreateDirectory(folder);
-            await _fileSystemService.WriteAllTextAsync(_fileSystemService.CombinePath(folder, LastGoodFileName), json).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Warning, $"Could not save the fetched sponsors list ({ex.Message}).");
-        }
-    }
-
-    private async Task<string?> ReadLastGoodAsync()
-    {
-        try
-        {
-            string path = _fileSystemService.CombinePath(LastGoodFolder(), LastGoodFileName);
-            return _fileSystemService.FileExists(path) ? await _fileSystemService.ReadAllTextAsync(path).ConfigureAwait(false) : null;
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Warning, $"Could not read the saved sponsors list ({ex.Message}).");
+        var fetch = await _feed.FetchAsync(cancellationToken).ConfigureAwait(false);
+        if (fetch is null)
             return null;
-        }
+
+        _liveListChanged = fetch.PreviousJson != fetch.Json;
+        _fetchedLive = fetch.Value;
+        return fetch.Value;
     }
-
-    private async Task<SponsorsDocument?> TryLoadAsync(string path, string source)
-    {
-        try
-        {
-            if (!_fileSystemService.FileExists(path))
-                return null;
-
-            string json = await _fileSystemService.ReadAllTextAsync(path).ConfigureAwait(false);
-            SponsorsDocument? document = JsonSerializer.Deserialize<SponsorsDocument>(json);
-            _logService.Log(LogLevel.Info, $"Loaded sponsors from {source}.");
-            return document;
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Warning, $"Could not load sponsors from {source} ({ex.Message}).");
-            return null;
-        }
-    }
-
-    private string LastGoodFolder() => _fileSystemService.CombinePath(
-        AppDataPaths.UserRoot(_interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData)),
-        "Cache");
 }

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -7,9 +8,7 @@ using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Common.ViewModels;
-using Winhance.UI.Features.Customize.Interfaces;
 using Winhance.UI.Features.Customize.ViewModels;
-using Winhance.UI.Features.Optimize.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Winhance.UI.Features.Settings.ViewModels;
 using Winhance.UI.Features.SoftwareApps.Services;
@@ -111,26 +110,17 @@ public static class UIServicesExtensions
 
         services.AddTransient<SettingsViewModel>();
 
-        // Optimize ViewModels (Singleton for state preservation during inner navigation)
-        // Child VMs registered as IOptimizationFeatureViewModel so OptimizeViewModel
-        // receives them via IEnumerable<IOptimizationFeatureViewModel> injection.
+        // Optimize and Customize pages (Singleton for state preservation during inner navigation).
+        // One feature VM per page section, registered from Sections so a new section cannot miss its VM.
         services.AddSingleton<OptimizeViewModel>();
-        services.AddSingleton<IOptimizationFeatureViewModel, SoundOptimizationsViewModel>();
-        services.AddSingleton<IOptimizationFeatureViewModel, UpdateOptimizationsViewModel>();
-        services.AddSingleton<IOptimizationFeatureViewModel, NotificationOptimizationsViewModel>();
-        services.AddSingleton<IOptimizationFeatureViewModel, PrivacyOptimizationsViewModel>();
-        services.AddSingleton<IOptimizationFeatureViewModel, PowerOptimizationsViewModel>();
-        services.AddSingleton<IOptimizationFeatureViewModel, GamingOptimizationsViewModel>();
-
-        // Customize ViewModels (Singleton for state preservation during inner navigation)
-        // Child VMs registered as ICustomizationFeatureViewModel so CustomizeViewModel
-        // receives them via IEnumerable<ICustomizationFeatureViewModel> injection.
         services.AddSingleton<CustomizeViewModel>();
-        services.AddSingleton<ICustomizationFeatureViewModel, ExplorerCustomizationsViewModel>();
-        services.AddSingleton<ICustomizationFeatureViewModel, StartMenuCustomizationsViewModel>();
-        services.AddSingleton<ICustomizationFeatureViewModel, TaskbarCustomizationsViewModel>();
-        services.AddSingleton<ICustomizationFeatureViewModel, WindowsThemeCustomizationsViewModel>();
-        services.AddSingleton<ICustomizationFeatureViewModel, TimeRegionLanguageViewModel>();
+        foreach (var moduleId in OptimizeViewModel.Sections.Concat(CustomizeViewModel.Sections).Select(s => s.ModuleId))
+        {
+            if (moduleId == FeatureIds.Power)
+                services.AddSingleton<ISettingsFeatureViewModel, PowerOptimizationsViewModel>();
+            else
+                services.AddSingleton<ISettingsFeatureViewModel>(sp => ActivatorUtilities.CreateInstance<SettingsFeatureViewModel>(sp, moduleId));
+        }
 
         services.AddSingleton<WimUtilSession>();
         services.AddSingleton<WimUtilViewModel>();

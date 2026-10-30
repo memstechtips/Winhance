@@ -8,10 +8,9 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
-using Winhance.UI.Features.Optimize.Interfaces;
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
-public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel, IOptimizationFeatureViewModel
+public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
 {
     private readonly IDialogService _dialogService;
     private readonly IPowerService _powerService;

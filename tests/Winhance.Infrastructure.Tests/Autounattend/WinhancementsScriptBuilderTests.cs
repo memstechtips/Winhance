@@ -94,7 +94,7 @@ public class WinhancementsScriptBuilderTests
     {
         var result = await _sut.BuildAsync(SelectionSet.Empty, new Dictionary<string, IReadOnlyList<Setting>>());
 
-        var guard = result.IndexOf("if (Test-Path 'C:\\ProgramData\\Winhance\\Unattend\\Updates') {", StringComparison.Ordinal);
+        var guard = result.IndexOf($"if (Test-Path '{ScriptPaths.UnattendUpdatesDirectory}') {{", StringComparison.Ordinal);
         guard.Should().BeGreaterThan(0);
         result.IndexOf("UserCustomizations running as SYSTEM", StringComparison.Ordinal).Should().BeGreaterThan(guard);
         result[guard..result.IndexOf("UserCustomizations running as SYSTEM", StringComparison.Ordinal)]

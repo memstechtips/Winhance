@@ -41,6 +41,8 @@ public static class FeatureDefinitions
         .Select(f => f.Id)
         .ToHashSet();
 
+    public static bool IsSettingsFeature(string featureId) => OptimizeFeatures.Contains(featureId) || CustomizeFeatures.Contains(featureId);
+
     public static FeatureDefinition? Get(string id) => All.FirstOrDefault(f => f.Id == id);
 
     public static string CategoryIconKey(string category) => category switch

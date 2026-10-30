@@ -241,75 +241,45 @@ public class SettingItemViewModelTests
     }
 
     [Fact]
-    public void UpdateVisibility_EmptySearch_MakesVisible()
+    public void MatchesSearch_EmptySearch_IsTrue()
     {
-        var sut = CreateSut();
-        sut.IsVisible = false;
-
-        sut.UpdateVisibility("");
-
-        sut.IsVisible.Should().BeTrue();
+        CreateSut().MatchesSearch("").Should().BeTrue();
     }
 
     [Fact]
-    public void UpdateVisibility_WhitespaceSearch_MakesVisible()
+    public void MatchesSearch_WhitespaceSearch_IsTrue()
     {
-        var sut = CreateSut();
-        sut.IsVisible = false;
-
-        sut.UpdateVisibility("   ");
-
-        sut.IsVisible.Should().BeTrue();
+        CreateSut().MatchesSearch("   ").Should().BeTrue();
     }
 
     [Fact]
-    public void UpdateVisibility_MatchingName_MakesVisible()
+    public void MatchesSearch_MatchingName_IsTrue()
     {
-        var sut = CreateSut();
-
-        sut.UpdateVisibility("Test");
-
-        sut.IsVisible.Should().BeTrue();
+        CreateSut().MatchesSearch("Test").Should().BeTrue();
     }
 
     [Fact]
-    public void UpdateVisibility_MatchingDescription_MakesVisible()
+    public void MatchesSearch_MatchingDescription_IsTrue()
     {
-        var sut = CreateSut();
-
-        sut.UpdateVisibility("description");
-
-        sut.IsVisible.Should().BeTrue();
+        CreateSut().MatchesSearch("description").Should().BeTrue();
     }
 
     [Fact]
-    public void UpdateVisibility_MatchingGroupName_MakesVisible()
+    public void MatchesSearch_MatchingGroupName_IsTrue()
     {
-        var sut = CreateSut();
-
-        sut.UpdateVisibility("Group");
-
-        sut.IsVisible.Should().BeTrue();
+        CreateSut().MatchesSearch("Group").Should().BeTrue();
     }
 
     [Fact]
-    public void UpdateVisibility_NonMatchingSearch_HidesItem()
+    public void MatchesSearch_NonMatchingSearch_IsFalse()
     {
-        var sut = CreateSut();
-
-        sut.UpdateVisibility("zzz_nonexistent");
-
-        sut.IsVisible.Should().BeFalse();
+        CreateSut().MatchesSearch("zzz_nonexistent").Should().BeFalse();
     }
 
     [Fact]
-    public void UpdateVisibility_IsCaseInsensitive()
+    public void MatchesSearch_IsCaseInsensitive()
     {
-        var sut = CreateSut();
-
-        sut.UpdateVisibility("test setting");
-
-        sut.IsVisible.Should().BeTrue();
+        CreateSut().MatchesSearch("test setting").Should().BeTrue();
     }
 
     [Fact]

@@ -4,7 +4,6 @@ using Moq;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
-using Winhance.UI.Features.Optimize.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Xunit;
 using Winhance.TestSupport;
@@ -35,7 +34,7 @@ public class OptimizeViewModelTests
         _mockLocalizationService.MirrorTryGetString();
     }
 
-    private IEnumerable<IOptimizationFeatureViewModel> CreateFeatureViewModels()
+    private IEnumerable<ISettingsFeatureViewModel> CreateFeatureViewModels()
     {
         // Create one mock per required FeatureId so InitializeSectionMappings
         // and GetFeatureByModuleId succeed.
@@ -49,10 +48,10 @@ public class OptimizeViewModelTests
             FeatureIds.Sound,
         };
 
-        var viewModels = new List<IOptimizationFeatureViewModel>();
+        var viewModels = new List<ISettingsFeatureViewModel>();
         foreach (var moduleId in moduleIds)
         {
-            var mock = new Mock<IOptimizationFeatureViewModel>();
+            var mock = new Mock<ISettingsFeatureViewModel>();
             mock.Setup(vm => vm.ModuleId).Returns(moduleId);
             mock.Setup(vm => vm.DisplayName).Returns($"{moduleId} Display");
             mock.Setup(vm => vm.SettingsCount).Returns(0);

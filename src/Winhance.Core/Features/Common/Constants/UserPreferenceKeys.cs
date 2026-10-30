@@ -14,6 +14,7 @@ public static class UserPreferenceKeys
     public const string ShowTechnicalDetails = "ShowTechnicalDetails";
     public const string ShowInfoBadges = "ShowInfoBadges";
     public const string ShowNewBadges = "ShowNewBadges";
+    public const string SettingsStateFilter = "SettingsStateFilter";
     public const string HighestSeenAddedInVersion = "HighestSeenAddedInVersion";
     public const string UiZoomFactor = "UiZoomFactor";
     public const string SupportAskedAt = "SupportAskedAt";

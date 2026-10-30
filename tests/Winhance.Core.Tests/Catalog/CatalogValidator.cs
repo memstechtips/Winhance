@@ -1,6 +1,7 @@
+﻿using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 
-namespace Winhance.Core.Features.Common.Catalog;
+namespace Winhance.Core.Tests.Catalog;
 
 public static class CatalogValidator
 {
@@ -402,3 +403,5 @@ public static class CatalogValidator
         color[node] = 2;
     }
 }
+
+public sealed record CatalogValidationError(string SettingId, string Message);

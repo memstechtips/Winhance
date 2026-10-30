@@ -1,5 +1,6 @@
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
@@ -55,11 +56,7 @@ public class SettingLocalizationService : ISettingLocalizationService
                     groupedSettings[groupKey] = groupItems;
                 }
 
-                var localizedChildName = _localization.GetString(localizationKey.Value);
-                if (!string.IsNullOrEmpty(localizedChildName))
-                {
-                    groupItems.Add(localizedChildName);
-                }
+                groupItems.Add(_localization.GetStringOrDefault(localizationKey.Value, childSettingId));
             }
             catch
             {
@@ -74,9 +71,5 @@ public class SettingLocalizationService : ISettingLocalizationService
         return $"{header}\n{string.Join("\n", lines)}";
     }
 
-    // The catalog knows which feature owns a setting; the id's prefix does not always name it.
-    private string GetFeatureName(string settingId) =>
-        SettingCatalog.FeatureById.TryGetValue(settingId, out var featureId)
-            ? _localization.GetString($"Feature_{featureId}_Name")
-            : _localization.GetString("Nav_Settings");
+    private string GetFeatureName(string settingId) => _localization.FeatureName(settingId, _localization.GetString("Nav_Settings"));
 }

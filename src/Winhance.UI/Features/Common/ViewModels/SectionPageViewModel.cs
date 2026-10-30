@@ -40,6 +40,11 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
     public partial string CurrentSectionKey { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNoSearchResults))]
+    [NotifyPropertyChangedFor(nameof(NoResultsText))]
+    public partial SettingStateFilter StateFilter { get; set; }
+
+    [ObservableProperty]
     public partial ObservableCollection<SearchSuggestionItem> SearchSuggestions { get; set; }
 
     protected abstract string PageTitleKey { get; }
@@ -69,7 +74,7 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
     {
         get
         {
-            if (string.IsNullOrWhiteSpace(SearchText))
+            if (string.IsNullOrWhiteSpace(SearchText) && StateFilter == SettingStateFilter.All)
                 return false;
 
             var currentVm = GetSectionViewModel(CurrentSectionKey);
@@ -79,6 +84,9 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
             return _featureViewModels.All(vm => !vm.HasVisibleSettings);
         }
     }
+
+    public string NoResultsText => _localizationService.GetString(
+        string.IsNullOrWhiteSpace(SearchText) ? "View_StateFilter_NoResults" : "Common_Search_NoResults");
 
     protected SectionPageViewModel(
         ILogService logService,
@@ -165,6 +173,7 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         OnPropertyChanged(nameof(PageDescription));
         OnPropertyChanged(nameof(BreadcrumbRootText));
         OnPropertyChanged(nameof(SearchPlaceholder));
+        OnPropertyChanged(nameof(NoResultsText));
     }
 
     // A feature filters its cards on a later dispatcher turn, so the answer here changes after SearchText has raised.
@@ -323,5 +332,6 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
 
         UpdateSearchSuggestions(value);
         OnPropertyChanged(nameof(HasNoSearchResults));
+        OnPropertyChanged(nameof(NoResultsText));
     }
 }

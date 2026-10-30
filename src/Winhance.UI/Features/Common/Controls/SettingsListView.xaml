@@ -72,7 +72,7 @@
 
                     <!-- No Results Message -->
                     <TextBlock
-                        Text="{x:Bind NoSearchResultsText}"
+                        Text="{x:Bind NoResultsText, Mode=OneWay}"
                         Style="{StaticResource BodyTextBlockStyle}"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                         HorizontalAlignment="Center"

@@ -261,14 +261,20 @@ internal class WindowsUIManagementService : IWindowsUIManagementService
                 return;
 
             // Num Lock is an extended key; scan code 0x45 is what the keyboard itself sends.
-            PInvoke.keybd_event((byte)VIRTUAL_KEY.VK_NUMLOCK, 0x45, KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY, 0);
-            PInvoke.keybd_event((byte)VIRTUAL_KEY.VK_NUMLOCK, 0x45, KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY | KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP, 0);
+            ReadOnlySpan<INPUT> keyPress = [NumLockInput(default), NumLockInput(KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP)];
+            PInvoke.SendInput(keyPress, Marshal.SizeOf<INPUT>());
         }
         catch (Exception ex)
         {
             _logService.LogError("Error matching Num Lock to the saved setting", ex);
         }
     }
+
+    private static INPUT NumLockInput(KEYBD_EVENT_FLAGS flags) => new()
+    {
+        type = INPUT_TYPE.INPUT_KEYBOARD,
+        Anonymous = { ki = new KEYBDINPUT { wVk = VIRTUAL_KEY.VK_NUMLOCK, wScan = 0x45, dwFlags = KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY | flags } },
+    };
 
     public unsafe void BroadcastRegionalSettingChange()
     {

@@ -713,12 +713,31 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     private RelayCommand? _setDcSelectionToDefaultCommand;
 
     // Set by ComputeBadgeState; a card without badge data never matches, so a bulk action still counts it.
-    public bool IsAtRecommended { get; private set; }
+    [ObservableProperty]
+    public partial bool IsAtRecommended { get; private set; }
 
-    public bool IsAtDefault { get; private set; }
+    [ObservableProperty]
+    public partial bool IsAtDefault { get; private set; }
 
     public bool WouldQuickSetChange(bool recommended) =>
         HasQuickSetTarget(recommended) && !(recommended ? IsAtRecommended : IsAtDefault);
+
+    // ComputeBadgeState leaves a toggle with no Recommended state "at Recommended" (there is nothing to miss), so each
+    // side also needs a target. Custom needs a state to differ from, so a card without badge data (an action) shows
+    // under All only.
+    public bool MatchesStateFilter(SettingStateFilter filter)
+    {
+        bool atRecommended = IsAtRecommended && HasQuickSetTarget(recommended: true);
+        bool atDefault = IsAtDefault && HasQuickSetTarget(recommended: false);
+        return filter switch
+        {
+            SettingStateFilter.All => true,
+            SettingStateFilter.Recommended => atRecommended,
+            SettingStateFilter.WindowsDefault => atDefault,
+            SettingStateFilter.Custom => HasBadgeData && !atRecommended && !atDefault,
+            _ => throw new ArgumentOutOfRangeException(nameof(filter), filter, null),
+        };
+    }
 
     private bool HasQuickSetTarget(bool recommended) => InputType switch
     {
@@ -1020,8 +1039,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         OnPropertyChanged(nameof(EffectiveIsEnabled));
     }
 
-    // Kept apart from IsVisible because the search path stamps that one true on every card on every keystroke,
-    // which would erase a declared gate.
+    // Kept apart from IsVisible because search and the view filter rewrite that one on every pass, which would
+    // erase a declared gate.
     [ObservableProperty]
     public partial bool ParentIsVisible { get; set; }
 
@@ -1904,18 +1923,11 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         _technicalDetailsManager.Update(Setting, snapshot);
     }
 
-    public void UpdateVisibility(string searchText)
-    {
-        if (string.IsNullOrWhiteSpace(searchText))
-        {
-            IsVisible = true;
-            return;
-        }
-
-        IsVisible = Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                   Description.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                   (!string.IsNullOrEmpty(GroupName) && GroupName.Contains(searchText, StringComparison.OrdinalIgnoreCase));
-    }
+    public bool MatchesSearch(string searchText) =>
+        string.IsNullOrWhiteSpace(searchText)
+        || Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+        || Description.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+        || (!string.IsNullOrEmpty(GroupName) && GroupName.Contains(searchText, StringComparison.OrdinalIgnoreCase));
 
     // Updates setting state from external events (bypasses apply logic since change already happened)
     public void UpdateStateFromEvent(bool isEnabled, object? value)

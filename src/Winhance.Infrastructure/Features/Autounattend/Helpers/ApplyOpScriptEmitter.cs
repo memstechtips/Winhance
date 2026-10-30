@@ -65,7 +65,7 @@ internal sealed class ApplyOpScriptEmitter
 
     // The name sits in a line comment, where a line break would end the comment early.
     private string NameOf(Setting setting) =>
-        _localization.GetStringOrDefault(setting.Display.Name.Value, setting.Display.Name.Value).ReplaceLineEndings(" ");
+        _localization.SettingName(setting).ReplaceLineEndings(" ");
 
     public EmitResult Emit(
         SelectionSet set,

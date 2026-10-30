@@ -10,15 +10,8 @@
     <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
     <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
 
-    <!-- Null/Empty Converters -->
-    <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
-    <converters:NotNullToVisibilityConverter x:Key="NotNullToVisibilityConverter"/>
-
     <!-- Icon Converters -->
     <converters:IconConverter x:Key="IconConverter"/>
     <converters:SectionIconConverter x:Key="SectionIconConverter"/>
     <converters:StringToGeometryConverter x:Key="StringToGeometryConverter"/>
-
-    <!-- Badge Converters -->
-
 </ResourceDictionary>
