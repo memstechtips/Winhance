@@ -214,10 +214,11 @@ public class DocsCatalogExportShapeTests
         feature.Settings.Should().HaveCount(12);
         // The region cards lead the page and are all keyed; the moved format ones follow. Counting keyed settings
         // across the whole feature would not say that, since the short date is keyed too.
-        var region = feature.Settings.TakeWhile(s => s.Id.StartsWith("region-", StringComparison.Ordinal)).ToList();
+        var formats = Loc.GetString("SettingGroup_Formats");
+        var region = feature.Settings.TakeWhile(s => s.Group != formats).ToList();
         region.Should().HaveCount(6);
         region.Select(s => s.Control).Should().AllBe("KeyedSelection");
-        feature.Settings.Should().Contain(s => s.Id == "explorer-customization-short-date"
-            && s.Group == Loc.GetString("SettingGroup_Formats"));
+        feature.Settings.Should().Contain(s => s.Id == "region-short-date"
+            && s.Group == formats);
     }
 }

@@ -14,7 +14,7 @@ internal class ConfigMigrationService : IConfigMigrationService
 
     // Taken from the card itself so the two cannot drift; the order IS the old index order.
     private static readonly IReadOnlyList<string> ShortDateKeys =
-        SettingCatalog.Find("explorer-customization-short-date")?.Options?.Keys ?? [];
+        SettingCatalog.Find("region-short-date")?.Options?.Keys ?? [];
 
     // The three "DoH" DNS options became their plain servers, each encrypted with the template Windows knows for it.
     private static readonly Dictionary<int, (string Preferred, string Alternate)> DnsDohOptions = new()
@@ -35,7 +35,7 @@ internal class ConfigMigrationService : IConfigMigrationService
             ["explorer-customization-shortcut-arrow"] = MigrateToggleToSelection,
             ["gaming-background-apps"] = MigrateBackgroundApps,
             ["updates-notification-level"] = MigrateUpdateNotificationLevel,
-            ["explorer-customization-short-date"] = MigrateShortDateToKey,
+            ["region-short-date"] = MigrateShortDateToKey,
             ["gaming-dns-server"] = MigrateDnsDohOption,
         };
     }

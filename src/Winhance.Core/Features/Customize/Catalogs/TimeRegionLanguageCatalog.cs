@@ -183,11 +183,11 @@ public static class TimeRegionLanguageCatalog
         },
         new()
         {
-            Id = "explorer-customization-short-date",
+            Id = "region-short-date",
             Display = new()
             {
-                Name = LocKey.Setting.ExplorerCustomizationShortDate.Name,
-                Description = LocKey.Setting.ExplorerCustomizationShortDate.Description,
+                Name = LocKey.Setting.RegionShortDate.Name,
+                Description = LocKey.Setting.RegionShortDate.Description,
                 GroupName = LocKey.SettingGroup.Formats,
                 Icon = MaterialIcons.CalendarMonth,
                 AddedInVersion = "26.04.10",
@@ -209,11 +209,11 @@ public static class TimeRegionLanguageCatalog
         },
         new()
         {
-            Id = "explorer-customization-first-day-of-week",
+            Id = "region-first-day-of-week",
             Display = new()
             {
-                Name = LocKey.Setting.ExplorerCustomizationFirstDayOfWeek.Name,
-                Description = LocKey.Setting.ExplorerCustomizationFirstDayOfWeek.Description,
+                Name = LocKey.Setting.RegionFirstDayOfWeek.Name,
+                Description = LocKey.Setting.RegionFirstDayOfWeek.Description,
                 GroupName = LocKey.SettingGroup.Formats,
                 Icon = MaterialIcons.CalendarWeekBegin,
                 AddedInVersion = "26.04.10",
@@ -228,48 +228,48 @@ public static class TimeRegionLanguageCatalog
             {
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationFirstDayOfWeek.Option0,
+                    Label = LocKey.Setting.RegionFirstDayOfWeek.Option0,
                     Set = new Dictionary<string, StateValue> { ["iFirstDayOfWeek"] = Of("6").OrAbsent() },
                 },
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationFirstDayOfWeek.Option1,
+                    Label = LocKey.Setting.RegionFirstDayOfWeek.Option1,
                     Set = new Dictionary<string, StateValue> { ["iFirstDayOfWeek"] = Of("0") },
                 },
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationFirstDayOfWeek.Option2,
+                    Label = LocKey.Setting.RegionFirstDayOfWeek.Option2,
                     Set = new Dictionary<string, StateValue> { ["iFirstDayOfWeek"] = Of("1") },
                 },
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationFirstDayOfWeek.Option3,
+                    Label = LocKey.Setting.RegionFirstDayOfWeek.Option3,
                     Set = new Dictionary<string, StateValue> { ["iFirstDayOfWeek"] = Of("2") },
                 },
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationFirstDayOfWeek.Option4,
+                    Label = LocKey.Setting.RegionFirstDayOfWeek.Option4,
                     Set = new Dictionary<string, StateValue> { ["iFirstDayOfWeek"] = Of("3") },
                 },
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationFirstDayOfWeek.Option5,
+                    Label = LocKey.Setting.RegionFirstDayOfWeek.Option5,
                     Set = new Dictionary<string, StateValue> { ["iFirstDayOfWeek"] = Of("4") },
                 },
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationFirstDayOfWeek.Option6,
+                    Label = LocKey.Setting.RegionFirstDayOfWeek.Option6,
                     Set = new Dictionary<string, StateValue> { ["iFirstDayOfWeek"] = Of("5") },
                 },
             },
         },
         new()
         {
-            Id = "explorer-customization-number-decimal",
+            Id = "region-number-decimal",
             Display = new()
             {
-                Name = LocKey.Setting.ExplorerCustomizationNumberDecimal.Name,
-                Description = LocKey.Setting.ExplorerCustomizationNumberDecimal.Description,
+                Name = LocKey.Setting.RegionNumberDecimal.Name,
+                Description = LocKey.Setting.RegionNumberDecimal.Description,
                 GroupName = LocKey.SettingGroup.Formats,
                 Icon = MaterialIcons.Numeric,
                 AddedInVersion = "26.04.10",
@@ -284,33 +284,33 @@ public static class TimeRegionLanguageCatalog
             {
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationNumberDecimal.Option0,
+                    Label = LocKey.Setting.RegionNumberDecimal.Option0,
                     Set = new Dictionary<string, StateValue> { ["sDecimal"] = Of(".").OrAbsent() },
                 },
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationNumberDecimal.Option1,
+                    Label = LocKey.Setting.RegionNumberDecimal.Option1,
                     Set = new Dictionary<string, StateValue> { ["sDecimal"] = Of(",") },
                 },
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationNumberDecimal.Option2,
+                    Label = LocKey.Setting.RegionNumberDecimal.Option2,
                     Set = new Dictionary<string, StateValue> { ["sDecimal"] = Of(" ") },
                 },
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationNumberDecimal.Option3,
+                    Label = LocKey.Setting.RegionNumberDecimal.Option3,
                     Set = new Dictionary<string, StateValue> { ["sDecimal"] = Of("'") },
                 },
             },
         },
         new()
         {
-            Id = "explorer-customization-list-separator",
+            Id = "region-list-separator",
             Display = new()
             {
-                Name = LocKey.Setting.ExplorerCustomizationListSeparator.Name,
-                Description = LocKey.Setting.ExplorerCustomizationListSeparator.Description,
+                Name = LocKey.Setting.RegionListSeparator.Name,
+                Description = LocKey.Setting.RegionListSeparator.Description,
                 GroupName = LocKey.SettingGroup.Formats,
                 Icon = MaterialIcons.FormatListBulleted,
                 AddedInVersion = "26.04.10",
@@ -325,23 +325,23 @@ public static class TimeRegionLanguageCatalog
             {
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationListSeparator.Option0,
+                    Label = LocKey.Setting.RegionListSeparator.Option0,
                     Set = new Dictionary<string, StateValue> { ["sList"] = Of(",").OrAbsent() },
                 },
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationListSeparator.Option1,
+                    Label = LocKey.Setting.RegionListSeparator.Option1,
                     Set = new Dictionary<string, StateValue> { ["sList"] = Of(";") },
                 },
             },
         },
         new()
         {
-            Id = "explorer-customization-measurement-system",
+            Id = "region-measurement-system",
             Display = new()
             {
-                Name = LocKey.Setting.ExplorerCustomizationMeasurementSystem.Name,
-                Description = LocKey.Setting.ExplorerCustomizationMeasurementSystem.Description,
+                Name = LocKey.Setting.RegionMeasurementSystem.Name,
+                Description = LocKey.Setting.RegionMeasurementSystem.Description,
                 GroupName = LocKey.SettingGroup.Formats,
                 Icon = MaterialIcons.RulerSquare,
                 AddedInVersion = "26.04.10",
@@ -356,23 +356,23 @@ public static class TimeRegionLanguageCatalog
             {
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationMeasurementSystem.Option0,
+                    Label = LocKey.Setting.RegionMeasurementSystem.Option0,
                     Set = new Dictionary<string, StateValue> { ["iMeasure"] = Of("0").OrAbsent() },
                 },
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationMeasurementSystem.Option1,
+                    Label = LocKey.Setting.RegionMeasurementSystem.Option1,
                     Set = new Dictionary<string, StateValue> { ["iMeasure"] = Of("1") },
                 },
             },
         },
         new()
         {
-            Id = "explorer-customization-currency-decimal",
+            Id = "region-currency-decimal",
             Display = new()
             {
-                Name = LocKey.Setting.ExplorerCustomizationCurrencyDecimal.Name,
-                Description = LocKey.Setting.ExplorerCustomizationCurrencyDecimal.Description,
+                Name = LocKey.Setting.RegionCurrencyDecimal.Name,
+                Description = LocKey.Setting.RegionCurrencyDecimal.Description,
                 GroupName = LocKey.SettingGroup.Formats,
                 Icon = MaterialIcons.CurrencySign,
                 AddedInVersion = "26.04.10",
@@ -387,22 +387,22 @@ public static class TimeRegionLanguageCatalog
             {
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationCurrencyDecimal.Option0,
+                    Label = LocKey.Setting.RegionCurrencyDecimal.Option0,
                     Set = new Dictionary<string, StateValue> { ["sMonDecimalSep"] = Of(".").OrAbsent() },
                 },
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationCurrencyDecimal.Option1,
+                    Label = LocKey.Setting.RegionCurrencyDecimal.Option1,
                     Set = new Dictionary<string, StateValue> { ["sMonDecimalSep"] = Of(",") },
                 },
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationCurrencyDecimal.Option2,
+                    Label = LocKey.Setting.RegionCurrencyDecimal.Option2,
                     Set = new Dictionary<string, StateValue> { ["sMonDecimalSep"] = Of(" ") },
                 },
                 new SettingState
                 {
-                    Label = LocKey.Setting.ExplorerCustomizationCurrencyDecimal.Option3,
+                    Label = LocKey.Setting.RegionCurrencyDecimal.Option3,
                     Set = new Dictionary<string, StateValue> { ["sMonDecimalSep"] = Of("'") },
                 },
             },

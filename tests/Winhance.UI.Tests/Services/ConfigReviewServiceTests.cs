@@ -2032,9 +2032,11 @@ public class ConfigReviewServiceTests : IDisposable
     [InlineData("explorer-customization-list-separator", "List Separator", null)]
     [InlineData("explorer-customization-measurement-system", "Measurement System", null)]
     [InlineData("explorer-customization-currency-decimal", "Currency Decimal Symbol", null)]
-    public async Task EnterReviewModeAsync_AFileFromTheReleasedApp_DiffsAMovedSettingUnderTheFeatureItLivesInNow(
-        string settingId, string releasedName, string? savedKey)
+    public async Task EnterReviewModeAsync_AFileFromTheReleasedApp_DiffsAMovedSettingUnderItsNewIdAndFeature(
+        string releasedId, string releasedName, string? savedKey)
     {
+        var settingId = SettingIdAliases.Normalize(releasedId);
+        settingId.Should().StartWith("region-");
         _mockSettingStateProvider
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
@@ -2044,7 +2046,7 @@ public class ConfigReviewServiceTests : IDisposable
 
         // Winhance 26.06.12 writes these ids under the Explorer group. Short date is keyed on the pattern now,
         // and ConfigLoadService migrates the index that file holds before review ever sees it.
-        var item = new ConfigurationItem { Id = settingId, Name = releasedName, InputType = InputType.Selection };
+        var item = new ConfigurationItem { Id = releasedId, Name = releasedName, InputType = InputType.Selection };
         if (savedKey is null) item.SelectedIndex = 0;
         else (item.SelectedKey, item.SelectedKeyLabel) = (savedKey, savedKey);
         var config = new WinhanceConfigFile

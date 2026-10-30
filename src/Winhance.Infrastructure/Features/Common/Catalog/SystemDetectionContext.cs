@@ -22,6 +22,7 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
     private Dictionary<string, (int? acValue, int? dcValue)> _powerCache = new();
     private WinBuild? _currentBuild;
     private IReadOnlyList<DnsServer>? _dns;
+    private string? _activeAdapter;
     private bool _powerPrefetched;
     private string? _activePlanGuid;
     private bool _planPrefetched;
@@ -66,11 +67,15 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
     // Every DNS target of a batch asks, so the adapters are enumerated once. DNS via DHCP leaves NameServer empty;
     // that reads as the Automatic state.
     public IReadOnlyList<DnsServer> DnsServersOfActiveAdapter() =>
-        _dns ??= NetworkInterface.GetAllNetworkInterfaces()
+        _dns ??= ActiveAdapter() is { Length: > 0 } adapter ? DnsSettingsService.Read(_reg, adapter) : Array.Empty<DnsServer>();
+
+    public bool ActiveAdapterHasManualIp() =>
+        ActiveAdapter() is { Length: > 0 } adapter && _reg.GetValue($@"{DnsSettingsService.Interfaces}\{adapter}", "EnableDHCP") is 0;
+
+    private string ActiveAdapter() =>
+        _activeAdapter ??= NetworkInterface.GetAllNetworkInterfaces()
             .FirstOrDefault(n => n.OperationalStatus == OperationalStatus.Up
-                && n.NetworkInterfaceType is not (NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel)) is { } adapter
-            ? DnsSettingsService.Read(_reg, adapter.Id)
-            : Array.Empty<DnsServer>();
+                && n.NetworkInterfaceType is not (NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel))?.Id ?? "";
 
     public bool IsSystemRestoreEnabled() => _restore.IsEnabledForC();
 

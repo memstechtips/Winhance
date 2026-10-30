@@ -19,6 +19,13 @@ internal sealed class DnsSettingsService(IWindowsRegistryService reg, INetworkAd
         bool ok = true;
         foreach (var adapter in adapters.Ids().Where(id => reg.KeyExists($@"{Interfaces}\{id}")))
         {
+            // Settings only offers automatic DNS on an adapter that also gets its address automatically: a manual IP
+            // with no servers resolves nothing, so that adapter keeps the servers it has.
+            if (servers.Count == 0 && reg.GetValue($@"{Interfaces}\{adapter}", "EnableDHCP") is 0)
+            {
+                log.Log(LogLevel.Warning, $"Kept the DNS servers of adapter {adapter}: it has a manual IP address, which needs them");
+                continue;
+            }
             ok &= reg.SetValue($@"{Interfaces}\{adapter}", "NameServer", Join(servers, ipv6: false), RegistryValueKind.String);
             if (reg.KeyExists($@"{Interfaces6}\{adapter}"))
                 ok &= reg.SetValue($@"{Interfaces6}\{adapter}", "NameServer", Join(servers, ipv6: true), RegistryValueKind.String);

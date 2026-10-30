@@ -442,6 +442,7 @@ public class ConfigMigrationServiceTests
         _sut.MigrateConfig(config);
 
         var item = config.Customize.Features["TaskbarCustomizations"].Items[0];
+        item.Id.Should().Be("region-short-date");
         item.SelectedKey.Should().Be(expected);
         item.SelectedIndex.Should().BeNull();
     }

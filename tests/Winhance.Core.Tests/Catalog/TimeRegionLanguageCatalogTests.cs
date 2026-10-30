@@ -181,12 +181,12 @@ public class TimeRegionLanguageCatalogTests
     {
         var moved = new[]
         {
-            "explorer-customization-short-date",
-            "explorer-customization-first-day-of-week",
-            "explorer-customization-number-decimal",
-            "explorer-customization-list-separator",
-            "explorer-customization-measurement-system",
-            "explorer-customization-currency-decimal",
+            "region-short-date",
+            "region-first-day-of-week",
+            "region-number-decimal",
+            "region-list-separator",
+            "region-measurement-system",
+            "region-currency-decimal",
         };
 
         foreach (var id in moved)
@@ -198,13 +198,13 @@ public class TimeRegionLanguageCatalogTests
 
         // Short date is keyed on the pattern itself because region-format writes patterns no fixed list covers;
         // the other five have small closed value sets, so they stay fixed states with translated labels.
-        SettingCatalog.ById["explorer-customization-short-date"].Control.Should().Be(ControlKind.KeyedSelection);
-        foreach (var id in moved.Where(id => id != "explorer-customization-short-date"))
+        SettingCatalog.ById["region-short-date"].Control.Should().Be(ControlKind.KeyedSelection);
+        foreach (var id in moved.Where(id => id != "region-short-date"))
             SettingCatalog.ById[id].Control.Should().Be(ControlKind.Selection, id);
 
-        SettingCatalog.ById["explorer-customization-first-day-of-week"].States.Select(s => s.Label)
+        SettingCatalog.ById["region-first-day-of-week"].States.Select(s => s.Label)
             .Should().Equal(Enumerable.Range(0, 7)
-                .Select(i => TestKeys.Of($"Setting_explorer-customization-first-day-of-week_Option_{i}")));
+                .Select(i => TestKeys.Of($"Setting_region-first-day-of-week_Option_{i}")));
 
         // Every one of them follows the region format, so no single value is the default or the recommendation.
         foreach (var id in moved)
@@ -216,6 +216,6 @@ public class TimeRegionLanguageCatalogTests
     {
         var ids = SettingCatalog.ByFeature[FeatureIds.TimeRegionLanguage].Select(s => s.Id).ToList();
 
-        ids.IndexOf("explorer-customization-short-date").Should().BeGreaterThan(ids.IndexOf("region-format"));
+        ids.IndexOf("region-short-date").Should().BeGreaterThan(ids.IndexOf("region-format"));
     }
 }

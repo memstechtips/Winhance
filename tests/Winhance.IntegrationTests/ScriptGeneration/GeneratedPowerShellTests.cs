@@ -81,7 +81,7 @@ public class GeneratedPowerShellTests
         "autounattend-setup-language" => new ChoiceValue.Keyed("en-GB", "English (United Kingdom)"),
         "theme-wallpaper-picture" => new ChoiceValue.Keyed(@"C:\Windows\Web\Wallpaper\Windows\img0.jpg", "Windows 11 light"),
         "theme-wallpaper-color" => new ChoiceValue.Keyed("#FF8C00", "#FF8C00"),
-        "explorer-customization-short-date" => new ChoiceValue.Keyed("dd/MM/yyyy", "dd/MM/yyyy"),
+        "region-short-date" => new ChoiceValue.Keyed("dd/MM/yyyy", "dd/MM/yyyy"),
         "autounattend-user-folders-label" => new ChoiceValue.Keyed("Mom's data", "Mom's data"),
         _ => throw new InvalidOperationException($"{settingId} is keyed but names no live key here, so the parse gate would skip it"),
     };

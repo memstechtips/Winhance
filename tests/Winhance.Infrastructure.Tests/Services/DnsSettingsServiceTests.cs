@@ -62,6 +62,36 @@ public class DnsSettingsServiceTests
     }
 
     [Fact]
+    public void Automatic_dns_leaves_an_adapter_with_a_manual_ip_alone()
+    {
+        _reg.Setup(r => r.GetValue(AdapterKey, "EnableDHCP")).Returns(0);
+
+        _sut.SetDns([]).Should().BeTrue();
+
+        _reg.Verify(r => r.SetValue(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<RegistryValueKind>()), Times.Never);
+    }
+
+    [Fact]
+    public void Automatic_dns_clears_an_adapter_that_gets_its_address_automatically()
+    {
+        _reg.Setup(r => r.GetValue(AdapterKey, "EnableDHCP")).Returns(1);
+
+        _sut.SetDns([]).Should().BeTrue();
+
+        _reg.Verify(r => r.SetValue(AdapterKey, "NameServer", "", RegistryValueKind.String));
+    }
+
+    [Fact]
+    public void Chosen_servers_are_written_to_an_adapter_with_a_manual_ip()
+    {
+        _reg.Setup(r => r.GetValue(AdapterKey, "EnableDHCP")).Returns(0);
+
+        _sut.SetDns([new DnsServer("1.1.1.1")]).Should().BeTrue();
+
+        _reg.Verify(r => r.SetValue(AdapterKey, "NameServer", "1.1.1.1", RegistryValueKind.String));
+    }
+
+    [Fact]
     public void An_adapter_with_no_tcpip_key_is_skipped()
     {
         _reg.Setup(r => r.KeyExists(AdapterKey)).Returns(false);

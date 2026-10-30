@@ -82,7 +82,7 @@ public class TimeRegionLanguageServiceTests
 
     private static Setting SystemLocale => SettingCatalog.Find("region-system-locale")!;
 
-    private static Setting ShortDate => SettingCatalog.Find("explorer-customization-short-date")!;
+    private static Setting ShortDate => SettingCatalog.Find("region-short-date")!;
 
     private static IReadOnlyDictionary<string, StateValue>? SetFor(Setting setting, string key) =>
         KeyedOptions.SetFor(setting, key, Service);

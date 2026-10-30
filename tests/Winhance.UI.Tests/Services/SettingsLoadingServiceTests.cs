@@ -326,7 +326,7 @@ public class SettingsLoadingServiceTests
     [Fact]
     public async Task LoadConfiguredSettingsAsync_ResolvesComboBoxForSelectionTypeSettings()
     {
-        var selectionSetting = CreateCatalogSetting("explorer-customization-measurement-system");
+        var selectionSetting = CreateCatalogSetting("region-measurement-system");
 
         _mockCatalogSettingsRegistry
             .Setup(r => r.GetByFeature("TestFeature", CatalogScope.CurrentMachine))
@@ -336,7 +336,7 @@ public class SettingsLoadingServiceTests
             .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>
             {
-                { "explorer-customization-measurement-system", new SettingStateResult
+                { "region-measurement-system", new SettingStateResult
                     { Success = true, CurrentValue = 1 } }
             });
 
@@ -344,7 +344,7 @@ public class SettingsLoadingServiceTests
             .Setup(u => u.GetPreferenceAsync(It.IsAny<string>(), false))
             .ReturnsAsync(false);
 
-        var mockVm = CreateMockSettingItemViewModel("explorer-customization-measurement-system");
+        var mockVm = CreateMockSettingItemViewModel("region-measurement-system");
         _mockViewModelFactory
             .Setup(f => f.CreateAsync(
                 It.IsAny<Setting>(),

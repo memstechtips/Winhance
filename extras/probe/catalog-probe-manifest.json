@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "catalogHash": "889a5641ce6d3af28ab78671dd9908443afbb1f383929742a6aa69009baeb40f",
+  "catalogHash": "e39f83cdcb1abb022c28781f33542a6f44f736b21b34cb0ec44c79ecceb53a2c",
   "settingCount": 445,
   "settings": [
     {
@@ -16557,7 +16557,7 @@
       "states": []
     },
     {
-      "id": "explorer-customization-short-date",
+      "id": "region-short-date",
       "feature": "TimeRegionLanguage",
       "control": "KeyedSelection",
       "contexts": [
@@ -16600,7 +16600,7 @@
       "states": []
     },
     {
-      "id": "explorer-customization-first-day-of-week",
+      "id": "region-first-day-of-week",
       "feature": "TimeRegionLanguage",
       "control": "Selection",
       "contexts": [
@@ -16642,7 +16642,7 @@
       ],
       "states": [
         {
-          "label": "Setting_explorer-customization-first-day-of-week_Option_0",
+          "label": "Setting_region-first-day-of-week_Option_0",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -16659,7 +16659,7 @@
           "resetSet": null
         },
         {
-          "label": "Setting_explorer-customization-first-day-of-week_Option_1",
+          "label": "Setting_region-first-day-of-week_Option_1",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -16676,7 +16676,7 @@
           "resetSet": null
         },
         {
-          "label": "Setting_explorer-customization-first-day-of-week_Option_2",
+          "label": "Setting_region-first-day-of-week_Option_2",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -16693,7 +16693,7 @@
           "resetSet": null
         },
         {
-          "label": "Setting_explorer-customization-first-day-of-week_Option_3",
+          "label": "Setting_region-first-day-of-week_Option_3",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -16710,7 +16710,7 @@
           "resetSet": null
         },
         {
-          "label": "Setting_explorer-customization-first-day-of-week_Option_4",
+          "label": "Setting_region-first-day-of-week_Option_4",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -16727,7 +16727,7 @@
           "resetSet": null
         },
         {
-          "label": "Setting_explorer-customization-first-day-of-week_Option_5",
+          "label": "Setting_region-first-day-of-week_Option_5",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -16744,7 +16744,7 @@
           "resetSet": null
         },
         {
-          "label": "Setting_explorer-customization-first-day-of-week_Option_6",
+          "label": "Setting_region-first-day-of-week_Option_6",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -16763,7 +16763,7 @@
       ]
     },
     {
-      "id": "explorer-customization-number-decimal",
+      "id": "region-number-decimal",
       "feature": "TimeRegionLanguage",
       "control": "Selection",
       "contexts": [
@@ -16805,7 +16805,7 @@
       ],
       "states": [
         {
-          "label": "Setting_explorer-customization-number-decimal_Option_0",
+          "label": "Setting_region-number-decimal_Option_0",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -16822,7 +16822,7 @@
           "resetSet": null
         },
         {
-          "label": "Setting_explorer-customization-number-decimal_Option_1",
+          "label": "Setting_region-number-decimal_Option_1",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -16839,7 +16839,7 @@
           "resetSet": null
         },
         {
-          "label": "Setting_explorer-customization-number-decimal_Option_2",
+          "label": "Setting_region-number-decimal_Option_2",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -16856,7 +16856,7 @@
           "resetSet": null
         },
         {
-          "label": "Setting_explorer-customization-number-decimal_Option_3",
+          "label": "Setting_region-number-decimal_Option_3",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -16875,7 +16875,7 @@
       ]
     },
     {
-      "id": "explorer-customization-list-separator",
+      "id": "region-list-separator",
       "feature": "TimeRegionLanguage",
       "control": "Selection",
       "contexts": [
@@ -16917,7 +16917,7 @@
       ],
       "states": [
         {
-          "label": "Setting_explorer-customization-list-separator_Option_0",
+          "label": "Setting_region-list-separator_Option_0",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -16934,7 +16934,7 @@
           "resetSet": null
         },
         {
-          "label": "Setting_explorer-customization-list-separator_Option_1",
+          "label": "Setting_region-list-separator_Option_1",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -16953,7 +16953,7 @@
       ]
     },
     {
-      "id": "explorer-customization-measurement-system",
+      "id": "region-measurement-system",
       "feature": "TimeRegionLanguage",
       "control": "Selection",
       "contexts": [
@@ -16995,7 +16995,7 @@
       ],
       "states": [
         {
-          "label": "Setting_explorer-customization-measurement-system_Option_0",
+          "label": "Setting_region-measurement-system_Option_0",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -17012,7 +17012,7 @@
           "resetSet": null
         },
         {
-          "label": "Setting_explorer-customization-measurement-system_Option_1",
+          "label": "Setting_region-measurement-system_Option_1",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -17031,7 +17031,7 @@
       ]
     },
     {
-      "id": "explorer-customization-currency-decimal",
+      "id": "region-currency-decimal",
       "feature": "TimeRegionLanguage",
       "control": "Selection",
       "contexts": [
@@ -17073,7 +17073,7 @@
       ],
       "states": [
         {
-          "label": "Setting_explorer-customization-currency-decimal_Option_0",
+          "label": "Setting_region-currency-decimal_Option_0",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -17090,7 +17090,7 @@
           "resetSet": null
         },
         {
-          "label": "Setting_explorer-customization-currency-decimal_Option_1",
+          "label": "Setting_region-currency-decimal_Option_1",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -17107,7 +17107,7 @@
           "resetSet": null
         },
         {
-          "label": "Setting_explorer-customization-currency-decimal_Option_2",
+          "label": "Setting_region-currency-decimal_Option_2",
           "isFallback": false,
           "roles": [],
           "set": {
@@ -17124,7 +17124,7 @@
           "resetSet": null
         },
         {
-          "label": "Setting_explorer-customization-currency-decimal_Option_3",
+          "label": "Setting_region-currency-decimal_Option_3",
           "isFallback": false,
           "roles": [],
           "set": {

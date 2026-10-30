@@ -19,6 +19,9 @@ public interface IDetectionContext
     // DHCP reports none.
     IReadOnlyList<DnsServer> DnsServersOfActiveAdapter();
 
+    // Automatic DNS leaves an adapter with a manual IP address its servers, so that adapter never reads as automatic.
+    bool ActiveAdapterHasManualIp() => false;
+
     bool IsSystemRestoreEnabled();
 
     // Null when the task does not exist on this system.

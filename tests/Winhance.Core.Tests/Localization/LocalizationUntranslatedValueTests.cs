@@ -188,7 +188,7 @@ public class LocalizationUntranslatedValueTests
     // why the rule stops at _Option_.
     private static readonly string[] UntranslatablePrefixes =
     [
-        "Setting_explorer-customization-short-date_Option_",
+        "Setting_region-short-date_Option_",
 
         // A drive letter is the same letter in every language Windows ships in.
         "Setting_autounattend-user-folders-letter_Option_",
