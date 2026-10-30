@@ -69,24 +69,25 @@ internal class PolicyCleanupService : IPolicyCleanupService
                 // Group-policy registry keys live on RegTargets (toggles/selections; a mirror carries every
                 // Path) and on RegistryWriteEffects (an Action's registry writes are setting-level effects;
                 // per-state scanned defensively). The powercfg EnablementKey is a nested RegTarget on
-                // PowerCfgTarget, not a top-level Target, so OfType<RegTarget>() correctly excludes it.
+                // PowerCfgTarget, not a top-level Target, so OfType<RegTarget>() correctly excludes it. A mirror's
+                // CurrentVersion\Policies paths are Windows' own keys and are never deleted.
                 foreach (var target in setting.Targets.OfType<RegTarget>())
                 {
                     if (!target.IsGroupPolicy)
                         continue;
 
                     foreach (var path in target.Paths)
-                        if (!string.IsNullOrEmpty(path))
+                        if (RegTarget.IsPolicyPath(path))
                             policyPaths.Add(path);
                 }
 
                 foreach (var effect in setting.Effects.OfType<RegistryWriteEffect>())
-                    if (effect.IsGroupPolicy && !string.IsNullOrEmpty(effect.Path))
+                    if (effect.IsGroupPolicy && RegTarget.IsPolicyPath(effect.Path))
                         policyPaths.Add(effect.Path);
 
                 foreach (var state in setting.States)
                     foreach (var effect in state.Effects.OfType<RegistryWriteEffect>())
-                        if (effect.IsGroupPolicy && !string.IsNullOrEmpty(effect.Path))
+                        if (effect.IsGroupPolicy && RegTarget.IsPolicyPath(effect.Path))
                             policyPaths.Add(effect.Path);
             }
         }

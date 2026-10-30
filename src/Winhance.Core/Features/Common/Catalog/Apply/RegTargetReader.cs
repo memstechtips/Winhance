@@ -49,13 +49,18 @@ public static class RegTargetReader
             return TargetReading.Absent; // sub-key not present -> absent (the string itself is fine)
         }
 
-        // ";"-separated list after a fixed prefix -> bool. A value in another form (Settings' "showonly:") is not
-        // our list, so the item reads as not in it.
+        // ";"-separated list after a fixed prefix -> bool. A "showonly:" allow-list is the same fact inverted: the
+        // item is listed (hidden) when it is NOT in the allow-list. An empty allow-list hides every page: Settings
+        // will not open at all while it is set.
         if (target.ListItem is { } listItem)
         {
             if (raw is not string list)
                 return TargetReading.Malformed;
-            return TargetReading.Of(ListItems(list, target.ListPrefix)?.Contains(listItem, StringComparer.OrdinalIgnoreCase) ?? false);
+            if (ListItems(list, target.ListPrefix) is { } items)
+                return TargetReading.Of(items.Contains(listItem, StringComparer.OrdinalIgnoreCase));
+            if (ShowOnlyItems(list) is { } allowed)
+                return TargetReading.Of(!allowed.Contains(listItem, StringComparer.OrdinalIgnoreCase));
+            return TargetReading.Of(false);
         }
 
         // Decimal-string flags bit test -> bool (e.g. accessibility Flags "62")
@@ -103,6 +108,10 @@ public static class RegTargetReader
             ? value[prefix.Length..].Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList()
             : null;
 
+    public const string ShowOnlyPrefix = "showonly:";
+
+    public static List<string>? ShowOnlyItems(string value) => ListItems(value, ShowOnlyPrefix);
+
     public static RegTarget Target(Setting setting, string key) => setting.Targets.OfType<RegTarget>().First(t => t.Key == key);
 
     public static object? Read(Setting setting, string key, IDetectionContext ctx) => Read(Target(setting, key), ctx).Value;
@@ -110,4 +119,22 @@ public static class RegTargetReader
     // Internal so CatalogDiscovery can name the same winning path when describing a malformed value.
     internal static IEnumerable<string> OrderHklmFirst(IReadOnlyList<string> paths)
         => paths.OrderByDescending(p => p.StartsWith("HKEY_LOCAL_MACHINE", StringComparison.OrdinalIgnoreCase));
+}
+
+// Present is false when the target is absent OR unusable, so no matcher sees a value it cannot interpret.
+// KindMismatch: the value exists but its CLR type cannot satisfy the target's shape - malformed, not absent.
+public readonly record struct TargetReading(object? Value, bool Present, bool KindMismatch)
+{
+    public static readonly TargetReading Absent = new(null, false, false);
+
+    public static TargetReading Of(object? value) => new(value, true, false);
+
+    // Never Present: a malformed value must not reach the matchers.
+    public static readonly TargetReading Malformed = new(null, false, true);
+
+    public void Deconstruct(out object? value, out bool present)
+    {
+        value = Value;
+        present = Present;
+    }
 }

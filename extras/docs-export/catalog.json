@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "winhanceVersion": "26.10.15",
-  "catalogHash": "b409bedb288b6a75f34bf0f8c2a67f4549daa41c8aae0b878ebedf1e315c5964",
+  "winhanceVersion": "26.10.24",
+  "catalogHash": "8f56795867ccb948d660d07043838c3754a3e4b5026ad98d435ef6dc75af5a40",
   "settingCount": 482,
   "referenceBuilds": {
     "win10": 19045,
@@ -3582,7 +3582,7 @@
                 "label": "Off",
                 "cells": [
                   {
-                    "text": "1",
+                    "text": "1 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -3630,7 +3630,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: {20D04FE0-3AEA-1069-A2D8-08002B30309D} 0. Off: {20D04FE0-3AEA-1069-A2D8-08002B30309D} 1 (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel, HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu."
+            "accessibleSummary": "On: {20D04FE0-3AEA-1069-A2D8-08002B30309D} 0. Off: {20D04FE0-3AEA-1069-A2D8-08002B30309D} 1 (or not set) (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel, HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu."
           },
           "matrixWin10": null
         },
@@ -3850,7 +3850,7 @@
                 "label": "Off",
                 "cells": [
                   {
-                    "text": "1",
+                    "text": "1 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -3898,7 +3898,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: {59031A47-3F72-44A7-89C5-5595FE6B30EE} 0. Off: {59031A47-3F72-44A7-89C5-5595FE6B30EE} 1 (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel, HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu."
+            "accessibleSummary": "On: {59031A47-3F72-44A7-89C5-5595FE6B30EE} 0. Off: {59031A47-3F72-44A7-89C5-5595FE6B30EE} 1 (or not set) (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel, HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu."
           },
           "matrixWin10": null
         },
@@ -3984,7 +3984,7 @@
                 "label": "Off",
                 "cells": [
                   {
-                    "text": "1",
+                    "text": "1 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -4032,7 +4032,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: {5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0} 0. Off: {5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0} 1 (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel, HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu."
+            "accessibleSummary": "On: {5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0} 0. Off: {5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0} 1 (or not set) (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel, HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu."
           },
           "matrixWin10": null
         },
@@ -4118,7 +4118,7 @@
                 "label": "Off",
                 "cells": [
                   {
-                    "text": "1",
+                    "text": "1 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -4166,7 +4166,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: {F02C1A0D-BE21-4350-88B0-7367FC96EF3C} 0. Off: {F02C1A0D-BE21-4350-88B0-7367FC96EF3C} 1 (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel, HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu."
+            "accessibleSummary": "On: {F02C1A0D-BE21-4350-88B0-7367FC96EF3C} 0. Off: {F02C1A0D-BE21-4350-88B0-7367FC96EF3C} 1 (or not set) (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel, HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu."
           },
           "matrixWin10": null
         },
@@ -11312,7 +11312,7 @@
                 "label": "Off",
                 "cells": [
                   {
-                    "text": "0",
+                    "text": "0 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -11352,7 +11352,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: PersistBrowsers 1. Off: PersistBrowsers 0 (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced."
+            "accessibleSummary": "On: PersistBrowsers 1. Off: PersistBrowsers 0 (or not set) (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced."
           },
           "matrixWin10": null
         },
@@ -14913,7 +14913,7 @@
                 "label": "Off",
                 "cells": [
                   {
-                    "text": "0",
+                    "text": "0 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -14953,7 +14953,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: NavPaneShowAllCloudStates 1. Off: NavPaneShowAllCloudStates 0 (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced."
+            "accessibleSummary": "On: NavPaneShowAllCloudStates 1. Off: NavPaneShowAllCloudStates 0 (or not set) (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced."
           },
           "matrixWin10": null
         },
@@ -15153,7 +15153,7 @@
                 "label": "Off",
                 "cells": [
                   {
-                    "text": "0",
+                    "text": "0 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -15256,7 +15256,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: NavPaneShowAllFolders 1. Off: NavPaneShowAllFolders 0 (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced."
+            "accessibleSummary": "On: NavPaneShowAllFolders 1. Off: NavPaneShowAllFolders 0 (or not set) (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced."
           },
           "matrixWin10": null
         },
@@ -16342,7 +16342,7 @@
                 "label": "Off",
                 "cells": [
                   {
-                    "text": "0",
+                    "text": "0 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   },
@@ -16400,7 +16400,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: System.IsPinnedToNameSpaceTree 1, {031E4825-7B94-4dc3-B131-E946B44C8DD5} 0, HiddenByDefault 0. Off: System.IsPinnedToNameSpaceTree 0, {031E4825-7B94-4dc3-B131-E946B44C8DD5} 1 (or not set), HiddenByDefault 1 (or not set) (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Classes\\CLSID\\{031E4825-7B94-4dc3-B131-E946B44C8DD5}. Registry: HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum. Registry: HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Desktop\\NameSpace\\{031E4825-7B94-4dc3-B131-E946B44C8DD5}."
+            "accessibleSummary": "On: System.IsPinnedToNameSpaceTree 1, {031E4825-7B94-4dc3-B131-E946B44C8DD5} 0, HiddenByDefault 0. Off: System.IsPinnedToNameSpaceTree 0 (or not set), {031E4825-7B94-4dc3-B131-E946B44C8DD5} 1 (or not set), HiddenByDefault 1 (or not set) (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Classes\\CLSID\\{031E4825-7B94-4dc3-B131-E946B44C8DD5}. Registry: HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\NonEnum. Registry: HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Desktop\\NameSpace\\{031E4825-7B94-4dc3-B131-E946B44C8DD5}."
           },
           "matrixWin10": null
         },
@@ -16854,18 +16854,10 @@
                 "header": "NoDriveTypeAutoRun",
                 "typeName": "DWord",
                 "kind": "Value",
-                "chips": [
-                  {
-                    "text": "Group Policy",
-                    "tooltip": "A Group Policy value. Windows treats these as managed settings, so the matching option in Windows Settings may appear greyed out or say it is managed by your organisation. That is expected. On a work-managed device, your organisation\u0027s policy can also override it.",
-                    "linkSettingId": "",
-                    "linkText": "",
-                    "hasLink": false
-                  }
-                ],
+                "chips": [],
                 "headerTooltip": "",
                 "hasType": true,
-                "hasChips": true
+                "hasChips": false
               }
             ],
             "options": [
@@ -25000,7 +24992,7 @@
           "matrixWin10": null
         },
         {
-          "id": "explorer-customization-short-date",
+          "id": "region-short-date",
           "name": "Short Date Format",
           "description": "Choose the format used to display short dates across Windows",
           "group": "Formats",
@@ -25103,7 +25095,7 @@
           "matrixWin10": null
         },
         {
-          "id": "explorer-customization-first-day-of-week",
+          "id": "region-first-day-of-week",
           "name": "First Day of Week",
           "description": "Choose which day is displayed as the first day of the week in calendars",
           "group": "Formats",
@@ -25169,7 +25161,7 @@
                 ],
                 "isCurrent": false,
                 "isRecommended": false,
-                "isWindowsDefault": true,
+                "isWindowsDefault": false,
                 "currentContext": "",
                 "recommendedContext": "",
                 "defaultContext": ""
@@ -25306,12 +25298,12 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Sunday: iFirstDayOfWeek 6 (or not set) (Default). Monday: iFirstDayOfWeek 0. Tuesday: iFirstDayOfWeek 1. Wednesday: iFirstDayOfWeek 2. Thursday: iFirstDayOfWeek 3. Friday: iFirstDayOfWeek 4. Saturday: iFirstDayOfWeek 5. Registry: HKEY_CURRENT_USER\\Control Panel\\International."
+            "accessibleSummary": "Sunday: iFirstDayOfWeek 6 (or not set). Monday: iFirstDayOfWeek 0. Tuesday: iFirstDayOfWeek 1. Wednesday: iFirstDayOfWeek 2. Thursday: iFirstDayOfWeek 3. Friday: iFirstDayOfWeek 4. Saturday: iFirstDayOfWeek 5. Registry: HKEY_CURRENT_USER\\Control Panel\\International."
           },
           "matrixWin10": null
         },
         {
-          "id": "explorer-customization-number-decimal",
+          "id": "region-number-decimal",
           "name": "Number Decimal Symbol",
           "description": "Choose the symbol used to separate whole numbers from decimals in number formatting",
           "group": "Formats",
@@ -25471,7 +25463,7 @@
           "matrixWin10": null
         },
         {
-          "id": "explorer-customization-list-separator",
+          "id": "region-list-separator",
           "name": "List Separator",
           "description": "Choose the character used to separate items in lists, such as in CSV exports and formulas",
           "group": "Formats",
@@ -25537,7 +25529,7 @@
                 ],
                 "isCurrent": false,
                 "isRecommended": false,
-                "isWindowsDefault": true,
+                "isWindowsDefault": false,
                 "currentContext": "",
                 "recommendedContext": "",
                 "defaultContext": ""
@@ -25594,12 +25586,12 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": ", (Comma): sList , (or not set) (Default). ; (Semicolon): sList ;. Registry: HKEY_CURRENT_USER\\Control Panel\\International."
+            "accessibleSummary": ", (Comma): sList , (or not set). ; (Semicolon): sList ;. Registry: HKEY_CURRENT_USER\\Control Panel\\International."
           },
           "matrixWin10": null
         },
         {
-          "id": "explorer-customization-measurement-system",
+          "id": "region-measurement-system",
           "name": "Measurement System",
           "description": "Choose whether Windows uses the metric or U.S. imperial measurement system",
           "group": "Formats",
@@ -25727,7 +25719,7 @@
           "matrixWin10": null
         },
         {
-          "id": "explorer-customization-currency-decimal",
+          "id": "region-currency-decimal",
           "name": "Currency Decimal Symbol",
           "description": "Choose the symbol used to separate whole numbers from decimals in currency formatting",
           "group": "Formats",
@@ -28130,7 +28122,7 @@
                 "label": "Off",
                 "cells": [
                   {
-                    "text": "0",
+                    "text": "0 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -28170,7 +28162,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: AllowMUUpdateService 1. Off: AllowMUUpdateService 0 (Recommended, Default), Current. Registry: HKEY_LOCAL_MACHINE\\Software\\Microsoft\\WindowsUpdate\\UX\\Settings."
+            "accessibleSummary": "On: AllowMUUpdateService 1. Off: AllowMUUpdateService 0 (or not set) (Recommended, Default), Current. Registry: HKEY_LOCAL_MACHINE\\Software\\Microsoft\\WindowsUpdate\\UX\\Settings."
           },
           "matrixWin10": null
         },
@@ -28781,7 +28773,7 @@
                 "label": "Off",
                 "cells": [
                   {
-                    "text": "0",
+                    "text": "0 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -28821,7 +28813,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: RestartNotificationsAllowed2 1. Off: RestartNotificationsAllowed2 0 (Recommended, Default), Current. Registry: HKEY_LOCAL_MACHINE\\Software\\Microsoft\\WindowsUpdate\\UX\\Settings."
+            "accessibleSummary": "On: RestartNotificationsAllowed2 1. Off: RestartNotificationsAllowed2 0 (or not set) (Recommended, Default), Current. Registry: HKEY_LOCAL_MACHINE\\Software\\Microsoft\\WindowsUpdate\\UX\\Settings."
           },
           "matrixWin10": null
         },
@@ -31793,7 +31785,7 @@
                 "label": "Off",
                 "cells": [
                   {
-                    "text": "0",
+                    "text": "0 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -31833,7 +31825,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: StartupDelayInMSec 10000. Off: StartupDelayInMSec 0 (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Serialize."
+            "accessibleSummary": "On: StartupDelayInMSec 10000. Off: StartupDelayInMSec 0 (or not set) (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Serialize."
           },
           "matrixWin10": null
         },
@@ -32202,7 +32194,7 @@
                 "label": "Off",
                 "cells": [
                   {
-                    "text": "0",
+                    "text": "0 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -32242,7 +32234,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: WholeFileSystem 1. Off: WholeFileSystem 0 (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Search\\Preferences."
+            "accessibleSummary": "On: WholeFileSystem 1. Off: WholeFileSystem 0 (or not set) (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Search\\Preferences."
           },
           "matrixWin10": null
         },
@@ -34251,7 +34243,7 @@
                 "label": "Off",
                 "cells": [
                   {
-                    "text": "1",
+                    "text": "1 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -34291,7 +34283,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: EnableGR535 0 (Recommended). Off: EnableGR535 1 (Default), Current. Registry: HKEY_LOCAL_MACHINE\\Software\\NVIDIA Corporation\\Global\\FTS."
+            "accessibleSummary": "On: EnableGR535 0 (Recommended). Off: EnableGR535 1 (or not set) (Default), Current. Registry: HKEY_LOCAL_MACHINE\\Software\\NVIDIA Corporation\\Global\\FTS."
           },
           "matrixWin10": null
         },
@@ -36763,7 +36755,7 @@
                 "label": "Off",
                 "cells": [
                   {
-                    "text": "60000",
+                    "text": "60000 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -36803,7 +36795,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: ServicesPipeTimeout 30000 (Recommended). Off: ServicesPipeTimeout 60000 (Default), Current. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control."
+            "accessibleSummary": "On: ServicesPipeTimeout 30000 (Recommended). Off: ServicesPipeTimeout 60000 (or not set) (Default), Current. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control."
           },
           "matrixWin10": null
         },
@@ -49785,7 +49777,7 @@
                 "label": "Off",
                 "cells": [
                   {
-                    "text": "0",
+                    "text": "0 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -49825,7 +49817,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: AllowDevelopmentWithoutDevLicense 1. Off: AllowDevelopmentWithoutDevLicense 0 (Recommended, Default), Current. Registry: HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\AppModelUnlock."
+            "accessibleSummary": "On: AllowDevelopmentWithoutDevLicense 1. Off: AllowDevelopmentWithoutDevLicense 0 (or not set) (Recommended, Default), Current. Registry: HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\AppModelUnlock."
           },
           "matrixWin10": null
         },
@@ -51906,7 +51898,7 @@
                     "hasText": true
                   },
                   {
-                    "text": "1",
+                    "text": "1 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -51946,7 +51938,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: Enabled 1 (or not set), Value 1, DisabledByGroupPolicy deletes key. Off: Enabled 0, Value 0, DisabledByGroupPolicy 1 (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\CPSS\\Store\\AdvertisingInfo. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo."
+            "accessibleSummary": "On: Enabled 1 (or not set), Value 1, DisabledByGroupPolicy deletes key. Off: Enabled 0, Value 0, DisabledByGroupPolicy 1 (or not set) (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\CPSS\\Store\\AdvertisingInfo. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo."
           },
           "matrixWin10": {
             "groups": [
@@ -52097,7 +52089,7 @@
                     "hasText": true
                   },
                   {
-                    "text": "1",
+                    "text": "1 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -52137,7 +52129,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: Enabled 1 (or not set), Value 1, DisabledByGroupPolicy deletes key (Default). Off: Enabled 0, Value 0, DisabledByGroupPolicy 1 (Recommended), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\CPSS\\Store\\AdvertisingInfo. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo."
+            "accessibleSummary": "On: Enabled 1 (or not set), Value 1, DisabledByGroupPolicy deletes key (Default). Off: Enabled 0, Value 0, DisabledByGroupPolicy 1 (or not set) (Recommended), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\CPSS\\Store\\AdvertisingInfo. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo."
           }
         },
         {
@@ -52926,7 +52918,7 @@
                 "label": "Off",
                 "cells": [
                   {
-                    "text": "0",
+                    "text": "0 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   },
@@ -52971,7 +52963,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: HasAccepted 1, AllowInputPersonalization 1. Off: HasAccepted 0, AllowInputPersonalization deletes key (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Speech_OneCore\\Settings\\OnlineSpeechPrivacy. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization."
+            "accessibleSummary": "On: HasAccepted 1, AllowInputPersonalization 1. Off: HasAccepted 0 (or not set), AllowInputPersonalization deletes key (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Speech_OneCore\\Settings\\OnlineSpeechPrivacy. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization."
           },
           "matrixWin10": null
         },
@@ -53318,18 +53310,10 @@
                 "header": "Value",
                 "typeName": "DWord",
                 "kind": "Value",
-                "chips": [
-                  {
-                    "text": "Group Policy",
-                    "tooltip": "A Group Policy value. Windows treats these as managed settings, so the matching option in Windows Settings may appear greyed out or say it is managed by your organisation. That is expected. On a work-managed device, your organisation\u0027s policy can also override it.",
-                    "linkSettingId": "",
-                    "linkText": "",
-                    "hasLink": false
-                  }
-                ],
+                "chips": [],
                 "headerTooltip": "",
                 "hasType": true,
-                "hasChips": true
+                "hasChips": false
               },
               {
                 "header": "AcceptedPrivacyPolicy",
@@ -53631,8 +53615,8 @@
                 "kind": "Value",
                 "chips": [
                   {
-                    "text": "Group Policy",
-                    "tooltip": "A Group Policy value. Windows treats these as managed settings, so the matching option in Windows Settings may appear greyed out or say it is managed by your organisation. That is expected. On a work-managed device, your organisation\u0027s policy can also override it.",
+                    "text": "written, not read",
+                    "tooltip": "Winhance writes this value when you apply, but does not read it back to decide the current state.",
                     "linkSettingId": "",
                     "linkText": "",
                     "hasLink": false
@@ -53701,12 +53685,12 @@
                     "hasText": true
                   },
                   {
-                    "text": "0",
+                    "text": "1",
                     "isCheck": false,
                     "hasText": true
                   },
                   {
-                    "text": "0",
+                    "text": "1",
                     "isCheck": false,
                     "hasText": true
                   },
@@ -53751,7 +53735,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: ShowedToastAtLevel 3 (or not set), AllowTelemetry 3, MaxTelemetryAllowed 3, AITEnable deletes key. Off: ShowedToastAtLevel 1 (or not set), AllowTelemetry 0, MaxTelemetryAllowed 0, AITEnable 0 (or not set) (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Diagnostics\\DiagTrack. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection, HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection, HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection, HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppCompat, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppCompat."
+            "accessibleSummary": "On: ShowedToastAtLevel 3 (or not set), AllowTelemetry 3, MaxTelemetryAllowed 3, AITEnable deletes key. Off: ShowedToastAtLevel 1 (or not set), AllowTelemetry 1, MaxTelemetryAllowed 1, AITEnable 0 (or not set) (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Diagnostics\\DiagTrack. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection, HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection, HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection, HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppCompat, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppCompat."
           },
           "matrixWin10": {
             "groups": [
@@ -53891,8 +53875,8 @@
                 "kind": "Value",
                 "chips": [
                   {
-                    "text": "Group Policy",
-                    "tooltip": "A Group Policy value. Windows treats these as managed settings, so the matching option in Windows Settings may appear greyed out or say it is managed by your organisation. That is expected. On a work-managed device, your organisation\u0027s policy can also override it.",
+                    "text": "written, not read",
+                    "tooltip": "Winhance writes this value when you apply, but does not read it back to decide the current state.",
                     "linkSettingId": "",
                     "linkText": "",
                     "hasLink": false
@@ -53961,12 +53945,12 @@
                     "hasText": true
                   },
                   {
-                    "text": "0",
+                    "text": "1",
                     "isCheck": false,
                     "hasText": true
                   },
                   {
-                    "text": "0",
+                    "text": "1",
                     "isCheck": false,
                     "hasText": true
                   },
@@ -54011,7 +53995,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: ShowedToastAtLevel 3 (or not set), AllowTelemetry 3, MaxTelemetryAllowed 3, AITEnable deletes key (Default). Off: ShowedToastAtLevel 1 (or not set), AllowTelemetry 0, MaxTelemetryAllowed 0, AITEnable 0 (or not set) (Recommended), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Diagnostics\\DiagTrack. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection, HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection, HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection, HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppCompat, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppCompat."
+            "accessibleSummary": "On: ShowedToastAtLevel 3 (or not set), AllowTelemetry 3, MaxTelemetryAllowed 3, AITEnable deletes key (Default). Off: ShowedToastAtLevel 1 (or not set), AllowTelemetry 1, MaxTelemetryAllowed 1, AITEnable 0 (or not set) (Recommended), Current. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Diagnostics\\DiagTrack. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection, HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection, HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection, HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppCompat, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppCompat."
           }
         },
         {
@@ -55510,7 +55494,7 @@
                     "hasText": true
                   },
                   {
-                    "text": "0",
+                    "text": "deletes key",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -55571,7 +55555,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: Value Allow (or not set), DisableLocation 0. Off: Value Deny, DisableLocation deletes key (Recommended, Default), Current. Registry: HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\LocationAndSensors, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\LocationAndSensors."
+            "accessibleSummary": "On: Value Allow (or not set), DisableLocation deletes key. Off: Value Deny, DisableLocation deletes key (Recommended, Default), Current. Registry: HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\LocationAndSensors, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\LocationAndSensors."
           },
           "matrixWin10": {
             "groups": [
@@ -55656,7 +55640,7 @@
                     "hasText": true
                   },
                   {
-                    "text": "0",
+                    "text": "deletes key",
                     "isCheck": false,
                     "hasText": true
                   }
@@ -55717,7 +55701,7 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: Value Allow (or not set), DisableLocation 0 (Default). Off: Value Deny, DisableLocation deletes key (Recommended), Current. Registry: HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\LocationAndSensors, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\LocationAndSensors."
+            "accessibleSummary": "On: Value Allow (or not set), DisableLocation deletes key (Default). Off: Value Deny, DisableLocation deletes key (Recommended), Current. Registry: HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location. Registry: HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Microsoft\\Windows\\LocationAndSensors, HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\LocationAndSensors."
           }
         },
         {
@@ -56420,115 +56404,6 @@
                 ],
                 "isCurrent": false,
                 "isRecommended": false,
-                "isWindowsDefault": false,
-                "currentContext": "",
-                "recommendedContext": "",
-                "defaultContext": ""
-              },
-              {
-                "label": "Off",
-                "cells": [
-                  {
-                    "text": "1",
-                    "isCheck": false,
-                    "hasText": true
-                  }
-                ],
-                "isCurrent": true,
-                "isRecommended": true,
-                "isWindowsDefault": true,
-                "currentContext": "",
-                "recommendedContext": "",
-                "defaultContext": ""
-              }
-            ],
-            "optionHeader": "Option",
-            "roleHeader": "Role",
-            "pathLabel": "Path",
-            "valueNameLabel": "Value name",
-            "valueTypeLabel": "Value type",
-            "taskLabel": "Task",
-            "settingLabel": "Options",
-            "settingDescription": "Selecting an option makes the changes shown to the right.",
-            "requirements": [],
-            "optionLinks": [],
-            "optionLinksHeading": "Also sets",
-            "hasOptionLinks": false,
-            "notes": [],
-            "notesHeading": "Also happens when you apply",
-            "notesDetailHeader": "Details",
-            "hasNotes": false,
-            "codeBlocks": [],
-            "hasCode": false,
-            "readingLabel": "",
-            "readingCells": [],
-            "hasReading": false,
-            "currentLabel": "Current",
-            "recommendedLabel": "Recommended",
-            "defaultLabel": "Default",
-            "recommendedTooltip": "What Winhance suggests for most people",
-            "defaultTooltip": "How Windows ships out of the box",
-            "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "On: TurnOffWindowsCopilot 0 (or not set). Off: TurnOffWindowsCopilot 1 (Recommended, Default), Current. Registry: HKEY_CURRENT_USER\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot, HKEY_LOCAL_MACHINE\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot."
-          },
-          "matrixWin10": {
-            "groups": [
-              {
-                "label": "Registry",
-                "kind": "Registry",
-                "description": "Read to determine which option is active, and written when you apply one.",
-                "paths": [
-                  {
-                    "full": "HKEY_CURRENT_USER\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot",
-                    "label": "Path",
-                    "hasLabel": true,
-                    "display": "HKCU\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot"
-                  },
-                  {
-                    "full": "HKEY_LOCAL_MACHINE\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot",
-                    "label": "Path",
-                    "hasLabel": true,
-                    "display": "HKLM\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot"
-                  }
-                ],
-                "startColumn": 0,
-                "columnSpan": 1,
-                "openRegeditTooltip": "Open in Registry Editor",
-                "hasPaths": true,
-                "canOpenRegedit": true
-              }
-            ],
-            "columns": [
-              {
-                "header": "TurnOffWindowsCopilot",
-                "typeName": "DWord",
-                "kind": "Value",
-                "chips": [
-                  {
-                    "text": "Group Policy",
-                    "tooltip": "A Group Policy value. Windows treats these as managed settings, so the matching option in Windows Settings may appear greyed out or say it is managed by your organisation. That is expected. On a work-managed device, your organisation\u0027s policy can also override it.",
-                    "linkSettingId": "",
-                    "linkText": "",
-                    "hasLink": false
-                  }
-                ],
-                "headerTooltip": "",
-                "hasType": true,
-                "hasChips": true
-              }
-            ],
-            "options": [
-              {
-                "label": "On",
-                "cells": [
-                  {
-                    "text": "0 (or not set)",
-                    "isCheck": false,
-                    "hasText": true
-                  }
-                ],
-                "isCurrent": false,
-                "isRecommended": false,
                 "isWindowsDefault": true,
                 "currentContext": "",
                 "recommendedContext": "",
@@ -56579,7 +56454,8 @@
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
             "accessibleSummary": "On: TurnOffWindowsCopilot 0 (or not set) (Default). Off: TurnOffWindowsCopilot 1 (Recommended), Current. Registry: HKEY_CURRENT_USER\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot, HKEY_LOCAL_MACHINE\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot."
-          }
+          },
+          "matrixWin10": null
         },
         {
           "id": "privacy-disable-ai-data-analysis",

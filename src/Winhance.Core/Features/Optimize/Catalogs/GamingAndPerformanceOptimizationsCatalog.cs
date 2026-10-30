@@ -2407,9 +2407,12 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 AddedInVersion = "26.04.03",
                 IsSubjectivePreference = true,
             },
+            Apply = new() { RequiresReboot = true },
             Targets = new Target[]
             {
-                new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TabletInputService" }, "Start", RegistryValueKind.DWord) { LockWhenValue = 4 },
+                // Windows 11 build 22471 renamed TabletInputService to TextInputManagementService.
+                new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TabletInputService" }, "Start", RegistryValueKind.DWord) { LockWhenValue = 4, AppliesTo = new[] { BuildRange.Between(0, 22470) } },
+                new RegTarget("TextInputStart", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TextInputManagementService" }, "Start", RegistryValueKind.DWord) { LockWhenValue = 4, AppliesTo = new[] { BuildRange.Between(22471, int.MaxValue) } },
                 new RegTarget("IsInputAppPreloadEnabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\input" }, "IsInputAppPreloadEnabled", RegistryValueKind.DWord) { ApplyOnly = true },
             },
             States = new[]
@@ -2422,6 +2425,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Set = new Dictionary<string, StateValue>
                     {
                         ["Start"] = Of(4),
+                        ["TextInputStart"] = Of(4),
                         ["IsInputAppPreloadEnabled"] = Of(0),
                     },
                 },
@@ -2433,6 +2437,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Set = new Dictionary<string, StateValue>
                     {
                         ["Start"] = Of(3).OrAbsent(),
+                        ["TextInputStart"] = Of(3).OrAbsent(),
                         ["IsInputAppPreloadEnabled"] = Of(1),
                     },
                 },
@@ -2443,6 +2448,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Set = new Dictionary<string, StateValue>
                     {
                         ["Start"] = Of(2),
+                        ["TextInputStart"] = Of(2),
                         ["IsInputAppPreloadEnabled"] = Of(1),
                     },
                 },

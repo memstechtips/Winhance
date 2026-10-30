@@ -3546,7 +3546,7 @@ if (Test-Path $appPathsKey) {
             Targets = new Target[]
             {
                 new RegTarget("DisableAutoplay", new[] { @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers" }, "DisableAutoplay", RegistryValueKind.DWord),
-                new RegTarget("NoDriveTypeAutoRun", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" }, "NoDriveTypeAutoRun", RegistryValueKind.DWord) { IsGroupPolicy = true },
+                new RegTarget("NoDriveTypeAutoRun", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" }, "NoDriveTypeAutoRun", RegistryValueKind.DWord) { Overrides = true },
             },
             States = new[]
             {

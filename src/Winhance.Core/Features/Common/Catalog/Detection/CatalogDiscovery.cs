@@ -59,12 +59,12 @@ public static class CatalogDiscovery
         }
 
         // Registry-only settings resolve the way Windows does: the highest-precedence target that is present
-        // decides the state (a group-policy override outranks the preference key; mirror/sync keys flagged
+        // decides the state (a group-policy or Overrides target outranks the preference key; mirror/sync keys flagged
         // ApplyOnly are written but not read). This applies ONLY to the "single authoritative value" shape -
-        // exactly one read target that is not a group-policy override. Two or more independent preference keys
+        // exactly one read target that is not an override. Two or more independent preference keys
         // are AND-semantics (each discriminates a different state, e.g. apps-theme AND system-theme) and keep
         // whole-pattern matching, as do all non-registry mechanisms.
-        bool precedenceShaped = regReadTargets.Count(t => !t.IsGroupPolicy) == 1;
+        bool precedenceShaped = regReadTargets.Count(t => !IsOverride(t)) == 1;
         if (allRegistry && regReadTargets.Count > 0 && precedenceShaped)
             return SettingDetection.FromLabel(DetectByPrecedence(setting.States, readings, regReadTargets));
 
@@ -107,7 +107,9 @@ public static class CatalogDiscovery
         return $"'{reg.ValueName}' is stored under a type the catalog ({reg.Type}) cannot read";
     }
 
-    // Precedence: a present group-policy target wins, else the first present target, else the first target. A PRESENT
+    private static bool IsOverride(RegTarget target) => target.IsGroupPolicy || target.Overrides;
+
+    // Precedence: a present override target wins, else the first present target, else the first target. A PRESENT
     // value Winhance does not recognize reports Custom (null); an ABSENT deciding value falls to the IsFallback state.
     private static string? DetectByPrecedence(
         IReadOnlyList<SettingState> states, IStateReadings readings, IReadOnlyList<RegTarget> regTargets)
@@ -119,7 +121,7 @@ public static class CatalogDiscovery
         }
 
         RegTarget deciding =
-            regTargets.FirstOrDefault(t => t.IsGroupPolicy && Present(t.Key))
+            regTargets.FirstOrDefault(t => IsOverride(t) && Present(t.Key))
             ?? regTargets.FirstOrDefault(t => Present(t.Key))
             ?? regTargets[0];
 
@@ -151,5 +153,25 @@ public static class CatalogDiscovery
                 return context.PowerCfgValue(power.SubgroupGuid, power.SettingGuid, powerContext);
         }
         return null;
+    }
+
+    private sealed class DictReadings : IStateReadings
+    {
+        private readonly Dictionary<string, (object? Value, bool Present)> _readings = new();
+
+        public void Set(string targetKey, object? value, bool present) => _readings[targetKey] = (value, present);
+
+        public bool TryGet(string targetKey, out object? value, out bool present)
+        {
+            if (_readings.TryGetValue(targetKey, out var entry))
+            {
+                value = entry.Value;
+                present = entry.Present;
+                return true;
+            }
+            value = null;
+            present = false;
+            return false;
+        }
     }
 }

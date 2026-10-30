@@ -37,6 +37,63 @@ public class WindowsStateWriterTests
     private static RegTarget Reg(string? valueName = ValueName, RegistryValueKind kind = RegistryValueKind.DWord) =>
         new("key", new[] { Path }, valueName, kind);
 
+    private static RegTarget ListReg() =>
+        new("key", new[] { Path }, ValueName, RegistryValueKind.String) { ListItem = "home", ListPrefix = "hide:" };
+
+    [Theory]
+    [InlineData("showonly:display;home", true, "showonly:display")]
+    [InlineData("showonly:display", false, "showonly:display;home")]
+    public void SetRegistryListItem_ShowOnlyList_AddsOrDropsTheItem(string current, bool hidden, string expected)
+    {
+        _reg.Setup(r => r.GetValue(Path, ValueName)).Returns(current);
+        _reg.Setup(r => r.SetValue(Path, ValueName, expected, RegistryValueKind.String)).Returns(true);
+
+        _sut.SetRegistryListItem(ListReg(), Path, "hide:", "home", hidden).Should().BeTrue();
+
+        _reg.Verify(r => r.SetValue(Path, ValueName, expected, RegistryValueKind.String), Times.Once);
+    }
+
+    [Fact]
+    public void SetRegistryListItem_ShowOnlyListWithOnlyTheItem_LeavesTheValueAlone()
+    {
+        _reg.Setup(r => r.GetValue(Path, ValueName)).Returns("showonly:home");
+
+        _sut.SetRegistryListItem(ListReg(), Path, "hide:", "home", true).Should().BeFalse();
+
+        _reg.Verify(r => r.SetValue(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<RegistryValueKind>()), Times.Never);
+    }
+
+    [Fact]
+    public void SetRegistryListItem_EmptyShowOnlyList_ShowingTheItemAllowsOnlyIt()
+    {
+        _reg.Setup(r => r.GetValue(Path, ValueName)).Returns("showonly:");
+        _reg.Setup(r => r.SetValue(Path, ValueName, "showonly:home", RegistryValueKind.String)).Returns(true);
+
+        _sut.SetRegistryListItem(ListReg(), Path, "hide:", "home", false).Should().BeTrue();
+
+        _reg.Verify(r => r.SetValue(Path, ValueName, "showonly:home", RegistryValueKind.String), Times.Once);
+    }
+
+    [Fact]
+    public void SetRegistryListItem_EmptyShowOnlyList_HidingTheItemLeavesTheValueAlone()
+    {
+        _reg.Setup(r => r.GetValue(Path, ValueName)).Returns("showonly:");
+
+        _sut.SetRegistryListItem(ListReg(), Path, "hide:", "home", true).Should().BeTrue();
+
+        _reg.Verify(r => r.SetValue(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<RegistryValueKind>()), Times.Never);
+    }
+
+    [Fact]
+    public void SetRegistryListItem_HideList_StillAppendsTheItem()
+    {
+        _reg.Setup(r => r.GetValue(Path, ValueName)).Returns("hide:printers");
+        _reg.Setup(r => r.CreateKey(Path)).Returns(true);
+        _reg.Setup(r => r.SetValue(Path, ValueName, "hide:printers;home", RegistryValueKind.String)).Returns(true);
+
+        _sut.SetRegistryListItem(ListReg(), Path, "hide:", "home", true).Should().BeTrue();
+    }
+
     [Fact]
     public void WriteRegistry_CreatesKeyThenSetsValue()
     {

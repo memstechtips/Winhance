@@ -36,13 +36,13 @@ public class CatalogCleanInstallConformanceTests
         ["privacy-advertising-id"] = "privacy band: WindowsDefault is the EXPRESS state (decision 11b.2); this fixture is privacy-DECLINED, diverging by design",
         ["privacy-improve-inking-typing"] = "privacy band: declined fixture vs express default (by design)",
         ["privacy-tailored-experiences"] = "privacy band: declined fixture vs express default (by design)",
-        ["privacy-turn-off-copilot"] = "privacy band: declined fixture leaves Copilot policies unwritten vs express default Disabled (by design)",
     };
 
     private static readonly IReadOnlyDictionary<string, string> PostUpdateVmExpected = new Dictionary<string, string>
     {
         ["gaming-memory-integrity"] = "hardware-conditional: VM, VBS off",
         ["gaming-virtualization-based-security"] = "hardware-conditional: VM, VBS off",
+        ["privacy-turn-off-copilot"] = "this express VM carries a TurnOffWindowsCopilot=1 policy write (same source as BingSearchEnabled=0); the declined gold has no policy, which is the default",
         ["notifications-system-pane-suggestions"] = "post-image drift documented in the image-comparison doc (1 -> 0 after updates); image + gold conform",
         ["power-fast-startup"] = "VM artifact: no hibernation support on VMware, HiberbootEnabled=0; image + real hardware ship 1",
         ["security-bitlocker-auto-encryption"] = "VM artifact: PreventDeviceEncryption=1 is an unsupported-hardware write; image ships nothing, gold conforms",

@@ -105,24 +105,40 @@ public class PolicyCleanupServiceTests
         paths.Should().NotContain(@"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU");
     }
 
+    private static readonly string[] TelemetryMirrorPaths =
+    [
+        @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection",
+        @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DataCollection",
+    ];
+
+    // Windows writes CurrentVersion\Policies\DataCollection itself during setup, so deleting it is not a reset.
     [Fact]
-    public void CollectPolicyKeyPaths_FindsCurrentVersionPoliciesPaths()
+    public void CollectPolicyKeyPaths_SkipsAGroupPolicyMirrorsWindowsOwnPaths()
     {
+        var mirror = new Setting
+        {
+            Id = "s1",
+            Display = new Display { Name = TestKeys.Of("s1"), Description = TestKeys.Of("Test") },
+            Targets = new Target[]
+            {
+                new RegTarget("AllowTelemetry", TelemetryMirrorPaths, "AllowTelemetry", Microsoft.Win32.RegistryValueKind.DWord) { IsGroupPolicy = true },
+            },
+        };
         var settings = new Dictionary<string, IReadOnlyList<Setting>>
         {
             ["Privacy"] = new[]
             {
-                SettingWithGroupPolicyPaths("s1",
-                    @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection")
+                mirror,
+                SettingWithGroupPolicyPaths("s2",
+                    @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\InkingAndTypingPersonalization"),
             }
         };
 
         _mockRegistry.Setup(r => r.GetAll(new CatalogScope(true, false))).Returns(settings);
 
-        var service = CreateService();
-        var paths = service.CollectPolicyKeyPaths();
+        var paths = CreateService().CollectPolicyKeyPaths();
 
-        paths.Should().Contain(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection");
+        paths.Should().BeEquivalentTo(TelemetryMirrorPaths[1..]);
     }
 
     [Fact]

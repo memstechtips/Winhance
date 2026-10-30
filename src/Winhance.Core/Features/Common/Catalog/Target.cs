@@ -22,6 +22,7 @@ public sealed record RegTarget(
     RegistryValueKind Type) : Target(Key)
 {
     public bool IsGroupPolicy { get; init; }
+    public bool Overrides { get; init; }                // a present value decides the state over the other targets, like a policy does
     public bool ApplyOnly { get; init; }                // written on apply but NOT read on detect (a sync/mirror key)
     public bool ReadOnly { get; init; }                 // read, NEVER written: seeds a card or finds a keyed selection's key
     public bool ClearedOnApply { get; init; }           // ReadOnly whose value an effect clears: documented as written
@@ -36,6 +37,11 @@ public sealed record RegTarget(
     public string ListPrefix { get; init; } = "";       // the list's fixed lead-in ("hide:")
     public bool PerNetworkInterface { get; init; }      // "all subkeys must match" read semantics
     public bool PerMonitor { get; init; }
+
+    // Windows ships no group policy, so a value under SOFTWARE\Policies exists only because something set one. The
+    // CurrentVersion\Policies keys look alike but are Windows' own and ship populated.
+    public static bool IsPolicyPath(string path) =>
+        path.Contains(@"\SOFTWARE\Policies\", StringComparison.OrdinalIgnoreCase);
 }
 
 public sealed record PowerCfgTarget(

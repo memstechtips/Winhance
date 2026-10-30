@@ -37,8 +37,8 @@ public class CatalogDetectionModelConformanceTests
     private sealed class Ctx : IDetectionContext
     {
         private readonly Dictionary<(string, string?), object?> _vals;
-        public Ctx(Dictionary<(string, string?), object?> vals) => _vals = vals;
-        public WinBuild CurrentBuild => new(int.MaxValue);
+        public Ctx(Dictionary<(string, string?), object?> vals, int build) => (_vals, CurrentBuild) = (vals, new(build));
+        public WinBuild CurrentBuild { get; }
         public object? GetValue(string keyPath, string? valueName)
             => _vals.TryGetValue((keyPath, valueName), out var v) ? v : null;
         public bool KeyExists(string keyPath) => false;
@@ -53,9 +53,12 @@ public class CatalogDetectionModelConformanceTests
     private static readonly IReadOnlyDictionary<string, Setting> Catalog = SettingCatalog.All.ToDictionary(s => s.Id);
 
     private static string? Detect(string id, params (string Path, string? Value, object? Data)[] reads)
+        => DetectOn(int.MaxValue, id, reads);
+
+    private static string? DetectOn(int build, string id, params (string Path, string? Value, object? Data)[] reads)
     {
         var dict = reads.ToDictionary(r => (r.Path, r.Value), r => r.Data);
-        return CatalogDiscovery.Detect(Catalog[id], new Ctx(dict)).Label;
+        return CatalogDiscovery.Detect(Catalog[id], new Ctx(dict, build)).Label;
     }
 
     private const string AdPref = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo";
@@ -68,6 +71,7 @@ public class CatalogDetectionModelConformanceTests
     private const string CdmKey = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager";
     private const string DirectXKey = @"HKEY_CURRENT_USER\Software\Microsoft\DirectX\UserGpuPreferences";
     private const string TabletSvc = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TabletInputService";
+    private const string TextInputSvc = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TextInputManagementService";
     private const string InkCpss = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\InkingAndTypingPersonalization";
     private const string InkAccepted = @"HKEY_CURRENT_USER\Software\Microsoft\Personalization\Settings";
 
@@ -125,16 +129,26 @@ public class CatalogDetectionModelConformanceTests
     public void Touch_keyboard_service_reads_start_type() // IsInputAppPreloadEnabled is an apply-only secondary
     {
         Assert.Equal("ServiceOption_ManualRecommended", Detect("gaming-touch-keyboard-service"));                        // absent -> default (Manual)
-        Assert.Equal("ServiceOption_Disabled", Detect("gaming-touch-keyboard-service", (TabletSvc, "Start", 4)));
-        Assert.Equal("ServiceOption_ManualRecommended", Detect("gaming-touch-keyboard-service", (TabletSvc, "Start", 3)));
-        Assert.Equal("ServiceOption_Automatic", Detect("gaming-touch-keyboard-service", (TabletSvc, "Start", 2)));
-        Assert.Null(Detect("gaming-touch-keyboard-service", (TabletSvc, "Start", 1)));                        // unrecognised -> Custom
+        Assert.Equal("ServiceOption_Disabled", Detect("gaming-touch-keyboard-service", (TextInputSvc, "Start", 4)));
+        Assert.Equal("ServiceOption_ManualRecommended", Detect("gaming-touch-keyboard-service", (TextInputSvc, "Start", 3)));
+        Assert.Equal("ServiceOption_Automatic", Detect("gaming-touch-keyboard-service", (TextInputSvc, "Start", 2)));
+        Assert.Null(Detect("gaming-touch-keyboard-service", (TextInputSvc, "Start", 1)));                        // unrecognised -> Custom
+    }
+
+    [Fact]
+    public void Touch_keyboard_service_reads_the_service_its_build_has() // renamed in build 22471
+    {
+        Assert.Equal("ServiceOption_Disabled", DetectOn(19045, "gaming-touch-keyboard-service", (TabletSvc, "Start", 4)));
+        Assert.Equal("ServiceOption_Disabled", DetectOn(22000, "gaming-touch-keyboard-service", (TabletSvc, "Start", 4)));
+        Assert.Equal("ServiceOption_ManualRecommended", DetectOn(19045, "gaming-touch-keyboard-service", (TextInputSvc, "Start", 4)));
+        Assert.Equal("ServiceOption_ManualRecommended", DetectOn(26200, "gaming-touch-keyboard-service", (TabletSvc, "Start", 4)));
+        Assert.Equal("ServiceOption_Disabled", DetectOn(26200, "gaming-touch-keyboard-service", (TextInputSvc, "Start", 4)));
     }
 
     [Fact]
     public void Inking_typing_dictionary_cpss_wins_else_accepted_policy() // CPSS Value (Win11) > AcceptedPrivacyPolicy (Win10)
     {
-        // CPSS Value is tagged a policy tier (the connected-privacy store the Win11 Settings app binds to); the two
+        // CPSS Value overrides (the connected-privacy store the Win11 Settings app binds to); the two
         // InputPersonalization keys are apply-only enforcement keys. Default (all absent) reads OFF.
         Assert.Equal(LocKey.Common.Disabled.Value, Detect("privacy-inking-typing-dictionary"));                                 // clean -> off (default)
         Assert.Equal(LocKey.Common.Enabled.Value, Detect("privacy-inking-typing-dictionary", (InkCpss, "Value", 1)));

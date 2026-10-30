@@ -207,6 +207,17 @@ public class GeneratedPowerShellTests
         calls.AppendLine("Set-ItemProperty -Path $k -Name Pages -Value 'showonly:display' -Type String");
         calls.AppendLine("Set-RegistryListItem -Path $k -Name Pages -Prefix 'hide:' -Item home -Present $false -Description t");
         calls.AppendLine("Write-Output ('L4=' + (Get-ItemProperty -Path $k -Name Pages).Pages)");
+        calls.AppendLine("Set-RegistryListItem -Path $k -Name Pages -Prefix 'hide:' -Item home -Present $true -Description t");
+        calls.AppendLine("Write-Output ('L5=' + (Get-ItemProperty -Path $k -Name Pages).Pages)");
+        calls.AppendLine("Set-ItemProperty -Path $k -Name Pages -Value 'showonly:home' -Type String");
+        calls.AppendLine("Set-RegistryListItem -Path $k -Name Pages -Prefix 'hide:' -Item home -Present $true -Description t");
+        calls.AppendLine("Write-Output ('L6=' + (Get-ItemProperty -Path $k -Name Pages).Pages)");
+        calls.AppendLine("Set-ItemProperty -Path $k -Name Pages -Value 'showonly:' -Type String");
+        calls.AppendLine("Set-RegistryListItem -Path $k -Name Pages -Prefix 'hide:' -Item home -Present $false -Description t");
+        calls.AppendLine("Write-Output ('L7=' + (Get-ItemProperty -Path $k -Name Pages).Pages)");
+        calls.AppendLine("Set-ItemProperty -Path $k -Name Pages -Value 'showonly:' -Type String");
+        calls.AppendLine("Set-RegistryListItem -Path $k -Name Pages -Prefix 'hide:' -Item home -Present $true -Description t");
+        calls.AppendLine("Write-Output ('L8=' + (Get-ItemProperty -Path $k -Name Pages).Pages + '|')");
         calls.AppendLine("Remove-Item -Path $k -Recurse -Force");
 
         var sb = new StringBuilder();
@@ -216,11 +227,16 @@ public class GeneratedPowerShellTests
 
         var output = await Runner().RunScriptAsync(sb.ToString());
 
-        // WindowsStateWriter.SetRegistryListItem: only the one entry changes, an emptied list deletes the value, and a
-        // value in another form is left alone when nothing has to be added.
+        // WindowsStateWriter.SetRegistryListItem: only the one entry changes, an emptied list deletes the value, a
+        // value in another form is left alone when nothing has to be added, and a showonly list adds or drops the
+        // item instead of being replaced; an empty showonly list already hides it.
         output.Should().Contain("L1=hide:home");
         output.Should().Contain("L2=hide:printers");
         output.Should().Contain("L3=False");
-        output.Should().Contain("L4=showonly:display");
+        output.Should().Contain("L4=showonly:display;home");
+        output.Should().Contain("L5=showonly:display");
+        output.Should().Contain("L6=showonly:home");
+        output.Should().Contain("L7=showonly:home");
+        output.Should().Contain("L8=showonly:|");
     }
 }

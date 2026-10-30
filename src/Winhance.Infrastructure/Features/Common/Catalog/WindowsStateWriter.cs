@@ -96,6 +96,13 @@ internal sealed class WindowsStateWriter : IStateWriter
         // The other entries belong to whoever put them there (a Group Policy can hide more pages), so only ours
         // changes. A value in another form is left alone unless the item has to be added.
         var current = _reg.GetValue(path, target.ValueName!) as string;
+        if (current is not null
+            && !current.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            && RegTargetReader.ShowOnlyItems(current) is { } allowed)
+        {
+            return SetShowOnlyListItem(target, path, allowed, item, present);
+        }
+
         var items = current is null ? new List<string>() : RegTargetReader.ListItems(current, prefix);
         if (items is null)
         {
@@ -113,6 +120,24 @@ internal sealed class WindowsStateWriter : IStateWriter
         if (!_reg.CreateKey(path))
             return false;
         return _reg.SetValue(path, target.ValueName!, prefix + string.Join(';', items), target.Type);
+    }
+
+    // A "showonly:" allow-list lists the pages that stay visible, so hiding the item takes it out of the list.
+    private bool SetShowOnlyListItem(RegTarget target, string path, List<string> allowed, string item, bool hidden)
+    {
+        int removed = allowed.RemoveAll(i => string.Equals(i, item, StringComparison.OrdinalIgnoreCase));
+        if (!hidden)
+            allowed.Add(item);
+
+        // An empty allow-list already hides every page, ours included.
+        if (allowed.Count == 0 && removed == 0)
+            return true;
+        if (allowed.Count == 0)
+        {
+            _log.Log(LogLevel.Warning, $"'{item}' is the only entry in the showonly list at '{path}', so it was left as it is");
+            return false;
+        }
+        return _reg.SetValue(path, target.ValueName!, RegTargetReader.ShowOnlyPrefix + string.Join(';', allowed), target.Type);
     }
 
     public bool SetRegistryComposite(RegTarget target, string path, string compositeKey, string? subValue)

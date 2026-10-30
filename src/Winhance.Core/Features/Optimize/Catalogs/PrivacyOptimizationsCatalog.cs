@@ -889,7 +889,7 @@ public static class PrivacyOptimizationsCatalog
                     {
                         ["Enabled"] = Of(0),
                         ["Value"] = Of(0),
-                        ["DisabledByGroupPolicy"] = Of(1),
+                        ["DisabledByGroupPolicy"] = Of(1).OrAbsent(),
                     },
                 },
             },
@@ -1184,7 +1184,7 @@ public static class PrivacyOptimizationsCatalog
             },
             Targets = new Target[]
             {
-                new RegTarget("Value", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\InkingAndTypingPersonalization" }, "Value", RegistryValueKind.DWord) { IsGroupPolicy = true },
+                new RegTarget("Value", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\InkingAndTypingPersonalization" }, "Value", RegistryValueKind.DWord) { Overrides = true },
                 new RegTarget("AcceptedPrivacyPolicy", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Personalization\Settings" }, "AcceptedPrivacyPolicy", RegistryValueKind.DWord),
                 new RegTarget("RestrictImplicitTextCollection", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\InputPersonalization" }, "RestrictImplicitTextCollection", RegistryValueKind.DWord) { ApplyOnly = true },
                 new RegTarget("HarvestContacts", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\InputPersonalization\TrainedDataStore" }, "HarvestContacts", RegistryValueKind.DWord) { ApplyOnly = true },
@@ -1232,7 +1232,7 @@ public static class PrivacyOptimizationsCatalog
             {
                 new RegTarget("ShowedToastAtLevel", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack" }, "ShowedToastAtLevel", RegistryValueKind.DWord),
                 new RegTarget("AllowTelemetry", new[] { @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\DataCollection", @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection", @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection", @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DataCollection" }, "AllowTelemetry", RegistryValueKind.DWord) { IsGroupPolicy = true },
-                new RegTarget("MaxTelemetryAllowed", new[] { @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection", @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection" }, "MaxTelemetryAllowed", RegistryValueKind.DWord) { IsGroupPolicy = true },
+                new RegTarget("MaxTelemetryAllowed", new[] { @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection", @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection" }, "MaxTelemetryAllowed", RegistryValueKind.DWord) { ApplyOnly = true },
                 new RegTarget("AITEnable", new[] { @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\AppCompat", @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AppCompat" }, "AITEnable", RegistryValueKind.DWord) { IsGroupPolicy = true },
             },
             States = new[]
@@ -1257,8 +1257,8 @@ public static class PrivacyOptimizationsCatalog
                     Set = new Dictionary<string, StateValue>
                     {
                         ["ShowedToastAtLevel"] = Of(1).OrAbsent(),
-                        ["AllowTelemetry"] = OneOf(0, 1),
-                        ["MaxTelemetryAllowed"] = OneOf(0, 1),
+                        ["AllowTelemetry"] = OneOf(1, 0),
+                        ["MaxTelemetryAllowed"] = OneOf(1, 0),
                         ["AITEnable"] = Of(0).OrAbsent(),
                     },
                 },
@@ -1629,7 +1629,7 @@ public static class PrivacyOptimizationsCatalog
                     Set = new Dictionary<string, StateValue>
                     {
                         ["Value"] = Of("Allow").OrAbsent(),
-                        ["DisableLocation"] = Of(0),
+                        ["DisableLocation"] = Absent,
                     },
                 },
                 new SettingState
@@ -1822,13 +1822,13 @@ public static class PrivacyOptimizationsCatalog
                 new SettingState
                 {
                     Label = LocKey.Common.Enabled,
-                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
+                    Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["TurnOffWindowsCopilot"] = Of(0).OrAbsent() },
                 },
                 new SettingState
                 {
                     Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
+                    Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["TurnOffWindowsCopilot"] = Of(1) },
                 },

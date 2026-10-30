@@ -71,6 +71,11 @@ public class RegTargetReaderTests
     [InlineData("hide:printers", false)]
     [InlineData("hide:homegroup", false)]
     [InlineData("showonly:home", false)]
+    [InlineData("showonly:display;HOME", false)]
+    [InlineData("showonly:display;sound", true)]
+    [InlineData("showonly:", true)]
+    [InlineData("showonly: ; ", true)]
+    [InlineData("something else", false)]
     public void List_item_reads_whether_the_item_is_in_the_prefixed_list(string value, bool expected)
     {
         var t = new RegTarget("K", HklmA, "SettingsPageVisibility", RegistryValueKind.String) { ListItem = "home", ListPrefix = "hide:" };

@@ -74,6 +74,21 @@ public class CatalogDiscoveryPrecedenceTests
     }
 
     [Fact]
+    public void Overrides_target_wins_over_preference_like_a_policy()
+    {
+        var setting = AdSetting() with
+        {
+            Targets = new Target[]
+            {
+                new RegTarget("Enabled", new[] { Pref }, "Enabled", RegistryValueKind.DWord),
+                new RegTarget("Gp", new[] { Mirror }, "Value", RegistryValueKind.DWord) { Overrides = true },
+            },
+        };
+        var ctx = new Ctx(new() { [(Pref, "Enabled")] = 1, [(Mirror, "Value")] = 1 });
+        Assert.Equal(LocKey.Common.Disabled.Value, CatalogDiscovery.Detect(setting, ctx).Label);
+    }
+
+    [Fact]
     public void Nothing_present_falls_to_default_on_fallback()
     {
         var ctx = new Ctx(new());

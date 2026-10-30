@@ -356,6 +356,26 @@ Write-Log ""====================================================================
         $currentValue = Get-ItemProperty -Path $Path -Name $Name -ErrorAction SilentlyContinue
         $current = if ($null -eq $currentValue) { $null } else { [string]$currentValue.$Name }
 
+        $showOnly = ""showonly:""
+        if ($current -and -not $current.StartsWith($Prefix, [StringComparison]::OrdinalIgnoreCase) -and $current.StartsWith($showOnly, [StringComparison]::OrdinalIgnoreCase)) {
+            $listed = @($current.Substring($showOnly.Length) -split "";"" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+            $allowed = @($listed | Where-Object { $_ -ne $Item })
+            if (-not $Present) {
+                $allowed += $Item
+            }
+            if ($allowed.Count -eq 0 -and $listed.Count -eq 0) {
+                Write-Log ""$Description | $Path\$Name has an empty showonly list, which already hides [$Item]"" ""INFO""
+                return
+            }
+            if ($allowed.Count -eq 0) {
+                Write-Log ""$Description | $Path\$Name has only [$Item] in its showonly list, left as it is"" ""WARNING""
+                return
+            }
+            Set-ItemProperty -Path $Path -Name $Name -Value ($showOnly + ($allowed -join "";"")) -Type String -Force
+            Write-Log ""$Description | $Path\$Name [$Item] hidden = $Present"" ""SUCCESS""
+            return
+        }
+
         $items = @()
         if ($current -and $current.StartsWith($Prefix, [StringComparison]::OrdinalIgnoreCase)) {
             $items = @($current.Substring($Prefix.Length) -split "";"" | ForEach-Object { $_.Trim() } | Where-Object { $_ -and $_ -ne $Item })

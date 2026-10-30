@@ -40,15 +40,19 @@ public static class ApplyPlanBuilder
                         break; // detect-only: the .reg import (an Effect) is the apply
                     // A state's ResetSet overrides its Set per target (the [1,null] Explorer targets detect
                     // "1-or-absent" but DELETE); a target absent from ResetSet falls back to its normal Set write.
-                    StateValue sv;
+                    StateValue declared;
+                    bool resetNamed = false;
                     if (resetWrites && state.ResetSet is { } resetSet && resetSet.TryGetValue(reg.Key, out var resetSv))
-                        sv = resetSv;
+                        (declared, resetNamed) = (resetSv, true);
                     else if (!state.Set.TryGetValue(reg.Key, out var setSv))
                         continue; // state doesn't cover this target (e.g. a fallback's partial Set) - leave it alone
                     else
-                        sv = setSv;
+                        declared = setSv;
                     foreach (var path in reg.Paths)
                     {
+                        // Windows ships no group policy, so on a default apply a policy path is deleted whatever value
+                        // the state also accepts; a mirror's non-policy paths still get the declared write.
+                        var sv = resetWrites && !resetNamed && RegTarget.IsPolicyPath(path) ? StateValue.Absent : declared;
                         if (reg.PerNetworkInterface || reg.PerMonitor)
                         {
                             // Expand-and-write-each: enumerate the parent key's sub-keys and apply the same write to

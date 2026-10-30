@@ -45,3 +45,8 @@ public static class ApplyExecutor
         return new ApplyResult(plan.SyncOps.Count, failures.Count, failures);
     }
 }
+
+public sealed record ApplyResult(int Total, int Failed, IReadOnlyList<string> Failures)
+{
+    public bool AllSucceeded => Failed == 0;
+}

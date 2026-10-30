@@ -423,4 +423,48 @@ public class ApplyPlanBuilderTests
         Assert.IsType<RegistryDeleteOp>(Assert.Single(ApplyPlanBuilder.Build(setting, LocKey.Common.Enabled, Win11)));
         Assert.IsType<RegistryWriteOp>(Assert.Single(ApplyPlanBuilder.Build(setting, LocKey.Common.Enabled, Win10)));
     }
+
+    private const string PolicyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DataCollection";
+    private const string WindowsOwnPolicyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection";
+
+    private static Setting PolicyMirror(IReadOnlyDictionary<string, StateValue>? resetSet = null) => Make(
+        new[] { Reg("k", "V", WindowsOwnPolicyPath, PolicyPath) },
+        new SettingState
+        {
+            Label = LocKey.Common.Enabled,
+            Roles = new[] { StateRole.WindowsDefault },
+            Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1).OrAbsent() },
+            ResetSet = resetSet,
+        },
+        new SettingState { Label = LocKey.Common.Disabled, Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) } });
+
+    [Fact]
+    public void Windows_default_deletes_a_group_policy_path_and_writes_the_windows_own_mirror()
+    {
+        var plan = ApplyPlanBuilder.Build(PolicyMirror(), LocKey.Common.Enabled);
+
+        Assert.Equal(PolicyPath, Assert.Single(plan.OfType<RegistryDeleteOp>()).Path);
+        var write = Assert.Single(plan.OfType<RegistryWriteOp>());
+        Assert.Equal(WindowsOwnPolicyPath, write.Path);
+        Assert.Equal(1, (int)write.Value);
+    }
+
+    [Fact]
+    public void Non_default_state_still_writes_the_group_policy_path()
+    {
+        var plan = ApplyPlanBuilder.Build(PolicyMirror(), LocKey.Common.Disabled);
+
+        Assert.Empty(plan.OfType<RegistryDeleteOp>());
+        Assert.Equal(2, plan.OfType<RegistryWriteOp>().Count(w => (int)w.Value == 0));
+    }
+
+    [Fact]
+    public void ResetSet_naming_the_target_overrides_the_group_policy_delete()
+    {
+        var plan = ApplyPlanBuilder.Build(
+            PolicyMirror(new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) }), LocKey.Common.Enabled);
+
+        Assert.Empty(plan.OfType<RegistryDeleteOp>());
+        Assert.Equal(2, plan.OfType<RegistryWriteOp>().Count(w => (int)w.Value == 1));
+    }
 }

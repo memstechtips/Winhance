@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "catalogHash": "e39f83cdcb1abb022c28781f33542a6f44f736b21b34cb0ec44c79ecceb53a2c",
+  "catalogHash": "501c93399d1815ee8a2d154e5cd7d3cabf0098e2e33cf7d24120e5d504c918b0",
   "settingCount": 445,
   "settings": [
     {
@@ -11112,7 +11112,7 @@
           "valueName": "NoDriveTypeAutoRun",
           "keyExistenceOnly": false,
           "type": "DWord",
-          "isGroupPolicy": true,
+          "isGroupPolicy": false,
           "applyOnly": false,
           "lockWhenValue": null,
           "byteIndex": null,
@@ -36380,7 +36380,7 @@
           ],
           "set": {
             "DisabledByGroupPolicy": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -37280,7 +37280,7 @@
           "valueName": "Value",
           "keyExistenceOnly": false,
           "type": "DWord",
-          "isGroupPolicy": true,
+          "isGroupPolicy": false,
           "applyOnly": false,
           "lockWhenValue": null,
           "byteIndex": null,
@@ -37543,8 +37543,8 @@
           "valueName": "MaxTelemetryAllowed",
           "keyExistenceOnly": false,
           "type": "DWord",
-          "isGroupPolicy": true,
-          "applyOnly": false,
+          "isGroupPolicy": false,
+          "applyOnly": true,
           "lockWhenValue": null,
           "byteIndex": null,
           "bitMask": null,
@@ -37673,20 +37673,20 @@
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
-                0,
-                1
+                1,
+                0
               ],
-              "writePayload": 0
+              "writePayload": 1
             },
             "MaxTelemetryAllowed": {
               "acceptsAbsent": false,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
-                0,
-                1
+                1,
+                0
               ],
-              "writePayload": 0
+              "writePayload": 1
             },
             "ShowedToastAtLevel": {
               "acceptsAbsent": true,
@@ -38817,13 +38817,11 @@
           ],
           "set": {
             "DisableLocation": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
-              "deleteOnWrite": false,
-              "values": [
-                0
-              ],
-              "writePayload": 0
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
             },
             "Value": {
               "acceptsAbsent": true,
@@ -39385,14 +39383,7 @@
             {
               "kind": "WindowsDefault",
               "context": "Always",
-              "appliesTo": [
-                {
-                  "minBuild": 0,
-                  "minRevision": 0,
-                  "maxBuild": 21999,
-                  "maxRevision": 2147483647
-                }
-              ]
+              "appliesTo": []
             }
           ],
           "set": {
@@ -39416,18 +39407,6 @@
               "kind": "Recommended",
               "context": "Always",
               "appliesTo": []
-            },
-            {
-              "kind": "WindowsDefault",
-              "context": "Always",
-              "appliesTo": [
-                {
-                  "minBuild": 22000,
-                  "minRevision": 0,
-                  "maxBuild": 2147483647,
-                  "maxRevision": 2147483647
-                }
-              ]
             }
           ],
           "set": {

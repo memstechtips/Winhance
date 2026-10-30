@@ -31,6 +31,23 @@ public enum WindowsChange
 }
 
 // Reboot is separate (RequiresReboot); a setting may need both.
-public abstract record RestartTarget;
-public sealed record RestartProcess(string Name) : RestartTarget;   // "Explorer" / "intl" / "StartMenuExperienceHost"
+public abstract record RestartTarget
+{
+    public static bool IsExplorer(RestartTarget? target) =>
+        target is RestartProcess process && RestartProcess.NamesExplorer(process.Name);
+
+    // "intl" is not a process: it stands for the regional-settings broadcast.
+    public static bool IsRegional(RestartTarget? target) =>
+        target is RestartProcess process && process.Name.Equals(RestartProcess.IntlName, StringComparison.OrdinalIgnoreCase);
+}
+
+public sealed record RestartProcess(string Name) : RestartTarget   // "Explorer" / "intl" / "StartMenuExperienceHost"
+{
+    public const string ExplorerName = "Explorer";
+    public const string IntlName = "intl";
+
+    public static bool NamesExplorer(string? name) =>
+        string.Equals(name, ExplorerName, StringComparison.OrdinalIgnoreCase);
+}
+
 public sealed record RestartService(string Name) : RestartTarget;   // e.g. "WpnUserService*"
