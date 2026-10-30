@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Catalogs;
@@ -145,8 +146,7 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
         if (setting is null)
             return WindowsAppDefinitions.GetWindowsApps().Items.FirstOrDefault(a => a.Id == settingId)?.Name ?? settingId;
 
-        var localized = Localize(setting.Display.Name.Value);
-        return string.IsNullOrEmpty(localized) ? setting.Display.Name.Value : localized;
+        return _localizationService.SettingName(setting);
     }
 
     private string Localize(string key) =>

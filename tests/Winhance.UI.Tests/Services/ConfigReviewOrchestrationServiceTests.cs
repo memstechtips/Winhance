@@ -34,6 +34,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     private readonly Mock<ITargetWindowsService> _mockTargetWindows = new();
     private readonly WimUtilSession _wimUtilSession = new();
     private readonly Mock<IInstallOptionsService> _mockInstallOptions = new();
+    private readonly Mock<ICoverageSummaryService> _mockCoverageSummary = new();
 
     private ConfigReviewOrchestrationService? _service;
 
@@ -76,7 +77,8 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
             _mockHardwareFilter.Object,
             _mockTargetWindows.Object,
             _wimUtilSession,
-            _mockInstallOptions.Object);
+            _mockInstallOptions.Object,
+            _mockCoverageSummary.Object);
         return _service;
     }
 
@@ -753,11 +755,10 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         var service = CreateService();
         await service.ApplyReviewedConfigAsync();
 
-        _mockDialogService.Verify(
-            d => d.ShowInformationAsync(
-                It.Is<string>(m => m.Contains("Mars Standard Time")),
-                It.IsAny<string>(),
-                It.IsAny<string>()),
+        _mockCoverageSummary.Verify(
+            c => c.ShowImportSummaryAsync(
+                It.IsAny<IReadOnlyList<string>>(),
+                It.Is<IReadOnlyList<string>>(notApplied => notApplied.Any(line => line.Contains("Mars Standard Time")))),
             Times.Once);
     }
 

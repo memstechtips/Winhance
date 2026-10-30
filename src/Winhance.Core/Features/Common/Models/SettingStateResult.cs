@@ -16,6 +16,9 @@ public sealed record SettingStateResult
 
     public string? OutcomeDetail { get; init; }
 
+    // Resolved to the fallback state only because no other state matched; see SettingDetection.CatchAll.
+    public bool CatchAll { get; init; }
+
     public int? AcValue { get; init; }
     public int? DcValue { get; init; }
 

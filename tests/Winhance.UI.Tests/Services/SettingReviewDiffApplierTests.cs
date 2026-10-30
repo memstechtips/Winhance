@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -525,6 +526,62 @@ public class SettingReviewDiffApplierTests
         service.ApplyReviewDiffToViewModel(vm, state);
 
         vm.HasReviewDiff.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("192.168.10.1", false)]
+    [InlineData("10.0.0.1", true)]
+    public void ApplyReviewDiffToViewModel_Selection_CustomValues_DiffOnlyWhenThePcReadsOtherValues(string pcServer, bool expectDiff)
+    {
+        var activeConfig = new WinhanceConfigFile
+        {
+            Customize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Taskbar"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "selection-setting",
+                                Name = "Selection",
+                                InputType = InputType.Selection,
+                                CustomStateValues = new Dictionary<string, object> { ["Preferred"] = "192.168.10.1" }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
+        _mockConfigReviewDiffService
+            .Setup(d => d.GetDiffForSetting("selection-setting"))
+            .Returns((ConfigReviewDiff?)null);
+
+        var vm = CreateSettingViewModel(
+            settingId: "selection-setting",
+            name: "Selection",
+            inputType: InputType.Selection,
+            selectedValue: ComboBoxConstants.CustomStateIndex);
+
+        vm.ComboBoxOptions = new ObservableCollection<ComboBoxDisplayOption>
+        {
+            new ComboBoxDisplayOption("Option A", 0),
+            new ComboBoxDisplayOption("Option B", 1)
+        };
+
+        var state = new SettingStateResult
+        {
+            CurrentValue = ComboBoxConstants.CustomStateIndex,
+            Readings = new Dictionary<string, object?> { ["Preferred"] = pcServer },
+        };
+
+        var service = CreateService();
+        service.ApplyReviewDiffToViewModel(vm, state);
+
+        vm.HasReviewDiff.Should().Be(expectDiff);
     }
 
     [Fact]

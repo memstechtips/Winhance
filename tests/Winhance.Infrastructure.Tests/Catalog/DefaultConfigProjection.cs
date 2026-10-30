@@ -11,7 +11,8 @@ namespace Winhance.Infrastructure.Tests.Catalog;
 // Shared by the generator (writes) and the conformance test (asserts) so they cannot disagree; built on the
 // PRODUCTION default primitives, never a hand-copied rule table. A setting is projected iff AVAILABLE on the
 // target build (maximal machine; import drops non-applicable ones) AND carries a WindowsDefault for that build.
-// Actions, the dynamic power-plan selection and answer-file settings are never projected: no live state to restore.
+// Actions and answer-file settings are never projected: no live state to restore. The power plan is Balanced, the
+// plan every install starts on, so restoring the defaults leaves the Winhance plan.
 internal static class DefaultConfigProjection
 {
     internal static readonly (string FileName, WinBuild Build)[] Targets =
@@ -150,8 +151,18 @@ internal static class DefaultConfigProjection
                 };
             }
 
+            case ControlKind.KeyedSelection when setting.Options?.Source == OptionSource.PowerPlans:
+                return new ConfigurationItem
+                {
+                    Id = setting.Id,
+                    Name = setting.Display.Name.Value,
+                    InputType = InputType.Selection,
+                    SelectedKey = PowerPlanCatalog.BalancedGuid,
+                    SelectedKeyLabel = "Balanced",
+                };
+
             default:
-                return null; // Action, TextBox, List, KeyedSelection: no restorable default state
+                return null; // Action, TextBox, List, other KeyedSelection: no restorable default state
         }
     }
 

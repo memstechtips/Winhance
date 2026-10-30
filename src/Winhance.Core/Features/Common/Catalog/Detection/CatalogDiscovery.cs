@@ -68,7 +68,8 @@ public static class CatalogDiscovery
         if (allRegistry && regReadTargets.Count > 0 && precedenceShaped)
             return SettingDetection.FromLabel(DetectByPrecedence(setting.States, readings, regReadTargets));
 
-        return SettingDetection.FromLabel(StateDetectionEngine.Detect(setting.States, readings, activeKeys));
+        var (label, catchAll) = StateDetectionEngine.Match(setting.States, readings, activeKeys);
+        return SettingDetection.FromLabel(label) with { CatchAll = catchAll };
     }
 
     // A server's encryption parts read as absent while it is Off, so only a choice the user made shows up in a saved

@@ -10,6 +10,13 @@ public static class StateDetectionEngine
     public static string? Detect(
         IReadOnlyList<SettingState> states,
         IStateReadings readings,
+        IReadOnlyCollection<string>? activeTargetKeys = null) =>
+        Match(states, readings, activeTargetKeys).Label;
+
+    // CatchAll: no state matched and the fallback answered for readings it does not itself describe.
+    public static (string? Label, bool CatchAll) Match(
+        IReadOnlyList<SettingState> states,
+        IStateReadings readings,
         IReadOnlyCollection<string>? activeTargetKeys = null)
     {
         SettingState? fallback = null;
@@ -38,10 +45,10 @@ public static class StateDetectionEngine
                 continue; // no live, declarative Set entry (Action, or every entry build-inactive)
 
             if (allMatch)
-                return state.Label.Value;
+                return (state.Label.Value, false);
         }
 
         // Nothing matched: resolve to the catch-all fallback state if the setting declares one, else Custom.
-        return fallback?.Label.Value;
+        return (fallback?.Label.Value, fallback is not null);
     }
 }

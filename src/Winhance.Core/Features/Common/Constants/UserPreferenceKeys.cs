@@ -29,4 +29,9 @@ public static class UserPreferenceKeys
     public const string SoftwareAppsViewMode = "SoftwareAppsViewMode";
     public const string SoftwareAppsSortMode = "SoftwareAppsSortMode";
     public const string SoftwareAppsFilter = "SoftwareAppsFilter";
+    public const string ActiveProfile = "ActiveProfile";
+    public const string ActiveProfileFailed = "ActiveProfileFailed";
+
+    // Followed by the profile id; holds the Winhance version the reminder was turned off for.
+    public const string ProfileReminderOffPrefix = "ProfileReminderOff_";
 }

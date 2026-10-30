@@ -184,6 +184,77 @@
                             </StackPanel>
                         </controls:SettingsCard>
 
+                        <TextBlock
+                            Text="{x:Bind ViewModel.ProfilesLabel, Mode=OneWay}"
+                            Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
+
+                        <controls:SettingsExpander
+                            Header="{x:Bind ViewModel.ProfilesHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.ProfilesDescription, Mode=OneWay}"
+                            ItemsSource="{x:Bind ViewModel.Profiles}"
+                            IsExpanded="True">
+                            <controls:SettingsExpander.HeaderIcon>
+                                <fluentIcons:FluentIcon Icon="PersonSettings" IconVariant="Regular"/>
+                            </controls:SettingsExpander.HeaderIcon>
+                            <ProgressRing
+                                IsActive="{x:Bind ViewModel.IsProfileBusy, Mode=OneWay}"
+                                Visibility="{x:Bind ViewModel.IsProfileBusy, Mode=OneWay}"
+                                Width="20" Height="20"/>
+                            <controls:SettingsExpander.ItemTemplate>
+                                <DataTemplate x:DataType="viewModels:ProfileRow">
+                                    <controls:SettingsCard Header="{x:Bind Name}" Description="{x:Bind Status}">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button Content="{x:Bind ApplyText}" Command="{x:Bind Apply}" Style="{StaticResource AccentButtonStyle}"/>
+                                            <Button Content="{x:Bind EditText}" Command="{x:Bind Edit}"/>
+                                            <Button Content="{x:Bind ExportText}" Command="{x:Bind Export}"/>
+                                            <Button Content="{x:Bind DeleteText}" Command="{x:Bind Delete}" Visibility="{x:Bind CanDelete}"/>
+                                        </StackPanel>
+                                    </controls:SettingsCard>
+                                </DataTemplate>
+                            </controls:SettingsExpander.ItemTemplate>
+                        </controls:SettingsExpander>
+
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.SaveProfileHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.SaveProfileDescription, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <fluentIcons:FluentIcon Icon="DocumentSave" IconVariant="Regular"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBox
+                                    MinWidth="200"
+                                    MaxLength="{x:Bind ViewModel.ProfileNameMaxLength}"
+                                    Text="{x:Bind ViewModel.NewProfileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    PlaceholderText="{x:Bind ViewModel.ProfileNamePlaceholder, Mode=OneWay}"
+                                    AutomationProperties.Name="{x:Bind ViewModel.ProfileNamePlaceholder, Mode=OneWay}"/>
+                                <Button
+                                    Content="{x:Bind ViewModel.SaveProfileButtonText, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.SaveProfileCommand}"/>
+                                <Button
+                                    Content="{x:Bind ViewModel.AddProfileFromFileButtonText, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.AddProfileFromFileCommand}"/>
+                            </StackPanel>
+                        </controls:SettingsCard>
+
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.ReapplyHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.ReapplyDescription, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <fluentIcons:FluentIcon Icon="ArrowRepeatAll" IconVariant="Regular"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <ToggleSwitch
+                                x:Name="ReapplyAtSignInSwitch"
+                                IsOn="{x:Bind ViewModel.ReapplyAtSignIn, Mode=TwoWay}"
+                                IsEnabled="{x:Bind ViewModel.CanReapplyAtSignIn, Mode=OneWay}"
+                                AutomationProperties.Name="{x:Bind ViewModel.ReapplyHeader, Mode=OneWay}"/>
+                        </controls:SettingsCard>
+
+                        <InfoBar
+                            IsOpen="True"
+                            IsClosable="False"
+                            Severity="Warning"
+                            Message="{x:Bind ViewModel.ReapplyWarning, Mode=OneWay}"/>
+
                         <!-- System Protection Group -->
                         <TextBlock
                             Text="{x:Bind ViewModel.SystemProtectionLabel, Mode=OneWay}"

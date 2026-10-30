@@ -2,6 +2,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Winhance.Core.Features.Common.Extensions;
@@ -169,6 +170,8 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
 
                 if (configItem.CustomStateValues != null)
                 {
+                    if (ConfigFileMapper.CustomValuesMatch(configItem, currentState.Readings))
+                        return (false, string.Empty, string.Empty);
                     var currentDisplayName = GetComboBoxDisplayName(viewModel, currentIndex);
                     var configDisplayName = _localizationService.GetStringOrDefault(LocKey.Common.CustomState.Value, "Custom");
                     if (!string.Equals(currentDisplayName, configDisplayName, StringComparison.OrdinalIgnoreCase))

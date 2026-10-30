@@ -14,6 +14,8 @@ public sealed record CatalogDetectionResult
     // detection failing is OUR failure and must not masquerade as an unrecognized value on the user's machine.
     public SettingDetectionOutcome Outcome { get; init; } = SettingDetectionOutcome.Resolved;
 
+    public bool CatchAll { get; init; }
+
     // For the log and issue reports; never rendered raw in the UI.
     public string? OutcomeDetail { get; init; }
 

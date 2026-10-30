@@ -13,6 +13,10 @@ namespace Winhance.UI.Features.Common.Dialogs;
 // PowerToys does it: a plain list of strings, or a terminal, can't show which line is the good news.
 internal class SummaryDialogBuilder(ILocalizationService localization)
 {
+    private CheckBox? _checkBox;
+
+    public bool CheckboxChecked => _checkBox?.IsChecked == true;
+
     public ContentDialog Build(XamlRoot xamlRoot, SummaryRequest request)
     {
         var content = new StackPanel
@@ -51,10 +55,20 @@ internal class SummaryDialogBuilder(ILocalizationService localization)
             content.Children.Add(new ScrollViewer
             {
                 Content = sections,
-                MaxHeight = Math.Max(160, xamlRoot.Size.Height - 300),
+                // The dialog does not scroll its own content, so the list gives up the height of everything else
+                // in the window or the checkbox below it is squeezed flat (measured on a 722 DIP window).
+                MaxHeight = Math.Max(160, xamlRoot.Size.Height - 300
+                    - (request.Verdict is null ? 0 : 72)
+                    - (string.IsNullOrEmpty(request.CheckboxText) ? 0 : 44)),
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 Padding = new Thickness(0, 0, 16, 0),
             });
+        }
+
+        if (!string.IsNullOrEmpty(request.CheckboxText))
+        {
+            _checkBox = new CheckBox { Content = request.CheckboxText };
+            content.Children.Add(_checkBox);
         }
 
         var asks = !string.IsNullOrEmpty(request.ConfirmButtonText);

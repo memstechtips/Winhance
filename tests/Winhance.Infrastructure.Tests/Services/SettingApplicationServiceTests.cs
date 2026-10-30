@@ -1270,6 +1270,29 @@ public class SettingApplicationServiceTests
     }
 
     [Fact]
+    public async Task A_refused_keyed_option_with_an_untranslated_name_is_named_by_its_key_not_the_miss_marker()
+    {
+        _mockLocalization
+            .Setup(l => l.GetString("Setting_KeyedOption_NotApplied", It.IsAny<object[]>()))
+            .Returns((string _, object[] args) => $"{args[0]} is not available on this PC, so it was not applied.");
+        _mockConfigImportState.SetupGet(s => s.IsActive).Returns(true);
+        var setting = SettingCatalog.Find("region-system-locale")!;
+        var nameKey = setting.Display.Name.Value;
+        _mockLocalization.Setup(l => l.GetString(nameKey)).Returns($"[{nameKey}]");
+        SetupSettingInRegistry(setting.Id);
+
+        await _service.ApplySettingAsync(new ApplySettingRequest
+        {
+            SettingId = setting.Id,
+            Enable = true,
+            Value = "zz-ZZ",
+        });
+
+        _mockConfigImportState.Verify(
+            s => s.ReportNotApplied($"{nameKey}: zz-ZZ is not available on this PC, so it was not applied."), Times.Once);
+    }
+
+    [Fact]
     public async Task A_refused_keyed_option_outside_an_import_is_not_queued()
     {
         SetupSettingInRegistry("region-system-locale");

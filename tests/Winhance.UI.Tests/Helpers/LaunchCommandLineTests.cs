@@ -103,6 +103,38 @@ public class LaunchCommandLineTests
         Parse().StartInTray.Should().BeFalse();
     }
 
+    [Fact]
+    public void Parse_Profile_SwitchesInTheBackground()
+    {
+        var options = Parse("--profile", "My Gaming");
+
+        options.Profile.Should().Be("My Gaming");
+        options.SwitchesProfile.Should().BeTrue();
+        options.StartsHidden.Should().BeTrue();
+        options.StartInTray.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Parse_ReapplyProfile_SwitchesInTheBackground()
+    {
+        var options = Parse("--reapply-profile");
+
+        options.ReapplyProfile.Should().BeTrue();
+        options.StartsHidden.Should().BeTrue();
+        Parse().StartsHidden.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(@"""C:\Program Files\Winhance\Winhance.exe"" --profile ""My Gaming""")]
+    [InlineData(@"--profile ""My Gaming""")]
+    public void ParseRedirected_DropsTheExeAndKeepsQuotedNames(string commandLine)
+    {
+        var options = LaunchCommandLine.ParseRedirected(commandLine, _errors.Add);
+
+        options.Profile.Should().Be("My Gaming");
+        _errors.Should().BeEmpty();
+    }
+
     [Theory]
     [InlineData("--no-such-flag")]
     [InlineData("stray-argument")]

@@ -110,8 +110,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
         foreach (var featureId in _featuresInConfig.Keys)
         {
-            if (FeatureDefinitions.OptimizeFeatures.Contains(featureId) ||
-                FeatureDefinitions.CustomizeFeatures.Contains(featureId))
+            if (FeatureDefinitions.IsSettingsFeature(featureId))
             {
                 if (GetFeatureDiffCount(featureId) == 0)
                 {
@@ -633,15 +632,10 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
                 // Empty means unread; taken raw it counts as a diff and then beats the unknown text in the fallback below.
                 var liveKey = currentState.DynamicSelection is { Length: > 0 } read ? read : null;
-                var live = liveKey is null ? null : new DynamicOption(LabelOn(currentState, liveKey) ?? liveKey, liveKey);
+                var live = liveKey is null ? null : new ChoiceValue.Keyed(liveKey, LabelOn(currentState, liveKey) ?? liveKey);
 
                 if (live is not null
-                    && _optionProviders.For(setting.Options!.Source).SameOption(setting, new DynamicOption(saved.Label, saved.Key), live))
-                    return (false, string.Empty, string.Empty, null, null);
-
-                if (live is not null
-                    && configItem.File is { Base64.Length: > 0 } carried
-                    && await _fileStore.IsSameFileAsync(live.Value, carried.Base64).ConfigureAwait(false))
+                    && await KeyedChoiceMatch.IsSameAsync(_optionProviders, _fileStore, setting, saved, live, configItem.File?.Base64).ConfigureAwait(false))
                     return (false, string.Empty, string.Empty, null, null);
 
                 // Neither side may be empty: the card's banner and approve control need both, and a blank side leaves
@@ -675,6 +669,8 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                     : (currentState.CurrentValue is int idx ? idx : -1);
                 if (configItem.CustomStateValues != null)
                 {
+                    if (ConfigFileMapper.CustomValuesMatch(configItem, currentState.Readings))
+                        return (false, string.Empty, string.Empty, null, null);
                     var currentRawKey = DisplayKeyForStateIndex(setting, comboResult, currentIndex);
                     var currentDisplayName = currentRawKey != null
                         ? LocalizeComboBoxDisplayText(currentRawKey)

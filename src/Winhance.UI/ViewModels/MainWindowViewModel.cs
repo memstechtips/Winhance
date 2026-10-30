@@ -4,8 +4,8 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Services;
 using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.ViewModels;
@@ -22,7 +22,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly IWindowsVersionFilterService _windowsVersionFilterService;
     private readonly IApplicationModeService _applicationModeService;
     private readonly IDialogService _dialogService;
-    private readonly IUserPreferencesService _userPreferencesService;
     private readonly IBuilderModeEntry _builderModeEntry;
 
     public TaskProgressViewModel TaskProgress { get; }
@@ -72,7 +71,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         BuilderModeBarViewModel builderModeBar,
         IApplicationModeService applicationModeService,
         IDialogService dialogService,
-        IUserPreferencesService userPreferencesService,
         IBuilderModeEntry builderModeEntry)
     {
         _themeService = themeService;
@@ -84,7 +82,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _windowsVersionFilterService = windowsVersionFilterService;
         _applicationModeService = applicationModeService;
         _dialogService = dialogService;
-        _userPreferencesService = userPreferencesService;
         _builderModeEntry = builderModeEntry;
 
         TaskProgress = taskProgress;
@@ -287,32 +284,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        // HasBuilderChanges, not GetBuilderEdits().Count: an input shape with no serializable ChoiceValue is
-        // still authored work, and counting edits silently skipped the prompt for anyone whose session had
-        // produced none.
-        bool leavingBuilderWithEdits = _applicationModeService.CurrentMode == WinhanceMode.Builder
-            && _applicationModeService.HasBuilderChanges;
-        bool leavingReview = _applicationModeService.CurrentMode == WinhanceMode.ConfigReview;
-
-        if (leavingBuilderWithEdits || leavingReview)
-        {
-            var message = _localizationService.GetStringOrDefault("Mode_Switch_Confirmation", "Switch mode? Your unsaved progress in this mode will be discarded. Nothing was applied to your system.");
-            var title = _localizationService.GetStringOrDefault("Mode_Switch_Confirmation_Title", "Switch Mode");
-            var confirmed = (await _dialogService.ShowConfirmationAsync(
-                new ConfirmationRequest { Message = message, Title = title })).Confirmed;
-            if (!confirmed)
-            {
-                RaiseModeProperties();
-                return;
-            }
-        }
-
-        if (target == WinhanceMode.Builder && !await _builderModeEntry.EnterAsync(BuilderTarget.Config))
+        if (target != WinhanceMode.ConfigReview
+            && !await ModeSwitchConfirmation.ConfirmLeavingAsync(_applicationModeService, _dialogService, _localizationService))
         {
             RaiseModeProperties();
             return;
         }
-        if (target == WinhanceMode.ConfigReview && !await ShowConfigReviewIntroIfNeededAsync())
+
+        if (target == WinhanceMode.Builder && !await _builderModeEntry.EnterAsync(BuilderTarget.Config))
         {
             RaiseModeProperties();
             return;
@@ -330,7 +309,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                     break;
 
                 case WinhanceMode.ConfigReview:
-                    // Entering review = the existing import-and-review flow (file picker).
+                    // The same Import as Settings: it asks before leaving this mode and offers review or apply.
                     await _configurationService.ImportConfigurationAsync();
                     break;
             }
@@ -346,33 +325,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private void OnApplicationModeChanged(object? sender, EventArgs e)
     {
         RaiseModeProperties();
-    }
-
-    private const string ConfigReviewIntroDontShowKey = "ConfigReviewModeIntroDontShow";
-
-    private async Task<bool> ShowConfigReviewIntroIfNeededAsync()
-    {
-        if (_userPreferencesService.GetPreference(ConfigReviewIntroDontShowKey, false))
-        {
-            return true;
-        }
-
-        var response = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
-        {
-            Title = _localizationService.GetString("Dialog_ConfigReviewIntro_Title"),
-            Message = _localizationService.GetString("Dialog_ConfigReviewIntro_Message"),
-            CheckboxText = _localizationService.GetString("Dialog_Mode_DontShowAgain"),
-            CheckboxInitiallyChecked = false,
-            ConfirmButtonText = _localizationService.GetString("Dialog_ConfigReviewIntro_Confirm"),
-            CancelButtonText = _localizationService.GetString("Button_Cancel"),
-        });
-
-        if (response.Confirmed && response.CheckboxChecked)
-        {
-            await _userPreferencesService.SetPreferenceAsync(ConfigReviewIntroDontShowKey, true);
-        }
-
-        return response.Confirmed;
     }
 
     private void RaiseModeProperties()

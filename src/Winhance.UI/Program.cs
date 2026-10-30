@@ -3,8 +3,12 @@ using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Dispatching;
 using Microsoft.Windows.AppLifecycle;
+using Winhance.Core.Features.Common.Extensions;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
 using Winhance.UI.Features.Common.Services;
+using Winhance.UI.Helpers;
+using Windows.ApplicationModel.Activation;
 using Windows.Win32;
 using Windows.Win32.UI.WindowsAndMessaging;
 
@@ -81,7 +85,8 @@ public static class Program
         });
         redirectTask.Wait();
 
-        ActivateExistingWindow(keyInstance);
+        if (!LaunchCommandLine.Parse(Environment.GetCommandLineArgs()[1..], _ => { }).StartsHidden)
+            ActivateExistingWindow(keyInstance);
     }
 
     private static void ActivateExistingWindow(AppInstance keyInstance)
@@ -114,6 +119,20 @@ public static class Program
     // for the other instance to bring forward, so it is shown from here.
     private static void OnActivated(object? sender, AppActivationArguments args)
     {
-        App.MainWindow?.DispatcherQueue.TryEnqueue(() => App.Services.GetService<TrayController>()?.ShowWindow());
+        StartupLogger.Log($"Redirected activation: {args.Kind}, {(args.Data as ILaunchActivatedEventArgs)?.Arguments ?? "<no launch arguments>"}");
+        var launch = args.Data is ILaunchActivatedEventArgs launched
+            ? LaunchCommandLine.ParseRedirected(launched.Arguments ?? string.Empty, message => StartupLogger.Log(message))
+            : LaunchOptions.None;
+        App.MainWindow?.DispatcherQueue.TryEnqueue(() =>
+        {
+            if (App.Services.GetService<TrayController>() is not { } tray)
+                return;
+            if (launch.SwitchesProfile)
+                tray.RunCommandLineProfileAsync(launch).FireAndForget(App.Services.GetRequiredService<ILogService>());
+            else if (launch.StartInTray)
+                tray.StayInTray();
+            else
+                tray.ShowWindow();
+        });
     }
 }

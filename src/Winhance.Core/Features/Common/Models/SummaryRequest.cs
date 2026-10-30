@@ -42,4 +42,6 @@ public sealed record SummaryRequest
 
     // Set to offer Copy to Clipboard, which copies this text and leaves the dialog open.
     public string? CopyText { get; init; }
+
+    public string? CheckboxText { get; init; }
 }

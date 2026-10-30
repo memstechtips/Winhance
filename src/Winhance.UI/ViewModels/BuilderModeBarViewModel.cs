@@ -36,7 +36,7 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         _localizationService.GetStringOrDefault("Builder_Mode_Description", "Build a config or answer file from your choices. Nothing changes on this PC.");
 
     public string BuilderConfigTargetText =>
-        _localizationService.GetStringOrDefault("Builder_Mode_Target_Config", "Config");
+        _localizationService.GetStringOrDefault("Builder_Mode_Target_Config", "Config / Profile");
 
     public string BuilderAutounattendTargetText =>
         _localizationService.GetStringOrDefault("Builder_Mode_Target_Autounattend", "Autounattend");
@@ -60,7 +60,11 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
     public string BuilderSaveButtonText =>
         IsAutounattendTarget
             ? (_localizationService.GetStringOrDefault("Builder_Mode_Save_Autounattend", "Save autounattend.xml"))
-            : (_localizationService.GetStringOrDefault("Builder_Mode_Save_Config", "Save Config"));
+            : _localizationService.GetString("Builder_Mode_Save");
+
+    public string SaveAsConfigText => _localizationService.GetString("Builder_Mode_Save_AsConfig");
+
+    public string SaveAsProfileText => _localizationService.GetString("Builder_Mode_Save_AsProfile");
 
     public string BuilderCancelButtonText =>
         _localizationService.GetStringOrDefault("Button_Cancel", "Cancel");
@@ -143,6 +147,8 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(BuilderConfigTargetText));
         OnPropertyChanged(nameof(BuilderAutounattendTargetText));
         OnPropertyChanged(nameof(BuilderSaveButtonText));
+        OnPropertyChanged(nameof(SaveAsConfigText));
+        OnPropertyChanged(nameof(SaveAsProfileText));
         OnPropertyChanged(nameof(BuilderCancelButtonText));
         OnPropertyChanged(nameof(ShowOtherHardwareText));
         OnPropertyChanged(nameof(ShowOtherHardwareTooltip));
@@ -232,6 +238,12 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
             _logService.Log(LogLevel.Error, $"Builder Save failed: {ex.Message}");
         }
     }
+
+    [RelayCommand]
+    private Task SaveAsConfigAsync() => _builderSave.SaveAsync(BuilderTarget.Config);
+
+    [RelayCommand]
+    private Task SaveAsProfileAsync() => _builderSave.SaveAsProfileAsync();
 
     [RelayCommand]
     private async Task CancelAsync()

@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Settings.ViewModels;
 using Xunit;
@@ -24,6 +25,7 @@ public class SettingsViewModelTests
     private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
     private readonly Mock<IScheduledTaskService> _mockScheduledTaskService = new();
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
+    private readonly Mock<IProfileService> _mockProfiles = new();
 
     public SettingsViewModelTests()
     {
@@ -46,6 +48,12 @@ public class SettingsViewModelTests
         _mockThemeService
             .Setup(t => t.CurrentTheme)
             .Returns(WinhanceTheme.System);
+        _mockLocalization
+            .Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Returns((string key, object[] _) => key);
+        _mockProfiles.Setup(p => p.GetProfiles()).Returns([]);
+        _mockProfiles.Setup(p => p.PendingReboot).Returns([]);
+        _mockProfiles.Setup(p => p.DriftAsync()).ReturnsAsync([]);
     }
 
     private void GivenSignInTaskIsThisUsers(bool registered = true) =>
@@ -65,7 +73,13 @@ public class SettingsViewModelTests
             _mockBackupService.Object,
             _mockTaskProgressService.Object,
             _mockScheduledTaskService.Object,
-            _mockInteractiveUserService.Object);
+            _mockInteractiveUserService.Object,
+            _mockProfiles.Object,
+            Mock.Of<IProcessExecutor>(),
+            Mock.Of<IFilePickerService>(),
+            Mock.Of<ISaveFilePicker>(),
+            Mock.Of<IBuilderModeEntry>(),
+            Mock.Of<ICoverageSummaryService>());
     }
 
     [Fact]
@@ -80,6 +94,44 @@ public class SettingsViewModelTests
 
         _mockScheduledTaskService.Verify(s => s.RegisterSignInTaskAsync(SettingsViewModel.SignInTaskName, It.IsAny<string>(), TrayController.StartInTrayFlag), Times.Once);
         vm.StartInTrayAtSignIn.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Turning_on_reapply_registers_its_own_sign_in_task_with_the_reapply_flag()
+    {
+        _mockScheduledTaskService
+            .Setup(s => s.RegisterSignInTaskAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(OperationResult.Succeeded());
+        var vm = CreateViewModel();
+
+        vm.ReapplyAtSignIn = true;
+
+        _mockScheduledTaskService.Verify(s => s.RegisterSignInTaskAsync(SettingsViewModel.ReapplyTaskName, It.IsAny<string>(), TrayController.ReapplyProfileFlag), Times.Once);
+        _mockScheduledTaskService.Verify(s => s.RegisterSignInTaskAsync(SettingsViewModel.SignInTaskName, It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        vm.ReapplyAtSignIn.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(0, false, "Profiles_Status_Active")]
+    [InlineData(1, false, "Profiles_Status_ChangedOne")]
+    [InlineData(3, false, "Profiles_Status_Changed")]
+    [InlineData(3, true, "Profiles_Status_Failed")]
+    public void Only_the_active_profile_shows_a_status(int drifted, bool failed, string status)
+    {
+        _mockProfiles.Setup(p => p.GetProfiles()).Returns(
+        [
+            new SettingsProfile(":recommended", "Recommended", ProfileKind.Recommended, null),
+            new SettingsProfile("gaming", "Gaming", ProfileKind.User, @"C:\p\gaming.winhance"),
+        ]);
+        _mockProfiles.Setup(p => p.ActiveProfileId).Returns("gaming");
+        _mockProfiles.Setup(p => p.LastSwitchFailed).Returns(failed);
+        _mockProfiles.Setup(p => p.DriftAsync()).ReturnsAsync([.. Enumerable.Repeat("Game Mode", drifted)]);
+
+        var vm = CreateViewModel();
+
+        vm.Profiles.Select(r => (r.Name, r.Status, r.CanDelete)).Should().Equal(
+            ("Recommended", "", false),
+            ("Gaming", status, true));
     }
 
     [Fact]

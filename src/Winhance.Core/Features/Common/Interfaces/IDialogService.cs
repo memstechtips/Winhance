@@ -32,6 +32,11 @@ public interface IDialogService
     // True only when the request asks a question and the user confirmed it.
     Task<bool> ShowSummaryAsync(SummaryRequest request);
 
+    Task<ConfirmationResponse> AskSummaryAsync(SummaryRequest request);
+
+    // The trimmed text, or null when cancelled.
+    Task<string?> AskTextAsync(TextInputRequest request);
+
     Task ShowTaskOutputDialogAsync(string title, IReadOnlyList<string> logMessages);
 
     Task ShowCustomContentDialogAsync(string title, object content, string closeButtonText = "");

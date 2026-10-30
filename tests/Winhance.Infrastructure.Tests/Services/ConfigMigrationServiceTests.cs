@@ -492,4 +492,32 @@ public class ConfigMigrationServiceTests
         dns.SelectedIndex.Should().Be(1);
         dns.CustomStateValues.Should().BeNull();
     }
+
+    [Fact]
+    public void MigrateConfig_HandEditedNullSectionsAndItems_AreDropped()
+    {
+        var kept = new ConfigurationItem { Id = "updates-pause", Name = "Pause", InputType = InputType.Toggle };
+        var config = new WinhanceConfigFile
+        {
+            WindowsApps = null!,
+            Optimize = null!,
+            Customize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = null!,
+                    ["Sound"] = new ConfigSection { Items = null! },
+                    ["Update"] = new ConfigSection { Items = [null!, new ConfigurationItem { Name = "No id" }, kept] },
+                },
+            },
+        };
+
+        _sut.MigrateConfig(config);
+
+        config.WindowsApps.Items.Should().BeEmpty();
+        config.Optimize.Features.Should().BeEmpty();
+        config.Customize.Features.Keys.Should().BeEquivalentTo("Sound", "Update");
+        config.Customize.Features["Sound"].Items.Should().BeEmpty();
+        config.Customize.Features["Update"].Items.Should().Equal(kept);
+    }
 }

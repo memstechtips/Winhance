@@ -10,6 +10,7 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Dialogs;
 using Winhance.UI.Features.Common.Helpers;
+using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.SoftwareApps;
 using Winhance.UI.ViewModels;
 
@@ -272,6 +273,25 @@ internal sealed class StartupUiCoordinator
             host.Children.Remove(loadingOverlay);
 
         StartupLogger.Log("Startup complete, overlay hidden");
+
+        if (launch.SwitchesProfile)
+        {
+            var tray = App.Services.GetRequiredService<TrayController>();
+            try
+            {
+                // A launch made only to switch, like the sign-in re-apply, leaves nothing running behind it.
+                if (await tray.RunCommandLineProfileAsync(launch) && !launch.StartInTray && !tray.StaysOpen)
+                {
+                    tray.RemoveIcon();
+                    Application.Current.Exit();
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService?.LogError("Switching the command-line profile failed", ex);
+            }
+        }
 
         if (launch.ConfigFile is not null)
         {

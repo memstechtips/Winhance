@@ -4,6 +4,9 @@ namespace Winhance.Core.Features.Common.Catalog;
 
 public readonly record struct SettingDetection(string? Label, SettingDetectionOutcome Outcome, string? Detail = null)
 {
+    // The fallback state answered because nothing else matched, so the machine may hold values it does not describe.
+    public bool CatchAll { get; init; }
+
     public static SettingDetection Resolved(string label) => new(label, SettingDetectionOutcome.Resolved);
 
     public static readonly SettingDetection Custom = new(null, SettingDetectionOutcome.Custom);

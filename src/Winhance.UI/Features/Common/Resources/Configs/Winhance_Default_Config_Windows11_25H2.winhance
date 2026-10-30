@@ -2011,6 +2011,13 @@
         "IsIncluded": true,
         "Items": [
           {
+            "Id": "power-plan-selection",
+            "Name": "Setting_power-plan-selection_Name",
+            "InputType": 1,
+            "SelectedKey": "381b4222-f694-41f0-9685-ff5bb260df2e",
+            "SelectedKeyLabel": "Balanced"
+          },
+          {
             "Id": "power-display-timeout",
             "Name": "Setting_power-display-timeout_Name",
             "InputType": 1,
@@ -2732,7 +2739,7 @@
           {
             "Id": "privacy-turn-off-copilot",
             "Name": "Setting_privacy-turn-off-copilot_Name",
-            "IsSelected": false,
+            "IsSelected": true,
             "InputType": 0
           },
           {

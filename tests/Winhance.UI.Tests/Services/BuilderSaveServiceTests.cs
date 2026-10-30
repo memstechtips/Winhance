@@ -1,8 +1,11 @@
+using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
 
@@ -17,6 +20,8 @@ public class BuilderSaveServiceTests
     private readonly Mock<IDialogService> _dialogs = new();
     private readonly Mock<ILocalizationService> _loc = new();
     private readonly Mock<ILogService> _log = new();
+    private readonly Mock<IProfileService> _profiles = new();
+    private readonly Mock<IBuilderModeEntry> _entry = new();
 
     public BuilderSaveServiceTests()
     {
@@ -35,7 +40,9 @@ public class BuilderSaveServiceTests
         _saves.Object,
         _dialogs.Object,
         _loc.Object,
-        _log.Object);
+        _log.Object,
+        _profiles.Object,
+        _entry.Object);
 
     [Theory]
     [InlineData(BuilderTarget.Config)]
@@ -60,5 +67,57 @@ public class BuilderSaveServiceTests
 
         _dialogs.Verify(d => d.ShowErrorAsync("Config_Export_Error_Message", "Config_Export_Error_Title", ""), Times.Once);
         _dialogs.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SaveAsProfile_SavesTheSessionsSettingsUnderTheNameGiven()
+    {
+        var settings = new[] { new SettingChoice("privacy-advertising-id", new ChoiceValue.Toggle(false)) };
+        _selections.Setup(s => s.FromBuilderSessionAsync()).ReturnsAsync(new SelectionSet(settings, [], []));
+        _dialogs.Setup(d => d.AskTextAsync(It.IsAny<TextInputRequest>())).ReturnsAsync("Gaming");
+        _profiles.Setup(p => p.SaveAsync("Gaming", settings)).ReturnsAsync(new SettingsProfile("Gaming", "Gaming", ProfileKind.User, @"C:\p\Gaming.winhance"));
+
+        await Sut().SaveAsProfileAsync();
+
+        _profiles.Verify(p => p.SaveAsync("Gaming", settings), Times.Once);
+        _dialogs.Verify(d => d.ShowInformationAsync("Builder_SaveProfile_Saved", "Builder_SaveProfile_Title", ""), Times.Once);
+    }
+
+    [Fact]
+    public async Task SaveAsProfile_Cancelled_SavesNothing()
+    {
+        _dialogs.Setup(d => d.AskTextAsync(It.IsAny<TextInputRequest>())).ReturnsAsync((string?)null);
+
+        await Sut().SaveAsProfileAsync();
+
+        _profiles.Verify(p => p.SaveAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<SettingChoice>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SaveAsProfile_OffersTheEditedProfilesOwnName_AndNoOtherTakenOne()
+    {
+        TextInputRequest? asked = null;
+        _entry.Setup(e => e.EditingProfile).Returns(new SettingsProfile("Gaming", "Gaming", ProfileKind.User, @"C:\p\Gaming.winhance"));
+        _profiles.Setup(p => p.IsNameAvailable(It.IsAny<string>())).Returns(false);
+        _dialogs.Setup(d => d.AskTextAsync(It.IsAny<TextInputRequest>())).Callback((TextInputRequest r) => asked = r).ReturnsAsync((string?)null);
+
+        await Sut().SaveAsProfileAsync();
+
+        asked!.Text.Should().Be("Gaming");
+        asked.IsValid("Gaming").Should().BeTrue();
+        asked.IsValid("Work").Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SaveAsProfile_FromABuiltInProfile_StartsWithNoName()
+    {
+        TextInputRequest? asked = null;
+        _entry.Setup(e => e.EditingProfile).Returns(new SettingsProfile("builtin:recommended", "Recommended", ProfileKind.Recommended, null));
+        _dialogs.Setup(d => d.AskTextAsync(It.IsAny<TextInputRequest>())).Callback((TextInputRequest r) => asked = r).ReturnsAsync((string?)null);
+
+        await Sut().SaveAsProfileAsync();
+
+        asked!.Text.Should().BeEmpty();
+        asked.IsValid("Recommended").Should().BeFalse();
     }
 }

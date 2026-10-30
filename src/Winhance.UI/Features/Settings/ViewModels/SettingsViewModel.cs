@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
 
 namespace Winhance.UI.Features.Settings.ViewModels;
@@ -24,8 +25,15 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     private readonly ITaskProgressService _taskProgressService;
     private readonly IScheduledTaskService _scheduledTaskService;
     private readonly IInteractiveUserService _interactiveUserService;
+    private readonly IProfileService _profiles;
+    private readonly IBuilderModeEntry _builderEntry;
+    private readonly ICoverageSummaryService _coverageSummary;
+    private readonly IProcessExecutor _processExecutor;
+    private readonly IFilePickerService _filePicker;
+    private readonly ISaveFilePicker _saveFilePicker;
 
     internal const string SignInTaskName = "Start Winhance in the tray";
+    internal const string ReapplyTaskName = "Re-apply the Winhance profile";
 
     [ObservableProperty]
     public partial bool IsCreatingRestorePoint { get; set; }
@@ -126,6 +134,42 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     // So there the switch only turns off a task this user already has.
     public bool CanStartInTrayAtSignIn => !_interactiveUserService.IsOtsElevation || _startInTrayAtSignIn;
 
+    public ObservableCollection<ProfileRow> Profiles { get; } = new();
+
+    public bool IsProfileBusy => _profiles.IsBusy;
+
+    public int ProfileNameMaxLength => ProfileService.MaxNameLength;
+
+    private string _newProfileName = string.Empty;
+    public string NewProfileName
+    {
+        get => _newProfileName;
+        set
+        {
+            if (SetProperty(ref _newProfileName, value))
+                SaveProfileCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    private bool _reapplyAtSignIn;
+    private bool _reapplyChosen;
+    public bool ReapplyAtSignIn
+    {
+        get => _reapplyAtSignIn;
+        set
+        {
+            if (SetProperty(ref _reapplyAtSignIn, value))
+            {
+                OnPropertyChanged(nameof(CanReapplyAtSignIn));
+                _reapplyChosen = true;
+                ApplySignInTaskAsync(ReapplyTaskName, TrayController.ReapplyProfileFlag, value, ShowReapply).FireAndForget(_logService);
+            }
+        }
+    }
+
+    // Same account rule as the tray task.
+    public bool CanReapplyAtSignIn => !_interactiveUserService.IsOtsElevation || _reapplyAtSignIn;
+
     public ObservableCollection<ComboBoxDisplayOption> UpdateCheckOptions { get; } = new();
 
     public ObservableCollection<ComboBoxDisplayOption> UpdateActionOptions { get; } = new();
@@ -164,7 +208,13 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         ISystemBackupService backupService,
         ITaskProgressService taskProgressService,
         IScheduledTaskService scheduledTaskService,
-        IInteractiveUserService interactiveUserService)
+        IInteractiveUserService interactiveUserService,
+        IProfileService profiles,
+        IProcessExecutor processExecutor,
+        IFilePickerService filePicker,
+        ISaveFilePicker saveFilePicker,
+        IBuilderModeEntry builderEntry,
+        ICoverageSummaryService coverageSummary)
     {
         _localizationService = localizationService;
         _themeService = themeService;
@@ -176,6 +226,12 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _taskProgressService = taskProgressService;
         _scheduledTaskService = scheduledTaskService;
         _interactiveUserService = interactiveUserService;
+        _profiles = profiles;
+        _processExecutor = processExecutor;
+        _filePicker = filePicker;
+        _saveFilePicker = saveFilePicker;
+        _builderEntry = builderEntry;
+        _coverageSummary = coverageSummary;
 
         InitializeLanguages();
 
@@ -193,7 +249,9 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _selectedUpdateActionOption = UpdateActionOptions.FirstOrDefault(o => Equals(o.Value, action));
 
         _localizationService.LanguageChanged += OnLanguageChanged;
+        _profiles.Changed += OnProfilesChanged;
         ShowSignInTaskStateAsync().FireAndForget(_logService);
+        RefreshProfilesAsync().FireAndForget(_logService);
     }
 
     public void Dispose()
@@ -201,6 +259,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         if (_disposed) return;
         _disposed = true;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        _profiles.Changed -= OnProfilesChanged;
         GC.SuppressFinalize(this);
     }
 
@@ -253,11 +312,13 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     // field: the setter would register or remove the task. A switch the user already flipped wins over a late answer.
     private async Task ShowSignInTaskStateAsync()
     {
-        var registered = await IsSignInTaskThisUsersAsync();
-        if (_startInTrayChosen || registered == _startInTrayAtSignIn)
-            return;
+        var registered = await IsSignInTaskThisUsersAsync(SignInTaskName);
+        if (!_startInTrayChosen && registered != _startInTrayAtSignIn)
+            ShowStartInTray(registered);
 
-        ShowStartInTray(registered);
+        var reapply = await IsSignInTaskThisUsersAsync(ReapplyTaskName);
+        if (!_reapplyChosen && reapply != _reapplyAtSignIn)
+            ShowReapply(reapply);
     }
 
     private void ShowStartInTray(bool on)
@@ -267,24 +328,158 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(CanStartInTrayAtSignIn));
     }
 
+    private void ShowReapply(bool on)
+    {
+        _reapplyAtSignIn = on;
+        OnPropertyChanged(nameof(ReapplyAtSignIn));
+        OnPropertyChanged(nameof(CanReapplyAtSignIn));
+    }
+
     // The task name is one per PC, and the task runs for whoever registered it last.
-    private Task<bool> IsSignInTaskThisUsersAsync() =>
-        _scheduledTaskService.IsSignInTaskRegisteredForAsync(SignInTaskName, _interactiveUserService.InteractiveUserSid);
+    private Task<bool> IsSignInTaskThisUsersAsync(string taskName) =>
+        _scheduledTaskService.IsSignInTaskRegisteredForAsync(taskName, _interactiveUserService.InteractiveUserSid);
+
+    private Task ApplyStartInTrayAsync(bool enabled) =>
+        ApplySignInTaskAsync(SignInTaskName, TrayController.StartInTrayFlag, enabled, ShowStartInTray);
 
     // The task starts Winhance elevated without a UAC prompt; a failed registration puts the switch back.
-    private async Task ApplyStartInTrayAsync(bool enabled)
+    private async Task ApplySignInTaskAsync(string taskName, string flag, bool enabled, Action<bool> showSwitch)
     {
         var result = enabled && Environment.ProcessPath is { } exePath
-            ? await _scheduledTaskService.RegisterSignInTaskAsync(SignInTaskName, exePath, TrayController.StartInTrayFlag)
+            ? await _scheduledTaskService.RegisterSignInTaskAsync(taskName, exePath, flag)
             : enabled ? OperationResult.Failed("Winhance's own path is unknown")
-            : !await IsSignInTaskThisUsersAsync() ? OperationResult.Succeeded()
-            : await _scheduledTaskService.UnregisterScheduledTaskAsync(SignInTaskName);
+            : !await IsSignInTaskThisUsersAsync(taskName) ? OperationResult.Succeeded()
+            : await _scheduledTaskService.UnregisterScheduledTaskAsync(taskName);
 
         if (result.Success)
             return;
 
-        _logService.LogWarning($"Could not change the sign-in task: {result.ErrorMessage}");
-        ShowStartInTray(!enabled);
+        _logService.LogWarning($"Could not change the sign-in task '{taskName}': {result.ErrorMessage}");
+        showSwitch(!enabled);
+    }
+
+    private void OnProfilesChanged(object? sender, EventArgs e) => RefreshProfilesAsync().FireAndForget(_logService);
+
+    // Drift is read only for the active profile, and not mid-switch, when every setting is on its way to changing.
+    private async Task RefreshProfilesAsync()
+    {
+        OnPropertyChanged(nameof(IsProfileBusy));
+        var activeId = _profiles.ActiveProfileId;
+        IReadOnlyList<string> drift = activeId is not null && !_profiles.IsBusy && !_profiles.LastSwitchFailed
+            ? await _profiles.DriftAsync()
+            : [];
+
+        Profiles.Clear();
+        foreach (var profile in _profiles.GetProfiles())
+        {
+            Profiles.Add(new ProfileRow(
+                profile.Name,
+                profile.Id == activeId ? ProfileStatus(drift.Count) : string.Empty,
+                profile.Kind == ProfileKind.User,
+                _localizationService.GetString("Button_Apply"),
+                _localizationService.GetString("Profiles_EditInBuilder"),
+                _localizationService.GetString("Button_Export"),
+                _localizationService.GetString("Button_Delete"),
+                new AsyncRelayCommand(() => SwitchProfileAsync(profile), () => !_profiles.IsBusy),
+                new AsyncRelayCommand(() => _builderEntry.EnterFromProfileAsync(profile)),
+                new AsyncRelayCommand(() => ExportProfileAsync(profile)),
+                new AsyncRelayCommand(() => DeleteProfileAsync(profile))));
+        }
+    }
+
+    private string ProfileStatus(int drifted) =>
+        _profiles.LastSwitchFailed ? _localizationService.GetString("Profiles_Status_Failed")
+        : _profiles.PendingReboot.Count > 0 ? _localizationService.GetString("Profiles_Status_RestartNeeded")
+        : drifted == 1 ? _localizationService.GetString("Profiles_Status_ChangedOne")
+        : drifted > 0 ? _localizationService.GetString("Profiles_Status_Changed", drifted)
+        : _localizationService.GetString("Profiles_Status_Active");
+
+    private async Task SwitchProfileAsync(SettingsProfile profile)
+    {
+        var result = await _profiles.SwitchAsync(profile);
+        if (result is null)
+            return;
+
+        if (!result.Success)
+        {
+            var message = result.NotApplied.Count == 1
+                ? _localizationService.GetString("Profiles_Failed_MessageOne", profile.Name)
+                : _localizationService.GetString("Profiles_Failed_Message", profile.Name, result.NotApplied.Count);
+            await _dialogService.ShowWarningAsync(message + "\n\n" + string.Join("\n", result.NotApplied), _localizationService.GetString("Profiles_Failed_Title"));
+        }
+
+        var edit = await _profiles.LoadAsync(profile) is { } config && await _coverageSummary.ShowProfileReminderAsync(profile, config);
+
+        if (result.Success && result.NeedsRestart.Count > 0)
+        {
+            var response = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+            {
+                Title = _localizationService.GetString("Profiles_RestartNeeded_Title"),
+                Message = _localizationService.GetString("Profiles_RestartNeeded_Dialog"),
+                Items = result.NeedsRestart,
+                ConfirmButtonText = _localizationService.GetString("Profiles_RestartNow"),
+                CancelButtonText = _localizationService.GetString("Profiles_RestartLater"),
+            });
+            if (response.Confirmed)
+            {
+                await _processExecutor.ShellExecuteAsync("shutdown.exe", "/r /t 0");
+                return;
+            }
+        }
+
+        if (edit)
+            await _builderEntry.EnterFromProfileAsync(profile);
+    }
+
+    private async Task ExportProfileAsync(SettingsProfile profile)
+    {
+        var path = _saveFilePicker.PickSavePath(
+            _localizationService.GetString("Config_FileDialog_SaveConfig"),
+            ConfigFileConstants.FileFilter,
+            ConfigFileConstants.FilePattern,
+            profile.Name + ConfigFileConstants.FileExtension,
+            "winhance");
+        if (path is not null && !await _profiles.ExportAsync(profile, path))
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Profiles_Export_Failed"));
+    }
+
+    private async Task DeleteProfileAsync(SettingsProfile profile)
+    {
+        var response = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+        {
+            Title = _localizationService.GetString("Profiles_Delete_Title"),
+            Message = _localizationService.GetString("Profiles_Delete_Message", profile.Name),
+            ConfirmButtonText = _localizationService.GetString("Button_Delete"),
+        });
+        if (response.Confirmed)
+            await _profiles.DeleteAsync(profile);
+    }
+
+    private bool CanSaveProfile() => _profiles.IsNameAvailable(NewProfileName);
+
+    [RelayCommand(CanExecute = nameof(CanSaveProfile))]
+    private async Task SaveProfileAsync()
+    {
+        if (await _profiles.SaveCurrentAsync(NewProfileName) is null)
+        {
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Profiles_Save_Failed"));
+            return;
+        }
+
+        NewProfileName = string.Empty;
+    }
+
+    // The file's own name becomes the profile's, numbered when a profile already has it.
+    [RelayCommand]
+    private async Task AddProfileFromFileAsync()
+    {
+        if (_filePicker.PickFile([ConfigFileConstants.FileFilter, ConfigFileConstants.FilePattern], _localizationService.GetString("Profiles_AddFromFile_Title")) is not { } path)
+            return;
+
+        var baseName = Path.GetFileNameWithoutExtension(path);
+        var name = Enumerable.Range(1, 99).Select(n => n == 1 ? baseName : $"{baseName} ({n})").FirstOrDefault(_profiles.IsNameAvailable);
+        if (name is null || await _profiles.AddFromFileAsync(path, name) is null)
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Profiles_AddFromFile_Failed"));
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)
@@ -326,6 +521,18 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(SystemProtectionHeader));
         OnPropertyChanged(nameof(SystemProtectionDescription));
         OnPropertyChanged(nameof(CreateRestorePointButtonText));
+        OnPropertyChanged(nameof(ProfilesLabel));
+        OnPropertyChanged(nameof(ProfilesHeader));
+        OnPropertyChanged(nameof(ProfilesDescription));
+        OnPropertyChanged(nameof(SaveProfileHeader));
+        OnPropertyChanged(nameof(SaveProfileDescription));
+        OnPropertyChanged(nameof(ProfileNamePlaceholder));
+        OnPropertyChanged(nameof(SaveProfileButtonText));
+        OnPropertyChanged(nameof(AddProfileFromFileButtonText));
+        OnPropertyChanged(nameof(ReapplyHeader));
+        OnPropertyChanged(nameof(ReapplyDescription));
+        OnPropertyChanged(nameof(ReapplyWarning));
+        RefreshProfilesAsync().FireAndForget(_logService);
     }
 
     public string PageTitle => _localizationService.GetStringOrDefault("Settings_Title", "Winhance Settings");
@@ -355,6 +562,18 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     public string SystemProtectionLabel => _localizationService.GetStringOrDefault("Category_SystemProtection", "System Protection");
     public string SystemProtectionHeader => _localizationService.GetStringOrDefault("Settings_SystemProtection_Title", "System Restore Point");
     public string SystemProtectionDescription => _localizationService.GetStringOrDefault("Settings_SystemProtection_Description", "Create a Windows System Restore point to allow rolling back system changes");
+    public string ProfilesLabel => _localizationService.GetString("Profiles_Label");
+    public string ProfilesHeader => _localizationService.GetString("Profiles_Title");
+    public string ProfilesDescription => _localizationService.GetString("Profiles_Description");
+    public string SaveProfileHeader => _localizationService.GetString("Profiles_Save_Title");
+    public string SaveProfileDescription => _localizationService.GetString("Profiles_Save_Description");
+    public string ProfileNamePlaceholder => _localizationService.GetString("Profiles_Save_Placeholder");
+    public string SaveProfileButtonText => _localizationService.GetString("Profiles_Save_Button");
+    public string AddProfileFromFileButtonText => _localizationService.GetString("Profiles_AddFromFile_Button");
+    public string ReapplyHeader => _localizationService.GetString("Profiles_Reapply_Title");
+    public string ReapplyDescription => _localizationService.GetString(
+        _interactiveUserService.IsOtsElevation ? "Settings_StartInTray_OtsUnavailable" : "Profiles_Reapply_Description");
+    public string ReapplyWarning => _localizationService.GetString("Profiles_Reapply_Warning");
     public string CreateRestorePointButtonText => _localizationService.GetStringOrDefault("Settings_CreateRestorePoint_Button", "Create Restore Point");
 
     private void OnSelectedThemeChanged(WinhanceTheme value)
@@ -430,6 +649,19 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
     }
 }
+
+public sealed record ProfileRow(
+    string Name,
+    string Status,
+    bool CanDelete,
+    string ApplyText,
+    string EditText,
+    string ExportText,
+    string DeleteText,
+    IAsyncRelayCommand Apply,
+    IAsyncRelayCommand Edit,
+    IAsyncRelayCommand Export,
+    IAsyncRelayCommand Delete);
 
 public partial class ThemeOption : ObservableObject
 {

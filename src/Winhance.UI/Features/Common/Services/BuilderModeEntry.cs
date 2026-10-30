@@ -8,6 +8,7 @@ using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -32,6 +33,7 @@ public sealed class BuilderModeEntry : IBuilderModeEntry
     private readonly IFilePickerService _filePicker;
     private readonly IAutounattendReader _autounattendReader;
     private readonly IInstallOptionsService _installOptions;
+    private readonly IProfileService _profiles;
     private bool _installOptionsOpen;
 
     public BuilderModeEntry(
@@ -51,7 +53,8 @@ public sealed class BuilderModeEntry : IBuilderModeEntry
         ITargetWindowsService targetWindows,
         IFilePickerService filePicker,
         IAutounattendReader autounattendReader,
-        IInstallOptionsService installOptions)
+        IInstallOptionsService installOptions,
+        IProfileService profiles)
     {
         _mode = mode;
         _configurationService = configurationService;
@@ -70,8 +73,11 @@ public sealed class BuilderModeEntry : IBuilderModeEntry
         _filePicker = filePicker;
         _autounattendReader = autounattendReader;
         _installOptions = installOptions;
+        _profiles = profiles;
         _mode.ModeChanged += OnModeChanged;
     }
+
+    public SettingsProfile? EditingProfile { get; private set; }
 
     public async Task<bool> EnterAsync(BuilderTarget target)
     {
@@ -94,6 +100,7 @@ public sealed class BuilderModeEntry : IBuilderModeEntry
             if (_mode.CurrentMode == WinhanceMode.ConfigReview)
                 await _configurationService.CancelReviewModeAsync();
 
+            EditingProfile = null;
             _mode.EnterBuilderMode(target);
             OpenInstallOptions(null);
 
@@ -142,7 +149,26 @@ public sealed class BuilderModeEntry : IBuilderModeEntry
     public Task<bool> EnterFromAsync(BuilderTarget target, WinhanceConfigFile config) =>
         EnterFromFileAsync(target, config);
 
-    private async Task<bool> EnterFromFileAsync(BuilderTarget target, WinhanceConfigFile config)
+    public async Task<bool> EnterFromProfileAsync(SettingsProfile profile)
+    {
+        if (_mode.CurrentMode == WinhanceMode.Builder && !(await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+            {
+                Title = _localizationService.GetString("Builder_Mode_Cancel_Confirmation_Title"),
+                Message = _localizationService.GetString("Builder_Mode_Cancel_Confirmation"),
+                ConfirmButtonText = _localizationService.GetString("Button_Leave"),
+                CancelButtonText = _localizationService.GetString("Button_Stay"),
+            })).Confirmed)
+            return false;
+
+        if (await _profiles.LoadAsync(profile) is not { } config)
+        {
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Profiles_Error_Load"));
+            return false;
+        }
+        return await EnterFromFileAsync(BuilderTarget.Config, config, profile);
+    }
+
+    private async Task<bool> EnterFromFileAsync(BuilderTarget target, WinhanceConfigFile config, SettingsProfile? profile = null)
     {
         try
         {
@@ -153,6 +179,8 @@ public sealed class BuilderModeEntry : IBuilderModeEntry
             await _appSelection.SelectExternalAppsFromConfigAsync(config.ExternalApps);
             await _registry.InitializeAsync();
 
+            // Before entering, so the bar already offers to save back to the profile when it redraws.
+            EditingProfile = profile;
             _mode.EnterBuilderMode(target);
             OpenInstallOptions(config.AppInstallOptions);
 
@@ -218,6 +246,8 @@ public sealed class BuilderModeEntry : IBuilderModeEntry
 
     private void OnModeChanged(object? sender, EventArgs e)
     {
+        if (_mode.CurrentMode != WinhanceMode.Builder)
+            EditingProfile = null;
         if (!_installOptionsOpen || _mode.CurrentMode == WinhanceMode.Builder)
             return;
         _installOptions.EndSession();

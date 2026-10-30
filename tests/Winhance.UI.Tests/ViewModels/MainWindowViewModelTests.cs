@@ -31,7 +31,6 @@ public class MainWindowViewModelTests : IDisposable
     private readonly Mock<IBuilderSaveService> _mockBuilderSaveService = new();
     private readonly Mock<IHardwareFilterService> _mockHardwareFilterService = new();
     private readonly Mock<ICatalogSettingsRegistry> _mockCatalogSettingsRegistry = new();
-    private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
     private readonly Mock<IBuilderModeEntry> _mockBuilderModeEntry = new();
 
     private readonly TaskProgressViewModel _taskProgressViewModel;
@@ -115,7 +114,6 @@ public class MainWindowViewModelTests : IDisposable
             _builderModeBarViewModel,
             _mockApplicationModeService.Object,
             _mockDialogService.Object,
-            _mockUserPreferencesService.Object,
             _mockBuilderModeEntry.Object);
     }
 
@@ -570,6 +568,19 @@ public class MainWindowViewModelTests : IDisposable
         await sut.RequestSwitchModeAsync(WinhanceMode.Builder);
 
         _mockBuilderModeEntry.Verify(e => e.EnterAsync(It.IsAny<BuilderTarget>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SwitchToConfigReview_FromBuilderWithEdits_LeavesTheAskToImport()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _mockApplicationModeService.Setup(m => m.HasBuilderChanges).Returns(true);
+
+        var sut = CreateSut();
+        await sut.RequestSwitchModeAsync(WinhanceMode.ConfigReview);
+
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        _mockConfigurationService.Verify(c => c.ImportConfigurationAsync(), Times.Once);
     }
 
     [Fact]

@@ -142,7 +142,7 @@ public partial class App : Application
             StartupLogger.Log("MainWindow created, activating...");
             _mainWindow.Activate();
             StartupLogger.Log("MainWindow activated");
-            if (launch.StartInTray)
+            if (launch.StartsHidden)
                 Services.GetRequiredService<TrayController>().HideToTray();
 
             // Initialize theme service after window is created

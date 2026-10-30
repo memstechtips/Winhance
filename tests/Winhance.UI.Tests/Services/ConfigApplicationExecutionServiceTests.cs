@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
 
@@ -26,6 +27,7 @@ public class ConfigApplicationExecutionServiceTests
     private readonly Mock<IPolicyCleanupService> _mockPolicyCleanupService = new();
     private readonly Mock<IChangeHistoryService> _mockChangeHistoryService = new();
     private readonly Mock<IInstallOptionsService> _mockInstallOptions = new();
+    private readonly Mock<ICoverageSummaryService> _mockCoverageSummary = new();
 
     public ConfigApplicationExecutionServiceTests()
     {
@@ -63,7 +65,8 @@ public class ConfigApplicationExecutionServiceTests
             _mockVmCoordinator.Object,
             _mockPolicyCleanupService.Object,
             _mockChangeHistoryService.Object,
-            _mockInstallOptions.Object);
+            _mockInstallOptions.Object,
+            _mockCoverageSummary.Object);
     }
 
     [Fact]
@@ -557,11 +560,10 @@ public class ConfigApplicationExecutionServiceTests
         var service = CreateService();
         await service.ExecuteConfigImportAsync(config, options);
 
-        _mockDialogService.Verify(
-            d => d.ShowInformationAsync(
-                It.Is<string>(m => m.Contains("Lid close action (Power)")),
-                It.IsAny<string>(),
-                It.IsAny<string>()),
+        _mockCoverageSummary.Verify(
+            c => c.ShowImportSummaryAsync(
+                It.Is<IReadOnlyList<string>>(setAside => setAside.Contains("Lid close action (Power)")),
+                It.IsAny<IReadOnlyList<string>>()),
             Times.Once);
     }
 
@@ -610,11 +612,10 @@ public class ConfigApplicationExecutionServiceTests
         var service = CreateService();
         await service.ExecuteConfigImportAsync(config, options);
 
-        _mockDialogService.Verify(
-            d => d.ShowInformationAsync(
-                It.Is<string>(m => m.Contains("Mars Standard Time")),
-                It.IsAny<string>(),
-                It.IsAny<string>()),
+        _mockCoverageSummary.Verify(
+            c => c.ShowImportSummaryAsync(
+                It.IsAny<IReadOnlyList<string>>(),
+                It.Is<IReadOnlyList<string>>(notApplied => notApplied.Any(line => line.Contains("Mars Standard Time")))),
             Times.Once);
     }
 
@@ -636,6 +637,84 @@ public class ConfigApplicationExecutionServiceTests
             .Returns(true);
 
         return captured;
+    }
+
+    private async Task ApplyQuietlyAsync(bool restartExplorer, bool broadcastRegional)
+    {
+        _mockConfigImportState.Setup(s => s.TakeNotApplied()).Returns([]);
+        _mockBridgeService
+            .Setup(b => b.ApplyConfigurationSectionAsync(
+                It.IsAny<ConfigSection>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<string, object?, Task<(bool confirmed, bool checkboxResult)>>>()))
+            .ReturnsAsync(true);
+        var config = new WinhanceConfigFile
+        {
+            Customize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["TimeRegion"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = [new ConfigurationItem { Id = "region-short-date", Name = "Short date", IsSelected = true }],
+                    },
+                },
+            },
+        };
+
+        await CreateService().ApplySettingsQuietlyAsync(config, "Gaming", isWindowsDefaults: false, restartExplorer, broadcastRegional);
+    }
+
+    [Fact]
+    public async Task ApplySettingsQuietlyAsync_OnlyNullOrEmptySections_AppliesNothing()
+    {
+        var config = new WinhanceConfigFile
+        {
+            Optimize = null!,
+            Customize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = null!,
+                    ["Taskbar"] = new ConfigSection { Items = null! },
+                },
+            },
+        };
+
+        var notApplied = await CreateService().ApplySettingsQuietlyAsync(config, "Gaming", isWindowsDefaults: false, restartExplorer: false, broadcastRegional: false);
+
+        notApplied.Should().BeEmpty();
+        _mockBridgeService.Verify(b => b.ApplyConfigurationSectionAsync(
+            It.IsAny<ConfigSection>(), It.IsAny<string>(), It.IsAny<Func<string, object?, Task<(bool, bool)>>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApplySettingsQuietlyAsync_RegionOnly_BroadcastsWithoutRestartingExplorer()
+    {
+        await ApplyQuietlyAsync(restartExplorer: false, broadcastRegional: true);
+
+        _mockWindowsUIManagementService.Verify(w => w.BroadcastRegionalSettingChange(), Times.Once);
+        _mockExplorerRestartService.Verify(e => e.RestartAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApplySettingsQuietlyAsync_ExplorerOnly_RestartsWithoutTheRegionalBroadcast()
+    {
+        await ApplyQuietlyAsync(restartExplorer: true, broadcastRegional: false);
+
+        _mockWindowsUIManagementService.Verify(w => w.BroadcastRegionalSettingChange(), Times.Never);
+        _mockExplorerRestartService.Verify(e => e.RestartAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingsQuietlyAsync_NeitherDue_DoesNeither()
+    {
+        await ApplyQuietlyAsync(restartExplorer: false, broadcastRegional: false);
+
+        _mockWindowsUIManagementService.Verify(w => w.BroadcastRegionalSettingChange(), Times.Never);
+        _mockExplorerRestartService.Verify(e => e.RestartAsync(), Times.Never);
     }
 
     [Fact]

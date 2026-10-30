@@ -1918,6 +1918,69 @@ public class ConfigReviewServiceTests : IDisposable
         service.GetDiffForSetting("sel-null").Should().BeNull();
     }
 
+    [Theory]
+    [InlineData("192.168.10.1", false)]
+    [InlineData("10.0.0.1", true)]
+    public async Task EnterReviewModeAsync_Selection_CustomValues_DiffOnlyWhenThePcReadsOtherValues(string pcServer, bool expectDiff)
+    {
+        var setting = new Setting
+        {
+            Id = "dns",
+            Display = new() { Name = TestKeys.Of("DNS"), Description = TestKeys.Of("Test") },
+            States = new[]
+            {
+                new SettingState { Label = TestKeys.Of("Automatic") },
+                new SettingState { Label = TestKeys.Of("Cloudflare") }
+            }
+        };
+
+        _mockCatalogSettingsRegistry
+            .Setup(r => r.GetByFeature("Privacy", It.IsAny<CatalogScope>()))
+            .Returns(new[] { setting });
+
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                ["dns"] = new SettingStateResult
+                {
+                    Success = true,
+                    CurrentValue = ComboBoxConstants.CustomStateIndex,
+                    Readings = new Dictionary<string, object?> { ["Preferred"] = pcServer, ["Alternate"] = null },
+                }
+            });
+
+        var config = new WinhanceConfigFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection
+                    {
+                        IsIncluded = true,
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "dns",
+                                Name = "DNS",
+                                InputType = InputType.Selection,
+                                CustomStateValues = new Dictionary<string, object> { ["Preferred"] = "192.168.10.1" }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var service = CreateService();
+        await service.EnterReviewModeAsync(config);
+
+        (service.GetDiffForSetting("dns") != null).Should().Be(expectDiff);
+    }
+
     private static Setting ToggleSetting(string id) => new()
     {
         Id = id,

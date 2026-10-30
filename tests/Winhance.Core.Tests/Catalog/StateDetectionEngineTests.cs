@@ -94,6 +94,19 @@ public class StateDetectionEngineTests
         Assert.Equal("Default", StateDetectionEngine.Detect(states, unrecognised));
     }
 
+    [Theory]
+    [InlineData(2, false)]
+    [InlineData(0x18, true)]
+    public void Match_flags_a_fallback_that_answered_for_readings_it_does_not_describe(int prio, bool catchAll)
+    {
+        var states = new[]
+        {
+            State(TestKeys.Of("Programs disabled"), new() { ["Prio"] = StateValue.Of(0x26) }),
+            Fallback(TestKeys.Of("Default"), new() { ["Prio"] = StateValue.Of(2) }),
+        };
+        Assert.Equal(("Default", catchAll), StateDetectionEngine.Match(states, new FakeReadings(new() { ["Prio"] = prio })));
+    }
+
     [Fact]
     public void Detect_returns_first_state_when_multiple_match()
     {

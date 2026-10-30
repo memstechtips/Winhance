@@ -268,14 +268,44 @@ public class DialogService : IDialogService
         }, new ConfirmationResponse { Confirmed = false, CheckboxChecked = false });
     }
 
-    public async Task<bool> ShowSummaryAsync(SummaryRequest request)
+    public async Task<bool> ShowSummaryAsync(SummaryRequest request) => (await AskSummaryAsync(request)).Confirmed;
+
+    public async Task<ConfirmationResponse> AskSummaryAsync(SummaryRequest request)
     {
         return await ExecuteDialogAsync(async () =>
         {
-            var dialog = new Dialogs.SummaryDialogBuilder(_localization).Build(XamlRoot!, request);
+            var builder = new Dialogs.SummaryDialogBuilder(_localization);
+            var dialog = builder.Build(XamlRoot!, request);
             ConfigureDialog(dialog);
-            return await dialog.ShowAsync() == ContentDialogResult.Primary;
-        }, false);
+            var confirmed = await dialog.ShowAsync() == ContentDialogResult.Primary;
+            return new ConfirmationResponse { Confirmed = confirmed, CheckboxChecked = builder.CheckboxChecked };
+        }, new ConfirmationResponse());
+    }
+
+    public async Task<string?> AskTextAsync(TextInputRequest request)
+    {
+        return await ExecuteDialogAsync(async () =>
+        {
+            var input = new TextBox { Text = request.Text, PlaceholderText = request.Placeholder };
+            var panel = new StackPanel { Spacing = 12 };
+            if (!string.IsNullOrEmpty(request.Message))
+                panel.Children.Add(new TextBlock { Text = request.Message, TextWrapping = TextWrapping.Wrap });
+            panel.Children.Add(input);
+
+            var dialog = new ContentDialog
+            {
+                Title = request.Title,
+                Content = panel,
+                PrimaryButtonText = string.IsNullOrEmpty(request.ConfirmButtonText) ? _localization.GetString("Button_OK") : request.ConfirmButtonText,
+                CloseButtonText = _localization.GetString("Button_Cancel"),
+                DefaultButton = ContentDialogButton.Primary,
+                IsPrimaryButtonEnabled = request.IsValid(input.Text),
+            };
+            input.TextChanged += (_, _) => dialog.IsPrimaryButtonEnabled = request.IsValid(input.Text);
+            input.Loaded += (_, _) => input.SelectAll();
+            ConfigureDialog(dialog);
+            return await dialog.ShowAsync() == ContentDialogResult.Primary ? input.Text.Trim() : null;
+        }, (string?)null);
     }
 
     public async Task ShowTaskOutputDialogAsync(string title, IReadOnlyList<string> logMessages)

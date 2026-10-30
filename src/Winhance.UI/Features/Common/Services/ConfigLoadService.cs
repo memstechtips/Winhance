@@ -82,31 +82,22 @@ public class ConfigLoadService : IConfigLoadService
     {
         try
         {
-            _configImportState.SourceName = Path.GetFileName(filePath);
-
-            var json = await _fileSystemService.ReadAllTextAsync(filePath);
-            var loadedConfig = JsonSerializer.Deserialize<WinhanceConfigFile>(json, ConfigFileConstants.JsonOptions);
-
-            if (loadedConfig == null)
+            var read = await ReadFileAsync(filePath);
+            if (read.Failure == ConfigReadFailure.Empty)
             {
                 _dialogService.ShowMessage(_localizationService.GetString("Config_Load_Failed"), _localizationService.GetString("Dialog_Error"));
                 return null;
             }
-
-            _configMigrationService.MigrateConfig(loadedConfig);
-
-            if (loadedConfig.Version != "2.0")
+            if (read.Failure == ConfigReadFailure.UnsupportedVersion)
             {
-                var versionText = loadedConfig.Version ?? "unknown";
-                await _dialogService.ShowInformationAsync(
-                    _localizationService.GetStringOrDefault("Config_Unsupported_Message", $"This configuration file version ({versionText}) is not compatible with this version of Winhance.", versionText),
-                    _localizationService.GetStringOrDefault("Config_Unsupported_Title", "Unsupported Configuration Version"));
-                _logService.Log(LogLevel.Warning, $"Rejected incompatible config version: {loadedConfig.Version}");
+                await RejectVersionAsync(read.Config!);
                 return null;
             }
 
-            _logService.Log(LogLevel.Info, $"Loaded config v{loadedConfig.Version}");
-            return loadedConfig;
+            _configImportState.SourceName = Path.GetFileName(filePath);
+            _configImportState.SourcePath = filePath;
+            _logService.Log(LogLevel.Info, $"Loaded config v{read.Config!.Version}");
+            return read.Config;
         }
         catch (Exception ex)
         {
@@ -116,78 +107,44 @@ public class ConfigLoadService : IConfigLoadService
         }
     }
 
-    public async Task<WinhanceConfigFile?> LoadRecommendedConfigurationAsync()
+    public Task<WinhanceConfigFile?> LoadRecommendedConfigurationAsync() =>
+        LoadEmbeddedAsync(windowsDefaults: false, "recommended", "Config_Load_RecommendedMissing", "Dialog_ImportConfig_Option_Recommended_Title");
+
+    public Task<WinhanceConfigFile?> LoadWindowsDefaultsConfigurationAsync() =>
+        LoadEmbeddedAsync(windowsDefaults: true, "Windows defaults", "Config_Load_WindowsDefaultsMissing", "Dialog_ImportConfig_Option_Defaults_Title");
+
+    private async Task<WinhanceConfigFile?> LoadEmbeddedAsync(bool windowsDefaults, string label, string missingKey, string sourceNameKey)
     {
         try
         {
-            _logService.Log(LogLevel.Info, "Loading embedded recommended configuration");
+            var resourceName = EmbeddedResourceName(windowsDefaults);
+            _logService.Log(LogLevel.Info, $"Loading embedded {label} configuration: {resourceName}");
 
-            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-            var resourceName = "Winhance.UI.Resources.Configs.Winhance_Recommended_Config.winhance";
-
-            using var stream = assembly.GetManifestResourceStream(resourceName);
-
-            if (stream == null)
+            var read = await ReadResourceAsync(resourceName);
+            if (read.Failure == ConfigReadFailure.ResourceMissing)
             {
                 _logService.Log(LogLevel.Error, $"Embedded resource not found: {resourceName}");
                 _dialogService.ShowMessage(
-                    _localizationService.GetString("Config_Load_RecommendedMissing"),
+                    _localizationService.GetString(missingKey),
                     _localizationService.GetString("Config_Load_ResourceError_Title"));
                 return null;
             }
-
-            _configImportState.SourceName = _localizationService.GetString("Dialog_ImportConfig_Option_Recommended_Title");
-
-            using var reader = new StreamReader(stream);
-            var json = await reader.ReadToEndAsync();
-            var config = JsonSerializer.Deserialize<WinhanceConfigFile>(json, ConfigFileConstants.JsonOptions);
-
-            _logService.Log(LogLevel.Info, "Successfully loaded embedded recommended configuration");
-            return config;
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"Error loading recommended configuration: {ex.Message}");
-            _dialogService.ShowMessage(_localizationService.GetString("Config_Load_Error", ex.Message), _localizationService.GetString("Dialog_Error"));
-            return null;
-        }
-    }
-
-    public async Task<WinhanceConfigFile?> LoadWindowsDefaultsConfigurationAsync()
-    {
-        try
-        {
-            var isWindows11 = _windowsVersionService.IsWindows11();
-            var resourceName = isWindows11
-                ? "Winhance.UI.Resources.Configs.Winhance_Default_Config_Windows11_25H2.winhance"
-                : "Winhance.UI.Resources.Configs.Winhance_Default_Config_Windows10_22H2.winhance";
-
-            _logService.Log(LogLevel.Info, $"Loading embedded Windows defaults configuration for {(isWindows11 ? "Windows 11" : "Windows 10")}: {resourceName}");
-
-            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-            using var stream = assembly.GetManifestResourceStream(resourceName);
-
-            if (stream == null)
+            if (read.Failure == ConfigReadFailure.UnsupportedVersion)
             {
-                _logService.Log(LogLevel.Error, $"Embedded resource not found: {resourceName}");
-                _dialogService.ShowMessage(
-                    _localizationService.GetString("Config_Load_WindowsDefaultsMissing"),
-                    _localizationService.GetString("Config_Load_ResourceError_Title"));
+                await RejectVersionAsync(read.Config!);
                 return null;
             }
+            if (read.Failure == ConfigReadFailure.Empty)
+                return null;
 
-            _configImportState.SourceName = _localizationService.GetString("Dialog_ImportConfig_Option_Defaults_Title");
-
-            using var reader = new StreamReader(stream);
-            var json = await reader.ReadToEndAsync();
-            var config = JsonSerializer.Deserialize<WinhanceConfigFile>(json, ConfigFileConstants.JsonOptions);
-
-            _logService.Log(LogLevel.Info, "Successfully loaded embedded Windows defaults configuration");
-            return config;
+            _configImportState.SourceName = _localizationService.GetString(sourceNameKey);
+            _configImportState.SourcePath = null;
+            _logService.Log(LogLevel.Info, $"Successfully loaded embedded {label} configuration");
+            return read.Config;
         }
         catch (Exception ex)
         {
-            _logService.Log(LogLevel.Error, $"Error loading Windows defaults configuration: {ex.Message}");
+            _logService.Log(LogLevel.Error, $"Error loading {label} configuration: {ex.Message}");
             _dialogService.ShowMessage(_localizationService.GetString("Config_Load_Error", ex.Message), _localizationService.GetString("Dialog_Error"));
             return null;
         }
@@ -250,21 +207,23 @@ public class ConfigLoadService : IConfigLoadService
                 filePath = selectedPath;
             }
             _logService.Log(LogLevel.Info, $"Loading user backup configuration from {filePath}");
-            _configImportState.SourceName = _localizationService.GetString("Dialog_ImportConfig_Option_Backup_Title");
 
-            var json = await _fileSystemService.ReadAllTextAsync(filePath);
-            var config = JsonSerializer.Deserialize<WinhanceConfigFile>(json, ConfigFileConstants.JsonOptions);
-
-            if (config == null)
+            var read = await ReadFileAsync(filePath);
+            if (read.Failure == ConfigReadFailure.Empty)
             {
                 _dialogService.ShowMessage(_localizationService.GetString("Config_Backup_LoadFailed"), _localizationService.GetString("Dialog_Error"));
                 return null;
             }
+            if (read.Failure == ConfigReadFailure.UnsupportedVersion)
+            {
+                await RejectVersionAsync(read.Config!);
+                return null;
+            }
 
-            _configMigrationService.MigrateConfig(config);
-
+            _configImportState.SourceName = _localizationService.GetString("Dialog_ImportConfig_Option_Backup_Title");
+            _configImportState.SourcePath = null;
             _logService.Log(LogLevel.Info, "Successfully loaded user backup configuration");
-            return config;
+            return read.Config;
         }
         catch (Exception ex)
         {
@@ -274,51 +233,132 @@ public class ConfigLoadService : IConfigLoadService
         }
     }
 
+    public async Task<WinhanceConfigFile?> ReadConfigurationAsync(string filePath)
+    {
+        try
+        {
+            return Accepted(await ReadFileAsync(filePath), filePath);
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Could not read {filePath}: {ex.Message}");
+            return null;
+        }
+    }
+
+    public WinhanceConfigFile? ParseConfiguration(byte[] content, string source)
+    {
+        try
+        {
+            using var reader = new StreamReader(new MemoryStream(content));
+            return Accepted(Parse(reader.ReadToEnd()), source);
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Could not read {source}: {ex.Message}");
+            return null;
+        }
+    }
+
+    private WinhanceConfigFile? Accepted(ConfigRead read, string source)
+    {
+        if (read.Failure == ConfigReadFailure.UnsupportedVersion)
+            _logService.Log(LogLevel.Warning, $"Not loading {source}: config version {read.Config!.Version}");
+        return read.Failure == ConfigReadFailure.None ? read.Config : null;
+    }
+
+    public async Task<WinhanceConfigFile?> ReadEmbeddedConfigurationAsync(bool windowsDefaults)
+    {
+        var resourceName = EmbeddedResourceName(windowsDefaults);
+        try
+        {
+            var read = await ReadResourceAsync(resourceName);
+            if (read.Failure == ConfigReadFailure.ResourceMissing)
+                _logService.Log(LogLevel.Error, $"Embedded resource not found: {resourceName}");
+            return read.Failure == ConfigReadFailure.None ? read.Config : null;
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Could not read {resourceName}: {ex.Message}");
+            return null;
+        }
+    }
+
+    private enum ConfigReadFailure { None, Empty, UnsupportedVersion, ResourceMissing }
+
+    // Config is set for UnsupportedVersion too, so the caller can name the version it refused.
+    private readonly record struct ConfigRead(WinhanceConfigFile? Config, ConfigReadFailure Failure);
+
+    private async Task<ConfigRead> ReadFileAsync(string filePath) =>
+        Parse(await _fileSystemService.ReadAllTextAsync(filePath));
+
+    private async Task<ConfigRead> ReadResourceAsync(string resourceName)
+    {
+        using var stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
+        if (stream is null)
+            return new ConfigRead(null, ConfigReadFailure.ResourceMissing);
+        using var reader = new StreamReader(stream);
+        return Parse(await reader.ReadToEndAsync());
+    }
+
+    private ConfigRead Parse(string json)
+    {
+        var config = JsonSerializer.Deserialize<WinhanceConfigFile>(json, ConfigFileConstants.JsonOptions);
+        if (config is null)
+            return new ConfigRead(null, ConfigReadFailure.Empty);
+        _configMigrationService.MigrateConfig(config);
+        return new ConfigRead(config, config.Version == "2.0" ? ConfigReadFailure.None : ConfigReadFailure.UnsupportedVersion);
+    }
+
+    private async Task RejectVersionAsync(WinhanceConfigFile config)
+    {
+        var versionText = config.Version ?? "unknown";
+        await _dialogService.ShowInformationAsync(
+            _localizationService.GetStringOrDefault("Config_Unsupported_Message", $"This configuration file version ({versionText}) is not compatible with this version of Winhance.", versionText),
+            _localizationService.GetStringOrDefault("Config_Unsupported_Title", "Unsupported Configuration Version"));
+        _logService.Log(LogLevel.Warning, $"Rejected incompatible config version: {config.Version}");
+    }
+
+    private string EmbeddedResourceName(bool windowsDefaults) =>
+        !windowsDefaults ? "Winhance.UI.Resources.Configs.Winhance_Recommended_Config.winhance"
+        : _windowsVersionService.IsWindows11() ? "Winhance.UI.Resources.Configs.Winhance_Default_Config_Windows11_25H2.winhance"
+        : "Winhance.UI.Resources.Configs.Winhance_Default_Config_Windows10_22H2.winhance";
+
     public List<string> DetectIncompatibleSettings(WinhanceConfigFile config)
     {
         var incompatible = new List<string>();
-
-        var allSections = new Dictionary<string, FeatureGroupSection>
+        foreach (var (_, feature, _, items) in config.SettingSections())
         {
-            ["Optimize"] = config.Optimize,
-            ["Customize"] = config.Customize
-        };
-
-        foreach (var section in allSections)
-        {
-            if (section.Value?.Features == null) continue;
-
-            foreach (var feature in section.Value.Features)
+            foreach (var configItem in items)
             {
-                foreach (var configItem in feature.Value.Items)
-                {
-                    // Only the 6 merged "-win10" aliases have no exact catalog match. File loads normalize them upstream
-                    // and the embedded configs carry them byte-identical to their canonical peers, so an unmatched id
-                    // is skipped silently.
-                    var newSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == configItem.Id);
-                    if (newSetting != null && !IsOnThisMachine(newSetting.Id))
-                    {
-                        var name = _localizationService.GetStringOrDefault(
-                            newSetting.Display.Name.Value, newSetting.Display.Name.Value);
-                        incompatible.Add($"{name} ({feature.Key})");
-                    }
-                }
+                // An old id is resolved here too. An id nothing answers to is not this PC's to set aside;
+                // the import summary names it as no longer in Winhance.
+                var newSetting = string.IsNullOrEmpty(configItem.Id) ? null : SettingCatalog.Find(configItem.Id);
+                if (newSetting != null && !IsOnThisMachine(newSetting.Id))
+                    incompatible.Add($"{_localizationService.SettingName(newSetting)} ({_localizationService.FeatureName(newSetting.Id, feature)})");
             }
         }
 
         return incompatible;
     }
 
+    // A null section, feature or item is dropped here, so nothing after the filter meets one.
     public WinhanceConfigFile FilterConfigForCurrentSystem(WinhanceConfigFile config)
     {
-        var filteredOptimize = FilterFeatureGroup(config.Optimize);
-        var filteredCustomize = FilterFeatureGroup(config.Customize);
+        var sections = config.SettingSections().ToList();
+        FeatureGroupSection Filtered(string group, FeatureGroupSection? source) => new()
+        {
+            IsIncluded = source?.IsIncluded ?? false,
+            Features = sections.Where(s => s.Group == group).ToDictionary(
+                s => s.Feature,
+                s => new ConfigSection { IsIncluded = s.Section.IsIncluded, Items = s.Items.Where(IsKeptOnThisMachine).ToList() }),
+        };
 
         return new WinhanceConfigFile
         {
             Version = config.Version,
-            Optimize = filteredOptimize,
-            Customize = filteredCustomize,
+            Optimize = Filtered("Optimize", config.Optimize),
+            Customize = Filtered("Customize", config.Customize),
             WindowsApps = config.WindowsApps,
             ExternalApps = config.ExternalApps,
             AppInstallOptions = config.AppInstallOptions,
@@ -328,45 +368,7 @@ public class ConfigLoadService : IConfigLoadService
     private bool IsOnThisMachine(string settingId) =>
         _catalogSettingsRegistry.GetById(settingId, CatalogScope.CurrentMachine) is not null;
 
-    private FeatureGroupSection FilterFeatureGroup(FeatureGroupSection section)
-    {
-        if (section?.Features == null) return section!;
-
-        var filteredFeatures = new Dictionary<string, ConfigSection>();
-
-        foreach (var feature in section.Features)
-        {
-            var filteredItems = new List<ConfigurationItem>();
-
-            foreach (var item in feature.Value.Items)
-            {
-                // Known catalog setting -> kept only when this machine shows it; unknown id -> keep. The raw "-win10"
-                // alias ids in the embedded configs flow to the import bridge, whose alias-normalizing GetById
-                // applies them onto the merged setting - see the DetectIncompatibleSettings comment.
-                var newSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == item.Id);
-                if (newSetting != null)
-                {
-                    if (IsOnThisMachine(newSetting.Id))
-                    {
-                        filteredItems.Add(item);
-                    }
-                    continue;
-                }
-
-                filteredItems.Add(item);
-            }
-
-            filteredFeatures[feature.Key] = new ConfigSection
-            {
-                IsIncluded = feature.Value.IsIncluded,
-                Items = filteredItems
-            };
-        }
-
-        return new FeatureGroupSection
-        {
-            IsIncluded = section.IsIncluded,
-            Features = filteredFeatures
-        };
-    }
+    // Known catalog setting -> kept only when this machine shows it; unknown id -> keep.
+    private bool IsKeptOnThisMachine(ConfigurationItem item) =>
+        (string.IsNullOrEmpty(item.Id) ? null : SettingCatalog.Find(item.Id)) is not { } setting || IsOnThisMachine(setting.Id);
 }

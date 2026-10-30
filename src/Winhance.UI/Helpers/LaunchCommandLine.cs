@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.CommandLine.Parsing;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Services;
 
@@ -9,6 +10,14 @@ public sealed record LaunchOptions(IReadOnlyList<string> InstallApps, string? In
     public static LaunchOptions None { get; } = new([], null, null);
 
     public bool StartInTray { get; init; }
+
+    public string? Profile { get; init; }
+
+    public bool ReapplyProfile { get; init; }
+
+    public bool SwitchesProfile => Profile is not null || ReapplyProfile;
+
+    public bool StartsHidden => StartInTray || SwitchesProfile;
 
     public InstallOptionsStore? InstallOptions { get; init; }
 
@@ -43,7 +52,26 @@ internal static class LaunchCommandLine
         Description = "Start hidden in the system tray. The sign-in task passes it.",
     };
 
-    private static readonly RootCommand Root = new("Winhance") { Options = { InstallApps, InstallFolder, InstallOptionsArgument, ConfigFile, Tray } };
+    private static readonly Option<string?> SwitchProfile = new("--profile")
+    {
+        Description = "Switch to this saved profile in the background, then exit unless --tray is also given.",
+    };
+
+    private static readonly Option<bool> Reapply = new(TrayController.ReapplyProfileFlag)
+    {
+        Description = "Re-apply the active profile in the background, then exit. The re-apply sign-in task passes it.",
+    };
+
+    private static readonly RootCommand Root = new("Winhance") { Options = { InstallApps, InstallFolder, InstallOptionsArgument, ConfigFile, Tray, SwitchProfile, Reapply } };
+
+    // A second launch hands its command line to the running instance as one string, starting with the exe.
+    internal static LaunchOptions ParseRedirected(string commandLine, Action<string> logError)
+    {
+        var args = CommandLineParser.SplitCommandLine(commandLine).ToList();
+        if (args.Count > 0 && args[0].EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            args.RemoveAt(0);
+        return Parse([.. args], logError);
+    }
 
     internal static LaunchOptions Parse(string[] args, Action<string> logError)
     {
@@ -63,6 +91,8 @@ internal static class LaunchCommandLine
         return new LaunchOptions(ids, result.GetValue(InstallFolder), result.GetValue(ConfigFile))
         {
             StartInTray = result.GetValue(Tray),
+            Profile = result.GetValue(SwitchProfile),
+            ReapplyProfile = result.GetValue(Reapply),
             InstallOptions = InstallOptionsStore.FromArgument(result.GetValue(InstallOptionsArgument)),
         };
     }

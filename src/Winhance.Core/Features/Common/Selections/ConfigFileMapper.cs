@@ -94,6 +94,19 @@ public static class ConfigFileMapper
         }
     }
 
+    // Custom values are the raw readings of the PC that saved the file, so this PC already has them when it reads the
+    // same values; their labels ("Unknown", "Custom") say nothing about that.
+    public static bool CustomValuesMatch(ConfigurationItem item, IReadOnlyDictionary<string, object?>? readings) =>
+        item.CustomStateValues is { Count: > 0 } custom
+        && readings is not null
+        && Unwrap(custom).All(kv => readings.TryGetValue(kv.Key, out var read) && CatalogValueComparer.AreEqual(read, kv.Value));
+
+    // Exact, unlike the review's check: a file whose DNS has no alternate server clears the one this PC has.
+    public static bool CustomValuesEqual(IReadOnlyDictionary<string, object> custom, IReadOnlyDictionary<string, object?> readings) =>
+        custom.Count > 0
+        && readings.Count(kv => kv.Value is not null) == custom.Count
+        && custom.All(kv => readings.TryGetValue(kv.Key, out var read) && CatalogValueComparer.AreEqual(read, kv.Value));
+
     public static ChoiceValue? DecodeValue(Setting setting, ConfigurationItem item)
     {
         switch (setting.Control)
@@ -201,13 +214,14 @@ public static class ConfigFileMapper
         var settingsById = byFeature.Values.SelectMany(s => s).ToDictionary(s => s.Id, s => s);
         var choices = new List<SettingChoice>();
         var files = new List<CarriedFile>();
-        foreach (var section in file.Optimize.Features.Values
-            .Concat(file.Customize.Features.Values)
-            .Concat(file.Autounattend.Features.Values))
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (_, _, _, items) in file.SettingSections().Concat(file.AutounattendSections()))
         {
-            foreach (var item in section.Items)
+            foreach (var item in items)
             {
-                if (!settingsById.TryGetValue(SettingIdAliases.Normalize(item.Id), out var setting)) continue;
+                if (item.Id is not { Length: > 0 } id || !settingsById.TryGetValue(SettingIdAliases.Normalize(id), out var setting)) continue;
+                // Files from before the This PC folders merged carry both the id and its "-win10" twin; the first wins.
+                if (!seen.Add(setting.Id)) continue;
                 if (item.File is { Base64.Length: > 0 } carried)
                     files.Add(new CarriedFile(setting.Id, carried.Destination, carried.Base64));
                 if (DecodeValue(setting, item) is { } value)
@@ -216,10 +230,11 @@ public static class ConfigFileMapper
         }
         return new SelectionSet(
             choices,
-            file.WindowsApps.Items.Select(AppChoiceOf).ToList(),
-            file.ExternalApps.Items.Select(AppChoiceOf).ToList())
+            AppChoices(file.WindowsApps),
+            AppChoices(file.ExternalApps))
         {
             Files = files,
+            InstallOptions = file.AppInstallOptions,
         };
     }
 
@@ -263,6 +278,9 @@ public static class ConfigFileMapper
         }
         return new ChoiceValue.ListRow(values);
     }
+
+    private static List<AppChoice> AppChoices(ConfigSection? section) =>
+        (section?.Items ?? []).Where(item => item is { Id.Length: > 0 }).Select(AppChoiceOf).ToList();
 
     private static AppChoice AppChoiceOf(ConfigurationItem item) =>
         new(item.Id, item.Name, item.AppxPackageName, item.CapabilityName, item.OptionalFeatureName, item.WinGetPackageId);

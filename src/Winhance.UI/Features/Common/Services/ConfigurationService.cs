@@ -20,6 +20,10 @@ public class ConfigurationService : IConfigurationService
     private readonly IConfigApplicationExecutionService _configExecutionService;
     private readonly IConfigReviewOrchestrationService _configReviewOrchestrationService;
     private readonly IDialogService _dialogService;
+    private readonly IApplicationModeService _mode;
+    private readonly IUserPreferencesService _preferences;
+
+    private const string ConfigReviewIntroDontShowKey = "ConfigReviewModeIntroDontShow";
 
     public ConfigurationService(
         ILogService logService,
@@ -32,7 +36,9 @@ public class ConfigurationService : IConfigurationService
         IConfigLoadService configLoadService,
         IConfigApplicationExecutionService configExecutionService,
         IConfigReviewOrchestrationService configReviewOrchestrationService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IApplicationModeService mode,
+        IUserPreferencesService preferences)
     {
         _logService = logService;
         _catalogSettingsRegistry = catalogSettingsRegistry;
@@ -45,6 +51,8 @@ public class ConfigurationService : IConfigurationService
         _configExecutionService = configExecutionService;
         _configReviewOrchestrationService = configReviewOrchestrationService;
         _dialogService = dialogService;
+        _mode = mode;
+        _preferences = preferences;
     }
 
     // Idempotent catalog-registry init on the entry points that read the catalog. Closes the import path's
@@ -74,9 +82,14 @@ public class ConfigurationService : IConfigurationService
         }
     }
 
+    // Settings > Import and the mode switcher's Config Review both land here, from any mode.
     public async Task ImportConfigurationAsync()
     {
         _logService.Log(LogLevel.Info, "Starting configuration import");
+
+        if (!await ModeSwitchConfirmation.ConfirmLeavingAsync(_mode, _dialogService, _localization)
+            || !await ShowConfigReviewIntroIfNeededAsync())
+            return;
 
         await EnsureRegistryInitializedAsync();
 
@@ -110,11 +123,43 @@ public class ConfigurationService : IConfigurationService
         }
 
         importOptions = PreTickFrom(config, importOptions);
+        await LeaveCurrentModeAsync(importOptions.ReviewBeforeApplying);
 
         if (!importOptions.ReviewBeforeApplying)
             await _configExecutionService.ExecuteConfigImportAsync(config, importOptions);
         else
             await _configReviewOrchestrationService.EnterReviewModeAsync(config, importOptions.IsWindowsDefaults);
+    }
+
+    // The open mode is left only once a file is in hand, so cancelling the picker keeps it. Builder writes nothing to
+    // this PC, so an apply has to leave it first; entering review tears Builder down itself.
+    private async Task LeaveCurrentModeAsync(bool review)
+    {
+        if (_mode.CurrentMode == WinhanceMode.ConfigReview)
+            await _configReviewOrchestrationService.CancelReviewModeAsync();
+        else if (_mode.CurrentMode == WinhanceMode.Builder && !review)
+            _mode.EnterNormalMode();
+    }
+
+    private async Task<bool> ShowConfigReviewIntroIfNeededAsync()
+    {
+        if (_preferences.GetPreference(ConfigReviewIntroDontShowKey, false))
+            return true;
+
+        var response = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+        {
+            Title = _localization.GetString("Dialog_ConfigReviewIntro_Title"),
+            Message = _localization.GetString("Dialog_ConfigReviewIntro_Message"),
+            CheckboxText = _localization.GetString("Dialog_Mode_DontShowAgain"),
+            CheckboxInitiallyChecked = false,
+            ConfirmButtonText = _localization.GetString("Dialog_ConfigReviewIntro_Confirm"),
+            CancelButtonText = _localization.GetString("Button_Cancel"),
+        });
+
+        if (response.Confirmed && response.CheckboxChecked)
+            await _preferences.SetPreferenceAsync(ConfigReviewIntroDontShowKey, true);
+
+        return response.Confirmed;
     }
 
     // The import dialog's defaults with review skipped, so a scripted run applies what Import would.

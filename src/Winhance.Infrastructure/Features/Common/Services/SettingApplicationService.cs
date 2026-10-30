@@ -3,6 +3,7 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
@@ -54,7 +55,7 @@ internal class SettingApplicationService(
 
                 // Only an import drains that queue, so reporting outside one would surface in the NEXT import's summary.
                 if (configImportState.IsActive)
-                    configImportState.ReportNotApplied($"{localizationService.GetString(setting.Display.Name.Value)}: {unavailable}");
+                    configImportState.ReportNotApplied($"{localizationService.SettingName(setting)}: {unavailable}");
 
                 return OperationResult.Failed(unavailable);
             }
@@ -501,7 +502,7 @@ internal class SettingApplicationService(
     {
         try
         {
-            var name = ResolveLocalized(setting.Display.Name.Value) ?? setting.Display.Name.Value;
+            var name = localizationService.SettingName(setting);
             var group = ResolveLocalizedGroup(setting.Display.GroupName);
 
             if (setting.Control == ControlKind.Action)

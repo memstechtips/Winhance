@@ -20,6 +20,24 @@ public class WinhanceConfigFile
     public FeatureGroupSection Customize { get; set; } = new FeatureGroupSection();
     public FeatureGroupSection Optimize { get; set; } = new FeatureGroupSection();
     public FeatureGroupSection Autounattend { get; set; } = new FeatureGroupSection();
+
+    // Migration drops a hand-edited file's null sections and items; this walk skips them too, because coverage reads
+    // the file unmigrated.
+    public IEnumerable<(string Group, string Feature, ConfigSection Section, IReadOnlyList<ConfigurationItem> Items)> SettingSections() =>
+        Sections("Optimize", Optimize).Concat(Sections("Customize", Customize));
+
+    public IEnumerable<(string Group, string Feature, ConfigSection Section, IReadOnlyList<ConfigurationItem> Items)> AutounattendSections() =>
+        Sections("Autounattend", Autounattend);
+
+    private static IEnumerable<(string Group, string Feature, ConfigSection Section, IReadOnlyList<ConfigurationItem> Items)> Sections(
+        string group, FeatureGroupSection? section)
+    {
+        foreach (var (feature, featureSection) in section?.Features ?? new Dictionary<string, ConfigSection>())
+        {
+            if (featureSection is not null)
+                yield return (group, feature, featureSection, featureSection.Items?.Where(item => item is not null).ToList() ?? []);
+        }
+    }
 }
 
 // Mutable by design: IsIncluded is toggled after construction and Features is assigned from deserialized JSON.

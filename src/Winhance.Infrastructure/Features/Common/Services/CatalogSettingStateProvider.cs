@@ -70,6 +70,7 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
             AcValue = r.AcValue,
             DcValue = r.DcValue,
             Readings = r.Readings,
+            CatchAll = r.CatchAll,
         };
 
         if (catalogSetting.Options is not null)

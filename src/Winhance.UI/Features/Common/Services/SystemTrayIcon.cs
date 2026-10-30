@@ -27,7 +27,7 @@ internal sealed class SystemTrayIcon(ILogService logService) : ISystemTrayIcon
     private HICON _smallIcon;
     private HICON _largeIcon;
     private string _tooltip = string.Empty;
-    private IReadOnlyList<string> _menu = [];
+    private IReadOnlyList<TrayMenuItem> _menu = [];
     private bool _isVisible;
 
     public event EventHandler? Invoked;
@@ -88,7 +88,7 @@ internal sealed class SystemTrayIcon(ILogService logService) : ISystemTrayIcon
         _isVisible = false;
     }
 
-    public void SetMenu(IReadOnlyList<string> items) => _menu = items;
+    public void SetMenu(IReadOnlyList<TrayMenuItem> items) => _menu = items;
 
     public void ShowNotification(string title, string message)
     {
@@ -185,13 +185,7 @@ internal sealed class SystemTrayIcon(ILogService logService) : ISystemTrayIcon
         var menu = PInvoke.CreatePopupMenu();
         try
         {
-            for (var i = 0; i < _menu.Count; i++)
-            {
-                fixed (char* text = _menu[i])
-                {
-                    PInvoke.AppendMenu(menu, MENU_ITEM_FLAGS.MF_STRING, (nuint)(FirstMenuCommand + i), text);
-                }
-            }
+            Append(menu, _menu);
 
             PInvoke.GetCursorPos(out var point);
             // Without the foreground call the menu stays open when the user clicks elsewhere, and without the WM_NULL
@@ -211,7 +205,33 @@ internal sealed class SystemTrayIcon(ILogService logService) : ISystemTrayIcon
         }
         finally
         {
+            // Also destroys the submenus attached to it.
             PInvoke.DestroyMenu(menu);
+        }
+    }
+
+    private static unsafe void Append(HMENU menu, IReadOnlyList<TrayMenuItem> items)
+    {
+        foreach (var item in items)
+        {
+            var flags = ReferenceEquals(item, TrayMenuItem.Separator) ? MENU_ITEM_FLAGS.MF_SEPARATOR : MENU_ITEM_FLAGS.MF_STRING;
+            var id = (nuint)(FirstMenuCommand + item.Command);
+            if (item.Children is { Count: > 0 } children)
+            {
+                var submenu = PInvoke.CreatePopupMenu();
+                Append(submenu, children);
+                flags |= MENU_ITEM_FLAGS.MF_POPUP;
+                id = (nuint)(nint)submenu.Value;
+            }
+            if (item.Checked)
+                flags |= MENU_ITEM_FLAGS.MF_CHECKED;
+            if (!item.Enabled)
+                flags |= MENU_ITEM_FLAGS.MF_GRAYED;
+
+            fixed (char* text = item.Text)
+            {
+                PInvoke.AppendMenu(menu, flags, id, text);
+            }
         }
     }
 }

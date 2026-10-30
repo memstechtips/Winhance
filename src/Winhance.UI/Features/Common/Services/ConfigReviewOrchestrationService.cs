@@ -33,6 +33,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     private readonly ITargetWindowsService _targetWindows;
     private readonly WimUtilSession _wimUtilSession;
     private readonly IInstallOptionsService _installOptions;
+    private readonly ICoverageSummaryService _coverageSummary;
 
     public ConfigReviewOrchestrationService(
         ILogService logService,
@@ -53,7 +54,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         IHardwareFilterService hardwareFilter,
         ITargetWindowsService targetWindows,
         WimUtilSession wimUtilSession,
-        IInstallOptionsService installOptions)
+        IInstallOptionsService installOptions,
+        ICoverageSummaryService coverageSummary)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -74,6 +76,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _targetWindows = targetWindows;
         _wimUtilSession = wimUtilSession;
         _installOptions = installOptions;
+        _coverageSummary = coverageSummary;
 
         _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
 
@@ -338,13 +341,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
 
             _configReviewModeService.ExitReviewMode();
 
-            var message = _localizationService.GetStringOrDefault("Config_Import_Success_Message", "Your configuration has been applied successfully. Some settings may only take effect after a system restart. A restart is recommended.");
-            if (notApplied is { Count: > 0 })
-                message += "\n\n" + string.Join("\n", notApplied);
-
-            await _dialogService.ShowInformationAsync(
-                message,
-                _localizationService.GetStringOrDefault("Config_Import_Success_Title", "Configuration Applied"));
+            // Review mode already showed what was set aside when it opened.
+            await _coverageSummary.ShowImportSummaryAsync([], notApplied);
 
             // Process External Apps AFTER success dialog dismissal (needs UI thread)
             // Use captured user selections instead of config section to honor user's review choices

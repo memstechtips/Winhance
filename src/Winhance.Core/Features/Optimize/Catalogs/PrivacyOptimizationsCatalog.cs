@@ -366,7 +366,7 @@ public static class PrivacyOptimizationsCatalog
                     Label = LocKey.Common.Disabled,
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["AllowDevelopmentWithoutDevLicense"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["AllowDevelopmentWithoutDevLicense"] = Of(0).OrAbsent() },
                     ResetSet = new Dictionary<string, StateValue> { ["AllowDevelopmentWithoutDevLicense"] = Absent },
                 },
             },
@@ -1099,7 +1099,7 @@ public static class PrivacyOptimizationsCatalog
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue>
                     {
-                        ["HasAccepted"] = Of(0),
+                        ["HasAccepted"] = Of(0).OrAbsent(),
                         ["AllowInputPersonalization"] = Absent,
                     },
                     ResetSet = new Dictionary<string, StateValue>

@@ -11,6 +11,7 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.WimUtil.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
 
@@ -35,6 +36,7 @@ public class BuilderModeEntryTests
     private readonly Mock<IFilePickerService> _picker = new();
     private readonly Mock<IAutounattendReader> _reader = new();
     private readonly Mock<IInstallOptionsService> _installOptions = new();
+    private readonly Mock<IProfileService> _profiles = new();
 
     public BuilderModeEntryTests()
     {
@@ -60,7 +62,8 @@ public class BuilderModeEntryTests
         _targetWindows.Object,
         _picker.Object,
         _reader.Object,
-        _installOptions.Object);
+        _installOptions.Object,
+        _profiles.Object);
 
     private void ArrangePicked(string? path)
     {
@@ -75,6 +78,20 @@ public class BuilderModeEntryTests
     private void ArrangeIntro(bool confirmed, bool dontShowAgain) =>
         _dialogs.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
             .ReturnsAsync(new ConfirmationResponse { Confirmed = confirmed, CheckboxChecked = dontShowAgain });
+
+    [Fact]
+    public async Task EnterFromProfile_UnreadableFile_SaysSo_AndDoesNotEnter()
+    {
+        var profile = new SettingsProfile("Gaming", "Gaming", ProfileKind.User, @"C:\p\Gaming.winhance");
+        _profiles.Setup(p => p.LoadAsync(profile)).ReturnsAsync((WinhanceConfigFile?)null);
+        var entry = Sut();
+
+        (await entry.EnterFromProfileAsync(profile)).Should().BeFalse();
+
+        _dialogs.Verify(d => d.ShowErrorAsync("Profiles_Error_Load", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _mode.Verify(m => m.EnterBuilderMode(It.IsAny<BuilderTarget>()), Times.Never);
+        entry.EditingProfile.Should().BeNull();
+    }
 
     [Fact]
     public async Task IntroDeclined_DoesNotAskForASeed_AndDoesNotEnter()

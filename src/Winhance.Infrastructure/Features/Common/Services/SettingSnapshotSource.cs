@@ -12,12 +12,20 @@ internal sealed class SettingSnapshotSource : ISettingSnapshotSource
     private readonly ICatalogSettingsRegistry _registry;
     private readonly ICatalogSettingStateProvider _states;
     private readonly ILogService _log;
+    private readonly IOptionProviderRegistry _options;
+    private readonly IFileStore _files;
+    private readonly IHardwareDetectionService _hardware;
+    private readonly ISystemDetectionContextFactory _contexts;
 
-    public SettingSnapshotSource(ICatalogSettingsRegistry registry, ICatalogSettingStateProvider states, ILogService log)
+    public SettingSnapshotSource(ICatalogSettingsRegistry registry, ICatalogSettingStateProvider states, ILogService log, IOptionProviderRegistry options, IFileStore files, IHardwareDetectionService hardware, ISystemDetectionContextFactory contexts)
     {
         _registry = registry;
         _states = states;
         _log = log;
+        _options = options;
+        _files = files;
+        _hardware = hardware;
+        _contexts = contexts;
     }
 
     public async Task<IReadOnlyList<SettingChoice>> CaptureAsync(CatalogScope scope)
@@ -28,8 +36,7 @@ internal sealed class SettingSnapshotSource : ISettingSnapshotSource
         foreach (var (featureId, settings) in _registry.GetAll(scope))
         {
             if (settings.Count == 0) continue;
-            if (!FeatureDefinitions.OptimizeFeatures.Contains(featureId)
-                && !FeatureDefinitions.CustomizeFeatures.Contains(featureId)
+            if (!FeatureDefinitions.IsSettingsFeature(featureId)
                 && !FeatureDefinitions.AutounattendFeatures.Contains(featureId))
             {
                 _log.Log(LogLevel.Warning, $"Feature {featureId} is not Optimize, Customize or Autounattend, skipping");
@@ -48,6 +55,89 @@ internal sealed class SettingSnapshotSource : ISettingSnapshotSource
         _log.Log(LogLevel.Info, $"Snapshot captured {choices.Count} setting choices");
         return choices;
     }
+
+    public async Task<IReadOnlyDictionary<string, SettingMatch>> CompareAsync(IReadOnlyList<SettingChoice> wanted, IReadOnlyList<CarriedFile> carried, CatalogScope scope)
+    {
+        await _registry.InitializeAsync().ConfigureAwait(false);
+        var settings = wanted
+            .Select(choice => (choice, setting: _registry.GetById(SettingIdAliases.Normalize(choice.SettingId), scope)))
+            .Where(pair => pair.setting is not null)
+            .ToList();
+        var states = await _states.GetStatesAsync(settings.Select(pair => pair.setting!).ToList()).ConfigureAwait(false);
+
+        var result = new Dictionary<string, SettingMatch>(StringComparer.Ordinal);
+        foreach (var (choice, setting) in settings)
+        {
+            var file = carried.FirstOrDefault(f => f.SettingId == choice.SettingId)?.Base64;
+            result[choice.SettingId] = states.TryGetValue(setting!.Id, out var state)
+                ? await MatchAsync(setting, state, choice.Value, file).ConfigureAwait(false)
+                : SettingMatch.Unknown;
+        }
+        return result;
+    }
+
+    // Matches lets a profile switch skip the setting, so only a clean reading of one declared state may say it.
+    // A catch-all fallback can stand for values Winhance does not recognise, a Selection that read no index would
+    // come back as option 0, and an Action has no state to read.
+    internal async Task<SettingMatch> MatchAsync(Setting setting, SettingStateResult state, ChoiceValue wanted, string? carriedBase64)
+    {
+        if (setting.Control == ControlKind.Action)
+            return SettingMatch.Unknown;
+        // These two compare the raw readings and the adapter, not a declared state, and servers set by hand match
+        // no declared state, so they come before the clean-reading rule.
+        if (wanted is ChoiceValue.CustomValues custom)
+            return state.Outcome is SettingDetectionOutcome.Resolved or SettingDetectionOutcome.Custom && state.Readings is { } readings
+                ? ConfigFileMapper.CustomValuesEqual(custom.Values, readings) ? SettingMatch.Matches : SettingMatch.Differs
+                : SettingMatch.Unknown;
+        // Applying automatic DNS keeps the servers of an adapter with a manual IP, so that is as far as it gets.
+        if (wanted is ChoiceValue.Option { Index: var auto } && IsAutomaticDns(setting, auto) && _contexts.Create().ActiveAdapterHasManualIp())
+            return SettingMatch.Matches;
+        if (state.Outcome != SettingDetectionOutcome.Resolved || state.CatchAll)
+            return SettingMatch.Unknown;
+        if (setting.Control == ControlKind.Selection && state.CurrentValue is not int && state.AcValue is null)
+            return SettingMatch.Unknown;
+        // A state that writes nothing leaves whatever the machine had, so no reading can show it was reached.
+        if (wanted is ChoiceValue.Option { Index: var index }
+            && setting.States.ElementAtOrDefault(index) is { Set.Count: 0, Effects.Count: 0, ResetSet: null })
+            return SettingMatch.Unknown;
+
+        var reading = Choose(setting, state);
+        // PowerCfgApplier writes no DC value on a machine without a battery, so the DC half reads back whatever the
+        // plan already held.
+        if (reading is not null && _hardware.HasBattery() == false)
+            (reading, wanted) = (AcOnly(reading), AcOnly(wanted));
+
+        return (reading, wanted) switch
+        {
+            (null or ChoiceValue.CustomValues or ChoiceValue.List, _) or (_, ChoiceValue.List) => SettingMatch.Unknown,
+            (ChoiceValue.Keyed read, ChoiceValue.Keyed want) =>
+                await KeyedChoiceMatch.IsSameAsync(_options, _files, setting, want, read, carriedBase64).ConfigureAwait(false) ? SettingMatch.Matches : SettingMatch.Differs,
+            var (read, want) => Same(read, want) ? SettingMatch.Matches : SettingMatch.Differs,
+        };
+    }
+
+    // A file can hold one value where the machine reads separate AC and DC values, or the other way round; the
+    // import writes the single value to both, so that is the reading it leaves behind.
+    private static bool Same(ChoiceValue read, ChoiceValue want) => (read, want) switch
+    {
+        (ChoiceValue.AcDcOption r, ChoiceValue.Option w) => r.AcIndex == w.Index && r.DcIndex == w.Index,
+        (ChoiceValue.Option r, ChoiceValue.AcDcOption w) => r.Index == w.AcIndex && r.Index == w.DcIndex,
+        (ChoiceValue.AcDcNumber r, ChoiceValue.Number w) => r.Ac == w.Value && r.Dc == w.Value,
+        (ChoiceValue.Number r, ChoiceValue.AcDcNumber w) => r.Value == w.Ac && r.Value == w.Dc,
+        _ => Equals(read, want),
+    };
+
+    private static bool IsAutomaticDns(Setting setting, int index) =>
+        setting.Targets.OfType<DnsTarget>().Any()
+        && setting.States.ElementAtOrDefault(index) is { Set.Count: > 0 } state
+        && state.Set.Values.All(v => v == StateValue.Absent);
+
+    private static ChoiceValue AcOnly(ChoiceValue value) => value switch
+    {
+        ChoiceValue.AcDcOption v => new ChoiceValue.Option(v.AcIndex),
+        ChoiceValue.AcDcNumber v => new ChoiceValue.Number(v.Ac),
+        _ => value,
+    };
 
     private static ChoiceValue? Choose(Setting setting, SettingStateResult state)
     {

@@ -62,6 +62,7 @@ public static class UIServicesExtensions
         services.AddSingleton<IConfigApplicationExecutionService, ConfigApplicationExecutionService>();
         services.AddSingleton<IConfigReviewOrchestrationService, ConfigReviewOrchestrationService>();
         services.AddSingleton<IConfigurationService, ConfigurationService>();
+        services.AddSingleton<ICoverageSummaryService, CoverageSummaryService>();
 
         services.AddSingleton<IConfigImportOverlayService, ConfigImportOverlayService>();
 
@@ -143,7 +144,8 @@ public static class UIServicesExtensions
         services.AddSingleton<IExternalAppsItemsProvider>(sp => sp.GetRequiredService<ExternalAppsViewModel>());
         services.AddSingleton<SoftwareAppsViewModel>();
 
-        // Tray icon and the background app update check
+        // Tray icon, the background app update check and the profiles it can switch
+        services.AddSingleton<IProfileService, ProfileService>();
         services.AddSingleton<ISystemTrayIcon, SystemTrayIcon>();
         services.AddSingleton<AppUpdateMonitor>();
         services.AddSingleton<TrayController>();

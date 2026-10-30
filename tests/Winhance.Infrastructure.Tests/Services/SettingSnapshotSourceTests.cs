@@ -17,8 +17,16 @@ public class SettingSnapshotSourceTests
     private readonly Mock<ICatalogSettingsRegistry> _registry = new();
     private readonly Mock<ICatalogSettingStateProvider> _states = new();
     private readonly Mock<ILogService> _log = new();
+    private readonly Mock<IFileStore> _files = new();
+    private readonly Mock<IHardwareDetectionService> _hardware = new();
+    private readonly Mock<IPrefetchableDetectionContext> _context = new();
 
-    private SettingSnapshotSource Sut() => new(_registry.Object, _states.Object, _log.Object);
+    private SettingSnapshotSource Sut()
+    {
+        var contexts = new Mock<ISystemDetectionContextFactory>();
+        contexts.Setup(f => f.Create()).Returns(_context.Object);
+        return new(_registry.Object, _states.Object, _log.Object, new FakeOptionProviderRegistry(), _files.Object, _hardware.Object, contexts.Object);
+    }
 
     private void Arrange(Setting setting, SettingStateResult state)
     {
@@ -401,5 +409,201 @@ public class SettingSnapshotSourceTests
         Arrange(setting, FakeOptionProvider.StateOn(null));
 
         (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Should().BeEmpty();
+    }
+
+    private Task<SettingMatch> Compare(Setting setting, SettingStateResult state, ChoiceValue wanted, string? carriedBase64 = null) =>
+        Sut().MatchAsync(setting, state, wanted, carriedBase64);
+
+    [Fact]
+    public async Task Compare_TheSameToggle_Matches() =>
+        (await Compare(ParityFixtures.Toggle("t"), new SettingStateResult { Success = true, IsEnabled = true }, new ChoiceValue.Toggle(true)))
+            .Should().Be(SettingMatch.Matches);
+
+    [Fact]
+    public async Task Compare_TheOtherToggle_Differs() =>
+        (await Compare(ParityFixtures.Toggle("t"), new SettingStateResult { Success = true, IsEnabled = false }, new ChoiceValue.Toggle(true)))
+            .Should().Be(SettingMatch.Differs);
+
+    [Fact]
+    public async Task Compare_ACatchAllReading_IsUnknown_SoASwitchStillAppliesIt() =>
+        (await Compare(ParityFixtures.Toggle("t"), new SettingStateResult { Success = true, IsEnabled = true, CatchAll = true }, new ChoiceValue.Toggle(true)))
+            .Should().Be(SettingMatch.Unknown);
+
+    [Fact]
+    public async Task Compare_AnUndeterminedReading_IsUnknown() =>
+        (await Compare(ParityFixtures.Toggle("t"), new SettingStateResult { Success = true, IsEnabled = true, Outcome = SettingDetectionOutcome.Undetermined }, new ChoiceValue.Toggle(true)))
+            .Should().Be(SettingMatch.Unknown);
+
+    [Fact]
+    public async Task Compare_ASelectionThatReadNoIndex_IsUnknown_NotOptionZero() =>
+        (await Compare(ParityFixtures.Selection("s"), new SettingStateResult { Success = true, CurrentValue = null }, new ChoiceValue.Option(0)))
+            .Should().Be(SettingMatch.Unknown);
+
+    [Fact]
+    public async Task Compare_CustomValuesWanted_WithNoReadings_IsUnknown() =>
+        (await Compare(ParityFixtures.Selection("s"), new SettingStateResult { Success = true, CurrentValue = 1 },
+                new ChoiceValue.CustomValues(new Dictionary<string, object> { ["v"] = 1 })))
+            .Should().Be(SettingMatch.Unknown);
+
+    [Theory]
+    [InlineData("192.168.10.1", null, SettingMatch.Matches)]
+    [InlineData("192.168.10.2", null, SettingMatch.Differs)]
+    [InlineData("192.168.10.1", "192.168.10.9", SettingMatch.Differs)]
+    public async Task Compare_CustomDnsWanted_MatchesOnlyTheExactServers(string primary, string? secondary, SettingMatch expected) =>
+        (await Compare(DnsSelection("dns"), new SettingStateResult
+            {
+                Success = true, CurrentValue = ComboBoxConstants.CustomStateIndex, Outcome = SettingDetectionOutcome.Custom,
+                Readings = new Dictionary<string, object?> { ["primary"] = primary, ["primaryDoh"] = null, ["secondary"] = secondary },
+            },
+            new ChoiceValue.CustomValues(new Dictionary<string, object> { ["primary"] = "192.168.10.1" })))
+            .Should().Be(expected);
+
+    [Theory]
+    [InlineData(true, SettingMatch.Matches)]
+    [InlineData(false, SettingMatch.Unknown)]
+    public async Task Compare_AutomaticDnsWanted_MatchesTheKeptServersOfAManualIpAdapter(bool manualIp, SettingMatch expected)
+    {
+        _context.Setup(c => c.ActiveAdapterHasManualIp()).Returns(manualIp);
+        (await Compare(DnsSelection("dns"), new SettingStateResult
+            {
+                Success = true, CurrentValue = ComboBoxConstants.CustomStateIndex, Outcome = SettingDetectionOutcome.Custom,
+                Readings = new Dictionary<string, object?> { ["primary"] = "192.168.10.1" },
+            },
+            new ChoiceValue.Option(0)))
+            .Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task Compare_APresetDnsWanted_OnAManualIpAdapter_IsStillApplied()
+    {
+        _context.Setup(c => c.ActiveAdapterHasManualIp()).Returns(true);
+        (await Compare(DnsSelection("dns"), new SettingStateResult
+            {
+                Success = true, CurrentValue = ComboBoxConstants.CustomStateIndex, Outcome = SettingDetectionOutcome.Custom,
+                Readings = new Dictionary<string, object?> { ["primary"] = "192.168.10.1" },
+            },
+            new ChoiceValue.Option(1)))
+            .Should().NotBe(SettingMatch.Matches);
+    }
+
+    [Fact]
+    public async Task Compare_AListWanted_IsUnknown() =>
+        (await Compare(ParityFixtures.ListSetting("a"), new SettingStateResult { Success = true, CurrentValue = OneAccount }, OneAccount))
+            .Should().Be(SettingMatch.Unknown);
+
+    [Theory]
+    [InlineData(900, 900, 1, SettingMatch.Matches)]
+    [InlineData(900, 300, 1, SettingMatch.Differs)]
+    [InlineData(300, 300, 1, SettingMatch.Differs)]
+    public async Task Compare_AFileOptionAgainstSeparateAcDcReadings_MatchesOnlyWhenBothEqualIt(int ac, int dc, int wanted, SettingMatch expected) =>
+        (await Compare(ParityFixtures.PowerCfgSelection("p"), new SettingStateResult { Success = true, CurrentValue = 1, AcValue = ac, DcValue = dc }, new ChoiceValue.Option(wanted)))
+            .Should().Be(expected);
+
+    [Theory]
+    [InlineData(600, 600, SettingMatch.Matches)]
+    [InlineData(600, 300, SettingMatch.Differs)]
+    public async Task Compare_AFileNumberAgainstSeparateAcDcReadings_MatchesOnlyWhenBothEqualIt(int ac, int dc, SettingMatch expected) =>
+        (await Compare(ParityFixtures.Slider("n", PowerModeSupport.Separate), new SettingStateResult { Success = true, CurrentValue = ac, AcValue = ac, DcValue = dc }, new ChoiceValue.Number(600)))
+            .Should().Be(expected);
+
+    [Theory]
+    [InlineData(false, SettingMatch.Matches)]
+    [InlineData(true, SettingMatch.Differs)]
+    [InlineData(null, SettingMatch.Differs)]
+    public async Task Compare_SeparateAcDcReadings_IgnoreTheDcHalfOnlyWithoutABattery(bool? hasBattery, SettingMatch expected)
+    {
+        _hardware.Setup(h => h.HasBattery()).Returns(hasBattery);
+        (await Compare(ParityFixtures.PowerCfgSelection("p"), new SettingStateResult { Success = true, CurrentValue = 1, AcValue = 900, DcValue = 300 }, new ChoiceValue.Option(1)))
+            .Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task Compare_WithoutABattery_AFileAcDcOptionMatchesOnItsAcHalf()
+    {
+        _hardware.Setup(h => h.HasBattery()).Returns(false);
+        (await Compare(ParityFixtures.PowerCfgSelection("p"), new SettingStateResult { Success = true, CurrentValue = 1, AcValue = 900, DcValue = 900 }, new ChoiceValue.AcDcOption(1, 0)))
+            .Should().Be(SettingMatch.Matches);
+    }
+
+    [Fact]
+    public async Task Compare_WithoutABattery_AnAcDifferenceStillDiffers()
+    {
+        _hardware.Setup(h => h.HasBattery()).Returns(false);
+        (await Compare(ParityFixtures.PowerCfgSelection("p"), new SettingStateResult { Success = true, CurrentValue = 0, AcValue = 300, DcValue = 900 }, new ChoiceValue.Option(1)))
+            .Should().Be(SettingMatch.Differs);
+    }
+
+    [Theory]
+    [InlineData(600, SettingMatch.Matches)]
+    [InlineData(300, SettingMatch.Differs)]
+    public async Task Compare_WithoutABattery_ASliderComparesOnlyItsAcValue(int ac, SettingMatch expected)
+    {
+        _hardware.Setup(h => h.HasBattery()).Returns(false);
+        (await Compare(ParityFixtures.Slider("n", PowerModeSupport.Separate), new SettingStateResult { Success = true, CurrentValue = ac, AcValue = ac, DcValue = 1200 }, new ChoiceValue.AcDcNumber(600, 300)))
+            .Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(2, SettingMatch.Unknown)]
+    [InlineData(1, SettingMatch.Differs)]
+    public async Task Compare_AWantedStateThatWritesNothing_IsUnknown(int wanted, SettingMatch expected)
+    {
+        var tray = SystemTraySelection("t");
+        tray = tray with { States = tray.States.Append(new SettingState { Label = TestKeys.Of("Windows default") }).ToArray() };
+        (await Compare(tray, new SettingStateResult { Success = true, CurrentValue = 0 }, new ChoiceValue.Option(wanted)))
+            .Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task CompareAsync_ASettingWithNoReading_IsUnknown()
+    {
+        var setting = ParityFixtures.Toggle("t");
+        _registry.Setup(r => r.InitializeAsync()).Returns(Task.CompletedTask);
+        _registry.Setup(r => r.GetById("t", It.IsAny<CatalogScope>())).Returns(setting);
+        _states.Setup(s => s.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>())).ReturnsAsync(new Dictionary<string, SettingStateResult>());
+
+        var result = await Sut().CompareAsync([new SettingChoice("t", new ChoiceValue.Toggle(true))], [], CatalogScope.CurrentMachine);
+
+        result.Should().ContainSingle().Which.Value.Should().Be(SettingMatch.Unknown);
+    }
+
+    [Theory]
+    [InlineData("beta", SettingMatch.Matches)]
+    [InlineData("BETA", SettingMatch.Matches)]
+    [InlineData("alpha", SettingMatch.Differs)]
+    public async Task Compare_AKeyedSelection_MatchesTheSameOption(string wanted, SettingMatch expected) =>
+        (await Compare(FakeOptionProvider.SettingFor(), FakeOptionProvider.StateOn("beta"), new ChoiceValue.Keyed(wanted, wanted)))
+            .Should().Be(expected);
+
+    // A saved file is renamed on apply, so only its bytes say the live key is the file the profile carries.
+    [Theory]
+    [InlineData(true, SettingMatch.Matches)]
+    [InlineData(false, SettingMatch.Differs)]
+    public async Task Compare_AKeyedSelectionUnderAnotherKey_MatchesWhenItIsTheCarriedFile(bool sameBytes, SettingMatch expected)
+    {
+        _files.Setup(f => f.IsSameFileAsync("beta", "AQID")).ReturnsAsync(sameBytes);
+
+        (await Compare(FakeOptionProvider.SettingFor(), FakeOptionProvider.StateOn("beta"), new ChoiceValue.Keyed("alpha", "Alpha zone"), "AQID"))
+            .Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("fake-keyed", SettingMatch.Matches)]
+    [InlineData("another-setting", SettingMatch.Differs)]
+    public async Task CompareAsync_HandsEachSettingOnlyItsOwnCarriedFile(string carriedFor, SettingMatch expected)
+    {
+        var setting = FakeOptionProvider.SettingFor();
+        _registry.Setup(r => r.InitializeAsync()).Returns(Task.CompletedTask);
+        _registry.Setup(r => r.GetById(setting.Id, It.IsAny<CatalogScope>())).Returns(setting);
+        _states.Setup(s => s.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult> { [setting.Id] = FakeOptionProvider.StateOn("beta") });
+        _files.Setup(f => f.IsSameFileAsync("beta", "AQID")).ReturnsAsync(true);
+
+        var result = await Sut().CompareAsync(
+            [new SettingChoice(setting.Id, new ChoiceValue.Keyed("alpha", "Alpha zone"))],
+            [new CarriedFile(carriedFor, @"C:\Windows\Web\Wallpaper\saved.jpg", "AQID")],
+            CatalogScope.CurrentMachine);
+
+        result[setting.Id].Should().Be(expected);
     }
 }

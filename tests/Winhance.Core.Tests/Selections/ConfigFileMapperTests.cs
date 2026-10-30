@@ -287,6 +287,19 @@ public class ConfigFileMapperTests
         decoded.Values["On"].Should().Be(true);
     }
 
+    [Theory]
+    [InlineData(7L, "x", true)]
+    [InlineData(7L, "y", false)]
+    [InlineData(null, "x", false)]
+    public void CustomValuesMatch_ComparesTheFilesValuesWithThisPcsReadings(object? mode, string name, bool expected)
+    {
+        var custom = JsonSerializer.Deserialize<Dictionary<string, object>>("{\"Mode\":7,\"Name\":\"x\"}")!;
+        var item = new ConfigurationItem { Id = "s", InputType = InputType.Selection, CustomStateValues = custom };
+        var readings = new Dictionary<string, object?> { ["Mode"] = mode, ["Name"] = name, ["Other"] = 1 };
+
+        ConfigFileMapper.CustomValuesMatch(item, readings).Should().Be(expected);
+    }
+
     [Fact]
     public void DecodeValue_Slider_NullDcValue_FallsBackToAc()
     {
@@ -471,6 +484,60 @@ public class ConfigFileMapperTests
 
         file.AppInstallOptions!.Defaults.Should().Be(options.Defaults);
         file.AppInstallOptions.Apps.Should().ContainSingle().Which.Key.Should().Be("in-file");
+    }
+
+    [Fact]
+    public void FromFile_InstallOptions_AreReadBackAsWritten()
+    {
+        var options = new InstallOptionsStore
+        {
+            Defaults = InstallOptions.Default with { Scope = InstallScope.Machine },
+            Apps = new(StringComparer.Ordinal) { ["in-file"] = InstallOptions.Default with { Interactive = true } },
+        };
+        var set = SelectionSet.Empty with { ExternalApps = [new AppChoice("in-file", "In file", null, null, null, "Pub.InFile")], InstallOptions = options };
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>();
+
+        var back = ConfigFileMapper.FromFile(ConfigFileMapper.ToFile(set, byFeature), byFeature);
+
+        back.InstallOptions.Should().NotBeNull();
+        back.InstallOptions!.Defaults.Should().Be(options.Defaults);
+        back.InstallOptions.Apps.Should().BeEquivalentTo(options.Apps);
+    }
+
+    [Fact]
+    public void FromFile_AHandEditedFileWithNullSectionsAndAnIdLessItem_ReadsWhatIsThere()
+    {
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.Privacy] = new[] { Toggle("t") } };
+        var set = SelectionSet.Empty with { Settings = [new SettingChoice("t", new ChoiceValue.Toggle(true))] };
+        var item = ConfigFileMapper.ToFile(set, byFeature).Optimize.Features[FeatureIds.Privacy].Items.Single();
+        var file = new WinhanceConfigFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    [FeatureIds.Privacy] = new ConfigSection { Items = [null!, new ConfigurationItem { Id = null! }, item] },
+                    [FeatureIds.Power] = null!,
+                    [FeatureIds.Update] = new ConfigSection { Items = null! },
+                },
+            },
+            Customize = null!,
+            Autounattend = null!,
+            WindowsApps = null!,
+            ExternalApps = new ConfigSection { Items = [null!, new ConfigurationItem { Id = null! }] },
+        };
+
+        var back = ConfigFileMapper.FromFile(file, byFeature);
+
+        back.Settings.Should().BeEquivalentTo(set.Settings);
+        back.WindowsApps.Should().BeEmpty();
+        back.ExternalApps.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void FromFile_AFileWithoutInstallOptions_HasNone()
+    {
+        ConfigFileMapper.FromFile(new WinhanceConfigFile(), new Dictionary<string, IReadOnlyList<Setting>>()).InstallOptions.Should().BeNull();
     }
 
     [Fact]

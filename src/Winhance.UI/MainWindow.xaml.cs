@@ -45,6 +45,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
     private TaskProgressCoordinator? _taskProgressCoordinator;
     private NavigationRouter? _navigationRouter;
+    private WinhanceMode _lastMode = WinhanceMode.Normal;
     private StartupUiCoordinator? _startupUiCoordinator;
     private TitleBarManager? _titleBarManager;
     private TrayController? _trayController;
@@ -71,6 +72,9 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         this.InitializeComponent();
         StartupLogger.Log("InitializeComponent completed");
 
+        // Initialize DispatcherService - MUST be done before any service uses it
+        InitializeDispatcherService();
+
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
 
@@ -87,9 +91,6 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         InitializeUiZoom();
 
         TrySetMicaBackdrop();
-
-        // Initialize DispatcherService - MUST be done before any service uses it
-        InitializeDispatcherService();
 
         InitializeFlowDirection();
 
@@ -605,7 +606,21 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
     private void OnApplicationModeChangedForNavLocks(object? sender, EventArgs e)
     {
+        var mode = _applicationModeService?.CurrentMode ?? WinhanceMode.Normal;
+        var builderOpened = mode == WinhanceMode.Builder && _lastMode != WinhanceMode.Builder;
+        _lastMode = mode;
         DispatcherQueue.TryEnqueue(ApplyNavLocks);
+        if (builderOpened && App.Services.GetService<IBuilderModeEntry>()?.EditingProfile is not null)
+            DispatcherQueue.TryEnqueue(LeaveSettingsPage);
+    }
+
+    // Editing a profile in Builder starts from Settings, which has nothing to build.
+    private void LeaveSettingsPage()
+    {
+        if (_navigationRouter is not { } router || router.GetTagForCurrentPage(ContentFrame.CurrentSourcePageType) != "Settings")
+            return;
+        router.NavigateToPage(ContentFrame, "Optimize", applyNavBadges: ApplyNavBadges);
+        NavSidebar.SelectedTag = "Optimize";
     }
 
     private void ApplyNavLocks()

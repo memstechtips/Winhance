@@ -2,6 +2,7 @@ using System.Text.Json;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.Infrastructure.Features.Common.Helpers;
 using Xunit;
 using Xunit.Abstractions;
@@ -101,6 +102,8 @@ public class RecommendedConfigConformanceTests
             case ControlKind.KeyedSelection:
                 // A keyed selection's key comes from the machine, not from a state's role, so neither direction of the 1:1
                 // invariant applies. A power plan's key still has to be a scheme GUID: nothing else would activate.
+                if (ConfigFileMapper.DecodeValue(setting, item) is null)
+                    return (false, "carries no SelectedKey, so the import cannot apply it.");
                 if (setting.Options?.Source == OptionSource.PowerPlans && !Guid.TryParse(item.SelectedKey, out _))
                     return (false, $"power-plan key '{item.SelectedKey ?? "<unset>"}' is not a scheme GUID.");
                 return (false, null);

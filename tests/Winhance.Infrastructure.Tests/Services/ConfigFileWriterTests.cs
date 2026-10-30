@@ -17,6 +17,7 @@ public class ConfigFileWriterTests
     private readonly Mock<ICatalogSettingsRegistry> _registry = new();
     private readonly Mock<IFileSystemService> _files = new();
     private readonly Mock<ILogService> _log = new();
+    private byte[] _bytes = [];
     private string _written = string.Empty;
 
     public ConfigFileWriterTests()
@@ -28,8 +29,12 @@ public class ConfigFileWriterTests
         });
 
         _files
-            .Setup(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), default))
-            .Callback<string, string, CancellationToken>((_, contents, _) => _written = contents)
+            .Setup(f => f.WriteAllBytesAsync(It.IsAny<string>(), It.IsAny<byte[]>(), default))
+            .Callback<string, byte[], CancellationToken>((_, bytes, _) =>
+            {
+                _bytes = bytes;
+                _written = System.Text.Encoding.UTF8.GetString(bytes);
+            })
             .Returns(Task.CompletedTask);
     }
 
@@ -77,6 +82,15 @@ public class ConfigFileWriterTests
         _written.Should().Contain("\"Id\": \"t\"").And.Contain("\"IsSelected\": true");
         _written.Should().Contain("\"Id\": \"s\"").And.Contain("\"SelectedIndex\": 1");
         _written.Should().NotContain("PowerSettings", "the frozen JsonOptions omit null members");
+    }
+
+    [Fact]
+    public async Task WriteAsync_ReturnsExactlyTheBytesItWrote()
+    {
+        var returned = await Sut().WriteAsync(Selections(), CatalogScope.CurrentMachine, OutputPath);
+
+        returned.Should().Equal(_bytes);
+        _bytes.Take(3).Should().NotEqual(new byte[] { 0xEF, 0xBB, 0xBF }, "config files are written without a BOM");
     }
 
     [Fact]

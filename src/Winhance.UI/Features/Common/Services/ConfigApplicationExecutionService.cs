@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -24,6 +25,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
     private readonly IPolicyCleanupService _policyCleanupService;
     private readonly IChangeHistoryService _changeHistoryService;
     private readonly IInstallOptionsService _installOptions;
+    private readonly ICoverageSummaryService _coverageSummary;
 
     public ConfigApplicationExecutionService(
         ILogService logService,
@@ -40,7 +42,8 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         IReviewModeViewModelCoordinator vmCoordinator,
         IPolicyCleanupService policyCleanupService,
         IChangeHistoryService changeHistoryService,
-        IInstallOptionsService installOptions)
+        IInstallOptionsService installOptions,
+        ICoverageSummaryService coverageSummary)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -57,6 +60,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         _policyCleanupService = policyCleanupService;
         _changeHistoryService = changeHistoryService;
         _installOptions = installOptions;
+        _coverageSummary = coverageSummary;
     }
 
     public async Task ExecuteConfigImportAsync(WinhanceConfigFile config, ImportOptions dialogOptions)
@@ -183,7 +187,7 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
                 _overlayService.HideOverlay();
             }
 
-            await ShowImportSuccessMessage(setAside, notApplied);
+            await _coverageSummary.ShowImportSummaryAsync(setAside, notApplied);
 
             // Process Windows Apps installation AFTER overlay is hidden (shows confirmation dialog)
             if (hasWindowsApps && importOptions.ProcessWindowsAppsInstallation)
@@ -220,6 +224,38 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         }
     }
 
+    public async Task<IReadOnlyList<string>> ApplySettingsQuietlyAsync(
+        WinhanceConfigFile config, string sourceName, bool isWindowsDefaults, bool restartExplorer, bool broadcastRegional)
+    {
+        var sections = new List<string>();
+        foreach (var group in config.SettingSections().Where(s => s.Items.Count > 0).GroupBy(s => s.Group))
+        {
+            sections.Add(group.Key);
+            sections.AddRange(group.Select(s => $"{group.Key}_{s.Feature}"));
+        }
+
+        if (sections.Count == 0)
+            return [];
+
+        _configImportState.IsActive = true;
+        _configImportState.SourceName = sourceName;
+        _configImportState.ImportSuppliesPowerValues = false;
+        var changeBatch = _changeHistoryService.BeginBatch(BuildImportBatchHeader());
+        try
+        {
+            await ApplyConfigurationWithOptionsAsync(config, sections, new ImportOptions { IsWindowsDefaults = isWindowsDefaults }, saveRemovalScripts: false, restartExplorer, broadcastRegional);
+            if (isWindowsDefaults)
+                await Task.Run(() => _policyCleanupService.CleanupPolicyKeys());
+        }
+        finally
+        {
+            changeBatch.Dispose();
+            _configImportState.IsActive = false;
+        }
+
+        return _configImportState.TakeNotApplied();
+    }
+
     public async Task ApplyConfigurationWithOptionsAsync(
         WinhanceConfigFile config,
         List<string> selectedSections,
@@ -232,7 +268,9 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         WinhanceConfigFile config,
         List<string> selectedSections,
         ImportOptions options,
-        bool saveRemovalScripts)
+        bool saveRemovalScripts,
+        bool restartExplorer = true,
+        bool broadcastRegional = true)
     {
         _logService.Log(LogLevel.Info, $"Applying configuration to: {string.Join(", ", selectedSections)}");
 
@@ -256,19 +294,28 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
 
         await Task.WhenAll(parallelTasks);
 
-        _overlayService.UpdateStatus(
-            _localizationService.GetStringOrDefault("Config_Import_Status_Applying", "Sit back, relax and watch while Winhance enhances Windows with your desired settings..."),
-            _localizationService.GetStringOrDefault("Config_Import_Status_RestartingExplorer", "Restarting Explorer..."));
+        if (!restartExplorer && !broadcastRegional)
+            return;
+
+        if (restartExplorer)
+        {
+            _overlayService.UpdateStatus(
+                _localizationService.GetStringOrDefault("Config_Import_Status_Applying", "Sit back, relax and watch while Winhance enhances Windows with your desired settings..."),
+                _localizationService.GetStringOrDefault("Config_Import_Status_RestartingExplorer", "Restarting Explorer..."));
+        }
+
         await Task.Run(async () =>
         {
-            // Broadcast regional setting change so apps pick up intl changes from import
-            _windowsUIManagementService.BroadcastRegionalSettingChange();
+            // Per-setting intl broadcasts are skipped during an import, so apps pick the regional changes up here.
+            if (broadcastRegional)
+                _windowsUIManagementService.BroadcastRegionalSettingChange();
 
             // ONE restart for the whole import, through the shared single-flight service. Individual
             // settings applied during an import never restart Explorer themselves - this is the only
             // shell restart an import performs. Clearing the pending state is part of a successful
             // restart, so an import can never leave a pending-restart bar behind.
-            await _explorerRestartService.RestartAsync().ConfigureAwait(false);
+            if (restartExplorer)
+                await _explorerRestartService.RestartAsync().ConfigureAwait(false);
         });
     }
 
@@ -556,22 +603,5 @@ public class ConfigApplicationExecutionService : IConfigApplicationExecutionServ
         var label = _localizationService.GetString("ChangeHistory_ConfigImport");
         var source = _configImportState.SourceName;
         return string.IsNullOrEmpty(source) ? label : $"{label} ({source})";
-    }
-
-    private async Task ShowImportSuccessMessage(IReadOnlyList<string> setAside, IReadOnlyList<string> notApplied)
-    {
-        var message = _localizationService.GetStringOrDefault("Config_Import_Success_Message", "Your configuration has been applied successfully. Some settings may only take effect after a system restart. A restart is recommended.");
-        if (setAside.Count > 0)
-        {
-            var format = _localizationService.GetStringOrDefault("Config_SetAside_Format", "{0} settings in this file are not on this PC and were set aside.");
-            message += "\n\n" + string.Format(format, setAside.Count) + "\n" + string.Join("\n", setAside);
-        }
-
-        if (notApplied is { Count: > 0 })
-            message += "\n\n" + string.Join("\n", notApplied);
-
-        await _dialogService.ShowInformationAsync(
-            message,
-            _localizationService.GetStringOrDefault("Config_Import_Success_Title", "Configuration Applied"));
     }
 }

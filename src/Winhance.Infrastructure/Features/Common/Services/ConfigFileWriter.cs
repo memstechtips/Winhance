@@ -20,14 +20,15 @@ internal sealed class ConfigFileWriter : IConfigFileWriter
         _log = log;
     }
 
-    public async Task WriteAsync(SelectionSet set, CatalogScope scope, string outputPath)
+    public async Task<byte[]> WriteAsync(SelectionSet set, CatalogScope scope, string outputPath)
     {
         await _registry.InitializeAsync().ConfigureAwait(false);
         var file = ConfigFileMapper.ToFile(set, _registry.GetAll(scope));
         file.ComputerName = Environment.MachineName;
         file.TargetBuild = scope.TargetBuild?.Build;
-        var json = JsonSerializer.Serialize(file, ConfigFileConstants.JsonOptions);
-        await _files.WriteAllTextAsync(outputPath, json).ConfigureAwait(false);
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(file, ConfigFileConstants.JsonOptions);
+        await _files.WriteAllBytesAsync(outputPath, bytes).ConfigureAwait(false);
         _log.Log(LogLevel.Info, $"Configuration written to {outputPath} ({set.Settings.Count} settings, {set.WindowsApps.Count + set.ExternalApps.Count} apps)");
+        return bytes;
     }
 }

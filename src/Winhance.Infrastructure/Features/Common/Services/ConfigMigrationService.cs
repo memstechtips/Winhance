@@ -44,6 +44,7 @@ internal class ConfigMigrationService : IConfigMigrationService
     {
         if (config == null) return;
 
+        DropGaps(config);
         RenameRetiredFeatures(config.Customize);
         RenameRetiredFeatures(config.Optimize);
 
@@ -66,6 +67,27 @@ internal class ConfigMigrationService : IConfigMigrationService
         MigrateSection(config.WindowsApps, "WindowsApps");
 
         MigrateSection(config.ExternalApps, "ExternalApps");
+    }
+
+    // A hand-edited file can say "Optimize": null, a feature: null or "Items": null, each replacing the empty default,
+    // and an item can be null or have no id. Every reader walks the migrated file, so the gaps go here once.
+    private static void DropGaps(WinhanceConfigFile config)
+    {
+        config.WindowsApps = DropGaps(config.WindowsApps);
+        config.ExternalApps = DropGaps(config.ExternalApps);
+        foreach (var group in new[] { config.Customize ??= new(), config.Optimize ??= new(), config.Autounattend ??= new() })
+        {
+            group.Features = (group.Features ?? new Dictionary<string, ConfigSection>())
+                .Where(feature => feature.Value is not null)
+                .ToDictionary(feature => feature.Key, feature => DropGaps(feature.Value), StringComparer.Ordinal);
+        }
+    }
+
+    private static ConfigSection DropGaps(ConfigSection? section)
+    {
+        section ??= new ConfigSection();
+        section.Items = section.Items?.Where(item => !string.IsNullOrEmpty(item?.Id)).ToList() ?? [];
+        return section;
     }
 
     // A feature id is a dictionary KEY, so unlike a setting id it cannot be normalized in place; the group gets a

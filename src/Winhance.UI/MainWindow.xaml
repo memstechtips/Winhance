@@ -442,10 +442,37 @@
                           MinWidth="0"/>
             </StackPanel>
 
-            <!-- MinWidth: the label changes with the target ("Save Config" / "Save autounattend.xml") and this
+            <!-- MinWidth: the label changes with the target ("Save" / "Save autounattend.xml") and this
                  column is Auto, so without it the button resizes and every control to its left shifts. -->
+            <DropDownButton Grid.Column="5"
+                            x:Name="BuilderSaveMenuButton"
+                            Visibility="{x:Bind ViewModel.BuilderModeBar.IsConfigTarget, Mode=OneWay}"
+                            AutomationProperties.Name="{x:Bind ViewModel.BuilderModeBar.BuilderSaveButtonText, Mode=OneWay}"
+                            Background="#40FFFFFF"
+                            Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                            BorderThickness="0"
+                            VerticalAlignment="Center"
+                            MinWidth="200"
+                            HorizontalContentAlignment="Center"
+                            Margin="4,0,4,0">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <fluentIcons:FluentIcon Icon="DocumentSave" IconVariant="Regular" FontSize="14"/>
+                    <TextBlock Text="{x:Bind ViewModel.BuilderModeBar.BuilderSaveButtonText, Mode=OneWay}"/>
+                </StackPanel>
+                <DropDownButton.Flyout>
+                    <MenuFlyout Placement="Bottom">
+                        <MenuFlyoutItem x:Name="BuilderSaveAsConfigItem"
+                                        Text="{x:Bind ViewModel.BuilderModeBar.SaveAsConfigText, Mode=OneWay}"
+                                        Command="{x:Bind ViewModel.BuilderModeBar.SaveAsConfigCommand}"/>
+                        <MenuFlyoutItem x:Name="BuilderSaveAsProfileItem"
+                                        Text="{x:Bind ViewModel.BuilderModeBar.SaveAsProfileText, Mode=OneWay}"
+                                        Command="{x:Bind ViewModel.BuilderModeBar.SaveAsProfileCommand}"/>
+                    </MenuFlyout>
+                </DropDownButton.Flyout>
+            </DropDownButton>
             <Button Grid.Column="5"
                     x:Name="BuilderSaveButton"
+                    Visibility="{x:Bind ViewModel.BuilderModeBar.IsAutounattendTarget, Mode=OneWay}"
                     AutomationProperties.Name="{x:Bind ViewModel.BuilderModeBar.BuilderSaveButtonText, Mode=OneWay}"
                     Click="BuilderSaveButton_Click"
                     Background="#40FFFFFF"

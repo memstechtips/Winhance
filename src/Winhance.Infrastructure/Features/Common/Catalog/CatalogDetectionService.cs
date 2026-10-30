@@ -84,6 +84,7 @@ internal sealed class CatalogDetectionService : ICatalogDetectionService
                         Detected = detection.Label is not null,
                         Outcome = detection.Outcome,
                         OutcomeDetail = detection.Detail,
+                        CatchAll = detection.CatchAll,
                         AcValue = acValue,
                         DcValue = dcValue,
                         Readings = readings,
