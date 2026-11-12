@@ -13,6 +13,7 @@ GEMINI.md
 # The whole docs/ tree is local-only.
 .plans/
 docs/
+scratchpad/
 .superpowers/
 # Custom Prompts
 .prompts/
