@@ -18,11 +18,6 @@ public interface IWimCustomizationService
         string xmlPath,
         string workingDirectory);
 
-    Task<string> DownloadUnattendedWinstallXmlAsync(
-        string destinationPath,
-        IProgress<TaskProgressDetail>? progress = null,
-        CancellationToken cancellationToken = default);
-
     Task<DriverInstallStepResult> EnsureDriverInstallStepAsync(
         string workingDirectory,
         CancellationToken cancellationToken = default);

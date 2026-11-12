@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Constants;
@@ -50,7 +49,7 @@ public class ConfigLoadService : IConfigLoadService
 
     private Microsoft.UI.Xaml.Window? GetMainWindow() => _mainWindowProvider.MainWindow;
 
-    public async Task<WinhanceConfigFile?> LoadAndValidateConfigurationFromFileAsync()
+    public async Task<string?> PickConfigurationFileAsync()
     {
         try
         {
@@ -68,11 +67,11 @@ public class ConfigLoadService : IConfigLoadService
                 ConfigFileConstants.FileFilter,
                 ConfigFileConstants.FilePattern);
 
-            return string.IsNullOrEmpty(filePath) ? null : await LoadAndValidateConfigurationAsync(filePath);
+            return string.IsNullOrEmpty(filePath) ? null : filePath;
         }
         catch (Exception ex)
         {
-            _logService.Log(LogLevel.Error, $"Error loading configuration file: {ex.Message}");
+            _logService.Log(LogLevel.Error, $"Error picking a configuration file: {ex.Message}");
             _dialogService.ShowMessage(_localizationService.GetString("Config_Load_Error", ex.Message), _localizationService.GetString("Dialog_Error"));
             return null;
         }
@@ -95,7 +94,6 @@ public class ConfigLoadService : IConfigLoadService
             }
 
             _configImportState.SourceName = Path.GetFileName(filePath);
-            _configImportState.SourcePath = filePath;
             _logService.Log(LogLevel.Info, $"Loaded config v{read.Config!.Version}");
             return read.Config;
         }
@@ -138,7 +136,6 @@ public class ConfigLoadService : IConfigLoadService
                 return null;
 
             _configImportState.SourceName = _localizationService.GetString(sourceNameKey);
-            _configImportState.SourcePath = null;
             _logService.Log(LogLevel.Info, $"Successfully loaded embedded {label} configuration");
             return read.Config;
         }
@@ -154,9 +151,7 @@ public class ConfigLoadService : IConfigLoadService
     {
         try
         {
-            var configDir = _fileSystemService.CombinePath(
-                AppDataPaths.UserRoot(_interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData)),
-                "Backup");
+            var configDir = ConfigurationService.BackupFolderFor(_interactiveUserService, _fileSystemService);
 
             if (!_fileSystemService.DirectoryExists(configDir))
             {
@@ -221,7 +216,6 @@ public class ConfigLoadService : IConfigLoadService
             }
 
             _configImportState.SourceName = _localizationService.GetString("Dialog_ImportConfig_Option_Backup_Title");
-            _configImportState.SourcePath = null;
             _logService.Log(LogLevel.Info, "Successfully loaded user backup configuration");
             return read.Config;
         }

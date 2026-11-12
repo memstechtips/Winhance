@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Services;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 
@@ -25,6 +26,7 @@ public partial class AppItemViewModel : ObservableObject, IDisposable
         IDispatcherService dispatcherService,
         IThemeService themeService)
     {
+        LiveInstanceTracker.Shared.Register(this);
         _definition = definition;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
@@ -49,10 +51,11 @@ public partial class AppItemViewModel : ObservableObject, IDisposable
     {
         OnPropertyChanged(nameof(InstalledStatusText));
         OnPropertyChanged(nameof(ReinstallableStatusText));
+        OnPropertyChanged(nameof(DescriptionTooltip));
+        OnPropertyChanged(nameof(StatusColumnText));
         OnPropertyChanged(nameof(InstabilityWarningLabel));
         OnPropertyChanged(nameof(InstabilityWarningTooltip));
         OnPropertyChanged(nameof(InstalledStatusTooltip));
-        OnPropertyChanged(nameof(ReinstallableStatusTooltip));
         OnPropertyChanged(nameof(CategoryDisplayName));
         OnPropertyChanged(nameof(UpdateAvailableLabel));
         OnPropertyChanged(nameof(UpdateAvailableTooltip));
@@ -95,6 +98,8 @@ public partial class AppItemViewModel : ObservableObject, IDisposable
                     OnPropertyChanged(nameof(InstalledStatusText));
                     OnPropertyChanged(nameof(InstalledStatusTooltip));
                     OnPropertyChanged(nameof(HasUpdate));
+                    OnPropertyChanged(nameof(IsInstalledUpToDate));
+                    OnPropertyChanged(nameof(StatusColumnText));
                 });
             }
         }
@@ -106,7 +111,7 @@ public partial class AppItemViewModel : ObservableObject, IDisposable
 
     // What the installed-apps scan found for this app; null until it runs, and for apps it did not find.
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasUpdate), nameof(Version), nameof(VersionSortKey), nameof(AvailableVersion),
+    [NotifyPropertyChangedFor(nameof(HasUpdate), nameof(IsInstalledUpToDate), nameof(StatusColumnText), nameof(Version), nameof(VersionSortKey), nameof(AvailableVersion),
         nameof(InstalledOn), nameof(InstalledOnText), nameof(SizeBytes), nameof(SizeText), nameof(UpdateAvailableTooltip),
         nameof(PackageId), nameof(IsSelectable), nameof(NoPackageTooltip))]
     public partial InstalledApp? Installed { get; set; }
@@ -134,6 +139,10 @@ public partial class AppItemViewModel : ObservableObject, IDisposable
         _localizationService.GetString("Setting_autounattend-own-installers_Name"), _localizationService.GetString("Nav_Autounattend"));
 
     public bool HasUpdate => IsInstalled && Installed?.HasUpdate == true;
+
+    public bool IsInstalledUpToDate => IsInstalled && !HasUpdate;
+
+    public string StatusColumnText => HasUpdate ? UpdateAvailableLabel : InstalledStatusText;
 
     public string Version => Installed?.Version ?? string.Empty;
 
@@ -292,16 +301,22 @@ public partial class AppItemViewModel : ObservableObject, IDisposable
     public string InstabilityWarningTooltip =>
         _localizationService.GetString(Definition.MachineWarning?.TooltipKey ?? "Card_Pill_InstabilityWarning_Tooltip");
 
-    public bool ShowNonReinstallableChip => !Definition.CanBeReinstalled;
+    // Null (not empty) when there is nothing to show, so no empty tooltip popup appears. A removed app that
+    // Windows cannot put back says so on the last line.
+    public string? DescriptionTooltip => (HasDescription, CanBeReinstalled) switch
+    {
+        (true, true) => Description,
+        (true, false) => Description + Environment.NewLine + ReinstallableStatusText,
+        (false, false) => ReinstallableStatusText,
+        _ => null,
+    };
 
-    // Null (not empty) when there is no description, so no empty tooltip popup appears.
-    public string? DescriptionTooltip => HasDescription ? Description : null;
-
+    // Windows capabilities and optional features have no update source, so they cannot claim "up to date".
     public string InstalledStatusTooltip => _localizationService.GetString(
-        IsInstalled ? "Card_Pill_Installed_Tooltip" : "Card_Pill_NotInstalled_Tooltip");
-
-    public string ReinstallableStatusTooltip => _localizationService.GetString(
-        CanBeReinstalled ? "Card_Pill_Reinstallable_Tooltip" : "Card_Pill_NonReinstallable_Tooltip");
+        !IsInstalled ? "Card_Pill_NotInstalled_Tooltip"
+        : !string.IsNullOrEmpty(Definition.CapabilityName) || !string.IsNullOrEmpty(Definition.OptionalFeatureName)
+            ? "Card_Pill_Installed_Tooltip"
+            : "Card_Pill_InstalledUpToDate_Tooltip");
 
     // Mirrors ExternalAppsViewModel.RebuildCategories: GroupName -> ExternalApps_Category_* key (spaces and & ( )
     // stripped), raw GroupName as fallback.

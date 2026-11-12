@@ -36,6 +36,9 @@ public interface IWindowsUIManagementService
 
     void BroadcastRegionalSettingChange();
 
+    // Tells Explorer to re-read the environment, so a program started from it sees a new PATH entry.
+    void BroadcastEnvironmentChange();
+
     // Presses Num Lock when its live state differs from the user's saved InitialKeyboardIndicators (WindowsChange.NumLock).
     void MatchNumLockToSavedValue();
 }

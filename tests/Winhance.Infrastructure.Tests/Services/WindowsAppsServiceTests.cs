@@ -13,9 +13,6 @@ public class WindowsAppsServiceTests
 {
     private readonly Mock<ILogService> _logService = new();
     private readonly Mock<IWinGetPackageInstaller> _winGetPackageInstaller = new();
-    private readonly Mock<IWinGetBootstrapper> _winGetBootstrapper = new();
-    private readonly Mock<IAppStatusDiscoveryService> _appStatusDiscoveryService = new();
-    private readonly Mock<IStoreDownloadService> _storeDownloadService = new();
     private readonly Mock<IInstallConsent> _installConsent = new();
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
     private readonly Mock<ISettingApplicationService> _settingApplicationService = new();
@@ -25,9 +22,6 @@ public class WindowsAppsServiceTests
     private WindowsAppsService CreateSut() => new(
         _logService.Object,
         _winGetPackageInstaller.Object,
-        _winGetBootstrapper.Object,
-        _appStatusDiscoveryService.Object,
-        _storeDownloadService.Object,
         _installConsent.Object,
         _taskProgressService.Object,
         _settingApplicationService.Object,
@@ -37,7 +31,7 @@ public class WindowsAppsServiceTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task Game_Bar_carries_its_warning_only_where_the_AMD_X3D_service_is_installed(bool installed)
+    public async Task GetAppsAsync_GameBar_CarriesItsWarningOnlyWhereTheAmdX3dServiceIsInstalled(bool installed)
     {
         _registry.Setup(r => r.KeyExists(@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\amd3dvcacheSvc"))
             .Returns(installed);
@@ -46,14 +40,6 @@ public class WindowsAppsServiceTests
 
         gameBar.HasInstabilityWarning.Should().Be(installed);
         gameBar.MachineWarning!.TooltipKey.Should().Be("Card_Pill_X3DGameBarWarning_Tooltip");
-    }
-
-    [Fact]
-    public void DomainName_ReturnsWindowsApps()
-    {
-        var sut = CreateSut();
-
-        sut.DomainName.Should().Be("WindowsApps");
     }
 
     [Fact]
@@ -139,7 +125,7 @@ public class WindowsAppsServiceTests
     }
 
     [Fact]
-    public async Task InstallAppAsync_WinGetFailsAndUserDeclinesConsent_ReturnsFailed()
+    public async Task InstallAppAsync_WinGetFails_ReturnsFailed()
     {
         var sut = CreateSut();
         var item = new ItemDefinition
@@ -155,54 +141,14 @@ public class WindowsAppsServiceTests
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "Install failed"));
 
-        // Update policy is not disabled (no blocking)
         _settingStateProvider
             .Setup(x => x.GetStatesAsync(It.IsAny<IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>>()))
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
-
-        _installConsent
-            .Setup(x => x.AllowFallbackDownloadAsync("Test App"))
-            .ReturnsAsync(false);
 
         var result = await sut.InstallAppAsync(item);
 
         result.Success.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("cancelled by user");
-    }
-
-    [Fact]
-    public async Task InstallAppAsync_WinGetFailsAndFallbackSucceeds_ReturnsSuccess()
-    {
-        var sut = CreateSut();
-        var item = new ItemDefinition
-        {
-            Id = "test-app",
-            Name = "Test App",
-            Description = "A test app",
-            MsStoreId = "9NBLGGH4NNS1"
-        };
-
-        _winGetPackageInstaller
-            .Setup(x => x.InstallPackageAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.Other, "Install failed"));
-
-        _settingStateProvider
-            .Setup(x => x.GetStatesAsync(It.IsAny<IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>>()))
-            .ReturnsAsync(new Dictionary<string, SettingStateResult>());
-
-        _installConsent
-            .Setup(x => x.AllowFallbackDownloadAsync("Test App"))
-            .ReturnsAsync(true);
-
-        _storeDownloadService
-            .Setup(x => x.DownloadAndInstallPackageAsync(
-                "9NBLGGH4NNS1", "Test App", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        var result = await sut.InstallAppAsync(item);
-
-        result.Success.Should().BeTrue();
+        result.ErrorMessage.Should().Contain("Test App");
     }
 
     [Fact]
@@ -249,41 +195,6 @@ public class WindowsAppsServiceTests
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("cancelled");
-    }
-
-    [Fact]
-    public async Task CheckBatchInstalledAsync_DelegatesToDiscoveryService()
-    {
-        var sut = CreateSut();
-        var definitions = new List<ItemDefinition>
-        {
-            new() { Id = "app1", Name = "App1", Description = "Desc1" },
-            new() { Id = "app2", Name = "App2", Description = "Desc2" }
-        };
-
-        var expected = new Dictionary<string, bool>
-        {
-            { "app1", true },
-            { "app2", false }
-        };
-
-        _appStatusDiscoveryService
-            .Setup(x => x.GetInstallationStatusBatchAsync(definitions))
-            .ReturnsAsync(expected);
-
-        var result = await sut.CheckBatchInstalledAsync(definitions);
-
-        result.Should().BeEquivalentTo(expected);
-    }
-
-    [Fact]
-    public void InvalidateStatusCache_DelegatesToDiscoveryService()
-    {
-        var sut = CreateSut();
-
-        sut.InvalidateStatusCache();
-
-        _appStatusDiscoveryService.Verify(x => x.InvalidateCache(), Times.Once);
     }
 
     [Fact]

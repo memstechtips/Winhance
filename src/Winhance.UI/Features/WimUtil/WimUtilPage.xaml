@@ -3,98 +3,17 @@
     x:Class="Winhance.UI.Features.WimUtil.WimUtilPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Winhance.UI.Features.WimUtil"
-    xmlns:models="using:Winhance.UI.Features.WimUtil.Models"
-    xmlns:viewmodels="using:Winhance.UI.Features.WimUtil.ViewModels"
     xmlns:fluentIcons="using:FluentIcons.WinUI"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:commonControls="using:Winhance.UI.Features.Common.Controls"
+    xmlns:local="using:Winhance.UI.Features.WimUtil"
+    xmlns:wizard="using:Winhance.UI.Features.WimUtil.Controls"
+    xmlns:models="using:Winhance.UI.Features.WimUtil.Models"
     xmlns:autounattend="using:Winhance.UI.Features.Autounattend"
     x:DefaultBindMode="OneWay"
     NavigationCacheMode="Disabled">
 
-    <Page.Resources>
-        <!-- WizardActionCard DataTemplate — inner cards use subtler background -->
-        <DataTemplate x:Key="WizardActionCardTemplate" x:DataType="models:WizardActionCard">
-            <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="4"
-                    Padding="16"
-                    Margin="0,0,0,8"
-                    Opacity="{x:Bind Opacity, Mode=OneWay}">
-                <Grid MinHeight="40">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Icon - FontIcon (glyph) -->
-                    <FontIcon Grid.Column="0"
-                              Glyph="{x:Bind Icon, Mode=OneWay}"
-                              FontFamily="Segoe MDL2 Assets"
-                              FontSize="24"
-                              VerticalAlignment="Center"
-                              Margin="0,0,16,0"
-                              Visibility="{x:Bind UsePathIcon, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
-
-                    <!-- Icon - PathIcon (Material Design path data) -->
-                    <Viewbox Grid.Column="0"
-                             Width="24" Height="24"
-                             VerticalAlignment="Center"
-                             Margin="0,0,16,0"
-                             Visibility="{x:Bind UsePathIcon, Mode=OneWay}">
-                        <Path Data="{x:Bind IconPath, Mode=OneWay, Converter={StaticResource StringToGeometryConverter}}"
-                              Fill="{ThemeResource TextFillColorPrimaryBrush}"
-                              Stretch="Uniform"/>
-                    </Viewbox>
-
-                    <!-- Title + Description -->
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <TextBlock Text="{x:Bind Title, Mode=OneWay}"
-                                   Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                        <TextBlock Text="{x:Bind Description, Mode=OneWay}"
-                                   Style="{StaticResource CaptionTextBlockStyle}"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                   TextWrapping="Wrap"
-                                   Margin="0,2,0,0"/>
-                    </StackPanel>
-
-                    <!-- Status Icons -->
-                    <Grid Grid.Column="2" Width="32" Height="32" Margin="8,0,8,0" VerticalAlignment="Center">
-                        <!-- Processing spinner -->
-                        <ProgressRing IsActive="{x:Bind IsProcessing, Mode=OneWay}"
-                                      Width="20" Height="20"
-                                      Visibility="{x:Bind IsProcessing, Mode=OneWay}"/>
-                        <!-- Complete checkmark -->
-                        <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"
-                                  FontSize="{StaticResource StatusIconFontSize}"
-                                  Visibility="{x:Bind IsComplete, Mode=OneWay}"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"/>
-                        <!-- Failed X -->
-                        <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color"
-                                  FontSize="{StaticResource StatusIconFontSize}"
-                                  Visibility="{x:Bind HasFailed, Mode=OneWay}"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"/>
-                    </Grid>
-
-                    <!-- Action Button -->
-                    <Button Grid.Column="3"
-                            Content="{x:Bind ButtonText, Mode=OneWay}"
-                            Command="{x:Bind ButtonCommand, Mode=OneWay}"
-                            IsEnabled="{x:Bind IsEnabled, Mode=OneWay}"
-                            VerticalAlignment="Center"
-                            MinWidth="100"/>
-                </Grid>
-            </Border>
-        </DataTemplate>
-    </Page.Resources>
-
-    <Grid Padding="0,0,12,0">
+    <Grid x:Name="PageRoot" Padding="0,0,12,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -103,900 +22,704 @@
         <commonControls:PageHeader
             Grid.Row="0"
             Icon="WrenchScrewdriver"
-            Title="{x:Bind ViewModel.Title, Mode=OneWay}"
-            Description="{x:Bind ViewModel.PageDescription, Mode=OneWay}"/>
+            Title="{x:Bind ViewModel.Title}"
+            Description="{x:Bind ViewModel.PageDescription}"/>
 
         <Border
             Grid.Row="1"
             Background="{ThemeResource SystemFillColorNeutralBackgroundBrush}"
             CornerRadius="8"
             Margin="0,16,0,12">
-            <ScrollView x:Name="PageScrollView" Padding="0,12,0,12">
-                <!-- Wrap StackPanel in Grid to avoid visual glitches with MaxWidth -->
-                <Grid>
-                <StackPanel Spacing="8" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch">
+            <ScrollView x:Name="PageScrollView" Padding="0,12,0,12"
+                        ViewChanged="OnPageScrollChanged"
+                        ExtentChanged="OnPageScrollChanged"
+                        SizeChanged="OnPageScrollSizeChanged">
+                <!-- Laid out on the same columns as RailHost, so the rail always sits against the steps' left edge.
+                     The steps column takes nearly all the width up to its cap; the side columns split what is left,
+                     which centres the rail and steps together. -->
+                <Grid x:Name="StepsHost" Padding="{StaticResource SettingsContentMargin}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition x:Name="StepsRailColumn" Width="0"/>
+                    <ColumnDefinition Width="1000*" MaxWidth="{StaticResource SettingsContentMaxWidth}"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel x:Name="StepsPanel" Grid.Column="2" Spacing="8">
 
-                    <!-- STEP 1: Select ISO -->
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1"
-                            CornerRadius="4">
-                        <Grid>
+                    <wizard:WizardStep State="{x:Bind ViewModel.Step1State}"
+                                       x:Name="Step1View"
+                                       Command="{x:Bind ViewModel.NavigateToStepCommand}"
+                                       CommandParameter="1">
+                        <wizard:WizardStep.Body>
                             <StackPanel>
-                                <!-- Step 1 Header -->
-                                <Button Padding="16,12"
-                                        Command="{x:Bind ViewModel.NavigateToStepCommand}"
-                                        CommandParameter="1"
-                                        AutomationProperties.Name="{x:Bind ViewModel.Step1State.Title, Mode=OneWay}"
-                                        HorizontalAlignment="Stretch"
-                                        HorizontalContentAlignment="Stretch"
-                                        Background="Transparent"
-                                        BorderThickness="0">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-
-                                        <fluentIcons:FluentIcon Grid.Column="0"
-                                                  Icon="HardDrive" IconVariant="Regular"
-                                                  FontSize="24"
-                                                  VerticalAlignment="Center"
-                                                  Margin="0,0,16,0"/>
-
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="{x:Bind ViewModel.Step1State.Title, Mode=OneWay}"
-                                                       Style="{StaticResource SubtitleTextBlockStyle}"
-                                                       FontSize="16"/>
-                                            <TextBlock Text="{x:Bind ViewModel.Step1State.StatusText, Mode=OneWay}"
-                                                       Style="{StaticResource CaptionTextBlockStyle}"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                        </StackPanel>
-
-                                        <!-- Locked: padlock -->
-                                        <Viewbox Grid.Column="2" Width="16" Height="16"
-                                                 VerticalAlignment="Center"
-                                                 Visibility="{x:Bind ViewModel.Step1State.IsLocked, Mode=OneWay}">
-                                            <fluentIcons:FluentIcon Icon="LockClosed" IconVariant="Color"/>
-                                        </Viewbox>
-                                        <!-- Complete: check circle -->
-                                        <Viewbox Grid.Column="2" Width="20" Height="20"
-                                                 VerticalAlignment="Center"
-                                                 Visibility="{x:Bind ViewModel.Step1State.IsComplete, Mode=OneWay}">
-                                            <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"/>
-                                        </Viewbox>
-                                        <!-- Normal: chevron -->
-                                        <fluentIcons:FluentIcon Grid.Column="2"
-                                                  Icon="ChevronDown" IconVariant="Regular"
-                                                  FontSize="{StaticResource SectionChevronFontSize}"
-                                                  VerticalAlignment="Center"
-                                                  Visibility="{x:Bind ViewModel.Step1State.ShowChevron, Mode=OneWay}"
-                                                  RenderTransformOrigin="0.5,0.5">
-                                            <fluentIcons:FluentIcon.RenderTransform>
-                                                <RotateTransform Angle="{x:Bind ViewModel.Step1State.ChevronRotation, Mode=OneWay}"/>
-                                            </fluentIcons:FluentIcon.RenderTransform>
-                                        </fluentIcons:FluentIcon>
-                                    </Grid>
-                                </Button>
-
-                                <!-- Step 1 Content -->
-                                <StackPanel Visibility="{x:Bind ViewModel.Step1State.IsExpanded, Mode=OneWay}"
-                                            Padding="16,0,16,16"
-                                            Spacing="0">
-
-                                    <!-- Select ISO Card -->
-                                    <ContentPresenter Content="{x:Bind ViewModel.SelectIsoCard}"
-                                                      ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
-
-                                    <!-- Working Directory Card (custom inline — checkbox + button on same row) -->
-                                    <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
-                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="4"
-                                            Padding="16"
-                                            Margin="0,0,0,8"
-                                            Opacity="{x:Bind ViewModel.SelectDirectoryCard.Opacity, Mode=OneWay}">
-                                        <Grid MinHeight="40">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-
-                                            <Viewbox Grid.Column="0"
-                                                     Width="24" Height="24"
-                                                     VerticalAlignment="Center"
-                                                     Margin="0,0,16,0">
-                                                <Path Data="{StaticResource ExplorerIconPath}"
-                                                      Fill="{ThemeResource TextFillColorPrimaryBrush}"
-                                                      Stretch="Uniform"/>
-                                            </Viewbox>
-
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                <TextBlock Text="{x:Bind ViewModel.SelectDirectoryCard.Title, Mode=OneWay}"
-                                                           Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                                                <TextBlock Text="{x:Bind ViewModel.SelectDirectoryCard.Description, Mode=OneWay}"
-                                                           Style="{StaticResource CaptionTextBlockStyle}"
-                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                           TextWrapping="Wrap"
-                                                           Margin="0,2,0,0"/>
-                                            </StackPanel>
-
-                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
-                                                <CheckBox Content="{x:Bind ViewModel.CheckboxExtractedAlreadyText}"
-                                                          IsChecked="{x:Bind ViewModel.HasExtractedIsoAlready, Mode=TwoWay}"
-                                                          VerticalAlignment="Center"/>
-                                                <Button Content="{x:Bind ViewModel.ButtonSelectFolderText}"
-                                                        Command="{x:Bind ViewModel.SelectWorkingDirectoryCommand}"
-                                                        IsEnabled="{x:Bind ViewModel.SelectDirectoryCard.IsEnabled, Mode=OneWay}"
-                                                        VerticalAlignment="Center"
-                                                        MinWidth="100"/>
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-
-                                    <!-- Start Extraction Button -->
-                                    <Button Content="{x:Bind ViewModel.ButtonStartExtractionText}"
-                                            Style="{StaticResource AccentButtonStyle}"
-                                            Command="{x:Bind ViewModel.StartIsoExtractionCommand}"
-                                            Visibility="{x:Bind ViewModel.CanStartExtraction, Mode=OneWay}"
-                                            HorizontalAlignment="Center"
-                                            MinWidth="160"
-                                            Margin="0,8,0,12"/>
-
-                                    <!-- Conversion Section -->
-                                    <StackPanel Visibility="{x:Bind ViewModel.ShowConversionCard, Mode=OneWay}">
-
-                                        <TextBlock Text="{x:Bind ViewModel.OptionalConvertText}"
-                                                   Visibility="{x:Bind ViewModel.ShowOptionalConvertText, Mode=OneWay}"
-                                                   Style="{StaticResource BodyStrongTextBlockStyle}"
-                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                   Margin="4,4,0,8"/>
-
-                                        <!-- Both formats warning with delete buttons -->
-                                        <InfoBar Title="{x:Bind ViewModel.BothImagesTitle}"
-                                                 Message="{x:Bind ViewModel.BothImagesDescription}"
-                                                 Severity="Warning"
-                                                 IsOpen="{x:Bind ViewModel.BothFormatsExist, Mode=OneWay}"
-                                                 IsClosable="False"
-                                                 Margin="0,0,0,8">
-                                            <InfoBar.Content>
-                                                <StackPanel Spacing="8" Margin="0,8,0,4">
-                                                    <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
-                                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                                            BorderThickness="1"
-                                                            CornerRadius="4"
-                                                            Padding="12">
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                                                <TextBlock Text="install.wim"
-                                                                           Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                                                                <TextBlock Text="{x:Bind ViewModel.WimFileSize, Mode=OneWay}"
-                                                                           Style="{StaticResource CaptionTextBlockStyle}"
-                                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                                            </StackPanel>
-                                                            <Button Grid.Column="1"
-                                                                    Content="{x:Bind ViewModel.ButtonDeleteWimText}"
-                                                                    Command="{x:Bind ViewModel.DeleteWimCommand}"
-                                                                    MinWidth="100"
-                                                                    Margin="12,0,0,0"/>
-                                                        </Grid>
-                                                    </Border>
-
-                                                    <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
-                                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                                            BorderThickness="1"
-                                                            CornerRadius="4"
-                                                            Padding="12">
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                                                <TextBlock Text="install.esd"
-                                                                           Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                                                                <TextBlock Text="{x:Bind ViewModel.EsdFileSize, Mode=OneWay}"
-                                                                           Style="{StaticResource CaptionTextBlockStyle}"
-                                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                                            </StackPanel>
-                                                            <Button Grid.Column="1"
-                                                                    Content="{x:Bind ViewModel.ButtonDeleteEsdText}"
-                                                                    Command="{x:Bind ViewModel.DeleteEsdCommand}"
-                                                                    MinWidth="100"
-                                                                    Margin="12,0,0,0"/>
-                                                        </Grid>
-                                                    </Border>
-                                                </StackPanel>
-                                            </InfoBar.Content>
-                                        </InfoBar>
-
-                                        <!-- Convert card (hidden when both formats exist or the image gets serviced) -->
-                                        <ContentPresenter Content="{x:Bind ViewModel.ConvertImageCard}"
-                                                          ContentTemplate="{StaticResource WizardActionCardTemplate}"
-                                                          Visibility="{x:Bind ViewModel.ShowConvertImageCard, Mode=OneWay}"/>
-
-                                        <controls:SettingsCard Header="{x:Bind ViewModel.ServicingCardTitle, Mode=OneWay}"
-                                                               Description="{x:Bind ViewModel.ServicingCardDescription, Mode=OneWay}"
-                                                               Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
-                                                               Margin="0,8,0,8">
-                                            <controls:SettingsCard.HeaderIcon>
-                                                <fluentIcons:FluentIcon Icon="WrenchScrewdriver" IconVariant="Regular"/>
-                                            </controls:SettingsCard.HeaderIcon>
-                                            <ComboBox MinWidth="200"
-                                                      ItemsSource="{x:Bind ViewModel.ServicingChoices}"
-                                                      SelectedItem="{x:Bind ViewModel.SelectedServicing, Mode=TwoWay}"
-                                                      DisplayMemberPath="DisplayText"
-                                                      IsEnabled="{x:Bind ViewModel.CanChangeServicing, Mode=OneWay}"
-                                                      AutomationProperties.Name="{x:Bind ViewModel.ServicingCardTitle, Mode=OneWay}"/>
-                                        </controls:SettingsCard>
-
-                                        <controls:SettingsCard Header="{x:Bind ViewModel.EditionCardTitle, Mode=OneWay}"
-                                                               Description="{x:Bind ViewModel.EditionCardDescription, Mode=OneWay}"
-                                                               Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
-                                                               Margin="0,0,0,8"
-                                                               Visibility="{x:Bind ViewModel.ShowEditionCard, Mode=OneWay}">
-                                            <controls:SettingsCard.HeaderIcon>
-                                                <fluentIcons:FluentIcon Icon="HardDrive" IconVariant="Regular"/>
-                                            </controls:SettingsCard.HeaderIcon>
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <ComboBox MinWidth="200"
-                                                          ItemsSource="{x:Bind ViewModel.EditionChoices}"
-                                                          SelectedItem="{x:Bind ViewModel.SelectedEdition, Mode=TwoWay}"
-                                                          DisplayMemberPath="Name"
-                                                          AutomationProperties.Name="{x:Bind ViewModel.EditionCardTitle, Mode=OneWay}"/>
-                                                <Button Content="{x:Bind ViewModel.PrepareServicingButtonText, Mode=OneWay}"
-                                                        Command="{x:Bind ViewModel.PrepareImageForServicingCommand}"
-                                                        Style="{StaticResource AccentButtonStyle}"/>
-                                            </StackPanel>
-                                        </controls:SettingsCard>
-
-                                        <commonControls:QuietInfoBar IsOpen="{x:Bind ViewModel.ShowHostDismWarning, Mode=OneWay}"
-                                                                     IsClosable="False"
-                                                                     Severity="Warning"
-                                                                     Message="{x:Bind ViewModel.HostDismWarningText, Mode=OneWay}"
-                                                                     Margin="0,0,0,8"/>
-
-                                        <commonControls:QuietInfoBar IsOpen="{x:Bind ViewModel.ShowMountFolderWarning, Mode=OneWay}"
-                                                                     IsClosable="False"
-                                                                     Severity="Warning"
-                                                                     Message="{x:Bind ViewModel.MountFolderWarningText, Mode=OneWay}"
-                                                                     Margin="0,0,0,8"/>
-                                    </StackPanel>
-
-                                    <!-- Download Windows ISO section -->
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="4,12,0,0" Spacing="8">
-                                        <TextBlock Text="{x:Bind ViewModel.DownloadIsoText}"
-                                                   Style="{StaticResource BodyTextBlockStyle}"
-                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                   VerticalAlignment="Center"/>
-                                        <Button Click="Windows10Download_Click"
-                                                AutomationProperties.Name="{x:Bind ViewModel.TooltipDownloadWindows10}"
-                                                ToolTipService.ToolTip="{x:Bind ViewModel.TooltipDownloadWindows10}">
-                                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <fluentIcons:FluentIcon Icon="ArrowDownload" IconVariant="Regular" FontSize="14"/>
-                                                <TextBlock Text="{x:Bind ViewModel.ButtonWindows10Text}"/>
-                                            </StackPanel>
-                                        </Button>
-                                        <Button Click="Windows11Download_Click"
-                                                AutomationProperties.Name="{x:Bind ViewModel.TooltipDownloadWindows11}"
-                                                ToolTipService.ToolTip="{x:Bind ViewModel.TooltipDownloadWindows11}">
-                                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <fluentIcons:FluentIcon Icon="ArrowDownload" IconVariant="Regular" FontSize="14"/>
-                                                <TextBlock Text="{x:Bind ViewModel.ButtonWindows11Text}"/>
-                                            </StackPanel>
-                                        </Button>
-                                    </StackPanel>
-                                </StackPanel>
-                            </StackPanel>
-
-                            <!-- Disabled overlay (SmokeFill) -->
-                            <Border Background="{ThemeResource SmokeFillColorDefaultBrush}"
-                                    CornerRadius="4"
-                                    Visibility="{x:Bind ViewModel.Step1State.IsLocked, Mode=OneWay}"/>
-                        </Grid>
-                    </Border>
-
-
-                    <!-- STEP 2: Add XML File -->
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1"
-                            CornerRadius="4">
-                        <Grid>
-                            <StackPanel>
-                                <!-- Step 2 Header -->
-                                <Button Padding="16,12"
-                                        Command="{x:Bind ViewModel.NavigateToStepCommand}"
-                                        CommandParameter="2"
-                                        AutomationProperties.Name="{x:Bind ViewModel.Step2State.Title, Mode=OneWay}"
-                                        HorizontalAlignment="Stretch"
-                                        HorizontalContentAlignment="Stretch"
-                                        Background="Transparent"
-                                        BorderThickness="0">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-
-                                        <Viewbox Grid.Column="0"
-                                                 Width="24" Height="24"
-                                                 VerticalAlignment="Center"
-                                                 Margin="0,0,16,0">
-                                            <Path Data="{StaticResource AutounattendXmlIconPath}"
-                                                  Fill="{ThemeResource TextFillColorPrimaryBrush}"
-                                                  Stretch="Uniform"/>
-                                        </Viewbox>
-
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="{x:Bind ViewModel.Step2State.Title, Mode=OneWay}"
-                                                       Style="{StaticResource SubtitleTextBlockStyle}"
-                                                       FontSize="16"/>
-                                            <TextBlock Text="{x:Bind ViewModel.Step2State.StatusText, Mode=OneWay}"
-                                                       Style="{StaticResource CaptionTextBlockStyle}"
-                                                       TextWrapping="Wrap"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                        </StackPanel>
-
-                                        <!-- Locked: padlock -->
-                                        <Viewbox Grid.Column="2" Width="16" Height="16"
-                                                 VerticalAlignment="Center"
-                                                 Visibility="{x:Bind ViewModel.Step2State.IsLocked, Mode=OneWay}">
-                                            <fluentIcons:FluentIcon Icon="LockClosed" IconVariant="Color"/>
-                                        </Viewbox>
-                                        <!-- Complete: check circle -->
-                                        <Viewbox Grid.Column="2" Width="20" Height="20"
-                                                 VerticalAlignment="Center"
-                                                 Visibility="{x:Bind ViewModel.Step2State.IsComplete, Mode=OneWay}">
-                                            <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"/>
-                                        </Viewbox>
-                                        <!-- Normal: chevron -->
-                                        <fluentIcons:FluentIcon Grid.Column="2"
-                                                  Icon="ChevronDown" IconVariant="Regular"
-                                                  FontSize="{StaticResource SectionChevronFontSize}"
-                                                  VerticalAlignment="Center"
-                                                  Visibility="{x:Bind ViewModel.Step2State.ShowChevron, Mode=OneWay}"
-                                                  RenderTransformOrigin="0.5,0.5">
-                                            <fluentIcons:FluentIcon.RenderTransform>
-                                                <RotateTransform Angle="{x:Bind ViewModel.Step2State.ChevronRotation, Mode=OneWay}"/>
-                                            </fluentIcons:FluentIcon.RenderTransform>
-                                        </fluentIcons:FluentIcon>
-                                    </Grid>
-                                </Button>
-
-                                <!-- Step 2 Content -->
-                                <StackPanel Visibility="{x:Bind ViewModel.Step2State.IsExpanded, Mode=OneWay}"
-                                            Padding="16,0,16,16"
-                                            Spacing="0">
-
-                                    <TextBlock Text="{x:Bind ViewModel.SelectOneOptionText}"
-                                               Style="{StaticResource BodyStrongTextBlockStyle}"
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="4,0,0,12" Spacing="8">
+                                    <TextBlock Text="{x:Bind ViewModel.DownloadIsoText}"
+                                               Style="{StaticResource BodyTextBlockStyle}"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                               Margin="4,0,0,8"/>
-
-                                    <!-- Generate Winhance XML Card (custom inline — rocket logo) -->
-                                    <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
-                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="4"
-                                            Padding="16"
-                                            Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <Grid MinHeight="40">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-
-                                                <Image x:Name="WinhanceXmlCardIcon"
-                                                       Grid.Column="0"
-                                                       Width="36" Height="36"
-                                                       VerticalAlignment="Center"
-                                                       Margin="0,0,16,0"/>
-
-                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                    <TextBlock Text="{x:Bind ViewModel.GenerateWinhanceXmlCard.Title, Mode=OneWay}"
-                                                               Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                                                    <TextBlock Text="{x:Bind ViewModel.GenerateWinhanceXmlCard.Description, Mode=OneWay}"
-                                                               Style="{StaticResource CaptionTextBlockStyle}"
-                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                               TextWrapping="Wrap"
-                                                               Margin="0,2,0,0"/>
-                                                </StackPanel>
-
-                                                <Grid Grid.Column="2" Width="32" Height="32" Margin="8,0,8,0" VerticalAlignment="Center"
-                                                      Visibility="{x:Bind ViewModel.IsAutounattendSession, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                                                    <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"
-                                                              FontSize="{StaticResource StatusIconFontSize}"
-                                                              Visibility="{x:Bind ViewModel.GenerateWinhanceXmlCard.IsComplete, Mode=OneWay}"
-                                                              HorizontalAlignment="Center"
-                                                              VerticalAlignment="Center"/>
-                                                    <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color"
-                                                              FontSize="{StaticResource StatusIconFontSize}"
-                                                              Visibility="{x:Bind ViewModel.GenerateWinhanceXmlCard.HasFailed, Mode=OneWay}"
-                                                              HorizontalAlignment="Center"
-                                                              VerticalAlignment="Center"/>
-                                                </Grid>
-
-                                                <Button Grid.Column="3"
-                                                        Content="{x:Bind ViewModel.StartButtonText, Mode=OneWay}"
-                                                        Command="{x:Bind ViewModel.StartAutounattendSessionCommand}"
-                                                        Visibility="{x:Bind ViewModel.IsAutounattendSession, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
-                                                        VerticalAlignment="Center"
-                                                        MinWidth="100"/>
-                                            </Grid>
-
-                                            <!-- x:Load rather than Visibility: the view builds its cards on Loaded, and a
-                                                 collapsed element loads once, when the page opens, in whatever mode that was. -->
-                                            <autounattend:AutounattendSettingsView x:Name="AutounattendSessionHost"
-                                                                                   x:Load="{x:Bind ViewModel.IsAutounattendSession, Mode=OneWay}"
-                                                                                   Margin="0,4,0,0">
-                                                <autounattend:AutounattendSettingsView.Footer>
-                                                    <Grid Margin="0,16,0,0">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <Button Grid.Column="1"
-                                                                Content="{x:Bind ViewModel.ButtonGenerateText}"
-                                                                Command="{x:Bind ViewModel.GenerateWinhanceXmlCommand}"
-                                                                IsEnabled="{x:Bind ViewModel.GenerateWinhanceXmlCard.IsEnabled, Mode=OneWay}"
-                                                                VerticalAlignment="Center"
-                                                                MinWidth="100"/>
-                                                        <Grid Grid.Column="2" Width="32" Height="32" Margin="8,0,0,0"
-                                                              HorizontalAlignment="Left" VerticalAlignment="Center">
-                                                            <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"
-                                                                      FontSize="{StaticResource StatusIconFontSize}"
-                                                                      Visibility="{x:Bind ViewModel.GenerateWinhanceXmlCard.IsComplete, Mode=OneWay}"
-                                                                      HorizontalAlignment="Center"
-                                                                      VerticalAlignment="Center"/>
-                                                            <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color"
-                                                                      FontSize="{StaticResource StatusIconFontSize}"
-                                                                      Visibility="{x:Bind ViewModel.GenerateWinhanceXmlCard.HasFailed, Mode=OneWay}"
-                                                                      HorizontalAlignment="Center"
-                                                                      VerticalAlignment="Center"/>
-                                                        </Grid>
-                                                    </Grid>
-                                                </autounattend:AutounattendSettingsView.Footer>
-                                            </autounattend:AutounattendSettingsView>
+                                               VerticalAlignment="Center"/>
+                                    <Button Command="{x:Bind ViewModel.OpenWindows10DownloadCommand}"
+                                            AutomationProperties.Name="{x:Bind ViewModel.TooltipDownloadWindows10}"
+                                            ToolTipService.ToolTip="{x:Bind ViewModel.TooltipDownloadWindows10}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <fluentIcons:FluentIcon Icon="ArrowDownload" IconVariant="Regular" FontSize="14"/>
+                                            <TextBlock Text="{x:Bind ViewModel.ButtonWindows10Text}"/>
                                         </StackPanel>
-                                    </Border>
-
-                                    <!-- Download XML Card -->
-                                    <ContentPresenter Content="{x:Bind ViewModel.DownloadXmlCard}"
-                                                      ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
-
-                                    <!-- Select XML Card -->
-                                    <ContentPresenter Content="{x:Bind ViewModel.SelectXmlCard}"
-                                                      ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
-
-                                    <!-- Answer-file verdict (open only while findings exist); details collapse
-                                         behind the expander so a long report cannot swallow the page -->
-                                    <InfoBar IsOpen="{x:Bind ViewModel.AnswerFileBannerOpen, Mode=OneWay}"
-                                             Severity="{x:Bind ViewModel.AnswerFileBannerSeverity, Mode=OneWay}"
-                                             Title="{x:Bind ViewModel.AnswerFileBannerTitle, Mode=OneWay}"
-                                             IsClosable="False">
-                                        <InfoBar.Content>
-                                            <Expander HorizontalAlignment="Stretch"
-                                                      HorizontalContentAlignment="Stretch"
-                                                      Margin="0,0,12,12">
-                                                <Expander.Header>
-                                                    <TextBlock Text="{x:Bind ViewModel.AnswerFileBannerSummary, Mode=OneWay}"
-                                                               TextWrapping="Wrap"/>
-                                                </Expander.Header>
-                                                <TextBlock Text="{x:Bind ViewModel.AnswerFileBannerMessage, Mode=OneWay}"
-                                                           TextWrapping="Wrap"
-                                                           IsTextSelectionEnabled="True"/>
-                                            </Expander>
-                                        </InfoBar.Content>
-                                    </InfoBar>
-
-                                    <!-- Schneegans section -->
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="4,8,0,0" Spacing="8">
-                                        <TextBlock Text="{x:Bind ViewModel.GenerateXmlFilesText}"
-                                                   Style="{StaticResource BodyTextBlockStyle}"
-                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                   VerticalAlignment="Center"/>
-                                        <Button Click="SchneegansLink_Click"
-                                                AutomationProperties.Name="{x:Bind ViewModel.TooltipSchneegans}"
-                                                ToolTipService.ToolTip="{x:Bind ViewModel.TooltipSchneegans}">
-                                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <fluentIcons:FluentIcon Icon="Open" IconVariant="Regular" FontSize="14"/>
-                                                <TextBlock Text="{x:Bind ViewModel.ButtonSchneegansText}"/>
-                                            </StackPanel>
-                                        </Button>
-                                    </StackPanel>
+                                    </Button>
+                                    <Button Command="{x:Bind ViewModel.OpenWindows11DownloadCommand}"
+                                            AutomationProperties.Name="{x:Bind ViewModel.TooltipDownloadWindows11}"
+                                            ToolTipService.ToolTip="{x:Bind ViewModel.TooltipDownloadWindows11}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <fluentIcons:FluentIcon Icon="ArrowDownload" IconVariant="Regular" FontSize="14"/>
+                                            <TextBlock Text="{x:Bind ViewModel.ButtonWindows11Text}"/>
+                                        </StackPanel>
+                                    </Button>
                                 </StackPanel>
-                            </StackPanel>
 
-                            <!-- Disabled overlay (SmokeFill) -->
-                            <Border Background="{ThemeResource SmokeFillColorDefaultBrush}"
-                                    CornerRadius="4"
-                                    Visibility="{x:Bind ViewModel.Step2State.IsLocked, Mode=OneWay}"/>
-                        </Grid>
-                    </Border>
+                                <wizard:WizardActionCardView Card="{x:Bind ViewModel.SelectIsoCard}" Icon="DocumentSearch"/>
 
-
-                    <!-- STEP 3: Add Drivers -->
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1"
-                            CornerRadius="4">
-                        <Grid>
-                            <StackPanel>
-                                <!-- Step 3 Header -->
-                                <Button Padding="16,12"
-                                        Command="{x:Bind ViewModel.NavigateToStepCommand}"
-                                        CommandParameter="3"
-                                        AutomationProperties.Name="{x:Bind ViewModel.Step3State.Title, Mode=OneWay}"
-                                        HorizontalAlignment="Stretch"
-                                        HorizontalContentAlignment="Stretch"
-                                        Background="Transparent"
-                                        BorderThickness="0">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-
-                                        <fluentIcons:FluentIcon Grid.Column="0"
-                                                  Icon="PlugConnected" IconVariant="Regular"
-                                                  FontSize="24"
-                                                  VerticalAlignment="Center"
-                                                  Margin="0,0,16,0"/>
-
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="{x:Bind ViewModel.Step3State.Title, Mode=OneWay}"
-                                                       Style="{StaticResource SubtitleTextBlockStyle}"
-                                                       FontSize="16"/>
-                                            <TextBlock Text="{x:Bind ViewModel.Step3State.StatusText, Mode=OneWay}"
-                                                       Style="{StaticResource CaptionTextBlockStyle}"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                        </StackPanel>
-
-                                        <!-- Locked: padlock -->
-                                        <Viewbox Grid.Column="2" Width="16" Height="16"
-                                                 VerticalAlignment="Center"
-                                                 Visibility="{x:Bind ViewModel.Step3State.IsLocked, Mode=OneWay}">
-                                            <fluentIcons:FluentIcon Icon="LockClosed" IconVariant="Color"/>
-                                        </Viewbox>
-                                        <!-- Complete: check circle -->
-                                        <Viewbox Grid.Column="2" Width="20" Height="20"
-                                                 VerticalAlignment="Center"
-                                                 Visibility="{x:Bind ViewModel.Step3State.IsComplete, Mode=OneWay}">
-                                            <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"/>
-                                        </Viewbox>
-                                        <!-- Normal: chevron -->
-                                        <fluentIcons:FluentIcon Grid.Column="2"
-                                                  Icon="ChevronDown" IconVariant="Regular"
-                                                  FontSize="{StaticResource SectionChevronFontSize}"
-                                                  VerticalAlignment="Center"
-                                                  Visibility="{x:Bind ViewModel.Step3State.ShowChevron, Mode=OneWay}"
-                                                  RenderTransformOrigin="0.5,0.5">
-                                            <fluentIcons:FluentIcon.RenderTransform>
-                                                <RotateTransform Angle="{x:Bind ViewModel.Step3State.ChevronRotation, Mode=OneWay}"/>
-                                            </fluentIcons:FluentIcon.RenderTransform>
-                                        </fluentIcons:FluentIcon>
-                                    </Grid>
-                                </Button>
-
-                                <!-- Step 3 Content -->
-                                <StackPanel Visibility="{x:Bind ViewModel.Step3State.IsExpanded, Mode=OneWay}"
-                                            Padding="16,0,16,16"
-                                            Spacing="0">
-
-                                    <ContentPresenter Content="{x:Bind ViewModel.ExtractSystemDriversCard}"
-                                                      ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
-
-                                    <ContentPresenter Content="{x:Bind ViewModel.SelectCustomDriversCard}"
-                                                      ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
-                                </StackPanel>
-                            </StackPanel>
-
-                            <!-- Disabled overlay (SmokeFill) -->
-                            <Border Background="{ThemeResource SmokeFillColorDefaultBrush}"
-                                    CornerRadius="4"
-                                    Visibility="{x:Bind ViewModel.Step3State.IsLocked, Mode=OneWay}"/>
-                        </Grid>
-                    </Border>
-
-
-                    <!-- STEP 4: Add Windows Update -->
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1"
-                            CornerRadius="4">
-                        <Grid>
-                            <StackPanel>
-                                <!-- Step 4 Header -->
-                                <Button Padding="16,12"
-                                        Command="{x:Bind ViewModel.NavigateToStepCommand}"
-                                        CommandParameter="4"
-                                        AutomationProperties.Name="{x:Bind ViewModel.Step4State.Title, Mode=OneWay}"
-                                        HorizontalAlignment="Stretch"
-                                        HorizontalContentAlignment="Stretch"
-                                        Background="Transparent"
-                                        BorderThickness="0">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-
-                                        <fluentIcons:FluentIcon Grid.Column="0"
-                                                  Icon="ArrowSync" IconVariant="Regular"
-                                                  FontSize="24"
-                                                  VerticalAlignment="Center"
-                                                  Margin="0,0,16,0"/>
-
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="{x:Bind ViewModel.Step4State.Title, Mode=OneWay}"
-                                                       Style="{StaticResource SubtitleTextBlockStyle}"
-                                                       FontSize="16"/>
-                                            <TextBlock Text="{x:Bind ViewModel.Step4State.StatusText, Mode=OneWay}"
-                                                       Style="{StaticResource CaptionTextBlockStyle}"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                        </StackPanel>
-
-                                        <!-- Locked: padlock -->
-                                        <Viewbox Grid.Column="2" Width="16" Height="16"
-                                                 VerticalAlignment="Center"
-                                                 Visibility="{x:Bind ViewModel.Step4State.IsLocked, Mode=OneWay}">
-                                            <fluentIcons:FluentIcon Icon="LockClosed" IconVariant="Color"/>
-                                        </Viewbox>
-                                        <!-- Complete: check circle -->
-                                        <Viewbox Grid.Column="2" Width="20" Height="20"
-                                                 VerticalAlignment="Center"
-                                                 Visibility="{x:Bind ViewModel.Step4State.IsComplete, Mode=OneWay}">
-                                            <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"/>
-                                        </Viewbox>
-                                        <!-- Normal: chevron -->
-                                        <fluentIcons:FluentIcon Grid.Column="2"
-                                                  Icon="ChevronDown" IconVariant="Regular"
-                                                  FontSize="{StaticResource SectionChevronFontSize}"
-                                                  VerticalAlignment="Center"
-                                                  Visibility="{x:Bind ViewModel.Step4State.ShowChevron, Mode=OneWay}"
-                                                  RenderTransformOrigin="0.5,0.5">
-                                            <fluentIcons:FluentIcon.RenderTransform>
-                                                <RotateTransform Angle="{x:Bind ViewModel.Step4State.ChevronRotation, Mode=OneWay}"/>
-                                            </fluentIcons:FluentIcon.RenderTransform>
-                                        </fluentIcons:FluentIcon>
-                                    </Grid>
-                                </Button>
-
-                                <!-- Step 4 Content -->
-                                <StackPanel Visibility="{x:Bind ViewModel.Step4State.IsExpanded, Mode=OneWay}"
-                                            Padding="16,0,16,16"
-                                            Spacing="0">
-
-                                    <ContentPresenter Content="{x:Bind ViewModel.AddWindowsUpdateCard}"
-                                                      ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
-                                </StackPanel>
-                            </StackPanel>
-
-                            <!-- Disabled overlay (SmokeFill) -->
-                            <Border Background="{ThemeResource SmokeFillColorDefaultBrush}"
-                                    CornerRadius="4"
-                                    Visibility="{x:Bind ViewModel.Step4State.IsLocked, Mode=OneWay}"/>
-                        </Grid>
-                    </Border>
-
-
-                    <!-- STEP 5: Create ISO -->
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1"
-                            CornerRadius="4">
-                        <Grid>
-                            <StackPanel>
-                                <!-- Step 5 Header -->
-                                <Button Padding="16,12"
-                                        Command="{x:Bind ViewModel.NavigateToStepCommand}"
-                                        CommandParameter="5"
-                                        AutomationProperties.Name="{x:Bind ViewModel.Step5State.Title, Mode=OneWay}"
-                                        HorizontalAlignment="Stretch"
-                                        HorizontalContentAlignment="Stretch"
-                                        Background="Transparent"
-                                        BorderThickness="0">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-
-                                        <Viewbox Grid.Column="0"
-                                                 Width="24" Height="24"
-                                                 VerticalAlignment="Center"
-                                                 Margin="0,0,16,0">
-                                            <Path Data="{StaticResource WrenchClockIconPath}"
-                                                  Fill="{ThemeResource TextFillColorPrimaryBrush}"
-                                                  Stretch="Uniform"/>
-                                        </Viewbox>
-
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="{x:Bind ViewModel.Step5State.Title, Mode=OneWay}"
-                                                       Style="{StaticResource SubtitleTextBlockStyle}"
-                                                       FontSize="16"/>
-                                            <TextBlock Text="{x:Bind ViewModel.Step5State.StatusText, Mode=OneWay}"
-                                                       Style="{StaticResource CaptionTextBlockStyle}"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                        </StackPanel>
-
-                                        <!-- Locked: padlock -->
-                                        <Viewbox Grid.Column="2" Width="16" Height="16"
-                                                 VerticalAlignment="Center"
-                                                 Visibility="{x:Bind ViewModel.Step5State.IsLocked, Mode=OneWay}">
-                                            <fluentIcons:FluentIcon Icon="LockClosed" IconVariant="Color"/>
-                                        </Viewbox>
-                                        <!-- Complete: check circle -->
-                                        <Viewbox Grid.Column="2" Width="20" Height="20"
-                                                 VerticalAlignment="Center"
-                                                 Visibility="{x:Bind ViewModel.Step5State.IsComplete, Mode=OneWay}">
-                                            <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"/>
-                                        </Viewbox>
-                                        <!-- Normal: chevron -->
-                                        <fluentIcons:FluentIcon Grid.Column="2"
-                                                  Icon="ChevronDown" IconVariant="Regular"
-                                                  FontSize="{StaticResource SectionChevronFontSize}"
-                                                  VerticalAlignment="Center"
-                                                  Visibility="{x:Bind ViewModel.Step5State.ShowChevron, Mode=OneWay}"
-                                                  RenderTransformOrigin="0.5,0.5">
-                                            <fluentIcons:FluentIcon.RenderTransform>
-                                                <RotateTransform Angle="{x:Bind ViewModel.Step5State.ChevronRotation, Mode=OneWay}"/>
-                                            </fluentIcons:FluentIcon.RenderTransform>
-                                        </fluentIcons:FluentIcon>
-                                    </Grid>
-                                </Button>
-
-                                <!-- Step 5 Content -->
-                                <StackPanel Visibility="{x:Bind ViewModel.Step5State.IsExpanded, Mode=OneWay}"
-                                            Padding="16,0,16,16"
-                                            Spacing="0">
-
-                                    <!-- Destination: the same customised working directory feeds either writer.
-                                         Hand-built rather than a WizardActionCard because the card template's
-                                         trailing column is a Button, and this one needs the radio pair. -->
-                                    <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
-                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="4"
-                                            Padding="16"
-                                            Margin="0,0,0,8">
-                                        <Grid MinHeight="40">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-
-                                            <fluentIcons:FluentIcon Grid.Column="0"
-                                                      Icon="DocumentSave" IconVariant="Regular"
-                                                      FontSize="24"
-                                                      VerticalAlignment="Center"
-                                                      Margin="0,0,16,0"/>
-
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                <TextBlock Text="{x:Bind ViewModel.DestinationCardTitle}"
-                                                           Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                                                <TextBlock Text="{x:Bind ViewModel.DestinationCardDescription}"
-                                                           Style="{StaticResource CaptionTextBlockStyle}"
-                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                           TextWrapping="Wrap"
-                                                           Margin="0,2,0,0"/>
-                                            </StackPanel>
-
-                                            <StackPanel Grid.Column="2"
-                                                        Margin="16,0,0,0"
-                                                        VerticalAlignment="Center">
-                                                <RadioButton GroupName="WimUtilDestination"
-                                                             MinWidth="0"
-                                                             Content="{x:Bind ViewModel.DestinationIsoText}"
-                                                             IsChecked="{x:Bind ViewModel.IsIsoDestination, Mode=OneWay}"
-                                                             Checked="DestinationIsoRadio_Checked"/>
-                                                <RadioButton GroupName="WimUtilDestination"
-                                                             MinWidth="0"
-                                                             Content="{x:Bind ViewModel.DestinationUsbText}"
-                                                             IsChecked="{x:Bind ViewModel.IsUsbDestination, Mode=OneWay}"
-                                                             Checked="DestinationUsbRadio_Checked"/>
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-
-                                    <!-- Feeds both writers, so it sits above the ISO/USB specifics. -->
-                                    <controls:SettingsCard Header="{x:Bind ViewModel.BootManagerCardTitle}"
-                                                           Description="{x:Bind ViewModel.BootManagerDescription, Mode=OneWay}"
+                                <!-- A disabled control shows no tooltip, so each reason sits on a wrapper. -->
+                                <Grid Background="Transparent" ToolTipService.ToolTip="{x:Bind ViewModel.SelectDirectoryCard.DisabledReason}">
+                                    <controls:SettingsCard Header="{x:Bind ViewModel.SelectDirectoryCard.Title}"
+                                                           Description="{x:Bind ViewModel.SelectDirectoryCard.Description}"
+                                                           IsEnabled="{x:Bind ViewModel.SelectDirectoryCard.IsEnabled}"
                                                            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
-                                                           Margin="0,0,0,8"
-                                                           Visibility="{x:Bind ViewModel.ShowBootManagerChoice, Mode=OneWay}">
+                                                           Margin="0,0,0,8">
                                         <controls:SettingsCard.HeaderIcon>
-                                            <fluentIcons:FluentIcon Icon="ShieldCheckmark" IconVariant="Regular"/>
+                                            <fluentIcons:FluentIcon Icon="FolderOpen" IconVariant="Regular"/>
+                                        </controls:SettingsCard.HeaderIcon>
+                                        <StackPanel Orientation="Horizontal" Spacing="12">
+                                            <CheckBox Content="{x:Bind ViewModel.CheckboxExtractedAlreadyText}"
+                                                      IsChecked="{x:Bind ViewModel.HasExtractedIsoAlready, Mode=TwoWay}"
+                                                      VerticalAlignment="Center"/>
+                                            <Button Content="{x:Bind ViewModel.ButtonSelectFolderText}"
+                                                    Command="{x:Bind ViewModel.SelectWorkingDirectoryCommand}"
+                                                    VerticalAlignment="Center"
+                                                    MinWidth="100"/>
+                                        </StackPanel>
+                                    </controls:SettingsCard>
+                                </Grid>
+
+                                <commonControls:QuietInfoBar IsOpen="{x:Bind ViewModel.ShowWorkingDirectorySpaceWarning}"
+                                                             IsClosable="False"
+                                                             Severity="Warning"
+                                                             Message="{x:Bind ViewModel.WorkingDirectorySpaceWarningText}"
+                                                             Margin="0,0,0,8"/>
+
+                                <Button Content="{x:Bind ViewModel.ButtonStartExtractionText}"
+                                        Style="{StaticResource AccentButtonStyle}"
+                                        Command="{x:Bind ViewModel.StartIsoExtractionCommand}"
+                                        Visibility="{x:Bind ViewModel.CanStartExtraction}"
+                                        HorizontalAlignment="Center"
+                                        MinWidth="160"
+                                        Margin="0,8,0,12"/>
+                            </StackPanel>
+                        </wizard:WizardStep.Body>
+                    </wizard:WizardStep>
+
+                    <wizard:WizardStep State="{x:Bind ViewModel.Step2State}"
+                                       x:Name="Step2View"
+                                       Command="{x:Bind ViewModel.NavigateToStepCommand}"
+                                       CommandParameter="2">
+                        <wizard:WizardStep.Body>
+                            <StackPanel>
+                                <TextBlock Text="{x:Bind ViewModel.ServicingCardTitle}"
+                                           Style="{StaticResource BodyStrongTextBlockStyle}"
+                                           Margin="4,0,0,8"/>
+
+                                <Grid Background="Transparent" ToolTipService.ToolTip="{x:Bind wizard:WizardStep.LockedReason(ViewModel.CanChangeServicing, ViewModel.CreatingMediaReason)}">
+                                    <commonControls:ClickableSettingsCard Invoked="{x:Bind ViewModel.SelectDuringSetup}"
+                                                                          IsTabStop="True"
+                                                                          IsEnabled="{x:Bind ViewModel.CanChangeServicing}"
+                                                                          Header="{x:Bind ViewModel.DuringSetupTitle}"
+                                                                          Description="{x:Bind ViewModel.DuringSetupDescription}"
+                                                                          AutomationProperties.Name="{x:Bind ViewModel.DuringSetupTitle}"
+                                                                          Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                                          Margin="0,0,0,8">
+                                        <commonControls:ClickableSettingsCard.Resources>
+                                            <x:Double x:Key="SettingsCardActionIconMaxSize">0</x:Double>
+                                            <Thickness x:Key="SettingsCardActionIconMargin">0</Thickness>
+                                        </commonControls:ClickableSettingsCard.Resources>
+                                        <commonControls:ClickableSettingsCard.HeaderIcon>
+                                            <fluentIcons:FluentIcon Icon="PlugConnected" IconVariant="Regular"/>
+                                        </commonControls:ClickableSettingsCard.HeaderIcon>
+                                        <RadioButton GroupName="WimUtilServicing"
+                                                     MinWidth="0"
+                                                     IsHitTestVisible="False"
+                                                     IsTabStop="False"
+                                                     IsChecked="{x:Bind ViewModel.IsDuringSetup}"
+                                                     AutomationProperties.AccessibilityView="Raw"/>
+                                    </commonControls:ClickableSettingsCard>
+                                </Grid>
+
+                                <Grid Background="Transparent" ToolTipService.ToolTip="{x:Bind wizard:WizardStep.LockedReason(ViewModel.CanChangeServicing, ViewModel.CreatingMediaReason)}">
+                                    <commonControls:ClickableSettingsCard Invoked="{x:Bind ViewModel.SelectBuiltIntoImage}"
+                                                                          IsTabStop="True"
+                                                                          IsEnabled="{x:Bind ViewModel.CanChangeServicing}"
+                                                                          Header="{x:Bind ViewModel.BuiltIntoImageTitle}"
+                                                                          Description="{x:Bind ViewModel.BuiltIntoImageDescription}"
+                                                                          AutomationProperties.Name="{x:Bind ViewModel.BuiltIntoImageTitle}"
+                                                                          Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                                          Margin="0,0,0,8">
+                                        <commonControls:ClickableSettingsCard.Resources>
+                                            <x:Double x:Key="SettingsCardActionIconMaxSize">0</x:Double>
+                                            <Thickness x:Key="SettingsCardActionIconMargin">0</Thickness>
+                                        </commonControls:ClickableSettingsCard.Resources>
+                                        <commonControls:ClickableSettingsCard.HeaderIcon>
+                                            <fluentIcons:FluentIcon Icon="WrenchScrewdriver" IconVariant="Regular"/>
+                                        </commonControls:ClickableSettingsCard.HeaderIcon>
+                                        <RadioButton GroupName="WimUtilServicing"
+                                                     MinWidth="0"
+                                                     IsHitTestVisible="False"
+                                                     IsTabStop="False"
+                                                     IsChecked="{x:Bind ViewModel.IsBuiltIntoImage}"
+                                                     AutomationProperties.AccessibilityView="Raw"/>
+                                    </commonControls:ClickableSettingsCard>
+                                </Grid>
+
+                                <commonControls:QuietInfoBar Title="{x:Bind ViewModel.BothImagesTitle}"
+                                         Message="{x:Bind ViewModel.BothImagesDescription}"
+                                         Severity="Warning"
+                                         IsOpen="{x:Bind ViewModel.BothFormatsExist}"
+                                         Visibility="{x:Bind ViewModel.BothFormatsExist}"
+                                         IsClosable="False"
+                                         Margin="0,0,0,8">
+                                    <commonControls:QuietInfoBar.Content>
+                                        <StackPanel Margin="0,8,12,12">
+                                            <controls:SettingsCard Header="install.wim"
+                                                                   Description="{x:Bind ViewModel.WimFileSize}"
+                                                                   Margin="0,0,0,8">
+                                                <Button Content="{x:Bind ViewModel.ButtonDeleteWimText}"
+                                                        Command="{x:Bind ViewModel.DeleteWimCommand}"
+                                                        MinWidth="100"/>
+                                            </controls:SettingsCard>
+                                            <controls:SettingsCard Header="install.esd"
+                                                                   Description="{x:Bind ViewModel.EsdFileSize}">
+                                                <Button Content="{x:Bind ViewModel.ButtonDeleteEsdText}"
+                                                        Command="{x:Bind ViewModel.DeleteEsdCommand}"
+                                                        MinWidth="100"/>
+                                            </controls:SettingsCard>
+                                        </StackPanel>
+                                    </commonControls:QuietInfoBar.Content>
+                                </commonControls:QuietInfoBar>
+
+                                <StackPanel Visibility="{x:Bind ViewModel.ShowEditionCard}">
+                                    <TextBlock Text="{x:Bind ViewModel.YourImageHeadingText}"
+                                               Style="{StaticResource BodyStrongTextBlockStyle}"
+                                               Margin="4,12,0,8"/>
+
+                                    <controls:SettingsCard Header="{x:Bind ViewModel.EditionCardTitle}"
+                                                           Description="{x:Bind ViewModel.EditionCardDescription}"
+                                                           Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                           Margin="0,0,0,8">
+                                        <controls:SettingsCard.HeaderIcon>
+                                            <fluentIcons:FluentIcon Icon="HardDrive" IconVariant="Regular"/>
                                         </controls:SettingsCard.HeaderIcon>
                                         <ComboBox MinWidth="200"
-                                                  ItemsSource="{x:Bind ViewModel.BootManagerChoices}"
-                                                  SelectedItem="{x:Bind ViewModel.SelectedBootManager, Mode=TwoWay}"
-                                                  DisplayMemberPath="DisplayText"
-                                                  AutomationProperties.Name="{x:Bind ViewModel.BootManagerCardTitle}"/>
+                                                  ItemsSource="{x:Bind ViewModel.EditionChoices}"
+                                                  SelectedItem="{x:Bind ViewModel.SelectedEdition, Mode=TwoWay}"
+                                                  DisplayMemberPath="Name"
+                                                  AutomationProperties.Name="{x:Bind ViewModel.EditionCardTitle}"/>
                                     </controls:SettingsCard>
 
-                                    <commonControls:QuietInfoBar IsOpen="{x:Bind ViewModel.IsBootManagerOutdated, Mode=OneWay}"
+                                    <commonControls:QuietInfoBar IsOpen="{x:Bind ViewModel.ShowMountFolderWarning}"
+                                                                 Visibility="{x:Bind ViewModel.ShowMountFolderWarning}"
                                                                  IsClosable="False"
                                                                  Severity="Warning"
-                                                                 Message="{x:Bind ViewModel.BootManagerOutdatedText}"
+                                                                 Message="{x:Bind ViewModel.MountFolderWarningText}"
                                                                  Margin="0,0,0,8"/>
+                                </StackPanel>
 
-                                    <commonControls:QuietInfoBar IsOpen="{x:Bind ViewModel.ShowServicingTimeNote, Mode=OneWay}"
-                                                                 IsClosable="False"
-                                                                 Severity="Informational"
-                                                                 Message="{x:Bind ViewModel.ServicingTimeText, Mode=OneWay}"
-                                                                 Margin="0,0,0,8"/>
+                                <!-- Parent and children in the cleanup card's shape. Each choice is a card of its own, and a file
+                                     already on the media is flagged inside the choice it belongs to. -->
+                                <StackPanel Margin="0,0,0,8">
+                                    <controls:SettingsCard Header="{x:Bind ViewModel.AnswerFileChoiceTitle}"
+                                                           Description="{x:Bind ViewModel.AnswerFileChoiceDescription}"
+                                                           Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                           CornerRadius="4,4,0,0">
+                                        <controls:SettingsCard.HeaderIcon>
+                                            <fluentIcons:FluentIcon Icon="DocumentSettings" IconVariant="Regular"/>
+                                        </controls:SettingsCard.HeaderIcon>
+                                    </controls:SettingsCard>
 
-                                    <!-- Select Output Card -->
-                                    <ContentPresenter Content="{x:Bind ViewModel.SelectOutputCard}"
-                                                      ContentTemplate="{StaticResource WizardActionCardTemplate}"
-                                                      Visibility="{x:Bind ViewModel.IsIsoDestination, Mode=OneWay}"/>
+                                    <commonControls:ClickableSettingsCard x:Name="WinhanceXmlCard"
+                                                                          Invoked="OnWinhanceXmlInvoked"
+                                                                          IsTabStop="True"
+                                                                          Header="{x:Bind ViewModel.AnswerFileBuilderText}"
+                                                                          AutomationProperties.Name="{x:Bind ViewModel.AnswerFileBuilderText}"
+                                                                          BorderThickness="1,0,1,1"
+                                                                          Padding="54,12,16,12"
+                                                                          CornerRadius="0">
+                                        <commonControls:ClickableSettingsCard.Resources>
+                                            <x:Double x:Key="SettingsCardActionIconMaxSize">0</x:Double>
+                                            <Thickness x:Key="SettingsCardActionIconMargin">0</Thickness>
+                                        </commonControls:ClickableSettingsCard.Resources>
+                                        <commonControls:ClickableSettingsCard.Description>
+                                            <StackPanel>
+                                                <TextBlock Text="{x:Bind ViewModel.AnswerFileBuilderDescription}" TextWrapping="Wrap"/>
+                                                <commonControls:QuietInfoBar IsOpen="True"
+                                                                             IsClosable="False"
+                                                                             Severity="Warning"
+                                                                             Visibility="{x:Bind ViewModel.Step2.ShowsWinhanceFileOnMedia, Mode=OneWay}"
+                                                                             Message="{x:Bind ViewModel.MediaAnswerFileText}"
+                                                                             Margin="0,8,0,0">
+                                                    <InfoBar.ActionButton>
+                                                        <HyperlinkButton Content="{x:Bind ViewModel.DeleteMediaAnswerFileText}"
+                                                                         Command="{x:Bind ViewModel.Step2.DeleteMediaAnswerFileCommand}"/>
+                                                    </InfoBar.ActionButton>
+                                                </commonControls:QuietInfoBar>
+                                            </StackPanel>
+                                        </commonControls:ClickableSettingsCard.Description>
+                                        <RadioButton GroupName="WimUtilAnswerFile"
+                                                     MinWidth="0"
+                                                     IsHitTestVisible="False"
+                                                     IsTabStop="False"
+                                                     IsChecked="{x:Bind ViewModel.Step2.IsBuilderChosen, Mode=OneWay}"
+                                                     AutomationProperties.AccessibilityView="Raw"/>
+                                    </commonControls:ClickableSettingsCard>
 
-                                    <!-- USB destination -->
-                                    <StackPanel Visibility="{x:Bind ViewModel.IsUsbDestination, Mode=OneWay}"
-                                                Spacing="8">
-                                        <ContentPresenter Content="{x:Bind ViewModel.SelectUsbCard}"
-                                                          ContentTemplate="{StaticResource WizardActionCardTemplate}"/>
-
-                                        <ComboBox ItemsSource="{x:Bind ViewModel.UsbTargets}"
-                                                  SelectedItem="{x:Bind ViewModel.SelectedUsbTarget, Mode=TwoWay}"
-                                                  DisplayMemberPath="DisplayName"
-                                                  PlaceholderText="{x:Bind ViewModel.NoUsbSelectedText}"
-                                                  HorizontalAlignment="Stretch"
-                                                  Margin="0,0,0,4"/>
-
-                                        <StackPanel>
-                                            <CheckBox Content="{x:Bind ViewModel.ShowUsbHardDrivesText, Mode=OneWay}"
-                                                      IsChecked="{x:Bind ViewModel.ShowUsbHardDrives, Mode=TwoWay}"/>
-                                            <TextBlock Text="{x:Bind ViewModel.ShowUsbHardDrivesWarningText, Mode=OneWay}"
-                                                       Style="{StaticResource CaptionTextBlockStyle}"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                       TextWrapping="Wrap"
-                                                       Margin="32,0,0,0"/>
+                                    <commonControls:ClickableSettingsCard x:Name="OwnXmlCard"
+                                                                          Invoked="OnOwnXmlInvoked"
+                                                                          IsTabStop="True"
+                                                                          Header="{x:Bind ViewModel.AnswerFileOwnXmlText}"
+                                                                          AutomationProperties.Name="{x:Bind ViewModel.AnswerFileOwnXmlText}"
+                                                                          BorderThickness="1,0,1,1"
+                                                                          Padding="54,12,16,12"
+                                                                          CornerRadius="0,0,4,4">
+                                        <commonControls:ClickableSettingsCard.Resources>
+                                            <x:Double x:Key="SettingsCardActionIconMaxSize">0</x:Double>
+                                            <Thickness x:Key="SettingsCardActionIconMargin">0</Thickness>
+                                        </commonControls:ClickableSettingsCard.Resources>
+                                        <commonControls:ClickableSettingsCard.Description>
+                                            <StackPanel>
+                                                <TextBlock Text="{x:Bind ViewModel.AnswerFileOwnXmlDescription}" TextWrapping="Wrap"/>
+                                                <StackPanel Orientation="Horizontal"
+                                                            Spacing="6"
+                                                            Margin="0,4,0,0"
+                                                            Visibility="{x:Bind ViewModel.Step2.IsOwnXmlChosen, Mode=OneWay}">
+                                                    <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"
+                                                                            FontSize="{StaticResource StatusIconFontSize}"
+                                                                            VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{x:Bind ViewModel.Step2.SelectedXmlPath, Mode=OneWay}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                                <commonControls:QuietInfoBar IsOpen="True"
+                                                                             IsClosable="False"
+                                                                             Severity="Warning"
+                                                                             Visibility="{x:Bind ViewModel.Step2.ShowsOwnFileOnMedia, Mode=OneWay}"
+                                                                             Message="{x:Bind ViewModel.MediaAnswerFileText}"
+                                                                             Margin="0,8,0,0">
+                                                    <InfoBar.ActionButton>
+                                                        <HyperlinkButton Content="{x:Bind ViewModel.DeleteMediaAnswerFileText}"
+                                                                         Command="{x:Bind ViewModel.Step2.DeleteMediaAnswerFileCommand}"/>
+                                                    </InfoBar.ActionButton>
+                                                </commonControls:QuietInfoBar>
+                                            </StackPanel>
+                                        </commonControls:ClickableSettingsCard.Description>
+                                        <StackPanel Orientation="Horizontal" Spacing="16">
+                                            <Button Content="{x:Bind ViewModel.ChangeFileText, Mode=OneWay}"
+                                                    Command="{x:Bind ViewModel.Step2.ChooseOwnXmlFileCommand}"
+                                                    Visibility="{x:Bind ViewModel.Step2.IsOwnXmlChosen, Mode=OneWay}"
+                                                    VerticalAlignment="Center"/>
+                                            <RadioButton GroupName="WimUtilAnswerFile"
+                                                         MinWidth="0"
+                                                         IsHitTestVisible="False"
+                                                         IsTabStop="False"
+                                                         IsChecked="{x:Bind ViewModel.Step2.IsOwnXmlChosen, Mode=OneWay}"
+                                                         AutomationProperties.AccessibilityView="Raw"/>
                                         </StackPanel>
+                                    </commonControls:ClickableSettingsCard>
+                                </StackPanel>
 
-                                        <InfoBar IsOpen="True"
-                                                 IsClosable="False"
-                                                 Severity="Error"
-                                                 Message="{x:Bind ViewModel.UsbEraseWarningText}"/>
-                                    </StackPanel>
+                                <!-- Answer-file verdict (open only while findings exist); details collapse
+                                     behind the expander so a long report cannot swallow the page -->
+                                <commonControls:QuietInfoBar IsOpen="{x:Bind ViewModel.AnswerFileBannerOpen}"
+                                         Severity="{x:Bind ViewModel.AnswerFileBannerSeverity}"
+                                         Title="{x:Bind ViewModel.AnswerFileBannerTitle}"
+                                         IsClosable="False">
+                                    <commonControls:QuietInfoBar.Content>
+                                        <Expander HorizontalAlignment="Stretch"
+                                                  HorizontalContentAlignment="Stretch"
+                                                  Margin="0,0,12,12">
+                                            <Expander.Header>
+                                                <TextBlock Text="{x:Bind ViewModel.AnswerFileBannerSummary}"
+                                                           TextWrapping="Wrap"/>
+                                            </Expander.Header>
+                                            <TextBlock Text="{x:Bind ViewModel.AnswerFileBannerMessage}"
+                                                       TextWrapping="Wrap"
+                                                       IsTextSelectionEnabled="True"/>
+                                        </Expander>
+                                    </commonControls:QuietInfoBar.Content>
+                                </commonControls:QuietInfoBar>
 
-                                    <!-- Create Button -->
-                                    <Button Content="{x:Bind ViewModel.ButtonCreateMediaText}"
-                                            Style="{StaticResource AccentButtonStyle}"
-                                            Command="{x:Bind ViewModel.CreateMediaCommand}"
-                                            HorizontalAlignment="Center"
-                                            MinWidth="160"
-                                            Margin="0,8,0,4"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="4,8,0,0" Spacing="8">
+                                    <TextBlock Text="{x:Bind ViewModel.GenerateXmlFilesText}"
+                                               Style="{StaticResource BodyTextBlockStyle}"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                               VerticalAlignment="Center"/>
+                                    <Button Command="{x:Bind ViewModel.OpenSchneegansXmlGeneratorCommand}"
+                                            AutomationProperties.Name="{x:Bind ViewModel.TooltipSchneegans}"
+                                            ToolTipService.ToolTip="{x:Bind ViewModel.TooltipSchneegans}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <fluentIcons:FluentIcon Icon="Open" IconVariant="Regular" FontSize="14"/>
+                                            <TextBlock Text="{x:Bind ViewModel.ButtonSchneegansText}"/>
+                                        </StackPanel>
+                                    </Button>
                                 </StackPanel>
                             </StackPanel>
+                        </wizard:WizardStep.Body>
+                    </wizard:WizardStep>
 
-                            <!-- Disabled overlay (SmokeFill) -->
-                            <Border Background="{ThemeResource SmokeFillColorDefaultBrush}"
-                                    CornerRadius="4"
-                                    Visibility="{x:Bind ViewModel.Step5State.IsLocked, Mode=OneWay}"/>
-                        </Grid>
-                    </Border>
+                    <wizard:WizardStep State="{x:Bind ViewModel.Step3State}"
+                                       x:Name="Step3View"
+                                       Command="{x:Bind ViewModel.NavigateToStepCommand}"
+                                       CommandParameter="3">
+                        <wizard:WizardStep.Body>
+                            <StackPanel>
+                                <!-- x:Load rather than Visibility: the view loads its counts on Loaded, and a
+                                     collapsed element loads once, when the page opens, in whatever mode that was. -->
+                                <autounattend:IncludedFromFeaturesView x:Name="IncludedFromFeaturesHost"
+                                                                       x:Load="{x:Bind ViewModel.ShowsSummaryCards}"
+                                                                       LoadsItself="True"
+                                                                       ShowsModeTags="True"
+                                                                       Margin="0,0,0,8"/>
+
+                                <controls:SettingsCard Description="{x:Bind ViewModel.AnswerFileCardDescription}"
+                                                       Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                       AutomationProperties.Name="{x:Bind ViewModel.AnswerFileCardTitle}"
+                                                       Margin="0,0,0,8"
+                                                       Visibility="{x:Bind ViewModel.ShowsAnswerFileCard}">
+                                    <controls:SettingsCard.Header>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{x:Bind ViewModel.AnswerFileCardTitle}" VerticalAlignment="Center"/>
+                                            <commonControls:ModeTag Text="{x:Bind ViewModel.DuringSetupTagText}"/>
+                                        </StackPanel>
+                                    </controls:SettingsCard.Header>
+                                    <controls:SettingsCard.HeaderIcon>
+                                        <fluentIcons:FluentIcon Icon="TextBulletListSquareSparkle" IconVariant="Color"/>
+                                    </controls:SettingsCard.HeaderIcon>
+                                    <HyperlinkButton Content="{x:Bind ViewModel.ChangeInAutounattendText}"
+                                                     Command="{x:Bind ViewModel.OpenAutounattendCommand}"
+                                                     Visibility="{x:Bind ViewModel.ShowsSummaryCards}"/>
+                                </controls:SettingsCard>
+
+                                <TextBlock Text="{x:Bind ViewModel.DriversHeadingText}"
+                                           Style="{StaticResource BodyStrongTextBlockStyle}"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Margin="4,12,0,8"/>
+
+                                <controls:SettingsCard Description="{x:Bind ViewModel.Step3.SystemDriversDescription, Mode=OneWay}"
+                                                       Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                       Margin="0,0,0,8">
+                                    <controls:SettingsCard.Header>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{x:Bind ViewModel.AddSystemDriversText, Mode=OneWay}" VerticalAlignment="Center"/>
+                                            <commonControls:ModeTag Text="{x:Bind ViewModel.ModeTagText, Mode=OneWay}"/>
+                                        </StackPanel>
+                                    </controls:SettingsCard.Header>
+                                    <controls:SettingsCard.HeaderIcon>
+                                        <fluentIcons:FluentIcon Icon="Desktop" IconVariant="Regular"/>
+                                    </controls:SettingsCard.HeaderIcon>
+                                    <CheckBox IsChecked="{x:Bind ViewModel.Step3.AddSystemDrivers, Mode=TwoWay}"
+                                              AutomationProperties.Name="{x:Bind ViewModel.AddSystemDriversText, Mode=OneWay}"
+                                              MinWidth="0"/>
+                                </controls:SettingsCard>
+
+                                <controls:SettingsCard Description="{x:Bind ViewModel.Step3.FolderDriversDescription, Mode=OneWay}"
+                                                       Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                       Margin="0,0,0,8">
+                                    <controls:SettingsCard.Header>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{x:Bind ViewModel.AddFolderDriversText, Mode=OneWay}" VerticalAlignment="Center"/>
+                                            <commonControls:ModeTag Text="{x:Bind ViewModel.ModeTagText, Mode=OneWay}"/>
+                                        </StackPanel>
+                                    </controls:SettingsCard.Header>
+                                    <controls:SettingsCard.HeaderIcon>
+                                        <fluentIcons:FluentIcon Icon="FolderAdd" IconVariant="Regular"/>
+                                    </controls:SettingsCard.HeaderIcon>
+                                    <StackPanel Orientation="Horizontal" Spacing="12">
+                                        <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"
+                                                                FontSize="{StaticResource StatusIconFontSize}"
+                                                                VerticalAlignment="Center"
+                                                                Visibility="{x:Bind ViewModel.Step3.AddFolderDrivers, Mode=OneWay}"/>
+                                        <Button Content="{x:Bind ViewModel.ChooseFolderText, Mode=OneWay}"
+                                                Command="{x:Bind ViewModel.Step3.ChooseDriversFolderCommand}"/>
+                                        <Button x:Name="ClearDriversFolderButton"
+                                                Command="{x:Bind ViewModel.Step3.ClearDriversFolderCommand}"
+                                                Visibility="{x:Bind ViewModel.Step3.AddFolderDrivers, Mode=OneWay}"
+                                                ToolTipService.ToolTip="{x:Bind ViewModel.RemoveDriversFolderText, Mode=OneWay}"
+                                                AutomationProperties.Name="{x:Bind ViewModel.RemoveDriversFolderText, Mode=OneWay}">
+                                            <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular" FontSize="14"/>
+                                        </Button>
+                                    </StackPanel>
+                                </controls:SettingsCard>
+
+                                <controls:SettingsCard Description="{x:Bind ViewModel.Step4.UpdateDescription, Mode=OneWay}"
+                                                       Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                       Margin="0,0,0,8">
+                                    <controls:SettingsCard.Header>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{x:Bind ViewModel.AddUpdateText, Mode=OneWay}" VerticalAlignment="Center"/>
+                                            <commonControls:ModeTag Text="{x:Bind ViewModel.ModeTagText, Mode=OneWay}"/>
+                                        </StackPanel>
+                                    </controls:SettingsCard.Header>
+                                    <controls:SettingsCard.HeaderIcon>
+                                        <fluentIcons:FluentIcon Icon="ArrowSync" IconVariant="Regular"/>
+                                    </controls:SettingsCard.HeaderIcon>
+                                    <Grid Background="Transparent" ToolTipService.ToolTip="{x:Bind wizard:WizardStep.LockedReason(ViewModel.Step4.CanAddUpdate, ViewModel.Step4.UpdateDescription)}">
+                                        <CheckBox IsChecked="{x:Bind ViewModel.Step4.AddUpdate, Mode=TwoWay}"
+                                                  IsEnabled="{x:Bind ViewModel.Step4.CanAddUpdate, Mode=OneWay}"
+                                                  AutomationProperties.Name="{x:Bind ViewModel.AddUpdateText, Mode=OneWay}"
+                                                  MinWidth="0"/>
+                                    </Grid>
+                                </controls:SettingsCard>
+
+                                <!-- The parent and child cards use the same shape as the installer cards on the Unattend
+                                     page: the children sit square under the parent, one border between them. -->
+                                <StackPanel Margin="0,12,0,8" Visibility="{x:Bind ViewModel.ShowsCleanupCard}">
+                                    <controls:SettingsCard Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                           AutomationProperties.Name="{x:Bind ViewModel.CleanupCardTitle}"
+                                                           Description="{x:Bind ViewModel.CleanupCardDescription}"
+                                                           CornerRadius="4,4,0,0">
+                                        <controls:SettingsCard.Header>
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="{x:Bind ViewModel.CleanupCardTitle}" VerticalAlignment="Center"/>
+                                                <commonControls:ModeTag Text="{x:Bind ViewModel.InImageTagText}"/>
+                                            </StackPanel>
+                                        </controls:SettingsCard.Header>
+                                        <controls:SettingsCard.HeaderIcon>
+                                            <fluentIcons:FluentIcon Icon="Delete" IconVariant="Regular"/>
+                                        </controls:SettingsCard.HeaderIcon>
+                                    </controls:SettingsCard>
+                                    <controls:SettingsCard IsTabStop="False"
+                                                           ContentAlignment="Vertical"
+                                                           HorizontalContentAlignment="Stretch"
+                                                           BorderThickness="1,0,1,1"
+                                                           Padding="{StaticResource SettingsChildCardPadding}"
+                                                           MinHeight="0"
+                                                           CornerRadius="0">
+                                        <StackPanel Spacing="2">
+                                            <CheckBox Content="{x:Bind ViewModel.CleanupResetBaseText}"
+                                                      IsChecked="{x:Bind ViewModel.CleanupResetBase, Mode=TwoWay}"/>
+                                            <TextBlock Text="{x:Bind ViewModel.CleanupResetBaseWarning}"
+                                                       TextWrapping="Wrap"
+                                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       Margin="32,0,0,0"/>
+                                        </StackPanel>
+                                    </controls:SettingsCard>
+                                    <controls:SettingsCard IsTabStop="False"
+                                                           ContentAlignment="Vertical"
+                                                           HorizontalContentAlignment="Stretch"
+                                                           BorderThickness="1,0,1,1"
+                                                           Padding="{StaticResource SettingsChildCardPadding}"
+                                                           MinHeight="0"
+                                                           CornerRadius="0">
+                                        <CheckBox Content="{x:Bind ViewModel.CleanupDownloadedUpdatesText}"
+                                                  IsChecked="{x:Bind ViewModel.CleanupDownloadedUpdates, Mode=TwoWay}"/>
+                                    </controls:SettingsCard>
+                                    <controls:SettingsCard IsTabStop="False"
+                                                           ContentAlignment="Vertical"
+                                                           HorizontalContentAlignment="Stretch"
+                                                           BorderThickness="1,0,1,1"
+                                                           Padding="{StaticResource SettingsChildCardPadding}"
+                                                           MinHeight="0"
+                                                           CornerRadius="0">
+                                        <CheckBox Content="{x:Bind ViewModel.CleanupServicingLogsText}"
+                                                  IsChecked="{x:Bind ViewModel.CleanupServicingLogs, Mode=TwoWay}"/>
+                                    </controls:SettingsCard>
+                                    <controls:SettingsCard IsTabStop="False"
+                                                           ContentAlignment="Vertical"
+                                                           HorizontalContentAlignment="Stretch"
+                                                           BorderThickness="1,0,1,1"
+                                                           Padding="{StaticResource SettingsChildCardPadding}"
+                                                           MinHeight="0"
+                                                           CornerRadius="0">
+                                        <CheckBox Content="{x:Bind ViewModel.CleanupTempFilesText}"
+                                                  IsChecked="{x:Bind ViewModel.CleanupTempFiles, Mode=TwoWay}"/>
+                                    </controls:SettingsCard>
+                                    <controls:SettingsCard IsTabStop="False"
+                                                           ContentAlignment="Vertical"
+                                                           HorizontalContentAlignment="Stretch"
+                                                           BorderThickness="1,0,1,1"
+                                                           Padding="{StaticResource SettingsChildCardPadding}"
+                                                           MinHeight="0"
+                                                           CornerRadius="0,0,4,4">
+                                        <CheckBox Content="{x:Bind ViewModel.CleanupCrashReportsText}"
+                                                  IsChecked="{x:Bind ViewModel.CleanupCrashReports, Mode=TwoWay}"/>
+                                    </controls:SettingsCard>
+                                </StackPanel>
+                            </StackPanel>
+                        </wizard:WizardStep.Body>
+                    </wizard:WizardStep>
+
+                    <wizard:WizardStep State="{x:Bind ViewModel.Step4State}"
+                                       x:Name="Step4View"
+                                       Command="{x:Bind ViewModel.NavigateToStepCommand}"
+                                       CommandParameter="4">
+                        <wizard:WizardStep.Body>
+                            <StackPanel>
+                                <Grid Background="Transparent" ToolTipService.ToolTip="{x:Bind ViewModel.FormatLockedReason(ViewModel.CanChooseFormat, ViewModel.BothFormatsExist)}">
+                                    <controls:SettingsCard Header="{x:Bind ViewModel.FormatCardTitle, Mode=OneWay}"
+                                                           Description="{x:Bind ViewModel.FormatCardDescription, Mode=OneWay}"
+                                                           Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                           IsEnabled="{x:Bind ViewModel.CanChooseFormat, Mode=OneWay}"
+                                                           Margin="0,0,0,8">
+                                        <controls:SettingsCard.HeaderIcon>
+                                            <fluentIcons:FluentIcon Icon="ArrowSwap" IconVariant="Regular"/>
+                                        </controls:SettingsCard.HeaderIcon>
+                                        <StackPanel>
+                                            <RadioButton GroupName="WimUtilOutputFormat"
+                                                         MinWidth="0"
+                                                         Content="{x:Bind ViewModel.FormatWimText, Mode=OneWay}"
+                                                         IsChecked="{x:Bind ViewModel.IsWimFormat, Mode=OneWay}"
+                                                         Command="{x:Bind ViewModel.SelectWimFormatCommand}"/>
+                                            <RadioButton GroupName="WimUtilOutputFormat"
+                                                         MinWidth="0"
+                                                         Content="{x:Bind ViewModel.FormatEsdText, Mode=OneWay}"
+                                                         IsChecked="{x:Bind ViewModel.IsEsdFormat, Mode=OneWay}"
+                                                         Command="{x:Bind ViewModel.SelectEsdFormatCommand}"/>
+                                        </StackPanel>
+                                    </controls:SettingsCard>
+                                </Grid>
+
+                                <controls:SettingsCard Header="{x:Bind ViewModel.DestinationCardTitle}"
+                                                       Description="{x:Bind ViewModel.DestinationCardDescription}"
+                                                       Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                       Margin="0,0,0,8">
+                                    <controls:SettingsCard.HeaderIcon>
+                                        <fluentIcons:FluentIcon Icon="Storage" IconVariant="Regular"/>
+                                    </controls:SettingsCard.HeaderIcon>
+                                    <StackPanel>
+                                        <RadioButton GroupName="WimUtilDestination"
+                                                     MinWidth="0"
+                                                     Content="{x:Bind ViewModel.DestinationIsoText}"
+                                                     IsChecked="{x:Bind ViewModel.IsIsoDestination}"
+                                                     Command="{x:Bind ViewModel.SelectIsoDestinationCommand}"/>
+                                        <RadioButton GroupName="WimUtilDestination"
+                                                     MinWidth="0"
+                                                     Content="{x:Bind ViewModel.DestinationUsbText}"
+                                                     IsChecked="{x:Bind ViewModel.IsUsbDestination}"
+                                                     Command="{x:Bind ViewModel.SelectUsbDestinationCommand}"/>
+                                    </StackPanel>
+                                </controls:SettingsCard>
+
+                                <!-- Feeds both writers, so it sits above the ISO/USB specifics. -->
+                                <controls:SettingsCard Header="{x:Bind ViewModel.BootManagerCardTitle}"
+                                                       Description="{x:Bind ViewModel.BootManagerDescription}"
+                                                       Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                       Margin="0,0,0,8"
+                                                       Visibility="{x:Bind ViewModel.ShowBootManagerChoice}">
+                                    <controls:SettingsCard.HeaderIcon>
+                                        <fluentIcons:FluentIcon Icon="ShieldCheckmark" IconVariant="Regular"/>
+                                    </controls:SettingsCard.HeaderIcon>
+                                    <ComboBox MinWidth="200"
+                                              ItemsSource="{x:Bind ViewModel.BootManagerChoices}"
+                                              SelectedItem="{x:Bind ViewModel.SelectedBootManager, Mode=TwoWay}"
+                                              DisplayMemberPath="DisplayText"
+                                              AutomationProperties.Name="{x:Bind ViewModel.BootManagerCardTitle}"/>
+                                </controls:SettingsCard>
+
+                                <commonControls:QuietInfoBar IsOpen="{x:Bind ViewModel.IsBootManagerOutdated}"
+                                                             IsClosable="False"
+                                                             Severity="Warning"
+                                                             Message="{x:Bind ViewModel.BootManagerOutdatedText}"
+                                                             Margin="0,0,0,8"/>
+
+                                <wizard:WizardActionCardView Card="{x:Bind ViewModel.SelectOutputCard}"
+                                                             Icon="DocumentSave"
+                                                             Visibility="{x:Bind ViewModel.IsIsoDestination}"/>
+
+                                <StackPanel Visibility="{x:Bind ViewModel.IsUsbDestination}" Spacing="8">
+                                    <wizard:WizardActionCardView Card="{x:Bind ViewModel.SelectUsbCard}" Icon="UsbStick"/>
+
+                                    <ComboBox ItemsSource="{x:Bind ViewModel.UsbTargets}"
+                                              SelectedItem="{x:Bind ViewModel.SelectedUsbTarget, Mode=TwoWay}"
+                                              DisplayMemberPath="DisplayName"
+                                              PlaceholderText="{x:Bind ViewModel.NoUsbSelectedText}"
+                                              HorizontalAlignment="Stretch"
+                                              Margin="0,0,0,4"/>
+
+                                    <StackPanel>
+                                        <CheckBox Content="{x:Bind ViewModel.ShowUsbHardDrivesText}"
+                                                  IsChecked="{x:Bind ViewModel.ShowUsbHardDrives, Mode=TwoWay}"/>
+                                        <TextBlock Text="{x:Bind ViewModel.ShowUsbHardDrivesWarningText}"
+                                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="32,0,0,0"/>
+                                    </StackPanel>
+
+                                    <commonControls:QuietInfoBar IsOpen="True"
+                                             IsClosable="False"
+                                             Severity="Error"
+                                             Message="{x:Bind ViewModel.UsbEraseWarningText}"/>
+                                </StackPanel>
+
+                                <Grid Background="Transparent" HorizontalAlignment="Left" ToolTipService.ToolTip="{x:Bind ViewModel.DeleteFolderLockedReason(ViewModel.CanDeleteWorkingFolder)}">
+                                    <CheckBox Content="{x:Bind ViewModel.DeleteWorkingFolderText}"
+                                              IsChecked="{x:Bind ViewModel.DeleteWorkingFolderAfterBuild, Mode=TwoWay}"
+                                              IsEnabled="{x:Bind ViewModel.CanDeleteWorkingFolder}"/>
+                                </Grid>
+
+                                <commonControls:QuietInfoBar IsOpen="{x:Bind ViewModel.NeedsEdition}"
+                                                             IsClosable="False"
+                                                             Severity="Warning"
+                                                             Message="{x:Bind ViewModel.NeedsEditionText}"
+                                                             Margin="0,8,0,0"/>
+
+                                <Button Content="{x:Bind ViewModel.ButtonCreateMediaText}"
+                                        Style="{StaticResource AccentButtonStyle}"
+                                        Command="{x:Bind ViewModel.CreateMediaCommand}"
+                                        HorizontalAlignment="Center"
+                                        MinWidth="160"
+                                        Margin="0,8,0,4"/>
+
+                                <ItemsControl x:Name="BuildCardsList"
+                                              ItemsSource="{x:Bind ViewModel.BuildCards}"
+                                              Visibility="{x:Bind ViewModel.HasBuildCards}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="models:WizardActionCard">
+                                            <wizard:WizardActionCardView Card="{x:Bind}" Icon="{x:Bind Icon}"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Button Content="{x:Bind ViewModel.ShowBuildDetailsText}"
+                                        Command="{x:Bind ViewModel.ShowBuildDetailsCommand}"
+                                        Visibility="{x:Bind ViewModel.HasBuildCards}"
+                                        HorizontalAlignment="Center"
+                                        MinWidth="160"
+                                        Margin="0,0,0,4"/>
+                            </StackPanel>
+                        </wizard:WizardStep.Body>
+                    </wizard:WizardStep>
 
                 </StackPanel>
                 </Grid>
             </ScrollView>
         </Border>
+
+        <!-- Outside the ScrollView so it stays in view; empty cells pass the pointer through to the steps. -->
+        <Grid x:Name="RailHost"
+              Grid.Row="1"
+              Margin="0,28,0,12"
+              Padding="{StaticResource SettingsContentMargin}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition x:Name="RailColumn" Width="0"/>
+                <ColumnDefinition Width="1000*" MaxWidth="{StaticResource SettingsContentMaxWidth}"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <wizard:WizardStepRail
+                x:Name="StepRail"
+                Grid.Column="1"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Visibility="Collapsed"
+                Steps="{x:Bind ViewModel.Steps}"
+                AutomationProperties.Name="{x:Bind ViewModel.StepRailName}"
+                StepInvoked="OnRailStepInvoked"/>
+        </Grid>
     </Grid>
 </Page>

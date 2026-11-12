@@ -20,7 +20,7 @@ public class AutounattendParityTests
         RepoPaths.SolutionDir(), "tests", "Winhance.Infrastructure.Tests", "Autounattend", "Fixtures", "autounattend-template.xml");
 
     [Fact]
-    public void The_default_selections_reproduce_the_retired_template()
+    public void Build_DefaultSelections_ReproducesRetiredTemplate()
     {
         var template = File.ReadAllText(FixturePath).Replace("<!--SCRIPT_PLACEHOLDER-->", "<![CDATA[" + Script + "]]>", StringComparison.Ordinal);
         var old = XDocument.Parse(template);
@@ -39,9 +39,10 @@ public class AutounattendParityTests
         actual.Should().Be(expected, TextDiff.FirstDifference(expected, actual, "template", "assembled"));
     }
 
-    // Drops the two adapter commands and renumbers what is left, because Order is a position in the list: the
-    // template had the cut at 3 and NetFx3 at 4, the assembly has them the other way round, and leaving the
-    // holes would fail the comparison on the numbering rather than on the content this test is about.
+    // Drops the two adapter commands, sorts the RunSynchronous commands by description and renumbers what is
+    // left, because Order is a position in the list: the template ran the local-account command before NetFx3,
+    // the assembly runs them the other way round, and the holes and the swap would fail the comparison on the
+    // numbering rather than on the content this test is about.
     private static void StripAdapters(XDocument doc)
     {
         var lists = doc.Descendants()
@@ -53,6 +54,14 @@ public class AutounattendParityTests
             list.Elements()
                 .Where(c => c.Elements().Any(v => v.Value.Contains("-NetAdapter", StringComparison.Ordinal)))
                 .Remove();
+
+            if (list.Name.LocalName == "RunSynchronous")
+            {
+                var sorted = list.Elements()
+                    .OrderBy(c => c.Elements().FirstOrDefault(v => v.Name.LocalName == "Description")?.Value, StringComparer.Ordinal)
+                    .ToList();
+                list.ReplaceNodes(sorted);
+            }
 
             int order = 1;
             foreach (var command in list.Elements())

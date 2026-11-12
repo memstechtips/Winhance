@@ -12,35 +12,14 @@ public class WizardActionCardTests
     {
         var card = new WizardActionCard();
 
-        card.Icon.Should().BeEmpty();
-        card.IconPath.Should().BeEmpty();
         card.Title.Should().BeEmpty();
         card.Description.Should().BeEmpty();
         card.ButtonText.Should().BeEmpty();
         card.IsEnabled.Should().BeTrue();
-        card.Opacity.Should().Be(1.0);
-        card.UsePathIcon.Should().BeFalse();
         card.IsComplete.Should().BeFalse();
         card.HasFailed.Should().BeFalse();
         card.IsProcessing.Should().BeFalse();
         card.ButtonCommand.Should().BeNull();
-    }
-
-    [Fact]
-    public void Icon_Set_RaisesPropertyChanged()
-    {
-        var card = new WizardActionCard();
-        var raised = false;
-        card.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(card.Icon))
-                raised = true;
-        };
-
-        card.Icon = "\uE710";
-
-        card.Icon.Should().Be("\uE710");
-        raised.Should().BeTrue();
     }
 
     [Fact]
@@ -112,23 +91,6 @@ public class WizardActionCardTests
     }
 
     [Fact]
-    public void Opacity_Set_RaisesPropertyChanged()
-    {
-        var card = new WizardActionCard();
-        var raised = false;
-        card.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(card.Opacity))
-                raised = true;
-        };
-
-        card.Opacity = 0.5;
-
-        card.Opacity.Should().Be(0.5);
-        raised.Should().BeTrue();
-    }
-
-    [Fact]
     public void ButtonCommand_CanBeSet()
     {
         var card = new WizardActionCard();
@@ -137,38 +99,6 @@ public class WizardActionCardTests
         card.ButtonCommand = command;
 
         card.ButtonCommand.Should().BeSameAs(command);
-    }
-
-    [Fact]
-    public void IconPath_WhenSetToNonEmpty_SetsUsePathIconTrue()
-    {
-        var card = new WizardActionCard();
-
-        card.IconPath = "M0,0 L10,10";
-
-        card.UsePathIcon.Should().BeTrue();
-    }
-
-    [Fact]
-    public void IconPath_WhenSetToEmpty_SetsUsePathIconFalse()
-    {
-        var card = new WizardActionCard();
-        card.IconPath = "M0,0 L10,10";
-
-        card.IconPath = "";
-
-        card.UsePathIcon.Should().BeFalse();
-    }
-
-    [Fact]
-    public void IconPath_WhenSetToNull_SetsUsePathIconFalse()
-    {
-        var card = new WizardActionCard();
-        card.IconPath = "some path";
-
-        card.IconPath = null!;
-
-        card.UsePathIcon.Should().BeFalse();
     }
 
     [Fact]

@@ -6,4 +6,7 @@ public interface IApplicationCloseService
 {
     Func<Task>? BeforeShutdown { get; set; }
     Task<OperationResult> CheckOperationsAndCloseAsync();
+
+    // Saves and leaves without the running-task or support dialogs.
+    Task ExitAsync();
 }

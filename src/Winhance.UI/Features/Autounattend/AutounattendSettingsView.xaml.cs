@@ -8,19 +8,6 @@ namespace Winhance.UI.Features.Autounattend;
 
 public sealed partial class AutounattendSettingsView : UserControl
 {
-    public static readonly DependencyProperty FooterProperty =
-        DependencyProperty.Register(
-            nameof(Footer),
-            typeof(object),
-            typeof(AutounattendSettingsView),
-            new PropertyMetadata(null));
-
-    public object? Footer
-    {
-        get => GetValue(FooterProperty);
-        set => SetValue(FooterProperty, value);
-    }
-
     public static readonly DependencyProperty HasNoSearchResultsProperty =
         DependencyProperty.Register(
             nameof(HasNoSearchResults),
@@ -36,6 +23,12 @@ public sealed partial class AutounattendSettingsView : UserControl
 
     public AutounattendViewModel ViewModel { get; }
 
+    public bool ScrollsWithPage
+    {
+        get => SettingsList.ScrollsWithPage;
+        set => SettingsList.ScrollsWithPage = value;
+    }
+
     public AutounattendSettingsView()
     {
         ViewModel = App.Services.GetRequiredService<AutounattendViewModel>();
@@ -46,13 +39,16 @@ public sealed partial class AutounattendSettingsView : UserControl
         this.InitializeComponent();
     }
 
+    private CollectionViewSource? _groupedSource;
+
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        SettingsList.GroupedSettingsSource = new CollectionViewSource
+        _groupedSource = new CollectionViewSource
         {
             Source = ViewModel.GroupedSettings,
             IsSourceGrouped = true,
-        }.View;
+        };
+        SettingsList.GroupedSettingsSource = _groupedSource.View;
 
         // Covers both loads, so the loader does not drop out between them.
         ViewModel.IsLoading = true;
@@ -71,8 +67,13 @@ public sealed partial class AutounattendSettingsView : UserControl
         }
     }
 
+    // The view model is a singleton, so a view left subscribed to its collection is never collected.
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
         ViewModel.ReleaseIncluded();
+        SettingsList.GroupedSettingsSource = null;
+        if (_groupedSource is not null)
+            _groupedSource.Source = null;
+        _groupedSource = null;
     }
 }

@@ -1,5 +1,7 @@
+using Moq;
 using System.Globalization;
 using System.Text;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.Infrastructure.Features.Common.Utilities;
 using Winhance.Infrastructure.Features.WimUtil.Services;
@@ -17,7 +19,7 @@ public class AnswerFileCheckTests(ITestOutputHelper output)
     private static readonly string DocsDir = Path.Combine(RepoPaths.SolutionDir(), "docs");
 
     [Fact]
-    public async Task Check_the_dropped_answer_file()
+    public async Task ValidateAsync_WithTheDroppedAnswerFile_WritesTheReport()
     {
         var xmlPath = Path.Combine(DocsDir, "autounattend-to-check.xml");
         if (!File.Exists(xmlPath))
@@ -26,7 +28,7 @@ public class AnswerFileCheckTests(ITestOutputHelper output)
             return;
         }
 
-        var files = new FileSystemService();
+        var files = new FileSystemService(Mock.Of<ILogService>());
         var report = await new AnswerFileValidator(files, new PowerShellRunner(files)).ValidateAsync(xmlPath);
 
         var text = new StringBuilder();

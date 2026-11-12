@@ -78,6 +78,7 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
 
         // An app removal raises the bar while its own task is still running, so the button has to re-check when a task ends.
         _taskProgressService.ProgressUpdated += OnTaskProgressUpdated;
+        _configImportState.AnyImportRunningChanged += OnImportRunningChanged;
 
         Refresh();
     }
@@ -93,9 +94,14 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
     }
 
     private bool ComputeCanRestart() =>
-        IsBarVisible && !IsRestarting && !_configImportState.IsActive && !_taskProgressService.IsTaskRunning;
+        IsBarVisible && !IsRestarting && !_configImportState.IsAnyImportRunning && !_taskProgressService.IsTaskRunning;
 
-    private void OnTaskProgressUpdated(object? sender, TaskProgressDetail detail)
+    private void OnTaskProgressUpdated(object? sender, TaskProgressDetail detail) => RecheckCanRestart();
+
+    // The quiet apply (tray, profile switch) shows no overlay, so the button stays reachable while it runs.
+    private void OnImportRunningChanged(object? sender, EventArgs e) => RecheckCanRestart();
+
+    private void RecheckCanRestart()
     {
         if (ComputeCanRestart() != CanRestart)
             _dispatcherService.RunOnUIThread(() => CanRestart = ComputeCanRestart());
@@ -159,6 +165,7 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
 
         _disposed = true;
         _taskProgressService.ProgressUpdated -= OnTaskProgressUpdated;
+        _configImportState.AnyImportRunningChanged -= OnImportRunningChanged;
         if (_pendingChangedSubscription != null)
             _eventBus.Unsubscribe(_pendingChangedSubscription);
 

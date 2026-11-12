@@ -4,13 +4,17 @@ namespace Winhance.Core.Features.WimUtil.Models;
 // that keeps internal disks off the list; the picker shows only USB drives and never displays it,
 // so the log line that lists every disk is where the other names surface. HasRemovableMedia is the
 // device's removable-media bit, which flash drives set and USB hard drives and SSDs do not.
+// UniqueId is MSFT_Disk's identifier for the physical disk, so two sticks of one model still differ;
+// IsBoot is the disk Windows boots from.
 public sealed record RemovableDrive(
     int DiskNumber,
     string Model,
     long SizeBytes,
     string BusType,
     bool IsSystemDisk,
-    bool HasRemovableMedia)
+    bool HasRemovableMedia,
+    string UniqueId = "",
+    bool IsBoot = false)
 {
     public double SizeGigabytes => SizeBytes / (1024.0 * 1024 * 1024);
 

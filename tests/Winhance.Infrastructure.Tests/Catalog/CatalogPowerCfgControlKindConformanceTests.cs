@@ -11,7 +11,7 @@ namespace Winhance.Infrastructure.Tests.Catalog;
 public class CatalogPowerCfgControlKindConformanceTests
 {
     [Fact]
-    public void Powercfg_settings_never_derive_as_two_state()
+    public void Control_PowercfgSettings_NeverDeriveAsTwoState()
     {
         var powerCfgSettings = SettingCatalog.All
             .Where(s => s.Targets.OfType<PowerCfgTarget>().Any())

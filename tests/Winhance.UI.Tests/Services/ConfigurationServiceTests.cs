@@ -72,10 +72,11 @@ public class ConfigurationServiceTests
     private void ArrangeImportOwn(bool review, WinhanceConfigFile? config = null)
     {
         _mockDialogService
-            .Setup(d => d.ShowConfigImportOptionsDialogAsync())
-            .ReturnsAsync((ImportOption.ImportOwn, new ImportOptions { ReviewBeforeApplying = review }));
+            .Setup(d => d.ShowConfigImportOptionsDialogAsync(It.IsAny<ModeEntryNotes>()))
+            .ReturnsAsync((ImportOption.ImportOwn, new ImportOptions { ReviewBeforeApplying = review }, false));
+        _mockConfigLoadService.Setup(l => l.PickConfigurationFileAsync()).ReturnsAsync(PickedPath);
         _mockConfigLoadService
-            .Setup(l => l.LoadAndValidateConfigurationFromFileAsync())
+            .Setup(l => l.LoadAndValidateConfigurationAsync(PickedPath))
             .ReturnsAsync(config ?? new WinhanceConfigFile { Version = "2.0" });
     }
 
@@ -119,17 +120,17 @@ public class ConfigurationServiceTests
     public async Task ImportConfigurationAsync_WhenUserCancels_DoesNotProceed()
     {
         _mockDialogService
-            .Setup(d => d.ShowConfigImportOptionsDialogAsync())
-            .ReturnsAsync(((ImportOption?)null, new ImportOptions()));
+            .Setup(d => d.ShowConfigImportOptionsDialogAsync(It.IsAny<ModeEntryNotes>()))
+            .ReturnsAsync(((ImportOption?)null, new ImportOptions(), false));
 
         var service = CreateService();
         await service.ImportConfigurationAsync();
 
         _mockConfigLoadService.Verify(
-            l => l.LoadAndValidateConfigurationFromFileAsync(),
+            l => l.PickConfigurationFileAsync(),
             Times.Never);
         _mockConfigExecutionService.Verify(
-            e => e.ExecuteConfigImportAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<ImportOptions>()),
+            e => e.ExecuteConfigImportAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<ImportOptions>(), It.IsAny<string?>()),
             Times.Never);
     }
 
@@ -141,7 +142,7 @@ public class ConfigurationServiceTests
         var calls = new List<string>();
         _mockMode.Setup(m => m.EnterNormalMode()).Callback(() => calls.Add("normal"));
         _mockConfigExecutionService
-            .Setup(e => e.ExecuteConfigImportAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<ImportOptions>()))
+            .Setup(e => e.ExecuteConfigImportAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<ImportOptions>(), It.IsAny<string?>()))
             .Callback(() => calls.Add("apply"))
             .Returns(Task.CompletedTask);
 
@@ -160,7 +161,7 @@ public class ConfigurationServiceTests
 
         _mockMode.Verify(m => m.EnterNormalMode(), Times.Never);
         _mockConfigReviewOrchestrationService.Verify(
-            o => o.EnterReviewModeAsync(It.IsAny<WinhanceConfigFile>(), false), Times.Once);
+            o => o.EnterReviewModeAsync(It.IsAny<WinhanceConfigFile>(), false, PickedPath), Times.Once);
     }
 
     [Fact]
@@ -168,26 +169,43 @@ public class ConfigurationServiceTests
     {
         _mockMode.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
         _mockDialogService
-            .Setup(d => d.ShowConfigImportOptionsDialogAsync())
-            .ReturnsAsync((ImportOption.ImportOwn, new ImportOptions()));
+            .Setup(d => d.ShowConfigImportOptionsDialogAsync(It.IsAny<ModeEntryNotes>()))
+            .ReturnsAsync((ImportOption.ImportOwn, new ImportOptions(), false));
 
         await CreateService().ImportConfigurationAsync();
 
         _mockMode.Verify(m => m.EnterNormalMode(), Times.Never);
     }
 
-    [Fact]
-    public async Task ImportConfigurationAsync_FromBuilderWithEdits_WhenLeavingIsDeclined_OpensNoImportDialog()
+    [Theory]
+    [InlineData(WinhanceMode.Builder, true, "Dialog_ModeEntry_Discards")]
+    [InlineData(WinhanceMode.Builder, false, null)]
+    [InlineData(WinhanceMode.ConfigReview, false, "Dialog_ModeEntry_Discards")]
+    [InlineData(WinhanceMode.Normal, false, null)]
+    public async Task ImportConfigurationAsync_WarnsAboutDiscardedWork_InsideTheImportDialog(
+        WinhanceMode current, bool builderChanges, string? warning)
     {
-        _mockMode.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
-        _mockMode.Setup(m => m.HasBuilderChanges).Returns(true);
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
+        _mockMode.Setup(m => m.CurrentMode).Returns(current);
+        _mockMode.Setup(m => m.HasBuilderChanges).Returns(builderChanges);
+        var notes = ArrangeImportCancelled();
 
         await CreateService().ImportConfigurationAsync();
 
-        _mockDialogService.Verify(d => d.ShowConfigImportOptionsDialogAsync(), Times.Never);
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        notes().Should().Be(new ModeEntryNotes(null, null, warning));
+    }
+
+    [Fact]
+    public async Task ImportConfigurationAsync_FromBuilderWithEdits_WhenTheDialogIsCancelled_StaysInBuilder()
+    {
+        _mockMode.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _mockMode.Setup(m => m.HasBuilderChanges).Returns(true);
+        ArrangeImportCancelled();
+
+        await CreateService().ImportConfigurationAsync();
+
+        _mockMode.Verify(m => m.EnterNormalMode(), Times.Never);
+        _mockConfigLoadService.Verify(l => l.PickConfigurationFileAsync(), Times.Never);
     }
 
     [Fact]
@@ -204,7 +222,7 @@ public class ConfigurationServiceTests
             .Callback(() => calls.Add("cancel"))
             .Returns(Task.CompletedTask);
         _mockConfigReviewOrchestrationService
-            .Setup(o => o.EnterReviewModeAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<bool>()))
+            .Setup(o => o.EnterReviewModeAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<bool>(), It.IsAny<string?>()))
             .Callback(() => calls.Add("review"))
             .Returns(Task.CompletedTask);
 
@@ -214,17 +232,40 @@ public class ConfigurationServiceTests
     }
 
     [Fact]
-    public async Task ImportConfigurationAsync_WhenTheReviewIntroIsDeclined_OpensNoImportDialog()
+    public async Task ImportConfigurationAsync_ExplainsConfigReview_InsideTheImportDialog_UntilDismissed()
     {
         _mockPreferences.Setup(p => p.GetPreference("ConfigReviewModeIntroDontShow", false)).Returns(false);
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
+        var notes = ArrangeImportCancelled();
 
         await CreateService().ImportConfigurationAsync();
 
-        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Once);
-        _mockDialogService.Verify(d => d.ShowConfigImportOptionsDialogAsync(), Times.Never);
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        notes()!.Explanation.Should().Be("Dialog_ConfigReviewIntro_Message");
+    }
+
+    [Theory]
+    [InlineData(true, 1)]
+    [InlineData(false, 0)]
+    public async Task ImportConfigurationAsync_TickedDontShowAgain_IsSaved(bool hideExplanation, int saves)
+    {
+        _mockPreferences.Setup(p => p.GetPreference("ConfigReviewModeIntroDontShow", false)).Returns(false);
+        _mockDialogService
+            .Setup(d => d.ShowConfigImportOptionsDialogAsync(It.IsAny<ModeEntryNotes>()))
+            .ReturnsAsync(((ImportOption?)ImportOption.ImportRecommended, new ImportOptions(), hideExplanation));
+
+        await CreateService().ImportConfigurationAsync();
+
+        _mockPreferences.Verify(p => p.SetPreferenceAsync("ConfigReviewModeIntroDontShow", true), Times.Exactly(saves));
+    }
+
+    private Func<ModeEntryNotes?> ArrangeImportCancelled()
+    {
+        ModeEntryNotes? shown = null;
+        _mockDialogService
+            .Setup(d => d.ShowConfigImportOptionsDialogAsync(It.IsAny<ModeEntryNotes>()))
+            .Callback<ModeEntryNotes>(n => shown = n)
+            .ReturnsAsync(((ImportOption?)null, new ImportOptions(), true));
+        return () => shown;
     }
 
     [Fact]
@@ -234,17 +275,20 @@ public class ConfigurationServiceTests
         var options = new ImportOptions();
 
         _mockDialogService
-            .Setup(d => d.ShowConfigImportOptionsDialogAsync())
-            .ReturnsAsync((ImportOption.ImportOwn, options));
+            .Setup(d => d.ShowConfigImportOptionsDialogAsync(It.IsAny<ModeEntryNotes>()))
+            .ReturnsAsync((ImportOption.ImportOwn, options, false));
 
         _mockConfigLoadService
-            .Setup(l => l.LoadAndValidateConfigurationFromFileAsync())
+            .Setup(l => l.PickConfigurationFileAsync())
+            .ReturnsAsync(PickedPath);
+        _mockConfigLoadService
+            .Setup(l => l.LoadAndValidateConfigurationAsync(PickedPath))
             .ReturnsAsync(config);
 
         var service = CreateService();
         await service.ImportConfigurationAsync();
 
-        _mockConfigLoadService.Verify(l => l.LoadAndValidateConfigurationFromFileAsync(), Times.Once);
+        _mockConfigLoadService.Verify(l => l.LoadAndValidateConfigurationAsync(PickedPath), Times.Once);
         // The import entry point ensure-inits the catalog registry (idempotent InitializeAsync) as the
         // degraded-startup self-heal. Red if the ensure-init call is dropped.
         _mockCatalogSettingsRegistry.Verify(r => r.InitializeAsync(), Times.Once);
@@ -257,8 +301,8 @@ public class ConfigurationServiceTests
         var options = new ImportOptions();
 
         _mockDialogService
-            .Setup(d => d.ShowConfigImportOptionsDialogAsync())
-            .ReturnsAsync((ImportOption.ImportRecommended, options));
+            .Setup(d => d.ShowConfigImportOptionsDialogAsync(It.IsAny<ModeEntryNotes>()))
+            .ReturnsAsync((ImportOption.ImportRecommended, options, false));
 
         _mockConfigLoadService
             .Setup(l => l.LoadRecommendedConfigurationAsync())
@@ -268,6 +312,9 @@ public class ConfigurationServiceTests
         await service.ImportConfigurationAsync();
 
         _mockConfigLoadService.Verify(l => l.LoadRecommendedConfigurationAsync(), Times.Once);
+        _mockConfigLoadService.Verify(l => l.PickConfigurationFileAsync(), Times.Never);
+        _mockConfigExecutionService.Verify(
+            e => e.ExecuteConfigImportAsync(config, It.IsAny<ImportOptions>(), null), Times.Once);
     }
 
     [Fact]
@@ -277,8 +324,8 @@ public class ConfigurationServiceTests
         var options = new ImportOptions();
 
         _mockDialogService
-            .Setup(d => d.ShowConfigImportOptionsDialogAsync())
-            .ReturnsAsync((ImportOption.ImportBackup, options));
+            .Setup(d => d.ShowConfigImportOptionsDialogAsync(It.IsAny<ModeEntryNotes>()))
+            .ReturnsAsync((ImportOption.ImportBackup, options, false));
 
         _mockConfigLoadService
             .Setup(l => l.LoadUserBackupConfigurationAsync())
@@ -297,8 +344,8 @@ public class ConfigurationServiceTests
         var options = new ImportOptions();
 
         _mockDialogService
-            .Setup(d => d.ShowConfigImportOptionsDialogAsync())
-            .ReturnsAsync((ImportOption.ImportWindowsDefaults, options));
+            .Setup(d => d.ShowConfigImportOptionsDialogAsync(It.IsAny<ModeEntryNotes>()))
+            .ReturnsAsync((ImportOption.ImportWindowsDefaults, options, false));
 
         _mockConfigLoadService
             .Setup(l => l.LoadWindowsDefaultsConfigurationAsync())
@@ -316,8 +363,8 @@ public class ConfigurationServiceTests
         var options = new ImportOptions();
 
         _mockDialogService
-            .Setup(d => d.ShowConfigImportOptionsDialogAsync())
-            .ReturnsAsync((ImportOption.ImportRecommended, options));
+            .Setup(d => d.ShowConfigImportOptionsDialogAsync(It.IsAny<ModeEntryNotes>()))
+            .ReturnsAsync((ImportOption.ImportRecommended, options, false));
 
         _mockConfigLoadService
             .Setup(l => l.LoadRecommendedConfigurationAsync())
@@ -327,10 +374,10 @@ public class ConfigurationServiceTests
         await service.ImportConfigurationAsync();
 
         _mockConfigExecutionService.Verify(
-            e => e.ExecuteConfigImportAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<ImportOptions>()),
+            e => e.ExecuteConfigImportAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<ImportOptions>(), It.IsAny<string?>()),
             Times.Never);
         _mockConfigReviewOrchestrationService.Verify(
-            r => r.EnterReviewModeAsync(It.IsAny<WinhanceConfigFile>()),
+            r => r.EnterReviewModeAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<bool>(), It.IsAny<string?>()),
             Times.Never);
     }
 
@@ -341,21 +388,24 @@ public class ConfigurationServiceTests
         var options = new ImportOptions { ReviewBeforeApplying = true };
 
         _mockDialogService
-            .Setup(d => d.ShowConfigImportOptionsDialogAsync())
-            .ReturnsAsync((ImportOption.ImportOwn, options));
+            .Setup(d => d.ShowConfigImportOptionsDialogAsync(It.IsAny<ModeEntryNotes>()))
+            .ReturnsAsync((ImportOption.ImportOwn, options, false));
 
         _mockConfigLoadService
-            .Setup(l => l.LoadAndValidateConfigurationFromFileAsync())
+            .Setup(l => l.PickConfigurationFileAsync())
+            .ReturnsAsync(PickedPath);
+        _mockConfigLoadService
+            .Setup(l => l.LoadAndValidateConfigurationAsync(PickedPath))
             .ReturnsAsync(config);
 
         var service = CreateService();
         await service.ImportConfigurationAsync();
 
         _mockConfigReviewOrchestrationService.Verify(
-            r => r.EnterReviewModeAsync(config),
+            r => r.EnterReviewModeAsync(config, false, PickedPath),
             Times.Once);
         _mockConfigExecutionService.Verify(
-            e => e.ExecuteConfigImportAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<ImportOptions>()),
+            e => e.ExecuteConfigImportAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<ImportOptions>(), It.IsAny<string?>()),
             Times.Never);
     }
 
@@ -366,21 +416,24 @@ public class ConfigurationServiceTests
         var options = new ImportOptions { ReviewBeforeApplying = false };
 
         _mockDialogService
-            .Setup(d => d.ShowConfigImportOptionsDialogAsync())
-            .ReturnsAsync((ImportOption.ImportOwn, options));
+            .Setup(d => d.ShowConfigImportOptionsDialogAsync(It.IsAny<ModeEntryNotes>()))
+            .ReturnsAsync((ImportOption.ImportOwn, options, false));
 
         _mockConfigLoadService
-            .Setup(l => l.LoadAndValidateConfigurationFromFileAsync())
+            .Setup(l => l.PickConfigurationFileAsync())
+            .ReturnsAsync(PickedPath);
+        _mockConfigLoadService
+            .Setup(l => l.LoadAndValidateConfigurationAsync(PickedPath))
             .ReturnsAsync(config);
 
         var service = CreateService();
         await service.ImportConfigurationAsync();
 
         _mockConfigExecutionService.Verify(
-            e => e.ExecuteConfigImportAsync(config, options),
+            e => e.ExecuteConfigImportAsync(config, options, PickedPath),
             Times.Once);
         _mockConfigReviewOrchestrationService.Verify(
-            r => r.EnterReviewModeAsync(It.IsAny<WinhanceConfigFile>()),
+            r => r.EnterReviewModeAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<bool>(), It.IsAny<string?>()),
             Times.Never);
     }
 
@@ -393,13 +446,13 @@ public class ConfigurationServiceTests
         await CreateService().ImportConfigurationFromFileAsync(PickedPath);
 
         _mockCatalogSettingsRegistry.Verify(r => r.InitializeAsync(), Times.Once);
-        _mockDialogService.Verify(d => d.ShowConfigImportOptionsDialogAsync(), Times.Never);
+        _mockDialogService.Verify(d => d.ShowConfigImportOptionsDialogAsync(It.IsAny<ModeEntryNotes>()), Times.Never);
         _mockConfigReviewOrchestrationService.Verify(
-            r => r.EnterReviewModeAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<bool>()), Times.Never);
+            r => r.EnterReviewModeAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<bool>(), It.IsAny<string?>()), Times.Never);
         _mockConfigExecutionService.Verify(
             e => e.ExecuteConfigImportAsync(config, It.Is<ImportOptions>(o =>
                 o.ProcessWindowsAppsRemoval && o.ProcessExternalAppsInstallation
-                && o.ApplyCleanTaskbar && !o.ApplyCleanStartMenu && !o.ReviewBeforeApplying)),
+                && o.ApplyCleanTaskbar && !o.ApplyCleanStartMenu && !o.ReviewBeforeApplying), PickedPath),
             Times.Once);
     }
 
@@ -413,7 +466,7 @@ public class ConfigurationServiceTests
         await CreateService().ImportConfigurationFromFileAsync(PickedPath);
 
         _mockConfigExecutionService.Verify(
-            e => e.ExecuteConfigImportAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<ImportOptions>()),
+            e => e.ExecuteConfigImportAsync(It.IsAny<WinhanceConfigFile>(), It.IsAny<ImportOptions>(), It.IsAny<string?>()),
             Times.Never);
     }
 

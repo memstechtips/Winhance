@@ -10,7 +10,7 @@ namespace Winhance.Infrastructure.Features.Optimize.Services;
 internal class PowerService(
     ILogService logService,
     IPowerSettingsQueryService powerSettingsQueryService,
-    IPowerSchemeOperations powerSchemeOperations) : IPowerService, ISpecialSettingHandler, IOptionProvider
+    IPowerSchemeOperations powerSchemeOperations) : IPowerService, IOptionProvider
 {
     public IReadOnlyList<OptionSource> Sources { get; } = [OptionSource.PowerPlans];
 
@@ -37,11 +37,6 @@ internal class PowerService(
     private static string? PredefinedGuid(DynamicOption option) =>
         PowerPlanCatalog.BuiltInPowerPlans.FirstOrDefault(p => SameScheme(p.Guid, option.Value))?.Guid
         ?? (PowerPlanCatalog.HasWinhanceName(option.Label) ? PowerPlanCatalog.WinhancePowerPlanGuid : null);
-
-    // Dead stub, always false: power-plan apply runs through the catalog engine (ApplyRequestResolver ->
-    // PowerPlanEffect -> WindowsStateWriter), so PowerService is not an apply handler.
-    public Task<bool> TryApplySpecialSettingAsync(string settingId, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
-        => Task.FromResult(false);
 
     // Ghost entries (right GUID, wrong name, e.g. "Unknown Power Plan") are visible to PowerEnumerate but not
     // functional. Called from SystemDetectionContext.PrefetchAsync before the dropdown is populated. Never throws.

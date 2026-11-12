@@ -25,7 +25,7 @@ public class CatalogPowerExistenceFilterConformanceTests
 
 
     [Fact]
-    public async Task New_filter_keeps_a_setting_whose_hidden_powercfg_target_is_enabled()
+    public async Task FilterAsync_HiddenPowerCfgTargetEnabled_KeepsTheSetting()
     {
         var pick = Catalog.SelectMany(s => s.Targets.OfType<PowerCfgTarget>().Select(t => (s, t)))
             .First(x => x.t.EnablementKey is not null && x.s.Availability.ValidatesExistence);
@@ -50,7 +50,7 @@ public class CatalogPowerExistenceFilterConformanceTests
     // Production hardcodes the unhide write as SetValue(path, "Attributes", 0, DWord) because EnablementKey
     // models no write value; safe only while every enablement writes exactly that constant - the name/type half is pinned here.
     [Fact]
-    public void Every_powercfg_enablement_key_is_the_constant_attributes_dword()
+    public void EnablementKey_EveryPowerCfgTarget_IsTheConstantAttributesDword()
     {
         var keys = SettingCatalog.All
             .SelectMany(s => s.Targets.OfType<PowerCfgTarget>())
@@ -84,7 +84,7 @@ public class CatalogPowerExistenceFilterConformanceTests
     }
 
     [Fact]
-    public async Task Task_setting_with_no_registered_task_is_filtered_out()
+    public async Task FilterAsync_TaskSettingWithNoRegisteredTask_FiltersItOut()
     {
         var (svc, pick) = TaskFixture(taskEnabledAnswer: null);
         var result = await svc.FilterAsync(new[] { pick });
@@ -92,7 +92,7 @@ public class CatalogPowerExistenceFilterConformanceTests
     }
 
     [Fact]
-    public async Task Task_setting_with_a_registered_task_survives()
+    public async Task FilterAsync_TaskSettingWithARegisteredTask_KeepsIt()
     {
         var (svc, pick) = TaskFixture(taskEnabledAnswer: false);
         var result = await svc.FilterAsync(new[] { pick });

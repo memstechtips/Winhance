@@ -5,34 +5,27 @@ using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.Common.Services;
 
-public sealed class AppSelectionSource : IAppSelectionSource
+public sealed class AppSelectionSource(
+    IWindowsAppsItemsProvider windowsApps,
+    IExternalAppsItemsProvider externalApps) : IAppSelectionSource
 {
-    private readonly IWindowsAppsItemsProvider _windowsApps;
-    private readonly IExternalAppsItemsProvider _externalApps;
-
-    public AppSelectionSource(IWindowsAppsItemsProvider windowsApps, IExternalAppsItemsProvider externalApps)
-    {
-        _windowsApps = windowsApps;
-        _externalApps = externalApps;
-    }
-
     public async Task<IReadOnlyList<AppChoice>> CheckedWindowsAppsAsync()
     {
-        if (!_windowsApps.IsInitialized) await _windowsApps.LoadItemsAsync();
-        return _windowsApps.Items.Where(i => i.IsSelected).Select(WindowsApp).ToList();
+        if (!windowsApps.IsInitialized) await windowsApps.LoadItemsAsync();
+        return windowsApps.Items.Where(i => i.IsSelected).Select(WindowsApp).ToList();
     }
 
     public async Task<IReadOnlyList<AppChoice>> InstalledWindowsAppsAsync()
     {
-        if (!_windowsApps.IsInitialized) await _windowsApps.LoadItemsAsync();
-        return _windowsApps.Items.Where(i => i.IsInstalled).Select(WindowsApp).ToList();
+        if (!windowsApps.IsInitialized) await windowsApps.LoadItemsAsync();
+        return windowsApps.Items.Where(i => i.IsInstalled).Select(WindowsApp).ToList();
     }
 
     public async Task<IReadOnlyList<AppChoice>> CheckedExternalAppsAsync()
     {
-        if (!_externalApps.IsInitialized) await _externalApps.LoadItemsAsync();
+        if (!externalApps.IsInitialized) await externalApps.LoadItemsAsync();
         // An installed app the catalog does not list travels by its package id; with none, another PC cannot install it.
-        return _externalApps.Items.Where(i => i.IsSelected && !(i.IsOtherInstalled && i.PackageId is null))
+        return externalApps.Items.Where(i => i.IsSelected && !(i.IsOtherInstalled && i.PackageId is null))
             .Select(i => new AppChoice(i.PackageId ?? i.Id, i.Name, null, null, null, i.Definition.WinGetPackageId is { Length: > 0 } ids ? ids[0] : null))
             .ToList();
     }

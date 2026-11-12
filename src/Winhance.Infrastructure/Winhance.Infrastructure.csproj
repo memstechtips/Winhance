@@ -11,8 +11,7 @@
         <InternalsVisibleTo Include="Winhance.Infrastructure.Tests" />
         <InternalsVisibleTo Include="Winhance.IntegrationTests" />
         <InternalsVisibleTo Include="Winhance.UI.Tests" />
-        <!-- WimUtil's native seams (IVirtualDiskNative, IFileCopyNative, IFileSystemImageWrapper,
-             IStorageEnumerator) are internal to this assembly and are mocked, so Castle's proxy
+        <!-- WimUtil's native seams are internal to this assembly and are mocked, so Castle's proxy
              generator needs to see them too. -->
         <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
     </ItemGroup>
@@ -49,6 +48,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Features\Autounattend\Resources\ExtractScript.ps1">
       <LogicalName>Winhance.Infrastructure.Resources.Autounattend.ExtractScript.ps1</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Features\Autounattend\Resources\SetComputerName.ps1">
+      <LogicalName>Winhance.Infrastructure.Resources.Autounattend.SetComputerName.ps1</LogicalName>
     </EmbeddedResource>
     <!-- Compiled as source AND embedded as text: the answer file hands this same file to Add-Type. -->
     <EmbeddedResource Include="Features\Common\Native\DesktopBackgroundInterop.cs">

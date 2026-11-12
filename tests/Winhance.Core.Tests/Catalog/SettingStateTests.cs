@@ -15,7 +15,7 @@ public class SettingStateTests
     };
 
     [Fact]
-    public void HasRole_defaults_to_Always_context()
+    public void HasRole_WithoutContext_DefaultsToAlwaysContext()
     {
         var s = Make(new StateRole(RoleKind.Recommended));
         Assert.True(s.HasRole(RoleKind.Recommended));
@@ -23,7 +23,7 @@ public class SettingStateTests
     }
 
     [Fact]
-    public void HasRole_is_context_scoped_for_power()
+    public void HasRole_PowerRoles_AreContextScoped()
     {
         var s = Make(
             new StateRole(RoleKind.Recommended, PowerContext.AC),

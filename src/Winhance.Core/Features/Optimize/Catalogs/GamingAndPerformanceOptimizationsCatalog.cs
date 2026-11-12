@@ -173,7 +173,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = LocKey.Setting.GamingBackgroundApps.Option2,
-                    Warning = LocKey.Setting.GamingBackgroundApps.OptionWarning2,
+                    RiskWarning = LocKey.Setting.GamingBackgroundApps.OptionWarning2,
                     Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["LetAppsRunInBackground"] = Of(2) },
                 },
@@ -367,6 +367,33 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Set = new Dictionary<string, StateValue> { ["MultiTaskingAltTabFilter"] = Of(0).OrAbsent() },
                 },
             },
+        },
+        new()
+        {
+            Id = "system-restore-protection",
+            Display = new()
+            {
+                Name = LocKey.Setting.SystemRestoreProtection.Name,
+                Description = LocKey.Setting.SystemRestoreProtection.Description,
+                Icon = MaterialIcons.History,
+                AddedInVersion = "26.05.13",
+                IsSubjectivePreference = true,
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Effects = new Effect[] { new ScriptEffect(@"Enable-ComputerRestore -Drive 'C:\'", RunContext.System) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Effects = new Effect[] { new ScriptEffect(@"Disable-ComputerRestore -Drive 'C:\'", RunContext.System) },
+                },
+            },
+            Detector = new SystemRestoreDetector(LocKey.Common.Enabled, LocKey.Common.Disabled),
         },
         new()
         {
@@ -1345,14 +1372,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.Cached,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SysMain" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
                 new SettingState
                 {
                     Label = LocKey.Setting.GamingSysmainService.Option0,
-                    Warning = LocKey.Setting.GamingSysmainService.OptionWarning0,
+                    RiskWarning = LocKey.Setting.GamingSysmainService.OptionWarning0,
                     Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
@@ -1417,14 +1443,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.DatabaseSearch,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WSearch" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
                 new SettingState
                 {
                     Label = LocKey.ServiceOption.Disabled,
-                    Warning = LocKey.Setting.GamingWindowsSearchService.OptionWarning0,
+                    RiskWarning = LocKey.Setting.GamingWindowsSearchService.OptionWarning0,
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
                 new SettingState
@@ -1452,7 +1477,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.Printer,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Spooler" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -1484,19 +1508,18 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = LocKey.SettingGroup.SystemServices,
                 Icon = MaterialIcons.CloudUpload,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\DiagTrack" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
                 new SettingState
                 {
-                    Label = LocKey.ServiceOption.Disabled,
+                    Label = LocKey.ServiceOption.DisabledRecommended,
+                    Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
                 new SettingState
                 {
-                    Label = LocKey.ServiceOption.ManualRecommended,
-                    Roles = new[] { StateRole.Recommended },
+                    Label = LocKey.ServiceOption.Manual,
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(3) },
                 },
                 new SettingState
@@ -1519,20 +1542,19 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 AddedInVersion = "26.03.27",
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\CDPSvc", @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\CDPUserSvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
                 new SettingState
                 {
                     Label = LocKey.ServiceOption.Disabled,
-                    Warning = LocKey.Setting.GamingConnectedDevicesPlatformService.OptionWarning0,
+                    RiskWarning = LocKey.Setting.GamingConnectedDevicesPlatformService.OptionWarning0,
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
                 new SettingState
                 {
                     Label = LocKey.ServiceOption.ManualRecommended,
-                    Warning = LocKey.Setting.GamingConnectedDevicesPlatformService.OptionWarning1,
+                    RiskWarning = LocKey.Setting.GamingConnectedDevicesPlatformService.OptionWarning1,
                     Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(3) },
                 },
@@ -1554,7 +1576,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = LocKey.SettingGroup.SystemServices,
                 Icon = MaterialIcons.ApplicationCog,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\PcaSvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -1587,7 +1608,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = LocKey.SettingGroup.SystemServices,
                 Icon = MaterialIcons.AlertOctagon,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WerSvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -1619,7 +1639,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = LocKey.SettingGroup.SystemServices,
                 Icon = MaterialIcons.MapMarkerOff,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\lfsvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -1651,7 +1670,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = LocKey.SettingGroup.SystemServices,
                 Icon = MaterialIcons.StorefrontOutline,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RetailDemo" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -1683,7 +1701,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = LocKey.SettingGroup.SystemServices,
                 Icon = MaterialIcons.TestTube,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\wisvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -1716,7 +1733,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.Cellphone,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\PhoneSvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -1748,7 +1764,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = LocKey.SettingGroup.SystemServices,
                 Icon = MaterialIcons.Wallet,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WalletService" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -1780,7 +1795,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = LocKey.SettingGroup.SystemServices,
                 Icon = MaterialIcons.SmartCard,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SCardSvr", @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\ScDeviceEnum", @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SCPolicySvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -1812,7 +1826,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = LocKey.SettingGroup.SystemServices,
                 Icon = MaterialIcons.MapOutline,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\MapsBroker" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -1845,7 +1858,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = LocKey.SettingGroup.SystemServices,
                 Icon = MaterialIcons.Fax,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Fax" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -1878,7 +1890,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = LocKey.SettingGroup.SystemServices,
                 Icon = MaterialIcons.ShareOff,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WMPNetworkSvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -1911,7 +1922,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = LocKey.SettingGroup.SystemServices,
                 Icon = MaterialIcons.VirtualReality,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\MixedRealityOpenXRSvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -1945,7 +1955,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.CellphoneWireless,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\icssvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -1977,7 +1986,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = LocKey.SettingGroup.SystemServices,
                 Icon = MaterialIcons.MessageText,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SmsRouter" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -2010,7 +2018,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.ShieldAccount,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WpcMonSvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -2042,7 +2049,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = LocKey.SettingGroup.SystemServices,
                 Icon = MaterialIcons.Nfc,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SEMgrSvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -2074,7 +2080,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = LocKey.SettingGroup.SystemServices,
                 Icon = MaterialIcons.ShieldCheck,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\svsvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -2107,7 +2112,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.Vpn,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RasMan" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -2141,7 +2145,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.NetworkOff,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RasAuto" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -2174,13 +2177,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.RemoteDesktop,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TermService" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
                 new SettingState
                 {
                     Label = LocKey.ServiceOption.Disabled,
+                    RiskWarning = LocKey.Setting.GamingRemoteDesktopServices.OptionWarning0,
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
                 new SettingState
@@ -2207,7 +2210,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.MonitorShare,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SessionEnv" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -2240,7 +2242,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.TransitConnectionVariant,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\UmRdpService" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -2273,14 +2274,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.MicrosoftXbox,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\XblAuthManager" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
                 new SettingState
                 {
                     Label = LocKey.ServiceOption.Disabled,
-                    Warning = LocKey.Setting.GamingXboxAuthManager.OptionWarning0,
+                    RiskWarning = LocKey.Setting.GamingXboxAuthManager.OptionWarning0,
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
                 new SettingState
@@ -2307,7 +2307,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.CloudUploadOutline,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\XblGameSave" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -2340,7 +2339,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.NetworkOutline,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\XboxNetApiSvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -2373,7 +2371,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.Fingerprint,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WbioSrvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -2407,7 +2404,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 AddedInVersion = "26.04.03",
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[]
             {
                 // Windows 11 build 22471 renamed TabletInputService to TextInputManagementService.
@@ -2420,7 +2416,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = LocKey.ServiceOption.Disabled,
-                    Warning = LocKey.Setting.GamingTouchKeyboardService.OptionWarning0,
+                    RiskWarning = LocKey.Setting.GamingTouchKeyboardService.OptionWarning0,
                     Effects = new Effect[] { new ScriptEffect(@"if([Environment]::OSVersion.Version.Build -ge 22000 -and -not(Get-WinUserLanguageList|?{$_.LanguageTag-match'^(zh|ja|ko)'})){$f='C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe'; $o=$f-replace'\.exe$','.old.exe'; if(Test-Path $f){takeown /f $f /a | Out-Null; icacls $f /grant Administrators:F | Out-Null; if(Test-Path $o){Remove-Item $o -Force}; Rename-Item $f $o -Force}; Stop-Process -Name TextInputHost -Force -ErrorAction SilentlyContinue}", RunContext.System) },
                     Set = new Dictionary<string, StateValue>
                     {
@@ -2467,14 +2463,13 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 AddedInVersion = "26.05.18",
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TapiSrv" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
                 new SettingState
                 {
                     Label = LocKey.ServiceOption.Disabled,
-                    Warning = LocKey.Setting.GamingTelephonyService.OptionWarning0,
+                    RiskWarning = LocKey.Setting.GamingTelephonyService.OptionWarning0,
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
                 new SettingState
@@ -2500,7 +2495,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = LocKey.SettingGroup.SystemServices,
                 Icon = MaterialIcons.Radar,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SensrSvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -2532,7 +2526,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 GroupName = LocKey.SettingGroup.SystemServices,
                 Icon = MaterialIcons.ChartBox,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SensorDataService" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -2566,7 +2559,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 AddedInVersion = "26.04.10",
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WSAIFabricSvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -3099,7 +3091,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.MonitorEye,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("VisualFXSetting", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" }, "VisualFXSetting", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -3141,7 +3132,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.Animation,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
+            Apply = new() { NotifyWindows = WindowsChange.Settings },
             Targets = new Target[] { new RegTarget("UserPreferencesMask", new[] { @"HKEY_CURRENT_USER\Control Panel\Desktop" }, "UserPreferencesMask", RegistryValueKind.Binary) { ByteIndex = 4, BitMask = 0x02 } },
             States = new[]
             {
@@ -3150,6 +3141,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Label = LocKey.Common.Enabled,
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(1) },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.ClientAreaAnimation, true) },
                 },
                 new SettingState
                 {
@@ -3157,6 +3149,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(0) },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.ClientAreaAnimation, false) },
                 },
             },
         },
@@ -3171,7 +3164,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.WindowRestore,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
+            Apply = new() { NotifyWindows = WindowsChange.Settings },
             Targets = new Target[] { new RegTarget("MinAnimate", new[] { @"HKEY_CURRENT_USER\Control Panel\Desktop\WindowMetrics" }, "MinAnimate", RegistryValueKind.String) },
             States = new[]
             {
@@ -3180,6 +3173,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Label = LocKey.Common.Enabled,
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["MinAnimate"] = Of("1") },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.MinimizeAnimation, true) },
                 },
                 new SettingState
                 {
@@ -3187,6 +3181,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["MinAnimate"] = Of("0") },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.MinimizeAnimation, false) },
                 },
             },
         },
@@ -3201,7 +3196,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.DockBottom,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
+            Apply = new() { NotifyWindows = WindowsChange.Settings },
             Targets = new Target[] { new RegTarget("TaskbarAnimations", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "TaskbarAnimations", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -3260,7 +3255,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.MenuOpen,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
+            Apply = new() { NotifyWindows = WindowsChange.Settings },
             Targets = new Target[] { new RegTarget("UserPreferencesMask", new[] { @"HKEY_CURRENT_USER\Control Panel\Desktop" }, "UserPreferencesMask", RegistryValueKind.Binary) { ByteIndex = 0, BitMask = 0x02 } },
             States = new[]
             {
@@ -3269,6 +3264,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Label = LocKey.Common.Enabled,
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(1) },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.MenuAnimation, true) },
                 },
                 new SettingState
                 {
@@ -3276,6 +3272,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(0) },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.MenuAnimation, false) },
                 },
             },
         },
@@ -3290,7 +3287,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.TooltipText,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
+            Apply = new() { NotifyWindows = WindowsChange.Settings },
             Targets = new Target[] { new RegTarget("UserPreferencesMask", new[] { @"HKEY_CURRENT_USER\Control Panel\Desktop" }, "UserPreferencesMask", RegistryValueKind.Binary) { ByteIndex = 1, BitMask = 0x08 } },
             States = new[]
             {
@@ -3299,6 +3296,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Label = LocKey.Common.Enabled,
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(1) },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.ToolTipAnimation, true) },
                 },
                 new SettingState
                 {
@@ -3306,6 +3304,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(0) },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.ToolTipAnimation, false) },
                 },
             },
         },
@@ -3320,7 +3319,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = FluentIcons.SlideTextCursor,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
+            Apply = new() { NotifyWindows = WindowsChange.Settings },
             Targets = new Target[] { new RegTarget("UserPreferencesMask", new[] { @"HKEY_CURRENT_USER\Control Panel\Desktop" }, "UserPreferencesMask", RegistryValueKind.Binary) { ByteIndex = 1, BitMask = 0x04 } },
             States = new[]
             {
@@ -3329,6 +3328,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Label = LocKey.Common.Enabled,
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(1) },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.SelectionFade, true) },
                 },
                 new SettingState
                 {
@@ -3336,6 +3336,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(0) },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.SelectionFade, false) },
                 },
             },
         },
@@ -3379,7 +3380,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.CursorDefault,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
+            Apply = new() { NotifyWindows = WindowsChange.Settings },
             Targets = new Target[] { new RegTarget("UserPreferencesMask", new[] { @"HKEY_CURRENT_USER\Control Panel\Desktop" }, "UserPreferencesMask", RegistryValueKind.Binary) { ByteIndex = 1, BitMask = 0x20 } },
             States = new[]
             {
@@ -3387,6 +3388,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 {
                     Label = LocKey.Common.Enabled,
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(1) },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.CursorShadow, true) },
                 },
                 new SettingState
                 {
@@ -3394,6 +3396,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(0).OrAbsent() },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.CursorShadow, false) },
                 },
             },
         },
@@ -3408,7 +3411,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.BoxShadow,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
+            Apply = new() { NotifyWindows = WindowsChange.Settings },
             Targets = new Target[] { new RegTarget("UserPreferencesMask", new[] { @"HKEY_CURRENT_USER\Control Panel\Desktop" }, "UserPreferencesMask", RegistryValueKind.Binary) { ByteIndex = 2, BitMask = 0x04 } },
             States = new[]
             {
@@ -3417,6 +3420,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Label = LocKey.Common.Enabled,
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(1) },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.DropShadow, true) },
                 },
                 new SettingState
                 {
@@ -3424,6 +3428,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(0) },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.DropShadow, false) },
                 },
             },
         },
@@ -3438,7 +3443,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = FluentIcons.ImageStack,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
+            Apply = new() { NotifyWindows = WindowsChange.Settings },
             Targets = new Target[] { new RegTarget("IconsOnly", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "IconsOnly", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -3467,7 +3472,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.Select,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
+            Apply = new() { NotifyWindows = WindowsChange.Settings },
             Targets = new Target[] { new RegTarget("ListviewAlphaSelect", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "ListviewAlphaSelect", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -3496,7 +3501,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.SelectionDrag,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
+            Apply = new() { NotifyWindows = WindowsChange.Settings },
             Targets = new Target[] { new RegTarget("DragFullWindows", new[] { @"HKEY_CURRENT_USER\Control Panel\Desktop" }, "DragFullWindows", RegistryValueKind.String) },
             States = new[]
             {
@@ -3505,12 +3510,14 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Label = LocKey.Common.Enabled,
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["DragFullWindows"] = Of("1") },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.DragFullWindows, true) },
                 },
                 new SettingState
                 {
                     Label = LocKey.Common.Disabled,
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["DragFullWindows"] = Of("0") },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.DragFullWindows, false) },
                 },
             },
         },
@@ -3525,7 +3532,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.FormDropdown,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
+            Apply = new() { NotifyWindows = WindowsChange.Settings },
             Targets = new Target[] { new RegTarget("UserPreferencesMask", new[] { @"HKEY_CURRENT_USER\Control Panel\Desktop" }, "UserPreferencesMask", RegistryValueKind.Binary) { ByteIndex = 0, BitMask = 0x04 } },
             States = new[]
             {
@@ -3534,6 +3541,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Label = LocKey.Common.Enabled,
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(1) },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.ComboBoxAnimation, true) },
                 },
                 new SettingState
                 {
@@ -3541,6 +3549,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(0) },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.ComboBoxAnimation, false) },
                 },
             },
         },
@@ -3555,7 +3564,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.FormatSize,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
+            Apply = new() { NotifyWindows = WindowsChange.Settings },
             Targets = new Target[] { new RegTarget("FontSmoothing", new[] { @"HKEY_CURRENT_USER\Control Panel\Desktop" }, "FontSmoothing", RegistryValueKind.String) },
             States = new[]
             {
@@ -3564,12 +3573,14 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Label = LocKey.Common.Enabled,
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["FontSmoothing"] = Of("2") },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.FontSmoothing, true) },
                 },
                 new SettingState
                 {
                     Label = LocKey.Common.Disabled,
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["FontSmoothing"] = Of("0") },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.FontSmoothing, false) },
                 },
             },
         },
@@ -3584,7 +3595,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.ListBox,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
+            Apply = new() { NotifyWindows = WindowsChange.Settings },
             Targets = new Target[] { new RegTarget("UserPreferencesMask", new[] { @"HKEY_CURRENT_USER\Control Panel\Desktop" }, "UserPreferencesMask", RegistryValueKind.Binary) { ByteIndex = 0, BitMask = 0x08 } },
             States = new[]
             {
@@ -3593,6 +3604,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Label = LocKey.Common.Enabled,
                     Roles = new[] { StateRole.WindowsDefault },
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(1) },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.ListBoxSmoothScrolling, true) },
                 },
                 new SettingState
                 {
@@ -3600,6 +3612,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["UserPreferencesMask"] = Of(0) },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.ListBoxSmoothScrolling, false) },
                 },
             },
         },
@@ -3614,7 +3627,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Icon = MaterialIcons.TextShadow,
                 IsSubjectivePreference = true,
             },
-            Apply = new() { RequiresReboot = true },
+            Apply = new() { NotifyWindows = WindowsChange.Settings },
             Targets = new Target[] { new RegTarget("ListviewShadow", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "ListviewShadow", RegistryValueKind.DWord) },
             States = new[]
             {
@@ -3809,33 +3822,6 @@ public static class GamingAndPerformanceOptimizationsCatalog
                     Set = new Dictionary<string, StateValue> { ["Flags"] = Of("4194") },
                 },
             },
-        },
-        new()
-        {
-            Id = "system-restore-protection",
-            Display = new()
-            {
-                Name = LocKey.Setting.SystemRestoreProtection.Name,
-                Description = LocKey.Setting.SystemRestoreProtection.Description,
-                Icon = MaterialIcons.History,
-                AddedInVersion = "26.05.13",
-                IsSubjectivePreference = true,
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    Effects = new Effect[] { new ScriptEffect(@"Enable-ComputerRestore -Drive 'C:\'", RunContext.System) },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Effects = new Effect[] { new ScriptEffect(@"Disable-ComputerRestore -Drive 'C:\'", RunContext.System) },
-                },
-            },
-            Detector = new SystemRestoreDetector(LocKey.Common.Enabled, LocKey.Common.Disabled),
         },
     };
 }

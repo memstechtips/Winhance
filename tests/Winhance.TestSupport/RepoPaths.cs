@@ -18,4 +18,11 @@ public static class RepoPaths
 
     public static string LocalizationDir([CallerFilePath] string callerPath = "") =>
         Path.Combine(SolutionDir(callerPath), "src", "Winhance.Core", "Features", "Common", "Localization");
+
+    public static IEnumerable<string> SourceFiles(string pattern, [CallerFilePath] string callerPath = "")
+    {
+        var separator = Path.DirectorySeparatorChar;
+        return Directory.EnumerateFiles(Path.Combine(SolutionDir(callerPath), "src"), pattern, SearchOption.AllDirectories)
+            .Where(f => !f.Contains($"{separator}obj{separator}") && !f.Contains($"{separator}bin{separator}"));
+    }
 }

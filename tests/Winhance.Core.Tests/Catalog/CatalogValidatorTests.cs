@@ -35,7 +35,7 @@ public class CatalogValidatorTests
         St(TestKeys.Of(label), new() { [FakeOptionProvider.TargetKey] = StateValue.Of(key) });
 
     [Fact]
-    public void Every_setting_in_the_catalog_passes_its_own_rules()
+    public void Validate_EveryCatalogSetting_ReturnsNoErrors()
     {
         var errors = SettingCatalog.All
             .SelectMany(CatalogValidator.Validate)
@@ -48,7 +48,7 @@ public class CatalogValidatorTests
     [Theory]
     [InlineData(@"HKEY_CLASSES_ROOT\lnkfile")]
     [InlineData(@"HKCR\lnkfile")]
-    public void A_registry_path_through_classes_root_is_an_error(string path)
+    public void Validate_RegistryPathThroughClassesRoot_ReturnsError(string path)
     {
         var s = Make([new RegTarget("NeverShowExt", [path], "NeverShowExt", RegistryValueKind.String)],
             [St(TestKeys.Of("On"), new() { ["NeverShowExt"] = StateValue.Of("") }, fallback: true)]);
@@ -57,13 +57,13 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_keyed_selection_with_one_target_and_no_states_is_valid()
+    public void Validate_KeyedSelectionWithOneTargetAndNoStates_IsValid()
     {
         Assert.Empty(CatalogValidator.Validate(FakeOptionProvider.SettingFor()));
     }
 
     [Fact]
-    public void A_keyed_selection_may_name_its_options_as_states_by_key_alone()
+    public void Validate_KeyedSelectionNamingOptionsAsStatesByKeyAlone_IsValid()
     {
         var s = FakeOptionProvider.SettingFor() with
         {
@@ -75,7 +75,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_keyed_state_that_gives_its_key_target_no_string_is_an_error()
+    public void Validate_KeyedStateGivingKeyTargetNoString_ReturnsError()
     {
         var s = FakeOptionProvider.SettingFor() with
         {
@@ -86,7 +86,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_keyed_selection_with_no_key_target_cannot_name_a_state()
+    public void Validate_KeyedSelectionWithNoKeyTarget_RejectsNamedState()
     {
         var s = FakeOptionProvider.SettingFor() with
         {
@@ -98,7 +98,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Two_keyed_states_with_the_same_key_in_any_case_are_an_error()
+    public void Validate_TwoKeyedStatesWithSameKeyInAnyCase_ReturnsError()
     {
         var s = FakeOptionProvider.SettingFor() with { States = [Named("A", "alpha"), Named("B", "ALPHA")] };
 
@@ -106,7 +106,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_keyed_state_may_not_carry_a_role_an_effect_a_control_or_a_link()
+    public void Validate_KeyedStateCarryingRoleEffectControlOrLink_ReturnsError()
     {
         var named = Named("A", "alpha");
         var states = new[]
@@ -125,7 +125,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_power_plan_list_with_no_target_is_valid()
+    public void Validate_PowerPlanListWithNoTarget_IsValid()
     {
         var s = FakeOptionProvider.SettingFor() with
         {
@@ -137,7 +137,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Any_other_keyed_selection_must_write_a_registry_target()
+    public void Validate_NonPowerPlanKeyedSelectionWithoutRegistryTarget_ReturnsError()
     {
         var none = FakeOptionProvider.SettingFor() with { Targets = System.Array.Empty<Target>() };
         var readOnly = FakeOptionProvider.SettingFor() with { Targets = [Reg("Type", "BackgroundType") with { ReadOnly = true }] };
@@ -147,7 +147,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_keyed_selection_with_a_numeric_range_is_an_error()
+    public void Validate_KeyedSelectionWithNumericRange_ReturnsError()
     {
         var s = FakeOptionProvider.SettingFor() with { Numeric = new() { Min = 0, Max = 100 } };
 
@@ -155,7 +155,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_target_that_takes_a_computed_value_belongs_to_a_keyed_selection()
+    public void Validate_ComputedValueTargetOutsideKeyedSelection_ReturnsError()
     {
         var keyed = FakeOptionProvider.SettingFor() with
         {
@@ -176,7 +176,7 @@ public class CatalogValidatorTests
     [Theory]
     [InlineData(OptionSource.TimeZones)]
     [InlineData(OptionSource.KeyboardLayouts)]
-    public void A_list_read_from_registry_subkeys_must_name_their_path_and_caption(OptionSource source)
+    public void Validate_RegistrySubkeyListWithoutPathOrCaption_ReturnsError(OptionSource source)
     {
         const string message = "must name their Path and LabelValue";
         var named = FakeOptionProvider.SettingFor() with { Options = new(source) { Path = @"HKEY_LOCAL_MACHINE\TEST", LabelValue = "Display" } };
@@ -187,7 +187,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_list_not_read_from_registry_subkeys_may_not_name_a_path_or_caption()
+    public void Validate_NonSubkeyListNamingPathOrCaption_ReturnsError()
     {
         var withPath = FakeOptionProvider.SettingFor() with { Options = new(OptionSource.RegionalFormats) { Path = @"HKEY_LOCAL_MACHINE\TEST" } };
         var withCaption = FakeOptionProvider.SettingFor() with { Options = new(OptionSource.RegionalFormats) { LabelValue = "Display" } };
@@ -197,7 +197,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Only_a_colour_or_locale_value_list_declares_fixed_keys()
+    public void Validate_FixedKeysOnListOtherThanColourOrLocale_ReturnsError()
     {
         var colors = FakeOptionProvider.SettingFor() with { Options = new(OptionSource.Colors) { Keys = ["#000000"] } };
         var locale = FakeOptionProvider.SettingFor() with
@@ -212,7 +212,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_locale_value_list_must_name_the_value_it_offers()
+    public void Validate_LocaleValueListWithoutValueName_ReturnsError()
     {
         var unnamed = FakeOptionProvider.SettingFor() with { Options = new(OptionSource.LocaleValues) };
         var elsewhere = FakeOptionProvider.SettingFor() with
@@ -225,7 +225,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Valid_setting_has_no_errors()
+    public void Validate_ValidSetting_ReturnsNoErrors()
     {
         var s = Make(
             new[] { Reg("Mode", "SearchboxTaskbarMode") },
@@ -238,7 +238,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Two_fallback_states_is_an_error()
+    public void Validate_TwoFallbackStates_ReturnsError()
     {
         var s = Make(
             new[] { Reg("K", "V") },
@@ -251,7 +251,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Two_recommended_in_same_context_is_an_error()
+    public void Validate_TwoRecommendedInSameContext_ReturnsError()
     {
         var s = Make(
             new[] { Reg("K", "V") },
@@ -264,7 +264,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Recommended_in_different_contexts_is_fine()
+    public void Validate_RecommendedInDifferentContexts_IsValid()
     {
         var s = Make(
             new[] { Reg("K", "V") },
@@ -278,7 +278,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Empty_set_non_fallback_state_is_an_error()
+    public void Validate_NonFallbackStateWithEmptySet_ReturnsError()
     {
         var s = Make(
             new[] { Reg("K", "V") },
@@ -287,7 +287,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Empty_set_fallback_state_is_allowed()
+    public void Validate_FallbackStateWithEmptySet_IsValid()
     {
         var s = Make(
             new[] { Reg("K", "V") },
@@ -300,7 +300,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Checked_or_Unchecked_outside_the_exact_pair_is_an_error()
+    public void Validate_CheckedOrUncheckedOutsideExactPair_ReturnsError()
     {
         var s = Make(
             new[] { Reg("K", "V") },
@@ -313,7 +313,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void State_missing_a_target_key_is_an_error()
+    public void Validate_StateMissingTargetKey_ReturnsError()
     {
         var s = Make(
             new[] { Reg("Start", "Start"), Reg("Preload", "IsInputAppPreloadEnabled") },
@@ -322,7 +322,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void State_with_unknown_target_key_is_an_error()
+    public void Validate_StateWithUnknownTargetKey_ReturnsError()
     {
         var s = Make(
             new[] { Reg("Start", "Start") },
@@ -331,7 +331,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Duplicate_target_key_is_an_error()
+    public void Validate_DuplicateTargetKey_ReturnsError()
     {
         var s = Make(
             new[] { Reg("K", "A"), Reg("K", "B") },
@@ -340,7 +340,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Custom_detector_skips_target_coverage_check()
+    public void Validate_CustomDetector_SkipsTargetCoverageCheck()
     {
         var detector = new FakeDetector();
         var s = Make(
@@ -351,7 +351,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void State_with_no_set_and_no_detector_is_an_error()
+    public void Validate_StateWithNoSetAndNoDetector_ReturnsError()
     {
         var s = Make(
             new[] { Reg("Start", "Start") },
@@ -360,7 +360,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Custom_detector_lets_a_state_carry_no_set()
+    public void Validate_CustomDetector_AllowsStateWithNoSet()
     {
         var s = Make(
             new[] { Reg("Start", "Start") },
@@ -370,7 +370,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Fallback_state_may_carry_a_partial_set()
+    public void Validate_FallbackStateWithPartialSet_IsValid()
     {
         // A fallback is the last-resort catch-all, so a partial representative Set is allowed -
         // it must NOT trip the "missing target key" rule that non-fallback states do.
@@ -385,7 +385,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Fallback_state_with_an_unknown_key_is_still_an_error()
+    public void Validate_FallbackStateWithUnknownKey_ReturnsError()
     {
         // Exempt from "missing", but a typo'd/unknown key is always caught - fallback or not.
         var s = Make(
@@ -467,7 +467,7 @@ public class CatalogValidatorTests
         };
 
     [Fact]
-    public void DetectOnly_state_carrying_the_Recommended_role_is_an_error()
+    public void Validate_DetectOnlyStateWithRecommendedRole_ReturnsError()
     {
         var s = Make(
             new[] { Reg("K", "V") },
@@ -481,7 +481,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void DetectOnly_state_carrying_a_BUILD_SCOPED_WindowsDefault_role_is_an_error()
+    public void Validate_DetectOnlyStateWithBuildScopedWindowsDefaultRole_ReturnsError()
     {
         // HasRole deliberately ignores build-scoped roles, so the rule reads Roles directly. Without
         // that, an OS-divergent default could be hung on an unchoosable state and nothing would notice.
@@ -497,7 +497,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void DetectOnly_state_with_no_role_and_no_Set_is_valid()
+    public void Validate_DetectOnlyStateWithNoRoleAndNoSet_IsValid()
     {
         // The shape the theme master's neutral state uses: fallback exempts it from the empty-Set rule.
         var s = Make(
@@ -511,7 +511,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Controls_naming_a_DetectOnly_state_on_the_child_is_an_error()
+    public void ValidateCatalog_ControlsNamingDetectOnlyChildState_ReturnsError()
     {
         var child = WithId("child", new[]
         {
@@ -533,7 +533,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Link_RequiredState_naming_a_DetectOnly_state_is_an_error()
+    public void ValidateCatalog_LinkRequiredStateNamingDetectOnlyState_ReturnsError()
     {
         var other = WithId("other", new[]
         {
@@ -555,7 +555,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Controls_naming_a_choosable_state_on_the_child_is_valid()
+    public void ValidateCatalog_ControlsNamingChoosableChildState_IsValid()
     {
         // Non-vacuity for the two rules above: the same shape pointed at a real option raises nothing.
         var child = WithId("child", new[]
@@ -578,7 +578,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void An_answer_file_only_state_may_write_nothing()
+    public void Validate_AnswerFileOnlyStateWritingNothing_IsValid()
     {
         var s = Make(
             new[] { Element("K") },
@@ -592,7 +592,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void An_answer_file_only_setting_with_states_needs_one_to_seed_from()
+    public void Validate_AnswerFileOnlySettingWithStatesAndNoSeed_ReturnsError()
     {
         var s = Make(
             new[] { Element("K") },
@@ -603,7 +603,7 @@ public class CatalogValidatorTests
     [Theory]
     [InlineData(RoleKind.Recommended)]
     [InlineData(RoleKind.WindowsDefault)]
-    public void Either_role_gives_an_answer_file_only_setting_its_seed(RoleKind role)
+    public void Validate_AnswerFileOnlySettingWithEitherRole_HasStateToSeedFrom(RoleKind role)
     {
         var s = Make(
             new[] { Element("K") },
@@ -616,7 +616,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_live_setting_may_not_carry_an_answer_file_target()
+    public void Validate_LiveSettingWithAnswerFileTarget_ReturnsError()
     {
         var s = Make(
             new Target[] { Reg("R", "V"), Element("K") },
@@ -629,7 +629,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_live_setting_may_not_fire_a_setup_command()
+    public void Validate_LiveSettingWithSetupCommand_ReturnsError()
     {
         var s = Make(
             new[] { Reg("R", "V") },
@@ -645,7 +645,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_setting_level_machine_effect_keeps_an_element_only_setting_live()
+    public void Validate_SettingLevelMachineEffectOnElementOnlySetting_KeepsItLive()
     {
         var s = Make(new[] { Element("K") }, Array.Empty<SettingState>()) with
         {
@@ -656,7 +656,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_setting_level_setup_command_on_a_live_target_is_mixed()
+    public void Validate_SettingLevelSetupCommandOnLiveTarget_ReturnsMixedError()
     {
         var s = Make(new[] { Reg("R", "V") }, Array.Empty<SettingState>()) with
         {
@@ -675,27 +675,27 @@ public class CatalogValidatorTests
             });
 
     [Fact]
-    public void A_live_script_may_not_depend_on_the_apps_an_answer_file_installs()
+    public void Validate_LiveScriptDependingOnAnswerFileApps_ReturnsError()
     {
         var s = LiveWithScript(new ScriptEffect("echo hi", RunContext.System) { When = AppsToInstall.Some });
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("the live apply ignores both"));
     }
 
     [Fact]
-    public void A_live_script_may_not_wait_for_the_sign_in_after_setup()
+    public void Validate_LiveScriptWaitingForSignInAfterSetup_ReturnsError()
     {
         var s = LiveWithScript(new ScriptEffect("echo hi", RunContext.SignInAfterSetup));
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("the live apply ignores both"));
     }
 
     [Fact]
-    public void A_live_script_that_runs_every_time_is_valid()
+    public void Validate_LiveScriptThatRunsEveryTime_IsValid()
     {
         Assert.Empty(CatalogValidator.Validate(LiveWithScript(new ScriptEffect("echo hi", RunContext.System))));
     }
 
     [Fact]
-    public void An_answer_file_only_script_may_depend_on_the_apps_and_wait_for_the_sign_in_after_setup()
+    public void Validate_AnswerFileOnlyScriptDependingOnAppsAndSignIn_IsValid()
     {
         var s = Make(
             Array.Empty<Target>(),
@@ -717,7 +717,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void An_answer_file_only_state_may_omit_an_element_it_does_not_write()
+    public void Validate_AnswerFileOnlyStateOmittingUnwrittenElement_IsValid()
     {
         var s = Make(
             new[] { Element("K1"), Element("K2") },
@@ -730,7 +730,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Exists_is_not_a_value_an_answer_file_element_can_take()
+    public void Validate_ExistsValueOnAnswerFileElement_ReturnsError()
     {
         var s = Make(
             new[] { Element("K") },
@@ -746,35 +746,35 @@ public class CatalogValidatorTests
         Make(targets, states) with { TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything."))) };
 
     [Fact]
-    public void A_text_setting_may_not_declare_states()
+    public void Validate_TextSettingWithStates_ReturnsError()
     {
         var s = Typed(new[] { Element("K") }, new[] { St(LocKey.Common.Enabled, new() { ["K"] = StateValue.Of("true") }) });
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("may not declare states"));
     }
 
     [Fact]
-    public void A_text_setting_may_not_declare_a_numeric_range()
+    public void Validate_TextSettingWithNumericRange_ReturnsError()
     {
         var s = Typed(new[] { Element("K") }, Array.Empty<SettingState>()) with { Numeric = new Numeric { Min = 0, Max = 10 } };
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("Numeric range"));
     }
 
     [Fact]
-    public void A_text_setting_may_not_declare_an_option_list()
+    public void Validate_TextSettingWithOptionList_ReturnsError()
     {
         var s = FakeOptionProvider.SettingFor() with { TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything."))) };
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("option list"));
     }
 
     [Fact]
-    public void A_text_setting_needs_somewhere_to_put_what_was_typed()
+    public void Validate_TextSettingWithNoDestination_ReturnsError()
     {
         var s = Typed(Array.Empty<Target>(), Array.Empty<SettingState>());
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("at least one target to write to"));
     }
 
     [Fact]
-    public void A_text_setting_may_hand_what_was_typed_to_its_scripts_instead_of_a_target()
+    public void Validate_TextSettingHandingTextToScripts_IsValid()
     {
         var s = Typed(Array.Empty<Target>(), Array.Empty<SettingState>())
             with { CustomStateScripts = [new ScriptEffect("Move-Folders '{{value}}'", RunContext.User)] };
@@ -783,14 +783,14 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_text_setting_may_not_write_to_the_registry()
+    public void Validate_TextSettingWritingToRegistry_ReturnsError()
     {
         var s = Typed(new[] { Reg("R", "V") }, Array.Empty<SettingState>());
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("answer-file target"));
     }
 
     [Fact]
-    public void A_text_setting_may_read_this_PC_through_the_read_only_target_its_seed_names()
+    public void Validate_TextSettingSeededFromReadOnlyTarget_IsValid()
     {
         var s = Typed(new Target[] { Element("K"), Reg("this-pc", "Hostname") with { ReadOnly = true } }, Array.Empty<SettingState>())
             with { TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything.")), SeedKey: "this-pc") };
@@ -799,7 +799,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_user_script_target_belongs_to_a_list()
+    public void Validate_UserScriptTargetOutsideList_ReturnsError()
     {
         var s = Make(new[] { new AutounattendScript("script", RunContext.System) }, Array.Empty<SettingState>());
 
@@ -807,7 +807,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_user_script_names_one_of_the_two_sections_the_script_has()
+    public void Validate_UserScriptRunningAtSignInAfterSetup_ReturnsError()
     {
         var s = Typed(new[] { new AutounattendScript("script", RunContext.SignInAfterSetup) }, Array.Empty<SettingState>());
 
@@ -815,7 +815,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_text_seed_must_name_a_read_only_registry_target_on_the_setting()
+    public void Validate_TextSeedNotNamingReadOnlyRegistryTarget_ReturnsError()
     {
         var s = Typed(new[] { Element("K") }, Array.Empty<SettingState>())
             with { TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything.")), SeedKey: "nope") };
@@ -824,7 +824,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_text_setting_may_write_the_desktop_slideshow_instead_of_the_answer_file()
+    public void Validate_TextSettingWritingDesktopSlideshow_IsValid()
     {
         var s = Typed(
             new Target[]
@@ -843,7 +843,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_slideshow_box_without_its_script_is_an_error()
+    public void Validate_SlideshowBoxWithoutScript_ReturnsError()
     {
         var s = Typed(new Target[] { new DesktopSlideshowTarget("album") }, Array.Empty<SettingState>());
 
@@ -851,7 +851,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_slideshow_box_without_the_values_its_album_is_read_from_is_an_error()
+    public void Validate_SlideshowBoxWithoutAlbumValues_ReturnsError()
     {
         var s = Typed(new Target[] { new DesktopSlideshowTarget("album") }, Array.Empty<SettingState>());
 
@@ -862,14 +862,14 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_read_only_registry_target_belongs_to_a_setting_that_seeds_itself()
+    public void Validate_ReadOnlyRegistryTargetOnSettingWithoutSeed_ReturnsError()
     {
         var live = Make(new[] { Reg("R", "V") with { ReadOnly = true } }, new[] { St(LocKey.Common.Enabled, new() { ["R"] = StateValue.Of(1) }) });
         Assert.Contains(CatalogValidator.Validate(live), e => e.Message.Contains("is ReadOnly, which seeds"));
     }
 
     [Fact]
-    public void A_read_only_registry_target_may_sit_on_a_keyed_selection()
+    public void Validate_ReadOnlyRegistryTargetOnKeyedSelection_IsValid()
     {
         var s = FakeOptionProvider.SettingFor() with
         {
@@ -880,7 +880,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_keyed_selection_may_declare_an_answer_file_element_beside_its_live_targets()
+    public void Validate_KeyedSelectionWithAnswerFileElementBesideLiveTargets_IsValid()
     {
         var s = FakeOptionProvider.SettingFor() with
         {
@@ -891,28 +891,28 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_registry_target_cleared_on_apply_must_be_read_only()
+    public void Validate_RegistryTargetClearedOnApplyNotReadOnly_ReturnsError()
     {
         var s = Listed(new Target[] { Element("K"), Reg("R", "V") with { ClearedOnApply = true } }, Array.Empty<SettingState>());
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("ClearedOnApply but not ReadOnly"));
     }
 
     [Fact]
-    public void A_registry_target_cannot_be_read_only_and_apply_only_at_once()
+    public void Validate_RegistryTargetBothReadOnlyAndApplyOnly_ReturnsError()
     {
         var s = Listed(new Target[] { Element("K"), Reg("R", "V") with { ReadOnly = true, ApplyOnly = true } }, Array.Empty<SettingState>());
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("both ReadOnly and ApplyOnly"));
     }
 
     [Fact]
-    public void A_list_setting_may_carry_read_only_registry_targets_beside_its_element()
+    public void Validate_ListSettingWithReadOnlyRegistryTargetsBesideElement_IsValid()
     {
         var s = Listed(new Target[] { Element("K"), Reg("name", "USERNAME") with { ReadOnly = true } }, Array.Empty<SettingState>());
         Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("exactly one answer-file element"));
     }
 
     [Fact]
-    public void A_list_seed_names_read_only_registry_targets_on_the_setting()
+    public void Validate_ListSeedNamingTargetThatIsNotReadOnlyRegistry_ReturnsError()
     {
         var s = Listed(new Target[] { Element("K"), Reg("name", "USERNAME") with { ReadOnly = true } }, Array.Empty<SettingState>())
             with
@@ -927,14 +927,14 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_list_setting_needs_a_field_to_type_into()
+    public void Validate_ListSettingWithNoField_ReturnsError()
     {
         var s = Make(new[] { Element("K") }, Array.Empty<SettingState>()) with { List = new([]) };
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("at least one field"));
     }
 
     [Fact]
-    public void Two_fields_may_not_share_a_key()
+    public void Validate_TwoFieldsSharingKey_ReturnsError()
     {
         var s = Make(new[] { Element("K") }, Array.Empty<SettingState>()) with
         {
@@ -947,35 +947,35 @@ public class CatalogValidatorTests
         Make(targets, states) with { List = new([new Field("name", FieldKind.Text, TestKeys.Of("Name"))]) };
 
     [Fact]
-    public void A_list_setting_may_not_declare_states()
+    public void Validate_ListSettingWithStates_ReturnsError()
     {
         var s = Listed(new[] { Element("K") }, new[] { St(LocKey.Common.Enabled, new() { ["K"] = StateValue.Of("true") }) });
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("may not declare states"));
     }
 
     [Fact]
-    public void A_list_setting_needs_the_element_it_writes_into()
+    public void Validate_ListSettingWithoutElement_ReturnsError()
     {
         var s = Listed(Array.Empty<Target>(), Array.Empty<SettingState>());
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("exactly one answer-file element"));
     }
 
     [Fact]
-    public void A_list_setting_may_carry_scripts_instead_of_an_element()
+    public void Validate_ListSettingWithScriptsInsteadOfElement_IsValid()
     {
         var s = Listed(new[] { new AutounattendScript("script", RunContext.System) }, Array.Empty<SettingState>());
         Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("exactly one answer-file element"));
     }
 
     [Fact]
-    public void A_list_setting_may_change_the_media_instead_of_writing_an_element()
+    public void Validate_ListSettingChangingMediaInsteadOfElement_IsValid()
     {
         var s = Listed(new[] { new AutounattendMedia("installers") }, Array.Empty<SettingState>());
         Assert.DoesNotContain(CatalogValidator.Validate(s), e => e.Message.Contains("exactly one answer-file element"));
     }
 
     [Fact]
-    public void A_file_field_names_the_filter_its_picker_opens_with()
+    public void Validate_FileFieldNamingPickerFilter_IsValid()
     {
         var bare = Listed(new[] { Element("K") }, Array.Empty<SettingState>()) with
         {
@@ -991,7 +991,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void Only_a_file_field_names_a_picker_filter()
+    public void Validate_NonFileFieldNamingPickerFilter_ReturnsError()
     {
         var s = Listed(new[] { Element("K") }, Array.Empty<SettingState>()) with
         {
@@ -1001,21 +1001,21 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_list_setting_may_not_write_to_the_registry()
+    public void Validate_ListSettingWritingToRegistry_ReturnsError()
     {
         var s = Listed(new[] { Reg("R", "V") }, Array.Empty<SettingState>());
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("exactly one answer-file element"));
     }
 
     [Fact]
-    public void A_list_setting_writes_one_element_not_two()
+    public void Validate_ListSettingWritingTwoElements_ReturnsError()
     {
         var s = Listed(new[] { Element("K1"), Element("K2") }, Array.Empty<SettingState>());
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("exactly one answer-file element"));
     }
 
     [Fact]
-    public void A_list_setting_may_not_carry_a_text_rule_as_well()
+    public void Validate_ListSettingWithTextRule_ReturnsError()
     {
         var s = Listed(new[] { Element("K") }, Array.Empty<SettingState>()) with
         {
@@ -1025,7 +1025,7 @@ public class CatalogValidatorTests
     }
 
     [Fact]
-    public void A_list_setting_may_not_carry_an_option_list_as_well()
+    public void Validate_ListSettingWithOptionList_ReturnsError()
     {
         var s = FakeOptionProvider.SettingFor() with { List = new([new Field("name", FieldKind.Text, TestKeys.Of("Name"))]) };
         Assert.Contains(CatalogValidator.Validate(s), e => e.Message.Contains("option list"));

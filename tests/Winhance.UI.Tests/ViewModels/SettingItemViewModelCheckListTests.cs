@@ -66,7 +66,7 @@ public class SettingItemViewModelCheckListTests
             _modeService.Object);
 
     [Fact]
-    public void Every_entry_starts_ticked_and_nothing_is_recorded()
+    public void SetCheckListEntries_Always_TicksEveryEntryAndRecordsNothing()
     {
         var sut = CreateSut();
 
@@ -78,7 +78,7 @@ public class SettingItemViewModelCheckListTests
     }
 
     [Fact]
-    public void Unticking_an_entry_records_the_ones_still_ticked_in_list_order()
+    public void CheckItems_UntickingAnEntry_RecordsTheOnesStillTickedInListOrder()
     {
         var sut = CreateSut();
         sut.SetCheckListEntries(Editions);
@@ -89,7 +89,7 @@ public class SettingItemViewModelCheckListTests
     }
 
     [Fact]
-    public void A_reopened_record_ticks_only_its_entries_even_when_the_entries_arrive_later()
+    public void ApplyAuthoredOverlay_EntriesArrivingLater_TicksOnlyTheRecordedEntries()
     {
         _authored[CheckListSetting.Id] = new SettingChoice(CheckListSetting.Id, new ChoiceValue.Keys(["Windows 11 Pro"]));
         var sut = CreateSut();
@@ -101,7 +101,7 @@ public class SettingItemViewModelCheckListTests
     }
 
     [Fact]
-    public void A_reopened_record_reticks_entries_already_on_the_card()
+    public void ApplyAuthoredOverlay_EntriesAlreadyOnTheCard_ReticksTheRecordedEntries()
     {
         var sut = CreateSut();
         sut.SetCheckListEntries(Editions);

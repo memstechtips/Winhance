@@ -23,7 +23,7 @@ public class KeyedSelectionApplyTests
     }
 
     [Fact]
-    public void A_chosen_key_becomes_the_registry_write_its_target_declares()
+    public void Resolve_ChosenKey_BecomesTheRegistryWriteItsTargetDeclares()
     {
         var plan = ApplyRequestResolver.Resolve(
             "fake-keyed", enable: true, value: "beta", resetToDefault: false, Catalog, options: Registry);
@@ -35,7 +35,7 @@ public class KeyedSelectionApplyTests
     }
 
     [Fact]
-    public void A_key_the_provider_will_not_accept_resolves_to_no_plan()
+    public void Resolve_KeyTheProviderWillNotAccept_ReturnsNoPlan()
     {
         var plan = ApplyRequestResolver.Resolve(
             "fake-keyed", enable: true, value: "delta", resetToDefault: false, Catalog, options: Registry);
@@ -44,7 +44,7 @@ public class KeyedSelectionApplyTests
     }
 
     [Fact]
-    public void An_index_is_not_a_key_and_resolves_to_no_plan()
+    public void Resolve_IndexInsteadOfKey_ReturnsNoPlan()
     {
         var plan = ApplyRequestResolver.Resolve(
             "fake-keyed", enable: true, value: 0, resetToDefault: false, Catalog, options: Registry);
@@ -53,7 +53,7 @@ public class KeyedSelectionApplyTests
     }
 
     [Fact]
-    public void A_key_resolves_to_no_plan_when_there_is_no_provider_to_turn_it_into_values()
+    public void Resolve_KeyWithNoProvider_ReturnsNoPlan()
     {
         var plan = ApplyRequestResolver.Resolve(
             "fake-keyed", enable: true, value: "beta", resetToDefault: false, Catalog);
@@ -62,7 +62,7 @@ public class KeyedSelectionApplyTests
     }
 
     [Fact]
-    public void The_power_plan_resolves_to_the_providers_activation_alone()
+    public void Resolve_PowerPlan_ReturnsTheProvidersActivationAlone()
     {
         const string guid = "381b4222-f694-41f0-9685-ff5bb260df2e";
 
@@ -75,7 +75,7 @@ public class KeyedSelectionApplyTests
     }
 
     [Fact]
-    public void Applying_the_time_zone_setting_emits_the_registry_write_before_the_nudge()
+    public void Resolve_TimeZoneSetting_EmitsRegistryWriteBeforeTheNudge()
     {
         var nudge = new ScriptEffect("tzutil.exe /s \"UTC\"", RunContext.System);
 

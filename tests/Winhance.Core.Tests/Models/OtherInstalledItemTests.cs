@@ -8,7 +8,7 @@ namespace Winhance.Core.Tests.Models;
 public class OtherInstalledItemTests
 {
     [Fact]
-    public void A_program_uninstalls_through_its_exact_key_and_a_store_app_through_its_package()
+    public void Create_ProgramAndStoreApp_UninstallThroughKeyAndPackage()
     {
         var program = OtherInstalledItem.Create(new InstalledApp("reg:machine:{GUID}", "App", InstalledAppKind.Program) { RegistryKeyName = "{GUID}" });
         var store = OtherInstalledItem.Create(new InstalledApp("appx:Paint", "Paint", InstalledAppKind.StoreApp) { PackageName = "Microsoft.Paint" });
@@ -22,7 +22,7 @@ public class OtherInstalledItemTests
     }
 
     [Fact]
-    public void A_program_winget_knows_uninstalls_through_winget_first_and_keeps_its_key_as_the_fallback()
+    public void Create_ProgramKnownToWinGet_UninstallsThroughWinGetWithKeyAsFallback()
     {
         var definition = OtherInstalledItem.Create(new InstalledApp("reg:user:auto", "Autologon", InstalledAppKind.Program)
         {
@@ -36,7 +36,7 @@ public class OtherInstalledItemTests
     }
 
     [Fact]
-    public void Chocolatey_uninstalls_what_it_installed()
+    public void Create_ChocolateyInstalledProgram_UninstallsThroughChocolatey()
     {
         var definition = OtherInstalledItem.Create(new InstalledApp("reg:machine:np", "Notepad++", InstalledAppKind.Program)
         {
@@ -48,7 +48,7 @@ public class OtherInstalledItemTests
     }
 
     [Fact]
-    public void The_publisher_stands_in_for_the_description()
+    public void Create_AppWithPublisher_UsesPublisherAsDescription()
     {
         var definition = OtherInstalledItem.Create(new InstalledApp("reg:machine:x", "Tool", InstalledAppKind.Program) { Publisher = "Contoso" });
 
@@ -56,7 +56,7 @@ public class OtherInstalledItemTests
     }
 
     [Fact]
-    public void A_file_saves_the_app_by_its_winget_id_then_its_Store_id()
+    public void PackageId_AppWithWinGetOrStoreId_PrefersWinGetThenStore()
     {
         var app = new InstalledApp("reg:machine:x", "Tool", InstalledAppKind.Program);
 

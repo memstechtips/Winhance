@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
@@ -116,68 +115,6 @@ public class PowerSettingsQueryServiceTests
     }
 
     [Fact]
-    public async Task GetPowerSettingACDCValuesAsync_InvalidGuids_ReturnsNulls()
-    {
-        var powerCfgSetting = new PowerCfgSetting
-        {
-            SubgroupGuid = Guid.Empty.ToString(),
-            SettingGuid = Guid.Empty.ToString(),
-            RecommendedValueAC = null,
-            RecommendedValueDC = null,
-            DefaultValueAC = null,
-            DefaultValueDC = null
-        };
-
-        var result = await _service.GetPowerSettingACDCValuesAsync(powerCfgSetting);
-
-        // The method may return nulls or actual values depending on the system
-        result.Should().BeOfType<(int?, int?)>();
-    }
-
-    [Fact]
-    public async Task GetPowerSettingACDCValuesAsync_WithKnownSubgroupAndSetting_ReturnsTuple()
-    {
-        // Well-known power setting GUIDs (display brightness):
-        // SUB_VIDEO = {7516b95f-f776-4464-8c53-06167f40cc99}
-        // VIDEONORMALLEVEL = {aded5e82-b909-4619-9949-f5d71dac0bcb}
-        var powerCfgSetting = new PowerCfgSetting
-        {
-            SubgroupGuid = "7516b95f-f776-4464-8c53-06167f40cc99",
-            SettingGuid = "aded5e82-b909-4619-9949-f5d71dac0bcb",
-            RecommendedValueAC = null,
-            RecommendedValueDC = null,
-            DefaultValueAC = null,
-            DefaultValueDC = null
-        };
-
-        var result = await _service.GetPowerSettingACDCValuesAsync(powerCfgSetting);
-
-        result.Should().BeOfType<(int?, int?)>();
-    }
-
-    [Fact]
-    public async Task GetPowerSettingACDCValuesAsync_MalformedGuid_ReturnsNullsAndLogs()
-    {
-        var powerCfgSetting = new PowerCfgSetting
-        {
-            SubgroupGuid = "not-a-valid-guid",
-            SettingGuid = "also-not-valid",
-            RecommendedValueAC = null,
-            RecommendedValueDC = null,
-            DefaultValueAC = null,
-            DefaultValueDC = null
-        };
-
-        var result = await _service.GetPowerSettingACDCValuesAsync(powerCfgSetting);
-
-        result.acValue.Should().BeNull();
-        result.dcValue.Should().BeNull();
-        _mockLogService.Verify(
-            l => l.Log(Core.Features.Common.Enums.LogLevel.Error, It.IsAny<string>(), It.IsAny<Exception?>(), It.IsAny<string>()),
-            Times.Once);
-    }
-
-    [Fact]
     public async Task GetAllPowerSettingsACDCAsync_DefaultParameter_ReturnsNonNullDictionary()
     {
         var result = await _service.GetAllPowerSettingsACDCAsync();
@@ -212,21 +149,13 @@ public class PowerSettingsQueryServiceTests
         result.Should().BeOfType<Dictionary<string, (int?, int?)>>();
     }
 
+    private const string VideoSubgroup = "7516b95f-f776-4464-8c53-06167f40cc99";
+    private const string VideoNormalLevel = "aded5e82-b909-4619-9949-f5d71dac0bcb";
+
     [Fact]
     public async Task IsSettingHardwareControlledAsync_ValidSetting_ReturnsBool()
     {
-        var powerCfgSetting = new PowerCfgSetting
-        {
-            SubgroupGuid = "7516b95f-f776-4464-8c53-06167f40cc99",
-            SettingGuid = "aded5e82-b909-4619-9949-f5d71dac0bcb",
-            SettingGUIDAlias = "VIDEONORMALLEVEL",
-            RecommendedValueAC = null,
-            RecommendedValueDC = null,
-            DefaultValueAC = null,
-            DefaultValueDC = null
-        };
-
-        var act = async () => await _service.IsSettingHardwareControlledAsync(powerCfgSetting);
+        var act = async () => await _service.IsSettingHardwareControlledAsync(VideoSubgroup, VideoNormalLevel);
 
         await act.Should().NotThrowAsync();
     }
@@ -234,19 +163,8 @@ public class PowerSettingsQueryServiceTests
     [Fact]
     public async Task IsSettingHardwareControlledAsync_MalformedGuid_ReturnsFalse()
     {
-        var powerCfgSetting = new PowerCfgSetting
-        {
-            SubgroupGuid = "invalid-guid",
-            SettingGuid = "also-invalid",
-            RecommendedValueAC = null,
-            RecommendedValueDC = null,
-            DefaultValueAC = null,
-            DefaultValueDC = null
-        };
-
-        // The exception path returns (null, null) for capabilities,
-        // so min == 0 && max == 0 will be false because null != 0
-        var result = await _service.IsSettingHardwareControlledAsync(powerCfgSetting);
+        // The exception path returns (null, null) for capabilities, and null is not 0.
+        var result = await _service.IsSettingHardwareControlledAsync("invalid-guid", "also-invalid");
 
         result.Should().BeFalse();
     }
@@ -254,19 +172,8 @@ public class PowerSettingsQueryServiceTests
     [Fact]
     public async Task IsSettingHardwareControlledAsync_CachesCapabilities()
     {
-        var powerCfgSetting = new PowerCfgSetting
-        {
-            SubgroupGuid = "7516b95f-f776-4464-8c53-06167f40cc99",
-            SettingGuid = "aded5e82-b909-4619-9949-f5d71dac0bcb",
-            SettingGUIDAlias = "VIDEONORMALLEVEL",
-            RecommendedValueAC = null,
-            RecommendedValueDC = null,
-            DefaultValueAC = null,
-            DefaultValueDC = null
-        };
-
-        var result1 = await _service.IsSettingHardwareControlledAsync(powerCfgSetting);
-        var result2 = await _service.IsSettingHardwareControlledAsync(powerCfgSetting);
+        var result1 = await _service.IsSettingHardwareControlledAsync(VideoSubgroup, VideoNormalLevel);
+        var result2 = await _service.IsSettingHardwareControlledAsync(VideoSubgroup, VideoNormalLevel);
 
         result1.Should().Be(result2);
     }
@@ -274,20 +181,9 @@ public class PowerSettingsQueryServiceTests
     [Fact]
     public async Task IsSettingHardwareControlledAsync_AfterInvalidateCache_QueriesAgain()
     {
-        var powerCfgSetting = new PowerCfgSetting
-        {
-            SubgroupGuid = "7516b95f-f776-4464-8c53-06167f40cc99",
-            SettingGuid = "aded5e82-b909-4619-9949-f5d71dac0bcb",
-            SettingGUIDAlias = "VIDEONORMALLEVEL",
-            RecommendedValueAC = null,
-            RecommendedValueDC = null,
-            DefaultValueAC = null,
-            DefaultValueDC = null
-        };
-
-        var result1 = await _service.IsSettingHardwareControlledAsync(powerCfgSetting);
+        var result1 = await _service.IsSettingHardwareControlledAsync(VideoSubgroup, VideoNormalLevel);
         _service.InvalidateCache();
-        var result2 = await _service.IsSettingHardwareControlledAsync(powerCfgSetting);
+        var result2 = await _service.IsSettingHardwareControlledAsync(VideoSubgroup, VideoNormalLevel);
 
         result1.Should().Be(result2);
     }

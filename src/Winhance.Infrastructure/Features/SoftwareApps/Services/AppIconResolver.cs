@@ -319,7 +319,12 @@ internal class AppIconResolver : IAppIconResolver
     // <def.Id>.<8-hex SHA1 of the source key>.png: the suffix flips when the source changes (AppX full-name on a
     // version bump, repo sha on an icon change), so the cache invalidates itself; a collision would only show one wrong icon.
     private static string BuildCacheFileName(string defId, string sourceKey) =>
-        $"{defId}.{ShortSha1Hex(sourceKey)}{CacheFileExtension}";
+        $"{CacheStem(defId)}.{ShortSha1Hex(sourceKey)}{CacheFileExtension}";
+
+    // Installed-app ids start with "appx:", and a colon in a file name makes Windows write an alternate data stream
+    // instead, which the atomic rename then refuses with "The parameter is incorrect".
+    private static string CacheStem(string defId) =>
+        string.Concat(defId.Select(c => Array.IndexOf(Path.GetInvalidFileNameChars(), c) >= 0 ? '_' : c));
 
     private static string ShortSha1Hex(string input)
     {
@@ -620,7 +625,7 @@ internal class AppIconResolver : IAppIconResolver
             var keepLightName = keepStem + ".light" + CacheFileExtension;
             var keepDarkName = keepStem + ".dark" + CacheFileExtension;
 
-            var pattern = defId + ".*" + CacheFileExtension;
+            var pattern = CacheStem(defId) + ".*" + CacheFileExtension;
             foreach (var path in Directory.EnumerateFiles(_cacheRoot, pattern))
             {
                 var name = Path.GetFileName(path);

@@ -12,7 +12,7 @@ namespace Winhance.Infrastructure.Tests.Catalog;
 public class CatalogRegContentHiveConformanceTests
 {
     [Fact]
-    public void No_catalog_reg_content_block_mixes_HKCU_with_a_system_hive()
+    public void RegContentEffect_AnyCatalogBlock_NeverMixesHkcuWithASystemHive()
     {
         var offenders = new SortedSet<string>(StringComparer.Ordinal);
         int inspected = 0;

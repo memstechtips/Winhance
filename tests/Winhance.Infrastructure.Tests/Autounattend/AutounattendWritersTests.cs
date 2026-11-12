@@ -130,7 +130,7 @@ public class AutounattendWritersTests
     private static string? Description(XElement command) => (string?)command.Element(U + "Description");
 
     [Fact]
-    public void The_context_answers_a_keyed_selections_key_and_nothing_else()
+    public void Key_KeyedSelection_AnswersItsKeyAndNothingElse()
     {
         var context = new AutounattendRenderContext("Write-Host 'test'", "0.0.0", SetWith(
             new SettingChoice("region-time-zone", new ChoiceValue.Keyed("W. Europe Standard Time", "(UTC+01:00) Amsterdam")),
@@ -145,7 +145,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void ProductKey_Ask_writes_the_zero_key_and_always_shows_the_edition_list()
+    public void Write_ProductKeyAsk_WritesTheZeroKeyAndAlwaysShowsTheEditionList()
     {
         var doc = Write(new ProductKeyWriter());
 
@@ -160,7 +160,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void ProductKey_Generic_writes_the_editions_install_key_and_hides_the_ui()
+    public void Write_ProductKeyGeneric_WritesTheEditionsInstallKeyAndHidesTheUi()
     {
         var doc = Write(new ProductKeyWriter(), new SettingChoice("autounattend-edition", new ChoiceValue.Option(4)));
 
@@ -171,7 +171,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void ProductKey_an_edition_index_the_catalog_does_not_have_falls_back_to_the_default()
+    public void Write_ProductKeyEditionIndexNotInTheCatalog_FallsBackToTheDefault()
     {
         var doc = Write(new ProductKeyWriter(), new SettingChoice("autounattend-edition", new ChoiceValue.Option(99)));
 
@@ -181,7 +181,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void ProductKey_OwnKey_installs_and_activates_with_it()
+    public void Write_ProductKeyOwnKey_InstallsAndActivatesWithIt()
     {
         var doc = Write(
             new ProductKeyWriter(),
@@ -196,7 +196,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void ProductKey_own_key_with_nothing_typed_writes_the_ask_placeholder()
+    public void Write_ProductKeyOwnKeyWithNothingTyped_WritesTheAskPlaceholder()
     {
         var doc = Write(
             new ProductKeyWriter(),
@@ -210,7 +210,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void ProductKey_Firmware_writes_no_key_and_never_shows_the_ui()
+    public void Write_ProductKeyFirmware_WritesNoKeyAndNeverShowsTheUi()
     {
         var doc = Write(new ProductKeyWriter(), new SettingChoice("autounattend-edition", new ChoiceValue.Option(15)));
 
@@ -220,7 +220,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void HardwareChecks_off_writes_six_ordered_bypasses_with_one_description()
+    public void Write_HardwareChecksOff_WritesSixOrderedBypassesWithOneDescription()
     {
         var commands = RunSynchronous(Write(Elements), "windowsPE", "Microsoft-Windows-Setup");
 
@@ -232,7 +232,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void HardwareChecks_on_writes_nothing()
+    public void Write_HardwareChecksOn_WritesNothing()
     {
         var doc = Write(Elements, new SettingChoice("autounattend-hardware-checks", new ChoiceValue.Toggle(true)));
 
@@ -240,7 +240,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Setup_screens_default_to_hidden_with_privacy_off()
+    public void Write_NoChoices_HidesTheSetupScreensAndTurnsPrivacyOff()
     {
         var doc = Write(Elements);
 
@@ -251,7 +251,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Privacy_express_and_ask_change_only_ProtectYourPC()
+    public void Write_PrivacyExpressAndAsk_ChangeOnlyProtectYourPc()
     {
         var express = Write(Elements, new SettingChoice("autounattend-privacy", new ChoiceValue.Option(1)));
         var ask = Write(
@@ -267,7 +267,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Each_setup_screen_toggle_removes_only_its_own_element()
+    public void Write_EachSetupScreenToggle_RemovesOnlyItsOwnElement()
     {
         var noOem = Write(Elements, new SettingChoice("autounattend-oem-registration-page", new ChoiceValue.Toggle(true)));
         var noNetwork = Write(Elements, new SettingChoice("autounattend-network-page", new ChoiceValue.Toggle(true)));
@@ -279,7 +279,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void A_file_that_writes_nothing_into_Shell_Setup_still_carries_the_empty_component()
+    public void Write_NothingForShellSetup_StillCarriesTheEmptyComponent()
     {
         var doc = Write(
             Elements,
@@ -293,7 +293,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void NetFx3_on_adds_the_offline_dism_command()
+    public void Write_NetFx3On_AddsTheOfflineDismCommand()
     {
         var setting = SettingCatalog.ById["autounattend-netfx3"];
         var payload = (AutounattendCommand)setting.States.Single(s => s.Label == TwoState.OnLabel(setting.Control)).Effects.Single();
@@ -308,7 +308,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void NetFx3_off_writes_nothing()
+    public void Write_NetFx3Off_WritesNothing()
     {
         var doc = Write(Elements, new SettingChoice("autounattend-netfx3", new ChoiceValue.Toggle(false)), new SettingChoice("autounattend-account", new ChoiceValue.Option(1)));
 
@@ -316,7 +316,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Account_local_keeps_oobe_offline_and_restores_the_adapters_at_first_logon()
+    public void Write_AccountLocal_KeepsOobeOfflineAndRestoresTheAdaptersAtFirstLogon()
     {
         // NetFx3 off keeps its dism command out of the Deployment list being counted.
         var doc = WriteNetwork(new SettingChoice("autounattend-netfx3", new ChoiceValue.Toggle(false)));
@@ -337,7 +337,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Account_create_now_writes_the_accounts_and_none_of_the_local_mode_commands()
+    public void Write_AccountCreateNow_WritesTheAccountsAndNoLocalModeCommands()
     {
         var doc = Write(new AccountWriter(), CreateNow(AdministratorAndStandardUser));
 
@@ -356,7 +356,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void An_empty_password_is_written_as_an_empty_plain_text_value()
+    public void Write_EmptyPassword_WritesAnEmptyPlainTextValue()
     {
         var doc = Write(new AccountWriter(), CreateNow(AdministratorWithNoPassword));
 
@@ -369,7 +369,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void An_obscured_password_is_base64_of_the_password_plus_the_element_name()
+    public void Write_ObscuredPassword_IsBase64OfThePasswordPlusTheElementName()
     {
         var doc = Write(new AccountWriter(), CreateNow(AdministratorWithPassword));
 
@@ -381,7 +381,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void The_documented_microsoft_examples_decode_through_the_same_rule()
+    public void Obscure_DocumentedMicrosoftExamples_DecodeThroughTheSameRule()
     {
         // Microsoft never writes the rule down; its documented examples are the only evidence for it.
         AccountPasswords.Obscure("pw", "Password").TrimEnd('=').Should().Be("cAB3AFAAYQBzAHMAdwBvAHIAZAA");
@@ -389,7 +389,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void A_plain_text_password_is_written_as_typed()
+    public void Write_PlainTextPassword_IsWrittenAsTyped()
     {
         var doc = Write(new AccountWriter(), CreateNow(PlainTextAdministrator));
 
@@ -399,7 +399,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Auto_logon_names_the_account_and_repeats_its_password_with_a_logon_count()
+    public void Write_AutoLogon_NamesTheAccountAndRepeatsItsPasswordWithALogonCount()
     {
         var doc = Write(new AccountWriter(), CreateNow(AdministratorWithPasswordSigningIn));
 
@@ -414,7 +414,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Auto_logon_for_an_account_with_no_password_writes_an_empty_value()
+    public void Write_AutoLogonWithNoPassword_WritesAnEmptyValue()
     {
         var doc = Write(new AccountWriter(), CreateNow(AdministratorWithNoPasswordSigningIn));
 
@@ -425,7 +425,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void A_password_in_the_file_earns_the_command_that_deletes_the_cached_copy()
+    public void Write_PasswordInTheFile_AddsTheCommandThatDeletesTheCachedCopy()
     {
         var doc = Write(new AccountWriter(), CreateNow(AdministratorAndStandardUser));
 
@@ -438,7 +438,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void An_account_asked_for_a_new_password_gets_the_command_that_expires_it()
+    public void Write_AccountAskedForANewPassword_AddsTheCommandThatExpiresIt()
     {
         var doc = Write(new AccountWriter(), CreateNow(
         [
@@ -454,7 +454,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void An_account_name_with_a_space_and_an_apostrophe_is_quoted_for_PowerShell()
+    public void Write_AccountNameWithASpaceAndAnApostrophe_IsQuotedForPowerShell()
     {
         var doc = Write(new AccountWriter(), CreateNow(
             [Account("O'Brien Test", "O'Brien", "0", string.Empty, obscure: false, changePassword: true)]));
@@ -466,7 +466,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void An_account_name_with_a_typographic_apostrophe_is_quoted_for_PowerShell()
+    public void Write_AccountNameWithATypographicApostrophe_IsQuotedForPowerShell()
     {
         var doc = Write(new AccountWriter(), CreateNow(
             [Account("O\u2019Brien", "O\u2019Brien", "0", string.Empty, obscure: false, changePassword: true)]));
@@ -478,7 +478,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void A_new_password_request_runs_before_the_cached_answer_file_is_deleted()
+    public void Write_NewPasswordRequest_RunsBeforeTheCachedAnswerFileIsDeleted()
     {
         var doc = Write(new AccountWriter(), CreateNow(
             [Account("Marco", "Marco du Plessis", "0", "hunter2", obscure: true, autoLogon: true, changePassword: true)]));
@@ -493,7 +493,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void A_file_with_no_password_in_it_gets_no_cleanup_command()
+    public void Write_FileWithNoPassword_AddsNoCleanupCommand()
     {
         var doc = Write(new AccountWriter(), CreateNow(AdministratorWithNoPassword));
 
@@ -502,7 +502,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Two_accounts_with_no_password_between_them_get_no_cleanup_command()
+    public void Write_TwoAccountsWithNoPasswords_AddNoCleanupCommand()
     {
         var doc = Write(new AccountWriter(), CreateNow(TwoAccountsWithNoPasswords));
 
@@ -511,7 +511,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Create_now_with_no_accounts_writes_the_file_local_mode_writes()
+    public void Write_CreateNowWithNoAccounts_WritesTheFileLocalModeWrites()
     {
         var createNow = Write(new AccountWriter(), CreateNow(NoAccounts));
 
@@ -527,7 +527,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Create_now_with_no_account_list_at_all_writes_the_file_local_mode_writes()
+    public void Write_CreateNowWithNoAccountList_WritesTheFileLocalModeWrites()
     {
         var modeOnly = Write(new AccountWriter(), new SettingChoice("autounattend-account", new ChoiceValue.Option(2)));
 
@@ -535,7 +535,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void The_shell_setup_children_stay_in_schema_order_in_create_now_mode()
+    public void Write_CreateNowMode_KeepsShellSetupChildrenInSchemaOrder()
     {
         var doc = AutounattendDocument.NewSkeleton();
         var context = new AutounattendRenderContext(
@@ -554,7 +554,7 @@ public class AutounattendWritersTests
             .Element(U + "UserAccounts")!.Element(U + "LocalAccounts")!.Elements(U + "LocalAccount").ToList();
 
     [Fact]
-    public void A_file_that_carries_no_locales_writes_no_component_at_all()
+    public void Write_NoLocales_WritesNoComponentAtAll()
     {
         var doc = Write(new TimeRegionLanguageWriter());
 
@@ -562,7 +562,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void All_three_locale_settings_write_one_oobeSystem_component_in_schema_order()
+    public void Write_AllThreeLocaleSettings_WritesOneOobeSystemComponentInSchemaOrder()
     {
         var doc = WriteRegion(
             new SettingChoice("region-format", new ChoiceValue.Keyed("de-DE", "German (Germany)")),
@@ -579,7 +579,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Only_the_LCID_half_of_InputLocale_is_uppercased_the_KLID_half_is_written_as_given()
+    public void Write_InputLocale_UppercasesOnlyTheLcidHalf()
     {
         var doc = WriteRegion(
             new SettingChoice("region-format", new ChoiceValue.Keyed("hr-HR", "Croatian (Croatia)")),
@@ -592,7 +592,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void A_keyboard_with_no_regional_format_beside_it_writes_no_InputLocale()
+    public void Write_KeyboardWithNoRegionalFormat_WritesNoInputLocale()
     {
         var alone = Write(
             new TimeRegionLanguageWriter(),
@@ -607,7 +607,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void The_regional_format_alone_writes_only_UserLocale()
+    public void Write_RegionalFormatAlone_WritesOnlyUserLocale()
     {
         var doc = WriteRegion(
             new SettingChoice("region-format", new ChoiceValue.Keyed("en-ZA", "English (South Africa)")));
@@ -618,7 +618,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void A_setup_language_answers_every_question_Setups_first_screen_asks()
+    public void Write_SetupLanguage_AnswersEveryQuestionSetupsFirstScreenAsks()
     {
         var doc = WriteRegion(
             new SettingChoice("autounattend-setup-language", new ChoiceValue.Keyed("en-GB", "English (United Kingdom)")),
@@ -637,7 +637,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void The_ask_me_option_carries_an_empty_key_and_writes_no_windowsPE_component()
+    public void Write_AskMeOption_CarriesAnEmptyKeyAndWritesNoWindowsPeComponent()
     {
         var doc = WriteRegion(
             new SettingChoice("autounattend-setup-language", new ChoiceValue.Keyed(string.Empty, "Ask me during setup")),
@@ -652,7 +652,7 @@ public class AutounattendWritersTests
     // The region cards are the only source for the other three, so a file that excludes them still skips the
     // language half of the screen and lets Setup ask the rest.
     [Fact]
-    public void A_setup_language_with_no_region_cards_writes_the_language_alone()
+    public void Write_SetupLanguageWithNoRegionCards_WritesTheLanguageAlone()
     {
         var doc = WriteRegion(
             new SettingChoice("autounattend-setup-language", new ChoiceValue.Keyed("fr-FR", "French (France)")));
@@ -662,7 +662,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void The_display_language_is_written_into_oobeSystem()
+    public void Write_DisplayLanguage_IsWrittenIntoOobeSystem()
     {
         var doc = WriteRegion(
             new SettingChoice("region-display-language", new ChoiceValue.Keyed("nl-NL", "Dutch (Netherlands)")));
@@ -673,7 +673,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void A_culture_with_no_LCID_drops_the_pair_and_keeps_the_locale()
+    public void Write_CultureWithNoLcid_DropsThePairAndKeepsTheLocale()
     {
         // ICU and NLS disagree on which cultures have no LCID, so the culture is found at run time, not named.
         var culture = CultureInfo.GetCultures(CultureTypes.SpecificCultures)
@@ -687,7 +687,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void The_chosen_time_zone_is_written_into_specialize()
+    public void Write_ChosenTimeZone_IsWrittenIntoSpecialize()
     {
         var doc = Write(
             Elements,
@@ -700,7 +700,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void A_file_that_carries_no_time_zone_writes_no_component()
+    public void Write_NoTimeZone_WritesNoComponent()
     {
         var none = Write(Elements);
         var otherSettings = Write(
@@ -716,7 +716,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void ComputerName_explicit_writes_the_name_into_specialize()
+    public void Write_ComputerNameExplicit_WritesTheNameIntoSpecialize()
     {
         var doc = Write(Elements, new SettingChoice("autounattend-computer-name", new ChoiceValue.Text("WORKSHOP")));
 
@@ -725,7 +725,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void ComputerName_left_to_setup_or_empty_writes_nothing()
+    public void Write_ComputerNameLeftToSetupOrEmpty_WritesNothing()
     {
         var left = Write(Elements);
         var empty = Write(Elements, new SettingChoice("autounattend-computer-name", new ChoiceValue.Text(string.Empty)));
@@ -735,7 +735,54 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void The_specialize_shell_setup_children_stay_in_schema_order()
+    public void Build_WithUniqueName_SetsUpAsTempNameAndCarriesRenameScriptWithTypedPrefix()
+    {
+        var doc = AutounattendDocumentBuilder.Build(ContextWith(
+            new SettingChoice("autounattend-computer-name", new ChoiceValue.Text("OFFICE")),
+            new SettingChoice(UniqueComputerName.SettingId, new ChoiceValue.Toggle(true))));
+
+        doc.Descendants(U + "ComputerName").Select(e => e.Value).Should().AllBe("TEMPNAME");
+        var script = doc.Extensions().Elements(X + "File")
+            .Single(f => f.Attribute("path")!.Value == ScriptPaths.UnattendComputerNameScriptPath).Value;
+        script.Should().Contain("$name = 'OFFICE-' + $ending").And.Contain("'TOBEFILLEDBYOEM'").And.NotContain("{{");
+
+        var rename = RunSynchronous(doc, "specialize", "Microsoft-Windows-Deployment")
+            .Single(c => Path(c).Contains(ScriptPaths.UnattendComputerNameScriptPath, StringComparison.Ordinal));
+        Path(rename).Length.Should().BeLessThanOrEqualTo(259);
+    }
+
+    [Fact]
+    public void Build_WithUniqueName_RenameScriptReadsNetworkCardBeforeAdaptersGoOff()
+    {
+        var doc = AutounattendDocumentBuilder.Build(ContextWith(
+            new SettingChoice("autounattend-account", new ChoiceValue.Option(0)),
+            new SettingChoice(UniqueComputerName.SettingId, new ChoiceValue.Toggle(true))));
+
+        var paths = RunSynchronous(doc, "specialize", "Microsoft-Windows-Deployment").Select(Path).ToList();
+        paths.FindIndex(p => p.Contains("SetComputerName.ps1", StringComparison.Ordinal))
+            .Should().BeLessThan(paths.FindIndex(p => p.Contains("Disable-NetAdapter", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void Build_WithoutUniqueName_KeepsTypedNameAndCarriesNoRenameScript()
+    {
+        var doc = AutounattendDocumentBuilder.Build(ContextWith(
+            new SettingChoice("autounattend-computer-name", new ChoiceValue.Text("OFFICE")),
+            new SettingChoice(UniqueComputerName.SettingId, new ChoiceValue.Toggle(false))));
+
+        doc.Descendants(U + "ComputerName").Select(e => e.Value).Should().AllBe("OFFICE");
+        doc.Extensions().Elements(X + "File").Select(f => f.Attribute("path")!.Value)
+            .Should().NotContain(ScriptPaths.UnattendComputerNameScriptPath);
+    }
+
+    [Fact]
+    public void SetComputerName_WithEmptyName_FallsBackToTheDefaultPrefix()
+    {
+        AutounattendScripts.SetComputerName(null).Should().Contain($"$name = '{UniqueComputerName.DefaultPrefix}-' + $ending");
+    }
+
+    [Fact]
+    public void Write_SpecializeShellSetup_KeepsChildrenInSchemaOrder()
     {
         var doc = AutounattendDocument.NewSkeleton();
         var context = new AutounattendRenderContext("Write-Host 'test'", "0.0.0", SetWith(
@@ -780,7 +827,7 @@ public class AutounattendWritersTests
     // partition there because the MSR takes an id and no ModifyPartition, which is the part that is easy to
     // get wrong and impossible to see without installing.
     [Fact]
-    public void Uefi_lays_the_disk_out_the_way_the_microsoft_sample_does()
+    public void Write_DiskUefi_LaysTheDiskOutLikeTheMicrosoftSample()
     {
         var doc = Write(new DiskConfigurationWriter(), Uefi("1000"));
 
@@ -795,7 +842,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void An_empty_recovery_size_leaves_the_partition_out_and_moves_windows_up()
+    public void Write_DiskUefiWithEmptyRecoverySize_LeavesThePartitionOutAndMovesWindowsUp()
     {
         var doc = Write(new DiskConfigurationWriter(), Uefi(string.Empty));
 
@@ -805,7 +852,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Bios_makes_the_system_partition_primary_and_active_with_no_msr()
+    public void Write_DiskBios_MakesTheSystemPartitionPrimaryAndActiveWithNoMsr()
     {
         var doc = Write(
             new DiskConfigurationWriter(),
@@ -827,7 +874,7 @@ public class AutounattendWritersTests
     [Theory]
     [InlineData(1)]
     [InlineData(2)]
-    public void Every_partition_names_a_size_or_extends_never_both_and_never_neither(int layout)
+    public void Write_DiskLayouts_EveryPartitionNamesASizeOrExtendsNeverBothAndNeverNeither(int layout)
     {
         var doc = Write(new DiskConfigurationWriter(), new SettingChoice("autounattend-disk", new ChoiceValue.Option(layout)));
 
@@ -836,7 +883,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void The_disk_number_reaches_the_wiped_disk_and_the_install_target()
+    public void Write_DiskNumber_ReachesTheWipedDiskAndTheInstallTarget()
     {
         var doc = Write(
             new DiskConfigurationWriter(),
@@ -849,10 +896,47 @@ public class AutounattendWritersTests
             .Element(U + "DiskID")!.Value.Should().Be("2");
     }
 
+    private static List<string> OsImageChildren(XDocument doc) =>
+        ComponentOrNull(doc, "windowsPE", "Microsoft-Windows-Setup")!
+            .Element(U + "ImageInstall")!.Element(U + "OSImage")!.Elements().Select(e => e.Name.LocalName).ToList();
+
+    [Fact]
+    public void Build_WithCompactAndDiskLayout_PlacesCompactAfterInstallToInTheOsImage()
+    {
+        var doc = AutounattendDocumentBuilder.Build(ContextWith(
+            new SettingChoice("autounattend-disk", new ChoiceValue.Option(1)),
+            new SettingChoice("autounattend-compact", new ChoiceValue.Toggle(true))));
+
+        OsImageChildren(doc).Should().Equal("InstallTo", "Compact");
+        ComponentOrNull(doc, "windowsPE", "Microsoft-Windows-Setup")!
+            .Element(U + "ImageInstall")!.Element(U + "OSImage")!.Element(U + "Compact")!.Value.Should().Be("true");
+    }
+
+    [Fact]
+    public void Build_WithCompactAndNoDiskLayout_CreatesTheOsImage()
+    {
+        var doc = AutounattendDocumentBuilder.Build(ContextWith(
+            new SettingChoice("autounattend-compact", new ChoiceValue.Toggle(true))));
+
+        OsImageChildren(doc).Should().Equal("Compact");
+        ComponentOrNull(doc, "windowsPE", "Microsoft-Windows-Setup")!
+            .Elements().Select(e => e.Name.LocalName).Should().Contain("ImageInstall");
+    }
+
+    [Fact]
+    public void Build_WithCompactOff_WritesNoImageInstall()
+    {
+        var doc = AutounattendDocumentBuilder.Build(ContextWith(
+            new SettingChoice("autounattend-compact", new ChoiceValue.Toggle(false))));
+
+        doc.Descendants(U + "Compact").Should().BeEmpty();
+        doc.Descendants(U + "ImageInstall").Should().BeEmpty();
+    }
+
     // Every sample writes DiskConfiguration before ImageInstall, Disk's own ids before its partition lists, and
     // WillShowUI after the last Disk.
     [Fact]
-    public void The_windowsPE_setup_children_stay_in_schema_order()
+    public void Write_DiskConfiguration_KeepsWindowsPeSetupChildrenInSchemaOrder()
     {
         var doc = Write(new DiskConfigurationWriter(), Uefi("1000"));
 
@@ -865,7 +949,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Asking_during_setup_writes_no_disk_configuration_at_all()
+    public void Write_DiskAskDuringSetup_WritesNoDiskConfigurationAtAll()
     {
         var doc = Write(new DiskConfigurationWriter(), new SettingChoice("autounattend-disk", new ChoiceValue.Option(0)));
 
@@ -873,7 +957,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Account_microsoft_writes_nothing()
+    public void Write_AccountMicrosoft_WritesNothing()
     {
         var doc = Write(new AccountWriter(), new SettingChoice("autounattend-account", new ChoiceValue.Option(1)));
 
@@ -900,7 +984,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void A_local_account_cuts_the_adapters_whatever_the_network_card_says()
+    public void Write_LocalAccount_CutsTheAdaptersWhateverTheNetworkCardSays()
     {
         AdaptersAreCut(Write(
             new OobeNetworkWriter(),
@@ -909,7 +993,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void A_microsoft_account_leaves_setup_online_whatever_the_network_card_says()
+    public void Write_MicrosoftAccount_LeavesSetupOnlineWhateverTheNetworkCardSays()
     {
         SetupStaysOnline(Write(
             new OobeNetworkWriter(),
@@ -918,7 +1002,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Create_now_takes_the_network_cards_answer()
+    public void Write_AccountCreateNow_TakesTheNetworkCardsAnswer()
     {
         SetupStaysOnline(Write(
             new OobeNetworkWriter(),
@@ -933,7 +1017,7 @@ public class AutounattendWritersTests
 
     // Both cards fall back to their seed state, so the file a user never opened cuts the adapters.
     [Fact]
-    public void A_set_that_names_neither_card_cuts_the_adapters()
+    public void Write_NeitherAccountNorNetworkCard_CutsTheAdapters()
     {
         AdaptersAreCut(Write(new OobeNetworkWriter()));
         AdaptersAreCut(Write(new OobeNetworkWriter(), new SettingChoice("autounattend-account", new ChoiceValue.Option(2))));
@@ -942,7 +1026,7 @@ public class AutounattendWritersTests
     // A wrong LogicalName leaves the resource unreachable, and the only symptom is a wallpaper that never
     // applies on a PC nobody can attach a debugger to.
     [Fact]
-    public void The_desktop_interop_travels_as_the_source_Add_Type_compiles()
+    public void DesktopBackgroundInterop_Always_TravelsAsTheSourceAddTypeCompiles()
     {
         var source = AutounattendScripts.DesktopBackgroundInterop;
 
@@ -954,7 +1038,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void ExtractScript_resource_decodes_both_carried_shapes()
+    public void ExtractScript_Always_DecodesBothCarriedShapes()
     {
         AutounattendScripts.ExtractScript.Should().StartWith("param(");
         AutounattendScripts.ExtractScript.Should().Contain("$Document.unattend.Extensions.File");
@@ -965,14 +1049,14 @@ public class AutounattendWritersTests
 
     // XML parsing hands the extractor LF line endings, and cmd.exe misses labels in a batch file that has them.
     [Fact]
-    public void ExtractScript_resource_writes_text_files_with_CRLF_line_endings()
+    public void ExtractScript_Always_WritesTextFilesWithCrlfLineEndings()
     {
         AutounattendScripts.ExtractScript.Should().Contain("$text = $file.InnerText.Trim() -replace '\\r?\\n', \"`r`n\";");
         AutounattendScripts.ExtractScript.Should().Contain("$encoding.GetBytes( $text )");
     }
 
     [Fact]
-    public void The_builder_runs_the_extractor_first_and_the_Winhancements_script_last_in_specialize()
+    public void Build_Carried_RunsTheExtractorFirstAndTheWinhancementsScriptLastInSpecialize()
     {
         var doc = AutounattendDocumentBuilder.Build(Carried);
 
@@ -988,7 +1072,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void An_embedded_picture_rides_beside_the_script_as_base64()
+    public void Build_EmbeddedPicture_RidesBesideTheScriptAsBase64()
     {
         var set = SelectionSet.Empty with
         {
@@ -1005,7 +1089,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void A_picture_the_file_only_names_carries_no_picture_element()
+    public void Build_PictureTheFileOnlyNames_CarriesNoPictureElement()
     {
         var doc = AutounattendDocumentBuilder.Build(new AutounattendRenderContext("Write-Host 'carried'", "0.0.0", SetWith(
             new SettingChoice("theme-wallpaper-picture",
@@ -1016,7 +1100,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void The_builder_stamps_its_version_first_under_Extensions()
+    public void Build_Carried_StampsItsVersionFirstUnderExtensions()
     {
         var doc = AutounattendDocumentBuilder.Build(Carried);
 
@@ -1026,7 +1110,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Architecture_single_selection_rewrites_the_placeholder()
+    public void Write_SingleArchitecture_RewritesThePlaceholder()
     {
         var doc = AutounattendDocument.NewSkeleton();
         doc.Pass("specialize").Component("Microsoft-Windows-Deployment").AddRunSynchronousCommand("cmd.exe /c one");
@@ -1041,7 +1125,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Architecture_three_selections_clone_every_component_in_the_files_order()
+    public void Write_ThreeArchitectures_CloneEveryComponentInTheFilesOrder()
     {
         var doc = AutounattendDocument.NewSkeleton();
         doc.Pass("specialize").Component("Microsoft-Windows-Deployment").AddRunSynchronousCommand("cmd.exe /c one");
@@ -1058,7 +1142,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Architecture_two_selections_clone_once_and_keep_the_files_order()
+    public void Write_TwoArchitectures_CloneOnceAndKeepTheFilesOrder()
     {
         var doc = AutounattendDocument.NewSkeleton();
         doc.Pass("windowsPE").Component("Microsoft-Windows-Setup").AddRunSynchronousCommand("cmd.exe /c one");
@@ -1072,7 +1156,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Architecture_with_none_checked_still_covers_all_three()
+    public void Write_NoArchitectureChecked_StillCoversAllThree()
     {
         var doc = AutounattendDocument.NewSkeleton();
         doc.Pass("specialize").Component("Microsoft-Windows-Deployment").AddRunSynchronousCommand("cmd.exe /c one");
@@ -1087,7 +1171,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Build_with_defaults_lays_specialize_out_the_way_the_template_did()
+    public void Build_Defaults_LaysSpecializeOutLikeTheTemplateDid()
     {
         var doc = AutounattendDocumentBuilder.Build(Carried);
 
@@ -1099,8 +1183,8 @@ public class AutounattendWritersTests
         specialize.Select(c => (string?)c.Element(U + "Order")).Should().Equal("1", "2", "3", "4", "5");
         specialize.Select(c => c.Element(U + "Description")!.Value).Should().SatisfyRespectively(
             d => d.Should().Be("Loads Scripts in this XML File"),
-            d => d.Should().Be("Registry Entry to Create a Local Account during OOBE"),
             d => d.Should().Be("Enables .NET Framework 3.5 from Windows Installation Media"),
+            d => d.Should().Be("Registry Entry to Create a Local Account during OOBE"),
             // The cut sits behind the cards the generic writer emits because OobeNetworkWriter runs after it;
             // it only has to land before OOBE, and nothing above it needs the network.
             d => d.Should().StartWith("Disable All Network Adapters Temporarily"),
@@ -1111,7 +1195,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void The_selection_sets_locales_and_time_zone_reach_the_assembled_document()
+    public void Build_LocalesAndTimeZone_ReachTheAssembledDocument()
     {
         var context = new AutounattendRenderContext(
             "Write-Host 'carried'",
@@ -1142,7 +1226,7 @@ public class AutounattendWritersTests
     }
 
     [Fact]
-    public void Serialize_writes_utf8_without_bom_and_keeps_the_cdata()
+    public void Serialize_Always_WritesUtf8WithoutBomAndKeepsTheCdata()
     {
         var xml = AutounattendDocumentBuilder.Serialize(AutounattendDocumentBuilder.Build(Carried));
 

@@ -23,6 +23,7 @@ public class BootManagerServiceTests
         _fileSystem.Setup(fs => fs.CombinePath(It.IsAny<string[]>()))
                    .Returns((string[] parts) => string.Join("\\", parts));
         _fileSystem.Setup(fs => fs.GetTempPath()).Returns(@"C:\temp");
+        _fileSystem.Setup(fs => fs.CreatePrivateDirectory(It.IsAny<string>())).Returns(true);
         _fileSystem.Setup(fs => fs.GetFileNameWithoutExtension(It.IsAny<string>()))
                    .Returns((string path) => Path.GetFileNameWithoutExtension(path));
         _fileSystem.Setup(fs => fs.FileExists(BootWim)).Returns(true);
@@ -169,6 +170,17 @@ public class BootManagerServiceTests
         Func<Task> act = () => CreateSut().PrepareAsync(Work, BootManager.Ca2023, CancellationToken.None);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task PrepareAsync_StagingFolderCannotBeMadePrivate_ThrowsBeforeExtracting()
+    {
+        _fileSystem.Setup(fs => fs.CreatePrivateDirectory(@"C:\temp\Winhance\BootManager2023")).Returns(false);
+
+        Func<Task> act = () => CreateSut().PrepareAsync(Work, BootManager.Ca2023, CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*BootManager2023*");
+        _extractor.Verify(e => e.Extract(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<IReadOnlyDictionary<string, string>>()), Times.Never);
     }
 
     private void GivenMediaBootManager(string signer, uint? securityVersion)

@@ -1,6 +1,6 @@
 namespace Winhance.UI.Features.Common.Interfaces;
 
-// Must be initialized with the main Window after it is created (same pattern as DialogService).
+// null = the user cancelled, or there is no main window to parent the dialog to.
 public interface IFilePickerService
 {
     // filters: pairs [name, pattern, ...], e.g. ["ISO Files", "*.iso"].
@@ -8,5 +8,5 @@ public interface IFilePickerService
 
     string? PickFolder(string? title = null);
 
-    string? PickSaveFile(string[] filters, string? suggestedFileName = null, string? defaultExtension = null);
+    string? PickSavePath(string title, string filterName, string filterPattern, string defaultFileName, string defaultExtension);
 }

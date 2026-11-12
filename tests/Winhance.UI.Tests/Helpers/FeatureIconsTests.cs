@@ -10,14 +10,14 @@ namespace Winhance.UI.Tests.Helpers;
 public class FeatureIconsTests
 {
     [Fact]
-    public void Every_feature_and_every_sidebar_destination_has_an_icon_in_the_dictionary()
+    public void IconKeys_EveryFeatureAndSidebarDestination_HaveIconInDictionary()
     {
         var resources = FeatureIconsXaml.Read();
         var keys = FeatureDefinitions.All.Select(f => f.IconKey)
             .Concat(FeatureDefinitions.All.Select(f => f.Category).Distinct().Select(FeatureDefinitions.CategoryIconKey))
             .ToList();
 
-        keys.Should().HaveCount(18);
+        keys.Should().HaveCount(19);
         foreach (var key in keys)
         {
             resources.Should().ContainKey(key);
@@ -26,7 +26,7 @@ public class FeatureIconsTests
     }
 
     [Fact]
-    public void Every_symbol_key_names_an_icon_in_the_fluent_set()
+    public void SymbolKeys_Always_NameIconInFluentSet()
     {
         var symbols = FeatureIconsXaml.Read().Where(r => r.Key.EndsWith("Symbol", StringComparison.Ordinal)).ToList();
 
@@ -38,7 +38,7 @@ public class FeatureIconsTests
     }
 
     [Fact]
-    public void An_unmapped_category_is_refused_loudly()
+    public void CategoryIconKey_UnmappedCategory_Throws()
     {
         var act = () => FeatureDefinitions.CategoryIconKey("AdvancedTools");
 

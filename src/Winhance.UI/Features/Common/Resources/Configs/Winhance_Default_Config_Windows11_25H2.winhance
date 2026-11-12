@@ -450,6 +450,167 @@
   "Customize": {
     "IsIncluded": true,
     "Features": {
+      "ContextMenu": {
+        "IsIncluded": true,
+        "Items": [
+          {
+            "Id": "context-menu-classic",
+            "Name": "Setting_context-menu-classic_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-ask-copilot",
+            "Name": "Setting_context-menu-ask-copilot_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-windows-terminal",
+            "Name": "Setting_context-menu-windows-terminal_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-compress-to",
+            "Name": "Setting_context-menu-compress-to_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-take-ownership",
+            "Name": "Setting_context-menu-take-ownership_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-firewall",
+            "Name": "Setting_context-menu-firewall_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-toggle-extensions",
+            "Name": "Setting_context-menu-toggle-extensions_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-ps1-edit-run",
+            "Name": "Setting_context-menu-ps1-edit-run_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-repair-menu",
+            "Name": "Setting_context-menu-repair-menu_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-repair-windows",
+            "Name": "Setting_context-menu-repair-windows_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-sfc",
+            "Name": "Setting_context-menu-sfc_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-dism",
+            "Name": "Setting_context-menu-dism_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-chkdsk",
+            "Name": "Setting_context-menu-chkdsk_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-restore-point",
+            "Name": "Setting_context-menu-restore-point_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-disk-cleanup",
+            "Name": "Setting_context-menu-disk-cleanup_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-optimize-drives",
+            "Name": "Setting_context-menu-optimize-drives_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-memory-diagnostic",
+            "Name": "Setting_context-menu-memory-diagnostic_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-icon-cache",
+            "Name": "Setting_context-menu-icon-cache_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-troubleshooting-menu",
+            "Name": "Setting_context-menu-troubleshooting-menu_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-restart-explorer",
+            "Name": "Setting_context-menu-restart-explorer_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-restart-into",
+            "Name": "Setting_context-menu-restart-into_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-network",
+            "Name": "Setting_context-menu-network_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-end-frozen-apps",
+            "Name": "Setting_context-menu-end-frozen-apps_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-store-reset",
+            "Name": "Setting_context-menu-store-reset_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-reliability-monitor",
+            "Name": "Setting_context-menu-reliability-monitor_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-battery-report",
+            "Name": "Setting_context-menu-battery-report_Name",
+            "IsSelected": false,
+            "InputType": 0
+          }
+        ]
+      },
       "Explorer": {
         "IsIncluded": true,
         "Items": [
@@ -496,72 +657,6 @@
             "InputType": 0
           },
           {
-            "Id": "explorer-customization-context-menu",
-            "Name": "Setting_explorer-customization-context-menu_Name",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-take-ownership",
-            "Name": "Setting_explorer-take-ownership_Name",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-firewall",
-            "Name": "Setting_explorer-context-menu-firewall_Name",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-toggle-extensions",
-            "Name": "Setting_explorer-context-menu-toggle-extensions_Name",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-windows-terminal",
-            "Name": "Setting_explorer-context-menu-windows-terminal_Name",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-ask-copilot",
-            "Name": "Setting_explorer-context-menu-ask-copilot_Name",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-sfc",
-            "Name": "Setting_explorer-context-menu-sfc_Name",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-dism",
-            "Name": "Setting_explorer-context-menu-dism_Name",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-chkdsk",
-            "Name": "Setting_explorer-context-menu-chkdsk_Name",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-ps1-edit-run",
-            "Name": "Setting_explorer-context-menu-ps1-edit-run_Name",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-compress-to",
-            "Name": "Setting_explorer-context-menu-compress-to_Name",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
             "Id": "devices-dynamic-lighting-ambient",
             "Name": "Setting_devices-dynamic-lighting-ambient_Name",
             "IsSelected": true,
@@ -583,6 +678,12 @@
             "Id": "devices-numlock-at-startup",
             "Name": "Setting_devices-numlock-at-startup_Name",
             "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-autoplay",
+            "Name": "Setting_explorer-autoplay_Name",
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -730,30 +831,6 @@
             "InputType": 0
           },
           {
-            "Id": "explorer-enable-photo-viewer",
-            "Name": "Setting_explorer-enable-photo-viewer_Name",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-customization-legacy-notepad",
-            "Name": "Setting_explorer-customization-legacy-notepad_Name",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-customization-notepad-word-wrap",
-            "Name": "Setting_explorer-customization-notepad-word-wrap_Name",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-customization-notepad-status-bar",
-            "Name": "Setting_explorer-customization-notepad-status-bar_Name",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
             "Id": "explorer-customization-hide-merge-conflicts",
             "Name": "Setting_explorer-customization-hide-merge-conflicts_Name",
             "IsSelected": true,
@@ -830,6 +907,36 @@
             "Name": "Setting_explorer-customization-typing-behavior_Name",
             "InputType": 1,
             "SelectedIndex": 0
+          },
+          {
+            "Id": "explorer-long-file-paths",
+            "Name": "Setting_explorer-long-file-paths_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-enable-photo-viewer",
+            "Name": "Setting_explorer-enable-photo-viewer_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-legacy-notepad",
+            "Name": "Setting_explorer-customization-legacy-notepad_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-notepad-word-wrap",
+            "Name": "Setting_explorer-customization-notepad-word-wrap_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-customization-notepad-status-bar",
+            "Name": "Setting_explorer-customization-notepad-status-bar_Name",
+            "IsSelected": true,
+            "InputType": 0
           },
           {
             "Id": "explorer-customization-thispc-folder-desktop",
@@ -946,21 +1053,9 @@
             "InputType": 0
           },
           {
-            "Id": "explorer-long-file-paths",
-            "Name": "Setting_explorer-long-file-paths_Name",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
             "Id": "explorer-customization-netplwiz-auto-login",
             "Name": "Setting_explorer-customization-netplwiz-auto-login_Name",
             "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-autoplay",
-            "Name": "Setting_explorer-autoplay_Name",
-            "IsSelected": true,
             "InputType": 0
           }
         ]
@@ -1034,6 +1129,30 @@
             "SelectedIndex": 3
           },
           {
+            "Id": "taskbar-task-view",
+            "Name": "Setting_taskbar-task-view_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "taskbar-copilot-companion",
+            "Name": "Setting_taskbar-copilot-companion_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "taskbar-copilot-pwa-pin",
+            "Name": "Setting_taskbar-copilot-pwa-pin_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "taskbar-recall-pin",
+            "Name": "Setting_taskbar-recall-pin_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
             "Id": "taskbar-alignment",
             "Name": "Setting_taskbar-alignment_Name",
             "InputType": 1,
@@ -1076,6 +1195,12 @@
             "SelectedIndex": 0
           },
           {
+            "Id": "taskbar-combine-buttons-other",
+            "Name": "Setting_taskbar-combine-buttons-other_Name",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
             "Id": "taskbar-share-window",
             "Name": "Setting_taskbar-share-window_Name",
             "IsSelected": true,
@@ -1094,12 +1219,6 @@
             "SelectedIndex": 0
           },
           {
-            "Id": "taskbar-combine-buttons-other",
-            "Name": "Setting_taskbar-combine-buttons-other_Name",
-            "InputType": 1,
-            "SelectedIndex": 0
-          },
-          {
             "Id": "taskbar-button-size",
             "Name": "Setting_taskbar-button-size_Name",
             "InputType": 1,
@@ -1112,33 +1231,9 @@
             "SelectedIndex": 2
           },
           {
-            "Id": "taskbar-task-view",
-            "Name": "Setting_taskbar-task-view_Name",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
             "Id": "taskbar-clock-seconds",
             "Name": "Setting_taskbar-clock-seconds_Name",
             "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "taskbar-copilot-companion",
-            "Name": "Setting_taskbar-copilot-companion_Name",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
-            "Id": "taskbar-copilot-pwa-pin",
-            "Name": "Setting_taskbar-copilot-pwa-pin_Name",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
-            "Id": "taskbar-recall-pin",
-            "Name": "Setting_taskbar-recall-pin_Name",
-            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -1278,6 +1373,12 @@
             "Id": "gaming-explorer-alt-tab-filter",
             "Name": "Setting_gaming-explorer-alt-tab-filter_Name",
             "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "system-restore-protection",
+            "Name": "Setting_system-restore-protection_Name",
+            "IsSelected": true,
             "InputType": 0
           },
           {
@@ -1903,12 +2004,6 @@
             "Name": "Setting_accessibility-highcontrast-hotkey_Name",
             "IsSelected": true,
             "InputType": 0
-          },
-          {
-            "Id": "system-restore-protection",
-            "Name": "Setting_system-restore-protection_Name",
-            "IsSelected": true,
-            "InputType": 0
           }
         ]
       },
@@ -1982,14 +2077,14 @@
             "InputType": 0
           },
           {
-            "Id": "notifications-app-location-request",
-            "Name": "Setting_notifications-app-location-request_Name",
+            "Id": "notifications-clock-change",
+            "Name": "Setting_notifications-clock-change_Name",
             "IsSelected": true,
             "InputType": 0
           },
           {
-            "Id": "notifications-clock-change",
-            "Name": "Setting_notifications-clock-change_Name",
+            "Id": "notifications-app-location-request",
+            "Name": "Setting_notifications-app-location-request_Name",
             "IsSelected": true,
             "InputType": 0
           },
@@ -3059,6 +3154,12 @@
             "SelectedIndex": 0
           },
           {
+            "Id": "updates-store-auto-download",
+            "Name": "Setting_updates-store-auto-download_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
             "Id": "updates-latest-updates",
             "Name": "Setting_updates-latest-updates_Name",
             "IsSelected": true,
@@ -3109,12 +3210,6 @@
           {
             "Id": "updates-driver-coinstallers",
             "Name": "Setting_updates-driver-coinstallers_Name",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
-            "Id": "updates-store-auto-download",
-            "Name": "Setting_updates-store-auto-download_Name",
             "IsSelected": true,
             "InputType": 0
           }

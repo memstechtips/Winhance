@@ -18,6 +18,7 @@ public static class FeatureIds
     public const string StartMenu = "StartMenu";
     public const string Taskbar = "Taskbar";
     public const string Explorer = "Explorer";
+    public const string ContextMenu = "ContextMenu";
     public const string TimeRegionLanguage = "TimeRegionLanguage";
 
     public const string Autounattend = "Autounattend";

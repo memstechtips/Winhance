@@ -125,7 +125,7 @@ public static class UpdateOptimizationsCatalog
                 {
                     Label = LocKey.Setting.UpdatesPolicyMode.Option2,
                     Tooltip = LocKey.Setting.UpdatesPolicyMode.OptionTooltip2,
-                    Warning = LocKey.Setting.UpdatesPolicyMode.OptionWarning2,
+                    RiskWarning = LocKey.Setting.UpdatesPolicyMode.OptionWarning2,
                     Set = new Dictionary<string, StateValue>
                     {
                         ["NoAutoUpdate"] = Of(1),
@@ -156,7 +156,7 @@ public static class UpdateOptimizationsCatalog
                 {
                     Label = LocKey.Setting.UpdatesPolicyMode.Option3,
                     Tooltip = LocKey.Setting.UpdatesPolicyMode.OptionTooltip3,
-                    Warning = LocKey.Setting.UpdatesPolicyMode.OptionWarning3,
+                    RiskWarning = LocKey.Setting.UpdatesPolicyMode.OptionWarning3,
                     Set = new Dictionary<string, StateValue>
                     {
                         ["NoAutoUpdate"] = Of(1),
@@ -252,6 +252,37 @@ public static class UpdateOptimizationsCatalog
                     Label = LocKey.ServiceOption.Disabled,
                     Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["DODownloadMode"] = Of(99) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "updates-store-auto-download",
+            Display = new()
+            {
+                Name = LocKey.Setting.UpdatesStoreAutoDownload.Name,
+                Description = LocKey.Setting.UpdatesStoreAutoDownload.Description,
+                GroupName = LocKey.SettingGroup.DeliveryStore,
+                Icon = FluentIcons.StoreMicrosoft,
+            },
+            Targets = new Target[]
+            {
+                new RegTarget("AutoDownload", new[] { @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\WindowsStore", @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsStore" }, "AutoDownload", RegistryValueKind.DWord) { IsGroupPolicy = true },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["AutoDownload"] = Of(4).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.Recommended },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["AutoDownload"] = Of(2) },
                 },
             },
         },
@@ -434,7 +465,7 @@ public static class UpdateOptimizationsCatalog
                 new SettingState
                 {
                     Label = LocKey.Setting.UpdatesNotificationLevel.Option2,
-                    Warning = LocKey.Setting.UpdatesNotificationLevel.OptionWarning2,
+                    RiskWarning = LocKey.Setting.UpdatesNotificationLevel.OptionWarning2,
                     Set = new Dictionary<string, StateValue>
                     {
                         ["SetUpdateNotificationLevel"] = Of(1),
@@ -569,37 +600,6 @@ public static class UpdateOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["DisableCoInstallers"] = Of(1) },
-                },
-            },
-        },
-        new()
-        {
-            Id = "updates-store-auto-download",
-            Display = new()
-            {
-                Name = LocKey.Setting.UpdatesStoreAutoDownload.Name,
-                Description = LocKey.Setting.UpdatesStoreAutoDownload.Description,
-                GroupName = LocKey.SettingGroup.DeliveryStore,
-                Icon = FluentIcons.StoreMicrosoft,
-            },
-            Targets = new Target[]
-            {
-                new RegTarget("AutoDownload", new[] { @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\WindowsStore", @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsStore" }, "AutoDownload", RegistryValueKind.DWord) { IsGroupPolicy = true },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["AutoDownload"] = Of(4).OrAbsent() },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["AutoDownload"] = Of(2) },
                 },
             },
         },

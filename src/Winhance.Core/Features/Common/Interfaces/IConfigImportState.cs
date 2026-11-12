@@ -3,12 +3,19 @@ namespace Winhance.Core.Features.Common.Interfaces;
 // Services check this to defer expensive side effects (process restarts, Explorer kills) until the import completes.
 public interface IConfigImportState
 {
-    bool IsActive { get; set; }
+    // True only on the flow that called Begin and the work it starts, so a setting the user changes
+    // meanwhile, or a second import, is not treated as part of this one.
+    bool IsActive { get; }
+
+    IDisposable Begin();
+
+    // Any import on any flow, for UI that reads from outside the import (the Restart Explorer button).
+    bool IsAnyImportRunning { get; }
+
+    // Raised when IsAnyImportRunning flips, on the thread that began or ended the import.
+    event EventHandler? AnyImportRunningChanged;
 
     string? SourceName { get; set; }
-
-    // The user's own file, when that is what is being imported; null for a preset or a backup.
-    string? SourcePath { get; set; }
 
     // Tells the power-plan special handler to skip its recommended-settings re-apply: the import's own values are the source of truth.
     bool ImportSuppliesPowerValues { get; set; }

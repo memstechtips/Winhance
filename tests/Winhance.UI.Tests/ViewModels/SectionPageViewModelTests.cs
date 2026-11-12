@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
@@ -315,6 +316,36 @@ public class SectionPageViewModelTests
         vm.OnNavigatedFrom();
 
         vm.SearchText.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(WinhanceMode.Normal, WinhanceMode.ConfigReview)]
+    [InlineData(WinhanceMode.ConfigReview, WinhanceMode.Normal)]
+    [InlineData(WinhanceMode.ConfigReview, WinhanceMode.ConfigReview)]
+    [InlineData(WinhanceMode.Normal, WinhanceMode.Builder)]
+    [InlineData(WinhanceMode.Builder, WinhanceMode.Normal)]
+    public void ModeChange_ClearsSearchText(WinhanceMode from, WinhanceMode to)
+    {
+        _mockModeService.Setup(m => m.CurrentMode).Returns(from);
+        var vm = CreateViewModel();
+        vm.SearchText = "handbrake";
+
+        _mockModeService.Setup(m => m.CurrentMode).Returns(to);
+        _mockModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        vm.SearchText.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void BuilderTargetSwitch_KeepsSearchText()
+    {
+        _mockModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        var vm = CreateViewModel();
+        vm.SearchText = "handbrake";
+
+        _mockModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        vm.SearchText.Should().Be("handbrake");
     }
 
     [Fact]
@@ -647,5 +678,66 @@ public class SectionPageViewModelTests
             new PropertyChangedEventArgs(nameof(ISettingsFeatureViewModel.HasVisibleSettings)));
 
         raisedProperties.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void StateFilter_WhenAll_ShowsNoIndicator()
+    {
+        var vm = CreateViewModel();
+
+        vm.IsStateFilterActive.Should().BeFalse();
+        vm.IsShowAllVisible.Should().BeFalse();
+    }
+
+    [Fact]
+    public void StateFilter_WhenSet_NamesTheFilterInTheIndicator()
+    {
+        _mockLocalizationService.Setup(l => l.GetString("View_StateFilter_Chip")).Returns("Filter: {0}");
+        _mockLocalizationService.Setup(l => l.GetString("View_StateFilter_Custom")).Returns("Custom");
+        var vm = CreateViewModel();
+        var raisedProperties = new List<string>();
+        vm.PropertyChanged += (_, e) => raisedProperties.Add(e.PropertyName!);
+
+        vm.StateFilter = SettingStateFilter.Custom;
+
+        raisedProperties.Should().Contain(nameof(vm.IsStateFilterActive));
+        raisedProperties.Should().Contain(nameof(vm.ActiveStateFilterText));
+        vm.IsStateFilterActive.Should().BeTrue();
+        vm.ActiveStateFilterText.Should().Be("Filter: Custom");
+    }
+
+    [Fact]
+    public void IsShowAllVisible_WhenTheFilterHidesEveryCard_ReturnsTrue()
+    {
+        var vm = CreateViewModel();
+
+        vm.StateFilter = SettingStateFilter.Recommended;
+
+        vm.IsShowAllVisible.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsShowAllVisible_WhenASearchFindsNothing_ReturnsFalse()
+    {
+        var vm = CreateViewModel();
+        vm.StateFilter = SettingStateFilter.Recommended;
+
+        vm.SearchText = "nothing matches this";
+
+        vm.HasNoSearchResults.Should().BeTrue();
+        vm.IsShowAllVisible.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ShowAllSettingsCommand_ClearsTheFilter()
+    {
+        var vm = CreateViewModel();
+        vm.StateFilter = SettingStateFilter.WindowsDefault;
+
+        vm.ShowAllSettingsCommand.Execute(null);
+
+        vm.StateFilter.Should().Be(SettingStateFilter.All);
+        vm.IsStateFilterActive.Should().BeFalse();
+        vm.IsShowAllVisible.Should().BeFalse();
     }
 }

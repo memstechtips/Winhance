@@ -59,7 +59,7 @@ public sealed record MatrixColumn
     public string TypeName { get; init; } = string.Empty;
     public MatrixColumnKind Kind { get; init; } = MatrixColumnKind.Value;
 
-    public IReadOnlyList<MatrixChip> Chips { get; init; } = [];
+    public IReadOnlyList<MatrixChip> Chips { get; init => field = ValueList<MatrixChip>.From(value); } = ValueList<MatrixChip>.Empty;
 
     public string HeaderTooltip { get; init; } = string.Empty;
 
@@ -78,7 +78,7 @@ public sealed record MatrixColumnGroup
     public string Description { get; init; } = string.Empty;
 
     // More than one = a mirror: the same value goes to every path, so listing them all is what makes the header truthful.
-    public IReadOnlyList<MatrixPath> Paths { get; init; } = [];
+    public IReadOnlyList<MatrixPath> Paths { get; init => field = ValueList<MatrixPath>.From(value); } = ValueList<MatrixPath>.Empty;
 
     public required int StartColumn { get; init; }
     public required int ColumnSpan { get; init; }
@@ -97,7 +97,10 @@ public sealed record MatrixColumnGroup
 // options and visual-effects-mode 35 across three, and a strip that flattens them says nothing about which
 // option causes which. Rendered below the grid rather than inside it, so the chips wrap against the panel's
 // width instead of the table's - a table wider than the card would otherwise put half of them out of reach.
-public sealed record MatrixOptionLinks(string Option, IReadOnlyList<MatrixChip> Chips);
+public sealed record MatrixOptionLinks(string Option, IReadOnlyList<MatrixChip> Chips)
+{
+    public IReadOnlyList<MatrixChip> Chips { get; init => field = ValueList<MatrixChip>.From(value); } = ValueList<MatrixChip>.From(Chips);
+}
 
 // Not a Target - a Target holds a value per option and belongs in the grid; these fire whichever option you pick.
 public sealed record MatrixNote(string Label, string Detail)
@@ -127,7 +130,7 @@ public sealed record MatrixOption
 {
     public required string Label { get; init; }
 
-    public IReadOnlyList<MatrixCell> Cells { get; init; } = [];
+    public IReadOnlyList<MatrixCell> Cells { get; init => field = ValueList<MatrixCell>.From(value); } = ValueList<MatrixCell>.Empty;
 
     public bool IsCurrent { get; init; }
     public bool IsRecommended { get; init; }
@@ -144,9 +147,9 @@ public sealed record MatrixOption
 
 public sealed record OptionMatrix
 {
-    public IReadOnlyList<MatrixColumnGroup> Groups { get; init; } = [];
-    public IReadOnlyList<MatrixColumn> Columns { get; init; } = [];
-    public IReadOnlyList<MatrixOption> Options { get; init; } = [];
+    public IReadOnlyList<MatrixColumnGroup> Groups { get; init => field = ValueList<MatrixColumnGroup>.From(value); } = ValueList<MatrixColumnGroup>.Empty;
+    public IReadOnlyList<MatrixColumn> Columns { get; init => field = ValueList<MatrixColumn>.From(value); } = ValueList<MatrixColumn>.Empty;
+    public IReadOnlyList<MatrixOption> Options { get; init => field = ValueList<MatrixOption>.From(value); } = ValueList<MatrixOption>.Empty;
 
     public string OptionHeader { get; init; } = string.Empty;
 
@@ -163,24 +166,24 @@ public sealed record OptionMatrix
 
     // Belong to the SETTING, not to any one option (ApplyBehavior hangs off Setting), so they sit in the setting's
     // own cell rather than a column that would repeat on every row.
-    public IReadOnlyList<MatrixChip> Requirements { get; init; } = [];
+    public IReadOnlyList<MatrixChip> Requirements { get; init => field = ValueList<MatrixChip>.From(value); } = ValueList<MatrixChip>.Empty;
 
-    public IReadOnlyList<MatrixOptionLinks> OptionLinks { get; init; } = [];
+    public IReadOnlyList<MatrixOptionLinks> OptionLinks { get; init => field = ValueList<MatrixOptionLinks>.From(value); } = ValueList<MatrixOptionLinks>.Empty;
     public string OptionLinksHeading { get; init; } = string.Empty;
     public bool HasOptionLinks => OptionLinks.Count > 0;
 
-    public IReadOnlyList<MatrixNote> Notes { get; init; } = [];
+    public IReadOnlyList<MatrixNote> Notes { get; init => field = ValueList<MatrixNote>.From(value); } = ValueList<MatrixNote>.Empty;
     public string NotesHeading { get; init; } = string.Empty;
 
     public string NotesDetailHeader { get; init; } = string.Empty;
     public bool HasNotes => Notes.Count > 0;
 
-    public IReadOnlyList<MatrixCodeBlock> CodeBlocks { get; init; } = [];
+    public IReadOnlyList<MatrixCodeBlock> CodeBlocks { get; init => field = ValueList<MatrixCodeBlock>.From(value); } = ValueList<MatrixCodeBlock>.Empty;
     public bool HasCode => CodeBlocks.Count > 0;
 
     // Present only when detection matched no option; a matched option's current marker already says what is on the system.
     public string ReadingLabel { get; init; } = string.Empty;
-    public IReadOnlyList<MatrixCell> ReadingCells { get; init; } = [];
+    public IReadOnlyList<MatrixCell> ReadingCells { get; init => field = ValueList<MatrixCell>.From(value); } = ValueList<MatrixCell>.Empty;
     public bool HasReading => ReadingLabel.Length > 0;
 
     public string CurrentLabel { get; init; } = string.Empty;

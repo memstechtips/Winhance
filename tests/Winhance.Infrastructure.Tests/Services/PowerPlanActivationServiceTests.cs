@@ -22,7 +22,7 @@ public class PowerPlanActivationServiceTests
         new Mock<ICatalogSettingsRegistry>().Object);
 
     [Fact]
-    public async Task The_Winhance_plan_is_a_copy_of_Balanced()
+    public async Task ImportPowerPlanAsync_WinhancePlan_IsACopyOfBalanced()
     {
         _query.Setup(q => q.GetAvailablePowerPlansAsync()).ReturnsAsync(new List<PowerPlan>());
         var created = Guid.Empty;

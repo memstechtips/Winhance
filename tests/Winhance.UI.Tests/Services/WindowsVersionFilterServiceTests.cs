@@ -441,6 +441,24 @@ public class WindowsVersionFilterServiceTests
             Times.Once);
     }
 
+    // Ticked by default, one careless click hid the explanation for good.
+    [Fact]
+    public async Task ToggleFilterAsync_DontShowAgainStartsUnticked()
+    {
+        _mockPreferencesService
+            .Setup(p => p.GetPreferenceAsync(UserPreferenceKeys.DontShowFilterExplanation, false))
+            .ReturnsAsync(false);
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false, CheckboxChecked = false });
+
+        await CreateService().ToggleFilterAsync(isInReviewMode: false);
+
+        _mockDialogService.Verify(
+            d => d.ShowConfirmationAsync(It.Is<ConfirmationRequest>(r => !r.CheckboxInitiallyChecked)),
+            Times.Once);
+    }
+
     [Fact]
     public async Task ToggleFilterAsync_WhenLocalizationReturnsNull_UsesFallbackStrings()
     {

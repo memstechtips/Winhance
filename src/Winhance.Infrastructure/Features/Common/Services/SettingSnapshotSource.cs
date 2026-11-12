@@ -60,7 +60,7 @@ internal sealed class SettingSnapshotSource : ISettingSnapshotSource
     {
         await _registry.InitializeAsync().ConfigureAwait(false);
         var settings = wanted
-            .Select(choice => (choice, setting: _registry.GetById(SettingIdAliases.Normalize(choice.SettingId), scope)))
+            .Select(choice => (choice, setting: _registry.GetById(choice.SettingId, scope)))
             .Where(pair => pair.setting is not null)
             .ToList();
         var states = await _states.GetStatesAsync(settings.Select(pair => pair.setting!).ToList()).ConfigureAwait(false);
@@ -173,9 +173,14 @@ internal sealed class SettingSnapshotSource : ISettingSnapshotSource
                 {
                     // A desktop reads no DC value. Option 0 is a real option - on a TimeIntervals-backed
                     // setting it is "Never" - so a context that read nothing carries the AC option instead,
-                    // the way the slider does.
-                    return IndexOfPowerValue(setting, powerCfg!, state.AcValue) is { } acIndex
-                        ? new ChoiceValue.AcDcOption(acIndex, IndexOfPowerValue(setting, powerCfg!, state.DcValue) ?? acIndex)
+                    // the way the slider does. A reading that matches no option leaves the setting out of the
+                    // file: an option index cannot carry it, and any guess would apply a different timeout.
+                    if (PowerCfgValues.OptionIndex(setting, state.AcValue) is not { } acIndex)
+                        return null;
+                    if (state.DcValue is null)
+                        return new ChoiceValue.AcDcOption(acIndex, acIndex);
+                    return PowerCfgValues.OptionIndex(setting, state.DcValue) is { } dcIndex
+                        ? new ChoiceValue.AcDcOption(acIndex, dcIndex)
                         : null;
                 }
                 if (state.CurrentValue is not int index)
@@ -235,19 +240,5 @@ internal sealed class SettingSnapshotSource : ISettingSnapshotSource
             default:
                 return null;
         }
-    }
-
-    // A Separate-mode powercfg selection detects a raw AC/DC value; the file stores the option index whose
-    // Set payload for the powercfg key equals it (the catalog authors one state per option). Null is "that
-    // context reported nothing", for the caller to resolve; a reading matching no option still lands on 0.
-    private static int? IndexOfPowerValue(Setting setting, PowerCfgTarget powerCfg, int? value)
-    {
-        if (value is not { } v) return null;
-        for (int i = 0; i < setting.States.Count; i++)
-        {
-            if (setting.States[i].Set.TryGetValue(powerCfg.Key, out var sv) && sv.WritePayload is { } p && Convert.ToInt32(p) == v)
-                return i;
-        }
-        return 0;
     }
 }

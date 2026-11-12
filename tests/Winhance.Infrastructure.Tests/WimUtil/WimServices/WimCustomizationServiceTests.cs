@@ -12,8 +12,6 @@ public class WimCustomizationServiceTests
 {
     private readonly Mock<IFileSystemService> _mockFileSystem = new();
     private readonly Mock<ILogService> _mockLogService = new();
-    private readonly Mock<HttpMessageHandler> _mockHttpHandler = new();
-    private readonly HttpClient _httpClient;
     private readonly Mock<ILocalizationService> _mockLocalization = new();
     private readonly Mock<IDriverCategorizer> _mockDriverCategorizer = new();
     private readonly Mock<IDismProcessRunner> _mockDismRunner = new();
@@ -23,8 +21,6 @@ public class WimCustomizationServiceTests
 
     public WimCustomizationServiceTests()
     {
-        _httpClient = new HttpClient(_mockHttpHandler.Object);
-
         _mockFileSystem
             .Setup(fs => fs.CombinePath(It.IsAny<string[]>()))
             .Returns((string[] paths) => string.Join("\\", paths));
@@ -39,50 +35,11 @@ public class WimCustomizationServiceTests
         _service = new WimCustomizationService(
             _mockFileSystem.Object,
             _mockLogService.Object,
-            _httpClient,
             _mockLocalization.Object,
             _mockDriverCategorizer.Object,
             _mockDismRunner.Object,
             _mockDriverInstallStep.Object,
             _mockUpdateInstallStep.Object);
-    }
-
-    // The DownloadUnattendedWinstallXmlAsync path-validation tests guard issue #506.
-    [Fact]
-    public async Task DownloadUnattendedWinstallXmlAsync_EmptyDestinationPath_ThrowsArgumentException()
-    {
-        var act = () => _service.DownloadUnattendedWinstallXmlAsync(string.Empty);
-        await act.Should().ThrowAsync<ArgumentException>()
-            .WithParameterName("destinationPath");
-    }
-
-    [Fact]
-    public async Task DownloadUnattendedWinstallXmlAsync_NullDestinationPath_ThrowsArgumentException()
-    {
-        var act = () => _service.DownloadUnattendedWinstallXmlAsync(null!);
-        await act.Should().ThrowAsync<ArgumentException>()
-            .WithParameterName("destinationPath");
-    }
-
-    [Fact]
-    public async Task DownloadUnattendedWinstallXmlAsync_FileNameOnly_ThrowsArgumentException()
-    {
-        // GetDirectoryName returns empty string for a bare filename
-        _mockFileSystem.Setup(fs => fs.GetDirectoryName("autounattend.xml")).Returns(string.Empty);
-
-        var act = () => _service.DownloadUnattendedWinstallXmlAsync("autounattend.xml");
-        await act.Should().ThrowAsync<ArgumentException>()
-            .WithParameterName("destinationPath");
-    }
-
-    [Fact]
-    public async Task DownloadUnattendedWinstallXmlAsync_DirectoryNameReturnsNull_ThrowsArgumentException()
-    {
-        _mockFileSystem.Setup(fs => fs.GetDirectoryName("autounattend.xml")).Returns((string?)null);
-
-        var act = () => _service.DownloadUnattendedWinstallXmlAsync("autounattend.xml");
-        await act.Should().ThrowAsync<ArgumentException>()
-            .WithParameterName("destinationPath");
     }
 
     [Fact]

@@ -9,19 +9,15 @@ internal class WimCustomizationService : IWimCustomizationService
 {
     private readonly IFileSystemService _fileSystemService;
     private readonly ILogService _logService;
-    private readonly HttpClient _httpClient;
     private readonly ILocalizationService _localization;
     private readonly IDriverCategorizer _driverCategorizer;
     private readonly IDismProcessRunner _dismProcessRunner;
     private readonly IDriverInstallStepWriter _driverInstallStep;
     private readonly IUpdateInstallStepWriter _updateInstallStep;
 
-    private const string UnattendedWinstallXmlUrl = "https://raw.githubusercontent.com/memstechtips/UnattendedWinstall/main/autounattend.xml";
-
     public WimCustomizationService(
         IFileSystemService fileSystemService,
         ILogService logService,
-        HttpClient httpClient,
         ILocalizationService localization,
         IDriverCategorizer driverCategorizer,
         IDismProcessRunner dismProcessRunner,
@@ -30,7 +26,6 @@ internal class WimCustomizationService : IWimCustomizationService
     {
         _fileSystemService = fileSystemService;
         _logService = logService;
-        _httpClient = httpClient;
         _localization = localization;
         _driverCategorizer = driverCategorizer;
         _dismProcessRunner = dismProcessRunner;
@@ -202,47 +197,6 @@ internal class WimCustomizationService : IWimCustomizationService
         {
             _logService.LogError($"Error adding XML to image: {ex.Message}", ex);
             return OperationResult.Failed(ex.Message, ex);
-        }
-    }
-
-    public async Task<string> DownloadUnattendedWinstallXmlAsync(
-        string destinationPath,
-        IProgress<TaskProgressDetail>? progress = null,
-        CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrEmpty(destinationPath))
-            throw new ArgumentException("Destination path cannot be empty.", nameof(destinationPath));
-
-        var destinationDir = _fileSystemService.GetDirectoryName(destinationPath);
-        if (string.IsNullOrEmpty(destinationDir))
-            throw new ArgumentException("Destination path must include a directory.", nameof(destinationPath));
-
-        try
-        {
-            progress?.Report(new TaskProgressDetail
-            {
-                StatusText = _localization.GetString("Progress_DownloadingXml"),
-                TerminalOutput = UnattendedWinstallXmlUrl
-            });
-
-            var xmlContent = await _httpClient.GetStringAsync(UnattendedWinstallXmlUrl, cancellationToken).ConfigureAwait(false);
-
-            _fileSystemService.CreateDirectory(destinationDir);
-            await _fileSystemService.WriteAllTextAsync(destinationPath, xmlContent, cancellationToken).ConfigureAwait(false);
-
-            progress?.Report(new TaskProgressDetail
-            {
-                StatusText = _localization.GetString("Progress_XmlDownloaded"),
-                TerminalOutput = $"Saved to: {destinationPath}"
-            });
-
-            _logService.LogInformation($"Downloaded UnattendedWinstall XML to: {destinationPath}");
-            return destinationPath;
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error downloading UnattendedWinstall XML: {ex.Message}", ex);
-            throw;
         }
     }
 

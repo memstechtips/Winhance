@@ -19,11 +19,11 @@ public class DefaultConfigConformanceTests
     public DefaultConfigConformanceTests(ITestOutputHelper output) => _output = output;
 
     [Fact]
-    public void Win10_default_config_matches_catalog_windows_defaults()
+    public void DefaultConfigProjection_Win10Config_MatchesCatalogWindowsDefaults()
         => RunBuild(DefaultConfigProjection.Targets[0].FileName, DefaultConfigProjection.Targets[0].Build);
 
     [Fact]
-    public void Win11_default_config_matches_catalog_windows_defaults()
+    public void DefaultConfigProjection_Win11Config_MatchesCatalogWindowsDefaults()
         => RunBuild(DefaultConfigProjection.Targets[1].FileName, DefaultConfigProjection.Targets[1].Build);
 
     private void RunBuild(string fileName, WinBuild build)

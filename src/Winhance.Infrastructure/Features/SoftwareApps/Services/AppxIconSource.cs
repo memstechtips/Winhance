@@ -26,25 +26,32 @@ internal class AppxIconSource(ILogService logService) : IAppxIconSource
     // nothing re-resolves an app's icon after an in-session install/uninstall (a
     // removed app's row just stops showing its icon, it isn't re-fetched), and the
     // map is rebuilt fresh on next launch, so a stale entry is never read.
-    private IReadOnlyDictionary<string, string>? _cachedMap;
+    // The task, not its result, is cached: both tabs ask at the same moment on page load, and caching only the
+    // finished map let each of them enumerate.
+    private Task<IReadOnlyDictionary<string, string>>? _mapTask;
     private readonly object _cacheLock = new();
 
     private static readonly XNamespace UapNs = "http://schemas.microsoft.com/appx/manifest/uap/windows10";
 
-    public async Task<IReadOnlyDictionary<string, string>> GetInstalledPackageMapAsync(
+    public Task<IReadOnlyDictionary<string, string>> GetInstalledPackageMapAsync(
         CancellationToken ct = default)
     {
-        var cached = _cachedMap;
-        if (cached is not null)
-            return cached;
+        Task<IReadOnlyDictionary<string, string>> load;
+        lock (_cacheLock)
+        {
+            load = _mapTask ??= EnumeratePackagesAsync();
+        }
+        return load.WaitAsync(ct);
+    }
 
+    private async Task<IReadOnlyDictionary<string, string>> EnumeratePackagesAsync()
+    {
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var packageDict = new Dictionary<string, Windows.ApplicationModel.Package>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            linkedCts.CancelAfter(TimeSpan.FromSeconds(20));
+            using var linkedCts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
 
             await Task.Run(() =>
             {
@@ -81,10 +88,6 @@ internal class AppxIconSource(ILogService logService) : IAppxIconSource
 
             logService.LogInformation($"AppxIconSource: enumerated {map.Count} packages across user/all-users/provisioned scopes");
         }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
         catch (OperationCanceledException)
         {
             logService.LogWarning("AppxIconSource enumeration timed out after 20s — returning what was collected");
@@ -95,14 +98,6 @@ internal class AppxIconSource(ILogService logService) : IAppxIconSource
         }
 
         _packagesByFullName = packageDict;
-
-        // Cache the snapshot so the second tab's resolver pass reuses it instead
-        // of re-enumerating. Last-writer-wins under concurrent first-callers is
-        // fine: both produce equivalent maps from the same PackageManager state.
-        lock (_cacheLock)
-        {
-            _cachedMap = map;
-        }
         return map;
     }
 

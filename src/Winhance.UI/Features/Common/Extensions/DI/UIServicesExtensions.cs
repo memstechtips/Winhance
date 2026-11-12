@@ -28,15 +28,12 @@ public static class UIServicesExtensions
 
         services.AddSingleton<IMainWindowProvider, MainWindowProvider>();
 
-        services.AddSingleton<IResourceService, ResourceService>();
-
         services.AddSingleton<IThemeService, ThemeService>();
 
         // Requires XamlRoot to be set by MainWindow after content is loaded
         services.AddSingleton<IDialogService, DialogService>();
 
         services.AddSingleton<IFilePickerService, FilePickerService>();
-        services.AddSingleton<ISaveFilePicker, SaveFilePicker>();
 
         services.AddSingleton<IAppSelectionSource, AppSelectionSource>();
         services.AddSingleton<ISelectionSetBuilder, SelectionSetBuilder>();
@@ -139,6 +136,7 @@ public static class UIServicesExtensions
         services.AddSingleton<ISystemTrayIcon, SystemTrayIcon>();
         services.AddSingleton<AppUpdateMonitor>();
         services.AddSingleton<TrayController>();
+        services.AddSingleton<MemoryDiagnostics>();
 
         return services;
     }

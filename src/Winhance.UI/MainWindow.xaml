@@ -9,6 +9,14 @@
     Title="Winhance">
 
     <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded" KeyboardAcceleratorPlacementMode="Hidden">
+        <Grid.Resources>
+            <!-- A translucent white button on the accent-colored mode bars. No BasedOn, so a DropDownButton keeps its own chevron template. -->
+            <Style x:Key="AccentBarButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="#40FFFFFF"/>
+                <Setter Property="Foreground" Value="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
+                <Setter Property="BorderThickness" Value="0"/>
+            </Style>
+        </Grid.Resources>
         <Grid.KeyboardAccelerators>
             <!-- Ctrl+1-6: Navigate to sections, Ctrl+7: More menu -->
             <KeyboardAccelerator Key="Number1" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
@@ -22,6 +30,7 @@
             <KeyboardAccelerator Key="Add" Modifiers="Control" Invoked="ZoomInAccelerator_Invoked"/>
             <KeyboardAccelerator Key="Subtract" Modifiers="Control" Invoked="ZoomOutAccelerator_Invoked"/>
             <KeyboardAccelerator Key="Number0" Modifiers="Control" Invoked="ZoomResetAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Left" Modifiers="Menu" Invoked="BackAccelerator_Invoked"/>
             <!-- Ctrl+Shift+1-4: Title bar action buttons (Support, Filter, Bug, Docs) -->
             <KeyboardAccelerator Key="Number1" Modifiers="Control,Shift" Invoked="TitleBarAccelerator_Invoked"/>
             <KeyboardAccelerator Key="Number2" Modifiers="Control,Shift" Invoked="TitleBarAccelerator_Invoked"/>
@@ -48,16 +57,25 @@
                 <ColumnDefinition x:Name="RightPaddingColumn" Width="0"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Navigation Toggle Button (Hamburger) -->
-            <Button x:Name="PaneToggleButton"
-                    Grid.Column="1"
-                    Click="PaneToggleButton_Click"
-                    Style="{StaticResource TitleBarButtonStyle}"
-                    ToolTipService.ToolTip="{x:Bind ViewModel.ToggleNavigationTooltip, Mode=OneWay}"
-                    AutomationProperties.Name="{x:Bind ViewModel.ToggleNavigationTooltip, Mode=OneWay}"
-                    Margin="4,0,0,0">
-                <fluentIcons:FluentIcon Icon="Navigation" IconVariant="Regular" FontSize="16"/>
-            </Button>
+            <StackPanel x:Name="NavButtons" Grid.Column="1" Orientation="Horizontal" Margin="4,0,0,0">
+                <!-- The glyph the WinUI TitleBar back button uses; it flips for right-to-left languages. -->
+                <Button x:Name="BackButton"
+                        Click="BackButton_Click"
+                        IsEnabled="False"
+                        Style="{StaticResource TitleBarButtonStyle}"
+                        ToolTipService.ToolTip="{x:Bind ViewModel.BackTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind ViewModel.BackTooltip, Mode=OneWay}">
+                    <FontIcon Glyph="&#xE72B;" FontSize="16" MirroredWhenRightToLeft="True"/>
+                </Button>
+
+                <Button x:Name="PaneToggleButton"
+                        Click="PaneToggleButton_Click"
+                        Style="{StaticResource TitleBarButtonStyle}"
+                        ToolTipService.ToolTip="{x:Bind ViewModel.ToggleNavigationTooltip, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind ViewModel.ToggleNavigationTooltip, Mode=OneWay}">
+                    <fluentIcons:FluentIcon Icon="Navigation" IconVariant="Regular" FontSize="16"/>
+                </Button>
+            </StackPanel>
 
             <!-- App Icon -->
             <Image x:Name="AppIcon"
@@ -206,7 +224,7 @@
                         ToolTipService.ToolTip="{x:Bind ViewModel.DonateTooltip, Mode=OneWay}"
                         AutomationProperties.Name="{x:Bind ViewModel.DonateTooltip, Mode=OneWay}">
                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <fluentIcons:FluentIcon Icon="Heart" IconVariant="Filled" FontSize="{StaticResource SupportHeartFontSize}" Foreground="#FFE74C3C"/>
+                        <fluentIcons:FluentIcon Icon="Heart" IconVariant="Filled" FontSize="{StaticResource SupportHeartFontSize}" Foreground="{StaticResource SupportHeartBrush}"/>
                         <TextBlock x:Name="SupportButtonText" Text="{x:Bind ViewModel.SupportButtonText, Mode=OneWay}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
@@ -277,6 +295,7 @@
                 <ColumnDefinition Width="Auto"/>  <!-- Title -->
                 <ColumnDefinition Width="*"/>     <!-- Description (flex: expands to available width, wraps only when needed) -->
                 <ColumnDefinition Width="Auto"/>  <!-- Status text -->
+                <ColumnDefinition Width="Auto"/>  <!-- Accept all remaining button -->
                 <ColumnDefinition Width="Auto"/>  <!-- Apply button -->
                 <ColumnDefinition Width="Auto"/>  <!-- Cancel button -->
             </Grid.ColumnDefinitions>
@@ -316,29 +335,44 @@
                        Opacity="0.9"/>
 
             <Button Grid.Column="4"
-                    x:Name="ReviewModeApplyButton"
-                    Click="ReviewModeApplyButton_Click"
-                    IsEnabled="{x:Bind ViewModel.ReviewModeBar.CanApplyReviewedConfig, Mode=OneWay}"
-                    AutomationProperties.Name="{x:Bind ViewModel.ReviewModeBar.ReviewModeApplyButtonText, Mode=OneWay}"
-                    Background="#40FFFFFF"
-                    Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
-                    BorderThickness="0"
+                    x:Name="ReviewModeAcceptAllRemainingButton"
+                    Click="ReviewModeAcceptAllRemainingButton_Click"
+                    Visibility="{x:Bind ViewModel.ReviewModeBar.CanAcceptAllRemaining, Mode=OneWay}"
+                    AutomationProperties.Name="{x:Bind ViewModel.ReviewModeBar.ReviewModeAcceptAllRemainingText, Mode=OneWay}"
+                    Style="{StaticResource AccentBarButtonStyle}"
                     VerticalAlignment="Center"
                     Margin="8,0,4,0">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:FluentIcon Icon="Checkmark" IconVariant="Regular" FontSize="14"/>
-                    <TextBlock x:Name="ReviewModeApplyButtonText"
-                               Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeApplyButtonText, Mode=OneWay}"/>
+                    <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Regular" FontSize="14"/>
+                    <TextBlock Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeAcceptAllRemainingText, Mode=OneWay}"/>
                 </StackPanel>
             </Button>
 
-            <Button Grid.Column="5"
+            <!-- A disabled control shows no tooltip, so the reason sits on a wrapper. -->
+            <Grid Grid.Column="5"
+                  Background="Transparent"
+                  VerticalAlignment="Center"
+                  Margin="4,0,4,0"
+                  ToolTipService.ToolTip="{x:Bind ViewModel.ReviewModeBar.ReviewModeApplyBlockedTooltip, Mode=OneWay}">
+                <Button x:Name="ReviewModeApplyButton"
+                        Click="ReviewModeApplyButton_Click"
+                        IsEnabled="{x:Bind ViewModel.ReviewModeBar.CanApplyReviewedConfig, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind ViewModel.ReviewModeBar.ReviewModeApplyButtonText, Mode=OneWay}"
+                        AutomationProperties.HelpText="{x:Bind ViewModel.ReviewModeBar.ReviewModeApplyBlockedTooltip, Mode=OneWay}"
+                        Style="{StaticResource AccentBarButtonStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <fluentIcons:FluentIcon Icon="Checkmark" IconVariant="Regular" FontSize="14"/>
+                        <TextBlock x:Name="ReviewModeApplyButtonText"
+                                   Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeApplyButtonText, Mode=OneWay}"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <Button Grid.Column="6"
                     x:Name="ReviewModeCancelButton"
                     Click="ReviewModeCancelButton_Click"
                     AutomationProperties.Name="{x:Bind ViewModel.ReviewModeBar.ReviewModeCancelButtonText, Mode=OneWay}"
-                    Background="#40FFFFFF"
-                    Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
-                    BorderThickness="0"
+                    Style="{StaticResource AccentBarButtonStyle}"
                     ToolTipService.ToolTip="{x:Bind ViewModel.ReviewModeBar.ReviewModeCancelButtonText, Mode=OneWay}"
                     VerticalAlignment="Center"
                     Margin="4,0,0,0">
@@ -417,9 +451,7 @@
                 <DropDownButton x:Name="BuilderTargetWindowsButton"
                                 ToolTipService.ToolTip="{x:Bind ViewModel.BuilderModeBar.TargetWindowsTooltip, Mode=OneWay}"
                                 AutomationProperties.Name="{x:Bind ViewModel.BuilderModeBar.TargetWindowsTooltip, Mode=OneWay}"
-                                Background="#40FFFFFF"
-                                Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
-                                BorderThickness="0"
+                                Style="{StaticResource AccentBarButtonStyle}"
                                 VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Viewbox Width="14" Height="14">
@@ -448,9 +480,7 @@
                             x:Name="BuilderSaveMenuButton"
                             Visibility="{x:Bind ViewModel.BuilderModeBar.IsConfigTarget, Mode=OneWay}"
                             AutomationProperties.Name="{x:Bind ViewModel.BuilderModeBar.BuilderSaveButtonText, Mode=OneWay}"
-                            Background="#40FFFFFF"
-                            Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
-                            BorderThickness="0"
+                            Style="{StaticResource AccentBarButtonStyle}"
                             VerticalAlignment="Center"
                             MinWidth="200"
                             HorizontalContentAlignment="Center"
@@ -475,9 +505,7 @@
                     Visibility="{x:Bind ViewModel.BuilderModeBar.IsAutounattendTarget, Mode=OneWay}"
                     AutomationProperties.Name="{x:Bind ViewModel.BuilderModeBar.BuilderSaveButtonText, Mode=OneWay}"
                     Click="BuilderSaveButton_Click"
-                    Background="#40FFFFFF"
-                    Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
-                    BorderThickness="0"
+                    Style="{StaticResource AccentBarButtonStyle}"
                     VerticalAlignment="Center"
                     MinWidth="200"
                     HorizontalContentAlignment="Center"
@@ -492,9 +520,7 @@
                     x:Name="BuilderCancelButton"
                     AutomationProperties.Name="{x:Bind ViewModel.BuilderModeBar.BuilderCancelButtonText, Mode=OneWay}"
                     Click="BuilderCancelButton_Click"
-                    Background="#40FFFFFF"
-                    Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
-                    BorderThickness="0"
+                    Style="{StaticResource AccentBarButtonStyle}"
                     VerticalAlignment="Center"
                     Margin="4,0,0,0">
                 <StackPanel Orientation="Horizontal" Spacing="8">

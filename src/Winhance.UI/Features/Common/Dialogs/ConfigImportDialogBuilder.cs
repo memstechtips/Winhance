@@ -14,6 +14,7 @@ namespace Winhance.UI.Features.Common.Dialogs;
 internal class ConfigImportDialogBuilder
 {
     private readonly ILocalizationService _localization;
+    private readonly ModeEntrySections _sections;
 
     private ImportOption? _selectedOption;
     private Button? _selectedCardButton;
@@ -31,9 +32,10 @@ internal class ConfigImportDialogBuilder
     private CheckBox _cleanTaskbarCheckbox = null!;
     private CheckBox _cleanStartMenuCheckbox = null!;
 
-    public ConfigImportDialogBuilder(ILocalizationService localization)
+    public ConfigImportDialogBuilder(ILocalizationService localization, ModeEntryNotes notes)
     {
         _localization = localization;
+        _sections = new ModeEntrySections(localization, notes);
     }
 
     // The caller is responsible for ConfigureDialog and ShowAsync.
@@ -116,6 +118,11 @@ internal class ConfigImportDialogBuilder
         };
 
         var contentPanel = new StackPanel { Spacing = 0, Margin = new Thickness(0, 0, 14, 0) };
+        if (_sections.Build() is { } sections)
+        {
+            sections.Margin = new Thickness(0, 0, 0, 12);
+            contentPanel.Children.Add(sections);
+        }
         contentPanel.Children.Add(new TextBlock
         {
             Text = _localization.GetString("Dialog_ImportOptions_Message"),
@@ -141,7 +148,7 @@ internal class ConfigImportDialogBuilder
     }
 
     // Must be called after ShowAsync returns.
-    public (ImportOption? Option, ImportOptions Options) ExtractResult(ContentDialogResult dialogResult)
+    public (ImportOption? Option, ImportOptions Options, bool HideExplanation) ExtractResult(ContentDialogResult dialogResult)
     {
         if (dialogResult != ContentDialogResult.Primary)
         {
@@ -160,7 +167,7 @@ internal class ConfigImportDialogBuilder
             ApplyCleanTaskbar = skipReview && _cleanTaskbarCheckbox.IsChecked == true,
             ApplyCleanStartMenu = skipReview && _cleanStartMenuCheckbox.IsChecked == true,
         };
-        return (_selectedOption, importOptions);
+        return (_selectedOption, importOptions, _selectedOption is not null && _sections.HideExplanation);
     }
 
     private void SetImportControlsEnabled(bool enabled)

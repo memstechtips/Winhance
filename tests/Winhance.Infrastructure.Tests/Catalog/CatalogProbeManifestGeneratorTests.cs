@@ -29,7 +29,7 @@ public class CatalogProbeManifestGeneratorTests
     public CatalogProbeManifestGeneratorTests(ITestOutputHelper output) => _output = output;
 
     [Fact]
-    public void Generate_probe_script_and_catalog_manifest()
+    public void Generate_Always_WritesTheProbeScriptAndCatalogManifest()
     {
         // A typed box (the slideshow album) holds what this PC has, not a Windows default to compare a probe against.
         var settings = SettingCatalog.All.Where(s => !s.IsAnswerFileOnly && s.Control != ControlKind.TextBox).ToList();

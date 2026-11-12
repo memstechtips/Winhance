@@ -326,6 +326,62 @@ public class ConfigAppSelectionServiceTests
     }
 
     [Fact]
+    public async Task SelectInstalledStateAsync_TicksMissingWindowsApps_AndInstalledExternalApps()
+    {
+        var present = CreateAppItemViewModel("present", "Present");
+        present.IsInstalled = true;
+        present.IsSelected = true;
+        var missing = CreateAppItemViewModel("missing", "Missing");
+
+        var installed = CreateAppItemViewModel("installed", "Installed");
+        installed.IsInstalled = true;
+        var notInstalled = CreateAppItemViewModel("not-installed", "Not installed");
+        notInstalled.IsSelected = true;
+        var withPackage = OtherInstalledApp(new InstalledApp("reg:machine:A", "A", InstalledAppKind.Program) { WinGetId = "Pub.A" });
+        var withoutPackage = OtherInstalledApp(new InstalledApp("reg:machine:B", "B", InstalledAppKind.Program));
+
+        _mockWindowsAppsVM.Setup(v => v.IsInitialized).Returns(true);
+        _mockWindowsAppsVM.Setup(v => v.Items).Returns(new ObservableCollection<AppItemViewModel> { present, missing });
+        _mockExternalAppsVM.Setup(v => v.IsInitialized).Returns(true);
+        _mockExternalAppsVM.Setup(v => v.Items).Returns(
+            new ObservableCollection<AppItemViewModel> { installed, notInstalled, withPackage, withoutPackage });
+
+        await CreateService().SelectInstalledStateAsync();
+
+        present.IsSelected.Should().BeFalse();
+        missing.IsSelected.Should().BeTrue();
+        installed.IsSelected.Should().BeTrue();
+        notInstalled.IsSelected.Should().BeFalse();
+        withPackage.IsSelected.Should().BeTrue();
+        withoutPackage.IsSelected.Should().BeFalse();
+    }
+
+    private AppItemViewModel OtherInstalledApp(InstalledApp app) =>
+        new(OtherInstalledItem.Create(app), _mockLocalizationService.Object, _mockDispatcher.Object, _mockThemeService.Object)
+        {
+            Installed = app,
+            IsSelected = true,
+        };
+
+    [Fact]
+    public async Task ClearExternalAppsSelectionAsync_UnselectsAllApps()
+    {
+        var app1 = CreateAppItemViewModel("ext1", "External App 1");
+        app1.IsSelected = true;
+        var app2 = CreateAppItemViewModel("ext2", "External App 2");
+        app2.IsSelected = true;
+
+        _mockExternalAppsVM.Setup(v => v.Items)
+            .Returns(new ObservableCollection<AppItemViewModel> { app1, app2 });
+
+        var service = CreateService();
+        await service.ClearExternalAppsSelectionAsync();
+
+        app1.IsSelected.Should().BeFalse();
+        app2.IsSelected.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task SelectExternalAppsFromConfigAsync_LoadsItemsIfNotInitialized()
     {
         _mockExternalAppsVM.Setup(v => v.IsInitialized).Returns(false);

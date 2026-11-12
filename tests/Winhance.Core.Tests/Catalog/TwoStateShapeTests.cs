@@ -23,32 +23,32 @@ public class TwoStateShapeTests
     };
 
     [Fact]
-    public void Enabled_and_Disabled_derive_a_toggle()
+    public void Control_EnabledAndDisabledLabels_IsToggle()
     {
         TwoStates(LocKey.Common.Enabled, LocKey.Common.Disabled).Control.Should().Be(ControlKind.Toggle);
     }
 
     [Fact]
-    public void Checked_and_Unchecked_derive_a_check_box()
+    public void Control_CheckedAndUncheckedLabels_IsCheckBox()
     {
         TwoStates(LocKey.Common.Checked, LocKey.Common.Unchecked).Control.Should().Be(ControlKind.CheckBox);
     }
 
     [Fact]
-    public void A_pair_needs_both_of_its_labels()
+    public void Control_SameLabelTwice_IsSelection()
     {
         TwoStates(LocKey.Common.Checked, LocKey.Common.Checked).Control.Should().Be(ControlKind.Selection);
         TwoStates(LocKey.Common.Enabled, LocKey.Common.Enabled).Control.Should().Be(ControlKind.Selection);
     }
 
     [Fact]
-    public void A_mixed_pair_is_a_selection()
+    public void Control_MixedLabelPair_IsSelection()
     {
         TwoStates(LocKey.Common.Enabled, LocKey.Common.Unchecked).Control.Should().Be(ControlKind.Selection);
     }
 
     [Fact]
-    public void Each_kind_owns_its_own_label_pair()
+    public void OnLabelAndOffLabel_EachKind_ReturnItsOwnLabelPair()
     {
         TwoState.OnLabel(ControlKind.Toggle).Value.Should().Be("Common_Enabled");
         TwoState.OffLabel(ControlKind.Toggle).Value.Should().Be("Common_Disabled");
@@ -58,7 +58,7 @@ public class TwoStateShapeTests
     }
 
     [Fact]
-    public void Only_the_two_two_state_kinds_are_two_state()
+    public void Is_EachControlKind_IsTrueOnlyForToggleAndCheckBox()
     {
         TwoState.Is(ControlKind.Toggle).Should().BeTrue();
         TwoState.Is(ControlKind.CheckBox).Should().BeTrue();
@@ -67,7 +67,7 @@ public class TwoStateShapeTests
     }
 
     [Fact]
-    public void The_default_role_reads_through_the_kinds_own_labels()
+    public void GetDefault_EachKind_ReadsThroughItsOwnLabels()
     {
         TwoState.GetDefault(TwoStates(LocKey.Common.Checked, LocKey.Common.Unchecked), default).Should().BeTrue();
         TwoState.GetDefault(TwoStates(LocKey.Common.Enabled, LocKey.Common.Disabled), default).Should().BeTrue();
@@ -75,14 +75,14 @@ public class TwoStateShapeTests
     }
 
     [Fact]
-    public void A_check_box_is_a_check_box_in_the_config_file()
+    public void InputTypeFor_TwoStateKinds_KeepsCheckBoxAsCheckBox()
     {
         ConfigFileMapper.InputTypeFor(TwoStates(LocKey.Common.Checked, LocKey.Common.Unchecked)).Should().Be(InputType.CheckBox);
         ConfigFileMapper.InputTypeFor(TwoStates(LocKey.Common.Enabled, LocKey.Common.Disabled)).Should().Be(InputType.Toggle);
     }
 
     [Fact]
-    public void The_choice_factory_answers_the_kinds_own_shape()
+    public void TwoState_EachKind_ReturnsItsOwnChoiceShape()
     {
         ChoiceValue.TwoState(ControlKind.CheckBox, on: true).Should().Be(new ChoiceValue.CheckBox(true));
         ChoiceValue.TwoState(ControlKind.Toggle, on: false).Should().Be(new ChoiceValue.Toggle(false));

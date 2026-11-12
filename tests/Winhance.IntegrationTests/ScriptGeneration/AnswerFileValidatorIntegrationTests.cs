@@ -19,9 +19,9 @@ public class AnswerFileValidatorIntegrationTests
 {
     private const string Extract = "powershell.exe -NoProfile -WindowStyle Hidden -Command \"$xml = [xml]::new(); $xml.Load('C:\\Windows\\Panther\\unattend.xml'); $sb = [scriptblock]::Create( $xml.unattend.Extensions.ExtractScript ); Invoke-Command -ScriptBlock $sb -ArgumentList $xml;\"";
 
-    private static PowerShellRunner Runner() => new(new FileSystemService());
+    private static PowerShellRunner Runner() => new(new FileSystemService(Mock.Of<ILogService>()));
 
-    private static AnswerFileValidator Validator() => new(new FileSystemService(), Runner());
+    private static AnswerFileValidator Validator() => new(new FileSystemService(Mock.Of<ILogService>()), Runner());
 
     private static string GeneratedWithScript() =>
         AutounattendDocumentBuilder.Serialize(AutounattendDocumentBuilder.Build(
@@ -104,7 +104,7 @@ public class AnswerFileValidatorIntegrationTests
             File.WriteAllText(Path.Combine(work, "sources", "$OEM$", "$$", "Drivers", "net.inf"), "");
             var xmlPath = Path.Combine(work, "autounattend.xml");
             await File.WriteAllTextAsync(xmlPath, GeneratedWithScript());
-            (await new DriverInstallStepWriter(new FileSystemService(), Mock.Of<ILogService>()).EnsureAsync(work)).Should().Be(DriverInstallStepResult.Added);
+            (await new DriverInstallStepWriter(new FileSystemService(Mock.Of<ILogService>()), Mock.Of<ILogService>()).EnsureAsync(work)).Should().Be(DriverInstallStepResult.Added);
 
             var report = await Validator().ValidateAsync(xmlPath);
 

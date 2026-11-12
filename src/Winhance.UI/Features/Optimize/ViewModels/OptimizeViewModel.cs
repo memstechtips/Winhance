@@ -24,14 +24,6 @@ public partial class OptimizeViewModel : SectionPageViewModel<SectionInfo>
         new("Sound", FeatureIds.Sound),
     };
 
-    // Per-feature handles for ReviewModeViewModelCoordinator, which re-applies review state feature by feature.
-    public ISettingsFeatureViewModel SoundViewModel { get; }
-    public ISettingsFeatureViewModel UpdateViewModel { get; }
-    public ISettingsFeatureViewModel NotificationViewModel { get; }
-    public ISettingsFeatureViewModel PrivacyViewModel { get; }
-    public ISettingsFeatureViewModel PowerViewModel { get; }
-    public ISettingsFeatureViewModel GamingViewModel { get; }
-
     public OptimizeViewModel(
         ILogService logService,
         ILocalizationService localizationService,
@@ -45,12 +37,5 @@ public partial class OptimizeViewModel : SectionPageViewModel<SectionInfo>
                badgeService, reviewModeService, registry, scope, modeService)
     {
         InitializeSectionMappings();
-
-        SoundViewModel = GetFeatureByModuleId(FeatureIds.Sound);
-        UpdateViewModel = GetFeatureByModuleId(FeatureIds.Update);
-        NotificationViewModel = GetFeatureByModuleId(FeatureIds.Notifications);
-        PrivacyViewModel = GetFeatureByModuleId(FeatureIds.Privacy);
-        PowerViewModel = GetFeatureByModuleId(FeatureIds.Power);
-        GamingViewModel = GetFeatureByModuleId(FeatureIds.GamingPerformance);
     }
 }

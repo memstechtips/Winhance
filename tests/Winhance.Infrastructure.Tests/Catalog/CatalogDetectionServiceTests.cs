@@ -3,7 +3,6 @@ using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Catalog;
 using Winhance.Infrastructure.Tests.Services;
 using Xunit;
@@ -92,7 +91,7 @@ public class CatalogDetectionServiceTests
     };
 
     [Fact]
-    public async Task DetectAsync_resolves_a_toggle_to_its_state_label()
+    public async Task DetectAsync_WithAToggle_ResolvesItToItsStateLabel()
     {
         var service = ServiceWith(new FakeContext(get: (_, _) => 1));
 
@@ -104,7 +103,7 @@ public class CatalogDetectionServiceTests
     }
 
     [Fact]
-    public async Task A_reading_that_matches_no_state_is_logged_with_what_was_read()
+    public async Task DetectAsync_WhenReadingMatchesNoState_LogsWhatWasRead()
     {
         var log = new Mock<ILogService>();
         var service = ServiceWith(new FakeContext(get: (_, _) => 7), log.Object);
@@ -120,7 +119,7 @@ public class CatalogDetectionServiceTests
     }
 
     [Fact]
-    public async Task DetectAsync_reads_a_numeric_value_via_DetectValue()
+    public async Task DetectAsync_WithANumericSetting_ReadsTheNumericValue()
     {
         var service = ServiceWith(new FakeContext(power: (_, _, _) => 42));
 
@@ -132,7 +131,7 @@ public class CatalogDetectionServiceTests
     }
 
     [Fact]
-    public async Task DetectAsync_populates_Ac_and_Dc_for_a_powercfg_setting()
+    public async Task DetectAsync_WithAPowercfgSetting_PopulatesAcAndDc()
     {
         // Distinct AC vs DC so the per-context read is exercised, not one shared value.
         var service = ServiceWith(new FakeContext(power: (_, _, ctx) => ctx == PowerContext.DC ? 7 : 3));
@@ -144,7 +143,7 @@ public class CatalogDetectionServiceTests
     }
 
     [Fact]
-    public async Task DetectAsync_leaves_Ac_and_Dc_null_for_a_registry_setting()
+    public async Task DetectAsync_WithARegistrySetting_LeavesAcAndDcNull()
     {
         var service = ServiceWith(new FakeContext(get: (_, _) => 1));
 
@@ -155,7 +154,7 @@ public class CatalogDetectionServiceTests
     }
 
     [Fact]
-    public async Task DetectAsync_prefetches_once_before_detecting()
+    public async Task DetectAsync_Always_PrefetchesOnceBeforeDetecting()
     {
         var ctx = new FakeContext();
         var service = ServiceWith(ctx);
@@ -166,7 +165,7 @@ public class CatalogDetectionServiceTests
     }
 
     [Fact]
-    public async Task DetectAsync_marks_an_unresolved_state_as_not_detected()
+    public async Task DetectAsync_WhenStateIsUnresolved_MarksItNotDetected()
     {
         var service = ServiceWith(new FakeContext(get: (_, _) => null));
 
@@ -197,7 +196,7 @@ public class CatalogDetectionServiceTests
     };
 
     [Fact]
-    public async Task DetectAsync_files_the_decoded_slideshow_folder_under_the_targets_own_key()
+    public async Task DetectAsync_WithASlideshowFolder_FilesTheDecodedFolderUnderTheTargetsOwnKey()
     {
         var service = ServiceWith(new FakeContext(
             get: Wallpapers(2),
@@ -210,7 +209,7 @@ public class CatalogDetectionServiceTests
     }
 
     [Fact]
-    public async Task DetectAsync_reads_no_album_when_the_shell_cannot_resolve_the_stored_id()
+    public async Task DetectAsync_WhenShellCannotResolveTheStoredId_ReadsNoAlbum()
     {
         var service = ServiceWith(new FakeContext(get: Wallpapers(2)));
 
@@ -224,7 +223,7 @@ public class CatalogDetectionServiceTests
     [Theory]
     [InlineData(null)]
     [InlineData(0)]
-    public async Task DetectAsync_reads_no_album_when_the_background_is_not_a_slideshow(int? backgroundType)
+    public async Task DetectAsync_WhenBackgroundIsNotASlideshow_ReadsNoAlbum(int? backgroundType)
     {
         var service = ServiceWith(new FakeContext(
             get: Wallpapers(backgroundType),
@@ -244,7 +243,7 @@ public class CatalogDetectionServiceTests
     };
 
     [Fact]
-    public async Task DetectAsync_surfaces_dynamic_options_and_the_current_selection_for_a_keyed_setting()
+    public async Task DetectAsync_WithAKeyedSetting_SurfacesDynamicOptionsAndTheCurrentSelection()
     {
         var plans = new[]
         {
@@ -262,7 +261,7 @@ public class CatalogDetectionServiceTests
     }
 
     [Fact]
-    public async Task DetectAsync_marks_a_keyed_setting_undetected_when_nothing_is_selected()
+    public async Task DetectAsync_WhenNothingIsSelected_MarksAKeyedSettingUndetected()
     {
         var plans = new[] { new DynamicOption("Balanced", "bbbbbbbb-0000-0000-0000-000000000000") };
         var service = ServiceWith(new FakeContext(plans: plans, activeGuid: null));
@@ -278,7 +277,7 @@ public class CatalogDetectionServiceTests
     // A detection failure is OUR failure: Undetermined, never Custom - Custom is a statement about the user's
     // machine and an ACTIONABLE state whose dialog would write over data we could not read.
     [Fact]
-    public async Task DetectAsync_reports_Undetermined_when_detection_throws()
+    public async Task DetectAsync_WhenDetectionThrows_ReportsUndetermined()
     {
         var service = ServiceWith(new FakeContext(get: (_, _) => throw new InvalidOperationException("registry exploded")));
 
@@ -294,7 +293,7 @@ public class CatalogDetectionServiceTests
     // The diagnostic naming what the catalog expected is the single most useful line in a report about a setting
     // "showing the wrong thing".
     [Fact]
-    public async Task DetectAsync_reports_Malformed_for_a_wrongly_typed_binary_value()
+    public async Task DetectAsync_WithAWronglyTypedBinaryValue_ReportsMalformed()
     {
         var service = ServiceWith(new FakeContext(get: (_, _) => "not-bytes"));
 
@@ -308,7 +307,7 @@ public class CatalogDetectionServiceTests
 
     // The default must not leak a problem onto healthy settings.
     [Fact]
-    public async Task DetectAsync_reports_Resolved_for_a_healthy_setting()
+    public async Task DetectAsync_WithAHealthySetting_ReportsResolved()
     {
         var service = ServiceWith(new FakeContext(get: (_, _) => new byte[] { 0x00, 0x08 }));
 

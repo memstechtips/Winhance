@@ -18,8 +18,28 @@ public interface ISystemTrayIcon : IDisposable
 
     void SetMenu(IReadOnlyList<TrayMenuItem> items);
 
+    // The icon and tooltip for a state; the icon follows at once when it is shown.
+    void SetBadge(TrayBadge badge, string tooltip);
+
+    void SetMenuTheme(TrayMenuTheme theme);
+
     // Shows the icon first when it is hidden: Windows only shows a notification for an icon in the tray.
     void ShowNotification(string title, string message);
+}
+
+public enum TrayBadge
+{
+    None,
+    AppUpdates,
+    WinhanceUpdate,
+    Attention,
+}
+
+public enum TrayMenuTheme
+{
+    System,
+    Light,
+    Dark,
 }
 
 // An item with Children opens them as a submenu and reports no Command of its own.

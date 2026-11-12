@@ -1,7 +1,6 @@
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Models;
 using Xunit;
 
 namespace Winhance.Core.Tests.Catalog;
@@ -78,7 +77,7 @@ public class CatalogDetectionModelConformanceTests
     //  The 6 detection-corrected settings (OrAbsent + ApplyOnly). These must hold ON A CLEAN MACHINE too.
 
     [Fact]
-    public void Advertising_id_precedence() // CPSS Value is an apply-only mirror; the GP tier wins
+    public void Detect_AdvertisingId_PolicyTierWinsOverApplyOnlyMirror() // CPSS Value is an apply-only mirror; the GP tier wins
     {
         Assert.Equal(LocKey.Common.Enabled.Value, Detect("privacy-advertising-id"));                                   // clean -> ads on (default)
         Assert.Equal(LocKey.Common.Disabled.Value, Detect("privacy-advertising-id", (AdPref, "Enabled", 0)));
@@ -90,7 +89,7 @@ public class CatalogDetectionModelConformanceTests
     }
 
     [Fact]
-    public void Diagnostics_precedence() // one preference + group-policy telemetry keys
+    public void Detect_Diagnostics_PolicyTelemetryWinsOverStalePreference() // one preference + group-policy telemetry keys
     {
         Assert.Equal(LocKey.Common.Enabled.Value, Detect("privacy-diagnostics"));                                      // clean -> telemetry on
         Assert.Equal(LocKey.Common.Disabled.Value, Detect("privacy-diagnostics", (DiagTelemetryHklm, "AllowTelemetry", 0)));
@@ -100,7 +99,7 @@ public class CatalogDetectionModelConformanceTests
     }
 
     [Fact]
-    public void Lock_screen_overlay_reads_primary_key() // SubscribedContent mirror is apply-only
+    public void Detect_LockScreenOverlay_ReadsPrimaryKeyOnly() // SubscribedContent mirror is apply-only
     {
         Assert.Equal(LocKey.Common.Enabled.Value, Detect("privacy-lock-screen-overlay"));                              // clean -> overlay on
         Assert.Equal(LocKey.Common.Enabled.Value, Detect("privacy-lock-screen-overlay", (CdmKey, "RotatingLockScreenOverlayEnabled", 1)));
@@ -111,7 +110,7 @@ public class CatalogDetectionModelConformanceTests
     }
 
     [Fact]
-    public void DirectX_flip_model_defaults_on_when_absent() // composite sub-key; DefaultValue "1"
+    public void Detect_DirectXFlipModel_DefaultsOnWhenSubKeyAbsent() // composite sub-key; DefaultValue "1"
     {
         Assert.Equal(LocKey.Common.Enabled.Value, Detect("gaming-directx-flip-model"));                                          // sub-key absent -> default on
         Assert.Equal(LocKey.Common.Enabled.Value, Detect("gaming-directx-flip-model", (DirectXKey, "DirectXUserGlobalSettings", "SwapEffectUpgradeEnable=1")));
@@ -119,14 +118,14 @@ public class CatalogDetectionModelConformanceTests
     }
 
     [Fact]
-    public void DirectX_vrr_defaults_on_when_absent()
+    public void Detect_DirectXVrr_DefaultsOnWhenSubKeyAbsent()
     {
         Assert.Equal(LocKey.Common.Enabled.Value, Detect("gaming-directx-vrr-optimizations"));
         Assert.Equal(LocKey.Common.Disabled.Value, Detect("gaming-directx-vrr-optimizations", (DirectXKey, "DirectXUserGlobalSettings", "VRROptimizeEnable=0")));
     }
 
     [Fact]
-    public void Touch_keyboard_service_reads_start_type() // IsInputAppPreloadEnabled is an apply-only secondary
+    public void Detect_TouchKeyboardService_ReadsStartType() // IsInputAppPreloadEnabled is an apply-only secondary
     {
         Assert.Equal("ServiceOption_ManualRecommended", Detect("gaming-touch-keyboard-service"));                        // absent -> default (Manual)
         Assert.Equal("ServiceOption_Disabled", Detect("gaming-touch-keyboard-service", (TextInputSvc, "Start", 4)));
@@ -136,7 +135,7 @@ public class CatalogDetectionModelConformanceTests
     }
 
     [Fact]
-    public void Touch_keyboard_service_reads_the_service_its_build_has() // renamed in build 22471
+    public void DetectOn_TouchKeyboardService_ReadsTheServiceItsBuildHas() // renamed in build 22471
     {
         Assert.Equal("ServiceOption_Disabled", DetectOn(19045, "gaming-touch-keyboard-service", (TabletSvc, "Start", 4)));
         Assert.Equal("ServiceOption_Disabled", DetectOn(22000, "gaming-touch-keyboard-service", (TabletSvc, "Start", 4)));
@@ -146,7 +145,7 @@ public class CatalogDetectionModelConformanceTests
     }
 
     [Fact]
-    public void Inking_typing_dictionary_cpss_wins_else_accepted_policy() // CPSS Value (Win11) > AcceptedPrivacyPolicy (Win10)
+    public void Detect_InkingTypingDictionary_CpssWinsElseAcceptedPolicy() // CPSS Value (Win11) > AcceptedPrivacyPolicy (Win10)
     {
         // CPSS Value overrides (the connected-privacy store the Win11 Settings app binds to); the two
         // InputPersonalization keys are apply-only enforcement keys. Default (all absent) reads OFF.
@@ -183,7 +182,7 @@ public class CatalogDetectionModelConformanceTests
     }
 
     [Fact]
-    public void Feedback_frequency_clean_on_and_policy_off()
+    public void Detect_FeedbackFrequency_CleanIsOnAndPolicyIsOff()
     {
         Assert.Equal(LocKey.Common.Enabled.Value, Detect("privacy-feedback-frequency"));
         Assert.Equal(LocKey.Common.Disabled.Value, Detect("privacy-feedback-frequency",
@@ -191,7 +190,7 @@ public class CatalogDetectionModelConformanceTests
     }
 
     [Fact]
-    public void Autoplay_clean_on_and_policy_off()
+    public void Detect_Autoplay_CleanIsOnAndPolicyIsOff()
     {
         Assert.Equal(LocKey.Common.Enabled.Value, Detect("explorer-autoplay"));
         Assert.Equal(LocKey.Common.Disabled.Value, Detect("explorer-autoplay",
@@ -201,7 +200,7 @@ public class CatalogDetectionModelConformanceTests
     }
 
     [Fact]
-    public void Bing_search_results_clean_on_and_policy_off()
+    public void Detect_BingSearchResults_CleanIsOnAndPolicyIsOff()
     {
         Assert.Equal(LocKey.Common.Enabled.Value, Detect("start-disable-bing-search-results"));
         Assert.Equal(LocKey.Common.Disabled.Value, Detect("start-disable-bing-search-results",
@@ -216,15 +215,15 @@ public class CatalogDetectionModelConformanceTests
     [Theory]
     [InlineData("explorer-customization-gallery", @"HKEY_CURRENT_USER\Software\Classes\CLSID\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}")]
     [InlineData("explorer-customization-home-folder", @"HKEY_CURRENT_USER\Software\Classes\CLSID\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}")]
-    public void Explorer_thispc_tree_clean_on_unpinned_off(string id, string clsidPath)
+    public void Detect_ExplorerThisPcTree_CleanIsOnAndUnpinnedIsOff(string id, string clsidPath)
     {
         Assert.Equal(LocKey.Common.Enabled.Value, Detect(id));                                                   // clean -> shown (default)
         Assert.Equal(LocKey.Common.Disabled.Value, Detect(id, (clsidPath, "System.IsPinnedToNameSpaceTree", 0))); // unpinned -> hidden
     }
 
     // ApplyPlanBuilder emits one PowerCfgSetOp per context for EVERY powercfg target and the writer writes each
-    // unconditionally (battery-gating only DC) - correct for PowerModeSupport.Separate. An ACOnly/DCOnly setting
-    // would need the other context SKIPPED, so if a future powercfg setting is not Separate this fails loud:
+    // unconditionally (battery-gating only DC) - correct for PowerModeSupport.Separate. A Both setting
+    // carries one value for the two contexts, so if a future powercfg setting is not Separate this fails loud:
     // ApplyPlanBuilder must learn to honour PowerCfgTarget.Mode first.
     [Fact]
     public void EveryPowerCfgTarget_IsSeparateMode()

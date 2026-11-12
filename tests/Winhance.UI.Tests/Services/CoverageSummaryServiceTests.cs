@@ -26,7 +26,6 @@ public class CoverageSummaryServiceTests
     private readonly Mock<ICatalogSettingsRegistry> _registry = new();
     private readonly Mock<IVersionService> _version = new();
     private readonly Mock<IConfigLoadService> _configLoad = new();
-    private readonly Mock<IConfigImportState> _importState = new();
     private readonly Mock<IFileSystemService> _files = new();
     private readonly Mock<ISettingSnapshotSource> _snapshot = new();
     private SummaryRequest? _shown;
@@ -53,7 +52,6 @@ public class CoverageSummaryServiceTests
             .ReturnsAsync(response);
 
     private CoverageSummaryService CreateService() => new(
-        _importState.Object,
         _configLoad.Object,
         _registry.Object,
         _files.Object,
@@ -120,9 +118,9 @@ public class CoverageSummaryServiceTests
     [Fact]
     public async Task ProfileReminder_NeverShowsForABuiltInProfile()
     {
-        var recommended = Gaming with { Id = "Recommended", Kind = ProfileKind.Recommended, FilePath = null };
+        var focus = Gaming with { Id = "builtin:focus", Kind = ProfileKind.Focus, FilePath = null };
 
-        await CreateService().ShowProfileReminderAsync(recommended, WithMusicOnly());
+        await CreateService().ShowProfileReminderAsync(focus, WithMusicOnly());
 
         _shown.Should().BeNull();
     }
@@ -131,13 +129,12 @@ public class CoverageSummaryServiceTests
     public async Task ImportSummary_SavingAnUpdatedCopy_ReadsTheFileThroughTheMigratingReader()
     {
         const string path = @"C:\Configs\mine.winhance";
-        _importState.SetupGet(s => s.SourcePath).Returns(path);
         _files.Setup(f => f.ReadAllTextAsync(path, It.IsAny<CancellationToken>()))
             .ReturnsAsync(JsonSerializer.Serialize(WithMusicOnly(), ConfigFileConstants.JsonOptions));
         _configLoad.Setup(c => c.ReadConfigurationAsync(path)).ReturnsAsync(WithMusicOnly());
         Answer(new ConfirmationResponse { Confirmed = true });
 
-        await CreateService().ShowImportSummaryAsync([], []);
+        await CreateService().ShowImportSummaryAsync(WithMusicOnly(), path, [], []);
 
         _configLoad.Verify(c => c.ReadConfigurationAsync(path), Times.Once);
         _files.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -147,13 +144,12 @@ public class CoverageSummaryServiceTests
     public async Task ImportSummary_SavingAnUpdatedCopy_WhenTheReaderRefusesTheFile_WritesNothing()
     {
         const string path = @"C:\Configs\mine.winhance";
-        _importState.SetupGet(s => s.SourcePath).Returns(path);
         _files.Setup(f => f.ReadAllTextAsync(path, It.IsAny<CancellationToken>()))
             .ReturnsAsync(JsonSerializer.Serialize(WithMusicOnly(), ConfigFileConstants.JsonOptions));
         _configLoad.Setup(c => c.ReadConfigurationAsync(path)).ReturnsAsync((WinhanceConfigFile?)null);
         Answer(new ConfirmationResponse { Confirmed = true });
 
-        await CreateService().ShowImportSummaryAsync([], []);
+        await CreateService().ShowImportSummaryAsync(WithMusicOnly(), path, [], []);
 
         _files.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -169,15 +165,28 @@ public class CoverageSummaryServiceTests
     }
 
     [Fact]
+    public async Task ImportSummary_ListsOnlyTheAppliedSettingsThatNeedARestart()
+    {
+        const string snap = "explorer-snap-windows";
+        _registry.Setup(r => r.GetById(snap, It.IsAny<CatalogScope>())).Returns(SettingCatalog.ById[snap]);
+        _registry.Setup(r => r.GetById(Music, It.IsAny<CatalogScope>())).Returns(SettingCatalog.ById[Music]);
+        var applied = WithMusicOnly();
+        applied.Customize.Features[FeatureIds.Explorer].Items = [new ConfigurationItem { Id = Music, Name = Music, IsSelected = true }, new ConfigurationItem { Id = snap, Name = snap, IsSelected = true }];
+
+        await CreateService().ShowImportSummaryAsync(applied, null, [], []);
+
+        _shown!.Sections.Should().ContainSingle().Which.Rows.Should().ContainSingle();
+    }
+
+    [Fact]
     public async Task ImportSummary_AFileThisPcCouldHaveSaved_IsNotOutOfDate()
     {
         const string path = @"C:\Configs\mine.winhance";
-        _importState.SetupGet(s => s.SourcePath).Returns(path);
         _files.Setup(f => f.ReadAllTextAsync(path, It.IsAny<CancellationToken>()))
             .ReturnsAsync(JsonSerializer.Serialize(WithMusicOnly(), ConfigFileConstants.JsonOptions));
         Readable(Music);
 
-        await CreateService().ShowImportSummaryAsync([], []);
+        await CreateService().ShowImportSummaryAsync(WithMusicOnly(), path, [], []);
 
         _shown!.Verdict.Should().BeNull();
         _shown.Sections.Should().BeEmpty();

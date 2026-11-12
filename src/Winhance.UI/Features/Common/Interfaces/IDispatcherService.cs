@@ -26,4 +26,15 @@ public interface IDispatcherService
     // DispatcherQueue.TryEnqueue callback - neither installs a SynchronizationContext, so plain RunOnUIThreadAsync
     // would let continuations after real awaits resume on thread-pool threads.
     Task RunOnUIThreadWithContextAsync(Func<Task> asyncAction);
+
+    // A one-shot timer that ticks on the UI thread. Each Restart pushes the tick back by the whole interval, so a
+    // burst of restarts ticks once.
+    IDebounceTimer CreateDebounceTimer(TimeSpan interval, Action tick);
+}
+
+public interface IDebounceTimer
+{
+    void Restart();
+
+    void Stop();
 }

@@ -24,7 +24,7 @@ public class NativeInteropDisciplineTests
         Path.Combine("src", "Winhance.Infrastructure", "Features", "Common", "Native");
 
     [Fact]
-    public void Core_declares_no_hand_written_DllImport()
+    public void Scan_Core_DeclaresNoHandWrittenDllImport()
     {
         var (filesScanned, declarations) = Scan(CoreDirectory);
 
@@ -45,7 +45,7 @@ public class NativeInteropDisciplineTests
     // cannot answer: DISM has no Win32 metadata, and DesktopBackgroundInterop.cs is compiled a second time by
     // PowerShell inside the answer file, where a generated binding cannot reach.
     [Fact]
-    public void The_scan_still_recognises_a_hand_written_DllImport()
+    public void Scan_HandWrittenInterop_StillRecognisesADllImport()
     {
         var (_, declarations) = Scan(HandWrittenByNecessity);
 

@@ -37,8 +37,21 @@ internal static class UninstallRegistryReader
 
     // The rows Programs and Features lists: a name and an uninstall command, not a system component, not an update
     // hanging off another program. EstimatedSize is in KB; InstallDate is yyyyMMdd text.
-    internal static IReadOnlyList<UninstallEntry> Read(IWindowsRegistryService registry) =>
-        Keys(registry)
+    internal static IReadOnlyList<UninstallEntry> Read(IWindowsRegistryService registry) => Listed(registry, Keys(registry));
+
+    // Every key, hidden ones included, machine keys before the user's: detection matches on key names Programs and
+    // Features never shows, and an uninstall takes the first matching key that has a command.
+    internal static IEnumerable<UninstallEntry> ReadAll(IWindowsRegistryService registry) => Keys(registry).Select(key => key.Entry);
+
+    // Both lists from one walk of the keys.
+    internal static (IReadOnlyList<UninstallEntry> All, IReadOnlyList<UninstallEntry> Listed) ReadBoth(IWindowsRegistryService registry)
+    {
+        var keys = Keys(registry).ToList();
+        return (keys.Select(key => key.Entry).ToList(), Listed(registry, keys));
+    }
+
+    private static IReadOnlyList<UninstallEntry> Listed(IWindowsRegistryService registry, IEnumerable<(string Path, UninstallEntry Entry)> keys) =>
+        keys
             .Where(key => key.Entry.IsListed)
             .Select(key => key.Entry with
             {
@@ -50,10 +63,6 @@ internal static class UninstallRegistryReader
                 SizeBytes = registry.GetValue(key.Path, "EstimatedSize") is int kb and > 0 ? kb * 1024L : null,
             })
             .ToList();
-
-    // Every key, hidden ones included, machine keys before the user's: detection matches on key names Programs and
-    // Features never shows, and an uninstall takes the first matching key that has a command.
-    internal static IEnumerable<UninstallEntry> ReadAll(IWindowsRegistryService registry) => Keys(registry).Select(key => key.Entry);
 
     private static IEnumerable<(string Path, UninstallEntry Entry)> Keys(IWindowsRegistryService registry)
     {

@@ -18,7 +18,7 @@ public class BackgroundCatalogTests
     [InlineData("theme-wallpaper", "BackgroundType")]
     [InlineData("theme-wallpaper-interval", "Interval")]
     [InlineData("theme-wallpaper-shuffle", "Shuffle")]
-    public void The_windows_default_deletes_the_value_it_also_reads_as_absent(string settingId, string targetKey)
+    public void WindowsDefaultState_WallpaperSettings_DeletesTheValueAndReadsItAsAbsent(string settingId, string targetKey)
     {
         var state = WindowsDefaultOf(settingId);
 
@@ -32,7 +32,7 @@ public class BackgroundCatalogTests
     // over the empty profile an answer file writes into, and a Fill wallpaper came up tiled. Reading absent
     // as "not tiled" stays, because that is what detection sees on a machine nobody has touched.
     [Fact]
-    public void The_fit_reads_a_missing_tile_flag_but_never_writes_one()
+    public void WallpaperFitState_Always_ReadsAMissingTileFlagButNeverWritesIt()
     {
         var state = WindowsDefaultOf("theme-wallpaper-fit");
 
@@ -45,7 +45,7 @@ public class BackgroundCatalogTests
     // Measured 2026-09-16: Picture to Spotlight moves BackgroundType 0 to 3 and EnabledState 0 to 1, but writing
     // them does not turn it on. The shell's own background task does that, and an unpackaged app cannot reach it.
     [Fact]
-    public void Windows_spotlight_is_detected_but_never_offered()
+    public void WallpaperSpotlightState_Always_IsDetectOnly()
     {
         var wallpaper = SettingCatalog.Find("theme-wallpaper")!;
         var spotlight = wallpaper.States.Single(s => s.Label == LocKey.Setting.ThemeWallpaper.Option3);
@@ -61,7 +61,7 @@ public class BackgroundCatalogTests
     // This detect-only state carries a Set, so without the guard an index from an older config would write both
     // values, change nothing on the machine and report success.
     [Fact]
-    public void Applying_the_spotlight_index_resolves_to_nothing()
+    public void Resolve_SpotlightIndex_ReturnsNoOps()
     {
         var wallpaper = SettingCatalog.Find("theme-wallpaper")!;
         int index = wallpaper.States.ToList().FindIndex(s => s.Label == LocKey.Setting.ThemeWallpaper.Option3);
@@ -73,7 +73,7 @@ public class BackgroundCatalogTests
     }
 
     [Fact]
-    public void Every_other_kind_turns_the_spotlight_switch_off()
+    public void WallpaperStates_NotSpotlight_TurnTheSpotlightSwitchOff()
     {
         var wallpaper = SettingCatalog.Find("theme-wallpaper")!;
 
@@ -82,7 +82,7 @@ public class BackgroundCatalogTests
     }
 
     [Fact]
-    public void The_spotlight_warning_names_the_two_settings_that_hide_it()
+    public void WallpaperSpotlightWarning_Always_NamesTheTwoSettingsThatHideIt()
     {
         using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoPaths.LocalizationDir(), "en.json")));
         var en = doc.RootElement.EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString() ?? string.Empty);

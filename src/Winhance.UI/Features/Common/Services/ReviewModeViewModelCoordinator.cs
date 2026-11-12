@@ -15,6 +15,7 @@ public class ReviewModeViewModelCoordinator : IReviewModeViewModelCoordinator
     private readonly OptimizeViewModel _optimizeVM;
     private readonly CustomizeViewModel _customizeVM;
     private readonly ISettingReviewDiffApplier _reviewDiffApplier;
+    private readonly IConfigReviewDiffService _configReviewDiffService;
     private readonly IDispatcherService _dispatcherService;
 
     public ReviewModeViewModelCoordinator(
@@ -24,6 +25,7 @@ public class ReviewModeViewModelCoordinator : IReviewModeViewModelCoordinator
         OptimizeViewModel optimizeVM,
         CustomizeViewModel customizeVM,
         ISettingReviewDiffApplier reviewDiffApplier,
+        IConfigReviewDiffService configReviewDiffService,
         IDispatcherService dispatcherService)
     {
         _softwareAppsVM = softwareAppsVM;
@@ -32,6 +34,7 @@ public class ReviewModeViewModelCoordinator : IReviewModeViewModelCoordinator
         _optimizeVM = optimizeVM;
         _customizeVM = customizeVM;
         _reviewDiffApplier = reviewDiffApplier;
+        _configReviewDiffService = configReviewDiffService;
         _dispatcherService = dispatcherService;
     }
 
@@ -81,20 +84,36 @@ public class ReviewModeViewModelCoordinator : IReviewModeViewModelCoordinator
                 }
             }
 
-            ReapplyToFeature(_optimizeVM.SoundViewModel);
-            ReapplyToFeature(_optimizeVM.UpdateViewModel);
-            ReapplyToFeature(_optimizeVM.NotificationViewModel);
-            ReapplyToFeature(_optimizeVM.PrivacyViewModel);
-            ReapplyToFeature(_optimizeVM.PowerViewModel);
-            ReapplyToFeature(_optimizeVM.GamingViewModel);
-
-            ReapplyToFeature(_customizeVM.ExplorerViewModel);
-            ReapplyToFeature(_customizeVM.StartMenuViewModel);
-            ReapplyToFeature(_customizeVM.TaskbarViewModel);
-            ReapplyToFeature(_customizeVM.WindowsThemeViewModel);
-            ReapplyToFeature(_customizeVM.TimeRegionLanguageViewModel);
+            foreach (var featureVm in FeatureViewModels())
+                ReapplyToFeature(featureVm);
         });
     }
+
+    // Windows apps default to Remove and external apps to Install, the same defaults Import applies without review.
+    public void AcceptAllRemaining()
+    {
+        _dispatcherService.RunOnUIThread(() =>
+        {
+            var accepted = _configReviewDiffService.ApproveAllPending().ToHashSet();
+            foreach (var setting in FeatureViewModels().SelectMany(f => f.Settings).Where(s => accepted.Contains(s.SettingId)))
+            {
+                if (setting.HasReviewDiff && !setting.IsReviewDecisionMade)
+                    setting.IsReviewApproved = true;
+                if (setting.HasReviewAction && !setting.IsReviewActionApproved && !setting.IsReviewActionRejected)
+                    setting.IsReviewActionApproved = true;
+            }
+
+            if (HasSelectedWindowsApps && !_softwareAppsVM.IsWindowsAppsActionChosen)
+                _softwareAppsVM.IsWindowsAppsRemoveAction = true;
+            if (HasSelectedExternalApps && !_softwareAppsVM.IsExternalAppsActionChosen)
+                _softwareAppsVM.IsExternalAppsInstallAction = true;
+        });
+    }
+
+    private IEnumerable<ISettingsFeatureViewModel> FeatureViewModels() =>
+        OptimizeViewModel.Sections.Select(s => _optimizeVM.GetSectionViewModel(s.Key))
+            .Concat(CustomizeViewModel.Sections.Select(s => _customizeVM.GetSectionViewModel(s.Key)))
+            .OfType<ISettingsFeatureViewModel>();
 
     public Task RemoveWindowsAppsAsync(bool skipConfirmation, bool saveRemovalScripts)
     {

@@ -40,7 +40,7 @@ public class ExternalAppsViewModelTests
         _localizationService.Setup(l => l.GetString(It.IsAny<string>()))
             .Returns<string>(k => k);
         _localizationService.MirrorTryGetString();
-        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new InstalledAppsScan([], true));
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>())).ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
     }
 
     private ExternalAppsViewModel CreateSut() => new(
@@ -71,10 +71,11 @@ public class ExternalAppsViewModelTests
     {
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(items);
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
         _progressService.Setup(p => p.CreateDetailedProgress())
             .Returns(new Progress<TaskProgressDetail>());
+        _progressService.Setup(p => p.StartTask(It.IsAny<string>(), It.IsAny<bool>())).Returns(new CancellationTokenSource());
         _localizationService.Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
             .Returns<string, object[]>((key, args) => $"{key}: {string.Join(", ", args)}");
     }
@@ -162,12 +163,12 @@ public class ExternalAppsViewModelTests
         };
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(items);
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>
             {
                 ["app1"] = true,
                 ["app2"] = false
-            });
+            }));
 
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
@@ -180,7 +181,7 @@ public class ExternalAppsViewModelTests
     private static readonly string[] UnavailableIds = ["gone", "gone-installed"];
 
     [Fact]
-    public async Task An_app_no_source_can_install_is_hidden_unless_this_pc_has_it()
+    public async Task LoadAppsAndCheckInstallationStatusAsync_AppNoSourceCanInstall_IsHiddenUnlessThisPcHasIt()
     {
         _externalAppsService.Setup(s => s.GetAppsAsync()).ReturnsAsync(new[]
         {
@@ -188,8 +189,8 @@ public class ExternalAppsViewModelTests
             CreateTestItem("gone-installed", "Kept App"),
             CreateTestItem("fine", "Fine App"),
         });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["gone-installed"] = true });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["gone-installed"] = true }));
         _externalAppsService.Setup(s => s.GetUnavailableAppIdsAsync(It.IsAny<IEnumerable<ItemDefinition>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(UnavailableIds);
 
@@ -204,8 +205,8 @@ public class ExternalAppsViewModelTests
     {
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
 
         var sut = CreateSut();
 
@@ -241,13 +242,13 @@ public class ExternalAppsViewModelTests
         };
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(items);
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>
             {
                 ["app1"] = false,
                 ["app2"] = false,
                 ["app3"] = false
-            });
+            }));
 
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
@@ -256,7 +257,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task The_installed_filter_hides_apps_that_are_not_installed()
+    public async Task Filter_Installed_HidesAppsThatAreNotInstalled()
     {
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(new[]
@@ -264,8 +265,8 @@ public class ExternalAppsViewModelTests
                 CreateTestItem("app1", "Firefox", "Browsers"),
                 CreateTestItem("app2", "7-Zip", "Compression"),
             });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = true, ["app2"] = false });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = true, ["app2"] = false }));
 
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
@@ -289,13 +290,13 @@ public class ExternalAppsViewModelTests
         };
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(items);
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>
             {
                 ["app1"] = false,
                 ["app2"] = false,
                 ["app3"] = false
-            });
+            }));
 
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
@@ -312,8 +313,8 @@ public class ExternalAppsViewModelTests
     {
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
 
         var sut = CreateSut();
         await sut.LoadItemsAsync();
@@ -322,29 +323,29 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task RefreshInstallationStatusAsync_WhenNotInitialized_SetsWaitMessage()
+    public async Task RecheckInstallationStatusAsync_WhenNotInitialized_SetsWaitMessage()
     {
         var sut = CreateSut();
 
-        await sut.RefreshInstallationStatusAsync();
+        await sut.RecheckInstallationStatusAsync();
 
         sut.StatusText.Should().Be("Progress_WaitForInitialLoad");
     }
 
     [Fact]
-    public async Task RefreshInstallationStatusAsync_WhenInitialized_InvalidatesCacheAndRefreshes()
+    public async Task RecheckInstallationStatusAsync_WhenInitialized_InvalidatesCacheAndRefreshes()
     {
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
 
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
 
-        await sut.RefreshInstallationStatusAsync();
+        await sut.RecheckInstallationStatusAsync();
 
-        _externalAppsService.Verify(s => s.InvalidateStatusCache(), Times.Once);
+        _installedAppsService.Verify(s => s.Invalidate(), Times.Once);
         sut.IsLoading.Should().BeFalse();
     }
 
@@ -353,8 +354,8 @@ public class ExternalAppsViewModelTests
     {
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(new[] { CreateTestItem("app1") });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = false });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = false }));
 
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
@@ -371,8 +372,8 @@ public class ExternalAppsViewModelTests
     {
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(new[] { CreateTestItem("app1") });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = false });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = false }));
         _dialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
             .ReturnsAsync(new ConfirmationResponse { Confirmed = false, CheckboxChecked = false });
 
@@ -391,8 +392,8 @@ public class ExternalAppsViewModelTests
     {
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(new[] { CreateTestItem("app1") });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = true });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = true }));
 
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
@@ -413,8 +414,8 @@ public class ExternalAppsViewModelTests
                 CreateTestItem("app1", "Firefox"),
                 CreateTestItem("app2", "Chrome")
             });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = true, ["app2"] = false });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = true, ["app2"] = false }));
 
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
@@ -433,8 +434,8 @@ public class ExternalAppsViewModelTests
     {
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(new[] { CreateTestItem("app1") });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = false });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = false }));
 
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
@@ -456,8 +457,8 @@ public class ExternalAppsViewModelTests
                 CreateTestItem("app1"),
                 CreateTestItem("app2")
             });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = false, ["app2"] = false });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = false, ["app2"] = false }));
 
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
@@ -477,8 +478,8 @@ public class ExternalAppsViewModelTests
                 CreateTestItem("app1", isInstalled: true),
                 CreateTestItem("app2", isInstalled: false)
             });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = true, ["app2"] = false });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = true, ["app2"] = false }));
 
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
@@ -501,8 +502,8 @@ public class ExternalAppsViewModelTests
                 CreateTestItem("app1", isInstalled: true),
                 CreateTestItem("app2", isInstalled: false)
             });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = true, ["app2"] = false });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = true, ["app2"] = false }));
 
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
@@ -521,8 +522,8 @@ public class ExternalAppsViewModelTests
     {
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(new[] { CreateTestItem("app1") });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = false });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = false }));
 
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
@@ -719,12 +720,12 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task CheckInstallationStatusAsync_UpdatesInstalledStatus()
+    public async Task Load_UpdatesInstalledStatus()
     {
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(new[] { CreateTestItem("app1") });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = true });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = true }));
 
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
@@ -743,13 +744,13 @@ public class ExternalAppsViewModelTests
         };
 
     private void GivenScan(params InstalledApp[] apps) =>
-        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new InstalledAppsScan(apps, true));
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>())).ReturnsAsync(new InstalledAppsScan(apps, true, new Dictionary<string, bool>()));
 
     private async Task<ExternalAppsViewModel> CreateScannedSut(params InstalledApp[] apps)
     {
         GivenCatalogForInstall(CreateTestItem("app1", "Firefox", isInstalled: true), CreateTestItem("app2", "7-Zip", "Compression"));
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = true, ["app2"] = false });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = true, ["app2"] = false }));
         GivenScan(apps);
         var sut = CreateSut();
         await sut.LoadAppsAndCheckInstallationStatusAsync();
@@ -758,7 +759,49 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task The_scan_gives_catalog_apps_their_update_and_lists_the_rest_in_their_own_group()
+    public async Task ToggleSelectAllWithUpdates_SelectsOnlyAppsWithAnUpdate()
+    {
+        var sut = await CreateScannedSut(FirefoxScan(availableVersion: "2.0"));
+
+        sut.UpdatesCount.Should().Be(1);
+        sut.HasUpdates.Should().BeTrue();
+
+        sut.ToggleSelectAllWithUpdatesCommand.Execute(null);
+
+        sut.Items.Single(i => i.Id == "app1").IsSelected.Should().BeTrue();
+        sut.Items.Single(i => i.Id == "app2").IsSelected.Should().BeFalse();
+        sut.IsAllSelectedWithUpdates.Should().BeTrue();
+
+        sut.ToggleSelectAllWithUpdatesCommand.Execute(null);
+
+        sut.Items.Single(i => i.Id == "app1").IsSelected.Should().BeFalse();
+        sut.IsAllSelectedWithUpdates.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SelectAllWithUpdates_IsOff_WhenNoAppHasAnUpdate()
+    {
+        var sut = await CreateScannedSut(FirefoxScan());
+
+        sut.HasUpdates.Should().BeFalse();
+        sut.UpdatesCount.Should().Be(0);
+        sut.IsAllSelectedWithUpdates.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SelectAllWithUpdates_Notifies_WhenAnAppGainsAnUpdate()
+    {
+        var sut = await CreateScannedSut(FirefoxScan());
+        var changed = new List<string>();
+        sut.PropertyChanged += (_, e) => changed.Add(e.PropertyName!);
+
+        sut.Items.Single(i => i.Id == "app1").Installed = FirefoxScan(availableVersion: "2.0");
+
+        changed.Should().Contain([nameof(sut.UpdatesCount), nameof(sut.HasUpdates), nameof(sut.SelectAllWithUpdatesLabel), nameof(sut.IsAllSelectedWithUpdates)]);
+    }
+
+    [Fact]
+    public async Task RefreshInstalledAppsAsync_ScanResult_GivesCatalogAppsTheirUpdateAndListsTheRestInTheirOwnGroup()
     {
         var sut = await CreateScannedSut(
             Scanned("reg:machine:ff", "Firefox", catalogId: "app1", availableVersion: "2.0"),
@@ -773,7 +816,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task A_rescan_drops_other_installed_apps_that_are_gone()
+    public async Task RefreshInstalledAppsAsync_OtherInstalledAppGone_DropsIt()
     {
         var sut = await CreateScannedSut(Scanned("reg:machine:tool", "Tool"));
 
@@ -784,7 +827,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task The_updates_filter_lists_only_the_apps_with_an_update()
+    public async Task Filter_UpdatesAvailable_ListsOnlyTheAppsWithAnUpdate()
     {
         var sut = await CreateScannedSut(
             Scanned("reg:machine:ff", "Firefox", catalogId: "app1", availableVersion: "2.0"),
@@ -796,7 +839,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task A_search_result_the_pc_already_has_is_not_listed_twice()
+    public async Task SearchPackagesAsync_ResultThePcAlreadyHas_IsNotListedTwice()
     {
         var sut = await CreateScannedSut(Scanned("reg:machine:vlc", "VideoLAN.VLC"));
         GivenWinGetSearch("player", WinGetPackageItem.Create("VideoLAN.VLC", "VLC media player"), WinGetPackageItem.Create("Contoso.Player", "Contoso Player"));
@@ -808,7 +851,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task In_Builder_an_installed_app_no_package_manager_offers_cannot_be_ticked()
+    public async Task ToggleSelectAllCommand_BuilderAppNoPackageManagerOffers_CannotBeTicked()
     {
         var sut = await CreateScannedSut(Scanned("reg:machine:tool", "Tool") with { WinGetId = null }, Scanned("reg:machine:git", "Git"));
         var tool = sut.Items.Single(i => i.Id == "reg:machine:tool");
@@ -825,7 +868,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task A_saved_package_id_an_installed_app_carries_adds_no_second_row()
+    public async Task AddSearchItems_SavedPackageIdOfAnInstalledApp_AddsNoSecondRow()
     {
         var sut = await CreateScannedSut(Scanned("reg:machine:git", "Git.Git"));
 
@@ -835,14 +878,14 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task The_content_is_ready_only_after_the_load_has_finished()
+    public async Task LoadAppsAndCheckInstallationStatusAsync_WhileLoading_ContentIsReadyOnlyAfterTheLoadFinishes()
     {
         bool? readyMidLoad = null;
         _externalAppsService.Setup(s => s.GetAppsAsync()).ReturnsAsync(new[] { CreateTestItem("app1") });
         var sut = CreateSut();
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
             .Callback(() => readyMidLoad = sut.IsContentReady)
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = true });
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = true }));
 
         sut.IsContentReady.Should().BeFalse();
 
@@ -853,26 +896,26 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task A_refresh_hides_the_content_until_it_finishes()
+    public async Task RecheckInstallationStatusAsync_WhileRefreshing_HidesTheContentUntilItFinishes()
     {
         bool? readyMidRefresh = null;
         var sut = await CreateScannedSut();
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
             .Callback(() => readyMidRefresh = sut.IsContentReady)
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = true, ["app2"] = false });
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = true, ["app2"] = false }));
 
-        await sut.RefreshInstallationStatusAsync();
+        await sut.RecheckInstallationStatusAsync();
 
         readyMidRefresh.Should().BeFalse();
         sut.IsContentReady.Should().BeTrue();
     }
 
     [Fact]
-    public async Task A_listener_that_throws_as_the_load_ends_does_not_leave_the_content_hidden()
+    public async Task LoadAppsAndCheckInstallationStatusAsync_ListenerThrowsAsTheLoadEnds_DoesNotLeaveTheContentHidden()
     {
         _externalAppsService.Setup(s => s.GetAppsAsync()).ReturnsAsync(new[] { CreateTestItem("app1", "Firefox") });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = true });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = true }));
         var sut = CreateSut();
         sut.SelectedItemsChanged += (_, _) => throw new InvalidOperationException("listener failed");
 
@@ -884,27 +927,27 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task With_the_updates_filter_on_a_status_check_drops_an_app_that_is_gone()
+    public async Task RecheckInstallationStatusAsync_UpdatesFilterOnAndAppGone_DropsTheApp()
     {
         var sut = await CreateScannedSut(Scanned("reg:machine:ff", "Firefox", catalogId: "app1", availableVersion: "2.0"));
         sut.Filter = AppFilter.UpdatesAvailable;
         sut.Categories.SelectMany(c => c.Apps).Select(a => a.Id).Should().Equal("app1");
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = false, ["app2"] = false });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = false, ["app2"] = false }));
 
-        await sut.CheckInstallationStatusAsync();
+        await sut.RecheckInstallationStatusAsync();
 
         sut.Categories.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task RefreshInstalledAppsAsync_says_whether_the_scan_worked()
+    public async Task RefreshInstalledAppsAsync_Always_SaysWhetherTheScanWorked()
     {
         var sut = await CreateScannedSut(Scanned("reg:machine:tool", "Tool"));
 
         (await sut.RefreshInstalledAppsAsync()).Should().BeTrue();
 
-        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<CancellationToken>()))
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("winget is broken"));
 
         (await sut.RefreshInstalledAppsAsync()).Should().BeFalse();
@@ -912,11 +955,11 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task A_scan_that_could_not_read_the_updates_still_lists_its_apps_and_says_it_is_incomplete()
+    public async Task RefreshInstalledAppsAsync_ScanCouldNotReadTheUpdates_ListsItsAppsAndSaysItIsIncomplete()
     {
         var sut = await CreateScannedSut();
-        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new InstalledAppsScan([Scanned("reg:machine:tool", "Tool")], false));
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([Scanned("reg:machine:tool", "Tool")], false, new Dictionary<string, bool>()));
 
         (await sut.RefreshInstalledAppsAsync()).Should().BeFalse();
 
@@ -924,7 +967,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task A_ticked_search_pick_that_is_now_installed_gets_no_second_row()
+    public async Task RefreshInstalledAppsAsync_TickedSearchPickNowInstalled_GetsNoSecondRow()
     {
         var sut = await CreateScannedSut();
         GivenWinGetSearch("player", WinGetPackageItem.Create("VideoLAN.VLC", "VLC media player"));
@@ -939,7 +982,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task An_installed_catalog_app_the_scan_could_not_map_gets_no_second_row()
+    public async Task RefreshInstalledAppsAsync_InstalledCatalogAppTheScanCouldNotMap_GetsNoSecondRow()
     {
         var sut = await CreateScannedSut(Scanned("reg:machine:ff", "Firefox"), Scanned("reg:machine:7z", "7-Zip"));
 
@@ -949,7 +992,45 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task InstallApps_keeps_only_the_failed_row_ticked_when_two_rows_share_a_name()
+    public async Task InstallApps_WhenSomeAppsFail_NamesEveryFailedAppInOneWarning()
+    {
+        GivenCatalogForInstall(CreateTestItem("app1", "Firefox"), CreateTestItem("app2", "Chrome"), CreateTestItem("app3", "7-Zip"));
+        _appInstallationService.Setup(s => s.InstallAppAsync(
+                It.Is<ItemDefinition>(d => d.Id == "app1"), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<bool>()))
+            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+        _appInstallationService.Setup(s => s.InstallAppAsync(
+                It.Is<ItemDefinition>(d => d.Id != "app1"), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<bool>()))
+            .ReturnsAsync(OperationResult<bool>.Failed("install failed"));
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        foreach (var item in sut.Items)
+            item.IsSelected = true;
+
+        await sut.InstallApps(skipConfirmation: true);
+
+        _dialogService.Verify(d => d.ShowWarningAsync(
+            It.Is<string>(m => m.Contains("ExternalApps_InstallFailed") && m.Contains("Chrome") && m.Contains("7-Zip") && !m.Contains("Firefox")),
+            It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallApps_WhenEveryAppInstalled_WarnsOfNothing()
+    {
+        GivenCatalogForInstall(CreateTestItem("app1", "Firefox"));
+        _appInstallationService.Setup(s => s.InstallAppAsync(
+                It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<bool>()))
+            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        sut.Items[0].IsSelected = true;
+
+        await sut.InstallApps(skipConfirmation: true);
+
+        _dialogService.Verify(d => d.ShowWarningAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task InstallApps_TwoRowsShareAName_KeepsOnlyTheFailedRowTicked()
     {
         GivenCatalogForInstall(CreateTestItem("app1", "Firefox"), CreateTestItem("app2", "Firefox"));
         _appInstallationService.Setup(s => s.InstallAppAsync(
@@ -989,7 +1070,7 @@ public class ExternalAppsViewModelTests
             .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
 
     [Fact]
-    public async Task Install_or_update_updates_the_apps_with_an_update_and_installs_the_rest()
+    public async Task InstallOrUpdateSelectedAsync_MixedSelection_UpdatesTheAppsWithAnUpdateAndInstallsTheRest()
     {
         var sut = await CreateScannedSut(FirefoxScan("2.0"));
         GivenUpdatesRun();
@@ -1013,7 +1094,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task Install_or_update_asks_nothing_when_every_ticked_app_only_needs_an_update()
+    public async Task InstallOrUpdateSelectedAsync_EveryTickedAppOnlyNeedsAnUpdate_AsksNothing()
     {
         var sut = await CreateScannedSut(FirefoxScan("2.0"));
         GivenUpdatesRun();
@@ -1030,7 +1111,23 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task Install_or_update_keeps_what_failed_ticked()
+    public async Task InstallOrUpdateSelectedAsync_WhenTheUpdateIsCancelled_CancelsTheTaskInsteadOfFailingIt()
+    {
+        var sut = await CreateScannedSut(FirefoxScan("2.0"));
+        GivenUpdatesRun();
+        _installedAppsService.Setup(s => s.UpdateAsync(It.IsAny<InstalledApp>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+        GivenScan(FirefoxScan("2.0"));
+        sut.Items.Single(i => i.Id == "app1").IsSelected = true;
+
+        await sut.InstallOrUpdateSelectedAsync();
+
+        _progressService.Verify(p => p.CancelTask(), Times.Once);
+        _progressService.Verify(p => p.FailTask(), Times.Never);
+    }
+
+    [Fact]
+    public async Task InstallOrUpdateSelectedAsync_WhenAnInstallFails_KeepsWhatFailedTicked()
     {
         var sut = await CreateScannedSut(FirefoxScan("2.0"));
         GivenUpdatesRun();
@@ -1046,7 +1143,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task Install_or_update_does_nothing_when_the_install_is_declined()
+    public async Task InstallOrUpdateSelectedAsync_InstallDeclined_DoesNothing()
     {
         var sut = await CreateScannedSut(FirefoxScan("2.0"));
         GivenUpdatesRun();
@@ -1062,7 +1159,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task UpdateAppsAsync_passes_the_task_token_and_leaves_the_ticks_alone()
+    public async Task UpdateAppsAsync_Always_PassesTheTaskTokenAndLeavesTheTicksAlone()
     {
         var sut = await CreateScannedSut(FirefoxScan("2.0"));
         GivenUpdatesRun();
@@ -1081,7 +1178,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task UpdateAppsAsync_says_nothing_ran_while_another_task_is_running()
+    public async Task UpdateAppsAsync_AnotherTaskRunning_SaysNothingRan()
     {
         var sut = await CreateScannedSut(FirefoxScan("2.0"));
         GivenUpdatesRun();
@@ -1094,17 +1191,17 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task A_ticked_app_losing_its_update_raises_SelectedItemsChanged()
+    public async Task RecheckInstallationStatusAsync_TickedAppLosesItsUpdate_RaisesSelectedItemsChanged()
     {
         var sut = await CreateScannedSut(FirefoxScan("2.0"));
         var firefox = sut.Items.Single(i => i.Id == "app1");
         firefox.IsSelected = true;
         var raised = 0;
         sut.SelectedItemsChanged += (_, _) => raised++;
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = false, ["app2"] = false });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = false, ["app2"] = false }));
 
-        await sut.CheckInstallationStatusAsync();
+        await sut.RecheckInstallationStatusAsync();
 
         firefox.HasUpdate.Should().BeFalse();
         raised.Should().BePositive();
@@ -1121,7 +1218,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task Install_or_update_installs_nothing_when_the_updates_are_cancelled()
+    public async Task InstallOrUpdateSelectedAsync_UpdatesCancelled_InstallsNothing()
     {
         var sut = await CreateScannedSut(FirefoxScan("2.0"));
         GivenUpdatesRun();
@@ -1146,7 +1243,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task Install_or_update_says_another_task_is_running_instead_of_skipping_the_updates()
+    public async Task InstallOrUpdateSelectedAsync_AnotherTaskRunning_SaysSoInsteadOfSkippingTheUpdates()
     {
         var sut = await CreateScannedSut(FirefoxScan("2.0"));
         GivenUpdatesRun();
@@ -1166,11 +1263,11 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task A_scan_that_could_not_read_the_updates_keeps_the_updates_the_rows_showed()
+    public async Task RefreshInstalledAppsAsync_ScanCouldNotReadTheUpdates_KeepsTheUpdatesTheRowsShowed()
     {
         var sut = await CreateScannedSut(FirefoxScan("2.0"), Scanned("reg:machine:tool", "Tool", availableVersion: "3.0"));
-        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new InstalledAppsScan([FirefoxScan(), Scanned("reg:machine:tool", "Tool")], false));
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([FirefoxScan(), Scanned("reg:machine:tool", "Tool")], false, new Dictionary<string, bool>()));
 
         await sut.RefreshInstalledAppsAsync();
 
@@ -1180,11 +1277,11 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task A_scan_that_could_not_read_the_updates_drops_the_update_of_an_app_whose_version_changed()
+    public async Task RefreshInstalledAppsAsync_ScanCouldNotReadTheUpdatesAndVersionChanged_DropsTheAppsUpdate()
     {
         var sut = await CreateScannedSut(FirefoxScan("2.0"));
-        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new InstalledAppsScan([FirefoxScan() with { Version = "2.0" }], false));
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([FirefoxScan() with { Version = "2.0" }], false, new Dictionary<string, bool>()));
 
         await sut.RefreshInstalledAppsAsync();
 
@@ -1193,12 +1290,12 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task Install_or_update_keeps_the_ticks_when_the_scan_after_it_could_not_read_the_updates()
+    public async Task InstallOrUpdateSelectedAsync_ScanAfterItCouldNotReadTheUpdates_KeepsTheTicks()
     {
         var sut = await CreateScannedSut(FirefoxScan("2.0"));
         GivenUpdatesRun();
-        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new InstalledAppsScan([FirefoxScan()], false));
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([FirefoxScan()], false, new Dictionary<string, bool>()));
         var firefox = sut.Items.Single(i => i.Id == "app1");
         firefox.IsSelected = true;
 
@@ -1217,7 +1314,7 @@ public class ExternalAppsViewModelTests
             .ReturnsAsync(choice);
 
     [Fact]
-    public async Task Default_install_options_open_with_the_current_defaults_and_save_the_choice()
+    public async Task EditDefaultInstallOptionsAsync_Always_OpensWithTheCurrentDefaultsAndSavesTheChoice()
     {
         _installOptions.Setup(o => o.Defaults).Returns(InstallOptions.Default);
         GivenDialogReturns(new InstallOptionsChoice(false, MachineX86));
@@ -1229,7 +1326,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task Cancelling_the_default_install_options_writes_nothing()
+    public async Task EditDefaultInstallOptionsAsync_WhenCancelled_WritesNothing()
     {
         _installOptions.Setup(o => o.Defaults).Returns(InstallOptions.Default);
         GivenDialogReturns(null);
@@ -1240,7 +1337,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task An_app_without_its_own_options_opens_following_the_defaults()
+    public async Task EditInstallOptionsAsync_AppWithoutItsOwnOptions_OpensFollowingTheDefaults()
     {
         _installOptions.Setup(o => o.Defaults).Returns(MachineX86);
         _installOptions.Setup(o => o.ForApp("winget-Mozilla.Firefox")).Returns((InstallOptions?)null);
@@ -1252,7 +1349,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task An_app_with_its_own_options_opens_showing_them()
+    public async Task EditInstallOptionsAsync_AppWithItsOwnOptions_OpensShowingThem()
     {
         var own = new InstallOptions { Interactive = true };
         _installOptions.Setup(o => o.Defaults).Returns(MachineX86);
@@ -1265,7 +1362,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task Choosing_to_follow_the_defaults_clears_the_apps_own_options()
+    public async Task EditInstallOptionsAsync_ChoosingToFollowTheDefaults_ClearsTheAppsOwnOptions()
     {
         _installOptions.Setup(o => o.ForApp(It.IsAny<string>())).Returns(MachineX86);
         GivenDialogReturns(new InstallOptionsChoice(true, InstallOptions.Default));
@@ -1276,7 +1373,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task Choosing_own_options_saves_them_for_that_app()
+    public async Task EditInstallOptionsAsync_ChoosingOwnOptions_SavesThemForThatApp()
     {
         _installOptions.Setup(o => o.Defaults).Returns(InstallOptions.Default);
         GivenDialogReturns(new InstallOptionsChoice(false, MachineX86));
@@ -1287,7 +1384,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public async Task Cancelling_an_apps_install_options_writes_nothing()
+    public async Task EditInstallOptionsAsync_WhenCancelled_WritesNothing()
     {
         _installOptions.Setup(o => o.Defaults).Returns(InstallOptions.Default);
         GivenDialogReturns(null);
@@ -1298,7 +1395,7 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
-    public void Install_options_are_offered_only_for_apps_winget_or_Chocolatey_installs()
+    public void CanEditInstallOptions_OnlyAppsWinGetOrChocolateyInstall_ReturnTrue()
     {
         var storeOnly = new AppItemViewModel(new ItemDefinition { Id = "msstore-9NBLGGH4NNS1", Name = "Store app", Description = string.Empty, MsStoreId = "9NBLGGH4NNS1" },
             _localizationService.Object, _dispatcherService.Object, _themeService.Object);

@@ -31,7 +31,7 @@ public class ThemeMasterConformanceTests
     }
 
     [Fact]
-    public void The_two_presets_keep_their_original_indexes_and_the_neutral_state_is_APPENDED()
+    public void States_Always_KeepPresetIndexesAndAppendNeutralState()
     {
         // ConfigurationItem.SelectedIndex persists the RAW state index, the autounattend generator keys off
         // it, and ConfigReviewService hardcodes index 0 == Light. Reordering these silently flips every
@@ -45,7 +45,7 @@ public class ThemeMasterConformanceTests
     [Theory]
     [InlineData(0, true)]
     [InlineData(1, false)]
-    public void Each_preset_Controls_both_children_using_the_childrens_OWN_state_labels(
+    public void Controls_EachPreset_UsesTheChildrensOwnStateLabels(
         int presetIndex, bool childrenOn)
     {
         var expectedChildLabel = childrenOn ? LocKey.Common.Enabled : LocKey.Common.Disabled;
@@ -65,7 +65,7 @@ public class ThemeMasterConformanceTests
     }
 
     [Fact]
-    public void The_neutral_state_is_detect_only_fallback_and_writes_nothing()
+    public void States_NeutralState_IsDetectOnlyFallbackAndWritesNothing()
     {
         var neutral = S(Master).States.Single(st => st.IsDetectOnly);
 
@@ -79,7 +79,7 @@ public class ThemeMasterConformanceTests
     [Theory]
     [InlineData(1, 0)]  // light apps, dark shell - the Windows 10 shipped default
     [InlineData(0, 1)]  // dark apps, light shell
-    public void A_mixed_reading_resolves_to_the_neutral_state(int appsValue, int systemValue)
+    public void Detect_MixedReading_ResolvesToNeutralState(int appsValue, int systemValue)
     {
         var readings = new FakeReadings(new()
         {
@@ -93,7 +93,7 @@ public class ThemeMasterConformanceTests
     [Theory]
     [InlineData(1, 1, 0)]
     [InlineData(0, 0, 1)]
-    public void A_uniform_reading_still_resolves_to_its_preset(int appsValue, int systemValue, int expectedIndex)
+    public void Detect_UniformReading_ResolvesToItsPreset(int appsValue, int systemValue, int expectedIndex)
     {
         // Non-vacuity for the test above: the catch-all must not swallow the readings the presets DO explain.
         var readings = new FakeReadings(new()
@@ -106,7 +106,7 @@ public class ThemeMasterConformanceTests
     }
 
     [Fact]
-    public void ResolveReverseSync_snaps_the_master_to_the_neutral_state_when_the_children_disagree()
+    public void ResolveReverseSync_ChildrenDisagree_SnapsMasterToNeutralState()
     {
         // A detect-only state has to be selectable as the neutral snap target. ResolveReverseSync picks "the
         // first state imposing no Controls", which is exactly it.
@@ -124,7 +124,7 @@ public class ThemeMasterConformanceTests
     [Theory]
     [InlineData(false, 0)]
     [InlineData(true, 1)]
-    public void ResolveReverseSync_snaps_the_master_to_the_preset_the_children_now_satisfy(
+    public void ResolveReverseSync_ChildrenSatisfyAPreset_SnapsMasterToThatPreset(
         bool childrenOff, int expectedPresetIndex)
     {
         var childLabel = childrenOff ? LocKey.Common.Disabled : LocKey.Common.Enabled;
@@ -144,7 +144,7 @@ public class ThemeMasterConformanceTests
     [InlineData(Apps)]
     [InlineData(System)]
     [InlineData("theme-transparency")]
-    public void Theme_settings_declare_the_appearance_broadcast_and_no_process_restart(string id)
+    public void Apply_ThemeSettings_DeclareAppearanceBroadcastAndNoProcessRestart(string id)
     {
         // Verified on Windows: the appearance broadcast alone applies the change; the restart only raised the
         // pending-restart bar for a repaint Windows was already doing.

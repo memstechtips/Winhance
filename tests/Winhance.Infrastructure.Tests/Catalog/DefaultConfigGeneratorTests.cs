@@ -20,7 +20,7 @@ public class DefaultConfigGeneratorTests
     public DefaultConfigGeneratorTests(ITestOutputHelper output) => _output = output;
 
     [Fact]
-    public void Generate_default_configs_from_catalog()
+    public void Generate_Always_WritesDefaultConfigsFromCatalog()
     {
         foreach (var (fileName, build) in DefaultConfigProjection.Targets)
         {

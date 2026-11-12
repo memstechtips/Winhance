@@ -35,6 +35,7 @@ public class NavBadgeServiceTests : IDisposable
 
         _windowsAppsVm = new WindowsAppsViewModel(
             mockWindowsAppsService.Object,
+            new Mock<IInstalledAppsService>().Object,
             mockAppInstallService.Object,
             mockExternalAppUninstallService.Object,
             mockProgressService.Object,
@@ -160,42 +161,33 @@ public class NavBadgeServiceTests : IDisposable
     }
 
     [Fact]
-    public void GetSoftwareAppsSelectedCount_WithNoItems_ReturnsZero()
+    public void ComputeNavBadges_BeforeSubscribing_UsesTheReviewCount()
     {
-        var result = _sut.GetSoftwareAppsSelectedCount();
+        SetupReviewWithSoftwareAppsCount(10);
 
-        result.Should().Be(0);
+        SoftwareAppsBadge().Count.Should().Be(10);
     }
 
     [Fact]
-    public void SubscribeToSoftwareAppsChanges_SetsIsSoftwareAppsBadgeSubscribed()
+    public void ComputeNavBadges_CalledTwiceToSubscribe_StillUsesTheSelectedCount()
     {
-        _sut.IsSoftwareAppsBadgeSubscribed.Should().BeFalse();
+        SetupReviewWithSoftwareAppsCount(10);
 
         _sut.SubscribeToSoftwareAppsChanges(() => { });
-
-        _sut.IsSoftwareAppsBadgeSubscribed.Should().BeTrue();
-    }
-
-    [Fact]
-    public void SubscribeToSoftwareAppsChanges_CalledTwice_DoesNotDoubleSubscribe()
-    {
-        int callCount = 0;
-        _sut.SubscribeToSoftwareAppsChanges(() => callCount++);
-        _sut.SubscribeToSoftwareAppsChanges(() => callCount++);
-
-        _sut.IsSoftwareAppsBadgeSubscribed.Should().BeTrue();
-    }
-
-    [Fact]
-    public void UnsubscribeFromSoftwareAppsChanges_ClearsIsSoftwareAppsBadgeSubscribed()
-    {
         _sut.SubscribeToSoftwareAppsChanges(() => { });
-        _sut.IsSoftwareAppsBadgeSubscribed.Should().BeTrue();
+
+        SoftwareAppsBadge().Count.Should().Be(-1);
+    }
+
+    [Fact]
+    public void ComputeNavBadges_AfterUnsubscribing_UsesTheReviewCountAgain()
+    {
+        SetupReviewWithSoftwareAppsCount(10);
+        _sut.SubscribeToSoftwareAppsChanges(() => { });
 
         _sut.UnsubscribeFromSoftwareAppsChanges();
 
-        _sut.IsSoftwareAppsBadgeSubscribed.Should().BeFalse();
+        SoftwareAppsBadge().Count.Should().Be(10);
     }
 
     [Fact]
@@ -224,4 +216,13 @@ public class NavBadgeServiceTests : IDisposable
         // With 0 items selected, count is 0 so it falls to the else branch
         softwareAppsBadge!.Count.Should().Be(-1);
     }
+
+    private void SetupReviewWithSoftwareAppsCount(int reviewCount)
+    {
+        _mockModeService.Setup(m => m.IsInReviewMode).Returns(true);
+        _mockBadgeService.Setup(b => b.GetNavBadgeCount("SoftwareApps")).Returns(reviewCount);
+        _mockBadgeService.Setup(b => b.IsSectionFullyReviewed("SoftwareApps")).Returns(false);
+    }
+
+    private NavBadgeUpdate SoftwareAppsBadge() => _sut.ComputeNavBadges().Single(b => b.Tag == "SoftwareApps");
 }

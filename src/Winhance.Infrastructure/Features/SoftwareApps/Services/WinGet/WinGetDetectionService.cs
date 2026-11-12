@@ -32,6 +32,10 @@ internal class WinGetDetectionService : IWinGetDetectionService
     private long _installedWalkTimestamp;
     private int _installedWalkGeneration;
 
+    // The long-lived COM connection can keep reporting an installed version from before an outside update, so the walk
+    // after an invalidation reconnects. It happens inside the enumeration gate, never under a walk that is running.
+    private volatile bool _reconnectBeforeWalk;
+
     public WinGetDetectionService(
         WinGetComSession comSession,
         ILogService logService,
@@ -95,6 +99,21 @@ internal class WinGetDetectionService : IWinGetDetectionService
             _installedWalk = null;
             _installedWalkGeneration++;
         }
+
+        _reconnectBeforeWalk = true;
+    }
+
+    internal void ReconnectIfRequested()
+    {
+        if (!_reconnectBeforeWalk)
+            return;
+
+        _reconnectBeforeWalk = false;
+
+        // The server keeps answering from the list it built until the last client lets go, so a new walk needs it gone.
+        _comSession.Release();
+        for (var i = 0; i < 20 && WinGetComSession.IsServerRunning(); i++)
+            Thread.Sleep(500);
     }
 
     // A walk that was already running when the list was invalidated read the PC before the change, so it is not kept.
@@ -156,6 +175,7 @@ internal class WinGetDetectionService : IWinGetDetectionService
             {
                 try
                 {
+                    ReconnectIfRequested();
                     return EnumerateInstalled();
                 }
                 finally
@@ -207,8 +227,11 @@ internal class WinGetDetectionService : IWinGetDetectionService
 
     private List<WinGetInstalledPackage>? EnumerateInstalled()
     {
-        var catalogs = _comSession.PackageManager!.GetPackageCatalogs().ToArray();
-        var compositeOptions = _comSession.Factory!.CreateCreateCompositePackageCatalogOptions();
+        if (!_comSession.IsReady())
+            return null;
+
+        var catalogs = _comSession.PackageManager.GetPackageCatalogs().ToArray();
+        var compositeOptions = _comSession.Factory.CreateCreateCompositePackageCatalogOptions();
         foreach (var catalog in catalogs)
         {
             compositeOptions.Catalogs.Add(catalog);
@@ -372,6 +395,8 @@ internal class WinGetDetectionService : IWinGetDetectionService
         return installedPackageIds;
     }
 
+    private static readonly string[] InstallerTypeLabels = ["Installer Type:", "ShowLabelInstallerType"];
+
     public async Task<string?> GetInstallerTypeAsync(string packageId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(packageId))
@@ -402,10 +427,12 @@ internal class WinGetDetectionService : IWinGetDetectionService
             {
                 foreach (var rawLine in result.StandardOutput.Split('\n'))
                 {
+                    // The bundled winget has no resources.pri, so it prints the label's resource key instead of the text.
                     var line = rawLine.Trim();
-                    if (line.StartsWith("Installer Type:", StringComparison.OrdinalIgnoreCase))
+                    var label = InstallerTypeLabels.FirstOrDefault(l => line.StartsWith(l, StringComparison.OrdinalIgnoreCase));
+                    if (label != null)
                     {
-                        var installerType = line.Substring("Installer Type:".Length).Trim();
+                        var installerType = line[label.Length..].TrimStart(':').Trim();
                         if (!string.IsNullOrEmpty(installerType))
                         {
                             _logService?.LogInformation($"Package {packageId} installer type: {installerType}");

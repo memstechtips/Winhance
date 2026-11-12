@@ -9,7 +9,7 @@ namespace Winhance.Infrastructure.Tests.Catalog;
 public class CatalogSettingsRegistryCompositionTests
 {
     [Fact]
-    public async Task Composes_membership_from_the_proven_pieces()
+    public async Task GetAll_Always_ComposesMembershipFromTheProvenPieces()
     {
         var version = new Mock<IWindowsVersionService>();
         version.Setup(v => v.GetWindowsBuildNumber()).Returns(26100);
@@ -66,7 +66,7 @@ public class CatalogSettingsRegistryCompositionTests
 
     // A file authored on a 24H2 PC for 26H2 media must see what 26H2 has, not what the authoring PC has.
     [Fact]
-    public async Task Target_build_replaces_this_pcs_build_in_the_os_gate()
+    public async Task GetById_WithTargetBuild_ReplacesThisPcsBuildInTheOsGate()
     {
         var version = new Mock<IWindowsVersionService>();
         version.Setup(v => v.GetWindowsBuildNumber()).Returns(26100);
@@ -86,7 +86,7 @@ public class CatalogSettingsRegistryCompositionTests
     }
 
     [Fact]
-    public async Task Scope_param_relaxes_only_the_os_gate_defaulting_to_current_os()
+    public async Task GetAll_WithRelaxedScope_RelaxesOnlyTheOsGate()
     {
         var version = new Mock<IWindowsVersionService>();
         version.Setup(v => v.GetWindowsBuildNumber()).Returns(26100);
@@ -191,7 +191,7 @@ public class CatalogSettingsRegistryCompositionTests
     }
 
     [Fact]
-    public void Query_before_InitializeAsync_throws()
+    public void GetById_BeforeInitializeAsync_Throws()
     {
         // Guard rail: the pure-query surface must not answer over an unresolved machine context. An
         // uninitialized registry (e.g. a swallowed startup init) throws loudly rather than silently hiding every

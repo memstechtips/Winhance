@@ -9,30 +9,19 @@ using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
-public class SettingReviewDiffApplier : ISettingReviewDiffApplier
+public class SettingReviewDiffApplier(
+    IConfigReviewModeService configReviewModeService,
+    IConfigReviewDiffService configReviewDiffService,
+    ILocalizationService localizationService) : ISettingReviewDiffApplier
 {
-    private readonly IConfigReviewModeService _configReviewModeService;
-    private readonly IConfigReviewDiffService _configReviewDiffService;
-    private readonly ILocalizationService _localizationService;
-
-    public SettingReviewDiffApplier(
-        IConfigReviewModeService configReviewModeService,
-        IConfigReviewDiffService configReviewDiffService,
-        ILocalizationService localizationService)
-    {
-        _configReviewModeService = configReviewModeService;
-        _configReviewDiffService = configReviewDiffService;
-        _localizationService = localizationService;
-    }
-
     public void ApplyReviewDiffToViewModel(SettingItemViewModel viewModel, SettingStateResult currentState)
     {
-        var config = _configReviewModeService.ActiveConfig;
+        var config = configReviewModeService.ActiveConfig;
         if (config == null) return;
 
         viewModel.IsInReviewMode = true;
 
-        var existingDiff = _configReviewDiffService.GetDiffForSetting(viewModel.SettingId);
+        var existingDiff = configReviewDiffService.GetDiffForSetting(viewModel.SettingId);
         if (existingDiff != null)
         {
             bool hasDiffValues = !string.IsNullOrEmpty(existingDiff.CurrentValueDisplay) && !string.IsNullOrEmpty(existingDiff.ConfigValueDisplay);
@@ -40,7 +29,7 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
 
             if (hasDiffValues)
             {
-                var diffFormat = _localizationService.GetStringOrDefault("Review_Mode_Diff_Toggle", "Current: {0} → Config: {1}");
+                var diffFormat = localizationService.GetStringOrDefault("Review_Mode_Diff_Toggle", "Current: {0} → Config: {1}");
                 viewModel.HasReviewDiff = true;
                 viewModel.ReviewDiffMessage = string.Format(diffFormat, existingDiff.CurrentValueDisplay, existingDiff.ConfigValueDisplay);
             }
@@ -76,12 +65,12 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
 
             viewModel.ReviewApprovalChanged += (sender, approved) =>
             {
-                _configReviewDiffService.SetSettingApproval(viewModel.SettingId, approved);
+                configReviewDiffService.SetSettingApproval(viewModel.SettingId, approved);
             };
 
             viewModel.ReviewActionApprovalChanged += (sender, approved) =>
             {
-                _configReviewDiffService.SetActionApproval(viewModel.SettingId, approved);
+                configReviewDiffService.SetActionApproval(viewModel.SettingId, approved);
             };
             return;
         }
@@ -97,7 +86,7 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
 
         if (hasDiff)
         {
-            var diffFormat = _localizationService.GetStringOrDefault("Review_Mode_Diff_Toggle", "Current: {0} → Config: {1}");
+            var diffFormat = localizationService.GetStringOrDefault("Review_Mode_Diff_Toggle", "Current: {0} → Config: {1}");
             viewModel.HasReviewDiff = true;
             viewModel.ReviewDiffMessage = string.Format(diffFormat, currentDisplay, configDisplay);
             viewModel.IsReviewApproved = false;
@@ -112,11 +101,11 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
                 ConfigItem = configItem,
                 IsApproved = false
             };
-            _configReviewDiffService.RegisterDiff(diff);
+            configReviewDiffService.RegisterDiff(diff);
 
             viewModel.ReviewApprovalChanged += (sender, approved) =>
             {
-                _configReviewDiffService.SetSettingApproval(viewModel.SettingId, approved);
+                configReviewDiffService.SetSettingApproval(viewModel.SettingId, approved);
             };
         }
     }
@@ -173,7 +162,7 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
                     if (ConfigFileMapper.CustomValuesMatch(configItem, currentState.Readings))
                         return (false, string.Empty, string.Empty);
                     var currentDisplayName = GetComboBoxDisplayName(viewModel, currentIndex);
-                    var configDisplayName = _localizationService.GetStringOrDefault(LocKey.Common.CustomState.Value, "Custom");
+                    var configDisplayName = localizationService.GetStringOrDefault(LocKey.Common.CustomState.Value, "Custom");
                     if (!string.Equals(currentDisplayName, configDisplayName, StringComparison.OrdinalIgnoreCase))
                         return (true, currentDisplayName, configDisplayName);
                     return (false, string.Empty, string.Empty);
@@ -203,7 +192,7 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
                 if (string.Equals(currentText, configText, StringComparison.Ordinal))
                     return (false, string.Empty, string.Empty);
 
-                var unknown = _localizationService.GetStringOrDefault("ConfigReview_UnknownValue", "Unknown");
+                var unknown = localizationService.GetStringOrDefault("ConfigReview_UnknownValue", "Unknown");
                 return (true,
                     currentText.Length > 0 ? currentText : unknown,
                     configText.Length > 0 ? configText : unknown);

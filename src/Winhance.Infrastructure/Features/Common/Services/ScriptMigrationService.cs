@@ -2,39 +2,87 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Catalogs;
+using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.SoftwareApps.Utilities;
+using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 internal class ScriptMigrationService : IScriptMigrationService
 {
-    private static readonly string[] TaskNames =
+    private static readonly string[] TaskNames = KeepRemovedModeStore.RemovalTaskNames;
+
+    internal static readonly string[] BloatArrays =
     [
-        BloatRemovalScriptGenerator.ScriptName,
-        .. WindowsAppDefinitions.GetWindowsApps().Items.Select(a => a.RemovalScriptName).OfType<string>().Distinct(),
+        BloatRemovalScriptGenerator.PackagesArray,
+        BloatRemovalScriptGenerator.CapabilitiesArray,
+        BloatRemovalScriptGenerator.OptionalFeaturesArray,
     ];
+
+    internal static readonly Lazy<ItemDefinition[]> CatalogItems = new(() =>
+        [.. WindowsAppDefinitions.GetWindowsApps().Items
+            .Concat(CapabilityDefinitions.GetWindowsCapabilities().Items)
+            .Concat(OptionalFeatureDefinitions.GetWindowsOptionalFeatures().Items)]);
 
     private readonly ILogService _logService;
     private readonly IScheduledTaskService _scheduledTaskService;
     private readonly IUserPreferencesService _prefsService;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IFileSystemService _fileSystemService;
+    private readonly IBackgroundTaskService _backgroundTaskService;
 
     public ScriptMigrationService(
         ILogService logService,
         IScheduledTaskService scheduledTaskService,
         IUserPreferencesService prefsService,
         IInteractiveUserService interactiveUserService,
-        IFileSystemService fileSystemService)
+        IFileSystemService fileSystemService,
+        IBackgroundTaskService backgroundTaskService)
     {
         _logService = logService;
         _scheduledTaskService = scheduledTaskService;
         _prefsService = prefsService;
         _interactiveUserService = interactiveUserService;
         _fileSystemService = fileSystemService;
+        _backgroundTaskService = backgroundTaskService;
     }
 
     public async Task<ScriptMigrationResult> MigrateFromOldPathsAsync()
+    {
+        var result = await MigrateOldPathsAsync().ConfigureAwait(false);
+        await _backgroundTaskService.InitializeAsync().ConfigureAwait(false);
+        return result;
+    }
+
+    internal static IEnumerable<string> ResolveKeptIds(string taskName, string scriptContent)
+    {
+        switch (taskName)
+        {
+            case EdgeRemovalScript.ScriptName:
+                yield return "windows-app-edge";
+                if (EdgeRemovalScript.RemovesWebView2(scriptContent))
+                    yield return "windows-app-edge-webview";
+                yield break;
+            case OneDriveRemovalScript.ScriptName:
+                yield return "windows-app-onedrive";
+                yield break;
+            case BloatRemovalScriptGenerator.ScriptName:
+                var names = BloatArrays
+                    .SelectMany(array => BloatRemovalScriptGenerator.ExtractArrayFromScript(scriptContent, array))
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                foreach (var item in CatalogItems.Value.Where(item => item.RemovalScript == null))
+                {
+                    if (ItemNames(item).Any(names.Contains))
+                        yield return item.Id;
+                }
+                yield break;
+        }
+    }
+
+    internal static IEnumerable<string> ItemNames(ItemDefinition item) =>
+        (item.AppxPackageName ?? []).Concat([item.CapabilityName, item.OptionalFeatureName]).OfType<string>();
+
+    private async Task<ScriptMigrationResult> MigrateOldPathsAsync()
     {
         try
         {

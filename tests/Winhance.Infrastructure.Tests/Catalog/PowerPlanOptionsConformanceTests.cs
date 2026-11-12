@@ -36,7 +36,7 @@ public class PowerPlanOptionsConformanceTests
     }
 
     [Fact]
-    public void All_predefined_plans_installed() => AssertOptions(
+    public void Build_AllPredefinedPlansInstalled_ListsEachAsInstalled() => AssertOptions(
         new List<PowerPlan>
         {
             new() { Name = "Power saver", Guid = PowerSaverGuid },
@@ -52,7 +52,7 @@ public class PowerPlanOptionsConformanceTests
         ("Winhance Power Plan", WinhanceGuid, true));
 
     [Fact]
-    public void Only_some_predefined_installed_others_appear_not_installed() => AssertOptions(
+    public void Build_SomePredefinedPlansInstalled_ListsTheOthersAsNotInstalled() => AssertOptions(
         new List<PowerPlan>
         {
             new() { Name = "Balanced", Guid = BalancedGuid, IsActive = true },
@@ -65,7 +65,7 @@ public class PowerPlanOptionsConformanceTests
         ("Winhance Power Plan", WinhanceGuid, false));
 
     [Fact]
-    public void Custom_plan_appears_as_an_unmatched_system_plan() => AssertOptions(
+    public void Build_CustomPlan_AppearsAsAnUnmatchedSystemPlan() => AssertOptions(
         new List<PowerPlan>
         {
             new() { Name = "Balanced", Guid = BalancedGuid, IsActive = true },
@@ -81,7 +81,7 @@ public class PowerPlanOptionsConformanceTests
         ("Winhance Power Plan", WinhanceGuid, false));
 
     [Fact]
-    public void Predefined_matched_by_name_when_guid_differs() => AssertOptions(
+    public void Build_PredefinedPlanWithADifferentGuid_MatchesByName() => AssertOptions(
         new List<PowerPlan>
         {
             // A "Balanced" plan with a non-canonical GUID still matches the predefined by cleaned name,
@@ -95,7 +95,7 @@ public class PowerPlanOptionsConformanceTests
         ("Winhance Power Plan", WinhanceGuid, false));
 
     [Fact]
-    public void Ultimate_performance_matched_by_heuristic_when_guid_differs() => AssertOptions(
+    public void Build_UltimatePerformanceWithADifferentGuid_MatchesByHeuristic() => AssertOptions(
         new List<PowerPlan>
         {
             new() { Name = "Ultimate Performance", Guid = "11112222-3333-4444-5555-666677778888", IsActive = true },
@@ -107,7 +107,7 @@ public class PowerPlanOptionsConformanceTests
         ("Winhance Power Plan", WinhanceGuid, false));
 
     [Fact]
-    public void No_plans_installed_all_predefined_appear_not_installed() => AssertOptions(
+    public void Build_NoPlansInstalled_ListsEveryPredefinedPlanAsNotInstalled() => AssertOptions(
         new List<PowerPlan>(),
         ("Balanced", BalancedGuid, false),
         ("High performance", HighPerfGuid, false),
@@ -116,7 +116,7 @@ public class PowerPlanOptionsConformanceTests
         ("Winhance Power Plan", WinhanceGuid, false));
 
     [Fact]
-    public void A_translated_predefined_plan_carries_the_translation()
+    public void Build_TranslatedPredefinedPlan_CarriesTheTranslation()
     {
         var loc = new Mock<ILocalizationService>().PresentKey("PowerPlan_Balanced_Name", "Ausgeglichen").Object;
 
@@ -128,7 +128,7 @@ public class PowerPlanOptionsConformanceTests
 
     // Windows refuses to delete the scheme it is running on.
     [Fact]
-    public void Only_an_installed_plan_that_is_not_active_can_be_deleted()
+    public void Build_InstalledPlans_OnlyANonActiveInstalledPlanCanBeDeleted()
     {
         var built = PowerPlanOptions.Build(
             new List<PowerPlan>

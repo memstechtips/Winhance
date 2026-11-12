@@ -39,7 +39,8 @@ internal sealed record DocsSetting(
     OptionMatrix? MatrixWin10,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<IReadOnlyList<DocsField>>? Fields);
 
-internal sealed record DocsOptionWarning(string Option, string Text);
+// Always: a risk warning the card shows whichever option is selected, rather than only while Option is chosen.
+internal sealed record DocsOptionWarning(string Option, string Text, bool Always);
 
 // A typed box under the card (the DNS servers), one row per server the way the card lays them out. Builds is
 // empty when every Windows has the box.
@@ -144,19 +145,20 @@ internal static class DocsCatalogExport
     };
 
     // SettingViewModelFactory.BuildCatalogOptionWarnings, minus the states that carry no warning. The app
-    // raises these as an Error banner under the card, and only ever for a selection: the banner is looked up
-    // by the selected value, which is a state index only for a ComboBox (a Toggle carries a bool, a slider a
-    // number), so a warning authored on any other control kind never surfaces there and must not here either.
+    // raises a Warning as an Error banner under the card while its option is selected, and a RiskWarning as a
+    // Warning banner whatever is selected. The banner is looked up by the selected value, which is a state index
+    // only for a ComboBox (a Toggle carries a bool, a slider a number), so a warning authored on any other control
+    // kind never surfaces there and must not here either.
     private static List<DocsOptionWarning> OptionWarnings(Setting s, ILocalizationService loc)
     {
         if (s.Control != ControlKind.Selection) return [];
 
         return s.States
-            .Select((state, i) => (state, i))
-            .Where(x => x.state.Warning is not null)
-            .Select(x => new DocsOptionWarning(
-                OptionLabel(x.state, loc),
-                Text(loc, x.state.Warning!.Value)))
+            .Where(state => state.Warning is not null || state.RiskWarning is not null)
+            .Select(state => new DocsOptionWarning(
+                OptionLabel(state, loc),
+                Text(loc, (state.Warning ?? state.RiskWarning)!.Value),
+                state.Warning is null))
             .ToList();
     }
 

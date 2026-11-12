@@ -1,5 +1,7 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
@@ -12,13 +14,21 @@ public class FilePickerServiceTests
 {
     private static readonly string[] AllFilesFilter = ["All Files", "*.*"];
     private static readonly string[] XmlFilter = ["XML Files", "*.xml"];
-    private static readonly string[] IsoFilter = ["ISO Files", "*.iso"];
 
     private readonly Mock<IMainWindowProvider> _mockMainWindowProvider = new();
+    private readonly Mock<IDialogService> _dialogs = new();
+    private readonly Mock<ILocalizationService> _loc = new();
+    private readonly Mock<ILogService> _log = new();
+
+    public FilePickerServiceTests()
+    {
+        _loc.Setup(l => l.GetString("Dialog_FileDialogUnavailable")).Returns("Cannot show file dialog.");
+        _dialogs.Setup(d => d.ShowErrorAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.CompletedTask);
+    }
 
     private FilePickerService CreateSut()
     {
-        return new FilePickerService(_mockMainWindowProvider.Object);
+        return new FilePickerService(_mockMainWindowProvider.Object, _dialogs.Object, _loc.Object, _log.Object);
     }
 
     [Fact]
@@ -114,60 +124,6 @@ public class FilePickerServiceTests
     }
 
     [Fact]
-    public void PickSaveFile_WhenMainWindowIsNull_ReturnsNull()
-    {
-        _mockMainWindowProvider.Setup(p => p.MainWindow).Returns((Microsoft.UI.Xaml.Window?)null);
-
-        var sut = CreateSut();
-
-        var result = sut.PickSaveFile(XmlFilter);
-
-        result.Should().BeNull();
-    }
-
-    [Fact]
-    public void PickSaveFile_WhenMainWindowIsNull_WithAllParameters_ReturnsNull()
-    {
-        _mockMainWindowProvider.Setup(p => p.MainWindow).Returns((Microsoft.UI.Xaml.Window?)null);
-
-        var sut = CreateSut();
-
-        var result = sut.PickSaveFile(
-            IsoFilter,
-            suggestedFileName: "output.iso",
-            defaultExtension: "iso");
-
-        result.Should().BeNull();
-    }
-
-    [Fact]
-    public void PickSaveFile_WhenMainWindowIsNull_WithEmptyFilters_ReturnsNull()
-    {
-        _mockMainWindowProvider.Setup(p => p.MainWindow).Returns((Microsoft.UI.Xaml.Window?)null);
-
-        var sut = CreateSut();
-
-        var result = sut.PickSaveFile(Array.Empty<string>());
-
-        result.Should().BeNull();
-    }
-
-    [Fact]
-    public void PickSaveFile_WhenMainWindowIsNull_WithNullOptionalParams_ReturnsNull()
-    {
-        _mockMainWindowProvider.Setup(p => p.MainWindow).Returns((Microsoft.UI.Xaml.Window?)null);
-
-        var sut = CreateSut();
-
-        var result = sut.PickSaveFile(
-            AllFilesFilter,
-            suggestedFileName: null,
-            defaultExtension: null);
-
-        result.Should().BeNull();
-    }
-
-    [Fact]
     public void PickFile_AccessesMainWindowProperty()
     {
         _mockMainWindowProvider.Setup(p => p.MainWindow).Returns((Microsoft.UI.Xaml.Window?)null);
@@ -189,14 +145,16 @@ public class FilePickerServiceTests
         _mockMainWindowProvider.Verify(p => p.MainWindow, Times.Once);
     }
 
+    // The dialog needs an owner hwnd, so the only branch a unit test can reach is the one without a window.
     [Fact]
-    public void PickSaveFile_AccessesMainWindowProperty()
+    public void PickSavePath_WithoutAMainWindow_LogsReportsAndReturnsNull()
     {
         _mockMainWindowProvider.Setup(p => p.MainWindow).Returns((Microsoft.UI.Xaml.Window?)null);
 
-        var sut = CreateSut();
-        sut.PickSaveFile(AllFilesFilter);
+        var path = CreateSut().PickSavePath("title", "filter", "*.x", "default.x", "x");
 
-        _mockMainWindowProvider.Verify(p => p.MainWindow, Times.Once);
+        path.Should().BeNull();
+        _log.Verify(l => l.Log(LogLevel.Error, It.Is<string>(m => m.Contains("no main window")), null, It.IsAny<string>()), Times.Once);
+        _dialogs.Verify(d => d.ShowErrorAsync("Cannot show file dialog.", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 }

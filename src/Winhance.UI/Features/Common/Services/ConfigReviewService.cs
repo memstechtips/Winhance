@@ -36,9 +36,9 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     // Action settings that always need confirmation, even when current matches config
     private static readonly HashSet<string> ActionSettingIds = new()
     {
-        "taskbar-clean",
-        "start-menu-clean-10",
-        "start-menu-clean-11"
+        SettingIds.CleanTaskbar,
+        SettingIds.CleanStartMenu10,
+        SettingIds.CleanStartMenu11
     };
 
     public ConfigReviewService(
@@ -301,6 +301,33 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         }
     }
 
+    public IReadOnlyList<string> ApproveAllPending()
+    {
+        var touched = new List<string>();
+        foreach (var (id, diff) in _diffs)
+        {
+            bool value = !diff.IsReviewed;
+            bool action = diff.IsActionSetting && !diff.IsActionReviewed;
+            if (!value && !action) continue;
+
+            _diffs[id] = diff with
+            {
+                IsReviewed = true,
+                IsApproved = value || diff.IsApproved,
+                IsActionReviewed = diff.IsActionReviewed || action,
+                IsActionApproved = action || diff.IsActionApproved,
+            };
+            touched.Add(id);
+        }
+
+        if (touched.Count > 0)
+        {
+            ApprovalCountChanged?.Invoke(this, EventArgs.Empty);
+            BadgeStateChanged?.Invoke(this, EventArgs.Empty);
+        }
+        return touched;
+    }
+
     public IReadOnlyList<ConfigReviewDiff> GetApprovedDiffs()
     {
         return _diffs.Values.Where(d => d.IsReviewed && d.IsApproved).ToList().AsReadOnly();
@@ -540,9 +567,9 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
 
                 bool isActionSetting = ActionSettingIds.Contains(configItem.Id);
 
-                if (configItem.Id == "start-menu-clean-10" && _windowsVersionService.IsWindows11())
+                if (configItem.Id == SettingIds.CleanStartMenu10 && _windowsVersionService.IsWindows11())
                     continue;
-                if (configItem.Id == "start-menu-clean-11" && !_windowsVersionService.IsWindows11())
+                if (configItem.Id == SettingIds.CleanStartMenu11 && !_windowsVersionService.IsWindows11())
                     continue;
 
                 var (hasDiff, currentDisplay, configDisplay, currentKey, configKey) = await ComputeEagerDiffAsync(
@@ -589,8 +616,8 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
     {
         return configItem.Id switch
         {
-            "taskbar-clean" => _localizationService.GetStringOrDefault("Review_Mode_Action_CleanTaskbar", "Clean the taskbar as part of this configuration?"),
-            "start-menu-clean-10" or "start-menu-clean-11" =>
+            SettingIds.CleanTaskbar => _localizationService.GetStringOrDefault("Review_Mode_Action_CleanTaskbar", "Clean the taskbar as part of this configuration?"),
+            SettingIds.CleanStartMenu10 or SettingIds.CleanStartMenu11 =>
                 _localizationService.GetStringOrDefault("Review_Mode_Action_CleanStartMenu", "Clean the start menu as part of this configuration?"),
             _ => string.Empty
         };

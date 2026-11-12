@@ -111,9 +111,9 @@ internal class ConfigMigrationService : IConfigMigrationService
         {
             if (item?.Id == null) continue;
 
-            // Normalize a retired config id (e.g. the merged "-win10" This PC variants) to its canonical
-            // catalog id BEFORE any id-keyed migration runs, so every downstream consumer (build-gating, apply,
-            // export round-trip) sees the canonical id. Pure passthrough for ids that are not aliases.
+            // Normalize a retired config id (SettingIdAliases) to its canonical catalog id BEFORE any id-keyed
+            // migration runs, so every downstream consumer (build-gating, apply, export round-trip) sees the
+            // canonical id.
             item.Id = SettingIdAliases.Normalize(item.Id);
 
             if (_migrations.TryGetValue(item.Id, out var migration))

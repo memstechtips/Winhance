@@ -377,7 +377,7 @@ public class ConfigLoadServiceTests
     }
 
     [Fact]
-    public async Task LoadAndValidateConfigurationAsync_AcceptedFile_RecordsItsNameAndPath()
+    public async Task LoadAndValidateConfigurationAsync_AcceptedFile_RecordsItsName()
     {
         _mockConfigImportState.SetupAllProperties();
         FileHolds(Json(new WinhanceConfigFile()));
@@ -386,62 +386,57 @@ public class ConfigLoadServiceTests
 
         result.Should().NotBeNull();
         _mockConfigImportState.Object.SourceName.Should().Be("mine.winhance");
-        _mockConfigImportState.Object.SourcePath.Should().Be(ConfigPath);
         _mockConfigMigrationService.Verify(m => m.MigrateConfig(result!), Times.Once);
     }
 
     [Fact]
-    public async Task LoadAndValidateConfigurationAsync_UnsupportedVersion_KeepsThePreviousSourcePath()
+    public async Task LoadAndValidateConfigurationAsync_UnsupportedVersion_KeepsThePreviousSourceName()
     {
         _mockConfigImportState.SetupAllProperties();
-        _mockConfigImportState.Object.SourcePath = @"C:\Configs\previous.winhance";
+        _mockConfigImportState.Object.SourceName = "previous.winhance";
         FileHolds(Json(new WinhanceConfigFile { Version = "3.0" }));
 
         var result = await CreateService().LoadAndValidateConfigurationAsync(ConfigPath);
 
         result.Should().BeNull();
-        _mockConfigImportState.Object.SourcePath.Should().Be(@"C:\Configs\previous.winhance");
+        _mockConfigImportState.Object.SourceName.Should().Be("previous.winhance");
         _mockDialogService.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
     [Theory]
     [InlineData("null")]
     [InlineData("{ not json")]
-    public async Task LoadAndValidateConfigurationAsync_UnreadableFile_KeepsThePreviousSourcePath_AndShowsAnError(string json)
+    public async Task LoadAndValidateConfigurationAsync_UnreadableFile_KeepsThePreviousSourceName_AndShowsAnError(string json)
     {
         _mockConfigImportState.SetupAllProperties();
-        _mockConfigImportState.Object.SourcePath = @"C:\Configs\previous.winhance";
+        _mockConfigImportState.Object.SourceName = "previous.winhance";
         FileHolds(json);
 
         var result = await CreateService().LoadAndValidateConfigurationAsync(ConfigPath);
 
         result.Should().BeNull();
-        _mockConfigImportState.Object.SourcePath.Should().Be(@"C:\Configs\previous.winhance");
+        _mockConfigImportState.Object.SourceName.Should().Be("previous.winhance");
         _mockDialogService.Verify(d => d.ShowMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
-    public async Task LoadRecommendedConfigurationAsync_MigratesThePreset_AndClearsTheSourcePath()
+    public async Task LoadRecommendedConfigurationAsync_MigratesThePreset()
     {
-        _mockConfigImportState.SetupAllProperties();
-        _mockConfigImportState.Object.SourcePath = ConfigPath;
-
         var result = await CreateService().LoadRecommendedConfigurationAsync();
 
         result.Should().NotBeNull();
-        _mockConfigImportState.Object.SourcePath.Should().BeNull();
         _mockConfigMigrationService.Verify(m => m.MigrateConfig(result!), Times.Once);
     }
 
     [Fact]
-    public async Task LoadAndValidateConfigurationFromFileAsync_WhenNoMainWindow_ReturnsNull()
+    public async Task PickConfigurationFileAsync_WhenNoMainWindow_ReturnsNull()
     {
         _mockMainWindowProvider
             .Setup(p => p.MainWindow)
             .Returns((Microsoft.UI.Xaml.Window?)null);
 
         var service = CreateService();
-        var result = await service.LoadAndValidateConfigurationFromFileAsync();
+        var result = await service.PickConfigurationFileAsync();
 
         result.Should().BeNull();
         _mockDialogService.Verify(d => d.ShowErrorAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
@@ -478,7 +473,7 @@ public class ConfigLoadServiceTests
     }
 
     [Fact]
-    public void A_null_item_is_skipped_and_the_items_beside_it_are_still_judged()
+    public void DetectIncompatibleSettings_WithANullItem_SkipsItAndStillJudgesTheItemsBesideIt()
     {
         HiddenOnThisMachine("privacy-timeline-suggestions");
         var config = new WinhanceConfigFile
@@ -498,7 +493,7 @@ public class ConfigLoadServiceTests
     }
 
     [Fact]
-    public void A_retired_id_is_judged_by_the_setting_it_now_names()
+    public void DetectIncompatibleSettings_WithARetiredId_JudgesItBySettingItNowNames()
     {
         HiddenOnThisMachine("region-short-date");
         var config = new WinhanceConfigFile
@@ -548,7 +543,7 @@ public class ConfigLoadServiceTests
     public async Task LoadUserBackupConfigurationAsync_UnsupportedVersion_IsRejectedWithADialog()
     {
         _mockConfigImportState.SetupAllProperties();
-        _mockConfigImportState.Object.SourcePath = @"C:\Configs\previous.winhance";
+        _mockConfigImportState.Object.SourceName = "previous.winhance";
         _mockInteractiveUserService
             .Setup(s => s.GetInteractiveUserFolderPath(It.IsAny<Environment.SpecialFolder>()))
             .Returns(@"C:\Users\Test\AppData\Local");
@@ -562,7 +557,7 @@ public class ConfigLoadServiceTests
         var result = await CreateService().LoadUserBackupConfigurationAsync();
 
         result.Should().BeNull();
-        _mockConfigImportState.Object.SourcePath.Should().Be(@"C:\Configs\previous.winhance");
+        _mockConfigImportState.Object.SourceName.Should().Be("previous.winhance");
         _mockDialogService.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 }

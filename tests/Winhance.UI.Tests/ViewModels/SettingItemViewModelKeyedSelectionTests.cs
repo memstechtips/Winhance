@@ -87,7 +87,7 @@ public class SettingItemViewModelKeyedSelectionTests
 
     [Theory]
     [MemberData(nameof(SourcesOtherThanPowerPlans))]
-    public void An_option_list_other_than_power_plans_shows_no_status(OptionSource source)
+    public void ShowsOptionStatus_OptionListOtherThanPowerPlans_IsFalse(OptionSource source)
     {
         var sut = CreateSut(Config(FakeOptionProvider.SettingFor() with { Options = new(source) }, InputType.Selection));
         sut.TryApplyKeyedOptions(KeyedState("beta"));
@@ -97,7 +97,7 @@ public class SettingItemViewModelKeyedSelectionTests
     }
 
     [Fact]
-    public void A_power_plan_list_shows_status()
+    public void ShowsOptionStatus_PowerPlanList_IsTrue()
     {
         var offered = new[]
         {
@@ -123,7 +123,7 @@ public class SettingItemViewModelKeyedSelectionTests
     }
 
     [Fact]
-    public void The_dropdown_is_the_sources_options_labelled_as_the_machine_gave_them()
+    public void ComboBoxOptions_Always_AreSourceOptionsLabelledAsMachineGaveThem()
     {
         var sut = KeyedCard();
 
@@ -132,7 +132,7 @@ public class SettingItemViewModelKeyedSelectionTests
     }
 
     [Fact]
-    public void The_selected_value_is_the_key_and_the_combo_box_selects_it_by_position()
+    public void SelectedValue_Always_IsKeyAndComboBoxSelectsItByPosition()
     {
         var sut = KeyedCard();
 
@@ -141,7 +141,7 @@ public class SettingItemViewModelKeyedSelectionTests
     }
 
     [Fact]
-    public void A_rebuild_re_enumerates_the_source_rather_than_reusing_the_first_list()
+    public void TryApplyKeyedOptions_AfterRebuild_ReEnumeratesSourceInsteadOfReusingFirstList()
     {
         var sut = KeyedCard();
 
@@ -159,7 +159,7 @@ public class SettingItemViewModelKeyedSelectionTests
     }
 
     [Fact]
-    public void An_authored_key_the_machine_does_not_offer_stays_selected_and_is_marked_unavailable()
+    public void UpdateStateFromSystemState_AuthoredKeyMachineDoesNotOffer_StaysSelectedAndMarkedUnavailable()
     {
         _localizationService.PresentKey("Setting_KeyedOption_Unavailable", "{0} (not available on this PC)");
         var sut = KeyedCard();
@@ -175,7 +175,7 @@ public class SettingItemViewModelKeyedSelectionTests
     }
 
     [Fact]
-    public void A_refresh_onto_the_same_key_still_tells_the_card_to_reselect()
+    public void UpdateStateFromSystemState_RefreshOntoSameKey_StillTellsCardToReselect()
     {
         var sut = KeyedCard();
         var raised = new List<string?>();
@@ -189,22 +189,22 @@ public class SettingItemViewModelKeyedSelectionTests
     }
 
     [Fact]
-    public void Choosing_an_option_records_the_key_and_the_label_it_showed()
+    public void CommitComboBoxSelection_Option_RecordsKeyAndShownLabel()
     {
         var sut = KeyedCard();
 
-        sut.ApplySelectionValue("gamma");
+        sut.CommitComboBoxSelection("gamma");
 
         _authored.Should().ContainKey("fake-keyed");
         _authored["fake-keyed"].Value.Should().Be(new ChoiceValue.Keyed("gamma", "Gamma zone"));
     }
 
     [Fact]
-    public void The_live_key_is_remembered_apart_from_an_authored_pick()
+    public void CommitComboBoxSelection_AuthoredPick_RemembersLiveKeyApart()
     {
         var sut = KeyedCard();
 
-        sut.ApplySelectionValue("gamma");
+        sut.CommitComboBoxSelection("gamma");
 
         sut.SelectedValue.Should().Be("gamma");
         sut.LiveKeyedSelection.Should().Be("beta",
@@ -212,7 +212,7 @@ public class SettingItemViewModelKeyedSelectionTests
     }
 
     [Fact]
-    public void A_detection_that_read_no_options_keeps_the_last_live_key()
+    public void UpdateStateFromSystemState_NoOptionsRead_KeepsLastLiveKey()
     {
         var sut = KeyedCard();
 
@@ -230,7 +230,7 @@ public class SettingItemViewModelKeyedSelectionTests
     }
 
     [Fact]
-    public void The_per_item_words_come_from_the_shared_power_plan_keys()
+    public void KeyedActiveBadgeText_Always_ComesFromSharedPowerPlanKeysLikeItsSiblings()
     {
         var sut = KeyedCard();
 
@@ -241,7 +241,7 @@ public class SettingItemViewModelKeyedSelectionTests
     }
 
     [Fact]
-    public void A_detection_that_read_no_options_leaves_the_card_on_its_key()
+    public void UpdateStateFromSystemState_NoOptionsRead_LeavesCardOnItsKey()
     {
         var sut = KeyedCard();
 
@@ -259,7 +259,7 @@ public class SettingItemViewModelKeyedSelectionTests
     }
 
     [Fact]
-    public void A_detection_that_read_an_empty_list_empties_the_dropdown()
+    public void UpdateStateFromSystemState_EmptyOptionList_EmptiesDropdown()
     {
         var sut = KeyedCard();
 
@@ -278,7 +278,7 @@ public class SettingItemViewModelKeyedSelectionTests
     }
 
     [Fact]
-    public void A_keyed_card_names_its_name_and_description_and_nothing_else()
+    public void Display_KeyedSetting_CarriesOnlyNameAndDescription()
     {
         var setting = FakeOptionProvider.SettingFor();
 

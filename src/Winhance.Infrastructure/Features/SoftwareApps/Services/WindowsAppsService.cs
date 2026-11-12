@@ -1,5 +1,4 @@
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -12,25 +11,12 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 internal class WindowsAppsService(
     ILogService logService,
     IWinGetPackageInstaller winGetPackageInstaller,
-    IWinGetBootstrapper winGetBootstrapper,
-    IAppStatusDiscoveryService appStatusDiscoveryService,
-    IStoreDownloadService storeDownloadService,
     IInstallConsent installConsent,
     ITaskProgressService taskProgressService,
     ISettingApplicationService settingApplicationService,
     ICatalogSettingStateProvider settingStateProvider,
     IWindowsRegistryService registry) : IWindowsAppsService
 {
-    public string DomainName => FeatureIds.WindowsApps;
-
-    public event EventHandler? WinGetReady
-    {
-        add => winGetBootstrapper.WinGetInstalled += value;
-        remove => winGetBootstrapper.WinGetInstalled -= value;
-    }
-
-    public void InvalidateStatusCache() => appStatusDiscoveryService.InvalidateCache();
-
     public Task<IEnumerable<ItemDefinition>> GetAppsAsync()
     {
         var allItems = new List<ItemDefinition>();
@@ -47,11 +33,6 @@ internal class WindowsAppsService(
     {
         var apps = await GetAppsAsync().ConfigureAwait(false);
         return apps.FirstOrDefault(app => app.Id == appId);
-    }
-
-    public async Task<Dictionary<string, bool>> CheckBatchInstalledAsync(IEnumerable<ItemDefinition> definitions)
-    {
-        return await appStatusDiscoveryService.GetInstallationStatusBatchAsync(definitions).ConfigureAwait(false);
     }
 
     public async Task<OperationResult<bool>> InstallAppAsync(ItemDefinition item, IProgress<TaskProgressDetail>? progress = null)
@@ -112,7 +93,7 @@ internal class WindowsAppsService(
                             {
                                 return OperationResult<bool>.Succeeded(true);
                             }
-                            logService?.LogWarning($"Retry after policy change also failed for {item.Name}. Continuing to fallback...");
+                            logService?.LogWarning($"Retry after policy change also failed for {item.Name}. Giving up.");
                         }
                         catch (Exception ex)
                         {
@@ -125,48 +106,7 @@ internal class WindowsAppsService(
                     }
                 }
 
-                if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0))
-                {
-                    logService?.LogWarning($"WinGet installation failed for {item.Name}. Checking if fallback method should be used...");
-
-                    var userConsent = await installConsent.AllowFallbackDownloadAsync(item.Name).ConfigureAwait(false);
-
-                    if (!userConsent)
-                    {
-                        logService?.LogInformation($"User declined fallback installation for {item.Name}");
-                        return OperationResult<bool>.Failed("Installation cancelled by user");
-                    }
-
-                    logService?.LogInformation($"Attempting fallback installation method for {item.Name}...");
-
-                    try
-                    {
-                        var fallbackPackageId = item.MsStoreId ?? item.WinGetPackageId![0];
-                        var fallbackSuccess = await storeDownloadService.DownloadAndInstallPackageAsync(
-                            fallbackPackageId,
-                            item.Name,
-                            cancellationToken).ConfigureAwait(false);
-
-                        if (fallbackSuccess)
-                        {
-                            logService?.LogInformation($"Successfully installed {item.Name} using fallback method");
-                            return OperationResult<bool>.Succeeded(true);
-                        }
-
-                        logService?.LogError($"Fallback installation also failed for {item.Name}");
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        logService?.LogInformation($"Installation of {item.Name} was cancelled by user");
-                        return OperationResult<bool>.Cancelled("Installation cancelled by user");
-                    }
-                    catch (Exception fallbackEx)
-                    {
-                        logService?.LogError($"Fallback installation error for {item.Name}: {fallbackEx.Message}");
-                    }
-                }
-
-                return OperationResult<bool>.Failed("Installation failed with both WinGet and fallback methods");
+                return OperationResult<bool>.Failed($"WinGet could not install {item.Name}");
             }
 
             return OperationResult<bool>.Failed($"App type not supported: {item.Name}");

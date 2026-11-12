@@ -3,6 +3,7 @@ using Moq;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
 
@@ -16,6 +17,7 @@ public class StartupOrchestratorTests
     private readonly Mock<IScriptMigrationService> _migrationService = new();
     private readonly Mock<IRemovalScriptUpdateService> _updateService = new();
     private readonly Mock<INewBadgeService> _newBadgeService = new();
+    private readonly Mock<IProfileService> _profileService = new();
     private readonly Mock<ILogService> _logService = new();
 
     public StartupOrchestratorTests()
@@ -34,6 +36,7 @@ public class StartupOrchestratorTests
             _migrationService.Object,
             _updateService.Object,
             _newBadgeService.Object,
+            _profileService.Object,
             _logService.Object);
     }
 
@@ -172,6 +175,44 @@ public class StartupOrchestratorTests
         var result = await sut.RunStartupSequenceAsync(statusProgress, detailedProgress);
 
         result.IsFirstLaunch.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task RunStartupSequenceAsync_EnsuresBeforeWinhanceAfterTheBackup_OnEveryLaunch(bool backupCompleted)
+    {
+        _preferencesService.Setup(p => p.GetPreference(
+            UserPreferenceKeys.InitialConfigBackupCompleted, false))
+            .Returns(backupCompleted);
+        var callOrder = new List<string>();
+        _configurationService.Setup(c => c.CreateUserBackupConfigAsync())
+            .Callback(() => callOrder.Add("Backup"))
+            .Returns(Task.CompletedTask);
+        _profileService.Setup(p => p.EnsureBeforeWinhanceAsync())
+            .Callback(() => callOrder.Add("BeforeWinhance"))
+            .Returns(Task.CompletedTask);
+
+        var (statusProgress, detailedProgress, _) = CreateProgressTracking();
+        await CreateSut().RunStartupSequenceAsync(statusProgress, detailedProgress);
+
+        string[] expected = backupCompleted ? ["BeforeWinhance"] : ["Backup", "BeforeWinhance"];
+        callOrder.Should().Equal(expected);
+    }
+
+    [Fact]
+    public async Task RunStartupSequenceAsync_WhenTheBackupFails_StillEnsuresBeforeWinhance()
+    {
+        _preferencesService.Setup(p => p.GetPreference(
+            UserPreferenceKeys.InitialConfigBackupCompleted, false))
+            .Returns(false);
+        _configurationService.Setup(c => c.CreateUserBackupConfigAsync())
+            .ThrowsAsync(new InvalidOperationException("Backup failed"));
+
+        var (statusProgress, detailedProgress, _) = CreateProgressTracking();
+        await CreateSut().RunStartupSequenceAsync(statusProgress, detailedProgress);
+
+        _profileService.Verify(p => p.EnsureBeforeWinhanceAsync(), Times.Once);
     }
 
     [Fact]

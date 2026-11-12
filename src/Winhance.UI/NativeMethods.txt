@@ -2,23 +2,10 @@
 SetForegroundWindow
 ShowWindow
 IsIconic
-FindWindow
-GetWindowThreadProcessId
 AllowSetForegroundWindow
 
 // Window sizing: AppWindow sizes in screen pixels, the layout in effective pixels
 GetDpiForWindow
-
-// File dialogs (WinRT pickers fail with admin elevation)
-IFileDialog
-IFileOpenDialog
-IFileSaveDialog
-IShellItem
-IShellItemArray
-COMDLG_FILTERSPEC
-SHCreateItemFromParsingName
-SIGDN
-FILEOPENDIALOGOPTIONS
 
 // The notification-area icon and its menu, on a subclassed main window (shell32.dll, comctl32.dll, user32.dll).
 // NIN_BALLOONUSERCLICK arrives as the callback's lParam when the user clicks the notification.
@@ -47,3 +34,31 @@ NIN_SELECT
 WM_CONTEXTMENU
 WM_NULL
 PostMessage
+// The elevated window must let Explorer's lower-integrity TaskbarCreated broadcast through UIPI.
+ChangeWindowMessageFilterEx
+WINDOW_MESSAGE_FILTER_ACTION
+
+// The tray host: a hidden window and its message loop, with no XAML.
+CreateWindowEx
+DestroyWindow
+GetMessage
+TranslateMessage
+DispatchMessage
+PostQuitMessage
+SetTimer
+WM_TIMER
+WM_CLOSE
+
+// The menu theme is set through uxtheme.dll exports that exist by ordinal only.
+LoadLibrary
+GetProcAddress
+
+// COM file dialogs: the WinRT pickers fail when the app runs elevated.
+FileOpenDialog
+FileSaveDialog
+IFileDialog
+IShellItem
+SHCreateItemFromParsingName
+COMDLG_FILTERSPEC
+FILEOPENDIALOGOPTIONS
+SIGDN

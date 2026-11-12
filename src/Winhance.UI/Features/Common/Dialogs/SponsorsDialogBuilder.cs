@@ -1,6 +1,5 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -42,8 +41,6 @@ internal class SponsorsDialogBuilder
     private const double ChipCornerRadius = 6d;
     private const double MonthlyIconSize = 13d;
     private const int CountdownSeconds = 5;
-
-    private static readonly Windows.UI.Color HeartColor = Windows.UI.Color.FromArgb(0xFF, 0xE7, 0x4C, 0x3C);
 
     private readonly ILocalizationService _localization;
     private readonly ISponsorsService _sponsorsService;
@@ -105,14 +102,14 @@ internal class SponsorsDialogBuilder
             Width = 52,
             Height = 52,
             CornerRadius = new CornerRadius(26),
-            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x26, HeartColor.R, HeartColor.G, HeartColor.B)),
+            Style = Named("CodeBuilt.HeartWash"),
             VerticalAlignment = VerticalAlignment.Center,
             Child = new FluentIcons.WinUI.FluentIcon
             {
                 Icon = FluentIcons.Common.Icon.Heart,
                 IconVariant = FluentIcons.Common.IconVariant.Filled,
                 FontSize = 26,
-                Foreground = new SolidColorBrush(HeartColor),
+                Style = Named("CodeBuilt.HeartIcon"),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             }

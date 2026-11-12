@@ -57,7 +57,7 @@ public class WindowsUpdateStagerTests : IDisposable
         var localization = new Mock<ILocalizationService>();
         localization.Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>())).Returns("Verifying");
 
-        _sut = new WindowsUpdateStager(_downloads.Object, _signature.Object, new FileSystemService(), localization.Object, Mock.Of<ILogService>());
+        _sut = new WindowsUpdateStager(_downloads.Object, _signature.Object, new FileSystemService(Mock.Of<ILogService>()), localization.Object, Mock.Of<ILogService>());
     }
 
     public void Dispose()

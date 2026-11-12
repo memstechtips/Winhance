@@ -11,7 +11,7 @@ public class SidebarIconNamesTests
     private static readonly string UiDir = Path.Combine(RepoPaths.SolutionDir(), "src", "Winhance.UI");
 
     [Fact]
-    public void Every_sidebar_icon_name_exists_in_the_fluent_set()
+    public void NavSidebarXaml_EveryIconSymbol_ExistsInTheFluentSet()
     {
         var xaml = File.ReadAllText(Path.Combine(UiDir, "Features", "Common", "Controls", "NavSidebar.xaml"));
         var resources = FeatureIconsXaml.Read();
@@ -29,7 +29,7 @@ public class SidebarIconNamesTests
     [InlineData("Optimize", "OptimizeIconSymbol")]
     [InlineData("Customize", "CustomizeIconSymbol")]
     [InlineData("Autounattend", "AutounattendIconSymbol")]
-    public void A_page_header_draws_the_sidebar_icon_of_its_destination(string page, string resourceKey)
+    public void PageXaml_PageIcon_MatchesTheSidebarIconOfItsDestination(string page, string resourceKey)
     {
         var xaml = File.ReadAllText(Path.Combine(UiDir, "Features", page, page + "Page.xaml"));
 

@@ -1,7 +1,4 @@
-using System.Security.Cryptography;
-using System.Security.Principal;
 using System.Text.Json;
-using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
@@ -28,50 +25,78 @@ public sealed class ProfileService(
     IConfigFileWriter configFiles,
     IConfigLoadService configLoad,
     IConfigApplicationExecutionService execution,
-    IConfigurationService configuration,
-    IWindowsRegistryService windowsRegistry) : IProfileService
+    IConfigurationService configuration) : IProfileService
 {
-    private const string RecommendedId = "builtin:recommended";
-    private const string WindowsDefaultsId = "builtin:windows-defaults";
+    internal const string FocusId = "builtin:focus";
+    internal const string EverydayId = "builtin:everyday";
+    internal const string BeforeWinhanceId = "builtin:before-winhance";
 
-    // Profile files sit in the user's own folder, which any program running as that user can write. The sign-in task
-    // re-applies one elevated and unattended, so Winhance records each profile's SHA-256 here, where only an
-    // administrator can write, whenever the user switches to it or saves it, and the task applies nothing that differs.
-    // Profiles are per user, so each user's hashes sit under their SID.
-    private const string TrustRoot = @"HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\ProfileHashes";
+    private const string FocusFile = "focus";
+    private const string EverydayFile = "everyday";
+    private const string EverydayDefaultsFile = "everyday-defaults";
+    private const string BeforeWinhanceFile = "before-winhance";
 
     public const int MaxNameLength = 60;
 
     private readonly SemaphoreSlim _gate = new(1, 1);
+    // LoadAsync builds the built-ins outside _gate, so two writes of the same file take turns here instead.
+    private readonly SemaphoreSlim _writeGate = new(1, 1);
     private IReadOnlyList<string> _pendingReboot = [];
 
     public event EventHandler? Changed;
 
     public bool IsBusy { get; private set; }
 
-    public string? ActiveProfileId => preferences.GetPreference(UserPreferenceKeys.ActiveProfile, string.Empty) is { Length: > 0 } id ? id : null;
+    public string? ActiveProfileId => ActiveProfileIdIn(preferences);
 
-    public bool LastSwitchFailed => preferences.GetPreference(UserPreferenceKeys.ActiveProfileFailed, false);
+    public bool LastSwitchFailed => LastSwitchFailedIn(preferences);
 
     public IReadOnlyList<string> PendingReboot => _pendingReboot;
 
-    private string Folder => fileSystem.CombinePath(
+    private string Folder => FolderFor(interactiveUser, fileSystem);
+
+    // A subfolder, so the user's own profiles listed from Folder never include these.
+    private string BuiltinFolder => BuiltinFolderIn(fileSystem, Folder);
+
+    public IReadOnlyList<SettingsProfile> GetProfiles() => List(localization, fileSystem, Folder);
+
+    // The light tray host reads the active profile without the apply engine this service is built on.
+    internal static string? ActiveProfileIdIn(IUserPreferencesService preferences) =>
+        preferences.GetPreference(UserPreferenceKeys.ActiveProfile, string.Empty) is { Length: > 0 } id ? id : null;
+
+    internal static bool LastSwitchFailedIn(IUserPreferencesService preferences) => preferences.GetPreference(UserPreferenceKeys.ActiveProfileFailed, false);
+
+    // The light tray host lists profiles without the apply engine this service is built on.
+    internal static string FolderFor(IInteractiveUserService interactiveUser, IFileSystemService fileSystem) => fileSystem.CombinePath(
         AppDataPaths.UserRoot(interactiveUser.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData)),
         "Profiles");
 
-    public IReadOnlyList<SettingsProfile> GetProfiles()
+    private static string BuiltinFolderIn(IFileSystemService fileSystem, string folder) => fileSystem.CombinePath(folder, "Builtin");
+
+    // Everyday names its file even before the first switch into Focus writes it, so it is a defaults profile until then.
+    internal static IReadOnlyList<SettingsProfile> List(ILocalizationService localization, IFileSystemService fileSystem, string folder)
     {
+        var builtin = BuiltinFolderIn(fileSystem, folder);
         var profiles = new List<SettingsProfile>
         {
-            new(RecommendedId, localization.GetString("Profiles_Builtin_Recommended"), ProfileKind.Recommended, null),
-            new(WindowsDefaultsId, localization.GetString("Profiles_Builtin_WindowsDefaults"), ProfileKind.WindowsDefaults, null),
+            new(FocusId, localization.GetString("Profiles_Builtin_Focus"), ProfileKind.Focus, null,
+                localization.GetString("Profiles_Builtin_Focus_Description")),
+            new(EverydayId, localization.GetString("Profiles_Builtin_Everyday"), ProfileKind.Everyday,
+                fileSystem.CombinePath(builtin, EverydayFile + ConfigFileConstants.FileExtension),
+                localization.GetString("Profiles_Builtin_Everyday_Description")),
         };
-        if (fileSystem.DirectoryExists(Folder))
+        var beforeWinhance = fileSystem.CombinePath(builtin, BeforeWinhanceFile + ConfigFileConstants.FileExtension);
+        if (fileSystem.FileExists(beforeWinhance))
         {
-            profiles.AddRange(fileSystem.GetFiles(Folder, ConfigFileConstants.FilePattern)
+            profiles.Add(new(BeforeWinhanceId, localization.GetString("Profiles_Builtin_BeforeWinhance"), ProfileKind.BeforeWinhance,
+                beforeWinhance, localization.GetString("Profiles_Builtin_BeforeWinhance_Description")));
+        }
+        if (fileSystem.DirectoryExists(folder))
+        {
+            profiles.AddRange(fileSystem.GetFiles(folder, ConfigFileConstants.FilePattern)
                 .Select(path => fileSystem.GetFileNameWithoutExtension(path))
                 .Order(StringComparer.CurrentCultureIgnoreCase)
-                .Select(name => new SettingsProfile(name, name, ProfileKind.User, PathFor(name))));
+                .Select(name => new SettingsProfile(name, name, ProfileKind.User, fileSystem.CombinePath(folder, name + ConfigFileConstants.FileExtension))));
         }
         return profiles;
     }
@@ -81,6 +106,10 @@ public sealed class ProfileService(
             string.Equals(p.Id, nameOrId, StringComparison.OrdinalIgnoreCase)
             || string.Equals(p.Name, nameOrId, StringComparison.CurrentCultureIgnoreCase)
             || string.Equals(p.Id, "builtin:" + nameOrId, StringComparison.OrdinalIgnoreCase));
+
+    // A stored id names one profile; Find would also match a user profile named like a built-in's localized name.
+    public SettingsProfile? FindById(string id) =>
+        GetProfiles().FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase));
 
     public bool IsNameAvailable(string name) =>
         name.Trim() is { Length: > 0 and <= MaxNameLength } trimmed
@@ -110,11 +139,8 @@ public sealed class ProfileService(
         try
         {
             fileSystem.CreateDirectory(Folder);
-            // Builder hands over its answer-file choices too; a profile is applied to this PC, so it keeps settings only.
-            var kept = settings.Where(c => registry.GetFeatureIdForSetting(c.SettingId) is { } feature
-                && FeatureDefinitions.IsSettingsFeature(feature)).ToList();
-            var set = await fileStore.LoadAsync(new SelectionSet(kept, [], []));
-            return Written(name, await configFiles.WriteAsync(set, scopes.Current, PathFor(name.Trim())));
+            await WriteChoicesAsync(settings, PathFor(name.Trim()));
+            return Written(name);
         }
         catch (Exception ex)
         {
@@ -144,8 +170,8 @@ public sealed class ProfileService(
         try
         {
             // Written, not copied: a copy keeps the profile's own modified date, so the export looks old in Explorer.
-            if (profile.FilePath is { } path)
-                await fileSystem.WriteAllBytesAsync(destination, await fileSystem.ReadAllBytesAsync(path));
+            if (HasFile(profile))
+                await fileSystem.WriteAllBytesAsync(destination, await fileSystem.ReadAllBytesAsync(profile.FilePath!));
             else if (await LoadAsync(profile) is { } config)
                 await fileSystem.WriteAllTextAsync(destination, JsonSerializer.Serialize(config, ConfigFileConstants.JsonOptions));
             else
@@ -161,14 +187,47 @@ public sealed class ProfileService(
 
     public async Task DeleteAsync(SettingsProfile profile)
     {
-        if (profile.FilePath is not { } path)
+        if (profile.Kind != ProfileKind.User || profile.FilePath is not { } path)
             return;
         fileSystem.DeleteFile(path);
-        if (TrustKey() is { } key)
-            windowsRegistry.DeleteValue(key, profile.Id);
         if (profile.Id == ActiveProfileId)
             await preferences.SetPreferenceAsync(UserPreferenceKeys.ActiveProfile, string.Empty);
         Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    // Before Winhance is the machine as the oldest backup found it, which on a first launch is the one just taken.
+    // Built once, and made active only when no profile was ever chosen: an id this version no longer has stays as it
+    // is, so a sign-in reapply cannot roll the machine back to the backup unasked.
+    public async Task EnsureBeforeWinhanceAsync()
+    {
+        try
+        {
+            var path = BuiltinPath(BeforeWinhanceFile);
+            if (fileSystem.FileExists(path))
+                return;
+            var backups = ConfigurationService.BackupFolderFor(interactiveUser, fileSystem);
+            if (!fileSystem.DirectoryExists(backups)
+                || fileSystem.GetFiles(backups, "UserBackup_*" + ConfigFileConstants.FileExtension).Order(StringComparer.Ordinal).FirstOrDefault() is not { } oldest
+                || configLoad.ParseConfiguration(await fileSystem.ReadAllBytesAsync(oldest), oldest) is not { } backup)
+            {
+                logService.Log(LogLevel.Info, "No backup to build the Before Winhance profile from yet");
+                return;
+            }
+
+            fileSystem.CreateDirectory(BuiltinFolder);
+            var bytes = JsonSerializer.SerializeToUtf8Bytes(SettingsOnly(backup), ConfigFileConstants.JsonOptions);
+            await fileSystem.WriteAllBytesAsync(path, bytes);
+            if (ActiveProfileId is null)
+            {
+                await preferences.SetPreferenceAsync(UserPreferenceKeys.ActiveProfile, BeforeWinhanceId);
+                await preferences.SetPreferenceAsync(UserPreferenceKeys.ActiveProfileFailed, false);
+            }
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            logService.Log(LogLevel.Warning, $"Could not build the Before Winhance profile: {ex.Message}");
+        }
     }
 
     public Task<ProfileSwitchResult?> SwitchAsync(SettingsProfile profile) => ApplyAsync(profile, reapply: false);
@@ -181,7 +240,7 @@ public sealed class ProfileService(
     {
         try
         {
-            if (ActiveProfileId is not { } id || Find(id) is not { } active || await LoadAsync(active) is not { } loaded)
+            if (ActiveProfileId is not { } id || FindById(id) is not { } active || await LoadAsync(active) is not { } loaded)
                 return [];
             var plan = await PlanAsync(configLoad.FilterConfigForCurrentSystem(loaded));
             var comparison = await snapshot.CompareAsync(plan.Where(p => p.Choice is not null).Select(p => p.Choice!).ToList(), Carried(plan), CatalogScope.CurrentMachine);
@@ -205,15 +264,15 @@ public sealed class ProfileService(
         Changed?.Invoke(this, EventArgs.Empty);
         ProfileSwitchResult result;
         var usable = true;
-        string? appliedHash = null;
         try
         {
-            (result, usable, appliedHash) = await ApplyCoreAsync(profile, reapply);
+            (result, usable) = await ApplyCoreAsync(profile, reapply);
         }
         catch (Exception ex)
         {
             logService.Log(LogLevel.Error, $"Profile '{profile.Name}' failed: {ex.Message}");
             result = new ProfileSwitchResult(false, [ex.Message], []);
+            usable = false;
         }
         finally
         {
@@ -222,11 +281,7 @@ public sealed class ProfileService(
         }
 
         if (usable)
-        {
             await preferences.SetPreferenceAsync(UserPreferenceKeys.ActiveProfile, profile.Id);
-            if (!reapply && appliedHash is not null)
-                RecordTrust(profile, appliedHash);
-        }
 
         await preferences.SetPreferenceAsync(UserPreferenceKeys.ActiveProfileFailed, !result.Success);
         Changed?.Invoke(this, EventArgs.Empty);
@@ -235,29 +290,15 @@ public sealed class ProfileService(
 
     // Only a setting this PC positively reads as already set is skipped; anything Winhance cannot be sure of is
     // applied. The second read afterwards is what makes a skip or a write that did not take show up as a failure.
-    // Usable is false when the profile could not be loaded or trusted, so it must not become the active one.
-    // A saved file is read once: the bytes that are hashed are the bytes that are parsed and applied, so nothing
-    // swapped in between can pass the check or get its own hash recorded.
-    private async Task<(ProfileSwitchResult Result, bool Usable, string? Hash)> ApplyCoreAsync(SettingsProfile profile, bool reapply)
+    // Usable is false when the profile could not be loaded, so it must not become the active one.
+    private async Task<(ProfileSwitchResult Result, bool Usable)> ApplyCoreAsync(SettingsProfile profile, bool reapply)
     {
-        string? hash = null;
-        WinhanceConfigFile? loaded;
-        if (profile.Kind == ProfileKind.User)
-        {
-            var bytes = await ReadUserAsync(profile);
-            hash = bytes is null ? null : Convert.ToHexString(SHA256.HashData(bytes));
-            if (reapply && !IsTrusted(profile, hash))
-            {
-                logService.Log(LogLevel.Warning, $"Profile '{profile.Name}' was not re-applied: its file is not the one Winhance last applied or saved. Switch to it again to trust it.");
-                return (new ProfileSwitchResult(false, [localization.GetString("Profiles_Error_Untrusted")], []), false, null);
-            }
-            loaded = Parse(profile, bytes);
-        }
-        else
-            loaded = await LoadAsync(profile);
+        var loaded = !HasFile(profile) && profile.Kind == ProfileKind.Focus
+            ? await FocusAsync(snapshotEveryday: !reapply && ActiveProfileId != FocusId && (!LastSwitchFailed || !fileSystem.FileExists(BuiltinPath(EverydayFile))))
+            : await LoadAsync(profile);
 
         if (loaded is null)
-            return (new ProfileSwitchResult(false, [localization.GetString("Profiles_Error_Load")], []), false, null);
+            return (new ProfileSwitchResult(false, [localization.GetString("Profiles_Error_Load")], []), false);
 
         var config = configLoad.FilterConfigForCurrentSystem(loaded);
         var plan = await PlanAsync(config);
@@ -279,7 +320,7 @@ public sealed class ProfileService(
             notApplied.AddRange(await execution.ApplySettingsQuietlyAsync(
                 Subset(config, changing),
                 profile.Name,
-                profile.Kind == ProfileKind.WindowsDefaults,
+                isWindowsDefaults: false,
                 restartExplorer: changing.Any(p => RestartTarget.IsExplorer(p.Setting?.Apply.Restart)),
                 broadcastRegional: changing.Any(p => RestartTarget.IsRegional(p.Setting?.Apply.Restart))));
 
@@ -298,7 +339,7 @@ public sealed class ProfileService(
             .Select(p => NameOf(p.Setting!))
             .ToList();
         _pendingReboot = _pendingReboot.Union(needsRestart).ToList();
-        return (new ProfileSwitchResult(notApplied.Count == 0, notApplied, needsRestart), true, hash);
+        return (new ProfileSwitchResult(notApplied.Count == 0, notApplied, needsRestart), true);
 
         bool Changed(string id) => before.GetValueOrDefault(id, SettingMatch.Unknown) switch
         {
@@ -322,7 +363,7 @@ public sealed class ProfileService(
             {
                 if (item.Id is not { Length: > 0 })
                     continue;
-                var setting = registry.GetById(SettingIdAliases.Normalize(item.Id), CatalogScope.CurrentMachine);
+                var setting = registry.GetById(item.Id, CatalogScope.CurrentMachine);
                 if (setting?.Control == ControlKind.Action)
                     continue;
                 var choice = setting is not null && ConfigFileMapper.DecodeValue(setting, item) is { } value
@@ -360,16 +401,81 @@ public sealed class ProfileService(
         Customize = config.Customize,
     };
 
-    public async Task<WinhanceConfigFile?> LoadAsync(SettingsProfile profile) => profile.Kind == ProfileKind.User
-        ? Parse(profile, await ReadUserAsync(profile))
-        : await configLoad.ReadEmbeddedConfigurationAsync(windowsDefaults: profile.Kind == ProfileKind.WindowsDefaults) is { } config
-            ? SettingsOnly(config)
-            : null;
+    public async Task<WinhanceConfigFile?> LoadAsync(SettingsProfile profile) =>
+        HasFile(profile) ? Parse(await ReadFileAsync(profile), profile.FilePath!)
+        : profile.Kind switch
+        {
+            ProfileKind.Focus => await FocusAsync(snapshotEveryday: false),
+            ProfileKind.Everyday => await EverydayDefaultsAsync(),
+            _ => null,
+        };
 
-    private WinhanceConfigFile? Parse(SettingsProfile profile, byte[]? bytes) =>
-        bytes is not null && configLoad.ParseConfiguration(bytes, profile.FilePath!) is { } config ? SettingsOnly(config) : null;
+    // A built-in without its file yet is made from data at each use.
+    private bool HasFile(SettingsProfile profile) =>
+        profile.Kind == ProfileKind.User || (profile.FilePath is { } path && fileSystem.FileExists(path));
 
-    private async Task<byte[]?> ReadUserAsync(SettingsProfile profile)
+    // Made from the machine at each use, so the power settings keep the DC this PC reads now. The values Focus is about
+    // to change are kept as Everyday when the switch comes from another profile, so Everyday puts them back. After a
+    // failed switch the machine may still hold Focus values, so the snapshot already on disk is kept.
+    private async Task<WinhanceConfigFile?> FocusAsync(bool snapshotEveryday)
+    {
+        await registry.InitializeAsync();
+        var current = (await snapshot.CaptureAsync(CatalogScope.CurrentMachine))
+            .Where(c => FocusProfile.Ids.Contains(c.SettingId))
+            .ToList();
+        fileSystem.CreateDirectory(BuiltinFolder);
+        if (snapshotEveryday)
+            await WriteChoicesAsync(current, BuiltinPath(EverydayFile));
+        var path = BuiltinPath(FocusFile);
+        return Parse(await WriteChoicesAsync(FocusProfile.Overlay(current), path), path);
+    }
+
+    // Everyday before the first switch into Focus: Windows' defaults for what Focus changes. Written to its own file so
+    // Everyday stays a defaults profile until there is a snapshot to go back to.
+    private async Task<WinhanceConfigFile?> EverydayDefaultsAsync()
+    {
+        if (await configLoad.ReadEmbeddedConfigurationAsync(windowsDefaults: true) is not { } defaults)
+            return null;
+        await registry.InitializeAsync();
+        var current = await snapshot.CaptureAsync(CatalogScope.CurrentMachine);
+        var choices = new List<SettingChoice>();
+        foreach (var (_, _, _, items) in defaults.SettingSections())
+        {
+            foreach (var item in items)
+            {
+                if (item.Id is { } id && FocusProfile.Ids.Contains(id)
+                    && registry.GetById(id, CatalogScope.CurrentMachine) is { } setting
+                    && ConfigFileMapper.DecodeValue(setting, item) is { } value
+                    && FocusProfile.KeepMachineDc(id, value, current.FirstOrDefault(c => c.SettingId == id)?.Value) is { } kept)
+                    choices.Add(new SettingChoice(id, kept));
+            }
+        }
+        fileSystem.CreateDirectory(BuiltinFolder);
+        var path = BuiltinPath(EverydayDefaultsFile);
+        return Parse(await WriteChoicesAsync(choices, path), path);
+    }
+
+    // Builder hands over its answer-file choices too; a profile is applied to this PC, so it keeps settings only.
+    private async Task<byte[]> WriteChoicesAsync(IReadOnlyList<SettingChoice> settings, string path)
+    {
+        var kept = settings.Where(c => registry.GetFeatureIdForSetting(c.SettingId) is { } feature
+            && FeatureDefinitions.IsSettingsFeature(feature)).ToList();
+        var set = await fileStore.LoadAsync(new SelectionSet(kept, [], []));
+        await _writeGate.WaitAsync();
+        try
+        {
+            return await configFiles.WriteAsync(set, scopes.Current, path);
+        }
+        finally
+        {
+            _writeGate.Release();
+        }
+    }
+
+    private WinhanceConfigFile? Parse(byte[]? bytes, string source) =>
+        bytes is not null && configLoad.ParseConfiguration(bytes, source) is { } config ? SettingsOnly(config) : null;
+
+    private async Task<byte[]?> ReadFileAsync(SettingsProfile profile)
     {
         try
         {
@@ -384,45 +490,21 @@ public sealed class ProfileService(
 
     private string PathFor(string name) => fileSystem.CombinePath(Folder, name + ConfigFileConstants.FileExtension);
 
+    private string BuiltinPath(string name) => fileSystem.CombinePath(BuiltinFolder, name + ConfigFileConstants.FileExtension);
+
     private string NameOf(Setting setting) => localization.SettingName(setting);
 
     private async Task<SettingsProfile?> WriteAsync(string name, WinhanceConfigFile file)
     {
         var bytes = JsonSerializer.SerializeToUtf8Bytes(file, ConfigFileConstants.JsonOptions);
         await fileSystem.WriteAllBytesAsync(PathFor(name.Trim()), bytes);
-        return Written(name, bytes);
+        return Written(name);
     }
 
-    private SettingsProfile? Written(string name, byte[] bytes)
+    private SettingsProfile? Written(string name)
     {
-        var profile = Find(name.Trim());
-        if (profile is not null && profile.Id == ActiveProfileId)
-            RecordTrust(profile, Convert.ToHexString(SHA256.HashData(bytes)));
+        var profile = FindById(name.Trim());
         Changed?.Invoke(this, EventArgs.Empty);
         return profile;
-    }
-
-    private void RecordTrust(SettingsProfile profile, string hash)
-    {
-        if (TrustKey() is not { } key || !windowsRegistry.SetValue(key, profile.Id, hash, RegistryValueKind.String))
-            logService.Log(LogLevel.Warning, $"Could not record the integrity hash for profile '{profile.Name}'; the sign-in re-apply will skip it");
-    }
-
-    private bool IsTrusted(SettingsProfile profile, string? hash) =>
-        hash is not null
-        && TrustKey() is { } key
-        && windowsRegistry.GetValue(key, profile.Id) is string recorded
-        && string.Equals(recorded, hash, StringComparison.OrdinalIgnoreCase);
-
-    // Null when no user can be named, which leaves every saved profile untrusted.
-    private string? TrustKey()
-    {
-        var sid = interactiveUser.InteractiveUserSid;
-        if (sid is null)
-        {
-            using var identity = WindowsIdentity.GetCurrent();
-            sid = identity.User?.Value;
-        }
-        return sid is null ? null : $@"{TrustRoot}\{sid}";
     }
 }

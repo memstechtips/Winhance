@@ -20,9 +20,10 @@ public interface IDialogService
     // A Yes opens the store page from inside the dialog.
     Task ShowSponsorsDialogAsync(SponsorsDialogMode mode);
 
-    Task<(ImportOption? Option, ImportOptions Options)> ShowConfigImportOptionsDialogAsync();
+    // HideExplanation: the user ticked "don't show again" under the notes' explanation.
+    Task<(ImportOption? Option, ImportOptions Options, bool HideExplanation)> ShowConfigImportOptionsDialogAsync(ModeEntryNotes notes);
 
-    Task<BuilderSeed?> ShowBuilderSeedDialogAsync();
+    Task<(BuilderSeed? Seed, bool HideExplanation)> ShowBuilderSeedDialogAsync(ModeEntryNotes notes);
 
     // Null when cancelled. appName null = the defaults dialog (no follow-defaults switch).
     Task<InstallOptionsChoice?> ShowInstallOptionsDialogAsync(string? appName, InstallOptionsChoice current);

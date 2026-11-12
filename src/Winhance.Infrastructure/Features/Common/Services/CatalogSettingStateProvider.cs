@@ -4,7 +4,6 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
-using Winhance.Infrastructure.Features.Common.Helpers;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -225,7 +224,7 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
             var defAc = numeric.WindowsDefault.FirstOrDefault(cv => cv.Context == PowerContext.AC);
             if (defAc is null)
                 return false;
-            return RecommendedSettingsResolver.ConvertSystemToDisplayUnits(rawAc, numeric.Units) != defAc.Value;
+            return PowerCfgValues.ToDisplay(rawAc, numeric.Units) != defAc.Value;
         }
 
         // The exception: a two-state card's IsEnabled is the switch position.
@@ -260,7 +259,7 @@ internal sealed class CatalogSettingStateProvider : ICatalogSettingStateProvider
         return resolved is null || !IsWindowsDefaultState(resolved);
     }
 
-    // Every_selection_has_distinct_non_empty_state_labels pins the distinct-label property this depends on.
+    // GetStatesAsync_EverySelection_HasDistinctNonEmptyStateLabels pins the distinct-label property this depends on.
     private static int ResolveSelectionIndex(Setting setting, string? label)
     {
         if (label is not null)

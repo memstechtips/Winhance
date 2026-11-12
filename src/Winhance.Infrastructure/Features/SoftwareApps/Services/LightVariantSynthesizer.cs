@@ -66,8 +66,8 @@ internal static class LightVariantSynthesizer
     private const double TwoToneMinBandFraction = 0.10;
     private const double TwoToneMaxTransparentFraction = 0.05;
 
-    // Exceptions propagate on purpose: the caller wraps the call with a warning log, so a synthesizer failure is
-    // debuggable rather than silently dropping both variants (a swallowing catch once hid a WinRT error on the second encode).
+    // Exceptions propagate on purpose: the caller wraps the call with a warning log, so a synthesizer failure (a WinRT
+    // error on the second encode, say) is debuggable rather than silently dropping both variants.
     public static async Task<(byte[]? LightVariant, byte[]? DarkVariant)> TryGenerateAsync(
         byte[] primaryBytes,
         CancellationToken ct)

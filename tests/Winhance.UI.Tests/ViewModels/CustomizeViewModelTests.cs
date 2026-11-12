@@ -41,6 +41,7 @@ public class CustomizeViewModelTests
         var moduleIds = new[]
         {
             FeatureIds.Explorer,
+            FeatureIds.ContextMenu,
             FeatureIds.StartMenu,
             FeatureIds.Taskbar,
             FeatureIds.WindowsTheme,
@@ -119,7 +120,7 @@ public class CustomizeViewModelTests
     [Fact]
     public void Sections_ContainsFiveEntries()
     {
-        CustomizeViewModel.Sections.Should().HaveCount(5);
+        CustomizeViewModel.Sections.Should().HaveCount(6);
     }
 
     [Fact]
@@ -129,7 +130,7 @@ public class CustomizeViewModelTests
         // the display order. The five Contains tests below pass under any permutation, which is how
         // an earlier refactor silently reordered the page.
         CustomizeViewModel.Sections.Select(s => s.Key)
-            .Should().Equal("WindowsTheme", "Taskbar", "StartMenu", "Explorer", "TimeRegionLanguage");
+            .Should().Equal("WindowsTheme", "Taskbar", "StartMenu", "Explorer", "ContextMenu", "TimeRegionLanguage");
     }
 
     [Fact]
@@ -161,71 +162,10 @@ public class CustomizeViewModelTests
     }
 
     [Fact]
-    public void ExplorerViewModel_IsAssignedFromFeatureViewModels()
+    public void Sections_ContainsContextMenuSection()
     {
-        var vm = new CustomizeViewModel(
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            CreateFeatureViewModels(),
-            _mockBadgeService.Object,
-            _mockReviewModeService.Object,
-            _mockRegistry.Object,
-            _mockScope.Object,
-            _mockModeService.Object);
-
-        vm.ExplorerViewModel.Should().NotBeNull();
-        vm.ExplorerViewModel.ModuleId.Should().Be(FeatureIds.Explorer);
-    }
-
-    [Fact]
-    public void StartMenuViewModel_IsAssignedFromFeatureViewModels()
-    {
-        var vm = new CustomizeViewModel(
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            CreateFeatureViewModels(),
-            _mockBadgeService.Object,
-            _mockReviewModeService.Object,
-            _mockRegistry.Object,
-            _mockScope.Object,
-            _mockModeService.Object);
-
-        vm.StartMenuViewModel.Should().NotBeNull();
-        vm.StartMenuViewModel.ModuleId.Should().Be(FeatureIds.StartMenu);
-    }
-
-    [Fact]
-    public void TaskbarViewModel_IsAssignedFromFeatureViewModels()
-    {
-        var vm = new CustomizeViewModel(
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            CreateFeatureViewModels(),
-            _mockBadgeService.Object,
-            _mockReviewModeService.Object,
-            _mockRegistry.Object,
-            _mockScope.Object,
-            _mockModeService.Object);
-
-        vm.TaskbarViewModel.Should().NotBeNull();
-        vm.TaskbarViewModel.ModuleId.Should().Be(FeatureIds.Taskbar);
-    }
-
-    [Fact]
-    public void WindowsThemeViewModel_IsAssignedFromFeatureViewModels()
-    {
-        var vm = new CustomizeViewModel(
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            CreateFeatureViewModels(),
-            _mockBadgeService.Object,
-            _mockReviewModeService.Object,
-            _mockRegistry.Object,
-            _mockScope.Object,
-            _mockModeService.Object);
-
-        vm.WindowsThemeViewModel.Should().NotBeNull();
-        vm.WindowsThemeViewModel.ModuleId.Should().Be(FeatureIds.WindowsTheme);
+        CustomizeViewModel.Sections
+            .Should().Contain(s => s.Key == "ContextMenu" && s.ModuleId == FeatureIds.ContextMenu);
     }
 
     [Fact]
@@ -241,23 +181,6 @@ public class CustomizeViewModelTests
         // SectionIconConverter routes on the key suffix: Symbol means a FluentIcon, Path means SVG data.
         CustomizeViewModel.Sections.Single(s => s.Key == "TimeRegionLanguage")
             .IconGlyphKey.Should().Be("TimeRegionLanguageIconSymbol");
-    }
-
-    [Fact]
-    public void TimeRegionLanguageViewModel_IsAssignedFromFeatureViewModels()
-    {
-        var vm = new CustomizeViewModel(
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            CreateFeatureViewModels(),
-            _mockBadgeService.Object,
-            _mockReviewModeService.Object,
-            _mockRegistry.Object,
-            _mockScope.Object,
-            _mockModeService.Object);
-
-        vm.TimeRegionLanguageViewModel.Should().NotBeNull();
-        vm.TimeRegionLanguageViewModel.ModuleId.Should().Be(FeatureIds.TimeRegionLanguage);
     }
 
     [Fact]

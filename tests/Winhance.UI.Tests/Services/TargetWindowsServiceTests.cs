@@ -23,13 +23,13 @@ public class TargetWindowsServiceTests
     }
 
     [Fact]
-    public async Task SetAsync_ANewTarget_PublishesSoPagesReload()
+    public void Set_ANewTarget_PublishesSoPagesReload()
     {
         var sut = CreateSut();
         bool raised = false;
         sut.Changed += (_, _) => raised = true;
 
-        await sut.SetAsync(26100);
+        sut.Set(26100);
 
         sut.Build.Should().Be(26100);
         raised.Should().BeTrue();
@@ -37,22 +37,22 @@ public class TargetWindowsServiceTests
     }
 
     [Fact]
-    public async Task SetAsync_TheSameTarget_PublishesNothing()
+    public void Set_TheSameTarget_PublishesNothing()
     {
         var sut = CreateSut();
 
-        await sut.SetAsync(WindowsReleases.Latest.Build);
+        sut.Set(WindowsReleases.Latest.Build);
 
         _eventBus.Verify(b => b.Publish(It.IsAny<FilterStateChangedEvent>()), Times.Never);
     }
 
     [Fact]
-    public async Task ResetAsync_GoesBackToTheNewestRelease()
+    public void Reset_GoesBackToTheNewestRelease()
     {
         var sut = CreateSut();
-        await sut.SetAsync(null);
+        sut.Set(null);
 
-        await sut.ResetAsync();
+        sut.Reset();
 
         sut.Build.Should().Be(WindowsReleases.Latest.Build);
     }

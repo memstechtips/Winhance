@@ -64,21 +64,21 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void The_pictures_windows_ships_lead_the_list()
+    public void Options_Picture_ListsThePicturesWindowsShipsFirst()
     {
         _sut.Options(Picture, new FakeDetectionContext()).Select(o => o.Value)
             .Should().Equal(Win11Light, Win11Dark, Win10);
     }
 
     [Fact]
-    public void A_picture_windows_ships_is_captioned_in_the_users_language()
+    public void Options_ShippedPicture_IsCaptionedInTheUsersLanguage()
     {
         _sut.Options(Picture, new FakeDetectionContext()).Select(o => o.Label)
             .Should().Equal(Picture.States.Select(s => $"loc:{s.Label.Value}"));
     }
 
     [Fact]
-    public void A_picture_this_build_does_not_ship_is_not_offered()
+    public void Options_PictureThisBuildDoesNotShip_IsNotOffered()
     {
         var context = new FakeDetectionContext().Existing(Win11Light, Win11Dark);
 
@@ -86,7 +86,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void This_PCs_own_picture_is_offered_beside_the_ones_windows_ships()
+    public void Options_ThisPcsOwnPicture_IsOfferedBesideTheShippedOnes()
     {
         var context = new FakeDetectionContext()
             .Existing(Win11Light, @"D:\Pictures\lake.jpg")
@@ -100,7 +100,7 @@ public class WindowsThemeServiceOptionTests
 
     // The shell records the path it was given, so the same picture can arrive twice spelled differently.
     [Fact]
-    public void A_picture_already_listed_is_not_listed_twice()
+    public void Options_PictureAlreadyListed_IsNotListedTwice()
     {
         var context = new FakeDetectionContext()
             .Existing(Win11Light)
@@ -111,7 +111,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void The_recents_windows_remembers_are_offered_newest_first()
+    public void Options_RecentsWindowsRemembers_AreOfferedNewestFirst()
     {
         var context = new FakeDetectionContext()
             .Existing(@"D:\one.jpg", @"D:\two.jpg")
@@ -122,7 +122,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void A_recent_picture_this_PC_no_longer_has_is_not_offered()
+    public void Options_RecentPictureThisPcNoLongerHas_IsNotOffered()
     {
         var context = new FakeDetectionContext()
             .Existing(@"D:\one.jpg")
@@ -134,7 +134,7 @@ public class WindowsThemeServiceOptionTests
 
     // BackgroundType is absent on a profile that has never left a picture behind, which still means a picture.
     [Fact]
-    public void The_current_picture_is_read_when_the_background_is_a_picture_or_unrecorded()
+    public void CurrentKey_BackgroundIsAPictureOrUnrecorded_ReadsTheCurrentPicture()
     {
         var absent = new FakeDetectionContext().Set(DesktopKey, "WallPaper", @"D:\one.jpg");
         var picture = new FakeDetectionContext()
@@ -146,7 +146,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void Three_monitors_read_as_one_picture()
+    public void CurrentKey_ThreeMonitors_ReadsAsOnePicture()
     {
         var context = new FakeDetectionContext()
             .Set(DesktopKey, "TranscodedImageCount", 3)
@@ -158,7 +158,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void One_monitor_reads_the_unsuffixed_blob()
+    public void CurrentKey_OneMonitor_ReadsTheUnsuffixedBlob()
     {
         var context = new FakeDetectionContext()
             .Set(DesktopKey, "TranscodedImageCount", 1)
@@ -168,7 +168,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void The_transcoded_copy_is_not_a_picture()
+    public void CurrentKey_TranscodedCopy_IsNotAPicture()
     {
         var context = new FakeDetectionContext()
             .Set(DesktopKey, "WallPaper", @"C:\Users\x\AppData\Roaming\Microsoft\Windows\Themes\TranscodedWallpaper");
@@ -177,7 +177,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void This_PCs_picture_is_offered_as_the_original_the_cache_names()
+    public void Options_ThisPcsPicture_IsOfferedAsTheOriginalTheCacheNames()
     {
         var context = new FakeDetectionContext()
             .Existing(@"D:\Pictures\lake.jpg")
@@ -188,7 +188,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void A_solid_colour_or_a_slideshow_is_no_picture_selection()
+    public void CurrentKey_SolidColourOrSlideshow_IsNoPictureSelection()
     {
         var colour = new FakeDetectionContext()
             .Set(WallpapersKey, "BackgroundType", 1)
@@ -198,7 +198,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void An_empty_wallpaper_value_is_no_picture_selection()
+    public void CurrentKey_EmptyWallpaperValue_IsNoPictureSelection()
     {
         var context = new FakeDetectionContext().Set(DesktopKey, "WallPaper", string.Empty);
 
@@ -206,7 +206,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void A_picture_path_is_a_key_the_service_will_write()
+    public void SetFor_PicturePath_IsAKeyTheServiceWillWrite()
     {
         var set = KeyedOptions.SetFor(Picture, @"D:\anything.jpg", _sut);
 
@@ -216,7 +216,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void Anything_that_does_not_name_a_picture_is_no_key()
+    public void Accepts_AnythingThatDoesNotNameAPicture_IsNoKey()
     {
         _sut.Accepts(Picture, @"D:\Pictures\lake.jpg")
             .Should().BeTrue("a config from another machine can name a picture this PC never had");
@@ -224,7 +224,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void A_picture_windows_ships_travels_as_its_path_and_anything_else_as_bytes()
+    public void Travels_ShippedPictureVersusAnythingElse_TravelsAsPathVersusBytes()
     {
         _sut.Travels(Win11Light).Should().BeFalse();
         _sut.Travels(@"D:\Pictures\lake.jpg").Should().BeTrue();
@@ -232,7 +232,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void The_palette_is_the_twenty_four_windows_offers()
+    public void Options_Color_IsThePaletteOfTwentyFourWindowsOffers()
     {
         var swatches = _sut.Options(Color, new FakeDetectionContext());
 
@@ -242,7 +242,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void A_swatch_is_captioned_by_its_own_hex()
+    public void Options_Swatch_IsCaptionedByItsOwnHex()
     {
         var swatch = _sut.Options(Color, new FakeDetectionContext())[0];
 
@@ -251,7 +251,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void A_colour_this_PC_is_showing_that_is_not_in_the_palette_is_offered_beside_it()
+    public void Options_ColourNotInThePalette_IsOfferedBesideIt()
     {
         var context = new FakeDetectionContext().Set(ColorsKey, "Background", "1 2 3");
 
@@ -262,7 +262,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void A_colour_already_in_the_palette_is_not_offered_twice()
+    public void Options_ColourAlreadyInThePalette_IsNotOfferedTwice()
     {
         var context = new FakeDetectionContext().Set(ColorsKey, "Background", "255 140 0");
 
@@ -270,7 +270,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void The_current_colour_is_read_only_while_the_background_is_a_solid_colour()
+    public void CurrentKey_Color_IsReadOnlyWhileTheBackgroundIsASolidColour()
     {
         var colour = new FakeDetectionContext()
             .Set(WallpapersKey, "BackgroundType", 1)
@@ -284,7 +284,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void A_background_value_this_cannot_read_is_no_selection()
+    public void CurrentKey_UnreadableBackgroundValue_IsNoSelection()
     {
         var context = new FakeDetectionContext()
             .Set(WallpapersKey, "BackgroundType", 1)
@@ -294,7 +294,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void A_picked_colour_is_written_as_the_three_channels_windows_stores()
+    public void SetFor_PickedColour_IsWrittenAsTheThreeChannelsWindowsStores()
     {
         KeyedOptions.SetFor(Color, "#010203", _sut)!["Background"].WritePayload.Should().Be("1 2 3");
         KeyedOptions.SetFor(Color, "nope", _sut).Should().BeNull();
@@ -302,7 +302,7 @@ public class WindowsThemeServiceOptionTests
 
     // The colour the probe read out of Control Panel\Colors\Background on 2026-09-11.
     [Fact]
-    public void The_three_channels_windows_stores_are_the_colour()
+    public void HexFromRegistryColor_ThreeChannels_RoundTripsWithRegistryColorFromHex()
     {
         var hex = WindowsThemeService.HexFromRegistryColor("0 99 177");
 
@@ -317,13 +317,13 @@ public class WindowsThemeServiceOptionTests
     [InlineData("0 99 177 255")]
     [InlineData("0 99 300")]
     [InlineData("blue")]
-    public void A_value_that_is_not_three_channels_is_no_colour(string? stored)
+    public void HexFromRegistryColor_ValueThatIsNotThreeChannels_ReturnsNull(string? stored)
     {
         WindowsThemeService.HexFromRegistryColor(stored).Should().BeNull();
     }
 
     [Fact]
-    public void Hex_reads_with_or_without_the_hash()
+    public void RegistryColorFromHex_WithOrWithoutTheHash_ReadsTheSame()
     {
         WindowsThemeService.RegistryColorFromHex("#FF8C00").Should().Be("255 140 0");
         WindowsThemeService.RegistryColorFromHex("ff8c00").Should().Be("255 140 0");
@@ -335,13 +335,13 @@ public class WindowsThemeServiceOptionTests
     [InlineData("#FF8C0")]
     [InlineData("#FF8C000")]
     [InlineData("#GGGGGG")]
-    public void Anything_that_is_not_six_hex_digits_is_no_colour(string? text)
+    public void RegistryColorFromHex_NotSixHexDigits_ReturnsNull(string? text)
     {
         WindowsThemeService.RegistryColorFromHex(text).Should().BeNull();
     }
 
     [Fact]
-    public void A_colour_survives_the_form_the_config_file_carries()
+    public void RegistryColorFromHex_ConfigFileForm_SurvivesTheRoundTrip()
     {
         WindowsThemeService.RegistryColorFromHex(WindowsThemeService.HexFromRegistryColor("72 104 96"))
             .Should().Be("72 104 96");
@@ -350,7 +350,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void The_probes_id_decodes_to_the_item_list_windows_wrote()
+    public void DecodeFolderId_ProbeId_DecodesToTheItemListWindowsWrote()
     {
         var itemList = WindowsThemeService.DecodeFolderId(ProbeId);
 
@@ -360,14 +360,14 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void The_probes_id_comes_back_out_of_a_round_trip()
+    public void EncodeFolderId_ProbeId_ComesBackOutOfARoundTrip()
     {
         WindowsThemeService.EncodeFolderId(WindowsThemeService.DecodeFolderId(ProbeId)).Should().Be(ProbeId);
     }
 
     // The last group carries four bits of the last byte and two that nothing reads; "Q" sets one of those.
     [Fact]
-    public void The_bits_past_the_last_byte_do_not_survive_a_round_trip()
+    public void DecodeFolderId_BitsPastTheLastByte_DoNotSurviveARoundTrip()
     {
         var padded = string.Concat(ProbeId.AsSpan(0, ProbeId.Length - 1), "Q");
 
@@ -377,13 +377,13 @@ public class WindowsThemeServiceOptionTests
 
     // Standard base64 reads "BA" as 0x04.
     [Fact]
-    public void The_six_bits_of_a_group_are_read_low_bit_first()
+    public void DecodeFolderId_GroupOfSixBits_IsReadLowBitFirst()
     {
         WindowsThemeService.DecodeFolderId("BA").Should().Equal(new byte[] { 0x01 });
     }
 
     [Fact]
-    public void Any_item_list_comes_back_out_of_a_round_trip()
+    public void EncodeFolderId_AnyItemList_ComesBackOutOfARoundTrip()
     {
         var itemList = new byte[] { 0x14, 0x00, 0x1F, 0x50, 0xE0, 0x4F, 0xD0, 0x20, 0x00, 0x00 };
 
@@ -391,7 +391,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void A_character_the_codec_does_not_use_is_not_an_id()
+    public void DecodeFolderId_CharacterTheCodecDoesNotUse_Throws()
     {
         var act = () => WindowsThemeService.DecodeFolderId("AA*AA");
 
@@ -399,7 +399,7 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void The_recorded_id_decodes_to_the_folder_the_shell_resolves()
+    public void AlbumPath_RecordedId_DecodesToTheFolderTheShellResolves()
     {
         var context = new FakeDetectionContext().Folder(ShellItems, @"D:\Albums\Trip");
 
@@ -407,19 +407,19 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void An_id_the_shell_cannot_resolve_decodes_to_nothing()
+    public void AlbumPath_IdTheShellCannotResolve_ReturnsNull()
     {
         WindowsThemeService.AlbumPath("BA", new FakeDetectionContext()).Should().BeNull();
     }
 
     [Fact]
-    public void An_id_the_codec_cannot_read_decodes_to_nothing_rather_than_throwing()
+    public void AlbumPath_IdTheCodecCannotRead_ReturnsNullRatherThanThrowing()
     {
         WindowsThemeService.AlbumPath("AA*AA", new FakeDetectionContext()).Should().BeNull();
     }
 
     [Fact]
-    public void No_recorded_id_decodes_to_nothing()
+    public void AlbumPath_NoRecordedId_ReturnsNull()
     {
         var context = new FakeDetectionContext();
 
@@ -438,46 +438,46 @@ public class WindowsThemeServiceOptionTests
     [InlineData("10", "0", 4)]
     [InlineData("22", "0", 5)]
     [InlineData(null, null, 4)]
-    public void The_style_and_tile_pair_is_the_position_the_shell_takes(string? style, string? tile, int position)
+    public void WallpaperPosition_StyleAndTilePair_IsThePositionTheShellTakes(string? style, string? tile, int position)
     {
         WindowsThemeService.WallpaperPosition(style, tile).Should().Be(position);
     }
 
     [Fact]
-    public void The_original_path_is_read_out_of_the_probes_primary_blob()
+    public void PathFromCache_ProbePrimaryBlob_ReadsTheOriginalPath()
     {
         WindowsThemeService.PathFromCache(Convert.FromHexString(PrimaryBlobHex))
             .Should().Be(@"D:\VMShare\Desktop 4K (3840x2160)\03 - Memory Horizons - Lavender Field.jpg");
     }
 
     [Fact]
-    public void A_blob_with_nothing_after_the_header_reads_as_no_path()
+    public void PathFromCache_BlobWithNothingAfterTheHeader_ReturnsNull()
     {
         WindowsThemeService.PathFromCache(new byte[24]).Should().BeNull();
         WindowsThemeService.PathFromCache(null).Should().BeNull();
     }
 
     [Fact]
-    public void The_destination_keeps_the_file_name_under_the_winhance_folder()
+    public void DestinationFor_Picture_KeepsTheFileNameUnderTheWinhanceFolder()
     {
         _sut.DestinationFor(@"D:\x\03 - a.jpg").Should().Be(@"C:\Windows\Web\Wallpaper\Winhance\03 - a.jpg");
     }
 
     [Fact]
-    public void An_album_keeps_its_folder_name_under_the_winhance_folder()
+    public void AlbumDestinationFor_Album_KeepsItsFolderNameUnderTheWinhanceFolder()
     {
         _sut.AlbumDestinationFor(@"D:\Pictures\Trip 2026\").Should().Be(@"C:\Windows\Web\Wallpaper\Winhance\Trip 2026");
     }
 
     [Fact]
-    public void A_picture_windows_ships_is_on_the_new_install_already()
+    public void Travels_ShippedPicture_IsOnTheNewInstallAlready()
     {
         _sut.Travels(@"c:\windows\web\wallpaper\windows\img0.jpg").Should().BeFalse();
         _sut.Travels(@"D:\Pictures\mine.jpg").Should().BeTrue();
     }
 
     [Fact]
-    public void A_picture_an_earlier_import_carried_travels_again_to_the_same_place()
+    public void Travels_PictureAnEarlierImportCarried_TravelsAgainToTheSamePlace()
     {
         const string carried = @"C:\Windows\Web\Wallpaper\Winhance\lake.jpg";
 
@@ -486,15 +486,22 @@ public class WindowsThemeServiceOptionTests
     }
 
     [Fact]
-    public void A_picture_under_the_windows_folder_that_the_setting_does_not_ship_travels()
+    public void Travels_PictureUnderWindowsFolderTheSettingDoesNotShip_IsTrue()
     {
         _sut.Travels(@"C:\Windows\Web\Wallpaper\Dell\img0.jpg").Should().BeTrue();
     }
 
     [Fact]
-    public void Every_picture_the_setting_ships_stays_a_path()
+    public void Travels_EveryPictureTheSettingShips_IsFalse()
     {
         Picture.States.Select(state => KeyedOptions.KeyOf(Picture, state)!)
             .Should().OnlyContain(picture => !_sut.Travels(picture));
     }
+
+    [Theory]
+    [InlineData(@"\\evil.example\share\lake.jpg")]
+    [InlineData("//evil.example/share/lake.jpg")]
+    [InlineData(@"lake.jpg")]
+    public void Accepts_UncPicturePath_IsNoKey(string key)
+        => _sut.Accepts(Picture, key).Should().BeFalse();
 }

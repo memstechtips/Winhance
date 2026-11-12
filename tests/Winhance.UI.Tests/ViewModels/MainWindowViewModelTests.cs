@@ -80,6 +80,7 @@ public class MainWindowViewModelTests : IDisposable
             _mockConfigReviewDiffService.Object,
             _mockConfigReviewBadgeService.Object,
             _mockConfigurationService.Object,
+            new Mock<IReviewModeViewModelCoordinator>().Object,
             _mockDispatcherService.Object,
             _mockLocalizationService.Object,
             _mockDialogService.Object,
@@ -549,25 +550,26 @@ public class MainWindowViewModelTests : IDisposable
     [Fact]
     public async Task SwitchToBuilder_EntersThroughTheEntryService_WithTheConfigTarget()
     {
-        _mockBuilderModeEntry.Setup(e => e.EnterAsync(It.IsAny<BuilderTarget>())).ReturnsAsync(true);
+        _mockBuilderModeEntry.Setup(e => e.EnterAsync(It.IsAny<BuilderTarget>(), It.IsAny<string?>())).ReturnsAsync(true);
 
         var sut = CreateSut();
         await sut.RequestSwitchModeAsync(WinhanceMode.Builder);
 
-        _mockBuilderModeEntry.Verify(e => e.EnterAsync(BuilderTarget.Config), Times.Once);
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(BuilderTarget.Config, null), Times.Once);
     }
 
+    // The entry dialog carries the discard warning itself, so leaving a review for Builder is one dialog.
     [Fact]
-    public async Task SwitchToBuilder_WhenTheDiscardPromptIsDeclined_NeverReachesTheEntryService()
+    public async Task SwitchToBuilder_FromAReview_AsksNothingBeforeTheEntryDialog()
     {
         _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.ConfigReview);
-        _mockDialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
+        _mockBuilderModeEntry.Setup(e => e.EnterAsync(It.IsAny<BuilderTarget>(), It.IsAny<string?>())).ReturnsAsync(true);
 
         var sut = CreateSut();
         await sut.RequestSwitchModeAsync(WinhanceMode.Builder);
 
-        _mockBuilderModeEntry.Verify(e => e.EnterAsync(It.IsAny<BuilderTarget>()), Times.Never);
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(BuilderTarget.Config, null), Times.Once);
     }
 
     [Fact]
@@ -581,6 +583,140 @@ public class MainWindowViewModelTests : IDisposable
 
         _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
         _mockConfigurationService.Verify(c => c.ImportConfigurationAsync(), Times.Once);
+    }
+
+    private void InMode(WinhanceMode mode, BuilderTarget target = BuilderTarget.Config, bool confirmed = true)
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(mode);
+        _mockApplicationModeService.Setup(m => m.CurrentBuilderTarget).Returns(target);
+        _mockDialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = confirmed });
+        _mockBuilderModeEntry.Setup(e => e.EnterAsync(It.IsAny<BuilderTarget>(), It.IsAny<string?>())).ReturnsAsync(confirmed);
+    }
+
+    [Theory]
+    [InlineData("Autounattend")]
+    [InlineData("WimUtil")]
+    public async Task RequestPage_AnswerFilePage_FromNormal_EntersBuilderForAnAnswerFile(string tag)
+    {
+        InMode(WinhanceMode.Normal);
+
+        var opened = await CreateSut().RequestPageAsync(tag);
+
+        opened.Should().BeTrue();
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(BuilderTarget.Autounattend, It.IsAny<string?>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("Autounattend", "Dialog_ModeEntry_UnattendReason")]
+    [InlineData("WimUtil", "Dialog_ModeEntry_WimUtilReason")]
+    public async Task RequestPage_AnswerFilePage_FromNormal_SaysWhichPageNeedsBuilder(string tag, string reasonKey)
+    {
+        InMode(WinhanceMode.Normal);
+        _mockLocalizationService.Setup(l => l.GetString(reasonKey)).Returns("reason");
+
+        await CreateSut().RequestPageAsync(tag);
+
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(BuilderTarget.Autounattend, "reason"), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("Autounattend")]
+    [InlineData("WimUtil")]
+    public async Task RequestPage_AnswerFilePage_FromNormal_Declined_StaysInNormal_AfterOneDialog(string tag)
+    {
+        InMode(WinhanceMode.Normal, confirmed: false);
+
+        var opened = await CreateSut().RequestPageAsync(tag);
+
+        opened.Should().BeFalse();
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(BuilderTarget.Autounattend, It.IsAny<string?>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("Autounattend")]
+    [InlineData("WimUtil")]
+    public async Task RequestPage_AnswerFilePage_FromBuilderConfig_SwitchesTheTargetAndKeepsTheSession(string tag)
+    {
+        InMode(WinhanceMode.Builder, BuilderTarget.Config);
+
+        var opened = await CreateSut().RequestPageAsync(tag);
+
+        opened.Should().BeTrue();
+        _mockApplicationModeService.Verify(m => m.SetBuilderTarget(BuilderTarget.Autounattend), Times.Once);
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(It.IsAny<BuilderTarget>(), It.IsAny<string?>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("Autounattend", "Nav_Autounattend_SwitchTarget_Message")]
+    [InlineData("WimUtil", "Nav_WimUtil_SwitchTarget_Message")]
+    public async Task RequestPage_AnswerFilePage_FromBuilderConfig_SaysWhichPageNeedsTheSwitch(string tag, string messageKey)
+    {
+        InMode(WinhanceMode.Builder, BuilderTarget.Config);
+        _mockLocalizationService.Setup(l => l.GetString(messageKey)).Returns("message");
+
+        await CreateSut().RequestPageAsync(tag);
+
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.Is<ConfirmationRequest>(r => r.Message == "message")), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("Autounattend")]
+    [InlineData("WimUtil")]
+    public async Task RequestPage_AnswerFilePage_FromBuilderConfig_Declined_KeepsTheTarget(string tag)
+    {
+        InMode(WinhanceMode.Builder, BuilderTarget.Config, confirmed: false);
+
+        (await CreateSut().RequestPageAsync(tag)).Should().BeFalse();
+        _mockApplicationModeService.Verify(m => m.SetBuilderTarget(It.IsAny<BuilderTarget>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("Autounattend")]
+    [InlineData("WimUtil")]
+    public async Task RequestPage_AnswerFilePage_InBuilderAutounattend_OpensWithoutAsking(string tag)
+    {
+        InMode(WinhanceMode.Builder, BuilderTarget.Autounattend);
+
+        (await CreateSut().RequestPageAsync(tag)).Should().BeTrue();
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(It.IsAny<BuilderTarget>(), It.IsAny<string?>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("Autounattend")]
+    [InlineData("WimUtil")]
+    public async Task RequestPage_AnswerFilePage_FromConfigReview_LeavesThroughTheBuilderFlow(string tag)
+    {
+        InMode(WinhanceMode.ConfigReview);
+
+        (await CreateSut().RequestPageAsync(tag)).Should().BeTrue();
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(BuilderTarget.Autounattend, It.IsAny<string?>()), Times.Once);
+        _mockConfigurationService.Verify(c => c.CancelReviewModeAsync(), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("Autounattend")]
+    [InlineData("WimUtil")]
+    public async Task RequestPage_FromConfigReview_Declined_KeepsTheReview(string tag)
+    {
+        InMode(WinhanceMode.ConfigReview, confirmed: false);
+
+        (await CreateSut().RequestPageAsync(tag)).Should().BeFalse();
+        _mockConfigurationService.Verify(c => c.CancelReviewModeAsync(), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("SoftwareApps")]
+    [InlineData("Optimize")]
+    public async Task RequestPage_OpenPages_NeverAsk(string tag)
+    {
+        InMode(WinhanceMode.Normal);
+
+        (await CreateSut().RequestPageAsync(tag)).Should().BeTrue();
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(It.IsAny<BuilderTarget>(), It.IsAny<string?>()), Times.Never);
     }
 
     [Fact]

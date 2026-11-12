@@ -52,7 +52,7 @@ public class FileStoreTests
         new([new SettingChoice(settingId, value)], [], []);
 
     [Fact]
-    public async Task A_picture_of_the_users_own_travels_as_bytes()
+    public async Task LoadAsync_UsersOwnPicture_TravelsAsBytes()
     {
         var result = await _sut.LoadAsync(Saving(SettingId, new ChoiceValue.Keyed(Source, "mine.jpg")));
 
@@ -63,7 +63,7 @@ public class FileStoreTests
     }
 
     [Fact]
-    public async Task The_choice_is_repointed_at_where_the_bytes_will_land()
+    public async Task LoadAsync_CarriedPicture_RepointsTheChoiceAtWhereTheBytesWillLand()
     {
         var result = await _sut.LoadAsync(Saving(SettingId, new ChoiceValue.Keyed(Source, "mine.jpg")));
 
@@ -72,7 +72,7 @@ public class FileStoreTests
     }
 
     [Fact]
-    public async Task A_picture_the_new_install_already_has_is_never_read()
+    public async Task LoadAsync_PictureTheNewInstallAlreadyHas_IsNeverRead()
     {
         var set = Saving(SettingId, new ChoiceValue.Keyed(WindowsOwn, "Windows 11 light"));
 
@@ -85,7 +85,7 @@ public class FileStoreTests
     }
 
     [Fact]
-    public async Task A_key_that_does_not_name_a_picture_is_never_read()
+    public async Task LoadAsync_KeyThatNamesNoPicture_IsNeverRead()
     {
         var set = Saving(SettingId, new ChoiceValue.Keyed(@"C:\Users\me\secret.kdbx", "secret.kdbx"));
 
@@ -98,7 +98,7 @@ public class FileStoreTests
     }
 
     [Fact]
-    public async Task A_picture_this_PC_does_not_have_travels_as_a_path()
+    public async Task LoadAsync_PictureThisPcDoesNotHave_TravelsAsAPath()
     {
         _files.Setup(f => f.FileExists(Source)).Returns(false);
 
@@ -110,7 +110,7 @@ public class FileStoreTests
     }
 
     [Fact]
-    public async Task A_read_that_throws_leaves_the_choice_alone()
+    public async Task LoadAsync_ReadThatThrows_LeavesTheChoiceAlone()
     {
         _files
             .Setup(f => f.ReadAllBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -123,7 +123,7 @@ public class FileStoreTests
     }
 
     [Fact]
-    public async Task A_keyed_choice_whose_list_carries_no_file_is_untouched()
+    public async Task LoadAsync_KeyedChoiceWhoseListCarriesNoFile_IsUntouched()
     {
         var set = Saving("power-plan-selection", new ChoiceValue.Keyed("guid", "Balanced"));
 
@@ -134,7 +134,7 @@ public class FileStoreTests
     }
 
     [Fact]
-    public async Task A_value_that_is_not_a_key_is_untouched()
+    public async Task LoadAsync_ValueThatIsNotAKey_IsUntouched()
     {
         var set = Saving(SettingId, new ChoiceValue.Option(0));
 
@@ -144,7 +144,7 @@ public class FileStoreTests
     }
 
     [Fact]
-    public async Task Embedded_bytes_land_in_the_winhance_folder_and_the_choice_names_them()
+    public async Task MaterializeAsync_EmbeddedBytes_LandInTheWinhanceFolderAndTheChoiceNamesThem()
     {
         var result = await _sut.MaterializeAsync(SetWith(Convert.ToBase64String(Bytes)));
 
@@ -157,7 +157,7 @@ public class FileStoreTests
     }
 
     [Fact]
-    public async Task A_file_that_only_travelled_as_a_path_passes_through_untouched()
+    public async Task MaterializeAsync_FileThatOnlyTravelledAsAPath_PassesThroughUntouched()
     {
         var result = await _sut.MaterializeAsync(SetWith(base64: null));
 
@@ -169,7 +169,7 @@ public class FileStoreTests
     }
 
     [Fact]
-    public async Task Bytes_that_do_not_decode_keep_the_key_the_file_named()
+    public async Task MaterializeAsync_BytesThatDoNotDecode_KeepTheKeyTheFileNamed()
     {
         var result = await _sut.MaterializeAsync(SetWith("not base64!!"));
 
@@ -183,7 +183,7 @@ public class FileStoreTests
     }
 
     [Fact]
-    public async Task Only_the_choice_that_owns_the_file_is_rewritten()
+    public async Task MaterializeAsync_FileOnOneChoice_RewritesOnlyThatChoice()
     {
         var set = SelectionSet.Empty with
         {
@@ -209,7 +209,7 @@ public class FileStoreTests
     [InlineData(@"\\elsewhere\share\mine.jpg")]
     [InlineData("C:mine.jpg")]
     [InlineData(@"C:\Windows\Web\Wallpaper\Winhance\Trip 2026\mine.jpg")]
-    public async Task Only_the_name_a_carried_file_gives_is_believed(string named)
+    public async Task MaterializeAsync_CarriedFileName_IsTheOnlyNameBelieved(string named)
     {
         var result = await _sut.MaterializeAsync(Carrying(SettingId, named));
 
@@ -255,7 +255,7 @@ public class FileStoreTests
     [InlineData("theme-wallpaper-color")]
     [InlineData("theme-wallpaper-album")]
     [InlineData("no-such-setting")]
-    public async Task A_file_on_a_setting_that_takes_no_picture_is_never_written(string settingId)
+    public async Task MaterializeAsync_FileOnSettingThatTakesNoPicture_IsNeverWritten(string settingId)
     {
         var set = Carrying(settingId, Destination);
 
@@ -274,13 +274,13 @@ public class FileStoreTests
     [InlineData(new byte[] { 1, 2, 3 }, true)]
     [InlineData(new byte[] { 1, 2, 4 }, false)]
     [InlineData(new byte[] { 1, 2 }, false)]
-    public async Task A_carried_file_is_the_same_file_only_byte_for_byte(byte[] carried, bool expected)
+    public async Task IsSameFileAsync_CarriedFile_IsTheSameOnlyByteForByte(byte[] carried, bool expected)
     {
         (await _sut.IsSameFileAsync(Source, Convert.ToBase64String(carried))).Should().Be(expected);
     }
 
     [Fact]
-    public async Task A_carried_file_is_never_the_same_as_a_missing_file_or_bad_base64()
+    public async Task IsSameFileAsync_MissingFileOrBadBase64_IsNeverTheSame()
     {
         (await _sut.IsSameFileAsync(Source, "not base64!")).Should().BeFalse();
 
@@ -289,7 +289,7 @@ public class FileStoreTests
     }
 
     [Fact]
-    public async Task A_file_that_cannot_be_written_is_logged_and_the_rest_still_land()
+    public async Task MaterializeAsync_FileThatCannotBeWritten_IsLoggedAndTheRestStillLand()
     {
         const string otherDestination = @"C:\Windows\Web\Wallpaper\Winhance\day1.jpg";
         _files

@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Xunit;
 using Winhance.TestSupport;
 
@@ -110,7 +111,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void A_slideshow_box_resolves_to_one_op_carrying_the_folder()
+    public void Resolve_SlideshowBox_ReturnsOneOpCarryingTheFolder()
     {
         var plan = ApplyRequestResolver.Resolve(
             "t", enable: true, value: @"D:\Albums\Trip", resetToDefault: false, new[] { AlbumSetting() }, new WinBuild(22631));
@@ -121,21 +122,24 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void An_empty_slideshow_box_resolves_to_nothing()
+    public void Slideshow_EmptyBox_ResolvesToAnEmptyPlan()
     {
-        Assert.Null(ApplyRequestResolver.Resolve(
-            "t", enable: true, value: string.Empty, resetToDefault: false, new[] { AlbumSetting() }, new WinBuild(22631)));
+        var plan = ApplyRequestResolver.Resolve(
+            "t", enable: true, value: string.Empty, resetToDefault: false, new[] { AlbumSetting() }, new WinBuild(22631));
+
+        Assert.NotNull(plan);
+        Assert.Empty(plan);
     }
 
     [Fact]
-    public void A_slideshow_box_with_a_value_of_another_shape_returns_null()
+    public void Resolve_SlideshowBoxWithValueOfAnotherShape_ReturnsNull()
     {
         Assert.Null(ApplyRequestResolver.Resolve(
             "t", enable: true, value: 0, resetToDefault: false, new[] { AlbumSetting() }, new WinBuild(22631)));
     }
 
     [Fact]
-    public void Unpaired_def_returns_null()
+    public void Resolve_UnpairedDefinition_ReturnsNull()
     {
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
             resetToDefault: false, new[] { ToggleSetting("other") });
@@ -143,7 +147,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Reset_no_windows_default_toggle_falls_through_to_normal_apply()
+    public void Resolve_ResetOfToggleWithoutWindowsDefault_FallsThroughToNormalApply()
     {
         // A toggle with NO WindowsDefault-roled state carries no reset-specific overrides (ResetSet), so its
         // reset IS a normal apply of the requested default direction. The resolver falls through to the toggle
@@ -155,7 +159,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Bare_custom_detector_setting_returns_null()
+    public void Resolve_CustomDetectorSettingWithoutEffects_ReturnsNull()
     {
         // A custom-detector setting whose states carry NO apply effects has nothing
         // to apply, so it returns null. ToggleSetting()'s states are effect-less.
@@ -166,7 +170,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Custom_detector_reset_with_windows_default_routes_to_new_engine()
+    public void Resolve_ResetOfCustomDetectorWithWindowsDefault_RoutesToNewEngine()
     {
         // A custom-detector setting WITH apply effects AND a WindowsDefault state (system-restore-style) routes its
         // RESET through the new engine: the reset block derives the WindowsDefault state and builds it with reset:true,
@@ -199,12 +203,12 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Custom_detector_reset_with_no_windows_default_returns_null()
+    public void Resolve_ResetOfCustomDetectorWithoutWindowsDefault_ReturnsNull()
     {
         // A custom-detector selection WITH effects but NO WindowsDefault state, reset with a NON-index value
         // (null): it falls through the reset block to the normal selection resolution, which returns null for a
         // non-index value -> returns null. (A reset carrying a valid option index DOES route now - see
-        // Reset_no_windows_default_selection_index_falls_through.)
+        // Resolve_ResetOfSelectionIndexWithoutWindowsDefault_FallsThrough.)
         var setting = SelectionSetting() with
         {
             Detector = new FakeDetector(),
@@ -248,7 +252,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Keyed_selection_with_a_refused_or_non_string_value_returns_null()
+    public void Resolve_KeyedSelectionWithRefusedOrNonStringValue_ReturnsNull()
     {
         var setting = PowerPlanSetting();
         Assert.Null(ApplyRequestResolver.Resolve("t", enable: true, value: "not-a-guid",
@@ -258,7 +262,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Keyed_selection_with_an_accepted_key_builds_the_providers_effect()
+    public void Resolve_KeyedSelectionWithAcceptedKey_BuildsTheProvidersEffect()
     {
         const string guid = "381b4222-f694-41f0-9685-ff5bb260df2e";
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: guid,
@@ -268,16 +272,16 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Numeric_non_dict_value_returns_null()
+    public void Resolve_NumericWithNonDictionaryValue_ReturnsNull()
     {
-        // Only the AC/DC display-units dictionary shape is handled; a bare int returns null.
+        // A bare int carries no units, so the resolver cannot tell display from system units.
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 5,
             resetToDefault: false, new[] { NumericSetting() });
         Assert.Null(plan);
     }
 
     [Fact]
-    public void Selection_index_out_of_range_returns_null()
+    public void Resolve_SelectionIndexOutOfRange_ReturnsNull()
     {
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 7,
             resetToDefault: false, new[] { SelectionSetting() });
@@ -285,7 +289,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Selection_non_index_value_returns_null()
+    public void Resolve_SelectionWithNonIndexValue_ReturnsNull()
     {
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: "OptB",
             resetToDefault: false, new[] { SelectionSetting() });
@@ -293,7 +297,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Toggle_enable_builds_enabled_plan()
+    public void Resolve_ToggleEnable_BuildsEnabledPlan()
     {
         var setting = ToggleSetting();
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
@@ -302,7 +306,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Toggle_disable_builds_disabled_plan()
+    public void Resolve_ToggleDisable_BuildsDisabledPlan()
     {
         var setting = ToggleSetting();
         var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
@@ -311,7 +315,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Custom_detector_setting_with_effects_resolves()
+    public void Resolve_CustomDetectorSettingWithEffects_BuildsTheStatePlan()
     {
         // A custom-detector setting whose states carry apply effects (system-tray / system-restore) is
         // applied by the new engine: the resolver routes the enable request to the matching state's plan exactly
@@ -342,7 +346,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Reset_applies_windows_default_state_with_reset_overrides()
+    public void Resolve_ResetWithWindowsDefaultState_AppliesItWithResetOverrides()
     {
         // A toggle whose Disabled state is the WindowsDefault AND carries a ResetSet (its [1,null]-style target
         // DELETEs on reset though it DETECTs "1-or-absent"). The resolver must route reset to that default state
@@ -373,7 +377,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Reset_never_routes_to_a_ResetSet_on_a_non_default_state()
+    public void Resolve_ResetWithResetSetOnNonDefaultState_NeverRoutesToIt()
     {
         // A reset resolves the WindowsDefault-roled state, so a ResetSet declared anywhere else is unreachable.
         // Pinned so the dead declarations stay deleted rather than reappearing as a plausible-looking no-op.
@@ -407,7 +411,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void CheckBox_builds_its_own_checked_plan()
+    public void Resolve_CheckBox_BuildsItsOwnCheckedPlan()
     {
         var setting = ToggleSetting() with
         {
@@ -419,7 +423,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void An_answer_file_only_setting_resolves_to_null()
+    public void Resolve_AnswerFileOnlySetting_ReturnsNull()
     {
         var setting = ToggleSetting() with
         {
@@ -445,7 +449,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Selection_index_maps_to_option_label_plan()
+    public void Resolve_SelectionIndex_BuildsOptionLabelPlan()
     {
         var setting = SelectionSetting();
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 1,
@@ -454,7 +458,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Action_builds_action_plan()
+    public void Resolve_Action_BuildsActionPlan()
     {
         var setting = new Setting
         {
@@ -468,7 +472,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Numeric_acdc_dict_builds_powercfg_numeric_plan()
+    public void Resolve_NumericAcDcDictionary_BuildsPowerCfgNumericPlan()
     {
         var setting = NumericSetting();
         var value = new Dictionary<string, object?> { ["ACValue"] = 10, ["DCValue"] = 5 };
@@ -483,7 +487,41 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Powercfg_selection_acdc_tuple_builds_asymmetric_plan()
+    public void Numeric_AcDcNumberChoice_WritesSystemUnitsUnconverted()
+    {
+        var setting = NumericSetting();
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: new ChoiceValue.AcDcNumber(90, 600),
+            resetToDefault: false, new[] { setting });
+        var expected = ApplyPlanBuilder.BuildPowerCfgSystemValues(setting, new[]
+        {
+            new ContextValue(PowerContext.AC, 90),
+            new ContextValue(PowerContext.DC, 600),
+        });
+
+        Assert.Equal(expected, plan);
+    }
+
+    [Fact]
+    public void Numeric_DecodedSingleValueFromConfigFile_WritesBothContexts()
+    {
+        var setting = NumericSetting();
+        var item = new ConfigurationItem
+        {
+            Id = "t",
+            Name = "t",
+            PowerSettings = new Dictionary<string, object> { ["Value"] = 90 },
+        };
+
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: ConfigFileMapper.DecodeValue(setting, item),
+            resetToDefault: false, new[] { setting });
+
+        Assert.Equal(
+            new[] { (PowerContext.AC, 90), (PowerContext.DC, 90) },
+            plan!.Cast<PowerCfgSetOp>().Select(op => (op.Context, op.Value)));
+    }
+
+    [Fact]
+    public void Resolve_PowerCfgSelectionAcDcTuple_BuildsAsymmetricPlan()
     {
         // Config-import shape: a (acIndex, dcIndex) ValueTuple. The resolver routes it to BuildPowerCfgSelectionAcDc,
         // which writes the AC option's value to AC and the DC option's value to DC (asymmetric).
@@ -494,7 +532,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Powercfg_selection_acdc_dict_builds_asymmetric_plan()
+    public void Resolve_PowerCfgSelectionAcDcDictionary_BuildsAsymmetricPlan()
     {
         // UI AC/DC quick-set shape: { ACValue = acIndex, DCValue = dcIndex }.
         var setting = PowerCfgSelectionSetting();
@@ -505,7 +543,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Powercfg_selection_acdc_out_of_range_index_returns_null()
+    public void Resolve_PowerCfgSelectionAcDcIndexOutOfRange_ReturnsNull()
     {
         var setting = PowerCfgSelectionSetting();
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: (0, 9),
@@ -514,12 +552,12 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Mixed_powercfg_and_registry_selection_acdc_returns_null()
+    public void Resolve_PowerCfgSelectionWithSiblingRegistryTarget_ReturnsNull()
     {
         // DEFENSIVE guard: a powercfg selection with a SIBLING RegTarget is not pure - BuildPowerCfgSelectionAcDc
         // writes only the powercfg target and would DROP the registry writes, so it returns null. (Real
         // powercfg selections never take this shape: their enablement registry is nested in PowerCfgTarget.EnablementKey,
-        // out-of-band, so they DO route - see Powercfg_selection_with_enablement_key_routes.)
+        // out-of-band, so they DO route - see Resolve_PowerCfgSelectionWithEnablementKey_RoutesToAcDcPlan.)
         var setting = new Setting
         {
             Id = "t",
@@ -543,7 +581,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Powercfg_selection_with_enablement_key_routes()
+    public void Resolve_PowerCfgSelectionWithEnablementKey_RoutesToAcDcPlan()
     {
         // A powercfg selection whose PowerCfgTarget carries a nested EnablementKey (the real power-button-action
         // shape) is still PURE (its only target is a PowerCfgTarget) - the enablement registry is applied out-of-band
@@ -570,7 +608,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Non_separate_powercfg_selection_acdc_returns_null()
+    public void Resolve_NonSeparatePowerCfgSelectionAcDc_ReturnsNull()
     {
         // PowerCfgApplier's AC/DC path is gated on PowerModeSupport.Separate (a non-Separate powercfg selection
         // given an AC/DC value throws NotSupportedException there). The resolver mirrors that gate: a non-Separate
@@ -597,7 +635,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Non_powercfg_selection_acdc_dict_returns_null()
+    public void Resolve_RegistrySelectionWithAcDcDictionary_ReturnsNull()
     {
         // A REGISTRY selection (no PowerCfgTarget) with an AC/DC dict is NOT the powercfg path, so it is not
         // representable: an AC/DC dict is Dictionary<string,object?>, distinct from a CustomStateValues Dictionary<string,object>.
@@ -608,7 +646,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Registry_selection_custom_state_dict_routes_to_new_engine()
+    public void Resolve_RegistrySelectionCustomStateDictionary_RoutesToNewEngine()
     {
         // Config-import CustomStateValues (Dictionary<string,object> of raw per-ValueName values for a Custom /
         // no-option state): a PLAIN registry selection routes to BuildRegistryCustomState, which writes each
@@ -621,7 +659,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Registry_selection_custom_state_with_effects_routes_registry_only()
+    public void Resolve_RegistrySelectionCustomStateWithEffects_RoutesRegistryOnly()
     {
         // A plain registry selection whose states carry effects (a per-option script) routes
         // its custom-state to BuildRegistryCustomState - the raw registry values ONLY. The per-option script is NOT
@@ -642,7 +680,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Registry_selection_custom_state_per_nic_returns_null()
+    public void Resolve_RegistrySelectionCustomStatePerNetworkInterface_ReturnsNull()
     {
         // A per-network-interface registry selection is outside the proven plain-registry custom-state population,
         // so it returns null.
@@ -663,7 +701,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Script_only_custom_state_runs_the_settings_scripts()
+    public void Resolve_ScriptOnlyCustomState_RunsTheSettingsScripts()
     {
         var plan = ApplyRequestResolver.Resolve("t", enable: true, value: new Dictionary<string, object> { ["DetectedIndex"] = -1 },
             resetToDefault: false, new[] { ScriptCustomStateSetting() });
@@ -675,7 +713,7 @@ public class ApplyRequestResolverTests
     private static readonly string[] CloudflareServers = ["1.1.1.1", "1.0.0.1"];
 
     [Fact]
-    public void A_dns_preset_writes_its_servers_as_one_list()
+    public void Resolve_DnsPreset_WritesItsServersAsOneList()
     {
         var plan = ApplyRequestResolver.Resolve("dns", enable: true, value: 1, resetToDefault: false, new[] { DnsSetting() });
 
@@ -683,7 +721,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Automatic_dns_writes_no_servers()
+    public void Resolve_AutomaticDns_WritesNoServers()
     {
         var plan = ApplyRequestResolver.Resolve("dns", enable: true, value: 0, resetToDefault: false, new[] { DnsSetting() });
 
@@ -693,7 +731,7 @@ public class ApplyRequestResolverTests
     [Theory]
     [InlineData("10.5.0.1", "10.5.0.2", new[] { "10.5.0.1", "10.5.0.2" })]
     [InlineData(" 10.5.0.1 ", null, new[] { "10.5.0.1" })]
-    public void Typed_dns_servers_apply_as_typed(string primary, string? secondary, string[] expected)
+    public void Resolve_TypedDnsServers_ApplyAsTyped(string primary, string? secondary, string[] expected)
     {
         var values = new Dictionary<string, object> { ["primary"] = primary };
         if (secondary is not null)
@@ -711,7 +749,7 @@ public class ApplyRequestResolverTests
     [InlineData("2606:4700:4700::1111", "10.5.0.2")]
     [InlineData("", "10.5.0.2")]
     [InlineData("10.5.0.1", "not an address")]
-    public void A_server_that_is_not_an_ipv4_address_applies_nothing(string primary, string secondary)
+    public void Resolve_ServerThatIsNotIpv4Address_AppliesNothing(string primary, string secondary)
     {
         var values = new Dictionary<string, object> { ["primary"] = primary, ["secondary"] = secondary };
 
@@ -719,7 +757,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Registry_selection_custom_state_still_wins_over_custom_state_scripts()
+    public void Resolve_RegistrySelectionCustomStateWithCustomStateScripts_StillWritesRegistryOnly()
     {
         // Pinned decision: a Custom state on a setting that HAS registry targets writes the
         // raw registry values ONLY. Carrying CustomStateScripts must not change that - shortcut-arrow and
@@ -737,7 +775,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Win10_alias_id_normalizes_to_canonical_merged_setting_enabled()
+    public void Resolve_Win10AliasIdEnable_NormalizesToCanonicalMergedSetting()
     {
         // On Windows 10 the UI applies a This PC folder setting under its retired "-win10" id. The resolver
         // alias-normalizes it to the canonical MERGED catalog Setting and builds it with the live (Win10) build gate
@@ -754,7 +792,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Win10_alias_id_normalizes_to_canonical_merged_setting_disabled()
+    public void Resolve_Win10AliasIdDisable_NormalizesToCanonicalMergedSetting()
     {
         // The Disabled direction of the same alias id routes to the canonical setting's Disabled state on Win10.
         const string aliasId = "explorer-customization-thispc-folder-desktop-win10";
@@ -769,7 +807,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Reset_no_windows_default_selection_index_falls_through()
+    public void Resolve_ResetOfSelectionIndexWithoutWindowsDefault_FallsThrough()
     {
         // A no-WindowsDefault selection reset carrying a plain option index (a selection with no IsDefault
         // option, as DNS / system-tray were) applies that index -
@@ -781,7 +819,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Reset_no_windows_default_powercfg_selection_acdc_dict_falls_through()
+    public void Resolve_ResetOfPowerCfgSelectionAcDcDictionaryWithoutWindowsDefault_FallsThrough()
     {
         // A no-WindowsDefault powercfg Separate selection reset (the {ACValue,DCValue} index dict the bulk reset
         // dispatches) falls through to the asymmetric AC/DC builder - powercfg carries no ResetSet, so no reset
@@ -794,7 +832,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Reset_stateless_action_returns_null()
+    public void Resolve_ResetOfStatelessAction_ReturnsNull()
     {
         // A stateless Action has no default STATE to apply on reset (BuildAction runs its one-shot effects, which
         // is NOT a reset), so its reset is not representable and returns null.
@@ -810,7 +848,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Reset_this_pc_toggle_win11_routes_via_fall_through()
+    public void Resolve_ResetOfThisPcToggleOnWin11_RoutesViaFallThrough()
     {
         // Real catalog: a merged This PC toggle has no WindowsDefault state. On Windows 11 the bulk reset
         // dispatches the default direction (Disabled); the resolver falls through to Build the Disabled state with
@@ -824,7 +862,7 @@ public class ApplyRequestResolverTests
     }
 
     [Fact]
-    public void Reset_this_pc_toggle_win10_alias_routes_via_fall_through()
+    public void Resolve_ResetOfThisPcToggleWin10Alias_RoutesViaFallThrough()
     {
         // On Windows 10 the UI applies the merged This PC toggle under its retired -win10 id; the bulk reset
         // dispatches the default direction (Enabled for the key-existence Win10 variant). Alias-normalize +
@@ -836,5 +874,19 @@ public class ApplyRequestResolverTests
         var plan = ApplyRequestResolver.Resolve(aliasId, enable: true, value: null,
             resetToDefault: true, SettingCatalog.All, win10);
         Assert.Equal(ApplyPlanBuilder.Build(canonical, LocKey.Common.Enabled, win10, reset: true), plan);
+    }
+
+    [Theory]
+    [InlineData(@"\\evil.example\share\Trip")]
+    [InlineData("//evil.example/share/Trip")]
+    [InlineData(@"\\?\UNC\evil.example\share")]
+    [InlineData(@"Albums\Trip")]
+    public void Resolve_SlideshowOnAShare_IsNoOp(string folder)
+    {
+        var plan = ApplyRequestResolver.Resolve(
+            "t", enable: true, value: folder, resetToDefault: false, new[] { AlbumSetting() }, new WinBuild(22631));
+
+        Assert.NotNull(plan);
+        Assert.Empty(plan);
     }
 }

@@ -261,671 +261,6 @@ if (-not (Test-Path $icoPath)) {
         },
         new()
         {
-            Id = "explorer-customization-context-menu",
-            Display = new()
-            {
-                Name = LocKey.Setting.ExplorerCustomizationContextMenu.Name,
-                Description = LocKey.Setting.ExplorerCustomizationContextMenu.Description,
-                GroupName = LocKey.SettingGroup.ContextMenu,
-                Icon = FluentIcons.Navigation,
-                IsSubjectivePreference = true,
-            },
-            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("", new[] { @"HKEY_CURRENT_USER\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" }, "", RegistryValueKind.String),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.Recommended },
-                    Set = new Dictionary<string, StateValue> { [""] = Of("") },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.WindowsDefault },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { [""] = Absent },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-take-ownership",
-            Display = new()
-            {
-                Name = LocKey.Setting.ExplorerTakeOwnership.Name,
-                Description = LocKey.Setting.ExplorerTakeOwnership.Description,
-                GroupName = LocKey.SettingGroup.ContextMenu,
-                Icon = MaterialIcons.Security,
-                IsSubjectivePreference = true,
-            },
-            Targets = new Target[]
-            {
-                new RegTarget("", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\TakeOwnership" }, "", RegistryValueKind.String),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.Recommended },
-                    Set = new Dictionary<string, StateValue> { [""] = Of("Take Ownership") },
-                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
-
-; Created by: Shawn Brink
-; Created on: January 28, 2015
-; Updated on: February 25, 2024
-; Tutorial: https://www.tenforums.com/tutorials/3841-add-take-ownership-context-menu-windows-10-a.html
-
-[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\TakeOwnership]
-[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\runas]
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\TakeOwnership]
-@=""Take Ownership""
-""Extended""=-
-""HasLUAShield""=""""
-""NoWorkingDirectory""=""""
-""NeverDefault""=""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\TakeOwnership\command]
-@=""powershell -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/c takeown /f \\\""%1\\\"" && icacls \\\""%1\\\"" /grant *S-1-3-4:F /t /c /l & pause' -Verb runAs\""""
-""IsolatedCommand""=""powershell -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/c takeown /f \\\""%1\\\"" && icacls \\\""%1\\\"" /grant *S-1-3-4:F /t /c /l & pause' -Verb runAs\""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\shell\TakeOwnership]
-@=""Take Ownership""
-""AppliesTo""=""NOT (System.ItemPathDisplay:=\""C:\\Users\"" OR System.ItemPathDisplay:=\""C:\\ProgramData\"" OR System.ItemPathDisplay:=\""C:\\Windows\"" OR System.ItemPathDisplay:=\""C:\\Windows\\System32\"" OR System.ItemPathDisplay:=\""C:\\Program Files\"" OR System.ItemPathDisplay:=\""C:\\Program Files (x86)\"")""
-""Extended""=-
-""HasLUAShield""=""""
-""NoWorkingDirectory""=""""
-""Position""=""middle""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\shell\TakeOwnership\command]
-@=""powershell -windowstyle hidden -command \""$Y = ($null | choice).Substring(1,1); Start-Process cmd -ArgumentList ('/c takeown /f \\\""%1\\\"" /r /d ' + $Y + ' && icacls \\\""%1\\\"" /grant *S-1-3-4:F /t /c /l /q & pause') -Verb runAs\""""
-""IsolatedCommand""=""powershell -windowstyle hidden -command \""$Y = ($null | choice).Substring(1,1); Start-Process cmd -ArgumentList ('/c takeown /f \\\""%1\\\"" /r /d ' + $Y + ' && icacls \\\""%1\\\"" /grant *S-1-3-4:F /t /c /l /q & pause') -Verb runAs\""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Drive\shell\runas]
-@=""Take Ownership""
-""Extended""=-
-""HasLUAShield""=""""
-""NoWorkingDirectory""=""""
-""Position""=""middle""
-""AppliesTo""=""NOT (System.ItemPathDisplay:=\""C:\\\"")""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Drive\shell\runas\command]
-@=""cmd.exe /c takeown /f \""%1\\\"" /r /d y && icacls \""%1\\\"" /grant *S-1-3-4:F /t /c & Pause""
-""IsolatedCommand""=""cmd.exe /c takeown /f \""%1\\\"" /r /d y && icacls \""%1\\\"" /grant *S-1-3-4:F /t /c & Pause""
-") },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.WindowsDefault },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { [""] = Absent },
-                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
-
-[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\TakeOwnership]
-[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\runas]
-[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\shell\TakeOwnership]
-[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Drive\shell\runas]
-") },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-context-menu-firewall",
-            Display = new()
-            {
-                Name = LocKey.Setting.ExplorerContextMenuFirewall.Name,
-                Description = LocKey.Setting.ExplorerContextMenuFirewall.Description,
-                GroupName = LocKey.SettingGroup.ContextMenu,
-                Icon = MaterialIcons.ShieldLock,
-                AddedInVersion = "26.10.16",
-                IsSubjectivePreference = true,
-            },
-            Targets = new Target[]
-            {
-                new RegTarget("MUIVerb", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\exefile\shell\WinhanceFirewall" }, "MUIVerb", RegistryValueKind.String),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Of("Windows Firewall") },
-                    // Each command touches only the two rules it names, so a rule an installer added is never removed.
-                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
-
-[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\exefile\shell\WinhanceFirewall]
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\exefile\shell\WinhanceFirewall]
-""MUIVerb""=""Windows Firewall""
-""Icon""=""FirewallControlPanel.dll,0""
-""SubCommands""=""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\exefile\shell\WinhanceFirewall\shell\01Allow]
-""MUIVerb""=""Allow through Windows Firewall""
-""HasLUAShield""=""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\exefile\shell\WinhanceFirewall\shell\01Allow\command]
-@=""powershell -windowstyle hidden -command \""Start-Process cmd -WindowStyle Hidden -Verb runAs -ArgumentList '/c netsh advfirewall firewall delete rule name=\\\""Winhance allow: %1\\\"" & netsh advfirewall firewall delete rule name=\\\""Winhance block: %1\\\"" & netsh advfirewall firewall add rule name=\\\""Winhance allow: %1\\\"" dir=in action=allow program=\\\""%1\\\"" enable=yes & netsh advfirewall firewall add rule name=\\\""Winhance allow: %1\\\"" dir=out action=allow program=\\\""%1\\\"" enable=yes'\""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\exefile\shell\WinhanceFirewall\shell\02Block]
-""MUIVerb""=""Block in Windows Firewall""
-""HasLUAShield""=""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\exefile\shell\WinhanceFirewall\shell\02Block\command]
-@=""powershell -windowstyle hidden -command \""Start-Process cmd -WindowStyle Hidden -Verb runAs -ArgumentList '/c netsh advfirewall firewall delete rule name=\\\""Winhance allow: %1\\\"" & netsh advfirewall firewall delete rule name=\\\""Winhance block: %1\\\"" & netsh advfirewall firewall add rule name=\\\""Winhance block: %1\\\"" dir=in action=block program=\\\""%1\\\"" enable=yes & netsh advfirewall firewall add rule name=\\\""Winhance block: %1\\\"" dir=out action=block program=\\\""%1\\\"" enable=yes'\""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\exefile\shell\WinhanceFirewall\shell\03Remove]
-""MUIVerb""=""Remove Winhance rules""
-""HasLUAShield""=""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\exefile\shell\WinhanceFirewall\shell\03Remove\command]
-@=""powershell -windowstyle hidden -command \""Start-Process cmd -WindowStyle Hidden -Verb runAs -ArgumentList '/c netsh advfirewall firewall delete rule name=\\\""Winhance allow: %1\\\"" & netsh advfirewall firewall delete rule name=\\\""Winhance block: %1\\\""'\""""
-") },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Absent },
-                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
-
-[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\exefile\shell\WinhanceFirewall]
-") },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-context-menu-toggle-extensions",
-            Display = new()
-            {
-                Name = LocKey.Setting.ExplorerContextMenuToggleExtensions.Name,
-                Description = LocKey.Setting.ExplorerContextMenuToggleExtensions.Description,
-                GroupName = LocKey.SettingGroup.ContextMenu,
-                Icon = FluentIcons.DocumentQuestionMark,
-                IsSubjectivePreference = true,
-            },
-            Targets = new Target[]
-            {
-                new RegTarget("ExplorerCommandHandler", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\AllFilesystemObjects\shell\Windows.ShowFileExtensions" }, "ExplorerCommandHandler", RegistryValueKind.String),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, LocKey.Common.Enabled) },
-                    Set = new Dictionary<string, StateValue> { ["ExplorerCommandHandler"] = Of("{4ac6c205-2853-4bf5-b47c-919a42a48a16}") },
-                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\AllFilesystemObjects\shell\Windows.ShowFileExtensions]
-""CommandStateSync""=""""
-""Description""=""@shell32.dll,-37571""
-""ExplorerCommandHandler""=""{4ac6c205-2853-4bf5-b47c-919a42a48a16}""
-""MUIVerb""=""@shell32.dll,-37570""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\Windows.ShowFileExtensions]
-""CommandStateSync""=""""
-""Description""=""@shell32.dll,-37571""
-""ExplorerCommandHandler""=""{4ac6c205-2853-4bf5-b47c-919a42a48a16}""
-""MUIVerb""=""@shell32.dll,-37570""
-") },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["ExplorerCommandHandler"] = Absent },
-                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
-
-[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\AllFilesystemObjects\shell\Windows.ShowFileExtensions]
-[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\Windows.ShowFileExtensions]
-") },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-context-menu-windows-terminal",
-            Display = new()
-            {
-                Name = LocKey.Setting.ExplorerContextMenuWindowsTerminal.Name,
-                Description = LocKey.Setting.ExplorerContextMenuWindowsTerminal.Description,
-                GroupName = LocKey.SettingGroup.ContextMenu,
-                Icon = MaterialIcons.Console,
-                IsSubjectivePreference = true,
-            },
-            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
-            Targets = new Target[]
-            {
-                new RegTarget("{9F156763-7844-4DC4-B2B1-901F640F5155}", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked" }, "{9F156763-7844-4DC4-B2B1-901F640F5155}", RegistryValueKind.String),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["{9F156763-7844-4DC4-B2B1-901F640F5155}"] = Absent },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["{9F156763-7844-4DC4-B2B1-901F640F5155}"] = Of("") },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-context-menu-ask-copilot",
-            Display = new()
-            {
-                Name = LocKey.Setting.ExplorerContextMenuAskCopilot.Name,
-                Description = LocKey.Setting.ExplorerContextMenuAskCopilot.Description,
-                GroupName = LocKey.SettingGroup.ContextMenu,
-                Icon = FluentIcons.BotSparkle,
-                IsSubjectivePreference = true,
-                AddedInVersion = "26.09.30",
-            },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("{CB3B0003-8088-4EDE-8769-8B354AB2FF8C}", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked" }, "{CB3B0003-8088-4EDE-8769-8B354AB2FF8C}", RegistryValueKind.String),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["{CB3B0003-8088-4EDE-8769-8B354AB2FF8C}"] = Absent },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["{CB3B0003-8088-4EDE-8769-8B354AB2FF8C}"] = Of("") },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-context-menu-sfc",
-            Display = new()
-            {
-                Name = LocKey.Setting.ExplorerContextMenuSfc.Name,
-                Description = LocKey.Setting.ExplorerContextMenuSfc.Description,
-                GroupName = LocKey.SettingGroup.ContextMenu,
-                Icon = MaterialIcons.MagnifyScan,
-                AddedInVersion = "25.04.09",
-                IsSubjectivePreference = true,
-            },
-            Targets = new Target[]
-            {
-                new RegTarget("MUIVerb", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\SFC" }, "MUIVerb", RegistryValueKind.String),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, LocKey.Common.Enabled) },
-                    Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Of("SFC /SCANNOW") },
-                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
-
-; Created by: Shawn Brink
-; Created on: March 12, 2020
-; Tutorial: https://www.tenforums.com/tutorials/152128-how-add-sfc-scannow-context-menu-windows-10-a.html
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\SFC]
-""Icon""=""WmiPrvSE.exe""
-""MUIVerb""=""SFC /SCANNOW""
-""Position""=""Bottom""
-""Extended""=-
-""SubCommands""=""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\SFC\shell\001menu]
-""HasLUAShield""=""""
-""MUIVerb""=""Run SFC /SCANNOW""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\SFC\shell\001menu\command]
-@=""PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/s,/k, sfc /scannow' -Verb runAs\""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\SFC\shell\002menu]
-""MUIVerb""=""SFC scan details log""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\SFC\shell\002menu\command]
-@=""PowerShell -ExecutionPolicy Bypass (sls [SR] $env:windir\\Logs\\CBS\\CBS.log -s).Line >\""$env:userprofile\\Desktop\\sfcdetails.txt\""""
-") },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Absent },
-                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
-
-[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\SFC]
-") },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-context-menu-dism",
-            Display = new()
-            {
-                Name = LocKey.Setting.ExplorerContextMenuDism.Name,
-                Description = LocKey.Setting.ExplorerContextMenuDism.Description,
-                GroupName = LocKey.SettingGroup.ContextMenu,
-                Icon = MaterialIcons.MedicalBag,
-                AddedInVersion = "25.04.09",
-                IsSubjectivePreference = true,
-            },
-            Targets = new Target[]
-            {
-                new RegTarget("MUIVerb", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\RepairWindowsImage" }, "MUIVerb", RegistryValueKind.String),
-                new RegTarget("Icon", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\RepairWindowsImage" }, "Icon", RegistryValueKind.String),
-                new RegTarget("HasLUAShield", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\RepairWindowsImage" }, "HasLUAShield", RegistryValueKind.String),
-                new RegTarget("", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\RepairWindowsImage\command" }, "", RegistryValueKind.String),
-                new RegTarget("KeyExists", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\RepairWindowsImage" }, null, RegistryValueKind.String),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, LocKey.Common.Enabled) },
-                    Set = new Dictionary<string, StateValue>
-                    {
-                        ["MUIVerb"] = Of("Repair Windows Image"),
-                        ["Icon"] = Of("WmiPrvSE.exe"),
-                        ["HasLUAShield"] = Of(""),
-                        [""] = Of("PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \"Start-Process cmd -ArgumentList '/s,/k, DISM /Online /Cleanup-Image /RestoreHealth' -Verb runAs\""),
-                        ["KeyExists"] = Exists,
-                    },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue>
-                    {
-                        ["MUIVerb"] = Absent,
-                        ["Icon"] = Absent,
-                        ["HasLUAShield"] = Absent,
-                        [""] = Absent,
-                        ["KeyExists"] = Absent,
-                    },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-context-menu-chkdsk",
-            Display = new()
-            {
-                Name = LocKey.Setting.ExplorerContextMenuChkdsk.Name,
-                Description = LocKey.Setting.ExplorerContextMenuChkdsk.Description,
-                GroupName = LocKey.SettingGroup.ContextMenu,
-                Icon = MaterialIcons.Harddisk,
-                AddedInVersion = "25.04.09",
-                IsSubjectivePreference = true,
-            },
-            Targets = new Target[]
-            {
-                new RegTarget("MUIVerb", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK" }, "MUIVerb", RegistryValueKind.String),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, LocKey.Common.Enabled) },
-                    Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Of("CHKDSK") },
-                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK]
-""Icon""=""imageres.dll,-36""
-""MUIVerb""=""CHKDSK""
-""Position""=""Bottom""
-""SubCommands""=""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK\shell\001menu]
-""HasLUAShield""=""""
-""MUIVerb""=""Run CHKDSK (scan only)""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK\shell\001menu\command]
-@=""PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/v:on,/s,/k, set /p d=Enter drive letter (e.g. C): & chkdsk !d!:' -Verb runAs\""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK\shell\002menu]
-""HasLUAShield""=""""
-""MUIVerb""=""Run CHKDSK /F (fix errors)""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK\shell\002menu\command]
-@=""PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/v:on,/s,/k, set /p d=Enter drive letter (e.g. C): & chkdsk !d!: /f' -Verb runAs\""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK\shell\003menu]
-""HasLUAShield""=""""
-""MUIVerb""=""Run CHKDSK /R (locate bad sectors)""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK\shell\003menu\command]
-@=""PowerShell -ExecutionPolicy Bypass -windowstyle hidden -command \""Start-Process cmd -ArgumentList '/v:on,/s,/k, set /p d=Enter drive letter (e.g. C): & chkdsk !d!: /r' -Verb runAs\""""
-") },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Absent },
-                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
-
-[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\CHKDSK]
-") },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-context-menu-ps1-edit-run",
-            Display = new()
-            {
-                Name = LocKey.Setting.ExplorerContextMenuPs1EditRun.Name,
-                Description = LocKey.Setting.ExplorerContextMenuPs1EditRun.Description,
-                GroupName = LocKey.SettingGroup.ContextMenu,
-                Icon = MaterialIcons.Powershell,
-                AddedInVersion = "25.04.09",
-                IsSubjectivePreference = true,
-            },
-            Targets = new Target[]
-            {
-                new RegTarget("MUIVerb", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with" }, "MUIVerb", RegistryValueKind.String),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, LocKey.Common.Enabled) },
-                    Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Of("Edit or Run with") },
-                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
-
-; Created by: Shawn Brink
-; Created on: December 4, 2023
-; Tutorial: https://www.elevenforum.com/t/add-edit-or-run-with-to-ps1-file-context-menu-in-windows-11.20366/
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with]
-""MUIVerb""=""Edit or Run with""
-""SubCommands""=""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\001flyout]
-""MUIVerb""=""Run with PowerShell""
-""Icon""=""powershell.exe""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\001flyout\Command]
-@=""\""C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\"" \""-Command\"" \""if((Get-ExecutionPolicy ) -ne 'AllSigned') { Set-ExecutionPolicy -Scope Process Bypass }; & '%1'\""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\002flyout]
-""MUIVerb""=""Run with PowerShell as administrator""
-""HasLUAShield""=""""
-""Icon""=""powershell.exe""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\002flyout\Command]
-@=""\""C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\"" \""-Command\"" \""\""& {Start-Process PowerShell.exe -ArgumentList '-ExecutionPolicy RemoteSigned -File \\\""%1\\\""' -Verb RunAs}\""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\003flyout]
-""MUIVerb""=""Run with PowerShell 7""
-""Icon""=""pwsh.exe""
-""CommandFlags""=dword:00000020
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\003flyout\Command]
-@=""\""C:\\Program Files\\PowerShell\\7\\pwsh.exe\"" \""-Command\"" \""if((Get-ExecutionPolicy ) -ne 'AllSigned') { Set-ExecutionPolicy -Scope Process Bypass }; & '%1'\""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\004flyout]
-""MUIVerb""=""Run with PowerShell 7 as administrator""
-""HasLUAShield""=""""
-""Icon""=""pwsh.exe""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\004flyout\Command]
-@=""\""C:\\Program Files\\PowerShell\\7\\pwsh.exe\"" \""-Command\"" \""\""& {Start-Process pwsh.exe -ArgumentList '-ExecutionPolicy RemoteSigned -File \\\""%1\\\""' -Verb RunAs}\""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\005flyout]
-""MUIVerb""=""Edit with PowerShell ISE""
-""Icon""=""powershell_ise.exe""
-""CommandFlags""=dword:00000020
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\005flyout\Command]
-@=""\""C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell_ise.exe\"" \""%1\""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\006flyout]
-""MUIVerb""=""Edit with PowerShell ISE as administrator""
-""HasLUAShield""=""""
-""Icon""=""powershell_ise.exe""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\006flyout\Command]
-@=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start PowerShell_ISE.exe \""\""%1\""\""'  -Verb RunAs\""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\007flyout]
-""MUIVerb""=""Edit with PowerShell ISE (x86)""
-""Icon""=""powershell_ise.exe""
-""CommandFlags""=dword:00000020
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\007flyout\Command]
-@=""\""C:\\WINDOWS\\syswow64\\WindowsPowerShell\\v1.0\\powershell_ise.exe\"" \""%1\""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\008flyout]
-""MUIVerb""=""Edit with PowerShell ISE (x86) as administrator""
-""HasLUAShield""=""""
-""Icon""=""powershell_ise.exe""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\008flyout\Command]
-@=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start C:\\WINDOWS\\syswow64\\WindowsPowerShell\\v1.0\\powershell_ise.exe \""\""%1\""\""'  -Verb RunAs\""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\009flyout]
-""MUIVerb""=""Edit with Notepad""
-""Icon""=""notepad.exe""
-""CommandFlags""=dword:00000020
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\009flyout\Command]
-@=""\""C:\\Windows\\System32\\notepad.exe\"" \""%1\""""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\010flyout]
-""MUIVerb""=""Edit with Notepad as administrator""
-""HasLUAShield""=""""
-""Icon""=""notepad.exe""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with\shell\010flyout\Command]
-@=""PowerShell -windowstyle hidden -Command \""Start-Process cmd -ArgumentList '/s,/c,start C:\\Windows\\System32\\notepad.exe \""\""%1\""\""'  -Verb RunAs\""""
-") },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["MUIVerb"] = Absent },
-                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
-
-[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\SystemFileAssociations\.ps1\Shell\Edit-Run-with]
-") },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-context-menu-compress-to",
-            Display = new()
-            {
-                Name = LocKey.Setting.ExplorerContextMenuCompressTo.Name,
-                Description = LocKey.Setting.ExplorerContextMenuCompressTo.Description,
-                GroupName = LocKey.SettingGroup.ContextMenu,
-                Icon = FluentIcons.FolderZip,
-                AddedInVersion = "25.04.09",
-                IsSubjectivePreference = true,
-            },
-            Availability = new() { Builds = new[] { BuildRange.Between(26100, int.MaxValue) } },
-            Targets = new Target[]
-            {
-                new RegTarget("ExplorerCommandHandler", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\CompressToFullMenu_ForOldContextMenu" }, "ExplorerCommandHandler", RegistryValueKind.String),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Links = new[] { new Link("explorer-customization-context-menu", LinkKind.Requires, LocKey.Common.Enabled) },
-                    Set = new Dictionary<string, StateValue> { ["ExplorerCommandHandler"] = Of("{7AE6900F-6EB0-44A2-9CA1-DB2F7EF352AF}") },
-                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
-
-; Credit: ThioJoe - https://github.com/ThioJoe/
-; Source: https://gist.github.com/ThioJoe/f4b0799e2f0d95466f4c2bd4e46d1e67
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\CompressToFullMenu_ForOldContextMenu]
-""CommandStateSync""=""""
-""ExplorerCommandHandler""=""{7AE6900F-6EB0-44A2-9CA1-DB2F7EF352AF}""
-""MUIVerb""=""@Windows.UI.FileExplorer.dll,-51797""
-""Note""=""Copied from original Command Store command: Windows.CompressTo""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Folder\shell\CompressToFullMenu_ForOldContextMenu]
-""CommandStateSync""=""""
-""ExplorerCommandHandler""=""{7AE6900F-6EB0-44A2-9CA1-DB2F7EF352AF}""
-""MUIVerb""=""@Windows.UI.FileExplorer.dll,-51797""
-""Note""=""Copied from original Command Store command: Windows.CompressTo""
-") },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["ExplorerCommandHandler"] = Absent },
-                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
-
-[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\*\shell\CompressToFullMenu_ForOldContextMenu]
-
-[-HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Folder\shell\CompressToFullMenu_ForOldContextMenu]
-") },
-                },
-            },
-        },
-        new()
-        {
             Id = "devices-dynamic-lighting-ambient",
             Display = new()
             {
@@ -1054,6 +389,46 @@ if (-not (Test-Path $icoPath)) {
                     Roles = new[] { StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["InitialKeyboardIndicators"] = Of(false).OrAbsent() },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-autoplay",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerAutoplay.Name,
+                Description = LocKey.Setting.ExplorerAutoplay.Description,
+                GroupName = LocKey.SettingGroup.DevicesAndPeripherals,
+                Icon = MaterialIcons.PlayBox,
+                AddedInVersion = "26.04.24",
+            },
+            Targets = new Target[]
+            {
+                new RegTarget("DisableAutoplay", new[] { @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers" }, "DisableAutoplay", RegistryValueKind.DWord),
+                new RegTarget("NoDriveTypeAutoRun", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" }, "NoDriveTypeAutoRun", RegistryValueKind.DWord) { Overrides = true },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["DisableAutoplay"] = Of(0).OrAbsent(),
+                        ["NoDriveTypeAutoRun"] = Absent,
+                    },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["DisableAutoplay"] = Of(1),
+                        ["NoDriveTypeAutoRun"] = Of(255),
+                    },
                 },
             },
         },
@@ -1995,272 +1370,6 @@ Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", Ru
         },
         new()
         {
-            Id = "explorer-enable-photo-viewer",
-            Display = new()
-            {
-                Name = LocKey.Setting.ExplorerEnablePhotoViewer.Name,
-                Description = LocKey.Setting.ExplorerEnablePhotoViewer.Description,
-                GroupName = LocKey.SettingGroup.FileAssociations,
-                Icon = MaterialIcons.ImageOutline,
-                IsSubjectivePreference = true,
-            },
-            Targets = new Target[]
-            {
-                new RegTarget("", new[] { @"HKEY_CURRENT_USER\Software\Classes\.bmp" }, "", RegistryValueKind.String),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Set = new Dictionary<string, StateValue> { [""] = Of("PhotoViewer.FileAssoc.Tiff") },
-                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
-
-[HKEY_CURRENT_USER\SOFTWARE\Classes\.bmp]
-@=""PhotoViewer.FileAssoc.Tiff""
-
-[HKEY_CURRENT_USER\SOFTWARE\Classes\.cr2]
-@=""PhotoViewer.FileAssoc.Tiff""
-
-[HKEY_CURRENT_USER\SOFTWARE\Classes\.dib]
-@=""PhotoViewer.FileAssoc.Tiff""
-
-[HKEY_CURRENT_USER\SOFTWARE\Classes\.gif]
-@=""PhotoViewer.FileAssoc.Tiff""
-
-[HKEY_CURRENT_USER\SOFTWARE\Classes\.ico]
-@=""PhotoViewer.FileAssoc.Tiff""
-
-[HKEY_CURRENT_USER\SOFTWARE\Classes\.jfif]
-@=""PhotoViewer.FileAssoc.Tiff""
-
-[HKEY_CURRENT_USER\SOFTWARE\Classes\.jpe]
-@=""PhotoViewer.FileAssoc.Tiff""
-
-[HKEY_CURRENT_USER\SOFTWARE\Classes\.jpeg]
-@=""PhotoViewer.FileAssoc.Tiff""
-
-[HKEY_CURRENT_USER\SOFTWARE\Classes\.jpg]
-@=""PhotoViewer.FileAssoc.Tiff""
-
-[HKEY_CURRENT_USER\SOFTWARE\Classes\.jxr]
-@=""PhotoViewer.FileAssoc.Tiff""
-
-[HKEY_CURRENT_USER\SOFTWARE\Classes\.png]
-@=""PhotoViewer.FileAssoc.Tiff""
-
-[HKEY_CURRENT_USER\SOFTWARE\Classes\.tif]
-@=""PhotoViewer.FileAssoc.Tiff""
-
-[HKEY_CURRENT_USER\SOFTWARE\Classes\.tiff]
-@=""PhotoViewer.FileAssoc.Tiff""
-
-[HKEY_CURRENT_USER\SOFTWARE\Classes\.wdp]
-@=""PhotoViewer.FileAssoc.Tiff""
-
-[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.bmp\OpenWithProgids]
-""PhotoViewer.FileAssoc.Tiff""=hex(0):
-
-[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.cr2\OpenWithProgids]
-""PhotoViewer.FileAssoc.Tiff""=hex(0):
-
-[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.dib\OpenWithProgids]
-""PhotoViewer.FileAssoc.Tiff""=hex(0):
-
-[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.gif\OpenWithProgids]
-""PhotoViewer.FileAssoc.Tiff""=hex(0):
-
-[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ico\OpenWithProgids]
-""PhotoViewer.FileAssoc.Tiff""=hex(0):
-
-[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jfif\OpenWithProgids]
-""PhotoViewer.FileAssoc.Tiff""=hex(0):
-
-[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpe\OpenWithProgids]
-""PhotoViewer.FileAssoc.Tiff""=hex(0):
-
-[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpeg\OpenWithProgids]
-""PhotoViewer.FileAssoc.Tiff""=hex(0):
-
-[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpg\OpenWithProgids]
-""PhotoViewer.FileAssoc.Tiff""=hex(0):
-
-[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jxr\OpenWithProgids]
-""PhotoViewer.FileAssoc.Tiff""=hex(0):
-
-[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.png\OpenWithProgids]
-""PhotoViewer.FileAssoc.Tiff""=hex(0):
-
-[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.tif\OpenWithProgids]
-""PhotoViewer.FileAssoc.Tiff""=hex(0):
-
-[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.tiff\OpenWithProgids]
-""PhotoViewer.FileAssoc.Tiff""=hex(0):
-
-[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.wdp\OpenWithProgids]
-""PhotoViewer.FileAssoc.Tiff""=hex(0):
-") },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { [""] = Absent },
-                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
-
-[-HKEY_CURRENT_USER\SOFTWARE\Classes\.bmp]
-[-HKEY_CURRENT_USER\SOFTWARE\Classes\.cr2]
-[-HKEY_CURRENT_USER\SOFTWARE\Classes\.dib]
-[-HKEY_CURRENT_USER\SOFTWARE\Classes\.gif]
-[-HKEY_CURRENT_USER\SOFTWARE\Classes\.ico]
-[-HKEY_CURRENT_USER\SOFTWARE\Classes\.jfif]
-[-HKEY_CURRENT_USER\SOFTWARE\Classes\.jpe]
-[-HKEY_CURRENT_USER\SOFTWARE\Classes\.jpeg]
-[-HKEY_CURRENT_USER\SOFTWARE\Classes\.jpg]
-[-HKEY_CURRENT_USER\SOFTWARE\Classes\.jxr]
-[-HKEY_CURRENT_USER\SOFTWARE\Classes\.png]
-[-HKEY_CURRENT_USER\SOFTWARE\Classes\.tif]
-[-HKEY_CURRENT_USER\SOFTWARE\Classes\.tiff]
-[-HKEY_CURRENT_USER\SOFTWARE\Classes\.wdp]
-
-[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.bmp\OpenWithProgids]
-[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.cr2\OpenWithProgids]
-[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.dib\OpenWithProgids]
-[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.gif\OpenWithProgids]
-[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ico\OpenWithProgids]
-[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jfif\OpenWithProgids]
-[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpe\OpenWithProgids]
-[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpeg\OpenWithProgids]
-[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpg\OpenWithProgids]
-[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jxr\OpenWithProgids]
-[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.png\OpenWithProgids]
-[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.tif\OpenWithProgids]
-[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.tiff\OpenWithProgids]
-[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.wdp\OpenWithProgids]
-") },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-customization-legacy-notepad",
-            Display = new()
-            {
-                Name = LocKey.Setting.ExplorerCustomizationLegacyNotepad.Name,
-                Description = LocKey.Setting.ExplorerCustomizationLegacyNotepad.Description,
-                GroupName = LocKey.SettingGroup.FileAssociations,
-                Icon = FluentIcons.NotepadEdit,
-                AddedInVersion = "26.04.03",
-                IsSubjectivePreference = true,
-            },
-            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
-            Targets = new Target[]
-            {
-                new RegTarget("NoOpenWith", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Applications\notepad.exe" }, "NoOpenWith", RegistryValueKind.String),
-                new RegTarget("UseFilter", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe" }, "UseFilter", RegistryValueKind.DWord),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Set = new Dictionary<string, StateValue>
-                    {
-                        ["NoOpenWith"] = Absent,
-                        ["UseFilter"] = Of(0),
-                    },
-                    Effects = new Effect[] { new ScriptEffect(@"
-$appPathsKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\App Paths\notepad.exe'
-if (Test-Path $appPathsKey) {
-    Remove-Item -Path $appPathsKey -Force
-}", RunContext.User) },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue>
-                    {
-                        ["NoOpenWith"] = Of(""),
-                        ["UseFilter"] = Of(1),
-                    },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-customization-notepad-word-wrap",
-            Display = new()
-            {
-                Name = LocKey.Setting.ExplorerCustomizationNotepadWordWrap.Name,
-                Description = LocKey.Setting.ExplorerCustomizationNotepadWordWrap.Description,
-                GroupName = LocKey.SettingGroup.FileAssociations,
-                Icon = MaterialIcons.Wrap,
-                AddedInVersion = "26.10.14",
-                IsSubjectivePreference = true,
-            },
-            UiParentId = "explorer-customization-legacy-notepad",
-            EnabledWhen = new("explorer-customization-legacy-notepad", [LocKey.Common.Enabled]),
-            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
-            Targets = new Target[]
-            {
-                new RegTarget("fWrap", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Notepad" }, "fWrap", RegistryValueKind.DWord),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Set = new Dictionary<string, StateValue> { ["fWrap"] = Of(1) },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.WindowsDefault },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["fWrap"] = Of(0).OrAbsent() },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-customization-notepad-status-bar",
-            Display = new()
-            {
-                Name = LocKey.Setting.ExplorerCustomizationNotepadStatusBar.Name,
-                Description = LocKey.Setting.ExplorerCustomizationNotepadStatusBar.Description,
-                GroupName = LocKey.SettingGroup.FileAssociations,
-                Icon = MaterialIcons.DockBottom,
-                AddedInVersion = "26.10.14",
-                IsSubjectivePreference = true,
-            },
-            UiParentId = "explorer-customization-legacy-notepad",
-            EnabledWhen = new("explorer-customization-legacy-notepad", [LocKey.Common.Enabled]),
-            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
-            Targets = new Target[]
-            {
-                new RegTarget("StatusBar", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Notepad" }, "StatusBar", RegistryValueKind.DWord),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.WindowsDefault },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["StatusBar"] = Of(1).OrAbsent() },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Set = new Dictionary<string, StateValue> { ["StatusBar"] = Of(0) },
-                },
-            },
-        },
-        new()
-        {
             Id = "explorer-customization-hide-merge-conflicts",
             Display = new()
             {
@@ -2664,6 +1773,304 @@ if (Test-Path $appPathsKey) {
                 {
                     Label = LocKey.Setting.ExplorerCustomizationTypingBehavior.Option1,
                     Set = new Dictionary<string, StateValue> { ["TypeAhead"] = Of(1) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-long-file-paths",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerLongFilePaths.Name,
+                Description = LocKey.Setting.ExplorerLongFilePaths.Description,
+                GroupName = LocKey.SettingGroup.FilesAndFolders,
+                Icon = MaterialIcons.ScriptTextOutline,
+                IsSubjectivePreference = true,
+            },
+            Targets = new Target[]
+            {
+                new RegTarget("LongPathsEnabled", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem" }, "LongPathsEnabled", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.Recommended },
+                    Set = new Dictionary<string, StateValue> { ["LongPathsEnabled"] = Of(1) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["LongPathsEnabled"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-enable-photo-viewer",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerEnablePhotoViewer.Name,
+                Description = LocKey.Setting.ExplorerEnablePhotoViewer.Description,
+                GroupName = LocKey.SettingGroup.FileAssociations,
+                Icon = MaterialIcons.ImageOutline,
+                IsSubjectivePreference = true,
+            },
+            Targets = new Target[]
+            {
+                new RegTarget("", new[] { @"HKEY_CURRENT_USER\Software\Classes\.bmp" }, "", RegistryValueKind.String),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue> { [""] = Of("PhotoViewer.FileAssoc.Tiff") },
+                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.bmp]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.cr2]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.dib]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.gif]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.ico]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.jfif]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.jpe]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.jpeg]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.jpg]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.jxr]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.png]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.tif]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.tiff]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\.wdp]
+@=""PhotoViewer.FileAssoc.Tiff""
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.bmp\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.cr2\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.dib\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.gif\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ico\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jfif\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpe\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpeg\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpg\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jxr\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.png\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.tif\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.tiff\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+
+[HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.wdp\OpenWithProgids]
+""PhotoViewer.FileAssoc.Tiff""=hex(0):
+") },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { [""] = Absent },
+                    Effects = new Effect[] { new RegContentEffect(@"Windows Registry Editor Version 5.00
+
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.bmp]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.cr2]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.dib]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.gif]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.ico]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.jfif]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.jpe]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.jpeg]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.jpg]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.jxr]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.png]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.tif]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.tiff]
+[-HKEY_CURRENT_USER\SOFTWARE\Classes\.wdp]
+
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.bmp\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.cr2\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.dib\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.gif\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ico\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jfif\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpe\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpeg\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jpg\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.jxr\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.png\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.tif\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.tiff\OpenWithProgids]
+[-HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.wdp\OpenWithProgids]
+") },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-customization-legacy-notepad",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerCustomizationLegacyNotepad.Name,
+                Description = LocKey.Setting.ExplorerCustomizationLegacyNotepad.Description,
+                GroupName = LocKey.SettingGroup.FileAssociations,
+                Icon = FluentIcons.NotepadEdit,
+                AddedInVersion = "26.04.03",
+                IsSubjectivePreference = true,
+            },
+            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
+            Targets = new Target[]
+            {
+                new RegTarget("NoOpenWith", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Applications\notepad.exe" }, "NoOpenWith", RegistryValueKind.String),
+                new RegTarget("UseFilter", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe" }, "UseFilter", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["NoOpenWith"] = Absent,
+                        ["UseFilter"] = Of(0),
+                    },
+                    Effects = new Effect[] { new ScriptEffect(@"
+$appPathsKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\App Paths\notepad.exe'
+if (Test-Path $appPathsKey) {
+    Remove-Item -Path $appPathsKey -Force
+}", RunContext.User) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["NoOpenWith"] = Of(""),
+                        ["UseFilter"] = Of(1),
+                    },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-customization-notepad-word-wrap",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerCustomizationNotepadWordWrap.Name,
+                Description = LocKey.Setting.ExplorerCustomizationNotepadWordWrap.Description,
+                GroupName = LocKey.SettingGroup.FileAssociations,
+                Icon = MaterialIcons.Wrap,
+                AddedInVersion = "26.10.14",
+                IsSubjectivePreference = true,
+            },
+            UiParentId = "explorer-customization-legacy-notepad",
+            EnabledWhen = new("explorer-customization-legacy-notepad", [LocKey.Common.Enabled]),
+            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
+            Targets = new Target[]
+            {
+                new RegTarget("fWrap", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Notepad" }, "fWrap", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue> { ["fWrap"] = Of(1) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["fWrap"] = Of(0).OrAbsent() },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-customization-notepad-status-bar",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerCustomizationNotepadStatusBar.Name,
+                Description = LocKey.Setting.ExplorerCustomizationNotepadStatusBar.Description,
+                GroupName = LocKey.SettingGroup.FileAssociations,
+                Icon = MaterialIcons.DockBottom,
+                AddedInVersion = "26.10.14",
+                IsSubjectivePreference = true,
+            },
+            UiParentId = "explorer-customization-legacy-notepad",
+            EnabledWhen = new("explorer-customization-legacy-notepad", [LocKey.Common.Enabled]),
+            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
+            Targets = new Target[]
+            {
+                new RegTarget("StatusBar", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Notepad" }, "StatusBar", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["StatusBar"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Set = new Dictionary<string, StateValue> { ["StatusBar"] = Of(0) },
                 },
             },
         },
@@ -3470,38 +2877,6 @@ if (Test-Path $appPathsKey) {
         },
         new()
         {
-            Id = "explorer-long-file-paths",
-            Display = new()
-            {
-                Name = LocKey.Setting.ExplorerLongFilePaths.Name,
-                Description = LocKey.Setting.ExplorerLongFilePaths.Description,
-                GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.ScriptTextOutline,
-                IsSubjectivePreference = true,
-            },
-            Targets = new Target[]
-            {
-                new RegTarget("LongPathsEnabled", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem" }, "LongPathsEnabled", RegistryValueKind.DWord),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.Recommended },
-                    Set = new Dictionary<string, StateValue> { ["LongPathsEnabled"] = Of(1) },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.WindowsDefault },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["LongPathsEnabled"] = Of(0) },
-                },
-            },
-        },
-        new()
-        {
             Id = "explorer-customization-netplwiz-auto-login",
             Display = new()
             {
@@ -3529,46 +2904,6 @@ if (Test-Path $appPathsKey) {
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["DevicePasswordLessBuildVersion"] = Of(2) },
-                },
-            },
-        },
-        new()
-        {
-            Id = "explorer-autoplay",
-            Display = new()
-            {
-                Name = LocKey.Setting.ExplorerAutoplay.Name,
-                Description = LocKey.Setting.ExplorerAutoplay.Description,
-                GroupName = LocKey.SettingGroup.DevicesAndPeripherals,
-                Icon = MaterialIcons.PlayBox,
-                AddedInVersion = "26.04.24",
-            },
-            Targets = new Target[]
-            {
-                new RegTarget("DisableAutoplay", new[] { @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers" }, "DisableAutoplay", RegistryValueKind.DWord),
-                new RegTarget("NoDriveTypeAutoRun", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" }, "NoDriveTypeAutoRun", RegistryValueKind.DWord) { Overrides = true },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue>
-                    {
-                        ["DisableAutoplay"] = Of(0).OrAbsent(),
-                        ["NoDriveTypeAutoRun"] = Absent,
-                    },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue>
-                    {
-                        ["DisableAutoplay"] = Of(1),
-                        ["NoDriveTypeAutoRun"] = Of(255),
-                    },
                 },
             },
         },

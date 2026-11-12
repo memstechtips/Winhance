@@ -112,6 +112,249 @@ public static class TaskbarCustomizationsCatalog
         },
         new()
         {
+            Id = "taskbar-meet-now",
+            Display = new()
+            {
+                Name = LocKey.Setting.TaskbarMeetNow.Name,
+                Description = LocKey.Setting.TaskbarMeetNow.Description,
+                GroupName = LocKey.SettingGroup.TaskbarIcons,
+                Icon = FluentIcons.Video,
+            },
+            Availability = new() { Builds = new[] { BuildRange.Windows10 } },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("HideSCAMeetNow", new[]
+                {
+                    @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer",
+                    @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer",
+                    @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer",
+                }, "HideSCAMeetNow", RegistryValueKind.DWord) { IsGroupPolicy = true },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.Recommended },
+                    Set = new Dictionary<string, StateValue> { ["HideSCAMeetNow"] = Of(1) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["HideSCAMeetNow"] = Absent },
+                },
+            },
+        },
+        new()
+        {
+            Id = "taskbar-task-view",
+            Display = new()
+            {
+                Name = LocKey.Setting.TaskbarTaskView.Name,
+                Description = LocKey.Setting.TaskbarTaskView.Description,
+                GroupName = LocKey.SettingGroup.TaskbarIcons,
+                Icon = MaterialIcons.DockWindow,
+                IsSubjectivePreference = true,
+            },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("ShowTaskViewButton", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "ShowTaskViewButton", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["ShowTaskViewButton"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.Recommended },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["ShowTaskViewButton"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "taskbar-copilot",
+            Display = new()
+            {
+                Name = LocKey.Setting.TaskbarCopilot.Name,
+                Description = LocKey.Setting.TaskbarCopilot.Description,
+                GroupName = LocKey.SettingGroup.TaskbarIcons,
+                Icon = FluentIcons.BrainCircuit,
+            },
+            Availability = new() { Builds = new[] { new BuildRange(new WinBuild(22621), new WinBuild(26099, int.MaxValue)) } },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("ShowCopilotButton", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "ShowCopilotButton", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["ShowCopilotButton"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.Recommended },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["ShowCopilotButton"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "taskbar-copilot-companion",
+            Display = new()
+            {
+                Name = LocKey.Setting.TaskbarCopilotCompanion.Name,
+                Description = LocKey.Setting.TaskbarCopilotCompanion.Description,
+                GroupName = LocKey.SettingGroup.TaskbarIcons,
+                Icon = MaterialIcons.Robot,
+                AddedInVersion = "26.04.10",
+            },
+            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("TaskbarCompanion", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "TaskbarCompanion", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["TaskbarCompanion"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.Recommended },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["TaskbarCompanion"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "taskbar-copilot-pwa-pin",
+            Display = new()
+            {
+                Name = LocKey.Setting.TaskbarCopilotPwaPin.Name,
+                Description = LocKey.Setting.TaskbarCopilotPwaPin.Description,
+                GroupName = LocKey.SettingGroup.TaskbarIcons,
+                Icon = MaterialIcons.Pin,
+                AddedInVersion = "26.04.10",
+            },
+            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("CopilotPWAPin", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "CopilotPWAPin", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["CopilotPWAPin"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.Recommended },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["CopilotPWAPin"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "taskbar-recall-pin",
+            Display = new()
+            {
+                Name = LocKey.Setting.TaskbarRecallPin.Name,
+                Description = LocKey.Setting.TaskbarRecallPin.Description,
+                GroupName = LocKey.SettingGroup.TaskbarIcons,
+                Icon = MaterialIcons.History,
+                AddedInVersion = "26.04.10",
+            },
+            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("RecallPin", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "RecallPin", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["RecallPin"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.Recommended },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["RecallPin"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "taskbar-news-and-interests",
+            Display = new()
+            {
+                Name = LocKey.Setting.TaskbarNewsAndInterests.Name,
+                Description = LocKey.Setting.TaskbarNewsAndInterests.Description,
+                GroupName = LocKey.SettingGroup.TaskbarIcons,
+                Icon = MaterialIcons.Newspaper,
+            },
+            Availability = new() { Builds = new[] { BuildRange.Windows10 } },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("EnableFeeds", new[]
+                {
+                    @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Windows Feeds",
+                    @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Windows Feeds",
+                }, "EnableFeeds", RegistryValueKind.DWord) { IsGroupPolicy = true },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["EnableFeeds"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.Recommended },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["EnableFeeds"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
             Id = "taskbar-alignment",
             Display = new()
             {
@@ -367,6 +610,45 @@ public static class TaskbarCustomizationsCatalog
         },
         new()
         {
+            Id = "taskbar-combine-buttons-other",
+            Display = new()
+            {
+                Name = LocKey.Setting.TaskbarCombineButtonsOther.Name,
+                Description = LocKey.Setting.TaskbarCombineButtonsOther.Description,
+                GroupName = LocKey.SettingGroup.TaskbarBehavior,
+                Icon = MaterialIcons.TabUnselected,
+                AddedInVersion = "26.04.08",
+                IsSubjectivePreference = true,
+            },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            UiParentId = "taskbar-multi-display",
+            EnabledWhen = new("taskbar-multi-display", new[] { LocKey.Common.Enabled }),
+            Targets = new Target[]
+            {
+                new RegTarget("MMTaskbarGlomLevel", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "MMTaskbarGlomLevel", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Setting.TaskbarCombineButtonsOther.Option0,
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["MMTaskbarGlomLevel"] = Of(0).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.TaskbarCombineButtonsOther.Option1,
+                    Set = new Dictionary<string, StateValue> { ["MMTaskbarGlomLevel"] = Of(1) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.TaskbarCombineButtonsOther.Option2,
+                    Set = new Dictionary<string, StateValue> { ["MMTaskbarGlomLevel"] = Of(2) },
+                },
+            },
+        },
+        new()
+        {
             Id = "taskbar-share-window",
             Display = new()
             {
@@ -470,45 +752,6 @@ public static class TaskbarCustomizationsCatalog
         },
         new()
         {
-            Id = "taskbar-combine-buttons-other",
-            Display = new()
-            {
-                Name = LocKey.Setting.TaskbarCombineButtonsOther.Name,
-                Description = LocKey.Setting.TaskbarCombineButtonsOther.Description,
-                GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.TabUnselected,
-                AddedInVersion = "26.04.08",
-                IsSubjectivePreference = true,
-            },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            UiParentId = "taskbar-multi-display",
-            EnabledWhen = new("taskbar-multi-display", new[] { LocKey.Common.Enabled }),
-            Targets = new Target[]
-            {
-                new RegTarget("MMTaskbarGlomLevel", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "MMTaskbarGlomLevel", RegistryValueKind.DWord),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Setting.TaskbarCombineButtonsOther.Option0,
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["MMTaskbarGlomLevel"] = Of(0).OrAbsent() },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Setting.TaskbarCombineButtonsOther.Option1,
-                    Set = new Dictionary<string, StateValue> { ["MMTaskbarGlomLevel"] = Of(1) },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Setting.TaskbarCombineButtonsOther.Option2,
-                    Set = new Dictionary<string, StateValue> { ["MMTaskbarGlomLevel"] = Of(2) },
-                },
-            },
-        },
-        new()
-        {
             Id = "taskbar-button-size",
             Display = new()
             {
@@ -542,44 +785,6 @@ public static class TaskbarCustomizationsCatalog
                 {
                     Label = LocKey.Setting.TaskbarButtonSize.Option2,
                     Set = new Dictionary<string, StateValue> { ["IconSizePreference"] = Of(1) },
-                },
-            },
-        },
-        new()
-        {
-            Id = "taskbar-meet-now",
-            Display = new()
-            {
-                Name = LocKey.Setting.TaskbarMeetNow.Name,
-                Description = LocKey.Setting.TaskbarMeetNow.Description,
-                GroupName = LocKey.SettingGroup.TaskbarIcons,
-                Icon = FluentIcons.Video,
-            },
-            Availability = new() { Builds = new[] { BuildRange.Windows10 } },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("HideSCAMeetNow", new[]
-                {
-                    @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer",
-                    @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer",
-                    @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer",
-                }, "HideSCAMeetNow", RegistryValueKind.DWord) { IsGroupPolicy = true },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.Recommended },
-                    Set = new Dictionary<string, StateValue> { ["HideSCAMeetNow"] = Of(1) },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.WindowsDefault },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["HideSCAMeetNow"] = Absent },
                 },
             },
         },
@@ -641,39 +846,6 @@ public static class TaskbarCustomizationsCatalog
         },
         new()
         {
-            Id = "taskbar-task-view",
-            Display = new()
-            {
-                Name = LocKey.Setting.TaskbarTaskView.Name,
-                Description = LocKey.Setting.TaskbarTaskView.Description,
-                GroupName = LocKey.SettingGroup.TaskbarIcons,
-                Icon = MaterialIcons.DockWindow,
-                IsSubjectivePreference = true,
-            },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("ShowTaskViewButton", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "ShowTaskViewButton", RegistryValueKind.DWord),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["ShowTaskViewButton"] = Of(1).OrAbsent() },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["ShowTaskViewButton"] = Of(0) },
-                },
-            },
-        },
-        new()
-        {
             Id = "taskbar-clock-seconds",
             Display = new()
             {
@@ -702,178 +874,6 @@ public static class TaskbarCustomizationsCatalog
                     Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["ShowSecondsInSystemClock"] = Of(0).OrAbsent() },
-                },
-            },
-        },
-        new()
-        {
-            Id = "taskbar-copilot",
-            Display = new()
-            {
-                Name = LocKey.Setting.TaskbarCopilot.Name,
-                Description = LocKey.Setting.TaskbarCopilot.Description,
-                GroupName = LocKey.SettingGroup.TaskbarIcons,
-                Icon = FluentIcons.BrainCircuit,
-            },
-            Availability = new() { Builds = new[] { new BuildRange(new WinBuild(22621), new WinBuild(26099, int.MaxValue)) } },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("ShowCopilotButton", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "ShowCopilotButton", RegistryValueKind.DWord),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["ShowCopilotButton"] = Of(1).OrAbsent() },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["ShowCopilotButton"] = Of(0) },
-                },
-            },
-        },
-        new()
-        {
-            Id = "taskbar-copilot-companion",
-            Display = new()
-            {
-                Name = LocKey.Setting.TaskbarCopilotCompanion.Name,
-                Description = LocKey.Setting.TaskbarCopilotCompanion.Description,
-                GroupName = LocKey.SettingGroup.TaskbarIcons,
-                Icon = MaterialIcons.Robot,
-                AddedInVersion = "26.04.10",
-            },
-            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("TaskbarCompanion", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "TaskbarCompanion", RegistryValueKind.DWord),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["TaskbarCompanion"] = Of(1).OrAbsent() },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["TaskbarCompanion"] = Of(0) },
-                },
-            },
-        },
-        new()
-        {
-            Id = "taskbar-copilot-pwa-pin",
-            Display = new()
-            {
-                Name = LocKey.Setting.TaskbarCopilotPwaPin.Name,
-                Description = LocKey.Setting.TaskbarCopilotPwaPin.Description,
-                GroupName = LocKey.SettingGroup.TaskbarIcons,
-                Icon = MaterialIcons.Pin,
-                AddedInVersion = "26.04.10",
-            },
-            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("CopilotPWAPin", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "CopilotPWAPin", RegistryValueKind.DWord),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["CopilotPWAPin"] = Of(1).OrAbsent() },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["CopilotPWAPin"] = Of(0) },
-                },
-            },
-        },
-        new()
-        {
-            Id = "taskbar-recall-pin",
-            Display = new()
-            {
-                Name = LocKey.Setting.TaskbarRecallPin.Name,
-                Description = LocKey.Setting.TaskbarRecallPin.Description,
-                GroupName = LocKey.SettingGroup.TaskbarIcons,
-                Icon = MaterialIcons.History,
-                AddedInVersion = "26.04.10",
-            },
-            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("RecallPin", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "RecallPin", RegistryValueKind.DWord),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["RecallPin"] = Of(1).OrAbsent() },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["RecallPin"] = Of(0) },
-                },
-            },
-        },
-        new()
-        {
-            Id = "taskbar-news-and-interests",
-            Display = new()
-            {
-                Name = LocKey.Setting.TaskbarNewsAndInterests.Name,
-                Description = LocKey.Setting.TaskbarNewsAndInterests.Description,
-                GroupName = LocKey.SettingGroup.TaskbarIcons,
-                Icon = MaterialIcons.Newspaper,
-            },
-            Availability = new() { Builds = new[] { BuildRange.Windows10 } },
-            Apply = new() { Restart = new RestartProcess("Explorer") },
-            Targets = new Target[]
-            {
-                new RegTarget("EnableFeeds", new[]
-                {
-                    @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Windows Feeds",
-                    @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Windows Feeds",
-                }, "EnableFeeds", RegistryValueKind.DWord) { IsGroupPolicy = true },
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["EnableFeeds"] = Of(1).OrAbsent() },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["EnableFeeds"] = Of(0) },
                 },
             },
         },

@@ -16,7 +16,7 @@ public class DocsCatalogExportShapeTests
         Export.Features.SelectMany(f => f.Settings).Single(s => s.Id == id);
 
     [Fact]
-    public void Covers_the_whole_catalog_in_catalog_order()
+    public void Build_WholeCatalog_CoversEverySettingInCatalogOrder()
     {
         Assert.True(Export.SettingCount > 300, $"only {Export.SettingCount} settings - catalog composition bug");
         Assert.Equal(SettingCatalog.All.Count, Export.SettingCount);
@@ -25,7 +25,7 @@ public class DocsCatalogExportShapeTests
     }
 
     [Fact]
-    public void Every_setting_has_a_matrix()
+    public void Build_EverySetting_HasAMatrix()
     {
         var missing = Export.Features.SelectMany(f => f.Settings)
             .Where(s => s.Matrix is null)
@@ -36,7 +36,7 @@ public class DocsCatalogExportShapeTests
     }
 
     [Fact]
-    public void The_power_plan_picker_documents_the_predefined_plans_without_a_per_machine_status()
+    public void Build_PowerPlanPicker_DocumentsThePredefinedPlansWithoutAPerMachineStatus()
     {
         var matrix = Find("power-plan-selection").Matrix;
 
@@ -49,7 +49,7 @@ public class DocsCatalogExportShapeTests
 
     // The website draws these rows in the order they are exported.
     [Fact]
-    public void The_picture_and_the_colour_document_the_options_every_install_has()
+    public void Build_WallpaperPictureAndColour_DocumentTheOptionsEveryInstallHas()
     {
         var picture = Find("theme-wallpaper-picture").Matrix!;
         var color = Find("theme-wallpaper-color").Matrix!;
@@ -66,7 +66,7 @@ public class DocsCatalogExportShapeTests
     }
 
     [Fact]
-    public void The_desktop_background_parent_exports_as_a_selection_its_children_hang_off()
+    public void Build_DesktopBackgroundParent_ExportsAsASelectionItsChildrenHangOff()
     {
         var parent = Find("theme-wallpaper");
         var picture = Find("theme-wallpaper-picture");
@@ -80,7 +80,7 @@ public class DocsCatalogExportShapeTests
     }
 
     [Fact]
-    public void Every_setting_exports_its_icon_identity()
+    public void Build_EverySetting_ExportsItsIconIdentity()
     {
         var settings = Export.Features.SelectMany(f => f.Settings).ToList();
         Assert.All(settings, s => Assert.False(string.IsNullOrEmpty(s.Icon?.Name), $"{s.Id} has no icon"));
@@ -90,7 +90,7 @@ public class DocsCatalogExportShapeTests
     }
 
     [Fact]
-    public void Strings_come_from_en_json_not_the_catalog_literal()
+    public void Build_SettingStrings_ComeFromEnJsonNotTheCatalogLiteral()
     {
         var s = Find("sound-startup");
 
@@ -101,7 +101,7 @@ public class DocsCatalogExportShapeTests
     }
 
     [Fact]
-    public void Win10_matrix_is_carried_only_when_it_differs()
+    public void Build_Win10Matrix_IsCarriedOnlyWhenItDiffers()
     {
         // Light Mode is the Windows default only on 11, so the two builds disagree on a role badge.
         Assert.NotNull(Find("theme-mode-windows").MatrixWin10);
@@ -109,9 +109,9 @@ public class DocsCatalogExportShapeTests
     }
 
     [Fact]
-    public void Compatibility_message_is_the_apps_localized_sentence()
+    public void Build_CompatibilityMessage_IsTheAppsLocalizedSentence()
     {
-        var s = Find("explorer-customization-context-menu");
+        var s = Find("context-menu-classic");
 
         Assert.Equal(Loc.GetString("Compatibility_Windows11Only"), s.Availability.Message.Win10);
         Assert.Null(s.Availability.Message.Win11);
@@ -122,7 +122,7 @@ public class DocsCatalogExportShapeTests
     // The docs draw the DNS boxes the way the card does: one row per server, labels and options as the app shows
     // them, the encryption boxes marked for the Windows that has them.
     [Fact]
-    public void Fields_are_exported_in_the_cards_rows()
+    public void Build_SettingWithFields_ExportsThemInTheCardsRows()
     {
         var rows = Find("gaming-dns-server").Fields!;
 
@@ -136,7 +136,7 @@ public class DocsCatalogExportShapeTests
     }
 
     [Fact]
-    public void Ui_parents_resolve_to_exported_settings()
+    public void Build_UiParentIds_ResolveToExportedSettings()
     {
         var ids = Export.Features.SelectMany(f => f.Settings).Select(s => s.Id).ToHashSet(StringComparer.Ordinal);
         var dangling = Export.Features.SelectMany(f => f.Settings)
@@ -148,7 +148,7 @@ public class DocsCatalogExportShapeTests
     }
 
     [Fact]
-    public void Json_is_ascii_camel_case_and_deterministic()
+    public void ToJson_Export_IsAsciiCamelCaseAndDeterministic()
     {
         var first = DocsCatalogExport.ToJson(Export);
         var second = DocsCatalogExport.ToJson(DocsCatalogExport.Build(Loc, "0.0.0"));
@@ -167,7 +167,7 @@ public class DocsCatalogExportShapeTests
     }
 
     [Fact]
-    public void Option_labels_are_resolved_never_raw_localization_keys()
+    public void Build_OptionLabels_AreResolvedNeverRawLocalizationKeys()
     {
         // Reachable only if a resolution path hands back the key text on a miss.
         static bool LooksLikeARawKey(string label) =>
@@ -192,7 +192,7 @@ public class DocsCatalogExportShapeTests
     }
 
     [Fact]
-    public void A_keyed_selection_documents_its_registry_targets_and_no_options()
+    public void Build_KeyedSelection_DocumentsItsRegistryTargetsAndNoOptions()
     {
         // Its options are whatever Windows offers the machine, so there is no build-time list to publish.
         var zone = Find("region-time-zone");
@@ -207,7 +207,7 @@ public class DocsCatalogExportShapeTests
     }
 
     [Fact]
-    public void The_feature_carries_its_keyed_settings_ahead_of_the_moved_format_ones()
+    public void Build_TimeRegionLanguageFeature_PutsKeyedSettingsAheadOfTheMovedFormatOnes()
     {
         var feature = Export.Features.Single(f => f.Id == "TimeRegionLanguage");
 

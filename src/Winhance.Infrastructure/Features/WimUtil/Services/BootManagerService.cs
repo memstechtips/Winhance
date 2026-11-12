@@ -119,7 +119,10 @@ internal sealed class BootManagerService(
         if (fileSystemService.DirectoryExists(folder))
             fileSystemService.DeleteDirectory(folder, recursive: true);
 
-        fileSystemService.CreateDirectory(folder);
+        // The boot files staged here go onto the media, so no other process may be able to write them.
+        if (!fileSystemService.CreatePrivateDirectory(folder))
+            throw new InvalidOperationException($"{folder} could not be made private to administrators.");
+
         return folder;
     }
 

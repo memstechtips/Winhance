@@ -4,9 +4,11 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Winhance.Core.Features.Common.Extensions;
+using Winhance.UI.Helpers;
 
 namespace Winhance.UI.ViewModels;
 
@@ -141,6 +143,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ModeConfigReviewTooltip));
         OnPropertyChanged(nameof(WindowsFilterTooltip));
         OnPropertyChanged(nameof(ToggleNavigationTooltip));
+        OnPropertyChanged(nameof(BackTooltip));
         OnPropertyChanged(nameof(DonateTooltip));
         OnPropertyChanged(nameof(SupportButtonText));
         OnPropertyChanged(nameof(BugReportTooltip));
@@ -240,6 +243,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public string ToggleNavigationTooltip =>
         _localizationService.GetStringOrDefault("Tooltip_ToggleNavigation", "Toggle Navigation");
 
+    public string BackTooltip => _localizationService.GetString("Tooltip_Back");
+
     public string DonateTooltip =>
         _localizationService.GetStringOrDefault("Menu_SupportWinhance", "Support Winhance");
 
@@ -284,14 +289,15 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        if (target != WinhanceMode.ConfigReview
+        // Builder and Config Review warn inside their own entry dialog, so only Normal asks here.
+        if (target == WinhanceMode.Normal
             && !await ModeSwitchConfirmation.ConfirmLeavingAsync(_applicationModeService, _dialogService, _localizationService))
         {
             RaiseModeProperties();
             return;
         }
 
-        if (target == WinhanceMode.Builder && !await _builderModeEntry.EnterAsync(BuilderTarget.Config))
+        if (target == WinhanceMode.Builder && !await _builderModeEntry.EnterAsync(BuilderTarget.Config, reason: null))
         {
             RaiseModeProperties();
             return;
@@ -321,6 +327,42 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
         RaiseModeProperties();
     }
+
+    // True once the mode lets the page open; false when the user stays where they are.
+    public async Task<bool> RequestPageAsync(string tag)
+    {
+        var wimUtil = tag == "WimUtil";
+        switch (NavLockPolicy.GateFor(tag, _applicationModeService.CurrentMode, _applicationModeService.CurrentBuilderTarget))
+        {
+            case PageGate.SwitchToAutounattend:
+                if (!await ConfirmAsync(
+                        _localizationService.GetString("Nav_Autounattend_SwitchTarget_Title"),
+                        _localizationService.GetString(wimUtil ? "Nav_WimUtil_SwitchTarget_Message" : "Nav_Autounattend_SwitchTarget_Message"),
+                        _localizationService.GetString("Nav_Autounattend_SwitchTarget_Confirm"),
+                        _localizationService.GetString("Button_Cancel")))
+                    return false;
+                BuilderModeBar.SelectAutounattendTarget();
+                return true;
+
+            // Entering Builder ends a review itself, once its entry dialog is accepted, so a cancel there keeps it.
+            case PageGate.EnterBuilder:
+                return await _builderModeEntry.EnterAsync(
+                    BuilderTarget.Autounattend,
+                    _localizationService.GetString(wimUtil ? "Dialog_ModeEntry_WimUtilReason" : "Dialog_ModeEntry_UnattendReason"));
+
+            default:
+                return true;
+        }
+    }
+
+    private async Task<bool> ConfirmAsync(string title, string message, string confirm, string cancel) =>
+        (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+        {
+            Title = title,
+            Message = message,
+            ConfirmButtonText = confirm,
+            CancelButtonText = cancel,
+        })).Confirmed;
 
     private void OnApplicationModeChanged(object? sender, EventArgs e)
     {
@@ -365,8 +407,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         try
         {
-            await Windows.System.Launcher.LaunchUriAsync(
-                new Uri("https://github.com/memstechtips/Winhance/issues"));
+            await Windows.System.Launcher.LaunchUriAsync(HelpLinks.BugReport);
         }
         catch (Exception ex)
         {
@@ -375,12 +416,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private async Task DocsAsync()
+    private async Task DocsAsync(string? pageTag)
     {
         try
         {
-            await Windows.System.Launcher.LaunchUriAsync(
-                new Uri("https://winhance.net/docs/index.html"));
+            await Windows.System.Launcher.LaunchUriAsync(HelpLinks.DocsFor(pageTag));
         }
         catch (Exception ex)
         {

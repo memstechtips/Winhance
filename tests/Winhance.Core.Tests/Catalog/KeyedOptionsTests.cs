@@ -30,13 +30,13 @@ public class KeyedOptionsTests
             .ToDictionary(kv => kv.Key, kv => kv.Value.WritePayload);
 
     [Fact]
-    public void Each_windows_picture_is_named_by_its_path()
+    public void KeyOf_WindowsPictureStates_NamesEachByItsPath()
     {
         Picture.States.Select(s => KeyedOptions.KeyOf(Picture, s)).Should().Equal(Win11Light, Win11Dark, Win10);
     }
 
     [Fact]
-    public void The_key_is_read_from_the_target_detection_reads_not_the_copy_only_an_apply_writes()
+    public void KeyOf_ReorderedTargets_ReadsTheTargetDetectionReads()
     {
         var reordered = Picture with { Targets = [.. Picture.Targets.OrderBy(t => t.Key != "CurrentWallpaperPath")] };
 
@@ -45,7 +45,7 @@ public class KeyedOptionsTests
     }
 
     [Fact]
-    public void A_colour_state_names_no_key_because_its_target_takes_a_computed_value()
+    public void KeyOf_ColourState_ReturnsNull()
     {
         var black = new SettingState
         {
@@ -57,7 +57,7 @@ public class KeyedOptionsTests
     }
 
     [Fact]
-    public void A_picture_writes_the_wallpaper_and_the_path_windows_restores_it_from()
+    public void SetFor_Picture_WritesTheWallpaperAndTheRestorePath()
     {
         var set = KeyedOptions.SetFor(Picture, Win10, Computing((_, _) => throw new InvalidOperationException()));
 
@@ -65,7 +65,7 @@ public class KeyedOptionsTests
     }
 
     [Fact]
-    public void A_colour_writes_what_its_provider_computes_from_the_hex()
+    public void SetFor_Colour_WritesWhatTheProviderComputesFromTheHex()
     {
         var set = KeyedOptions.SetFor(Color, "#010203",
             Computing((value, key) => value == OptionValue.Color && key == "#010203" ? "1 2 3" : null));
@@ -74,7 +74,7 @@ public class KeyedOptionsTests
     }
 
     [Fact]
-    public void The_regional_format_writes_every_computed_value_and_leaves_one_computed_as_null_standing()
+    public void SetFor_RegionalFormat_WritesEveryComputedValueAndSkipsOneComputedAsNull()
     {
         var format = SettingCatalog.Find("region-format")!;
 
@@ -90,7 +90,7 @@ public class KeyedOptionsTests
     }
 
     [Fact]
-    public void A_key_the_provider_does_not_accept_writes_nothing()
+    public void SetFor_KeyTheProviderRejects_ReturnsNull()
     {
         var zone = SettingCatalog.Find("region-time-zone")!;
 
@@ -100,7 +100,7 @@ public class KeyedOptionsTests
     }
 
     [Fact]
-    public void A_power_plan_writes_nothing_for_a_key_it_accepts()
+    public void SetFor_PowerPlanWithAcceptedKey_ReturnsAnEmptySet()
     {
         var set = KeyedOptions.SetFor(SettingCatalog.Find("power-plan-selection")!, "381b4222-f694-41f0-9685-ff5bb260df2e",
             Computing((_, _) => throw new InvalidOperationException()));

@@ -6,7 +6,7 @@ namespace Winhance.Core.Tests.Catalog;
 public class StateValueTests
 {
     [Fact]
-    public void Of_matches_equal_present_value()
+    public void Matches_OfWithEqualPresentValue_IsTrue()
     {
         var v = StateValue.Of(3);
         Assert.True(v.Matches(3, present: true));
@@ -15,7 +15,7 @@ public class StateValueTests
     }
 
     [Fact]
-    public void Of_matches_numerically_across_boxed_types()
+    public void Matches_OfAcrossBoxedNumericTypes_MatchesNumerically()
     {
         var v = StateValue.Of(3);
         Assert.True(v.Matches(3L, present: true));
@@ -23,7 +23,7 @@ public class StateValueTests
     }
 
     [Fact]
-    public void OrAbsent_matches_both_value_and_absent()
+    public void Matches_OrAbsent_MatchesBothValueAndAbsent()
     {
         var v = StateValue.Of(3).OrAbsent();
         Assert.True(v.Matches(3, present: true));
@@ -32,7 +32,7 @@ public class StateValueTests
     }
 
     [Fact]
-    public void Absent_matches_only_when_absent_and_is_a_delete()
+    public void Matches_Absent_MatchesOnlyWhenAbsentAndIsADelete()
     {
         var v = StateValue.Absent;
         Assert.True(v.Matches(null, present: false));
@@ -41,7 +41,7 @@ public class StateValueTests
     }
 
     [Fact]
-    public void Exists_matches_any_present_reading()
+    public void Matches_Exists_MatchesAnyPresentReading()
     {
         var v = StateValue.Exists;
         Assert.True(v.Matches("anything", present: true));
@@ -50,7 +50,7 @@ public class StateValueTests
     }
 
     [Fact]
-    public void Of_compares_byte_arrays_by_content_not_reference()
+    public void Matches_OfByteArray_ComparesByContentNotReference()
     {
         // REG_BINARY selection values (e.g. explorer-customization-shortcut-suffix) are raw byte arrays.
         // Equal content must match; different content must not - never "all byte[] are equal".
@@ -61,7 +61,7 @@ public class StateValueTests
     }
 
     [Fact]
-    public void OneOf_matches_any_listed_value()
+    public void Matches_OneOf_MatchesAnyListedValue()
     {
         var v = StateValue.OneOf(2, 0x26);
         Assert.True(v.Matches(2, present: true));
@@ -70,7 +70,7 @@ public class StateValueTests
     }
 
     [Fact]
-    public void WritePayload_is_the_first_concrete_value()
+    public void WritePayload_Always_IsTheFirstConcreteValue()
     {
         Assert.Equal(3, StateValue.Of(3).WritePayload);
         Assert.Equal(3, StateValue.Of(3).OrAbsent().WritePayload);
@@ -78,7 +78,7 @@ public class StateValueTests
     }
 
     [Fact]
-    public void OneOf_with_all_null_throws_to_fail_loudly_on_a_bad_migration()
+    public void OneOf_AllNull_ThrowsToFailLoudlyOnABadMigration()
     {
         Assert.Throws<System.ArgumentException>(() => StateValue.OneOf(null, null));
     }

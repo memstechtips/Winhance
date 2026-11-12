@@ -9,9 +9,10 @@ internal class UpdateService(
     IProcessExecutor processExecutor,
     IPowerShellRunner powerShellRunner,
     IFileSystemService fileSystemService,
-    IStateWriter stateWriter) : ISpecialSettingHandler
+    IStateWriter stateWriter,
+    IAsyncEffectRunner asyncEffectRunner) : ISpecialSettingHandler
 {
-    public async Task<bool> TryApplySpecialSettingAsync(string settingId, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
+    public async Task<bool> TryApplySpecialSettingAsync(string settingId, object value, ISettingApplicationService? settingApplicationService = null)
     {
         if (settingId == "updates-policy-mode" && value is int index)
         {
@@ -57,14 +58,15 @@ internal class UpdateService(
         await RestoreCriticalDllsAsync().ConfigureAwait(false);
         await EnableUpdateServicesAsync().ConfigureAwait(false);
         await EnableUpdateTasksAsync().ConfigureAwait(false);
-        ApplyRegistrySettingsForIndex(0);
+        await ApplyRegistrySettingsForIndexAsync(0).ConfigureAwait(false);
     }
 
     private async Task ApplySecurityOnlyModeAsync()
     {
         await RestoreCriticalDllsAsync().ConfigureAwait(false);
         await EnableUpdateServicesAsync().ConfigureAwait(false);
-        ApplyRegistrySettingsForIndex(1);
+        await EnableUpdateTasksAsync().ConfigureAwait(false);
+        await ApplyRegistrySettingsForIndexAsync(1).ConfigureAwait(false);
     }
 
     private async Task ApplyNotifyOnlyModeAsync()
@@ -72,7 +74,7 @@ internal class UpdateService(
         await RestoreCriticalDllsAsync().ConfigureAwait(false);
         await EnableUpdateServicesAsync().ConfigureAwait(false);
         await EnableUpdateTasksAsync().ConfigureAwait(false);
-        ApplyRegistrySettingsForIndex(4);
+        await ApplyRegistrySettingsForIndexAsync(4).ConfigureAwait(false);
     }
 
     // Based on work by Aetherinox: https://github.com/Aetherinox/pause-windows-updates/blob/main/windows-updates-pause.reg
@@ -92,7 +94,8 @@ internal class UpdateService(
 
         await RestoreCriticalDllsAsync().ConfigureAwait(false);
         await SetUpdateServicesManualAsync().ConfigureAwait(false);
-        ApplyRegistrySettingsForIndex(2);
+        await EnableUpdateTasksAsync().ConfigureAwait(false);
+        await ApplyRegistrySettingsForIndexAsync(2).ConfigureAwait(false);
     }
 
     // Based on work by Chris Titus: https://github.com/ChrisTitusTech/winutil/blob/main/functions/public/Invoke-WPFUpdatesdisable.ps1
@@ -114,7 +117,7 @@ internal class UpdateService(
         await DisableUpdateTasksAsync().ConfigureAwait(false);
         await RenameCriticalDllsAsync().ConfigureAwait(false);
         await CleanupUpdateFilesAsync().ConfigureAwait(false);
-        ApplyRegistrySettingsForIndex(3);
+        await ApplyRegistrySettingsForIndexAsync(3).ConfigureAwait(false);
     }
 
     private async Task<(bool Success, string Output, string Error)> RunCommandAsync(string command)
@@ -335,11 +338,11 @@ internal class UpdateService(
         }
     }
 
-    private void ApplyRegistrySettingsForIndex(int index)
+    private async Task ApplyRegistrySettingsForIndexAsync(int index)
     {
         // The updates-policy-mode Setting's States are authored one-per-option in option order, so States[index] is
         // the chosen mode; its Set encodes that mode's per-option registry writes.
-        var catalogSetting = SettingCatalog.All.FirstOrDefault(s => s.Id == "updates-policy-mode");
+        var catalogSetting = SettingCatalog.Find("updates-policy-mode");
         if (catalogSetting == null || index < 0 || index >= catalogSetting.States.Count)
         {
             logService.Log(LogLevel.Warning,
@@ -349,14 +352,9 @@ internal class UpdateService(
 
         var plan = ApplyPlan.From(ApplyPlanBuilder.Build(catalogSetting, catalogSetting.States[index].Label));
         var result = ApplyExecutor.Execute(plan, stateWriter);
-        if (!result.AllSucceeded)
+        var failures = result.Failures.Concat(await asyncEffectRunner.RunAllAsync(plan.AsyncEffects).ConfigureAwait(false)).ToList();
+        if (failures.Count > 0)
             logService.Log(LogLevel.Warning,
-                $"{result.Failed}/{result.Total} update-policy registry op(s) failed: {string.Join("; ", result.Failures)}");
-
-        // This path is synchronous and cannot await, so a process-launching effect would be dropped.
-        // UpdatePolicyDetectorConformanceTests asserts none exists; this catches it at runtime if one does.
-        if (plan.AsyncEffects.Count > 0)
-            logService.Log(LogLevel.Error,
-                $"{plan.AsyncEffects.Count} async effect(s) NOT run - updates-policy-mode gained one but this apply path is synchronous");
+                $"{failures.Count}/{plan.Total} update-policy apply op(s) failed: {string.Join("; ", failures)}");
     }
 }

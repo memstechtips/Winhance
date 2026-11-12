@@ -1,5 +1,5 @@
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.Infrastructure.Tests.Services;
 using Winhance.TestSupport;
 using Xunit;
@@ -46,8 +46,6 @@ public class ResolveTotalityAuditTests
         // UpdatePolicyDetector always yields one of its authored labels, so it never exports a Custom state -> that
         // shape is unreachable. (FRAGILITY: if UpdatePolicyDetector ever gains a Custom/unmatched branch, this
         // setting would export custom-state, reach Resolve, and return null - revisit this exclusion then.)
-        // theme-mode-windows is NOT excluded: it is also special-handled (the Mixed state), but Resolve handles all its
-        // shapes non-null (plain registry selection), so the audit legitimately covers it.
         var specialHandled = new HashSet<string> { "updates-policy-mode" };
         var providers = OptionProviderFixtures.Registry();
 
@@ -128,6 +126,8 @@ public class ResolveTotalityAuditTests
                     var nd = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 0 };
                     Check(true, nd, false, "acdc-num");
                     Check(true, nd, true, "reset-acdc-num");
+                    Check(true, new ChoiceValue.AcDcNumber(0, 0), false, "choice-acdc-num");
+                    Check(true, new ChoiceValue.Number(0), false, "choice-num");
                     break;
 
                 case ControlKind.Action:

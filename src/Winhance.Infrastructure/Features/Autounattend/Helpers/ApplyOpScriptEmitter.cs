@@ -3,10 +3,11 @@ using System.Text.RegularExpressions;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.WimUtil.Models;
-using Winhance.Infrastructure.Features.Common.Helpers;
+using Winhance.Infrastructure.Features.Common.Services;
 using static Winhance.Infrastructure.Features.Autounattend.Helpers.PowerShellScriptUtilities;
 using Winhance.Core.Features.Common.Localization;
 
@@ -39,11 +40,6 @@ internal sealed class ApplyOpScriptEmitter
     private static readonly Regex s_systemHiveHeaderRegex = new(
         @"^\s*\[(HKEY_LOCAL_MACHINE|HKEY_CLASSES_ROOT|HKEY_USERS|HKEY_CURRENT_CONFIG)\\",
         RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
-
-    // A write under a service the new PC does not have would create a key for a service that cannot run.
-    private static readonly Regex s_serviceKeyRegex = new(
-        @"^HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\([^\\]+)$",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     internal static bool MixesHives(string content) =>
         s_hkcuHeaderRegex.IsMatch(content) && s_systemHiveHeaderRegex.IsMatch(content);
@@ -108,7 +104,7 @@ internal sealed class ApplyOpScriptEmitter
         {
             if (!byId.TryGetValue(SettingIdAliases.Normalize(choice.SettingId), out var setting))
             {
-                Warn(warnings, $"Could not find catalog Setting for: {choice.SettingId}");
+                Warn(warnings, MissingSettingMessage(choice.SettingId));
                 continue;
             }
 
@@ -124,18 +120,15 @@ internal sealed class ApplyOpScriptEmitter
                 continue;
             }
 
-            // An Action expresses no "disabled" semantic, so an unselected one emits nothing at all.
-            if (choice.Value is ChoiceValue.Toggle { On: false } && setting.Control == ControlKind.Action)
+            if (IsUnselectedAction(setting, choice.Value))
                 continue;
 
             var text = TextFor(featureOf[setting.Id]);
 
-            var (enable, value) = ResolverArguments(setting, choice.Value);
-            var ops = ApplyRequestResolver.Resolve(setting.Id, enable, value, resetToDefault: false, catalog, build, _optionProviders)
-                ?? DetectorStateOps(setting, choice.Value, build);
+            var ops = OpsFor(setting, choice.Value, catalog, build, _optionProviders);
             if (ops is null)
             {
-                Warn(warnings, $"Setting '{setting.Id}' with value {choice.Value} did not resolve to an apply plan");
+                Warn(warnings, UnresolvedMessage(setting, choice.Value));
                 continue;
             }
 
@@ -225,6 +218,10 @@ internal sealed class ApplyOpScriptEmitter
                     text.Tasks.Add((t.Target.TaskPath, t.Enabled ? "/Enable" : "/Disable", Describe(setting)));
                     break;
 
+                case SlideshowSetOp s when !LocalPath.IsLocal(s.Folder):
+                    Warn(warnings, $"Slideshow folder '{s.Folder}' on '{setting.Id}' skipped: only a folder on this PC is accepted");
+                    break;
+
                 case SlideshowSetOp s:
                     // The folder id can only be built on the machine holding the folder, so the script runs there.
                     foreach (var script in setting.CustomStateScripts)
@@ -245,7 +242,7 @@ internal sealed class ApplyOpScriptEmitter
                 // checked by now; a template is user text, so it goes in escaped.
                 case DnsSetOp d:
                     var servers = string.Join(", ", d.Servers.Select(server =>
-                        $"@{{a='{server.Address}'; f={server.DohFlags}; t='{EscapePowerShellString(server.Template) ?? string.Empty}'}}"));
+                        $"@{{a='{EscapePowerShellString(server.Address)}'; f={server.DohFlags}; t='{EscapePowerShellString(server.Template) ?? string.Empty}'}}"));
                     foreach (var script in setting.CustomStateScripts)
                         AppendScriptEffect(text, systemIndent, userIndent, setting, script with { Script = script.Script.Replace("{{servers}}", servers) }, logDesc);
                     break;
@@ -289,6 +286,10 @@ internal sealed class ApplyOpScriptEmitter
                         desc);
                     break;
 
+                // Live-only: the state's registry write is what persists it, and setup has no session to apply it to.
+                case EffectOp { Effect: SystemParameterEffect }:
+                    break;
+
                 case EffectOp fx:
                     Warn(warnings, $"Effect {fx.Effect.GetType().Name} on '{setting.Id}' has no PowerShell emission");
                     break;
@@ -325,8 +326,9 @@ internal sealed class ApplyOpScriptEmitter
     {
         if (path.StartsWith("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase))
             AppendRegistryOp(text.User, userIndent, op, desc);
-        else if (s_serviceKeyRegex.Match(path) is { Success: true } service)
-            AppendServiceOp(text.System, systemIndent, path, service.Groups[1].Value, op, desc);
+        // A write under a service the new PC does not have would create a key for a service that cannot run.
+        else if (ServiceStartControl.ServiceNameOf(path) is { } service)
+            AppendServiceOp(text.System, systemIndent, path, service, op, desc);
         else
             AppendRegistryOp(text.System, systemIndent, op, desc);
     }
@@ -616,9 +618,25 @@ internal sealed class ApplyOpScriptEmitter
         sb.AppendLine();
     }
 
-    // A ChoiceValue holds SYSTEM units; the resolver's Slider branch converts display units back to system units
-    // through Numeric.Units, so a numeric choice has to be handed over in DISPLAY units to survive the round trip.
-    private static (bool Enable, object? Value) ResolverArguments(Setting setting, ChoiceValue value)
+    internal static string MissingSettingMessage(string settingId) => $"Could not find catalog Setting for: {settingId}";
+
+    internal static string UnresolvedMessage(Setting setting, ChoiceValue value) =>
+        $"Setting '{setting.Id}' with value {value} did not resolve to an apply plan";
+
+    // An Action expresses no "disabled" semantic, so an unselected one emits nothing at all.
+    internal static bool IsUnselectedAction(Setting setting, ChoiceValue value) =>
+        value is ChoiceValue.Toggle { On: false } && setting.Control == ControlKind.Action;
+
+    // The one plan builder behind the live apply, the answer file's script and the offline image.
+    internal static IReadOnlyList<ApplyOp>? OpsFor(
+        Setting setting, ChoiceValue value, IReadOnlyList<Setting> catalog, WinBuild build, IOptionProviderRegistry optionProviders)
+    {
+        var (enable, argument) = ResolverArguments(value);
+        return ApplyRequestResolver.Resolve(setting.Id, enable, argument, resetToDefault: false, catalog, build, optionProviders)
+            ?? DetectorStateOps(setting, value, build);
+    }
+
+    internal static (bool Enable, object? Value) ResolverArguments(ChoiceValue value)
     {
         switch (value)
         {
@@ -634,10 +652,8 @@ internal sealed class ApplyOpScriptEmitter
                 return (true, (a.AcIndex, a.DcIndex));
             case ChoiceValue.CustomValues c:
                 return (true, new Dictionary<string, object>(c.Values));
-            case ChoiceValue.Number n:
-                return (true, NumericArgument(setting, n.Value, n.Value));
-            case ChoiceValue.AcDcNumber an:
-                return (true, NumericArgument(setting, an.Ac, an.Dc));
+            case ChoiceValue.Number or ChoiceValue.AcDcNumber:
+                return (true, value);
             case ChoiceValue.Text text:
                 return (true, text.Value);
             default:
@@ -648,7 +664,7 @@ internal sealed class ApplyOpScriptEmitter
     // A custom-detector setting with bare states (updates-policy-mode) is special-handled in the live app, so the
     // resolver declines it; that handler's registry half is ApplyPlanBuilder.Build on the chosen state, which is
     // what the autounattend writes too. Its service/task/DLL half is the script builder's Update hardening block.
-    private static IReadOnlyList<ApplyOp>? DetectorStateOps(Setting setting, ChoiceValue value, WinBuild build)
+    internal static IReadOnlyList<ApplyOp>? DetectorStateOps(Setting setting, ChoiceValue value, WinBuild build)
     {
         if (setting.Detector is null) return null;
         LocKey? label = value switch
@@ -661,19 +677,6 @@ internal sealed class ApplyOpScriptEmitter
         return label is { } stateLabel && setting.States.Any(st => st.Label == stateLabel)
             ? ApplyPlanBuilder.Build(setting, stateLabel, build)
             : null;
-    }
-
-    private static Dictionary<string, object?> NumericArgument(Setting setting, int ac, int dc)
-    {
-        if (setting.Numeric is null)
-            return new Dictionary<string, object?> { ["ACValue"] = ac, ["DCValue"] = dc };
-
-        var units = RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting);
-        return new Dictionary<string, object?>
-        {
-            ["ACValue"] = RecommendedSettingsResolver.ConvertSystemToDisplayUnits(ac, units),
-            ["DCValue"] = RecommendedSettingsResolver.ConvertSystemToDisplayUnits(dc, units),
-        };
     }
 
     private static string EscapedPath(string path) => EscapePowerShellString(ConvertRegistryPath(path))!;

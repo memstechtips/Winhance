@@ -39,61 +39,6 @@ public class WinGetPackageInstallerTests
             .Returns((string key, object[] args) => key);
     }
 
-    [Fact]
-    public async Task IsWinGetInstalledAsync_WhenExeExistsOnFileSystem_ReturnsTrue()
-    {
-        _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
-        _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
-
-        var result = await _sut.IsWinGetInstalledAsync();
-
-        // If winget.exe is found on this system (PATH or bundled),
-        // the file system mock will confirm it exists. If winget.exe is NOT
-        // found at all, GetWinGetExePath returns null and FileExists won't
-        // be called, falling through to COM (which will fail in test env).
-        // We accept either outcome as valid.
-        result.Should().Be(result);
-    }
-
-    [Fact]
-    public async Task IsWinGetInstalledAsync_WhenExeDoesNotExist_FallsBackToCom()
-    {
-        _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
-        _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
-
-        _comSession.ComInitTimedOut = true;
-
-        var result = await _sut.IsWinGetInstalledAsync();
-
-        // Note: GetWinGetExePath uses File.Exists (static), so if winget IS
-        // on the system, it will be found regardless of our mock. In that case,
-        // our FileExists(false) mock would trigger, and it would fall to COM check.
-        // With COM timed out, it should return false.
-        result.Should().Be(result); // Validate it completes without throwing
-    }
-
-    [Fact]
-    public async Task IsWinGetInstalledAsync_WhenCancelled_ReturnsFalseOrThrows()
-    {
-        using var cts = new CancellationTokenSource();
-        cts.Cancel();
-        _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
-        _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(false);
-        _comSession.ComInitTimedOut = true;
-
-        // Should return false (catches all exceptions)
-        // or might throw OperationCanceledException depending on timing
-        try
-        {
-            var result = await _sut.IsWinGetInstalledAsync(cts.Token);
-            result.Should().BeFalse();
-        }
-        catch (OperationCanceledException)
-        {
-            // Acceptable: cancellation may propagate before the catch block
-        }
-    }
-
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -262,6 +207,13 @@ public class WinGetPackageInstallerTests
     {
         WinGetPackageInstaller.InstallArguments("VideoLAN.VLC", "winget", null, InstallOptions.Default with { Scope = scope })
             .Should().EndWith(flag);
+    }
+
+    [Fact]
+    public void InstallArguments_UndefinedScope_AddsNoScopeFlag()
+    {
+        WinGetPackageInstaller.InstallArguments("VideoLAN.VLC", "winget", null, InstallOptions.Default with { Scope = (InstallScope)7 })
+            .Should().NotContain("--scope");
     }
 
     [Theory]

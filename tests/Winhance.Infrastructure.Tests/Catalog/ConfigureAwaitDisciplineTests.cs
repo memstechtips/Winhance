@@ -27,7 +27,7 @@ public class ConfigureAwaitDisciplineTests
     };
 
     [Fact]
-    public void Every_await_on_the_apply_path_configures_away_the_synchronization_context()
+    public void ApplyPath_EveryAwait_ConfiguresAwaySynchronizationContext()
     {
         var root = RepoPaths.SolutionDir();
         var violations = new List<string>();

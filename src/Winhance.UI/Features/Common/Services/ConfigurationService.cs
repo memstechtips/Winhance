@@ -87,22 +87,25 @@ public class ConfigurationService : IConfigurationService
     {
         _logService.Log(LogLevel.Info, "Starting configuration import");
 
-        if (!await ModeSwitchConfirmation.ConfirmLeavingAsync(_mode, _dialogService, _localization)
-            || !await ShowConfigReviewIntroIfNeededAsync())
-            return;
-
         await EnsureRegistryInitializedAsync();
 
-        var (selectedOption, importOptions) = await _dialogService.ShowConfigImportOptionsDialogAsync();
+        var (selectedOption, importOptions, hideExplanation) = await _dialogService.ShowConfigImportOptionsDialogAsync(new ModeEntryNotes(
+            Reason: null,
+            Explanation: _preferences.GetPreference(ConfigReviewIntroDontShowKey, false) ? null : _localization.GetString("Dialog_ConfigReviewIntro_Message"),
+            Warning: ModeSwitchConfirmation.DiscardWarning(_mode, _localization)));
         if (selectedOption == null)
         {
             _logService.Log(LogLevel.Info, "Import canceled by user");
             return;
         }
 
+        if (hideExplanation)
+            await _preferences.SetPreferenceAsync(ConfigReviewIntroDontShowKey, true);
+
+        var sourcePath = selectedOption == ImportOption.ImportOwn ? await _configLoadService.PickConfigurationFileAsync() : null;
         WinhanceConfigFile? config = selectedOption switch
         {
-            ImportOption.ImportOwn => await _configLoadService.LoadAndValidateConfigurationFromFileAsync(),
+            ImportOption.ImportOwn => sourcePath is null ? null : await _configLoadService.LoadAndValidateConfigurationAsync(sourcePath),
             ImportOption.ImportRecommended => await _configLoadService.LoadRecommendedConfigurationAsync(),
             ImportOption.ImportBackup => await _configLoadService.LoadUserBackupConfigurationAsync(),
             ImportOption.ImportWindowsDefaults => await _configLoadService.LoadWindowsDefaultsConfigurationAsync(),
@@ -126,9 +129,9 @@ public class ConfigurationService : IConfigurationService
         await LeaveCurrentModeAsync(importOptions.ReviewBeforeApplying);
 
         if (!importOptions.ReviewBeforeApplying)
-            await _configExecutionService.ExecuteConfigImportAsync(config, importOptions);
+            await _configExecutionService.ExecuteConfigImportAsync(config, importOptions, sourcePath);
         else
-            await _configReviewOrchestrationService.EnterReviewModeAsync(config, importOptions.IsWindowsDefaults);
+            await _configReviewOrchestrationService.EnterReviewModeAsync(config, importOptions.IsWindowsDefaults, sourcePath);
     }
 
     // The open mode is left only once a file is in hand, so cancelling the picker keeps it. Builder writes nothing to
@@ -139,27 +142,6 @@ public class ConfigurationService : IConfigurationService
             await _configReviewOrchestrationService.CancelReviewModeAsync();
         else if (_mode.CurrentMode == WinhanceMode.Builder && !review)
             _mode.EnterNormalMode();
-    }
-
-    private async Task<bool> ShowConfigReviewIntroIfNeededAsync()
-    {
-        if (_preferences.GetPreference(ConfigReviewIntroDontShowKey, false))
-            return true;
-
-        var response = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
-        {
-            Title = _localization.GetString("Dialog_ConfigReviewIntro_Title"),
-            Message = _localization.GetString("Dialog_ConfigReviewIntro_Message"),
-            CheckboxText = _localization.GetString("Dialog_Mode_DontShowAgain"),
-            CheckboxInitiallyChecked = false,
-            ConfirmButtonText = _localization.GetString("Dialog_ConfigReviewIntro_Confirm"),
-            CancelButtonText = _localization.GetString("Button_Cancel"),
-        });
-
-        if (response.Confirmed && response.CheckboxChecked)
-            await _preferences.SetPreferenceAsync(ConfigReviewIntroDontShowKey, true);
-
-        return response.Confirmed;
     }
 
     // The import dialog's defaults with review skipped, so a scripted run applies what Import would.
@@ -184,17 +166,17 @@ public class ConfigurationService : IConfigurationService
             return;
         }
 
-        await _configExecutionService.ExecuteConfigImportAsync(config, PreTickFrom(config, CommandLineImportOptions));
+        await _configExecutionService.ExecuteConfigImportAsync(config, PreTickFrom(config, CommandLineImportOptions), filePath);
     }
 
     // A clean action has to be selected in the file, not merely present: an unticked one is a config saying
     // "leave it alone".
     public static ImportOptions PreTickFrom(WinhanceConfigFile file, ImportOptions chosen) => chosen with
     {
-        ApplyCleanTaskbar = chosen.ApplyCleanTaskbar && Carries(file, "taskbar-clean", requireSelected: true),
+        ApplyCleanTaskbar = chosen.ApplyCleanTaskbar && Carries(file, SettingIds.CleanTaskbar, requireSelected: true),
         ApplyCleanStartMenu = chosen.ApplyCleanStartMenu
-            && (Carries(file, "start-menu-clean-10", requireSelected: true)
-                || Carries(file, "start-menu-clean-11", requireSelected: true)),
+            && (Carries(file, SettingIds.CleanStartMenu10, requireSelected: true)
+                || Carries(file, SettingIds.CleanStartMenu11, requireSelected: true)),
     };
 
     private static bool Carries(WinhanceConfigFile file, string settingId, bool requireSelected) =>
@@ -206,6 +188,10 @@ public class ConfigurationService : IConfigurationService
             .Concat(file.Autounattend.Features.Values)
             .SelectMany(section => section.Items);
 
+    internal static string BackupFolderFor(IInteractiveUserService interactiveUser, IFileSystemService fileSystem) => fileSystem.CombinePath(
+        AppDataPaths.UserRoot(interactiveUser.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData)),
+        "Backup");
+
     public async Task CreateUserBackupConfigAsync()
     {
         try
@@ -216,9 +202,7 @@ public class ConfigurationService : IConfigurationService
 
             var set = await _selections.FromMachineForBackupAsync();
 
-            var configDir = _fileSystem.CombinePath(
-                AppDataPaths.UserRoot(_interactiveUser.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData)),
-                "Backup");
+            var configDir = BackupFolderFor(_interactiveUser, _fileSystem);
 
             _fileSystem.CreateDirectory(configDir);
 

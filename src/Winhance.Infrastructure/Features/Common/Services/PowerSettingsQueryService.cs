@@ -133,15 +133,7 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
                 return cached;
         }
 
-        var (min, max) = await GetPowerSettingCapabilitiesAsync(new PowerCfgSetting
-        {
-            SubgroupGuid = subgroupGuid,
-            SettingGuid = settingGuid,
-            RecommendedValueAC = null,
-            RecommendedValueDC = null,
-            DefaultValueAC = null,
-            DefaultValueDC = null,
-        }).ConfigureAwait(false);
+        var (min, max) = await GetPowerSettingCapabilitiesAsync(subgroupGuid, settingGuid).ConfigureAwait(false);
 
         IReadOnlyList<PowerSettingOption> options = min is null && max is null
             ? await Task.Run(() => ReadPossibleOptions(Guid.Parse(subgroupGuid), Guid.Parse(settingGuid))).ConfigureAwait(false)
@@ -251,37 +243,6 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
         {
             logService.Log(LogLevel.Warning, $"Error getting active power plan: {ex.Message}");
             return new PowerPlan { Guid = "", Name = "Unknown", IsActive = true };
-        }
-    }
-
-    public async Task<(int? acValue, int? dcValue)> GetPowerSettingACDCValuesAsync(PowerCfgSetting powerCfgSetting)
-    {
-        try
-        {
-            return await Task.Run(() =>
-            {
-                var schemeGuid = GetActivePowerSchemeGuid();
-                if (schemeGuid == Guid.Empty) return (null, null);
-
-                var subGuid = Guid.Parse(powerCfgSetting.SubgroupGuid);
-                var setGuid = Guid.Parse(powerCfgSetting.SettingGuid);
-
-                uint acIndex, dcIndex;
-                int? ac = null, dc = null;
-
-                if (PInvoke.PowerReadACValueIndex(null, schemeGuid, subGuid, setGuid, out acIndex) == WIN32_ERROR.ERROR_SUCCESS)
-                    ac = (int)acIndex;
-
-                if (PInvoke.PowerReadDCValueIndex(null, schemeGuid, subGuid, setGuid, out dcIndex) == (uint)WIN32_ERROR.ERROR_SUCCESS)
-                    dc = (int)dcIndex;
-
-                return (ac, dc);
-            }).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Error, $"Error getting power setting AC/DC values: {ex.Message}");
-            return (null, null);
         }
     }
 
@@ -428,15 +389,15 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
         }
     }
 
-    private async Task<(int? minValue, int? maxValue)> GetPowerSettingCapabilitiesAsync(PowerCfgSetting powerCfgSetting)
+    private async Task<(int? minValue, int? maxValue)> GetPowerSettingCapabilitiesAsync(string subgroupGuid, string settingGuid)
     {
-        var cacheKey = powerCfgSetting.SettingGuid;
+        var cacheKey = settingGuid;
 
         lock (_cacheLock)
         {
             if (_capabilityCache.TryGetValue(cacheKey, out var cached))
             {
-                logService.Log(LogLevel.Debug, $"Using cached capabilities for {powerCfgSetting.SettingGUIDAlias ?? cacheKey}");
+                logService.Log(LogLevel.Debug, $"Using cached capabilities for {cacheKey}");
                 return cached;
             }
         }
@@ -445,8 +406,8 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
         {
             var capabilities = await Task.Run(() =>
             {
-                var subGuid = Guid.Parse(powerCfgSetting.SubgroupGuid);
-                var setGuid = Guid.Parse(powerCfgSetting.SettingGuid);
+                var subGuid = Guid.Parse(subgroupGuid);
+                var setGuid = Guid.Parse(settingGuid);
 
                 int? min = null, max = null;
 
@@ -465,40 +426,28 @@ internal class PowerSettingsQueryService(ILogService logService) : IPowerSetting
             }
 
             logService.Log(LogLevel.Info,
-                $"Power setting '{powerCfgSetting.SettingGUIDAlias ?? cacheKey}' capabilities: Min={capabilities.min}, Max={capabilities.max}");
+                $"Power setting '{cacheKey}' capabilities: Min={capabilities.min}, Max={capabilities.max}");
 
             return capabilities;
         }
         catch (Exception ex)
         {
             logService.Log(LogLevel.Error,
-                $"Error querying capabilities for {powerCfgSetting.SettingGuid}: {ex.Message}");
+                $"Error querying capabilities for {cacheKey}: {ex.Message}");
             return (null, null);
         }
     }
 
-    // The transient PowerCfgSetting is an argument-holder only; its Recommended/Default values are unused by the capability query.
-    public Task<bool> IsSettingHardwareControlledAsync(string subgroupGuid, string settingGuid)
-        => IsSettingHardwareControlledAsync(new PowerCfgSetting
-        {
-            SubgroupGuid = subgroupGuid,
-            SettingGuid = settingGuid,
-            RecommendedValueAC = null,
-            RecommendedValueDC = null,
-            DefaultValueAC = null,
-            DefaultValueDC = null,
-        });
-
-    public async Task<bool> IsSettingHardwareControlledAsync(PowerCfgSetting powerCfgSetting)
+    public async Task<bool> IsSettingHardwareControlledAsync(string subgroupGuid, string settingGuid)
     {
-        var (minValue, maxValue) = await GetPowerSettingCapabilitiesAsync(powerCfgSetting).ConfigureAwait(false);
+        var (minValue, maxValue) = await GetPowerSettingCapabilitiesAsync(subgroupGuid, settingGuid).ConfigureAwait(false);
 
         bool isHardwareControlled = minValue == 0 && maxValue == 0;
 
         if (isHardwareControlled)
         {
             logService.Log(LogLevel.Info,
-                $"Setting '{powerCfgSetting.SettingGUIDAlias ?? powerCfgSetting.SettingGuid}' is hardware-controlled (Min=0, Max=0)");
+                $"Setting '{settingGuid}' is hardware-controlled (Min=0, Max=0)");
         }
 
         return isHardwareControlled;

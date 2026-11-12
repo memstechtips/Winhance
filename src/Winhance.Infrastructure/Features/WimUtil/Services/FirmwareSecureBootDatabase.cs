@@ -1,10 +1,9 @@
-using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Text;
 using Windows.Win32;
 using Windows.Win32.Foundation;
-using Windows.Win32.Security;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.WimUtil.Services;
 
@@ -22,7 +21,7 @@ internal sealed class FirmwareSecureBootDatabase(ILogService logService) : ISecu
 
     public unsafe bool? RevokesPca2011()
     {
-        EnableSystemEnvironmentPrivilege();
+        ProcessPrivilege.Enable(PInvoke.SE_SYSTEM_ENVIRONMENT_NAME);
 
         var buffer = new byte[64 * 1024];
         while (true)
@@ -48,39 +47,6 @@ internal sealed class FirmwareSecureBootDatabase(ILogService logService) : ISecu
             // ERROR_INVALID_FUNCTION on legacy BIOS, ERROR_ENVVAR_NOT_FOUND on firmware without Secure Boot.
             logService.LogInformation($"No Secure Boot dbx to read: {error}");
             return null;
-        }
-    }
-
-    // Administrators hold this privilege disabled. When the token lacks it, AdjustTokenPrivileges still
-    // succeeds and the read fails with ERROR_PRIVILEGE_NOT_HELD, which is logged like any other.
-    private static unsafe void EnableSystemEnvironmentPrivilege()
-    {
-        if (!PInvoke.OpenProcessToken(
-                PInvoke.GetCurrentProcess_SafeHandle(),
-                TOKEN_ACCESS_MASK.TOKEN_ADJUST_PRIVILEGES | TOKEN_ACCESS_MASK.TOKEN_QUERY,
-                out var token))
-        {
-            throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not open the process token.");
-        }
-
-        using (token)
-        {
-            if (!PInvoke.LookupPrivilegeValue(null, PInvoke.SE_SYSTEM_ENVIRONMENT_NAME, out var luid))
-            {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not look up the firmware privilege.");
-            }
-
-            var privileges = new TOKEN_PRIVILEGES { PrivilegeCount = 1 };
-            privileges.Privileges[0] = new LUID_AND_ATTRIBUTES
-            {
-                Luid = luid,
-                Attributes = TOKEN_PRIVILEGES_ATTRIBUTES.SE_PRIVILEGE_ENABLED,
-            };
-
-            if (!PInvoke.AdjustTokenPrivileges(token, false, &privileges, 0, null, null))
-            {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not enable the firmware privilege.");
-            }
         }
     }
 }

@@ -725,72 +725,6 @@
             "InputType": 0
           },
           {
-            "Id": "explorer-customization-context-menu",
-            "Name": "Use Classic Context Menu",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-take-ownership",
-            "Name": "Add 'Take Ownership' to Context Menu",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-firewall",
-            "Name": "Add 'Windows Firewall' to Context Menu",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-toggle-extensions",
-            "Name": "Add 'Show/Hide Extensions' to Context Menu",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-windows-terminal",
-            "Name": "Show 'Open in Windows Terminal' in Context Menu",
-            "IsSelected": true,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-ask-copilot",
-            "Name": "Show 'Ask Copilot' in Context Menu",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-sfc",
-            "Name": "Add 'SFC /SCANNOW' to Context Menu",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-dism",
-            "Name": "Add 'Repair Windows Image' to Context Menu",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-ps1-edit-run",
-            "Name": "Add 'Edit or Run with' to PS1 Context Menu",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-compress-to",
-            "Name": "Add 'Compress To' to Context Menu",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
-            "Id": "explorer-context-menu-chkdsk",
-            "Name": "Add 'CHKDSK' to Context Menu",
-            "IsSelected": false,
-            "InputType": 0
-          },
-          {
             "Id": "devices-dynamic-lighting-ambient",
             "Name": "Use Dynamic Lighting on my devices",
             "IsSelected": false,
@@ -1106,6 +1040,167 @@
             "Id": "explorer-autoplay",
             "Name": "Autoplay",
             "IsSelected": true,
+            "InputType": 0
+          }
+        ]
+      },
+      "ContextMenu": {
+        "IsIncluded": true,
+        "Items": [
+          {
+            "Id": "context-menu-classic",
+            "Name": "Use Classic Context Menu",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-ask-copilot",
+            "Name": "Show 'Ask Copilot' in Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-windows-terminal",
+            "Name": "Show 'Open in Windows Terminal' in Context Menu",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-compress-to",
+            "Name": "Add 'Compress To' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-take-ownership",
+            "Name": "Add 'Take Ownership' to Context Menu",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-firewall",
+            "Name": "Add 'Windows Firewall' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-toggle-extensions",
+            "Name": "Add 'Show/Hide Extensions' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-ps1-edit-run",
+            "Name": "Add 'Edit or Run with' to PS1 Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-repair-menu",
+            "Name": "Add 'Repair and Maintenance' Menu to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-repair-windows",
+            "Name": "Add 'Repair Windows' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-sfc",
+            "Name": "Add 'SFC /SCANNOW' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-dism",
+            "Name": "Add 'Repair Windows Image' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-chkdsk",
+            "Name": "Add 'CHKDSK' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-restore-point",
+            "Name": "Add 'Create Restore Point' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-disk-cleanup",
+            "Name": "Add 'Disk Cleanup' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-optimize-drives",
+            "Name": "Add 'Optimize Drives' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-memory-diagnostic",
+            "Name": "Add 'Windows Memory Diagnostic' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-icon-cache",
+            "Name": "Add 'Rebuild Icon Cache' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-troubleshooting-menu",
+            "Name": "Add 'Troubleshooting' Menu to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-restart-explorer",
+            "Name": "Add 'Restart Explorer' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-restart-into",
+            "Name": "Add 'Restart Into' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-network",
+            "Name": "Add 'Network' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-end-frozen-apps",
+            "Name": "Add 'End Apps Not Responding' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-store-reset",
+            "Name": "Add 'Reset Microsoft Store Cache' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-reliability-monitor",
+            "Name": "Add 'Reliability Monitor' to Context Menu",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "context-menu-battery-report",
+            "Name": "Add 'Battery Report' to Context Menu",
+            "IsSelected": false,
             "InputType": 0
           }
         ]
@@ -1641,7 +1736,7 @@
             "Id": "gaming-telemetry-service",
             "Name": "Connected User Experiences and Telemetry Service",
             "InputType": 1,
-            "SelectedIndex": 1
+            "SelectedIndex": 0
           },
           {
             "Id": "gaming-connected-devices-platform-service",

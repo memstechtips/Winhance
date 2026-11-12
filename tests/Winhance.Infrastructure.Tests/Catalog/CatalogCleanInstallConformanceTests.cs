@@ -52,15 +52,15 @@ public class CatalogCleanInstallConformanceTests
     };
 
     [Fact]
-    public void Win10_22H2_vm_clean_install_detects_windows_defaults()
+    public void RunFixture_Win10_22H2VmCleanInstall_DetectsWindowsDefaults()
         => RunFixture("cleaninstall-win10-22h2-pro-vm.json", Win10VmExpected);
 
     [Fact]
-    public void Win11_25H2_gold_laptop_clean_install_detects_windows_defaults()
+    public void RunFixture_Win11_25H2GoldLaptopCleanInstall_DetectsWindowsDefaults()
         => RunFixture("cleaninstall-win11-25h2-gold-laptop.json", GoldLaptopExpected);
 
     [Fact]
-    public void Win11_25H2_post_update_vm_clean_install_detects_windows_defaults()
+    public void RunFixture_Win11_25H2PostUpdateVmCleanInstall_DetectsWindowsDefaults()
         => RunFixture("cleaninstall-win11-25h2-post-update-vm.json", PostUpdateVmExpected);
 
     private void RunFixture(string fixtureName, IReadOnlyDictionary<string, string> expectedDivergent)

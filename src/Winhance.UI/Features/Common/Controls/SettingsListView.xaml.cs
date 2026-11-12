@@ -1,3 +1,5 @@
+using System.Windows.Input;
+using CommunityToolkit.WinUI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -43,16 +45,30 @@ public sealed partial class SettingsListView : UserControl
             typeof(SettingsListView),
             new PropertyMetadata(string.Empty));
 
-    public static readonly DependencyProperty HeaderProperty =
+    public static readonly DependencyProperty IsShowAllVisibleProperty =
         DependencyProperty.Register(
-            nameof(Header),
-            typeof(object),
+            nameof(IsShowAllVisible),
+            typeof(bool),
+            typeof(SettingsListView),
+            new PropertyMetadata(false));
+
+    public static readonly DependencyProperty ShowAllTextProperty =
+        DependencyProperty.Register(
+            nameof(ShowAllText),
+            typeof(string),
+            typeof(SettingsListView),
+            new PropertyMetadata(string.Empty));
+
+    public static readonly DependencyProperty ShowAllCommandProperty =
+        DependencyProperty.Register(
+            nameof(ShowAllCommand),
+            typeof(ICommand),
             typeof(SettingsListView),
             new PropertyMetadata(null));
 
-    public static readonly DependencyProperty FooterProperty =
+    public static readonly DependencyProperty HeaderProperty =
         DependencyProperty.Register(
-            nameof(Footer),
+            nameof(Header),
             typeof(object),
             typeof(SettingsListView),
             new PropertyMetadata(null));
@@ -88,17 +104,29 @@ public sealed partial class SettingsListView : UserControl
         set => SetValue(NoResultsTextProperty, value);
     }
 
+    public bool IsShowAllVisible
+    {
+        get => (bool)GetValue(IsShowAllVisibleProperty);
+        set => SetValue(IsShowAllVisibleProperty, value);
+    }
+
+    public string ShowAllText
+    {
+        get => (string)GetValue(ShowAllTextProperty);
+        set => SetValue(ShowAllTextProperty, value);
+    }
+
+    public ICommand? ShowAllCommand
+    {
+        get => (ICommand?)GetValue(ShowAllCommandProperty);
+        set => SetValue(ShowAllCommandProperty, value);
+    }
+
     // Inside this control's scroller: a page that wraps its own ScrollView around the list gets two fighting over the wheel.
     public object? Header
     {
         get => GetValue(HeaderProperty);
         set => SetValue(HeaderProperty, value);
-    }
-
-    public object? Footer
-    {
-        get => GetValue(FooterProperty);
-        set => SetValue(FooterProperty, value);
     }
 
     public SettingsListView()
@@ -107,9 +135,64 @@ public sealed partial class SettingsListView : UserControl
         SettingsListViewControl.LosingFocus += ListView_LosingFocus;
         NoResultsText = App.Services.GetRequiredService<ILocalizationService>().GetString("Common_Search_NoResults");
 
-        // Listening on the UserControl root lets us see the key even after the inner
-        // ListView marks it handled during focus traversal (issue #581).
-        PageScrollHelper.Attach(this, ContentScrollView);
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+    }
+
+    // Set by a host that scrolls the list with the rest of its page (the WIMUtil wizard): a second scroller would
+    // fight it for the wheel, so the list then gets unbounded height and realizes every card.
+    public bool ScrollsWithPage { get; set; }
+
+    // Set by a host on an uncached page, so a return visit opens where the user left the list.
+    public string? ScrollMemoryKey { get; set; }
+
+    private bool _scrollerSetUp;
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (!_scrollerSetUp)
+            SetUpScroller();
+
+        if (SettingsListViewControl.ItemsSource is null && _framesBeforeSource == 0 && GroupedSettingsSource is { } source)
+            DeferSource(source);
+    }
+
+    // A list collapsed behind the loader may have no template yet, so this also runs when the list turns visible.
+    private void SetUpScroller()
+    {
+        SettingsListViewControl.ApplyTemplate();
+        if (SettingsListViewControl.FindDescendant<ScrollViewer>() is not { } scroller)
+            return;
+        _scrollerSetUp = true;
+
+        if (ScrollsWithPage)
+        {
+            ScrollViewer.SetVerticalScrollMode(SettingsListViewControl, ScrollMode.Disabled);
+            ScrollViewer.SetVerticalScrollBarVisibility(SettingsListViewControl, ScrollBarVisibility.Disabled);
+        }
+        else
+        {
+            // Listening on the UserControl root lets us see the key even after the
+            // ListView marks it handled during focus traversal (issue #581).
+            PageScrollHelper.Attach(this, scroller);
+            if (ScrollMemoryKey is { } key)
+                ScrollMemory.Track(key, SettingsListViewControl, scroller);
+        }
+    }
+
+    // The cards' x:Bind trackers stay subscribed to the long-lived setting view models until their containers are
+    // cleared, and a page dropped from its frame never clears them, so each visit would leave one more list listening.
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (_framesBeforeSource > 0)
+        {
+            CompositionTarget.Rendering -= OnRenderingBeforeSource;
+            _framesBeforeSource = 0;
+        }
+        SettingsListViewControl.LayoutUpdated -= ListView_LayoutUpdated;
+        SettingsListViewControl.ItemsSource = null;
+        _revealing = false;
+        ShowLoadingState();
     }
 
     // The ListView's TabFocusNavigation=Once forces Tab to exit after one stop; this redirects it to the
@@ -232,9 +315,9 @@ public sealed partial class SettingsListView : UserControl
             control.DeferSource(e.NewValue as ICollectionView);
     }
 
-    // The list is not virtualized, so it builds every card in one pass on the UI thread; handed over at once, the
-    // old page stays frozen on screen until that is done. Held back until the page has drawn with the loader, the
-    // page appears at once and the loader flies through the build.
+    // Handed over at once, the old page stays frozen on screen while the first screenful of cards is built (and
+    // every card, where the list sits inside a scrolling page). Held back until the page has drawn with the loader,
+    // the page appears at once.
     private void DeferSource(ICollectionView? source)
     {
         bool waiting = _framesBeforeSource > 0;
@@ -283,8 +366,10 @@ public sealed partial class SettingsListView : UserControl
     private void ShowLoadingState()
     {
         LoadingRocket.IsActive = IsLoading || _revealing;
-        ContentScrollView.Visibility = IsLoading ? Visibility.Collapsed : Visibility.Visible;
-        ContentScrollView.Opacity = _revealing ? 0 : 1;
+        SettingsListViewControl.Visibility = IsLoading ? Visibility.Collapsed : Visibility.Visible;
+        SettingsListViewControl.Opacity = _revealing ? 0 : 1;
+        if (!_scrollerSetUp && !IsLoading && IsLoaded)
+            SetUpScroller();
     }
 
     private void ListView_LayoutUpdated(object? sender, object e)
@@ -293,11 +378,42 @@ public sealed partial class SettingsListView : UserControl
             return;
 
         SettingsListViewControl.LayoutUpdated -= ListView_LayoutUpdated;
-        DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+        DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, async () =>
         {
-            _revealing = false;
-            ShowLoadingState();
+            try
+            {
+                if (ScrollMemoryKey is { } key && await ScrollMemory.RestoreAsync(key, SettingsListViewControl))
+                    FocusFirstVisibleSetting();
+            }
+            finally
+            {
+                _revealing = false;
+                ShowLoadingState();
+            }
         });
+    }
+
+    // Focus waits on the first card while the list is hidden. After a restored scroll that card is out of view and the
+    // first Tab would jump the page back to the top, so focus moves to the first card the restore brought into view,
+    // unless the user has already put it somewhere else.
+    private void FocusFirstVisibleSetting()
+    {
+        if (XamlRoot is null || SettingsListViewControl.FindDescendant<ScrollViewer>() is not { } scroller) return;
+
+        var focused = FocusManager.GetFocusedElement(XamlRoot) as DependencyObject;
+        while (focused is not null && focused != SettingsListViewControl)
+            focused = VisualTreeHelper.GetParent(focused);
+        if (focused is null && FocusManager.GetFocusedElement(XamlRoot) is not null) return;
+
+        for (var i = 0; i < SettingsListViewControl.Items.Count; i++)
+        {
+            if (SettingsListViewControl.ContainerFromIndex(i) is not ListViewItem row
+                || row.TransformToVisual(scroller).TransformPoint(default).Y < 0)
+                continue;
+            if (FocusManager.FindFirstFocusableElement(row) is Control target)
+                target.Focus(FocusState.Programmatic);
+            return;
+        }
     }
 
     private void ScheduleFocusFirstSetting()

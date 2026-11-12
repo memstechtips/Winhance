@@ -74,6 +74,7 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
                 {
                     Message = message,
                     CheckboxText = checkboxText,
+                    CheckboxInitiallyChecked = false,
                     Title = title,
                     ConfirmButtonText = continueText,
                     CancelButtonText = cancelText,

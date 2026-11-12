@@ -8,7 +8,7 @@ public class NavigationRouterTests
 {
     // SetNavLock leaves a newly locked page only through the reverse map; a tag missing there strands the user.
     [Fact]
-    public void Tag_and_page_maps_are_inverse()
+    public void PageTypeNameToTag_Always_IsTheInverseOfTagToPageType()
     {
         NavigationRouter.PageTypeNameToTag.Should().HaveCount(NavigationRouter.TagToPageType.Count);
         foreach (var (tag, pageType) in NavigationRouter.TagToPageType)

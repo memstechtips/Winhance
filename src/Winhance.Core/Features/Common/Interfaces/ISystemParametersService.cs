@@ -1,3 +1,5 @@
+using Winhance.Core.Features.Common.Enums;
+
 namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface ISystemParametersService
@@ -7,4 +9,7 @@ public interface ISystemParametersService
     // index is a SYS_COLOR_INDEX; colorRef is Windows' 0x00BBGGRR form, not RGB. The change lasts the session -
     // what survives a sign-out is the registry value beside it.
     bool SetSysColors(int index, uint colorRef);
+
+    // Live only: leaves the registry alone, so the value lasts until sign-out unless something else persists it.
+    bool SetLive(SystemParameter parameter, bool on);
 }

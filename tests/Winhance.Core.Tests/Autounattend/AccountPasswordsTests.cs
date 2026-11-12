@@ -7,7 +7,7 @@ namespace Winhance.Core.Tests.Autounattend;
 public class AccountPasswordsTests
 {
     [Fact]
-    public void The_documented_microsoft_examples_decode_back_to_the_password()
+    public void TryDeobscure_DocumentedMicrosoftExamples_DecodeBackToThePassword()
     {
         AccountPasswords.TryDeobscure("cAB3AFAAYQBzAHMAdwBvAHIAZAA=", "Password", out var two).Should().BeTrue();
         two.Should().Be("pw");
@@ -21,14 +21,14 @@ public class AccountPasswordsTests
     [InlineData("")]
     [InlineData("hunter2")]
     [InlineData("!!not base64!!")]
-    public void An_unreadable_value_is_no_password(string? value)
+    public void TryDeobscure_UnreadableValue_ReturnsNoPassword(string? value)
     {
         AccountPasswords.TryDeobscure(value, "Password", out var password).Should().BeFalse();
         password.Should().BeEmpty();
     }
 
     [Fact]
-    public void Base64_that_does_not_end_in_the_element_name_is_no_password()
+    public void TryDeobscure_Base64NotEndingInTheElementName_ReturnsNoPassword()
     {
         var obscuredForAnotherElement = AccountPasswords.Obscure("hunter2", "Value");
 
@@ -37,7 +37,7 @@ public class AccountPasswordsTests
     }
 
     [Fact]
-    public void A_password_outside_ascii_round_trips()
+    public void TryDeobscure_PasswordOutsideAscii_RoundTrips()
     {
         const string typed = "caf\u00e9 \u00fcber";
 

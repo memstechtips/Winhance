@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.WimUtil.Controls.WizardActionCardView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    x:DefaultBindMode="OneWay">
+
+    <!-- A disabled control shows no tooltip, so the reason sits on a wrapper. -->
+    <Grid Background="Transparent" ToolTipService.ToolTip="{x:Bind Card.DisabledReason}">
+        <controls:SettingsCard AutomationProperties.Name="{x:Bind Card.Title}"
+                               Description="{x:Bind Card.Description}"
+                               IsEnabled="{x:Bind Card.IsEnabled}"
+                               CornerRadius="{x:Bind CornerRadius}"
+                               Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                               Margin="0,0,0,8">
+            <controls:SettingsCard.Header>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{x:Bind Card.Title}" VerticalAlignment="Center"/>
+                </StackPanel>
+            </controls:SettingsCard.Header>
+            <controls:SettingsCard.HeaderIcon>
+                <fluentIcons:FluentIcon Icon="{x:Bind Icon}" IconVariant="Regular"/>
+            </controls:SettingsCard.HeaderIcon>
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Grid Width="32" Height="32" VerticalAlignment="Center">
+                    <ProgressRing IsActive="{x:Bind Card.IsProcessing}"
+                                  Width="20" Height="20"
+                                  Visibility="{x:Bind Card.IsProcessing}"/>
+                    <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"
+                                            FontSize="{StaticResource StatusIconFontSize}"
+                                            Visibility="{x:Bind Card.IsComplete}"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
+                    <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color"
+                                            FontSize="{StaticResource StatusIconFontSize}"
+                                            Visibility="{x:Bind Card.HasFailed}"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
+                </Grid>
+                <Button Content="{x:Bind Card.ButtonText}"
+                        Command="{x:Bind Card.ButtonCommand}"
+                        Visibility="{x:Bind Card.HasButton}"
+                        VerticalAlignment="Center"
+                        MinWidth="100"/>
+            </StackPanel>
+        </controls:SettingsCard>
+    </Grid>
+</UserControl>

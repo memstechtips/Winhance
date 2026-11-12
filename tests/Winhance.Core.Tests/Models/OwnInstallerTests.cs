@@ -20,7 +20,7 @@ public class OwnInstallerTests
         ]));
 
     [Fact]
-    public void From_reads_each_row_as_an_installer_with_its_switches()
+    public void From_WithInstallerRows_ReadsEachRowWithItsSwitches()
     {
         var set = Set(Installers((@"C:\Tools\Setup.exe", " /S "), (@"C:\Tools\Pack.msi", "")));
 
@@ -30,7 +30,7 @@ public class OwnInstallerTests
     }
 
     [Fact]
-    public void From_believes_only_a_full_path_to_an_installer()
+    public void From_WithMixedPaths_KeepsOnlyFullInstallerPaths()
     {
         var set = Set(Installers(
             (@"C:\Tools\Setup.EXE", ""),
@@ -43,7 +43,7 @@ public class OwnInstallerTests
     }
 
     [Fact]
-    public void From_is_empty_when_Winhance_is_not_added_to_the_new_PC()
+    public void From_WhenWinhanceNotAddedToNewPc_IsEmpty()
     {
         var set = Set(
             Installers((@"C:\Tools\Setup.exe", "")),
@@ -53,13 +53,13 @@ public class OwnInstallerTests
     }
 
     [Fact]
-    public void From_is_empty_for_a_set_that_holds_no_installer_list()
+    public void From_WithNoInstallerList_IsEmpty()
     {
         OwnInstaller.From(SelectionSet.Empty).Should().BeEmpty();
     }
 
     [Fact]
-    public void StagesApps_is_true_until_the_tick_is_cleared()
+    public void StagesApps_UntilTheTickIsCleared_IsTrue()
     {
         OwnInstaller.StagesApps(SelectionSet.Empty).Should().BeTrue();
         OwnInstaller.StagesApps(Set(new SettingChoice(OwnInstaller.StageAppsId, new ChoiceValue.CheckBox(true)))).Should().BeTrue();

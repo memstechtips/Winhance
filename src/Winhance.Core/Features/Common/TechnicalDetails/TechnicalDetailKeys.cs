@@ -76,6 +76,7 @@ public static class TechnicalDetailKeys
     public const string OnApply = "TechnicalDetails_Script_OnApply";
     public const string OrNotSet = "TechnicalDetails_OrNotSet";
     public const string DeletesKey = "TechnicalDetails_DeletesKey";
+    public const string DeletesValue = "TechnicalDetails_DeletesValue";
     public const string OpenRegedit = "TechnicalDetails_OpenRegedit";
 
     public const string ChipGroupPolicy = "TechnicalDetails_Chip_GroupPolicy";

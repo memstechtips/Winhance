@@ -55,7 +55,7 @@ public class CatalogSettingStateProviderConformanceTests
         => CatalogSettingStateProvider.DeriveIsEnabled(s, new CatalogDetectionResult { Value = acReadingSystemUnits }, Win11);
 
     [Fact]
-    public void IsEnabled_registry_selection_is_modified_from_windows_default()
+    public void DeriveIsEnabled_RegistrySelection_IsEnabledWhenModifiedFromWindowsDefault()
     {
         // A 3-option service: Automatic = WindowsDefault, ManualRecommended = Recommended, Disabled = no role.
         // The hard instance: Disabled is neither default nor recommended, yet it IS a modification from the Windows
@@ -68,7 +68,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public void IsEnabled_powercfg_selection_uses_the_ac_context_default()
+    public void DeriveIsEnabled_PowercfgSelection_UsesTheAcContextDefault()
     {
         // SelectionStates(LidActions, recAC:1, recDC:1, defAC:1, defDC:1) -> option index 1 is the AC default. The
         // WindowsDefault role is context-scoped (AC), so IsEnabled must check the AC role, not the Always default.
@@ -79,7 +79,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public void IsEnabled_numeric_percent_is_modified_from_the_default_value()
+    public void DeriveIsEnabled_NumericPercent_IsEnabledWhenModifiedFromDefaultValue()
     {
         // WindowsDefault AC = 5 (%), per the shipped Balanced scheme in the image SYSTEM hives.
         // "%" converts system->display 1:1.
@@ -91,7 +91,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public void IsEnabled_numeric_minutes_converts_system_units_before_comparing()
+    public void DeriveIsEnabled_NumericMinutes_ConvertsSystemUnitsBeforeComparing()
     {
         // WindowsDefault AC = 20 (minutes); the raw powercfg reading is in seconds. The compare MUST convert
         // system->display first (1200s -> 20min) - comparing the raw 1200 to 20 would wrongly read enabled.
@@ -101,7 +101,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public void IsEnabled_toggle_tracks_the_enabled_label_unchanged()
+    public void DeriveIsEnabled_Toggle_TracksTheEnabledLabel()
     {
         // Toggles keep the proven switch-position rule (the reading names TwoState's on key); any toggle Setting exercises it.
         var toggle = Catalog.Values.First(x => x.Control == ControlKind.Toggle);
@@ -111,7 +111,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public void IsEnabled_check_box_tracks_the_checked_label()
+    public void DeriveIsEnabled_CheckBox_TracksTheCheckedLabel()
     {
         var checkBox = new Setting
         {
@@ -143,7 +143,7 @@ public class CatalogSettingStateProviderConformanceTests
     };
 
     [Fact]
-    public void Every_gate_selection_has_exactly_one_windows_default_anchor()
+    public void DeriveIsEnabled_EveryGateSelection_HasExactlyOneWindowsDefaultAnchor()
     {
         // The DeriveIsEnabled selection rule ("not the WindowsDefault state") is only well-defined when each gate-
         // population selection has EXACTLY ONE WindowsDefault anchor in its resolution context (AC for powercfg,
@@ -193,7 +193,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public void Os_divergent_selection_resolves_its_anchor_per_build()
+    public void DeriveIsEnabled_OsDivergentSelection_ResolvesItsAnchorPerBuild()
     {
         // theme-mode-windows: Light Mode is the Windows default ONLY on Win11; Win10's true default is the
         // apps-light/system-dark mix (not a representable state), so IsEnabled defers there.
@@ -206,7 +206,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public void Keyed_selection_has_no_anchor_so_is_never_reported_enabled()
+    public void DeriveIsEnabled_KeyedSelection_IsNeverEnabledForLackOfAnchor()
     {
         var s = FakeOptionProvider.SettingFor();
         Assert.False(Derive(s, "beta"));
@@ -214,7 +214,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public void Every_gate_numeric_has_an_ac_windows_default()
+    public void DeriveIsEnabled_EveryGateNumeric_HasAnAcWindowsDefault()
     {
         // The numeric IsEnabled rule compares against Numeric.WindowsDefault(AC); assert every gate-population numeric
         // supplies one, so the rule is never silently a no-op (return false for lack of an anchor).
@@ -236,7 +236,7 @@ public class CatalogSettingStateProviderConformanceTests
     // the service dropdowns + delivery optimization once regressed to Custom in the live UI when only the label
     // override was kept.
     [Fact]
-    public async Task Selection_with_no_resolved_label_falls_back_to_value_match_not_Custom()
+    public async Task GetStatesAsync_SelectionWithNoResolvedLabel_FallsBackToValueMatchNotCustom()
     {
         // gaming-sysmain-service: option index 1 is Start=3 ("Manual"). The engine reports NO label (the regression
         // trigger) but the live reads say Start=3, so the value-match must land on index 1, never Custom (-1).
@@ -271,7 +271,7 @@ public class CatalogSettingStateProviderConformanceTests
     // ResolveSelectionIndex takes the FIRST State whose Label matches, which is only well-defined if a selection's
     // Labels are distinct and non-empty.
     [Fact]
-    public void Every_selection_has_distinct_non_empty_state_labels()
+    public void GetStatesAsync_EverySelection_HasDistinctNonEmptyStateLabels()
     {
         var selections = SettingCatalog.All.Where(s => s.Control == ControlKind.Selection).ToList();
         Assert.NotEmpty(selections);
@@ -326,7 +326,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public async Task An_answer_file_toggle_is_never_detected_and_opens_on_its_windows_default()
+    public async Task GetStatesAsync_AnswerFileToggle_IsNeverDetectedAndOpensOnItsWindowsDefault()
     {
         var setting = AnswerFileOnly("setup-toggle",
             Writes(LocKey.Common.Enabled),
@@ -346,7 +346,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public async Task An_answer_file_check_box_opens_checked_when_that_is_the_windows_default()
+    public async Task GetStatesAsync_AnswerFileCheckBox_OpensCheckedWhenThatIsTheWindowsDefault()
     {
         var setting = AnswerFileOnly("setup-check",
             Writes(LocKey.Common.Checked, StateRole.WindowsDefault),
@@ -359,7 +359,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public async Task An_answer_file_toggle_opens_on_its_recommended_state_over_its_windows_default()
+    public async Task GetStatesAsync_AnswerFileToggle_OpensOnRecommendedStateOverWindowsDefault()
     {
         var setting = AnswerFileOnly("setup-toggle",
             Writes(LocKey.Common.Enabled, StateRole.Recommended),
@@ -371,7 +371,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public async Task An_answer_file_selection_opens_on_its_recommended_index_over_its_windows_default()
+    public async Task GetStatesAsync_AnswerFileSelection_OpensOnRecommendedIndexOverWindowsDefault()
     {
         var setting = AnswerFileOnly("setup-selection",
             Writes(TestKeys.Of("First"), StateRole.WindowsDefault),
@@ -384,7 +384,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public async Task An_answer_file_selection_opens_on_its_windows_default_index()
+    public async Task GetStatesAsync_AnswerFileSelection_OpensOnWindowsDefaultIndex()
     {
         var setting = AnswerFileOnly("setup-selection",
             Writes(TestKeys.Of("First")),
@@ -401,7 +401,7 @@ public class CatalogSettingStateProviderConformanceTests
         AnswerFileOnly(id) with { TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything.")), defaultValue) };
 
     [Fact]
-    public async Task An_answer_file_text_box_opens_on_the_settings_own_default()
+    public async Task GetStatesAsync_AnswerFileTextBox_OpensOnTheSettingsOwnDefault()
     {
         var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { AnswerFileText("setup-name", "PC-01") });
 
@@ -410,7 +410,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public async Task An_answer_file_text_box_without_a_default_opens_empty()
+    public async Task GetStatesAsync_AnswerFileTextBoxWithoutDefault_OpensEmpty()
     {
         var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { AnswerFileText("setup-name", null) });
 
@@ -431,7 +431,7 @@ public class CatalogSettingStateProviderConformanceTests
         AnswerFileOnly(id) with { List = new(AccountFields) };
 
     [Fact]
-    public async Task An_answer_file_list_without_a_seed_opens_with_nothing_read()
+    public async Task GetStatesAsync_AnswerFileListWithoutSeed_OpensWithNothingRead()
     {
         var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { AnswerFileAccounts("setup-accounts") });
 
@@ -455,7 +455,7 @@ public class CatalogSettingStateProviderConformanceTests
     [InlineData(true, true)]
     [InlineData(false, false)]
     [InlineData(null, true)]
-    public async Task An_answer_file_check_box_seeded_from_this_PC_takes_the_detected_state_or_its_default(bool? ticked, bool expected)
+    public async Task GetStatesAsync_AnswerFileCheckBoxSeededFromThisPc_TakesDetectedStateOrItsDefault(bool? ticked, bool expected)
     {
         var label = ticked is null
             ? null
@@ -486,7 +486,7 @@ public class CatalogSettingStateProviderConformanceTests
         };
 
     [Fact]
-    public async Task A_seeded_list_opens_on_one_row_of_what_this_PC_reads()
+    public async Task GetStatesAsync_SeededList_OpensOnOneRowOfWhatThisPcReads()
     {
         var setting = AnswerFileSeededAccounts("setup-accounts");
         var readings = new Dictionary<string, object?> { ["USERNAME"] = "Marco", ["LastLoggedOnDisplayName"] = "Marco du Plessis" };
@@ -502,7 +502,7 @@ public class CatalogSettingStateProviderConformanceTests
 
     // The group default keeps the first row on Administrators: a fresh install's first account has to be one.
     [Fact]
-    public async Task A_seeded_row_fills_every_unseeded_field_from_its_catalog_default()
+    public async Task GetStatesAsync_SeededRow_FillsEveryUnseededFieldFromItsCatalogDefault()
     {
         var state = await MapViaProvider(
             AnswerFileSeededAccounts("setup-accounts"),
@@ -514,7 +514,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public async Task A_seed_that_reads_nothing_still_opens_one_row()
+    public async Task GetStatesAsync_SeedThatReadsNothing_StillOpensOneRow()
     {
         var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { AnswerFileSeededAccounts("setup-accounts") });
 
@@ -535,7 +535,7 @@ public class CatalogSettingStateProviderConformanceTests
         };
 
     [Fact]
-    public async Task A_seeded_text_box_opens_on_what_this_PC_reads()
+    public async Task GetStatesAsync_SeededTextBox_OpensOnWhatThisPcReads()
     {
         var state = await MapViaProvider(
             AnswerFileSeededText("setup-name"),
@@ -545,7 +545,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public async Task A_text_seed_that_reads_nothing_falls_back_to_the_catalog_default()
+    public async Task GetStatesAsync_TextSeedThatReadsNothing_FallsBackToCatalogDefault()
     {
         var state = await MapViaProvider(
             AnswerFileSeededText("setup-name"),
@@ -555,7 +555,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public async Task Only_a_seeded_answer_file_setting_is_sent_to_detection_for_its_readings()
+    public async Task GetStatesAsync_MixedAnswerFileSettings_SendsOnlyTheSeededOneToDetection()
     {
         var detection = DetectsNothing();
         var seeded = AnswerFileSeededAccounts("setup-accounts");
@@ -566,7 +566,7 @@ public class CatalogSettingStateProviderConformanceTests
     }
 
     [Fact]
-    public async Task A_live_text_box_seeds_from_its_own_targets_reading()
+    public async Task GetStatesAsync_LiveTextBox_SeedsFromItsOwnTargetsReading()
     {
         var setting = new Setting
         {
@@ -590,7 +590,7 @@ public class CatalogSettingStateProviderConformanceTests
     // one has no such target and still needs a list: its options come from the option provider, which answers for
     // media this PC has never seen. Missing either half leaves the card on screen with an empty drop-down.
     [Fact]
-    public async Task An_answer_file_keyed_selection_is_detected_for_its_options_and_carries_them_to_the_card()
+    public async Task GetStatesAsync_AnswerFileKeyedSelection_IsDetectedForItsOptionsAndCarriesThemToTheCard()
     {
         var setting = Catalog["autounattend-setup-language"];
         Assert.True(setting.IsAnswerFileOnly);
@@ -642,7 +642,7 @@ public class CatalogSettingStateProviderConformanceTests
     // what conflated an unrecognized value, a wrong stored type and a detection crash into one "Custom". Success
     // stays true throughout: it is a transport-level flag.
     [Fact]
-    public async Task Toggle_carries_the_detection_outcome_through()
+    public async Task GetStatesAsync_Toggle_CarriesTheDetectionOutcomeThrough()
     {
         var toggle = SettingCatalog.All.First(x => x.Control == ControlKind.Toggle && x.Detector is null);
 
@@ -689,7 +689,7 @@ public class CatalogSettingStateProviderConformanceTests
 
     // Custom exactly when the RESOLVED index is the Custom index; a value-match recovery is Resolved, not Custom.
     [Fact]
-    public async Task Selection_reports_custom_only_when_resolution_lands_on_the_custom_index()
+    public async Task GetStatesAsync_Selection_ReportsCustomOnlyWhenResolutionLandsOnCustomIndex()
     {
         var sysmain = SettingCatalog.Find("gaming-sysmain-service");
         Assert.NotNull(sysmain);
@@ -730,7 +730,7 @@ public class CatalogSettingStateProviderConformanceTests
     // No amount of index resolution can rescue a value we could not read, so Malformed/Undetermined must survive
     // the value-match fallback.
     [Fact]
-    public async Task Selection_carries_malformed_and_undetermined_past_the_value_match_fallback()
+    public async Task GetStatesAsync_SelectionMalformedOrUndetermined_CarriesOutcomePastValueMatchFallback()
     {
         var sysmain = SettingCatalog.Find("gaming-sysmain-service");
         Assert.NotNull(sysmain);

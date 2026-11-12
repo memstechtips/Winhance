@@ -22,11 +22,14 @@ public class InstalledAppsBuilderTests
         IReadOnlyList<WinGetInstalledPackage>? winGet = null,
         IReadOnlySet<string>? choco = null,
         IReadOnlyList<ItemDefinition>? catalog = null,
-        IReadOnlyDictionary<string, string>? chocoOutdated = null) =>
-        InstalledAppsBuilder.Build(programs ?? [], store ?? [], winGet ?? [], choco ?? NoChoco, chocoOutdated ?? new Dictionary<string, string>(), catalog ?? []);
+        IReadOnlyDictionary<string, string>? chocoOutdated = null,
+        IReadOnlyDictionary<string, StoreCatalogUpdate>? storeUpdates = null,
+        Action<string>? trace = null) =>
+        InstalledAppsBuilder.Build(programs ?? [], store ?? [], winGet ?? [], choco ?? NoChoco, chocoOutdated ?? new Dictionary<string, string>(), catalog ?? [],
+            storeUpdates ?? new Dictionary<string, StoreCatalogUpdate>(), trace);
 
     [Fact]
-    public void Winget_matches_a_program_by_its_uninstall_key()
+    public void Build_ProgramWithAMatchingUninstallKey_MatchesTheWinGetPackage()
     {
         var apps = Build(
             programs: [Program("7-Zip", "7-Zip 24.09 (x64)")],
@@ -39,7 +42,7 @@ public class InstalledAppsBuilderTests
     }
 
     [Fact]
-    public void A_store_app_winget_has_an_update_for_updates_from_the_store_source()
+    public void Build_StoreAppWinGetOffersAnUpdateFor_UpdatesFromTheStoreSource()
     {
         var apps = Build(
             store: [Store("Microsoft.WindowsTerminal", "Terminal")],
@@ -49,8 +52,194 @@ public class InstalledAppsBuilderTests
         apps.Single().MsStoreId.Should().Be("9N0DX20HK701");
     }
 
+    private static readonly ItemDefinition Calculator = new()
+    {
+        Id = "calculator", Name = "Calculator", Description = "",
+        AppxPackageName = ["Microsoft.WindowsCalculator"], MsStoreId = "9WZDNCRFHVN5",
+    };
+
+    private const string CalculatorFamily = "Microsoft.WindowsCalculator_8wekyb3d8bbwe";
+
     [Fact]
-    public void An_app_without_a_newer_version_has_no_update()
+    public void Build_StoreAppWithCatalogUpdate_UpdatesThroughTheStoreAndShowsTheBundleVersion()
+    {
+        var apps = Build(
+            store: [new StorePackage("Microsoft.WindowsCalculator", CalculatorFamily, "Calculator", "11.2502.2.0")],
+            catalog: [Calculator],
+            storeUpdates: new Dictionary<string, StoreCatalogUpdate> { [CalculatorFamily] = new("2021.2502.2.0", "2021.2607.0.0") });
+
+        var app = apps.Single();
+        app.UpdateVia.Should().Be(PackageSources.MsStore);
+        app.AvailableVersion.Should().Be("2021.2607.0.0");
+        app.Version.Should().Be("2021.2502.2.0");
+        app.MsStoreId.Should().Be("9WZDNCRFHVN5");
+    }
+
+    [Fact]
+    public void Build_StoreAppWithNoCatalogUpdate_StaysUpToDate()
+    {
+        var apps = Build(
+            store: [new StorePackage("Microsoft.WindowsCalculator", CalculatorFamily, "Calculator", "11.2607.0.0")],
+            catalog: [Calculator]);
+
+        var app = apps.Single();
+        app.HasUpdate.Should().BeFalse();
+        app.Version.Should().Be("11.2607.0.0");
+    }
+
+    [Fact]
+    public void Build_WhenWinGetSourceHasUpdate_WinsOverTheStoreCatalog()
+    {
+        var apps = Build(
+            store: [new StorePackage("Microsoft.WindowsTerminal", "Microsoft.WindowsTerminal_8wekyb3d8bbwe", "Terminal", "1.24.11911.0")],
+            winGet: [new WinGetInstalledPackage("Microsoft.WindowsTerminal", "Terminal", "1.24.11911.0", "winget", "1.25.2733.0") { PackageFamilyNames = ["Microsoft.WindowsTerminal_8wekyb3d8bbwe"] }],
+            catalog: [new ItemDefinition
+            {
+                Id = "terminal", Name = "Terminal", Description = "",
+                AppxPackageName = ["Microsoft.WindowsTerminal"], WinGetPackageId = ["Microsoft.WindowsTerminal"], MsStoreId = "9N0DX20HK701",
+            }],
+            storeUpdates: new Dictionary<string, StoreCatalogUpdate> { ["Microsoft.WindowsTerminal_8wekyb3d8bbwe"] = new("3001.24.11911.0", "3001.24.12741.0") });
+
+        var app = apps.Single();
+        app.UpdateVia.Should().Be(PackageSources.WinGet);
+        app.AvailableVersion.Should().Be("1.25.2733.0");
+        app.Version.Should().Be("1.24.11911.0");
+    }
+
+    private static readonly ItemDefinition Terminal = new()
+    {
+        Id = "terminal", Name = "Terminal", Description = "",
+        AppxPackageName = ["Microsoft.WindowsTerminal"], WinGetPackageId = ["Microsoft.WindowsTerminal"], MsStoreId = "9N0DX20HK701",
+    };
+
+    private const string TerminalFamily = "Microsoft.WindowsTerminal_8wekyb3d8bbwe";
+
+    [Fact]
+    public void Build_StoreAppWithBundleNumberedOutsideTheStore_IgnoresTheStoreCatalog()
+    {
+        var apps = Build(
+            store: [new StorePackage("Microsoft.WindowsTerminal", TerminalFamily, "Terminal", "1.25.2733.0")],
+            winGet: [new WinGetInstalledPackage("Microsoft.WindowsTerminal", "Terminal", "1.25.2733.0", "winget", null) { PackageFamilyNames = [TerminalFamily] }],
+            catalog: [Terminal],
+            storeUpdates: new Dictionary<string, StoreCatalogUpdate> { [TerminalFamily] = new("2025.25.2733.0", "3001.25.2733.0") });
+
+        var app = apps.Single();
+        app.HasUpdate.Should().BeFalse();
+        app.Version.Should().Be("1.25.2733.0");
+    }
+
+    [Fact]
+    public void Build_StoreAppWinGetHasNoUpdateFor_TakesANewerStoreBundleNumberedTheSameWay()
+    {
+        var apps = Build(
+            store: [new StorePackage("Microsoft.WindowsTerminal", TerminalFamily, "Terminal", "1.24.11911.0")],
+            winGet: [new WinGetInstalledPackage("Microsoft.WindowsTerminal", "Terminal", "1.24.11911.0", "winget", null) { PackageFamilyNames = [TerminalFamily] }],
+            catalog: [Terminal],
+            storeUpdates: new Dictionary<string, StoreCatalogUpdate> { [TerminalFamily] = new("3001.24.11911.0", "3001.25.2733.0") });
+
+        var app = apps.Single();
+        app.UpdateVia.Should().Be(PackageSources.MsStore);
+        app.AvailableVersion.Should().Be("3001.25.2733.0");
+        app.MsStoreId.Should().Be("9N0DX20HK701");
+    }
+
+    [Fact]
+    public void Build_StoreAppWithOffer_TracesWhatEverySourceReported()
+    {
+        var traced = new List<string>();
+        Build(
+            store: [new StorePackage("Microsoft.WindowsTerminal", TerminalFamily, "Terminal", "1.24.11911.0")],
+            winGet: [new WinGetInstalledPackage("Microsoft.WindowsTerminal", "Terminal", "1.24.11911.0", "winget", "1.25.2733.0") { PackageFamilyNames = [TerminalFamily] }],
+            catalog: [Terminal],
+            storeUpdates: new Dictionary<string, StoreCatalogUpdate> { [TerminalFamily] = new("3001.24.11911.0", "3001.24.12741.0") },
+            trace: traced.Add);
+
+        traced.Should().ContainSingle().Which.Should().Be(
+            "Terminal: AppX 1.24.11911.0, winget Microsoft.WindowsTerminal (winget) 1.24.11911.0 -> 1.25.2733.0, "
+            + "Store bundle 3001.24.11911.0 -> 3001.24.12741.0, update via WinGet 1.25.2733.0");
+    }
+
+    [Fact]
+    public void StoreCatalogApps_ListsInstalledStoreAppsTheCatalogGivesAStoreId()
+    {
+        var packages = new List<StorePackage>
+        {
+            new("Microsoft.WindowsCalculator", CalculatorFamily, "Calculator", "11.2502.2.0"),
+            new("Microsoft.WindowsCalculator", CalculatorFamily, "Calculator", "11.2502.2.0"),
+            new("Contoso.Player", "Contoso.Player_8wekyb3d8bbwe", "Player", "1.0.0.0"),
+            new("Microsoft.VCLibs", "Microsoft.VCLibs_8wekyb3d8bbwe", "VCLibs", "14.0.0.0") { IsFramework = true },
+        };
+
+        var apps = InstalledAppsBuilder.StoreCatalogApps(packages, [Calculator]);
+
+        apps.Should().Equal(new StoreCatalogApp("9WZDNCRFHVN5", CalculatorFamily));
+    }
+
+    private static WinGetInstalledPackage TeamsPackage() =>
+        new("Microsoft.Teams", "Microsoft Teams", "26260.1717.5229.7049", "winget", "26276.513.5241.9675") { PackageFamilyNames = ["MSTeams_8wekyb3d8bbwe"] };
+
+    [Fact]
+    public void Build_StoreAppAtTheOfferedAppxVersion_HasNoUpdate()
+    {
+        var apps = Build(
+            store: [new StorePackage("MSTeams", "MSTeams_8wekyb3d8bbwe", "Microsoft Teams", "26276.513.5241.9675")],
+            winGet: [TeamsPackage()]);
+
+        var app = apps.Single();
+        app.HasUpdate.Should().BeFalse();
+        app.AvailableVersion.Should().BeNull();
+        app.Version.Should().Be("26276.513.5241.9675");
+    }
+
+    [Fact]
+    public void Build_StoreAppOlderThanTheOfferedVersion_HasAnUpdate()
+    {
+        var apps = Build(
+            store: [new StorePackage("MSTeams", "MSTeams_8wekyb3d8bbwe", "Microsoft Teams", "26260.1717.5229.7049")],
+            winGet: [TeamsPackage()]);
+
+        var app = apps.Single();
+        app.UpdateVia.Should().Be(PackageSources.WinGet);
+        app.AvailableVersion.Should().Be("26276.513.5241.9675");
+    }
+
+    [Fact]
+    public void Build_StoreAppNewerThanWinGetReports_ShowsItsAppxVersionBesideTheNewerOffer()
+    {
+        var apps = Build(
+            store: [new StorePackage("MSTeams", "MSTeams_8wekyb3d8bbwe", "Microsoft Teams", "26270.100.5229.7049")],
+            winGet: [TeamsPackage()]);
+
+        var app = apps.Single();
+        app.UpdateVia.Should().Be(PackageSources.WinGet);
+        app.Version.Should().Be("26270.100.5229.7049");
+        app.AvailableVersion.Should().Be("26276.513.5241.9675");
+    }
+
+    [Fact]
+    public void Build_StoreAppWithNoWinGetInstalledVersion_ComparesByItsAppxVersion()
+    {
+        var apps = Build(
+            store: [new StorePackage("MSTeams", "MSTeams_8wekyb3d8bbwe", "Microsoft Teams", "26260.1717.5229.7049")],
+            winGet: [TeamsPackage() with { Version = null }]);
+
+        apps.Single().UpdateVia.Should().Be(PackageSources.WinGet);
+        apps.Single().Version.Should().Be("26260.1717.5229.7049");
+    }
+
+    [Fact]
+    public void Build_ProgramNumberedDifferentlyInItsUninstallKey_StillGetsTheWinGetUpdate()
+    {
+        var apps = Build(
+            programs: [new UninstallEntry("dotnet-sdk", false, "Microsoft .NET SDK 10.0.100", "uninstall.exe") { Version = "99.0.0.0" }],
+            winGet: [new WinGetInstalledPackage("Microsoft.DotNet.SDK.10", ".NET SDK", "10.0.100", "winget", "10.0.101") { ProductCodes = ["dotnet-sdk"] }]);
+
+        apps.Single().UpdateVia.Should().Be(PackageSources.WinGet);
+        apps.Single().AvailableVersion.Should().Be("10.0.101");
+    }
+
+    [Fact]
+    public void Build_AppWithoutANewerVersion_HasNoUpdate()
     {
         var apps = Build(
             programs: [Program("7-Zip", "7-Zip 24.09 (x64)")],
@@ -61,7 +250,54 @@ public class InstalledAppsBuilderTests
     }
 
     [Fact]
-    public void An_app_chocolatey_installed_updates_through_chocolatey_even_when_winget_has_it_too()
+    public void Build_WhenWinGetOffersALowerVersion_IsNeverAnUpdate()
+    {
+        var apps = Build(
+            programs: [Program("7-Zip", "7-Zip 25.01 (x64)")],
+            winGet: [new WinGetInstalledPackage("7zip.7zip", "7-Zip", "25.01", "winget", "24.09") { ProductCodes = ["7-Zip"] }]);
+
+        apps.Single().HasUpdate.Should().BeFalse();
+        apps.Single().AvailableVersion.Should().BeNull();
+    }
+
+    // The SDK's Uninstall key numbers it 10.4.226.50611, winget calls the same install 10.0.402.
+    [Fact]
+    public void Build_DotnetSdkUpdate_ComparesAndShowsWinGetVersionsNotTheUninstallKeyVersion()
+    {
+        var sdk = new UninstallEntry("{8A5D3C21}", false, "Microsoft .NET SDK 10.0.402 (x64)", @"C:\ProgramData\Package Cache\sdk.exe")
+        {
+            Version = "10.4.226.50611",
+        };
+
+        var apps = Build(
+            programs: [sdk],
+            winGet: [new WinGetInstalledPackage("Microsoft.DotNet.SDK.10", "Microsoft .NET SDK 10.0", "10.0.402", "winget", "10.0.403") { ProductCodes = ["{8A5D3C21}"] }]);
+
+        var app = apps.Single();
+        app.UpdateVia.Should().Be(PackageSources.WinGet);
+        app.Version.Should().Be("10.0.402");
+        app.AvailableVersion.Should().Be("10.0.403");
+    }
+
+    [Fact]
+    public void Build_WhenWinGetOffersAnOlderSdk_HasNoUpdate()
+    {
+        var sdk = new UninstallEntry("{8A5D3C21}", false, "Microsoft .NET SDK 10.0.404 (x64)", @"C:\ProgramData\Package Cache\sdk.exe")
+        {
+            Version = "10.4.226.50611",
+        };
+
+        var apps = Build(
+            programs: [sdk],
+            winGet: [new WinGetInstalledPackage("Microsoft.DotNet.SDK.10", "Microsoft .NET SDK 10.0", "10.0.404", "winget", "10.0.403") { ProductCodes = ["{8A5D3C21}"] }]);
+
+        var app = apps.Single();
+        app.HasUpdate.Should().BeFalse();
+        app.Version.Should().Be("10.4.226.50611");
+    }
+
+    [Fact]
+    public void Build_AppChocolateyInstalled_UpdatesThroughChocolateyEvenWhenWinGetHasItToo()
     {
         var apps = Build(
             programs: [Program("Notepad++", "Notepad++ (64-bit x64)")],
@@ -79,7 +315,7 @@ public class InstalledAppsBuilderTests
     }
 
     [Fact]
-    public void An_app_chocolatey_installed_and_has_current_takes_no_update_from_winget()
+    public void Build_AppChocolateyInstalledAndCurrent_TakesNoUpdateFromWinGet()
     {
         var apps = Build(
             programs: [Program("Notepad++", "Notepad++ (64-bit x64)")],
@@ -99,7 +335,7 @@ public class InstalledAppsBuilderTests
     }
 
     [Fact]
-    public void A_store_app_chocolatey_installed_takes_no_update_from_the_store()
+    public void Build_StoreAppChocolateyInstalled_TakesNoUpdateFromTheStore()
     {
         var apps = Build(
             store: [Store("Contoso.Player", "Contoso Player")],
@@ -115,7 +351,7 @@ public class InstalledAppsBuilderTests
     }
 
     [Fact]
-    public void An_app_chocolatey_knows_but_did_not_install_still_updates_through_winget()
+    public void Build_AppChocolateyKnowsButDidNotInstall_StillUpdatesThroughWinGet()
     {
         var apps = Build(
             programs: [Program("Notepad++", "Notepad++ (64-bit x64)")],
@@ -131,7 +367,7 @@ public class InstalledAppsBuilderTests
 
     // An ARP\... id is winget only knowing the local install, not a source that can install it again.
     [Fact]
-    public void A_program_winget_only_knows_locally_has_no_winget_id()
+    public void Build_ProgramWinGetOnlyKnowsLocally_HasNoWinGetId()
     {
         var apps = Build(
             programs: [Program("{55F0F698}", "VMware Tools")],
@@ -141,7 +377,7 @@ public class InstalledAppsBuilderTests
     }
 
     [Fact]
-    public void The_catalog_supplies_ids_for_an_app_winget_did_not_match()
+    public void Build_AppWinGetDidNotMatch_TakesItsIdsFromTheCatalog()
     {
         var apps = Build(
             programs: [Program("Notepad++", "Notepad++ (64-bit x64)")],
@@ -160,7 +396,19 @@ public class InstalledAppsBuilderTests
     }
 
     [Fact]
-    public void Frameworks_resource_packages_and_os_internals_are_left_out()
+    public void Build_WithoutWinGet_MatchesACatalogAppByItsUninstallKeyName()
+    {
+        var apps = Build(
+            programs: [Program("7-Zip", "7-Zip 24.09 (x64)")],
+            catalog: [new ItemDefinition { Id = "7zip", Name = "7-Zip", Description = "", WinGetPackageId = ["7zip.7zip"] }]);
+
+        var app = apps.Should().ContainSingle().Subject;
+        app.CatalogId.Should().Be("7zip");
+        app.WinGetId.Should().Be("7zip.7zip");
+    }
+
+    [Fact]
+    public void Build_FrameworkResourceAndSystemPackages_AreLeftOut()
     {
         var apps = Build(store:
         [
@@ -174,7 +422,7 @@ public class InstalledAppsBuilderTests
     }
 
     [Fact]
-    public void A_store_app_named_like_a_program_shows_once_as_the_program()
+    public void Build_StoreAppNamedLikeAProgram_ShowsOnceAsTheProgram()
     {
         var apps = Build(
             programs: [Program("Microsoft Edge", "Microsoft Edge")],
@@ -184,7 +432,7 @@ public class InstalledAppsBuilderTests
     }
 
     [Fact]
-    public void A_store_app_takes_its_store_id_from_the_windows_apps_catalog()
+    public void Build_StoreApp_TakesItsStoreIdFromTheWindowsAppsCatalog()
     {
         var apps = Build(
             store: [Store("Microsoft.WindowsCalculator", "Calculator")],
@@ -194,7 +442,7 @@ public class InstalledAppsBuilderTests
     }
 
     [Fact]
-    public void Apps_are_sorted_by_name()
+    public void Build_SeveralApps_SortsThemByName()
     {
         var apps = Build(programs: [Program("b", "VLC media player"), Program("a", "7-Zip")], store: [Store("Microsoft.Paint", "Paint")]);
 
@@ -227,7 +475,7 @@ public class UninstallRegistryReaderTests
     }
 
     [Fact]
-    public void Reads_the_details_programs_and_features_shows()
+    public void Read_ProgramsAndFeaturesEntry_ReadsTheDetailsItShows()
     {
         Key(UninstallRegistryReader.Machine, "7-Zip", Values("7-Zip 24.09", ("Publisher", "Igor Pavlov"), ("DisplayVersion", "24.09"),
             ("InstallDate", "20261002"), ("EstimatedSize", 5900)));
@@ -241,7 +489,7 @@ public class UninstallRegistryReaderTests
     }
 
     [Fact]
-    public void System_components_updates_and_entries_without_an_uninstaller_are_skipped()
+    public void Read_SystemComponentsUpdatesAndEntriesWithoutAnUninstaller_AreSkipped()
     {
         Key(UninstallRegistryReader.Machine, "Shown", Values("Shown"));
         Key(UninstallRegistryReader.Machine, "Component", Values("Component", ("SystemComponent", 1)));
@@ -254,7 +502,7 @@ public class UninstallRegistryReaderTests
     }
 
     [Fact]
-    public void ReadAll_returns_the_skipped_keys_too_and_says_why_they_are_hidden()
+    public void ReadAll_SkippedKeys_AreReturnedWithTheReasonTheyAreHidden()
     {
         Key(UninstallRegistryReader.Machine, "Shown", Values("Shown"));
         Key(UninstallRegistryReader.Machine, "Component", Values("Component", ("SystemComponent", 1)));
@@ -275,7 +523,7 @@ public class UninstallRegistryReaderTests
     }
 
     [Fact]
-    public void Reads_32_bit_and_per_user_programs_too()
+    public void Read_32BitAndPerUserPrograms_AreReadToo()
     {
         Key(UninstallRegistryReader.Machine32, "Old", Values("Old app"));
         Key(UninstallRegistryReader.User, "Mine", Values("My app"));
@@ -286,7 +534,7 @@ public class UninstallRegistryReaderTests
     }
 
     [Fact]
-    public void A_bad_install_date_is_left_empty()
+    public void Read_BadInstallDate_LeavesItEmpty()
     {
         Key(UninstallRegistryReader.Machine, "App", Values("App", ("InstallDate", "2026-10-02")));
 

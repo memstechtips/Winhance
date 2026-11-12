@@ -75,7 +75,7 @@ public class ApplyOpScriptEmitterTests
 
     // Windows' folder id can only be built on the PC that has the folder, so the album is a script, not a registry row.
     [Fact]
-    public void A_slideshow_folder_emits_the_settings_script_with_the_folder_substituted()
+    public void Emit_SlideshowFolder_EmitsTheSettingsScriptWithTheFolderSubstituted()
     {
         var result = EmitAlbum(@"C:\Windows\Web\Wallpaper\Winhance\Holiday");
 
@@ -87,7 +87,7 @@ public class ApplyOpScriptEmitterTests
 
     // An HKCU write emitted into the system pass would land in the wrong hive.
     [Fact]
-    public void A_slideshow_script_goes_to_the_pass_its_run_context_names()
+    public void Emit_SlideshowScript_GoesToThePassItsRunContextNames()
     {
         var result = EmitAlbum(@"D:\Albums\Trip");
 
@@ -121,7 +121,7 @@ public class ApplyOpScriptEmitterTests
     };
 
     [Fact]
-    public void The_slideshow_script_comes_after_the_rows_it_reads()
+    public void Emit_SlideshowWithIntervalAndShuffle_PutsTheScriptAfterTheRowsItReads()
     {
         var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
         {
@@ -146,7 +146,7 @@ public class ApplyOpScriptEmitterTests
     }
 
     [Fact]
-    public void An_album_folder_with_an_apostrophe_is_doubled_for_the_literal()
+    public void Emit_AlbumFolderWithAnApostrophe_DoublesItForTheLiteral()
     {
         var result = EmitAlbum(@"D:\Marco's Pictures\Trip");
 
@@ -155,7 +155,7 @@ public class ApplyOpScriptEmitterTests
     }
 
     [Fact]
-    public void An_album_folder_with_a_typographic_apostrophe_is_doubled_for_the_literal()
+    public void Emit_AlbumFolderWithATypographicApostrophe_DoublesItForTheLiteral()
     {
         var result = EmitAlbum("D:\\Mom\u2019s photos");
 
@@ -164,16 +164,16 @@ public class ApplyOpScriptEmitterTests
     }
 
     [Fact]
-    public void An_empty_album_resolves_to_no_plan_and_is_reported()
+    public void Emit_EmptyAlbum_SkipsWithoutAWarning()
     {
         var result = EmitAlbum(string.Empty);
 
-        result.Warnings.Should().ContainSingle().Which.Should().Contain("theme-wallpaper-album");
+        result.Warnings.Should().BeEmpty();
         UserText(result).Should().BeEmpty();
     }
 
     [Fact]
-    public void An_answer_file_only_choice_is_skipped_without_a_warning()
+    public void Emit_AnswerFileOnlyChoice_SkipsWithoutAWarning()
     {
         var setting = new Setting
         {
@@ -202,6 +202,39 @@ public class ApplyOpScriptEmitterTests
         result.Warnings.Should().BeEmpty();
         SystemText(result).Should().BeEmpty();
         UserText(result).Should().BeEmpty();
+    }
+
+    // Setup has no signed-in session to set a live value in; the registry row is what the new user signs in with.
+    [Fact]
+    public void Emit_LiveSystemParameter_EmitsOnlyItsRegistryRowWithoutAWarning()
+    {
+        var setting = new Setting
+        {
+            Id = "drag-full-windows",
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+            Targets = new Target[] { new RegTarget("V", DesktopPath, "DragFullWindows", RegistryValueKind.String) },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of("1") },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.DragFullWindows, true) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Set = new Dictionary<string, StateValue> { ["V"] = StateValue.Of("0") },
+                    Effects = new Effect[] { new SystemParameterEffect(SystemParameter.DragFullWindows, false) },
+                },
+            },
+        };
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.GamingPerformance] = new[] { setting } };
+
+        var result = Emit(byFeature, new SettingChoice(setting.Id, new ChoiceValue.Toggle(false)));
+
+        result.Warnings.Should().BeEmpty();
+        UserText(result).Should().Contain(@"Set-RegistryValue -Path 'HKCU:\Control Panel\Desktop' -Name 'DragFullWindows' -Type 'String' -Value '0'");
     }
 
     [Fact]
@@ -436,10 +469,8 @@ public class ApplyOpScriptEmitterTests
         UserText(result).Should().NotContain("powercfg");
     }
 
-    // The choice holds seconds, the slider is authored in minutes, and the row has to come back out in the
-    // seconds powercfg stores - so the display-units round trip has to cancel out exactly.
     [Fact]
-    public void Slider_ConvertsSystemToDisplayForTheResolver_AndBackToSystemInTheRow()
+    public void Slider_RowCarriesTheChoiceSystemValues()
     {
         var result = EmitOne("parity-slider", new ChoiceValue.AcDcNumber(600, 300));
 
@@ -747,7 +778,7 @@ public class ApplyOpScriptEmitterTests
             UserIndent);
 
     [Fact]
-    public void A_localized_description_is_escaped_for_the_string_it_lands_in()
+    public void Emit_LocalizedDescription_IsEscapedForTheStringItLandsIn()
     {
         var localization = new Mock<ILocalizationService>()
             .PresentKey("Scripts description", "l\u2019Explorateur \u201CShow all icons\u201D");
@@ -759,7 +790,7 @@ public class ApplyOpScriptEmitterTests
     }
 
     [Fact]
-    public void A_script_block_is_headed_by_the_localized_name()
+    public void Emit_ScriptBlock_IsHeadedByTheLocalizedName()
     {
         var localization = new Mock<ILocalizationService>().PresentKey("Scripts", "Skripte");
 
@@ -767,7 +798,7 @@ public class ApplyOpScriptEmitterTests
     }
 
     [Fact]
-    public void A_line_break_in_the_localized_name_stays_inside_the_comment()
+    public void Emit_LineBreakInTheLocalizedName_StaysInsideTheComment()
     {
         var localization = new Mock<ILocalizationService>().PresentKey("Scripts", "Skripte\r\nund Aufgaben");
 
@@ -988,7 +1019,7 @@ public class ApplyOpScriptEmitterTests
             UserIndent);
 
     [Fact]
-    public void An_apps_only_script_is_left_out_of_a_file_that_installs_nothing()
+    public void Emit_AppsOnlyScriptWhenNothingIsInstalled_LeavesItOut()
     {
         var result = EmitAppsCondition(SelectionSet.Empty);
 
@@ -997,7 +1028,7 @@ public class ApplyOpScriptEmitterTests
     }
 
     [Fact]
-    public void A_no_apps_script_is_left_out_of_a_file_that_installs_an_app()
+    public void Emit_NoAppsScriptWhenAnAppIsInstalled_LeavesItOut()
     {
         var result = EmitAppsCondition(SelectionSet.Empty with
         {
@@ -1008,7 +1039,7 @@ public class ApplyOpScriptEmitterTests
     }
 
     [Fact]
-    public void Own_installers_alone_count_as_apps_to_install()
+    public void Emit_OwnInstallersAlone_CountAsAppsToInstall()
     {
         var result = EmitAppsCondition(SelectionSet.Empty with
         {
@@ -1025,7 +1056,7 @@ public class ApplyOpScriptEmitterTests
     }
 
     [Fact]
-    public void A_sign_in_after_setup_script_lands_in_its_own_text_and_in_neither_pass()
+    public void Emit_SignInAfterSetupScript_LandsInItsOwnTextAndInNeitherPass()
     {
         var result = EmitAppsCondition(SelectionSet.Empty);
 
@@ -1037,6 +1068,7 @@ public class ApplyOpScriptEmitterTests
 
     private static readonly string[] HereStringPath = [@"HKEY_LOCAL_MACHINE\SOFTWARE\ParityHereString"];
 
+    private static readonly string[] DesktopPath = [@"HKEY_CURRENT_USER\Control Panel\Desktop"];
     private static readonly string[] SlideshowPath = [@"HKEY_CURRENT_USER\Control Panel\Personalization\Desktop Slideshow"];
 
     private static readonly string[] QuotedPath = [@"HKEY_LOCAL_MACHINE\SOFTWARE\ParityQuoted"];
@@ -1062,4 +1094,25 @@ public class ApplyOpScriptEmitterTests
             From = OptionValue.LongDate,
         },
     ];
+
+    [Fact]
+    public void Emit_SlideshowFolderOnAShare_EmitsNothing()
+    {
+        var result = EmitAlbum(@"\\evil.example\share\Trip");
+
+        UserText(result).Should().NotContain("evil.example");
+        SystemText(result).Should().NotContain("evil.example");
+    }
+
+    [Fact]
+    public void TypedDns_AddressWithAZone_IsRefusedNotEmitted()
+    {
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [ParityCatalog.FeatureId] = new[] { DnsSetting() } };
+        var custom = new Dictionary<string, object> { ["primary"] = "1.1.1.1%'; calc; '" };
+
+        var r = Emit(byFeature, new SettingChoice("dns", new ChoiceValue.CustomValues(custom)));
+
+        UserText(r).Should().NotContain("calc");
+        r.Warnings.Should().NotBeEmpty();
+    }
 }

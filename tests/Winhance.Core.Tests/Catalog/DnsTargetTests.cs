@@ -28,17 +28,17 @@ public class DnsTargetTests
     private static DnsTarget Target(string key) => Dns.Targets.OfType<DnsTarget>().Single(t => t.Key == key);
 
     [Fact]
-    public void No_servers_reads_as_automatic()
+    public void Detect_NoServers_ReadsAsAutomatic()
         => Assert.Equal(LocKey.Setting.GamingDnsServer.Option0.Value, CatalogDiscovery.Detect(Dns, new FakeCtx()).Label);
 
     [Fact]
-    public void A_preset_pair_reads_as_its_preset()
+    public void Detect_PresetPair_ReadsAsItsPreset()
         => Assert.Equal(LocKey.Setting.GamingDnsServer.Option4.Value,
             CatalogDiscovery.Detect(Dns, new FakeCtx(new DnsServer("8.8.8.8"), new DnsServer("8.8.4.4"))).Label);
 
     // A preset names only its servers, so encrypting them keeps the preset.
     [Fact]
-    public void An_encrypted_preset_still_reads_as_its_preset()
+    public void Detect_EncryptedPreset_StillReadsAsItsPreset()
         => Assert.Equal(LocKey.Setting.GamingDnsServer.Option1.Value, CatalogDiscovery.Detect(Dns, new FakeCtx(
             new DnsServer("1.1.1.1", DohMode.Automatic), new DnsServer("1.0.0.1", DohMode.Automatic))).Label);
 
@@ -46,13 +46,13 @@ public class DnsTargetTests
     [Theory]
     [InlineData("1.1.1.1", null)]
     [InlineData("10.0.0.1", "10.0.0.2")]
-    public void Servers_no_preset_names_read_as_custom(string preferred, string? alternate)
+    public void Detect_ServersNoPresetNames_ReadsAsCustom(string preferred, string? alternate)
         => Assert.Null(CatalogDiscovery.Detect(Dns, alternate is null
             ? new FakeCtx(new DnsServer(preferred))
             : new FakeCtx(new DnsServer(preferred), new DnsServer(alternate))).Label);
 
     [Fact]
-    public void Each_box_reads_its_own_slot_and_family()
+    public void ReadDns_EachBox_ReadsItsOwnSlotAndFamily()
     {
         var ctx = new FakeCtx(
             new DnsServer("10.0.0.1"),
@@ -68,11 +68,11 @@ public class DnsTargetTests
 
     // Off reads as absent, so only an encryption the user chose shows up in a saved config.
     [Fact]
-    public void An_unencrypted_server_reads_no_encryption()
+    public void ReadDns_UnencryptedServer_ReadsNoEncryption()
         => Assert.False(CatalogDiscovery.ReadDns(Target("primaryDoh"), new FakeCtx(new DnsServer("10.0.0.1"))).Present);
 
     [Fact]
-    public void A_preset_applies_its_servers_unencrypted()
+    public void Build_Preset_AppliesItsServersUnencrypted()
     {
         var op = Assert.IsType<DnsSetOp>(Assert.Single(ApplyPlanBuilder.Build(Dns, LocKey.Setting.GamingDnsServer.Option5)));
         Assert.Equal(Quad9Servers, op.Servers.Select(s => s.Address));
@@ -81,7 +81,7 @@ public class DnsTargetTests
 
     // Deliberate: every preset is one write of the whole server list, so manual IPv6 servers and encryption go with it.
     [Fact]
-    public void Every_preset_clears_ipv6_servers_and_encryption()
+    public void Build_EveryPreset_ClearsIpv6ServersAndEncryption()
         => Assert.All(Dns.States, state =>
         {
             var op = Assert.IsType<DnsSetOp>(Assert.Single(ApplyPlanBuilder.Build(Dns, state.Label)));
@@ -92,7 +92,7 @@ public class DnsTargetTests
     // Windows Settings empties both families when DNS goes back to Automatic, and a preset is IPv4 only, so a PC with
     // manual IPv6 servers is on none of these states.
     [Fact]
-    public void Every_state_reads_as_itself_only_with_no_ipv6_servers()
+    public void States_EveryState_ReadsAsItselfOnlyWithNoIpv6Servers()
         => Assert.All(Dns.States, state =>
         {
             Assert.Equal(StateValue.Absent, state.Set["primary6"]);
@@ -100,11 +100,11 @@ public class DnsTargetTests
         });
 
     [Fact]
-    public void Automatic_applies_no_servers()
+    public void Build_Automatic_AppliesNoServers()
         => Assert.Empty(Assert.IsType<DnsSetOp>(Assert.Single(ApplyPlanBuilder.Build(Dns, LocKey.Setting.GamingDnsServer.Option0))).Servers);
 
     [Fact]
-    public void Typed_boxes_apply_as_servers_with_their_encryption()
+    public void BuildDnsCustomState_TypedBoxes_ApplyAsServersWithTheirEncryption()
     {
         var op = Assert.IsType<DnsSetOp>(Assert.Single(ApplyPlanBuilder.BuildDnsCustomState(Dns, new Dictionary<string, object>
         {
@@ -126,7 +126,7 @@ public class DnsTargetTests
     [InlineData("primary", "2001:db8::1")]
     [InlineData("primary6", "10.0.0.1")]
     [InlineData("primaryDoh", "2")]
-    public void Boxes_Windows_would_refuse_resolve_to_nothing(string key, string value)
+    public void BuildDnsCustomState_BoxesWindowsWouldRefuse_ReturnsNull(string key, string value)
     {
         var values = new Dictionary<string, object> { [key] = value };
         if (key == "primaryDoh")
@@ -141,7 +141,7 @@ public class DnsTargetTests
     [InlineData(DohMode.Automatic, true, 21)]
     [InlineData(DohMode.Manual, false, 2)]
     [InlineData(DohMode.Manual, true, 6)]
-    public void Encryption_flags_match_what_Windows_Settings_writes(DohMode doh, bool fallback, long flags)
+    public void DohFlags_EncryptionModes_MatchWhatWindowsSettingsWrites(DohMode doh, bool fallback, long flags)
     {
         var server = new DnsServer("1.1.1.1", doh, null, fallback);
 
@@ -156,7 +156,7 @@ public class DnsTargetTests
     [InlineData("256.1.1.1", false)]
     [InlineData("2606:4700:4700::1111", false)]
     [InlineData("dns.google", false)]
-    public void Only_a_dotted_ipv4_address_counts(string text, bool expected)
+    public void IsIPv4_OnlyDottedIpv4Address_ReturnsTrue(string text, bool expected)
         => Assert.Equal(expected, DnsAddress.IsIPv4(text));
 
     [Theory]
@@ -164,11 +164,11 @@ public class DnsTargetTests
     [InlineData("::1", true)]
     [InlineData("1.1.1.1", false)]
     [InlineData("2606:zz::1", false)]
-    public void Only_an_ipv6_address_counts(string text, bool expected)
+    public void IsIPv6_OnlyIpv6Address_ReturnsTrue(string text, bool expected)
         => Assert.Equal(expected, DnsAddress.IsIPv6(text));
 
     [Fact]
-    public void The_DNS_over_HTTPS_boxes_are_Windows_11_only()
+    public void Fields_DohBoxes_AreWindows11Only()
     {
         var doh = Dns.Fields.SelectMany(row => row).Where(f => f.Key.EndsWith("Doh", StringComparison.Ordinal)).ToList();
 
@@ -177,7 +177,7 @@ public class DnsTargetTests
     }
 
     [Fact]
-    public void Fields_belong_to_a_selection_and_name_its_targets()
+    public void Validate_FieldsOnAToggleOrNamingNoTarget_AreRejected()
     {
         var toggle = SettingCatalog.Find("gaming-nagle-algorithm")! with { Fields = [[new Field("missing", FieldKind.Text, TestKeys.Of("x"))]] };
 
@@ -186,4 +186,14 @@ public class DnsTargetTests
         Assert.Contains(errors, e => e.Message.Contains("only a Selection may carry them"));
         Assert.Contains(errors, e => e.Message.Contains("Field 'missing' names no target"));
     }
+
+    [Theory]
+    [InlineData("fe80::1%12")]
+    [InlineData("fe80::1%'; calc; '")]
+    public void IsIPv6_AddressWithAZone_IsRejected(string address)
+        => Assert.False(DnsAddress.IsIPv6(address));
+
+    [Fact]
+    public void IsIPv6_PlainAddress_IsAccepted()
+        => Assert.True(DnsAddress.IsIPv6("2606:4700:4700::1111"));
 }

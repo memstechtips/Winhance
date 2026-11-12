@@ -7,32 +7,31 @@ public class XamlTokensTests
 {
     private static readonly ThemeExport Theme = XamlTokens.Extract(RepoPaths.SolutionDir());
 
+    // The pills borrow Windows' own status colours, so each theme resolves them through WinUI's tokens.
     [Fact]
-    public void Both_themes_carry_the_badge_palettes()
+    public void Aliases_BothThemes_CarryBadgePalettes()
     {
         foreach (var theme in new[] { "light", "dark" })
         {
-            var colors = Theme.Themes[theme];
+            var aliases = Theme.Aliases[theme];
             foreach (var role in new[] { "Recommended", "Default", "Preference" })
             {
-                Assert.Matches("^#[0-9A-Fa-f]{6,8}$", colors[$"Badge{role}Background"]);
-                Assert.Matches("^#[0-9A-Fa-f]{6,8}$", colors[$"Badge{role}Border"]);
-                Assert.Matches("^#[0-9A-Fa-f]{6,8}$", colors[$"Badge{role}Foreground"]);
+                Assert.StartsWith("SystemFillColor", aliases[$"Badge{role}Background"]);
+                Assert.Equal("ControlStrokeColorDefaultBrush", aliases[$"Badge{role}Border"]);
+                Assert.StartsWith("SystemFillColor", aliases[$"Badge{role}Foreground"]);
             }
         }
-
-        Assert.NotEqual(Theme.Themes["light"]["BadgeRecommendedForeground"], Theme.Themes["dark"]["BadgeRecommendedForeground"]);
     }
 
     [Fact]
-    public void Table_stroke_resolves_to_a_different_winui_token_per_theme()
+    public void Aliases_TableStroke_ResolvesToDifferentWinUiTokenPerTheme()
     {
         Assert.Equal("CardStrokeColorDefaultBrush", Theme.Aliases["light"]["TechDetail.Table.StrokeBrush"]);
         Assert.Equal("ControlStrokeColorDefaultBrush", Theme.Aliases["dark"]["TechDetail.Table.StrokeBrush"]);
     }
 
     [Fact]
-    public void Styles_carry_the_metrics_the_web_table_needs()
+    public void Styles_TableStyles_CarryMetricsTheWebTableNeeds()
     {
         Assert.Equal("32", Theme.Styles["TechDetail.Table.HeaderBand"].Setters["MinHeight"]);
         Assert.Equal("12,4", Theme.Styles["TechDetail.Table.HeaderBand"].Setters["Padding"]);
@@ -46,14 +45,14 @@ public class XamlTokensTests
     }
 
     [Fact]
-    public void Theme_resource_references_are_kept_as_references()
+    public void Styles_ThemeResourceReferences_AreKeptAsReferences()
     {
         Assert.Equal("{ThemeResource SubtleFillColorSecondaryBrush}", Theme.Styles["TechDetail.Table.HeaderBand"].Setters["Background"]);
         Assert.Equal("{ThemeResource TechDetail.Table.StrokeBrush}", Theme.Styles["TechDetail.Table.Cell"].Setters["BorderBrush"]);
     }
 
     [Fact]
-    public void The_three_pill_geometries_are_exported_with_a_viewbox()
+    public void Geometries_ThreePillGeometries_AreExportedWithViewbox()
     {
         foreach (var key in new[] { "BadgeRecommendedIconPath", "BadgeDefaultIconPath", "BadgePreferenceIconPath" })
         {

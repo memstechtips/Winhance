@@ -8,7 +8,6 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.UI.Helpers;
 
 namespace Winhance.UI.Features.Common.Controls;
 
@@ -51,13 +50,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
             typeof(bool),
             typeof(NavButton),
             new PropertyMetadata(false, OnIsSelectedChanged));
-
-    public static readonly DependencyProperty IsLockedProperty =
-        DependencyProperty.Register(
-            nameof(IsLocked),
-            typeof(bool),
-            typeof(NavButton),
-            new PropertyMetadata(false, OnIsLockedChanged));
 
     public static readonly DependencyProperty IsCompactProperty =
         DependencyProperty.Register(
@@ -111,12 +103,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
         set => SetValue(IsSelectedProperty, value);
     }
 
-    public bool IsLocked
-    {
-        get => (bool)GetValue(IsLockedProperty);
-        set => SetValue(IsLockedProperty, value);
-    }
-
     public bool IsCompact
     {
         get => (bool)GetValue(IsCompactProperty);
@@ -152,8 +138,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     public double IconSize => IsCompact ? CompactIconSize : ExpandedIconSize;
     public Visibility TextVisibility => IsCompact ? Visibility.Collapsed : Visibility.Visible;
     public Visibility IndicatorVisibility => IsSelected ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility LockedVisibility => IsLocked ? Visibility.Visible : Visibility.Collapsed;
-    public double ContentOpacity => IsLocked ? 0.4 : 1.0;
 
     public Visibility FluentIconVisibility => !string.IsNullOrEmpty(IconSymbol) ? Visibility.Visible : Visibility.Collapsed;
 
@@ -176,8 +160,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
 
     private void NavButton_KeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (IsLocked) return;
-
         if (e.Key == VirtualKey.Enter || e.Key == VirtualKey.Space)
         {
             Clicked?.Invoke(this, new NavButtonClickedEventArgs(NavigationTag));
@@ -191,7 +173,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     // Lets the automation peer route Narrator's Invoke through the same gates as pointer / keyboard.
     internal void InvokeFromAutomation()
     {
-        if (IsLocked) return;
         Clicked?.Invoke(this, new NavButtonClickedEventArgs(NavigationTag));
     }
 
@@ -212,16 +193,6 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
         if (d is NavButton button)
         {
             button.NotifyPropertyChanged(nameof(IndicatorVisibility));
-            button.UpdateVisualState();
-        }
-    }
-
-    private static void OnIsLockedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        if (d is NavButton button)
-        {
-            button.NotifyPropertyChanged(nameof(LockedVisibility));
-            button.NotifyPropertyChanged(nameof(ContentOpacity));
             button.UpdateVisualState();
         }
     }
@@ -307,16 +278,12 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
 
     private void RootGrid_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        if (IsLocked) return;
-
         RootGrid.CapturePointer(e.Pointer);
     }
 
     private void RootGrid_PointerReleased(object sender, PointerRoutedEventArgs e)
     {
         RootGrid.ReleasePointerCapture(e.Pointer);
-
-        if (IsLocked) return;
 
         if (_isPointerOver)
         {
@@ -327,7 +294,7 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     private void UpdateVisualState()
     {
         string state = IsSelected ? "Selected"
-            : (_isPointerOver || _isFocused) && !IsLocked ? "PointerOver"
+            : _isPointerOver || _isFocused ? "PointerOver"
             : "Normal";
         VisualStateManager.GoToState(this, state, false);
     }
@@ -357,21 +324,8 @@ public sealed partial class NavButtonAutomationPeer : FrameworkElementAutomation
 
     protected override string GetClassNameCore() => nameof(NavButton);
 
-    // Locked: the base peer offers no Invoke pattern, so UIA reports a button that cannot be pressed.
     protected override object GetPatternCore(PatternInterface patternInterface)
-    {
-        if (patternInterface == PatternInterface.Invoke
-            && Owner is NavButton navButton
-            && NavLockPolicy.IsInvokableByAutomation(navButton.IsLocked))
-        {
-            return this;
-        }
-        return base.GetPatternCore(patternInterface);
-    }
-
-    // The element stays enabled in XAML to keep its tab stop and tooltip; only UIA hears it is unavailable.
-    protected override bool IsEnabledCore()
-        => Owner is not NavButton navButton || NavLockPolicy.IsInvokableByAutomation(navButton.IsLocked);
+        => patternInterface == PatternInterface.Invoke ? this : base.GetPatternCore(patternInterface);
 
     public void Invoke()
     {

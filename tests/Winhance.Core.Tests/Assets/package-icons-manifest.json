@@ -1,5 +1,5 @@
 {
-  "count": 268,
+  "count": 270,
   "description": "Icon manifest for memstechtips/package-icons. Keys are paths under icons/. external/ keyed by package-manager id (winget|choco); windows/ keyed by AppX package identity, DISM CapabilityName, or OptionalFeatureName. Commit-pin via jsDelivr; re-download an icon when its sha256 changes.",
   "icons": {
     "external/7zip.7zip.png": {
@@ -777,6 +777,14 @@
         "Microsoft.DotNet.Framework.DeveloperPack_4"
       ]
     },
+    "external/microsoft.dotnet.runtime.10.png": {
+      "choco": "dotnet-10.0-runtime",
+      "name": "Microsoft .NET Runtime 10.0",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.DotNet.Runtime.10"
+      ]
+    },
     "external/microsoft.dotnet.runtime.3_1.png": {
       "choco": "dotnetcore-3.1-runtime",
       "name": "Microsoft .NET Runtime 3.1",
@@ -815,6 +823,14 @@
       "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
       "winget": [
         "Microsoft.DotNet.Runtime.8"
+      ]
+    },
+    "external/microsoft.dotnet.runtime.9.png": {
+      "choco": "dotnet-9.0-runtime",
+      "name": "Microsoft .NET Runtime 9.0",
+      "sha256": "2962abb351166b1e16628cfa52f7acb56496ac2961d746119bc1a9c32686d8e5",
+      "winget": [
+        "Microsoft.DotNet.Runtime.9"
       ]
     },
     "external/microsoft.edgewebview2runtime.png": {

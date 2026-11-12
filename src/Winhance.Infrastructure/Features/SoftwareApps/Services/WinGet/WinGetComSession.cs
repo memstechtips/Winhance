@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Management.Deployment;
 using Winhance.Core.Features.Common.Interfaces;
@@ -83,6 +84,14 @@ internal class WinGetComSession
         GC.Collect();
         GC.WaitForPendingFinalizers();
         GC.Collect();
+    }
+
+    internal static bool IsServerRunning()
+    {
+        var processes = Process.GetProcessesByName("WindowsPackageManagerServer");
+        foreach (var process in processes)
+            process.Dispose();
+        return processes.Length > 0;
     }
 
     public void ResetFactory()

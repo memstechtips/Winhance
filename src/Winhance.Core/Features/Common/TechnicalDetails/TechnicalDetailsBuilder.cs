@@ -149,13 +149,13 @@ public static class TechnicalDetailsBuilder
             var state = setting.States[i];
             var cells = new List<MatrixCell>(columns.Count);
             foreach (var reg in orderedRegTargets)
-                cells.Add(new MatrixCell(ValueCell(ctx, state, reg.Key)));
+                cells.Add(new MatrixCell(ValueCell(ctx, state, reg.Key, deletesWholeKey: reg.ValueName is null)));
             foreach (var task in taskTargets)
                 cells.Add(new MatrixCell(TaskStateText(ctx, state, task.Key)));
             // A powercfg value lives in the state's Set under the target key, exactly as a registry
             // value does, so the same formatter answers both.
             foreach (var pcfg in powerTargets)
-                cells.Add(new MatrixCell(ValueCell(ctx, state, pcfg.Key)));
+                cells.Add(new MatrixCell(ValueCell(ctx, state, pcfg.Key, deletesWholeKey: false)));
             if (dnsTargets.Count > 0)
                 cells.AddRange(DnsCells(ctx, key => state.Set.TryGetValue(key, out var v) ? v.WritePayload : null));
             foreach (var element in elementTargets)
@@ -952,7 +952,7 @@ public static class TechnicalDetailsBuilder
     };
 
     private static bool HasDocumentableContent(BuildContext ctx) =>
-        BuildRequirements(ctx).Count > 0 || BuildOptionLinks(ctx).Count > 0
+        ctx.Setting.ReadWhileWritingAnswerFile || BuildRequirements(ctx).Count > 0 || BuildOptionLinks(ctx).Count > 0
         || BuildNotes(ctx).Count > 0 || BuildCodeBlocks(ctx).Count > 0;
 
     // Catalogs author task states as Of(true)/Of(false), so the bool payload is the answer; a state that deletes the
@@ -1157,8 +1157,8 @@ public static class TechnicalDetailsBuilder
         return index >= 0 && index < path.Length - 1 ? path[(index + 1)..] : path;
     }
 
-    private static string ValueCell(BuildContext ctx, SettingState state, string key) =>
-        state.Set.TryGetValue(key, out var value) ? FormatStateValue(ctx, value) : string.Empty;
+    private static string ValueCell(BuildContext ctx, SettingState state, string key, bool deletesWholeKey) =>
+        state.Set.TryGetValue(key, out var value) ? FormatStateValue(ctx, value, deletesWholeKey) : string.Empty;
 
     // In a generated file a key the state never mentions and an Absent value are the same: not written.
     private static string ElementCell(BuildContext ctx, SettingState state, string key) =>
@@ -1259,14 +1259,21 @@ public static class TechnicalDetailsBuilder
         }
     }
 
-    private static string FormatStateValue(BuildContext ctx, StateValue value)
+    // The writer removes the whole key only for a key-existence target (no ValueName); a named value
+    // that goes Absent is deleted on its own and its key stays.
+    private static string FormatStateValue(BuildContext ctx, StateValue value, bool deletesWholeKey)
     {
         if (value.WritePayload is not null)
         {
             var text = FormatConcreteValue(value.WritePayload);
             return value.AcceptsAbsent ? $"{text} ({ctx.Text(TechnicalDetailKeys.OrNotSet, "or not set")})" : text;
         }
-        if (value.DeleteOnWrite) return ctx.Text(TechnicalDetailKeys.DeletesKey, "deletes key");
+        if (value.DeleteOnWrite)
+        {
+            return deletesWholeKey
+                ? ctx.Text(TechnicalDetailKeys.DeletesKey, "deletes key")
+                : ctx.Text(TechnicalDetailKeys.DeletesValue, "deletes value");
+        }
         return string.Empty;                                           // presence-only
     }
 

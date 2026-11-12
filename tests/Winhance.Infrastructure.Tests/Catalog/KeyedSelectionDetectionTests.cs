@@ -19,7 +19,7 @@ public class KeyedSelectionDetectionTests
         new(context.AsFactory(), new Mock<ILogService>().Object, new FakeOptionProviderRegistry(), Mock.Of<IWindowsThemeService>());
 
     [Fact]
-    public async Task Detection_reports_the_key_the_provider_reads_and_the_options_it_offers()
+    public async Task DetectAsync_KeyedSetting_ReportsProviderKeyAndOfferedOptions()
     {
         var context = new FakeDetectionContext()
             .Set(FakeOptionProvider.ValuePath, FakeOptionProvider.ValueName, "gamma");
@@ -34,7 +34,7 @@ public class KeyedSelectionDetectionTests
     }
 
     [Fact]
-    public async Task A_machine_with_no_value_written_reports_no_selection_but_still_offers_the_options()
+    public async Task DetectAsync_NoValueWritten_ReportsNoSelectionButStillOffersOptions()
     {
         var results = await ServiceOver(new FakeDetectionContext()).DetectAsync(OneKeyedSetting);
 
@@ -45,7 +45,7 @@ public class KeyedSelectionDetectionTests
     }
 
     [Fact]
-    public void The_sub_key_names_a_read_returns_do_not_alias_the_stored_array()
+    public void GetSubKeyNames_Always_ReturnsCopyNotStoredArray()
     {
         var context = new FakeDetectionContext().Sub(ZonesKey, "beta", "alpha");
 
@@ -57,7 +57,7 @@ public class KeyedSelectionDetectionTests
 
     // Matches WindowsRegistryService.ParseKeyPath, which treats HKCU and HKEY_CURRENT_USER as one key.
     [Fact]
-    public async Task A_value_set_under_the_long_hive_form_is_read_under_the_short_form()
+    public async Task GetValue_ValueSetUnderLongHiveForm_IsReadUnderShortForm()
     {
         var context = new FakeDetectionContext()
             .Set(@"HKEY_CURRENT_USER\Software\Winhance\Keyed", FakeOptionProvider.ValueName, "beta");

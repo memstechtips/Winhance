@@ -7,7 +7,7 @@ namespace Winhance.Core.Tests.Models;
 public class MediaLanguagesTests
 {
     [Fact]
-    public void Reads_the_language_off_a_Microsoft_iso()
+    public void Parse_MicrosoftIso_ReadsTheLanguage()
     {
         // Byte for byte what Win11_25H2_English_x64_v2 carries.
         var languages = MediaLanguages.Parse("\r\n[Available UI Languages]\r\nen-us = 3\r\n\r\n[Fallback Languages]\r\nen-us = en-us\r\n");
@@ -16,7 +16,7 @@ public class MediaLanguagesTests
     }
 
     [Fact]
-    public void Reads_every_language_on_multi_language_media()
+    public void Parse_MultiLanguageMedia_ReadsEveryLanguage()
     {
         var languages = MediaLanguages.Parse("[Available UI Languages]\nen-us = 3\nde-de = 3\n");
 
@@ -24,7 +24,7 @@ public class MediaLanguagesTests
     }
 
     [Fact]
-    public void Skips_names_that_are_not_languages_and_other_sections()
+    public void Parse_NonLanguageNamesAndOtherSections_AreSkipped()
     {
         var languages = MediaLanguages.Parse("[Fallback Languages]\nfr-fr = en-us\n[Available UI Languages]\nnot-a-language = 3\n");
 

@@ -5,4 +5,8 @@ namespace Winhance.Core.Features.Common.Interfaces;
 public interface ISystemInfoProvider
 {
     SystemInfo Collect();
+
+    string? BiosSerialNumber();
+
+    string? NetworkCardAddress();
 }

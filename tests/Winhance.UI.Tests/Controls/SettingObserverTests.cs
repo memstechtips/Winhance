@@ -23,7 +23,7 @@ public class SettingObserverTests
         new(() => _refreshes++, name => watched.Contains(name));
 
     [Fact]
-    public void Observing_a_source_refreshes_once_so_the_control_draws_its_new_setting()
+    public void Observe_Source_RefreshesOnceSoTheControlDrawsItsNewSetting()
     {
         Watching().Observe(new Source());
 
@@ -31,7 +31,7 @@ public class SettingObserverTests
     }
 
     [Fact]
-    public void A_change_to_a_watched_property_refreshes()
+    public void Observe_ChangeToWatchedProperty_Refreshes()
     {
         var source = new Source();
         Watching("Value").Observe(source);
@@ -42,7 +42,7 @@ public class SettingObserverTests
     }
 
     [Fact]
-    public void A_change_to_a_property_the_control_does_not_draw_is_ignored()
+    public void Observe_ChangeToPropertyTheControlDoesNotDraw_IsIgnored()
     {
         var source = new Source();
         Watching("Value").Observe(source);
@@ -53,7 +53,7 @@ public class SettingObserverTests
     }
 
     [Fact]
-    public void A_null_property_name_refreshes_whatever_the_filter_says()
+    public void Observe_NullPropertyName_RefreshesWhateverTheFilterSays()
     {
         var source = new Source();
         Watching("Value").Observe(source);
@@ -64,7 +64,7 @@ public class SettingObserverTests
     }
 
     [Fact]
-    public void Re_observing_stops_the_source_that_was_left_behind()
+    public void Observe_AnotherSource_StopsTheSourceLeftBehind()
     {
         var first = new Source();
         var observer = Watching("Value");
@@ -78,7 +78,7 @@ public class SettingObserverTests
     }
 
     [Fact]
-    public void Detaching_stops_refreshes()
+    public void Detach_Always_StopsRefreshes()
     {
         var source = new Source();
         var observer = Watching("Value");
@@ -91,7 +91,34 @@ public class SettingObserverTests
     }
 
     [Fact]
-    public void Detaching_twice_does_not_throw()
+    public void Resume_AfterDetach_WatchesAndRedrawsAgain()
+    {
+        var source = new Source();
+        var observer = Watching("Value");
+        observer.Observe(source);
+        observer.Detach();
+
+        observer.Resume(source);
+        source.Raise("Value");
+
+        _refreshes.Should().Be(3, "the resume redraws once and the change after it refreshes");
+    }
+
+    [Fact]
+    public void Resume_OnTheSourceAlreadyObserved_DoesNothing()
+    {
+        var source = new Source();
+        var observer = Watching("Value");
+        observer.Observe(source);
+
+        observer.Resume(source);
+        source.Raise("Value");
+
+        _refreshes.Should().Be(2, "the first load must not draw the card twice or subscribe it twice");
+    }
+
+    [Fact]
+    public void Detach_CalledTwice_DoesNotThrow()
     {
         var observer = Watching();
         observer.Observe(new Source());
@@ -106,7 +133,7 @@ public class SettingObserverTests
     }
 
     [Fact]
-    public void Observing_nothing_drops_the_previous_source_and_still_refreshes()
+    public void Observe_Null_DropsThePreviousSourceAndStillRefreshes()
     {
         var source = new Source();
         var observer = Watching("Value");

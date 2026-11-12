@@ -6,8 +6,7 @@
     xmlns:winControls="using:Winhance.UI.Features.Common.Controls"
     NavigationCacheMode="Enabled">
 
-    <!-- Every element this page draws lives in SectionPageShell, which the other section page
-         uses too. What is genuinely this page's own is the icon, its ViewModel, and its
-         section-to-detail map - see CustomizePage.xaml.cs. -->
+    <!-- Every element this page draws lives in SectionPageShell, which the other section pages
+         use too. This page supplies only its icon and its ViewModel. -->
     <winControls:SectionPageShell x:Name="Shell" PageIcon="DesignIdeas"/>
 </winControls:SectionPage>

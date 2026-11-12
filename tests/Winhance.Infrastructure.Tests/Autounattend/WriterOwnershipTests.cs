@@ -14,13 +14,13 @@ public class WriterOwnershipTests
     private static List<string> Claims() => Writers.SelectMany(writer => writer.Handles).ToList();
 
     [Fact]
-    public void No_two_writers_claim_the_same_setting()
+    public void Handles_AllWriters_NeverClaimTheSameSetting()
     {
         Claims().Should().OnlyHaveUniqueItems();
     }
 
     [Fact]
-    public void Every_claimed_id_names_an_answer_file_setting()
+    public void Handles_EveryClaimedId_NamesAnAnswerFileSetting()
     {
         foreach (var id in Claims())
         {
@@ -32,20 +32,21 @@ public class WriterOwnershipTests
     }
 
     [Fact]
-    public void The_generic_writer_skips_exactly_what_the_others_claim()
+    public void Claimed_GenericWriter_SkipsExactlyWhatTheOthersClaim()
     {
         AutounattendDocumentBuilder.Elements.Claimed.Should().BeEquivalentTo(Claims());
     }
 
     [Fact]
-    public void Every_unclaimed_answer_file_setting_has_something_a_writer_or_the_script_can_render()
+    public void Handles_UnclaimedAnswerFileSettings_EachHaveSomethingToRender()
     {
         var claimed = Claims();
         // WIMUtil applies a media setting to the image itself, so the file carries only the choice.
         foreach (var setting in SettingCatalog.All.Where(s =>
             s.IsAnswerFileOnly && !claimed.Contains(s.Id) && !s.Targets.OfType<AutounattendMedia>().Any()))
         {
-            var renderable = setting.Targets.OfType<AutounattendElement>().Any()
+            var renderable = setting.ReadWhileWritingAnswerFile
+                || setting.Targets.OfType<AutounattendElement>().Any()
                 || setting.Targets.OfType<AutounattendScript>().Any()
                 || setting.States.SelectMany(s => s.Effects).OfType<AutounattendCommand>().Any()
                 || setting.States.SelectMany(s => s.Effects).OfType<ScriptEffect>().Any()

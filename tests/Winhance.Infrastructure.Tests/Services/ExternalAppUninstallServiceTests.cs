@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
@@ -17,6 +18,7 @@ public class ExternalAppUninstallServiceTests
     private readonly Mock<IWindowsRegistryService> _registry = new();
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
     private readonly Mock<IProcessExecutor> _processExecutor = new();
+    private readonly Mock<IStagedAppInstaller> _stagedAppInstaller = new();
 
     private ExternalAppUninstallService CreateSut() => new(
         _winGetPackageInstaller.Object,
@@ -24,7 +26,8 @@ public class ExternalAppUninstallServiceTests
         _logService.Object,
         _registry.Object,
         _taskProgressService.Object,
-        _processExecutor.Object);
+        _processExecutor.Object,
+        _stagedAppInstaller.Object);
 
     [Fact]
     public async Task UninstallAsync_FileSystemDetectedWithExistingDirectory_ReturnsSuccess()
@@ -283,5 +286,50 @@ public class ExternalAppUninstallServiceTests
         _processExecutor.Verify(
             p => p.ShellExecuteAsync(@"C:\Contoso32\remove.exe", It.IsAny<string>(), true, It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task UninstallAsync_PortableWinhanceLaidOut_IsRemovedByItAndNeverGoesToWinGet()
+    {
+        var item = new ItemDefinition { Id = "tool", Name = "Tool", Description = "", WinGetPackageId = ["Example.Tool"] };
+        _stagedAppInstaller.Setup(s => s.UninstallPortableAsync(item, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+
+        var result = await CreateSut().UninstallAsync(item);
+
+        result.Success.Should().BeTrue();
+        _winGetPackageInstaller.Verify(
+            w => w.UninstallPackageAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task UninstallAsync_PortableWinGetInstalled_StillGoesThroughWinGet()
+    {
+        var item = new ItemDefinition { Id = "tool", Name = "Tool", Description = "", WinGetPackageId = ["Example.Tool"] };
+        _winGetPackageInstaller
+            .Setup(w => w.UninstallPackageAsync("Example.Tool", "winget", "Tool", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await CreateSut().UninstallAsync(item);
+
+        result.Success.Should().BeTrue();
+        _winGetPackageInstaller.Verify(
+            w => w.UninstallPackageAsync("Example.Tool", "winget", "Tool", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UninstallAsync_WinGetFallbackExitsButLeavesTheEntry_ReportsFailure()
+    {
+        GivenUninstallKeys(UninstallRegistryReader.User, ("Example.Tool_src", "Tool", "winget uninstall --product-code Example.Tool_src"));
+        var item = new ItemDefinition
+        {
+            Id = "tool", Name = "Tool", Description = "", DetectedVia = DetectionSource.Registry, RegistryDisplayName = "Tool",
+        };
+
+        var result = await CreateSut().UninstallAsync(item);
+
+        result.Success.Should().BeFalse();
     }
 }

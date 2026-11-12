@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Catalogs;
 using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.Infrastructure.Features.Common.Utilities;
 using Winhance.Infrastructure.Features.SoftwareApps.Services;
 using Xunit;
 
@@ -18,15 +19,18 @@ public class BloatRemovalServiceTests
     private readonly Mock<IScheduledTaskService> _mockScheduledTask = new();
     private readonly Mock<IPowerShellRunner> _mockPowerShell = new();
     private readonly Mock<IFileSystemService> _mockFileSystem = new();
+    private readonly Mock<IWindowsRegistryService> _mockRegistry = new();
     private readonly BloatRemovalService _service;
 
     public BloatRemovalServiceTests()
     {
+        _mockRegistry.Setup(r => r.GetValue(KeepRemovedModeStore.Key, KeepRemovedModeStore.ModeValue)).Returns("Scripts");
         _service = new BloatRemovalService(
             _mockLog.Object,
             _mockScheduledTask.Object,
             _mockPowerShell.Object,
-            _mockFileSystem.Object);
+            _mockFileSystem.Object,
+            _mockRegistry.Object);
     }
 
     private static ItemDefinition CreateAppxApp(string id, string appxName, string? name = null) => new()
@@ -74,6 +78,23 @@ public class BloatRemovalServiceTests
             It.IsAny<string>(),
             It.IsAny<IProgress<TaskProgressDetail>>(),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteDedicatedScriptAsync_WinhanceMode_RunsInMemoryAndWritesNoFile()
+    {
+        _mockRegistry.Setup(r => r.GetValue(KeepRemovedModeStore.Key, KeepRemovedModeStore.ModeValue)).Returns("Winhance");
+        var app = CreateDedicatedScriptApp("windows-app-edge", "Microsoft Edge",
+            () => "# Edge removal script content");
+        _mockFileSystem
+            .Setup(f => f.CombinePath(It.IsAny<string[]>()))
+            .Returns((string[] paths) => string.Join("\\", paths));
+
+        var result = await _service.ExecuteDedicatedScriptAsync(app);
+
+        result.Should().Be(RemovalOutcome.Success);
+        _mockFileSystem.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockPowerShell.Verify(p => p.RunScriptFromStdinAsync("# Edge removal script content", It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

@@ -45,6 +45,8 @@ public sealed partial class OptionMatrixView : UserControl
     // so the last row keeps its bottom line and square corners.
     private bool _gridIsLastElement = true;
 
+    private readonly List<Button> _regeditButtons = [];
+
     public OptionMatrixView()
     {
         InitializeComponent();
@@ -82,15 +84,22 @@ public sealed partial class OptionMatrixView : UserControl
         set => SetValue(RegeditCommandProperty, value);
     }
 
-    // The buttons are built once, in Rebuild; which of the two bindings lands first is not ours to control, and a
-    // button built against a null command would stay dead for the life of the card.
-    private static void OnRegeditCommandChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
-        ((OptionMatrixView)d).Rebuild();
-
+    // Which of the two bindings lands first is not ours to control, so a late command is pushed into the buttons
+    // already built rather than rebuilding the whole table a second time.
+    private static void OnRegeditCommandChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var view = (OptionMatrixView)d;
+        foreach (var button in view._regeditButtons)
+        {
+            button.Command = view.RegeditCommand;
+            button.IsEnabled = view.RegeditCommand is not null;
+        }
+    }
 
     private void Rebuild()
     {
         Table.Children.Clear();
+        _regeditButtons.Clear();
         if (Matrix is not { } matrix || !HasAnythingToShow(matrix))
         {
             Table.ColumnCount = 0;
@@ -479,9 +488,9 @@ public sealed partial class OptionMatrixView : UserControl
                 },
             };
             // A consumer that binds Matrix and forgets RegeditCommand would render a button that looks
-            // live and does nothing; this is the guard for that. A command arriving later rebuilds these
-            // buttons, so the disable is not sticky.
+            // live and does nothing; a command arriving later re-enables it.
             if (RegeditCommand is null) open.IsEnabled = false;
+            _regeditButtons.Add(open);
             ToolTipService.SetToolTip(open, group.OpenRegeditTooltip);
             AutomationProperties.SetName(open, $"{group.OpenRegeditTooltip}: {path.Full}");
             line.Children.Add(open);

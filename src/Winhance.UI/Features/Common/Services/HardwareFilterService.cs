@@ -8,33 +8,23 @@ namespace Winhance.UI.Features.Common.Services;
 
 // Session-only: unlike the Windows-version filter this is never persisted, so every launch starts
 // with the machine's own hardware.
-public sealed class HardwareFilterService : IHardwareFilterService
+public sealed class HardwareFilterService(IEventBus eventBus, ILogService logService) : IHardwareFilterService
 {
-    private readonly IEventBus _eventBus;
-    private readonly ILogService _log;
-
-    public HardwareFilterService(IEventBus eventBus, ILogService log)
-    {
-        _eventBus = eventBus;
-        _log = log;
-    }
-
     public bool IsFilterEnabled { get; private set; } = true;
 
     public event EventHandler<bool>? FilterStateChanged;
 
     // FilterStateChangedEvent is shared with the Windows-version filter: BaseSettingsFeatureViewModel
     // reloads a feature's settings on it without asking which gate moved.
-    public Task SetAsync(bool enabled)
+    public void Set(bool enabled)
     {
-        if (IsFilterEnabled == enabled) return Task.CompletedTask;
+        if (IsFilterEnabled == enabled) return;
 
         IsFilterEnabled = enabled;
-        _eventBus.Publish(new FilterStateChangedEvent(enabled));
+        eventBus.Publish(new FilterStateChangedEvent(enabled));
         FilterStateChanged?.Invoke(this, enabled);
-        _log.Log(LogLevel.Info, $"Hardware filter toggled to: {(enabled ? "ON" : "OFF")}");
-        return Task.CompletedTask;
+        logService.Log(LogLevel.Info, $"Hardware filter toggled to: {(enabled ? "ON" : "OFF")}");
     }
 
-    public Task ResetAsync() => SetAsync(true);
+    public void Reset() => Set(true);
 }

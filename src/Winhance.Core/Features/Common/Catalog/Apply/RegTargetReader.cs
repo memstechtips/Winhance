@@ -131,10 +131,4 @@ public readonly record struct TargetReading(object? Value, bool Present, bool Ki
 
     // Never Present: a malformed value must not reach the matchers.
     public static readonly TargetReading Malformed = new(null, false, true);
-
-    public void Deconstruct(out object? value, out bool present)
-    {
-        value = Value;
-        present = Present;
-    }
 }

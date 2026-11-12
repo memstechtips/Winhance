@@ -14,6 +14,9 @@ public interface IScheduledTaskService
     // Runs command at the current user's sign-in, elevated, so an app that requires admin starts without a UAC prompt.
     Task<OperationResult> RegisterSignInTaskAsync(string taskName, string command, string arguments);
 
+    // Every task in Winhance's folder, including ones Winhance no longer creates.
+    Task<IReadOnlyList<WinhanceTaskInfo>> GetWinhanceTasksAsync();
+
     // A task name is one per PC, so a sign-in task registered by another account is not this user's. A null SID is the
     // account Winhance runs as.
     Task<bool> IsSignInTaskRegisteredForAsync(string taskName, string? userSid);

@@ -74,6 +74,21 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
         }
     }
 
+    public string? GetUnexpandedString(string keyPath, string valueName)
+    {
+        try
+        {
+            var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
+            using var key = rootKey.OpenSubKey(subKeyPath, false);
+            return key?.GetValue(valueName, null, RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
+        }
+        catch (Exception ex)
+        {
+            logService.LogDebug($"Failed to get value '{keyPath}\\{valueName}': {ex.Message}");
+            return null;
+        }
+    }
+
     public RegistryValueKind? GetValueKind(string keyPath, string valueName)
     {
         try
@@ -235,6 +250,21 @@ internal class WindowsRegistryService(ILogService logService, IInteractiveUserSe
         catch (Exception ex)
         {
             logService.LogDebug($"Failed to get subkey names for '{keyPath}': {ex.Message}");
+            return Array.Empty<string>();
+        }
+    }
+
+    public string[] GetValueNames(string keyPath)
+    {
+        try
+        {
+            var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
+            using var key = rootKey.OpenSubKey(subKeyPath, false);
+            return key?.GetValueNames() ?? Array.Empty<string>();
+        }
+        catch (Exception ex)
+        {
+            logService.LogDebug($"Failed to get value names for '{keyPath}': {ex.Message}");
             return Array.Empty<string>();
         }
     }

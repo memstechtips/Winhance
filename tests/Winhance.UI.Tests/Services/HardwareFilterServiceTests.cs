@@ -22,13 +22,13 @@ public class HardwareFilterServiceTests
     }
 
     [Fact]
-    public async Task SetAsync_TurningTheFilterOff_PublishesAndRaises()
+    public void Set_TurningTheFilterOff_PublishesAndRaises()
     {
         var sut = CreateSut();
         bool? raised = null;
         sut.FilterStateChanged += (_, enabled) => raised = enabled;
 
-        await sut.SetAsync(false);
+        sut.Set(false);
 
         sut.IsFilterEnabled.Should().BeFalse();
         raised.Should().BeFalse();
@@ -36,13 +36,13 @@ public class HardwareFilterServiceTests
     }
 
     [Fact]
-    public async Task SetAsync_WithTheValueItAlreadyHas_PublishesNothing()
+    public void Set_WithTheValueItAlreadyHas_PublishesNothing()
     {
         var sut = CreateSut();
         bool raised = false;
         sut.FilterStateChanged += (_, _) => raised = true;
 
-        await sut.SetAsync(true);
+        sut.Set(true);
 
         sut.IsFilterEnabled.Should().BeTrue();
         raised.Should().BeFalse();
@@ -50,23 +50,23 @@ public class HardwareFilterServiceTests
     }
 
     [Fact]
-    public async Task ResetAsync_PutsTheFilterBackOn()
+    public void Reset_PutsTheFilterBackOn()
     {
         var sut = CreateSut();
-        await sut.SetAsync(false);
+        sut.Set(false);
 
-        await sut.ResetAsync();
+        sut.Reset();
 
         sut.IsFilterEnabled.Should().BeTrue();
         _eventBus.Verify(b => b.Publish(It.Is<FilterStateChangedEvent>(e => e.IsFilterEnabled)), Times.Once);
     }
 
     [Fact]
-    public async Task ResetAsync_WhenTheFilterIsAlreadyOn_PublishesNothing()
+    public void Reset_WhenTheFilterIsAlreadyOn_PublishesNothing()
     {
         var sut = CreateSut();
 
-        await sut.ResetAsync();
+        sut.Reset();
 
         _eventBus.Verify(b => b.Publish(It.IsAny<FilterStateChangedEvent>()), Times.Never);
     }

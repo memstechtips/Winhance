@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
 using Winhance.Core.Features.Common.Catalog;
@@ -48,12 +49,9 @@ internal sealed class TimeRegionLanguageService : IOptionProvider
         {
             OptionSource.TimeZones => TimeZones(list, context),
             OptionSource.KeyboardLayouts => KeyboardLayouts(list, context),
-            OptionSource.RegionalFormats => CultureOptions(SpecificCultures()),
-            OptionSource.SystemLocales => CultureOptions(SystemLocales()),
-            OptionSource.Countries => Regions()
-                .Select(region => new DynamicOption(region.DisplayName, region.TwoLetterISORegionName))
-                .OrderBy(option => option.Label, StringComparer.CurrentCulture)
-                .ToList(),
+            OptionSource.RegionalFormats => Lists().FormatOptions.ToList(),
+            OptionSource.SystemLocales => Lists().SystemLocaleOptions.ToList(),
+            OptionSource.Countries => Lists().CountryOptions.ToList(),
             OptionSource.LocaleValues => LocaleValues(list),
             OptionSource.DisplayLanguages => DisplayLanguages(list, context),
             var other => throw new ArgumentOutOfRangeException(nameof(setting), other, "Not a time, region or language list."),
@@ -77,9 +75,9 @@ internal sealed class TimeRegionLanguageService : IOptionProvider
     {
         OptionSource.TimeZones => IsTimeZoneId(key),
         OptionSource.KeyboardLayouts => IsLayoutId(key),
-        OptionSource.RegionalFormats => Named(SpecificCultures(), key) is not null,
-        OptionSource.SystemLocales => Named(SystemLocales(), key) is not null,
-        OptionSource.Countries => RegionNamed(key) is not null,
+        OptionSource.RegionalFormats => Lists().CultureByName.ContainsKey(key),
+        OptionSource.SystemLocales => Lists().SystemLocaleByName.ContainsKey(key),
+        OptionSource.Countries => Lists().RegionByCode.ContainsKey(key),
         // Windows itself writes these, so the set cannot be enumerated ahead of time; only a shape check is possible.
         OptionSource.LocaleValues => key.Length is > 0 and <= MaxLocaleValueLength && !key.Any(char.IsControl),
         // Neutral as well as specific: a language pack may be installed as "en" with no region behind it.
@@ -91,9 +89,9 @@ internal sealed class TimeRegionLanguageService : IOptionProvider
     {
         OptionValue.Key or OptionValue.Color =>
             throw new ArgumentOutOfRangeException(nameof(value), value, "Not a time, region or language value."),
-        OptionValue.GeoId => RegionNamed(key)?.GeoId.ToString(CultureInfo.InvariantCulture),
+        OptionValue.GeoId => Lists().RegionByCode.GetValueOrDefault(key)?.GeoId.ToString(CultureInfo.InvariantCulture),
         _ when LocaleTypes.TryGetValue(value, out var lcType) => LocaleInfo.Read(key, lcType),
-        _ => Named(SpecificCultures(), key) is { } culture ? CultureValue(culture, value) : null,
+        _ => Lists().CultureByName.GetValueOrDefault(key) is { } culture ? CultureValue(culture, value) : null,
     };
 
     // Every value a regional format writes that Windows holds itself. .NET reads ICU, which disagrees with Windows
@@ -175,16 +173,22 @@ internal sealed class TimeRegionLanguageService : IOptionProvider
     // every other value the offered regional formats write, read the way region-format itself reads them. Built
     // this way the card always has an entry for whatever region-format just wrote, which is what stops it reading
     // "Not recognized" after a format apply.
-    private List<DynamicOption> LocaleValues(OptionList list) =>
-        list.Keys
-            .Concat(SpecificCultures()
-                .Select(culture => ValueFor(list.Value!.Value, culture.Name))
-                .Where(value => !string.IsNullOrWhiteSpace(value))
-                .Select(value => value!)
-                .OrderBy(value => value, StringComparer.Ordinal))
+    private List<DynamicOption> LocaleValues(OptionList list)
+    {
+        var lists = Lists();
+        var written = lists.LocaleValues.GetOrAdd(list.Value!.Value, value => lists.Cultures
+            .Select(culture => ValueFor(value, culture.Name))
+            .Where(text => !string.IsNullOrWhiteSpace(text))
+            .Select(text => text!)
+            .OrderBy(text => text, StringComparer.Ordinal)
+            .ToArray());
+
+        return list.Keys
+            .Concat(written)
             .Distinct(StringComparer.Ordinal)
             .Select(value => new DynamicOption(value, value))
             .ToList();
+    }
 
     private static string? WrittenValue(Setting setting, IDetectionContext context) =>
         RegTargetReader.Read(setting, setting.Targets.OfType<RegTarget>().First(t => !t.ReadOnly).Key, context) as string;
@@ -271,14 +275,14 @@ internal sealed class TimeRegionLanguageService : IOptionProvider
             return null;
         }
 
-        return SpecificCultures().FirstOrDefault(culture => culture.LCID != NoLcid && culture.LCID == lcid)?.Name;
+        return Lists().Cultures.FirstOrDefault(culture => culture.LCID != NoLcid && culture.LCID == lcid)?.Name;
     }
 
     private static string? CurrentCountry(Setting setting, IDetectionContext context)
     {
         if (RegTargetReader.Read(setting, "Nation", context) is { } nation
             && int.TryParse(nation.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int geoId)
-            && Regions().FirstOrDefault(region => region.GeoId == geoId) is { } byGeoId)
+            && Lists().Regions.FirstOrDefault(region => region.GeoId == geoId) is { } byGeoId)
         {
             return byGeoId.TwoLetterISORegionName;
         }
@@ -287,47 +291,102 @@ internal sealed class TimeRegionLanguageService : IOptionProvider
         return NonEmpty(RegTargetReader.Read(setting, "Name", context));
     }
 
-    private static List<DynamicOption> CultureOptions(IEnumerable<CultureInfo> cultures) =>
-        cultures
-            .Select(culture => new DynamicOption(culture.DisplayName, culture.Name))
-            .OrderBy(option => option.Label, StringComparer.CurrentCulture)
-            .ToList();
+    // What Windows can be set to is fixed for the life of the process, but .NET reads DisplayName in the current UI
+    // culture and Winhance switches language while running, so the lists are rebuilt when the culture changes. What
+    // this PC is set to now is never kept here; CurrentKey reads it on every call.
+    private static CultureLists? _lists;
 
-    private static CultureInfo? Named(IEnumerable<CultureInfo> cultures, string key) =>
-        cultures.FirstOrDefault(culture => string.Equals(culture.Name, key, StringComparison.OrdinalIgnoreCase));
+    private static CultureLists Lists()
+    {
+        var lists = _lists;
+        if (lists is null || !lists.IsFor(CultureInfo.CurrentUICulture, CultureInfo.CurrentCulture))
+            _lists = lists = new CultureLists(CultureInfo.CurrentUICulture, CultureInfo.CurrentCulture);
+        return lists;
+    }
 
-    private static RegionInfo? RegionNamed(string key) =>
-        Regions().FirstOrDefault(region => string.Equals(region.TwoLetterISORegionName, key, StringComparison.OrdinalIgnoreCase));
+    private sealed class CultureLists
+    {
+        private readonly string _uiCulture;
+        private readonly string _sortCulture;
 
-    // Never cached: a static list would freeze the display names in the UI language the process started in.
-    private static IEnumerable<CultureInfo> SpecificCultures() =>
-        CultureInfo.GetCultures(CultureTypes.SpecificCultures);
+        public CultureLists(CultureInfo uiCulture, CultureInfo sortCulture)
+        {
+            _uiCulture = uiCulture.Name;
+            _sortCulture = sortCulture.Name;
+            Cultures = CultureInfo.GetCultures(CultureTypes.SpecificCultures);
+            CultureByName = ByName(Cultures);
+            var systemLocales = Cultures.Where(IsSystemLocale).ToArray();
+            SystemLocaleByName = ByName(systemLocales);
+            Regions = AllRegions(Cultures);
+            RegionByCode = new Dictionary<string, RegionInfo>(StringComparer.OrdinalIgnoreCase);
+            foreach (var region in Regions)
+                RegionByCode.TryAdd(region.TwoLetterISORegionName, region);
+
+            FormatOptions = CultureOptions(Cultures);
+            SystemLocaleOptions = CultureOptions(systemLocales);
+            CountryOptions = Regions
+                .Select(region => new DynamicOption(region.DisplayName, region.TwoLetterISORegionName))
+                .OrderBy(option => option.Label, StringComparer.CurrentCulture)
+                .ToArray();
+        }
+
+        public CultureInfo[] Cultures { get; }
+
+        public Dictionary<string, CultureInfo> CultureByName { get; }
+
+        public Dictionary<string, CultureInfo> SystemLocaleByName { get; }
+
+        public RegionInfo[] Regions { get; }
+
+        public Dictionary<string, RegionInfo> RegionByCode { get; }
+
+        public DynamicOption[] FormatOptions { get; }
+
+        public DynamicOption[] SystemLocaleOptions { get; }
+
+        public DynamicOption[] CountryOptions { get; }
+
+        public ConcurrentDictionary<OptionValue, string[]> LocaleValues { get; } = new();
+
+        public bool IsFor(CultureInfo uiCulture, CultureInfo sortCulture) =>
+            _uiCulture == uiCulture.Name && _sortCulture == sortCulture.Name;
+
+        private static DynamicOption[] CultureOptions(IEnumerable<CultureInfo> cultures) =>
+            cultures
+                .Select(culture => new DynamicOption(culture.DisplayName, culture.Name))
+                .OrderBy(option => option.Label, StringComparer.CurrentCulture)
+                .ToArray();
+
+        // The first culture of a name wins, as a lookup by name has always resolved it.
+        private static Dictionary<string, CultureInfo> ByName(IEnumerable<CultureInfo> cultures)
+        {
+            var byName = new Dictionary<string, CultureInfo>(StringComparer.OrdinalIgnoreCase);
+            foreach (var culture in cultures)
+                byName.TryAdd(culture.Name, culture);
+            return byName;
+        }
+    }
 
     // Windows offers a locale for non-Unicode programs only when it has real code pages behind ACP and OEMCP.
     // A system locale is an LCID, so a culture Windows has no locale id for is not offered either.
-    private static IEnumerable<CultureInfo> SystemLocales() =>
-        SpecificCultures().Where(culture =>
-            culture.LCID != NoLcid
-            && culture.TextInfo.ANSICodePage > HighestCodePageSentinel
-            && culture.TextInfo.OEMCodePage > HighestCodePageSentinel);
+    private static bool IsSystemLocale(CultureInfo culture) =>
+        culture.LCID != NoLcid
+        && culture.TextInfo.ANSICodePage > HighestCodePageSentinel
+        && culture.TextInfo.OEMCodePage > HighestCodePageSentinel;
 
     // One region per ISO code, rebuilt from the code: a RegionInfo built from a culture name reports the United
     // States GeoId when the machine has no geography for that culture, so the first one found would write 244 for
     // CA. Ordered by code so that two regions sharing a GeoId resolve the same way on every call.
-    private static IEnumerable<RegionInfo> Regions()
+    private static RegionInfo[] AllRegions(IEnumerable<CultureInfo> cultures)
     {
         var codes = new SortedSet<string>(StringComparer.Ordinal);
-        foreach (var culture in SpecificCultures())
+        foreach (var culture in cultures)
         {
             if (RegionOf(culture) is { } region && IsCountryCode(region.TwoLetterISORegionName))
                 codes.Add(region.TwoLetterISORegionName);
         }
 
-        foreach (var code in codes)
-        {
-            if (RegionOfCode(code) is { } region)
-                yield return region;
-        }
+        return codes.Select(RegionOfCode).OfType<RegionInfo>().ToArray();
     }
 
     // ICU names UN M49 areas like countries (001 World, 419 Latin America); Windows has no home location for an area.
@@ -355,7 +414,7 @@ internal sealed class TimeRegionLanguageService : IOptionProvider
     private static List<DynamicOption> DisplayLanguages(OptionList list, IDetectionContext context)
     {
         if (list.Path is null)
-            return CultureOptions(SpecificCultures());
+            return Lists().FormatOptions.ToList();
 
         var installed = new List<DynamicOption>();
         foreach (var name in context.GetSubKeyNames(list.Path))

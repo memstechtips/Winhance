@@ -213,6 +213,20 @@ public class ProcessRestartManagerTests
     }
 
     [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_SettingsNotice_SendsOnlyTheGenericBroadcast()
+    {
+        var setting = CreateCatalogSetting("cat-visual-effect", restart: null, notify: WindowsChange.Settings);
+
+        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+        await _sut.LastBroadcastTask;
+
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once);
+        _mockExplorerRestart.Verify(e => e.BroadcastThemeRefresh(), Times.Never);
+        _mockTheme.Verify(t => t.RefreshDesktop(), Times.Never);
+        _mockPendingRestart.Verify(p => p.Register(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
     public async Task HandleProcessAndServiceRestartsAsync_NumLockSetting_MatchesTheLiveKeyToTheSavedValue()
     {
         await _sut.HandleProcessAndServiceRestartsAsync(CreateCatalogSetting("cat-numlock", restart: null, notify: WindowsChange.NumLock));
@@ -357,5 +371,49 @@ public class ProcessRestartManagerTests
                 It.Is<string>(s => s.Contains("restarts suppressed")),
                 It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task CoalesceBroadcasts_ThreeThemeSettings_BroadcastOnceWhenTheScopeEnds()
+    {
+        using (_sut.CoalesceBroadcasts())
+        {
+            foreach (var id in new[] { "theme-parent", "theme-apps", "theme-system" })
+                await _sut.HandleProcessAndServiceRestartsAsync(CreateCatalogSetting(id, notify: WindowsChange.Appearance));
+
+            _mockExplorerRestart.Verify(e => e.BroadcastThemeRefresh(), Times.Never);
+        }
+        await _sut.LastBroadcastTask;
+
+        _mockExplorerRestart.Verify(e => e.BroadcastThemeRefresh(), Times.Once);
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once);
+    }
+
+    [Fact]
+    public async Task CoalesceBroadcasts_NestedScope_MergesIntoTheOuterBroadcast()
+    {
+        using (_sut.CoalesceBroadcasts())
+        {
+            using (_sut.CoalesceBroadcasts())
+                await _sut.HandleProcessAndServiceRestartsAsync(CreateCatalogSetting("inner-theme", notify: WindowsChange.Appearance));
+
+            _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Never);
+            await _sut.HandleProcessAndServiceRestartsAsync(CreateCatalogSetting("outer-desktop", notify: WindowsChange.Desktop));
+        }
+        await _sut.LastBroadcastTask;
+
+        _mockExplorerRestart.Verify(e => e.BroadcastThemeRefresh(), Times.Once);
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once);
+        _mockTheme.Verify(t => t.RefreshDesktop(), Times.Once);
+    }
+
+    [Fact]
+    public async Task CoalesceBroadcasts_NothingRequested_SendsNothing()
+    {
+        using (_sut.CoalesceBroadcasts())
+            await _sut.HandleProcessAndServiceRestartsAsync(CreateCatalogSetting("plain"));
+        await _sut.LastBroadcastTask;
+
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Never);
     }
 }

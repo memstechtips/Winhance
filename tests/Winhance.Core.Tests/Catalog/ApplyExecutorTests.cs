@@ -43,6 +43,8 @@ public class ApplyExecutorTests
 
     private static RegTarget Reg() => new("K", HklmA, "V", RegistryValueKind.DWord);
 
+    private sealed record UnknownOp : ApplyOp;
+
     private static PowerPlanEffect SyncEffect() => new("11111111-1111-1111-1111-111111111111");
 
     // Production always partitions before executing, so the tests go the same way.
@@ -50,7 +52,16 @@ public class ApplyExecutorTests
         ApplyExecutor.Execute(ApplyPlan.From(ops), writer);
 
     [Fact]
-    public void Executes_every_op_and_reports_all_succeeded()
+    public void Execute_OpWithNoWriterCall_IsReportedAsFailed()
+    {
+        var result = Execute(new ApplyOp[] { new UnknownOp() }, new RecordingWriter());
+
+        Assert.Equal(1, result.Failed);
+        Assert.Contains(nameof(UnknownOp), Assert.Single(result.Failures));
+    }
+
+    [Fact]
+    public void Execute_EveryOpSucceeds_ReportsAllSucceeded()
     {
         var w = new RecordingWriter();
         var plan = new ApplyOp[]
@@ -65,7 +76,7 @@ public class ApplyExecutorTests
     }
 
     [Fact]
-    public void Dispatches_bit_and_byte_ops_to_the_writer()
+    public void Execute_BitAndByteOps_DispatchToTheWriter()
     {
         var w = new RecordingWriter();
         var plan = new ApplyOp[]
@@ -79,7 +90,7 @@ public class ApplyExecutorTests
     }
 
     [Fact]
-    public void Dispatches_a_power_plan_effect_to_the_writer()
+    public void Execute_PowerPlanEffect_DispatchesToTheWriter()
     {
         var w = new RecordingWriter();
         var plan = new ApplyOp[] { new EffectOp(new PowerPlanEffect("11111111-1111-1111-1111-111111111111")) };
@@ -89,7 +100,7 @@ public class ApplyExecutorTests
     }
 
     [Fact]
-    public void Dispatches_unlock_and_lock_ops_to_the_writer()
+    public void Execute_UnlockAndLockOps_DispatchToTheWriter()
     {
         var w = new RecordingWriter();
         var plan = new ApplyOp[]
@@ -104,7 +115,7 @@ public class ApplyExecutorTests
     }
 
     [Fact]
-    public void Dispatches_composite_set_and_remove_to_the_writer()
+    public void Execute_CompositeSetAndRemove_DispatchToTheWriter()
     {
         var w = new RecordingWriter();
         var plan = new ApplyOp[]
@@ -118,7 +129,7 @@ public class ApplyExecutorTests
     }
 
     [Fact]
-    public void Dispatches_per_subkey_ops_to_the_writer()
+    public void Execute_PerSubkeyOps_DispatchToTheWriter()
     {
         var w = new RecordingWriter();
         var plan = new ApplyOp[]
@@ -132,7 +143,7 @@ public class ApplyExecutorTests
     }
 
     [Fact]
-    public void Best_effort_continues_past_a_failure_and_records_it()
+    public void Execute_WhenAnOpFails_ContinuesAndRecordsTheFailure()
     {
         var w = new RecordingWriter { FailRegistryWrites = true };
         var plan = new ApplyOp[]
@@ -147,7 +158,7 @@ public class ApplyExecutorTests
     }
 
     [Fact]
-    public void Process_launching_effects_never_reach_the_writer()
+    public void Execute_ProcessLaunchingEffects_NeverReachTheWriter()
     {
         var w = new RecordingWriter();
         var script = new ScriptEffect("x.ps1", RunContext.System);
@@ -170,7 +181,7 @@ public class ApplyExecutorTests
     }
 
     [Fact]
-    public void Blocking_effects_stay_on_the_writer()
+    public void Execute_BlockingEffect_StaysOnTheWriter()
     {
         var w = new RecordingWriter();
         var plan = ApplyPlan.From(new ApplyOp[] { new EffectOp(SyncEffect()) });
@@ -183,7 +194,7 @@ public class ApplyExecutorTests
     }
 
     [Fact]
-    public void A_plan_with_no_async_effects_keeps_its_op_list_intact()
+    public void From_PlanWithNoAsyncEffects_KeepsItsOpListIntact()
     {
         var ops = new ApplyOp[] { new RegistryWriteOp(Reg(), @"HKLM\A", 1) };
 
@@ -194,7 +205,7 @@ public class ApplyExecutorTests
     }
 
     [Fact]
-    public void Partitioning_preserves_the_authored_order_within_each_half()
+    public void From_MixedEffects_PreservesTheAuthoredOrderWithinEachHalf()
     {
         var first = new ScriptEffect("first", RunContext.System);
         var second = new RegContentEffect("second");

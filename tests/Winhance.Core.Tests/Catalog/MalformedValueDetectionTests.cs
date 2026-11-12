@@ -58,7 +58,7 @@ public class MalformedValueDetectionTests
     };
 
     [Fact]
-    public void Bitmask_target_holding_a_string_is_a_kind_mismatch_and_not_present()
+    public void Read_BitmaskTargetHoldingString_IsKindMismatchAndNotPresent()
     {
         var reading = RegTargetReader.Read(BitTarget(), new Ctx("ነ考"));
 
@@ -69,13 +69,13 @@ public class MalformedValueDetectionTests
     }
 
     [Fact]
-    public void Bitmask_target_holding_a_dword_is_a_kind_mismatch()
+    public void Read_BitmaskTargetHoldingDword_IsKindMismatch()
     {
         Assert.True(RegTargetReader.Read(BitTarget(), new Ctx(1)).KindMismatch);
     }
 
     [Fact]
-    public void Bitmask_target_holding_bytes_reduces_normally()
+    public void Read_BitmaskTargetHoldingBytes_ReducesNormally()
     {
         var reading = RegTargetReader.Read(BitTarget(), new Ctx(new byte[] { 0x00, 0x08 }));
 
@@ -85,7 +85,7 @@ public class MalformedValueDetectionTests
     }
 
     [Fact]
-    public void Byte_only_target_holding_a_string_is_a_kind_mismatch()
+    public void Read_ByteOnlyTargetHoldingString_IsKindMismatch()
     {
         var t = new RegTarget("Settings", new[] { Path }, "Settings", RegistryValueKind.Binary)
         { ByteIndex = 8, ByteOnly = true };
@@ -93,14 +93,14 @@ public class MalformedValueDetectionTests
     }
 
     [Fact]
-    public void String_flag_target_holding_bytes_is_a_kind_mismatch()
+    public void Read_StringFlagTargetHoldingBytes_IsKindMismatch()
     {
         var t = new RegTarget("Flags", new[] { Path }, "Flags", RegistryValueKind.String) { StringFlagMask = 0x04 };
         Assert.True(RegTargetReader.Read(t, new Ctx(new byte[] { 1, 2 })).KindMismatch);
     }
 
     [Fact]
-    public void Composite_string_target_holding_bytes_is_a_kind_mismatch()
+    public void Read_CompositeStringTargetHoldingBytes_IsKindMismatch()
     {
         var t = new RegTarget("Packed", new[] { Path }, "Packed", RegistryValueKind.String)
         { CompositeStringKey = "Sub" };
@@ -108,7 +108,7 @@ public class MalformedValueDetectionTests
     }
 
     [Fact]
-    public void A_plain_target_is_never_malformed_however_it_is_stored()
+    public void Read_PlainTarget_IsNeverMalformedHoweverItIsStored()
     {
         var t = new RegTarget("V", new[] { Path }, "V", RegistryValueKind.DWord);
 
@@ -120,7 +120,7 @@ public class MalformedValueDetectionTests
     }
 
     [Fact]
-    public void A_short_blob_is_absent_not_malformed()
+    public void Read_ShortBlob_IsAbsentNotMalformed()
     {
         // Right type, just too short for the byte index - genuinely different from a wrong type: there is
         // nothing to repair.
@@ -130,7 +130,7 @@ public class MalformedValueDetectionTests
     }
 
     [Fact]
-    public void An_unparseable_flags_string_is_absent_not_malformed()
+    public void Read_UnparseableFlagsString_IsAbsentNotMalformed()
     {
         var t = new RegTarget("Flags", new[] { Path }, "Flags", RegistryValueKind.String) { StringFlagMask = 0x04 };
         var reading = RegTargetReader.Read(t, new Ctx("not-a-number"));
@@ -139,7 +139,7 @@ public class MalformedValueDetectionTests
     }
 
     [Fact]
-    public void A_composite_string_missing_its_subkey_is_absent_not_malformed()
+    public void Read_CompositeStringMissingSubKey_IsAbsentNotMalformed()
     {
         var t = new RegTarget("Packed", new[] { Path }, "Packed", RegistryValueKind.String)
         { CompositeStringKey = "Sub" };
@@ -149,7 +149,7 @@ public class MalformedValueDetectionTests
     }
 
     [Fact]
-    public void A_malformed_target_makes_the_setting_report_Malformed()
+    public void Detect_MalformedTarget_ReportsMalformed()
     {
         var detection = CatalogDiscovery.Detect(BitSetting(), new Ctx("ነ考"));
 
@@ -160,7 +160,7 @@ public class MalformedValueDetectionTests
     }
 
     [Fact]
-    public void Malformed_wins_over_the_fallback_state()
+    public void Detect_MalformedValue_WinsOverFallbackState()
     {
         // The regression this guards: a malformed value must not quietly resolve to the IsFallback state.
         // Absence falls back; an unreadable value does not - we do not know what it says.
@@ -170,7 +170,7 @@ public class MalformedValueDetectionTests
     }
 
     [Fact]
-    public void A_readable_value_matching_no_state_is_still_Custom_not_Malformed()
+    public void Detect_ReadableValueMatchingNoState_IsCustomNotMalformed()
     {
         var setting = new Setting
         {
@@ -189,7 +189,7 @@ public class MalformedValueDetectionTests
     }
 
     [Fact]
-    public void A_resolving_setting_reports_Resolved()
+    public void Detect_ResolvingSetting_ReportsResolved()
     {
         var detection = CatalogDiscovery.Detect(BitSetting(), new Ctx(new byte[] { 0x00, 0x08 }));
         Assert.Equal(SettingDetectionOutcome.Resolved, detection.Outcome);
@@ -197,7 +197,7 @@ public class MalformedValueDetectionTests
     }
 
     [Fact]
-    public void An_apply_only_target_being_malformed_does_not_taint_the_setting()
+    public void Detect_MalformedApplyOnlyTarget_DoesNotTaintSetting()
     {
         // ApplyOnly targets are written but never read, so their stored type cannot affect what the user
         // sees. Only the read-authoritative target decides.

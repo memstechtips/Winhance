@@ -1,7 +1,9 @@
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.Core.Features.SoftwareApps.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
@@ -12,22 +14,30 @@ internal class ChocolateyService : IChocolateyService
     private readonly ILocalizationService _localization;
     private readonly IProcessExecutor _processExecutor;
     private readonly IFileSystemService _fileSystemService;
+    private readonly IUserPreferencesService _preferences;
+    // Null where nothing can ask the user (the tray and maintenance hosts), so a checksum failure just fails.
+    private readonly IDialogService? _dialogService;
     private readonly object _installCheckLock = new();
     private bool? _isInstalled;
     private const int SearchPageSize = 30;
+    private const string IgnoreChecksumsFlag = " --ignore-checksums";
 
     public ChocolateyService(
         ILogService logService,
         ITaskProgressService taskProgressService,
         ILocalizationService localization,
         IProcessExecutor processExecutor,
-        IFileSystemService fileSystemService)
+        IFileSystemService fileSystemService,
+        IUserPreferencesService preferences,
+        IDialogService? dialogService = null)
     {
         _logService = logService;
         _taskProgressService = taskProgressService;
         _localization = localization;
         _processExecutor = processExecutor;
         _fileSystemService = fileSystemService;
+        _preferences = preferences;
+        _dialogService = dialogService;
     }
 
     public Task<bool> IsChocolateyInstalledAsync(CancellationToken cancellationToken = default)
@@ -117,7 +127,14 @@ internal class ChocolateyService : IChocolateyService
             _logService.LogInformation($"Installing '{chocoPackageId}' via Chocolatey...");
 
             var arguments = InstallArguments(chocoPackageId, options);
-            var (success, alreadyInstalled) = await RunChocoInstallAsync(chocoPath, chocoPackageId, arguments, displayName, cancellationToken).ConfigureAwait(false);
+            var (success, alreadyInstalled, checksumFailed) = await RunChocoInstallAsync(chocoPath, chocoPackageId, arguments, displayName, cancellationToken).ConfigureAwait(false);
+
+            if (!success && checksumFailed && await AllowIgnoreChecksumsAsync(displayName).ConfigureAwait(false))
+            {
+                _logService.LogWarning($"Retrying '{chocoPackageId}' without the Chocolatey checksum check.");
+                arguments += IgnoreChecksumsFlag;
+                (success, alreadyInstalled, _) = await RunChocoInstallAsync(chocoPath, chocoPackageId, arguments, displayName, cancellationToken).ConfigureAwait(false);
+            }
 
             // Choco exits 0 with "xxx already installed" when its lib folder still has the
             // package record even though the actual app is gone. We're in the install path
@@ -128,7 +145,7 @@ internal class ChocolateyService : IChocolateyService
             {
                 _logService.LogWarning($"Chocolatey reports '{chocoPackageId}' as already-installed but Winhance detection saw it as missing. Clearing stale record and retrying install.");
                 await CleanupStalePackageRecordAsync(chocoPackageId, displayName, cancellationToken).ConfigureAwait(false);
-                (success, alreadyInstalled) = await RunChocoInstallAsync(chocoPath, chocoPackageId, arguments, displayName, cancellationToken).ConfigureAwait(false);
+                (success, alreadyInstalled, _) = await RunChocoInstallAsync(chocoPath, chocoPackageId, arguments, displayName, cancellationToken).ConfigureAwait(false);
 
                 if (alreadyInstalled)
                 {
@@ -161,7 +178,7 @@ internal class ChocolateyService : IChocolateyService
     // Chocolatey has no scope or architecture switch beyond forcing the 32-bit installer.
     internal static string InstallArguments(string chocoPackageId, InstallOptions options)
     {
-        var arguments = $"install {chocoPackageId} -y --no-progress --ignore-checksums";
+        var arguments = $"install {chocoPackageId} -y --no-progress";
         if (options.Architecture == InstallArchitecture.X86)
             arguments += " --forcex86";
         if (options.Interactive)
@@ -169,10 +186,35 @@ internal class ChocolateyService : IChocolateyService
         return arguments;
     }
 
-    private async Task<(bool success, bool alreadyInstalled)> RunChocoInstallAsync(
+    // A failed checksum is only retried without the check when the user has said so, now or earlier.
+    private async Task<bool> AllowIgnoreChecksumsAsync(string displayName)
+    {
+        if (await _preferences.GetPreferenceAsync(UserPreferenceKeys.ChocolateyIgnoreChecksums, false).ConfigureAwait(false))
+            return true;
+
+        if (_dialogService == null)
+            return false;
+
+        var response = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+        {
+            Title = _localization.GetString("Dialog_ChocoChecksum_Title"),
+            Message = _localization.GetString("Dialog_ChocoChecksum_Message", displayName),
+            CheckboxText = _localization.GetString("Dialog_ChocoChecksum_Remember"),
+            ConfirmButtonText = _localization.GetString("Button_Yes"),
+            CancelButtonText = _localization.GetString("Button_No"),
+        }).ConfigureAwait(false);
+
+        if (response.Confirmed && response.CheckboxChecked)
+            await _preferences.SetPreferenceAsync(UserPreferenceKeys.ChocolateyIgnoreChecksums, true).ConfigureAwait(false);
+
+        return response.Confirmed;
+    }
+
+    private async Task<(bool success, bool alreadyInstalled, bool checksumFailed)> RunChocoInstallAsync(
         string chocoPath, string chocoPackageId, string arguments, string displayName, CancellationToken ct)
     {
         bool alreadyInstalled = false;
+        bool checksumFailed = false;
         var result = await _processExecutor.ExecuteWithStreamingAsync(
             chocoPath,
             arguments,
@@ -187,6 +229,8 @@ internal class ChocolateyService : IChocolateyService
                 });
                 if (line.Contains("already installed", StringComparison.OrdinalIgnoreCase))
                     alreadyInstalled = true;
+                if (line.Contains("checksum", StringComparison.OrdinalIgnoreCase))
+                    checksumFailed = true;
             },
             ct: ct).ConfigureAwait(false);
 
@@ -195,7 +239,9 @@ internal class ChocolateyService : IChocolateyService
         if (result.ExitCode != 0)
             _logService.LogError($"Chocolatey install of '{chocoPackageId}' failed (exit code {result.ExitCode}): {result.StandardError}");
 
-        return (result.ExitCode == 0, alreadyInstalled);
+        checksumFailed |= result.StandardError.Contains("checksum", StringComparison.OrdinalIgnoreCase);
+
+        return (result.ExitCode == 0, alreadyInstalled, checksumFailed);
     }
 
     public async Task<bool> UninstallPackageAsync(string chocoPackageId, string? displayName = null, CancellationToken cancellationToken = default)
@@ -467,7 +513,8 @@ internal class ChocolateyService : IChocolateyService
         }
     }
 
-    // -r prints id|installed|available|pinned per outdated package.
+    // -r prints id|installed|available|pinned per outdated package. Only a feed version newer than the installed one
+    // counts, so a feed that went back a version never shows as an update.
     internal static IReadOnlyDictionary<string, string> ParseOutdated(string output)
     {
         var outdated = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -475,7 +522,8 @@ internal class ChocolateyService : IChocolateyService
         {
             var parts = line.Trim().Split('|');
             if (parts.Length >= 4 && parts[0].Length > 0 && parts[2].Length > 0
-                && !string.Equals(parts[3], "true", StringComparison.OrdinalIgnoreCase))
+                && !string.Equals(parts[3], "true", StringComparison.OrdinalIgnoreCase)
+                && PackageVersion.IsUpdate(parts[2], parts[1]))
                 outdated[parts[0]] = parts[2];
         }
         return outdated;

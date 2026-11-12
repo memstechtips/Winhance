@@ -5,6 +5,5 @@ public interface ISpecialSettingHandler
     Task<bool> TryApplySpecialSettingAsync(
         string settingId,
         object value,
-        bool additionalContext = false,
         ISettingApplicationService? settingApplicationService = null);
 }

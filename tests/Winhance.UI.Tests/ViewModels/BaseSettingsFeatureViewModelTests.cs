@@ -120,7 +120,7 @@ public class BaseSettingsFeatureViewModelTests
         int numericValue = 0,
         object? selectedValue = null,
         // Display units for a NumericRange setting ("Minutes"/"Hours"/"Milliseconds"). Null leaves
-        // Setting.Numeric unset, so UnitConversionHelper passes raw system values through unchanged -
+        // Setting.Numeric unset, so PowerCfgValues passes raw system values through unchanged -
         // which is what the tests asserting NumericValue == the raw CurrentValue rely on. Supply it
         // only when the test is actually exercising the unit conversion.
         string? numericUnits = null,
@@ -256,14 +256,6 @@ public class BaseSettingsFeatureViewModelTests
     }
 
     [Fact]
-    public void IsExpanded_DefaultsToTrue()
-    {
-        var vm = CreateViewModel();
-
-        vm.IsExpanded.Should().BeTrue();
-    }
-
-    [Fact]
     public void SearchText_DefaultsToEmptyString()
     {
         var vm = CreateViewModel();
@@ -315,68 +307,6 @@ public class BaseSettingsFeatureViewModelTests
         var vm = CreateViewModel();
 
         vm.HasVisibleSettings.Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsVisibleInSearch_WhenNoSettings_ReturnsFalse()
-    {
-        var vm = CreateViewModel();
-
-        vm.IsVisibleInSearch.Should().BeFalse();
-    }
-
-    [Fact]
-    public void LoadSettingsCommand_IsNotNull()
-    {
-        var vm = CreateViewModel();
-
-        vm.LoadSettingsCommand.Should().NotBeNull();
-    }
-
-    [Fact]
-    public void ToggleExpandCommand_IsNotNull()
-    {
-        var vm = CreateViewModel();
-
-        vm.ToggleExpandCommand.Should().NotBeNull();
-    }
-
-    [Fact]
-    public void ToggleExpandCommand_TogglesIsExpanded()
-    {
-        var vm = CreateViewModel();
-        vm.IsExpanded.Should().BeTrue();
-
-        vm.ToggleExpandCommand.Execute(null);
-
-        vm.IsExpanded.Should().BeFalse();
-    }
-
-    [Fact]
-    public void ToggleExpandCommand_TogglesBackToTrue()
-    {
-        var vm = CreateViewModel();
-        vm.IsExpanded = false;
-
-        vm.ToggleExpandCommand.Execute(null);
-
-        vm.IsExpanded.Should().BeTrue();
-    }
-
-    [Fact]
-    public void IsExpanded_WhenSetToFalse_RaisesPropertyChanged()
-    {
-        var vm = CreateViewModel();
-        var propertyChangedRaised = false;
-        vm.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(vm.IsExpanded))
-                propertyChangedRaised = true;
-        };
-
-        vm.IsExpanded = false;
-
-        propertyChangedRaised.Should().BeTrue();
     }
 
     [Fact]
@@ -736,7 +666,7 @@ public class BaseSettingsFeatureViewModelTests
         var filtered = new TaskCompletionSource();
         vm.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(vm.IsVisibleInSearch))
+            if (e.PropertyName == nameof(vm.HasVisibleSettings))
                 filtered.TrySetResult();
         };
 
@@ -793,7 +723,6 @@ public class BaseSettingsFeatureViewModelTests
         await vm.LoadSettingsAsync();
 
         vm.HasVisibleSettings.Should().BeTrue();
-        vm.IsVisibleInSearch.Should().BeTrue();
     }
 
     [Fact]
@@ -1081,7 +1010,6 @@ public class BaseSettingsFeatureViewModelTests
         await vm.LoadSettingsAsync();
 
         raisedProperties.Should().Contain(nameof(vm.HasVisibleSettings));
-        raisedProperties.Should().Contain(nameof(vm.IsVisibleInSearch));
         raisedProperties.Should().Contain(nameof(vm.SettingsCount));
         raisedProperties.Should().Contain(nameof(vm.GroupDescriptionText));
     }
@@ -1568,7 +1496,7 @@ public class BaseSettingsFeatureViewModelTests
     }
 
     [Fact]
-    public async Task A_gate_follows_the_named_card_when_the_user_moves_it_with_no_apply_event()
+    public async Task SelectedValue_GatingCardMovedWithNoApplyEvent_GateFollowsTheNamedCard()
     {
         // Builder mode records an edit and publishes no SettingAppliedEvent.
         var vm = CreateViewModel();
@@ -1961,7 +1889,7 @@ public class BaseSettingsFeatureViewModelTests
         var filtered = new TaskCompletionSource();
         vm.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(vm.IsVisibleInSearch))
+            if (e.PropertyName == nameof(vm.HasVisibleSettings))
                 filtered.TrySetResult();
         };
 
@@ -2119,6 +2047,64 @@ public class BaseSettingsFeatureViewModelTests
         vm.SetViewFilter(SettingStateFilter.Recommended, onlyChanges: null);
 
         vm.Settings.Where(s => s.IsVisible).Select(s => s.SettingId).Should().Equal("parent");
+    }
+
+    [Fact]
+    public async Task StateFilter_InReview_KeepsACardTheReviewWaitsOn()
+    {
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel> { OffRecommended("card", "Card") });
+        await vm.LoadSettingsAsync();
+        vm.SetViewFilter(SettingStateFilter.Recommended, onlyChanges: null);
+        vm.Settings[0].IsVisible.Should().BeFalse();
+
+        vm.Settings[0].IsInReviewMode = true;
+        vm.Settings[0].HasReviewDiff = true;
+
+        vm.Settings[0].IsVisible.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SettingApplied_ABurstOnARelatedSetting_RefreshesTheRelatedCardOnce()
+    {
+        Action<SettingAppliedEvent>? handler = null;
+        _mockEventBus
+            .Setup(e => e.Subscribe(It.IsAny<Action<SettingAppliedEvent>>()))
+            .Callback<Action<SettingAppliedEvent>>(h => handler = h)
+            .Returns(new Mock<ISubscriptionToken>().Object);
+        Action? tick = null;
+        var timer = new Mock<IDebounceTimer>();
+        _mockDispatcherService
+            .Setup(d => d.CreateDebounceTimer(It.IsAny<TimeSpan>(), It.IsAny<Action>()))
+            .Callback<TimeSpan, Action>((_, t) => tick = t)
+            .Returns(timer.Object);
+        _mockSettingsLoadingService
+            .Setup(s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>());
+
+        var child = SettingCatalog.ById.Values.First(s => !string.IsNullOrEmpty(s.UiParentId));
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel>
+        {
+            CreateSettingItem(child.UiParentId!, "Parent"),
+            CreateSettingItem("unrelated", "Unrelated"),
+        });
+        await vm.LoadSettingsAsync();
+
+        handler!(new SettingAppliedEvent(child.Id, isEnabled: true));
+        handler!(new SettingAppliedEvent(child.Id, isEnabled: false));
+
+        _mockDispatcherService.Verify(d => d.CreateDebounceTimer(It.IsAny<TimeSpan>(), It.IsAny<Action>()), Times.Once);
+        timer.Verify(t => t.Restart(), Times.Exactly(2));
+        _mockSettingsLoadingService.Verify(
+            s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()), Times.Never);
+
+        tick!();
+
+        _mockSettingsLoadingService.Verify(
+            s => s.RefreshSettingStatesAsync(It.Is<IEnumerable<SettingItemViewModel>>(
+                subset => subset.Select(card => card.SettingId).SequenceEqual(new[] { child.UiParentId! }))),
+            Times.Once);
     }
 
     private static BadgePillState RecommendedPill(SettingItemViewModel setting) =>

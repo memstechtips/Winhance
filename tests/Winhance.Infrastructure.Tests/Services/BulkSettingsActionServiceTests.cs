@@ -80,7 +80,7 @@ public class BulkSettingsActionServiceTests
             _mockLocalizationService.Object);
     }
 
-    // The reset loop + affected-count + ResolveSettingsAsync all read catalog Settings DIRECTLY. Tests
+    // The reset loop + affected list + ResolveSettings all read catalog Settings DIRECTLY. Tests
     // construct synthetic Settings with exactly the roles they exercise - no real catalog id is needed.
 
     private static Display Disp(string id) => new() { Name = TestKeys.Of($"Setting {id}"), Description = TestKeys.Of($"Description for {id}") };
@@ -122,7 +122,7 @@ public class BulkSettingsActionServiceTests
         return new Setting { Id = id, Display = Disp(id), States = states };
     }
 
-    // A numeric (slider) Setting (Control.Slider); used only to prove ResolveSettingsAsync passes it through.
+    // A numeric (slider) Setting (Control.Slider); used only to prove ResolveSettings passes it through.
     private static Setting NumericSetting(string id) =>
         new() { Id = id, Display = Disp(id), Numeric = new Numeric { Min = 0, Max = 100 } };
 
@@ -165,7 +165,7 @@ public class BulkSettingsActionServiceTests
     }
 
     // The OS gate lives in the catalog registry, which returns null for an OS-incompatible id (GetById),
-    // so ResolveSettingsAsync's null-skip drops it.
+    // so ResolveSettings's null-skip drops it.
     [Fact]
     public async Task ApplyRecommendedAsync_SkipsRegistryExcluded_BeforeDelegating()
     {
@@ -289,10 +289,10 @@ public class BulkSettingsActionServiceTests
     }
 
     [Fact]
-    public async Task GetAffectedCountAsync_ReturnsCorrectCount_ExcludingAlreadyMatching()
+    public async Task GetAffectedSettingIdsAsync_ListsOnlySettingsWithATarget()
     {
         // recToggle carries ONLY a Recommended role, defToggle ONLY a Windows default - so a mis-dispatch
-        // (wrong predicate) would change the count. selRec/selDef exercise the Selection role contribution;
+        // (wrong predicate) would change the list. selRec/selDef exercise the Selection role contribution;
         // noValues has neither and is excluded from both.
         var recToggle = Toggle("rec-toggle", recommended: true);
         var defToggle = Toggle("def-toggle", windowsDefault: false);
@@ -306,13 +306,13 @@ public class BulkSettingsActionServiceTests
         SetupRegistry("sel-def", selDef);
         SetupRegistry("no-values", noValues);
 
-        var recCount = await _service.GetAffectedCountAsync(
+        var recommended = await _service.GetAffectedSettingIdsAsync(
             RecommendedTrio, BulkActionType.ApplyRecommended);
-        recCount.Should().Be(2);
+        recommended.Should().BeEquivalentTo("rec-toggle", "sel-rec");
 
-        var defaultCount = await _service.GetAffectedCountAsync(
+        var defaults = await _service.GetAffectedSettingIdsAsync(
             DefaultTrio, BulkActionType.ResetToDefaults);
-        defaultCount.Should().Be(2);
+        defaults.Should().BeEquivalentTo("def-toggle", "sel-def");
     }
 
     [Fact]

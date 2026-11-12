@@ -72,7 +72,7 @@ public class AppStagingServiceTests : IDisposable
         _sut = new AppStagingService(
             _winGet.Object,
             _downloads.Object,
-            new FileSystemService(),
+            new FileSystemService(Mock.Of<ILogService>()),
             _versions.Object,
             Mock.Of<ILogService>(),
             Mock.Of<ILocalizationService>());
@@ -126,8 +126,22 @@ public class AppStagingServiceTests : IDisposable
                 File.WriteAllText(Path.Combine(folder, installerName), "installer");
                 File.WriteAllText(Path.Combine(folder, Path.ChangeExtension(installerName, ".yaml")), manifest);
             })
-            .ReturnsAsync(true);
+            .ReturnsAsync(PackageInstallResult.Succeeded());
     }
+
+    // Set up after WinGetDownloads: Moq answers with the last matching setup.
+    private void WinGetHasNoInstallerFor(params string[] architectures)
+    {
+        foreach (var architecture in architectures)
+        {
+            _winGet
+                .Setup(w => w.DownloadPackageAsync(It.IsAny<string>(), architecture, It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.NoApplicableInstallers));
+        }
+    }
+
+    private static StagingOutcome OutcomeOf(IReadOnlyList<StagedApp> outcomes, string name) =>
+        outcomes.Single(app => app.Name == name).Outcome;
 
     private void UrlDownloads(string fileName)
     {
@@ -277,7 +291,7 @@ public class AppStagingServiceTests : IDisposable
         WinGetDownloads(forAllUsers: true, "vlc.msi", WixManifest);
         _winGet
             .Setup(w => w.DownloadPackageAsync(It.IsAny<string>(), "arm64", It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+            .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.DownloadError));
 
         var notStaged = NotStaged(await _sut.StageAsync(_media, Set([], Vlc)));
 
@@ -521,10 +535,144 @@ public class AppStagingServiceTests : IDisposable
 
         outcomes.Should().BeEquivalentTo(new[]
         {
-            new StagedApp("VLC media player", true),
-            new StagedApp("Setup.exe", true),
-            new StagedApp("Winhance", false),
+            new StagedApp("VLC media player", StagingOutcome.OnMedia),
+            new StagedApp("Setup.exe", StagingOutcome.OnMedia),
+            new StagedApp("Winhance", StagingOutcome.DownloadFailed),
         }, options => options.WithStrictOrdering());
+    }
+
+    [Fact]
+    public async Task StageAsync_OnlyA32BitInstaller_StagesItInTheX64Folder()
+    {
+        WinGetDownloads(forAllUsers: true, "app.msi", WixManifest);
+        WinGetHasNoInstallerFor("x64", "neutral");
+
+        var outcomes = await _sut.StageAsync(_media, Set(OnlyX64, Vlc));
+
+        OutcomeOf(outcomes, "VLC media player").Should().Be(StagingOutcome.OnMedia);
+        FileNames(Path.Combine(_apps, Vlc, "x64")).Should().BeEquivalentTo("app.msi", "app.yaml");
+        _winGet.Verify(w => w.DownloadPackageAsync("VideoLAN.VLC", "neutral", It.IsAny<bool>(), Path.Combine(_apps, Vlc, "x64"), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _winGet.Verify(w => w.DownloadPackageAsync("VideoLAN.VLC", "x86", true, Path.Combine(_apps, Vlc, "x64"), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task StageAsync_ANeutralInstaller_IsTriedBefore32Bit()
+    {
+        WinGetDownloads(forAllUsers: true, "app.msi", WixManifest);
+        WinGetHasNoInstallerFor("x64");
+
+        await _sut.StageAsync(_media, Set(OnlyX64, Vlc));
+
+        _winGet.Verify(w => w.DownloadPackageAsync("VideoLAN.VLC", "neutral", true, It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
+        _winGet.Verify(w => w.DownloadPackageAsync(It.IsAny<string>(), "x86", It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task StageAsync_NoArm64Installer_StagesTheX64OneInTheArm64Folder()
+    {
+        WinGetDownloads(forAllUsers: true, "app.msi", WixManifest);
+        WinGetHasNoInstallerFor("arm64", "neutral");
+
+        var outcomes = await _sut.StageAsync(_media, Set(OnlyArm64, Vlc));
+
+        OutcomeOf(outcomes, "VLC media player").Should().Be(StagingOutcome.OnMedia);
+        FolderNames(Path.Combine(_apps, Vlc)).Should().Equal("arm64");
+        _winGet.Verify(w => w.DownloadPackageAsync("VideoLAN.VLC", "x64", true, Path.Combine(_apps, Vlc, "arm64"), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
+        _winGet.Verify(w => w.DownloadPackageAsync(It.IsAny<string>(), "x86", It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task StageAsync_NoInstallerForAnyArchitecture_SaysSo()
+    {
+        WinGetHasNoInstallerFor("x64", "neutral", "x86");
+
+        var outcomes = await _sut.StageAsync(_media, Set(OnlyX64, Vlc));
+
+        OutcomeOf(outcomes, "VLC media player").Should().Be(StagingOutcome.NoInstallerForArchitecture);
+        Directory.Exists(Path.Combine(_apps, Vlc)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task StageAsync_A64BitDownloadFails_NeverSettlesForThe32BitInstaller()
+    {
+        _winGet
+            .Setup(w => w.DownloadPackageAsync(It.IsAny<string>(), "x64", It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Failed(InstallFailureReason.NetworkError));
+
+        var outcomes = await _sut.StageAsync(_media, Set(OnlyX64, Vlc));
+
+        OutcomeOf(outcomes, "VLC media player").Should().Be(StagingOutcome.DownloadFailed);
+        _winGet.Verify(w => w.DownloadPackageAsync(It.IsAny<string>(), It.Is<string>(a => a != "x64"), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task StageAsync_WinGetGivesOnlyAnMsix_StagesIt()
+    {
+        WinGetDownloads(forAllUsers: true, "app.msix", MsixManifest);
+
+        var outcomes = await _sut.StageAsync(_media, Set(OnlyX64, Vlc));
+
+        OutcomeOf(outcomes, "VLC media player").Should().Be(StagingOutcome.OnMedia);
+        FileNames(Path.Combine(_apps, Vlc, "x64")).Should().BeEquivalentTo("app.msix", "app.yaml");
+    }
+
+    [Fact]
+    public async Task StageAsync_CatalogDownloadFails_StagesTheMsixAfterAll()
+    {
+        WinGetDownloads(forAllUsers: true, "app.msix", MsixManifest);
+        WinGetDownloads(forAllUsers: false, "app.msix", MsixManifest);
+
+        var outcomes = await _sut.StageAsync(_media, Set(OnlyX64, ExplorerPatcher));
+
+        OutcomeOf(outcomes, "ExplorerPatcher").Should().Be(StagingOutcome.OnMedia);
+        FileNames(Path.Combine(_apps, ExplorerPatcher, "x64")).Should().BeEquivalentTo("app.msix", "app.yaml");
+        _downloads.Verify(d => d.DownloadAsync(It.Is<ItemDefinition>(a => a.Id == ExplorerPatcher), "x64", It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task StageAsync_WinGetGivesAPortableZip_StagesIt()
+    {
+        WinGetDownloads(forAllUsers: true, "app.zip", """
+            ManifestType: merged
+            Installers:
+            - InstallerType: zip
+              NestedInstallerType: portable
+              NestedInstallerFiles:
+              - RelativeFilePath: app\app.exe
+            """);
+
+        var outcomes = await _sut.StageAsync(_media, Set(OnlyX64, Vlc));
+
+        OutcomeOf(outcomes, "VLC media player").Should().Be(StagingOutcome.OnMedia);
+        FileNames(Path.Combine(_apps, Vlc, "x64")).Should().BeEquivalentTo("app.zip", "app.yaml");
+    }
+
+    [Fact]
+    public async Task StageAsync_WinGetGivesAFont_SaysWinGetInstallsIt()
+    {
+        const string fontManifest = """
+            ManifestType: merged
+            Installers:
+            - InstallerType: font
+            """;
+        WinGetDownloads(forAllUsers: true, "app.ttf", fontManifest);
+        WinGetDownloads(forAllUsers: false, "app.ttf", fontManifest);
+
+        var outcomes = await _sut.StageAsync(_media, Set(OnlyX64, Vlc));
+
+        OutcomeOf(outcomes, "VLC media player").Should().Be(StagingOutcome.NeedsWinGet);
+        Directory.Exists(Path.Combine(_apps, Vlc)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task StageAsync_ReportsWhyAnItemIsNotOnTheMedia()
+    {
+        var outcomes = await _sut.StageAsync(
+            _media,
+            WithOwnInstallers(Set(OnlyX64, @"winget-..\Evil"), new OwnInstaller(Path.Combine(_root, "Gone.exe"), "")));
+
+        OutcomeOf(outcomes, @"winget-..\Evil").Should().Be(StagingOutcome.Skipped);
+        OutcomeOf(outcomes, "Gone.exe").Should().Be(StagingOutcome.NotFound);
     }
 
     [Fact]

@@ -53,7 +53,7 @@ public class ComboBoxResolverSettingConformanceTests
     }
 
     [Fact]
-    public void Canonical_state_reads_round_trip_to_that_state_index()
+    public void ResolveRawValuesToIndex_CanonicalStateReads_RoundTripToTheStateIndex()
     {
         var resolver = new ComboBoxResolver(StubVersion());
         // An answer-file selection is never read back off a machine, so two of its options may write the same element.
@@ -97,7 +97,7 @@ public class ComboBoxResolverSettingConformanceTests
     }
 
     [Fact]
-    public void Detector_selections_with_empty_set_states_resolve_to_index_zero()
+    public void ResolveRawValuesToIndex_DetectorSelectionsWithEmptySetStates_ReturnsIndexZero()
     {
         var resolver = new ComboBoxResolver(StubVersion());
         var detectorSelections = SettingCatalog.All
@@ -116,7 +116,7 @@ public class ComboBoxResolverSettingConformanceTests
     }
 
     [Fact]
-    public void DetectedIndex_reading_short_circuits_to_that_index()
+    public void ResolveRawValuesToIndex_DetectedIndexReading_ReturnsThatIndex()
     {
         var resolver = new ComboBoxResolver(StubVersion());
         var anySelection = SettingCatalog.All.First(s => s.Control == ControlKind.Selection);
@@ -126,7 +126,7 @@ public class ComboBoxResolverSettingConformanceTests
     }
 
     [Fact]
-    public void All_backing_absent_resolves_to_the_windows_default_option()
+    public void ResolveRawValuesToIndex_AllBackingValuesAbsent_ReturnsTheWindowsDefaultOption()
     {
         var resolver = new ComboBoxResolver(StubVersion());
         // A synthetic 3-option single-key registry selection (Control derives to Selection): options A/B/C write
@@ -145,7 +145,7 @@ public class ComboBoxResolverSettingConformanceTests
     }
 
     [Fact]
-    public void An_IsFallback_state_catches_an_unmatched_reading_as_the_windows_default()
+    public void ResolveRawValuesToIndex_UnmatchedReadingWithFallbackState_ReturnsTheFallbackIndex()
     {
         var resolver = new ComboBoxResolver(StubVersion());
         // Same shape, but option C is ALSO the IsFallback catch-all -> even a present, unmatched reading resolves

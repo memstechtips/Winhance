@@ -1,7 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
-using Winhance.Core.Features.Common.Helpers;
+using Microsoft.UI.Xaml.Controls;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
 using Winhance.UI.Features.Common.Extensions.DI;
@@ -62,8 +63,8 @@ public partial class App : Application
 
     private void OnAppUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
-        StartupLogger.Log($"Unhandled UI exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}\nInner: {e.Exception?.InnerException?.Message}\n{e.Exception?.InnerException?.StackTrace}");
-        _logService?.LogError($"Unhandled UI exception: {e.Exception?.Message}", e.Exception);
+        StartupLogger.Log($"Unhandled UI exception 0x{e.Exception?.HResult:X8}: {e.Message}\n{e.Exception?.StackTrace}\nInner: {e.Exception?.InnerException?.Message}\n{e.Exception?.InnerException?.StackTrace}");
+        _logService?.LogError($"Unhandled UI exception 0x{e.Exception?.HResult:X8}: {e.Message}", e.Exception);
 
         // WinUI cannot lay out again after a layout cycle; handled, it leaves a window that draws nothing and
         // takes no clicks, so that one closes the app with the error already logged.
@@ -82,8 +83,20 @@ public partial class App : Application
         StartupLogger.Log("OnLaunched starting");
         try
         {
+            // Every CheckBox: its check glyph is an AnimatedIcon that mirrors AnimatedIcon.State from the nearest
+            // ancestor that sets one. A toolkit SettingsCard sets its own on hover, and the accept animation has no
+            // "PointerOver" frame, so an unticked box inside a card drew a ghost check. Pinning the state on the
+            // CheckBox makes it the nearest ancestor. Built here because the same Setter written in XAML fails at
+            // runtime with "Failed to assign to property AnimatedIcon.FallbackIconSource".
+            Resources[typeof(CheckBox)] = new Style(typeof(CheckBox))
+            {
+                BasedOn = (Style)Resources["DefaultCheckBoxStyle"],
+                Setters = { new Setter(AnimatedIcon.StateProperty, "NormalOff") },
+            };
+
             StartupLogger.Log("Building DI host...");
             var launch = LaunchCommandLine.Parse(Environment.GetCommandLineArgs()[1..], message => StartupLogger.Log(message));
+            LiveInstanceTracker.Shared.Enabled = launch.DiagMemory;
             _host = CompositionRoot.CreateWinhanceHost(launch).Build();
             StartupLogger.Log("DI host built successfully");
 
@@ -92,7 +105,7 @@ public partial class App : Application
             {
                 var localAppData = Services.GetRequiredService<IInteractiveUserService>()
                     .GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                foreach (var path in AppDataPaths.CopyInstalledData(localAppData))
+                foreach (var path in Services.GetRequiredService<IPortableDataCopy>().CopyInstalledData(localAppData))
                     StartupLogger.Log($"Portable: copied {path}");
             }
             catch (Exception ex)
@@ -169,7 +182,7 @@ public partial class App : Application
 
             // Load and apply the saved language preference (sync to avoid async deadlock on UI thread)
             var preferencesService = Services.GetRequiredService<IUserPreferencesService>();
-            var savedLanguage = preferencesService.GetPreference("Language", "en");
+            var savedLanguage = preferencesService.GetPreference(UserPreferenceKeys.Language, "en");
             localizationService.SetLanguage(savedLanguage);
         }
         catch (Exception ex)

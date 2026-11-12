@@ -309,7 +309,7 @@ public class ConfigFileMapperTests
 
     // A .winhance file is a shared preset, so a typed password travels only when the card was told to save it.
     [Fact]
-    public void A_list_round_trip_drops_the_password()
+    public void WriteValue_ListRoundTrip_DropsThePassword()
     {
         var setting = ListSetting("a");
         var item = new ConfigurationItem { Id = "a" };
@@ -330,7 +330,7 @@ public class ConfigFileMapperTests
     }
 
     [Fact]
-    public void A_list_round_trip_keeps_an_obscured_password()
+    public void WriteValue_ListRoundTrip_KeepsAnObscuredPassword()
     {
         var setting = ListSetting("a");
         var item = new ConfigurationItem { Id = "a" };
@@ -346,7 +346,7 @@ public class ConfigFileMapperTests
     }
 
     [Fact]
-    public void An_empty_password_is_never_obscured()
+    public void WriteValue_EmptyPassword_IsNeverObscured()
     {
         var item = new ConfigurationItem { Id = "a" };
 
@@ -359,7 +359,7 @@ public class ConfigFileMapperTests
     }
 
     [Fact]
-    public void A_password_this_release_cannot_read_decodes_as_empty()
+    public void DecodeValue_PasswordThisReleaseCannotRead_DecodesAsEmpty()
     {
         var item = new ConfigurationItem
         {
@@ -375,7 +375,7 @@ public class ConfigFileMapperTests
     }
 
     [Fact]
-    public void A_row_with_no_password_field_at_all_decodes_as_empty()
+    public void DecodeValue_RowWithNoPasswordField_DecodesAsEmpty()
     {
         var item = new ConfigurationItem
         {

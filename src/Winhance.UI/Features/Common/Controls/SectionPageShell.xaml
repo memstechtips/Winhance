@@ -53,16 +53,10 @@
                         ItemsSource="{x:Bind ViewModel.SearchSuggestions}">
                         <AutoSuggestBox.ItemTemplate>
                             <DataTemplate x:DataType="models:SearchSuggestionItem">
-                                <Grid Padding="4,2">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Text="{x:Bind SettingName, Mode=OneTime}" Style="{StaticResource BodyTextBlockStyle}"/>
-                                        <TextBlock Text="{x:Bind SectionDisplayName, Mode=OneTime}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                    </StackPanel>
-                                </Grid>
+                                <StackPanel Padding="4,2">
+                                    <TextBlock Text="{x:Bind SettingName, Mode=OneTime}" Style="{StaticResource BodyTextBlockStyle}"/>
+                                    <TextBlock Text="{x:Bind SectionDisplayName, Mode=OneTime}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
                             </DataTemplate>
                         </AutoSuggestBox.ItemTemplate>
                     </AutoSuggestBox>
@@ -74,6 +68,7 @@
         <Grid x:Name="NavRow" Grid.Row="1" Margin="0,12,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>     <!-- Breadcrumb -->
+                <ColumnDefinition Width="Auto"/>  <!-- Active filter -->
                 <ColumnDefinition Width="Auto"/>  <!-- Quick Actions -->
                 <ColumnDefinition Width="Auto"/>  <!-- View -->
             </Grid.ColumnDefinitions>
@@ -158,8 +153,21 @@
                 </DropDownButton>
             </StackPanel>
 
+            <!-- The View filter hides cards from a menu the user may not reopen, so its state stays in sight here -->
+            <Button x:Name="ActiveStateFilterButton" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,4,0"
+                    Visibility="{x:Bind ViewModel.IsStateFilterActive}"
+                    Command="{x:Bind ViewModel.ShowAllSettingsCommand}"
+                    ToolTipService.ToolTip="{x:Bind ViewModel.ClearStateFilterTooltip}"
+                    AutomationProperties.Name="{x:Bind ViewModel.ActiveStateFilterText}"
+                    AutomationProperties.HelpText="{x:Bind ViewModel.ClearStateFilterTooltip}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <fluentIcons:FluentIcon Icon="FilterDismiss" IconVariant="Regular" FontSize="14"/>
+                    <TextBlock Text="{x:Bind ViewModel.ActiveStateFilterText}" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+
             <!-- Quick Actions dropdown -->
-            <DropDownButton x:Name="QuickActionsButton" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,4,0">
+            <DropDownButton x:Name="QuickActionsButton" Grid.Column="2" VerticalAlignment="Center" Margin="0,0,4,0">
                 <DropDownButton.Content>
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <FontIcon Glyph="&#xE945;" FontSize="14"/>
@@ -194,7 +202,7 @@
             </DropDownButton>
 
             <!-- View dropdown -->
-            <DropDownButton x:Name="ViewMenuButton" Grid.Column="2" VerticalAlignment="Center" Margin="0,0,0,0">
+            <DropDownButton x:Name="ViewMenuButton" Grid.Column="3" VerticalAlignment="Center" Margin="0,0,0,0">
                 <DropDownButton.Content>
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <FontIcon Glyph="&#xE7B3;" FontSize="14"/>
@@ -205,7 +213,7 @@
                     <MenuFlyout Placement="BottomEdgeAlignedRight">
                         <ToggleMenuFlyoutItem x:Name="TechnicalDetailsToggleItem">
                             <ToggleMenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xE946;"/>
+                                <fluentIcons:FluentIcon Icon="Code" IconVariant="Regular"/>
                             </ToggleMenuFlyoutItem.Icon>
                         </ToggleMenuFlyoutItem>
                         <ToggleMenuFlyoutItem x:Name="InfoBadgesToggleItem">

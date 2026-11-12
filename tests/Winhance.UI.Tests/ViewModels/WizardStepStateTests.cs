@@ -12,7 +12,6 @@ public class WizardStepStateTests
         {
             StepNumber = 1,
             Title = "Step One",
-            Icon = "icon1",
         };
     }
 
@@ -65,14 +64,6 @@ public class WizardStepStateTests
     }
 
     [Fact]
-    public void Icon_CanBeSet()
-    {
-        var state = CreateState();
-
-        state.Icon.Should().Be("icon1");
-    }
-
-    [Fact]
     public void StatusText_Set_RaisesPropertyChanged()
     {
         var state = CreateState();
@@ -117,7 +108,6 @@ public class WizardStepStateTests
         state.IsExpanded = true;
 
         changedProperties.Should().Contain(nameof(state.IsExpanded));
-        changedProperties.Should().Contain(nameof(state.ChevronRotation));
     }
 
     [Fact]
@@ -133,26 +123,6 @@ public class WizardStepStateTests
     }
 
     [Fact]
-    public void ChevronRotation_WhenExpanded_Returns180()
-    {
-        var state = CreateState();
-
-        state.IsExpanded = true;
-
-        state.ChevronRotation.Should().Be(180);
-    }
-
-    [Fact]
-    public void ChevronRotation_WhenCollapsed_Returns0()
-    {
-        var state = CreateState();
-
-        state.IsExpanded = false;
-
-        state.ChevronRotation.Should().Be(0);
-    }
-
-    [Fact]
     public void IsAvailable_SetTrue_RaisesPropertyChanged()
     {
         var state = CreateState();
@@ -163,7 +133,6 @@ public class WizardStepStateTests
 
         changedProperties.Should().Contain(nameof(state.IsAvailable));
         changedProperties.Should().Contain(nameof(state.IsLocked));
-        changedProperties.Should().Contain(nameof(state.ShowChevron));
     }
 
     [Fact]
@@ -208,7 +177,6 @@ public class WizardStepStateTests
         state.IsComplete = true;
 
         changedProperties.Should().Contain(nameof(state.IsComplete));
-        changedProperties.Should().Contain(nameof(state.ShowChevron));
     }
 
     [Fact]
@@ -223,85 +191,28 @@ public class WizardStepStateTests
         raised.Should().BeFalse();
     }
 
-    [Fact]
-    public void ShowChevron_WhenAvailableAndNotComplete_ReturnsTrue()
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    [InlineData("\uE958", true)]
+    public void HasGlyph_ForGlyph_ShowsGlyphInsteadOfFluentIcon(string? glyph, bool hasGlyph)
     {
-        var state = CreateState();
-        state.IsAvailable = true;
-        state.IsComplete = false;
+        var state = new WizardStepState { Glyph = glyph };
 
-        state.ShowChevron.Should().BeTrue();
+        state.HasGlyph.Should().Be(hasGlyph);
+        state.UsesFluentIcon.Should().Be(!hasGlyph);
     }
 
     [Fact]
-    public void ShowChevron_WhenLocked_ReturnsFalse()
-    {
-        var state = CreateState();
-        state.IsAvailable = false;
-        state.IsComplete = false;
-
-        state.ShowChevron.Should().BeFalse();
-    }
-
-    [Fact]
-    public void ShowChevron_WhenComplete_ReturnsFalse()
-    {
-        var state = CreateState();
-        state.IsAvailable = true;
-        state.IsComplete = true;
-
-        state.ShowChevron.Should().BeFalse();
-    }
-
-    [Fact]
-    public void ShowChevron_WhenLockedAndComplete_ReturnsFalse()
-    {
-        var state = CreateState();
-        state.IsAvailable = false;
-        state.IsComplete = true;
-
-        state.ShowChevron.Should().BeFalse();
-    }
-
-    [Fact]
-    public void TransitionFromLockedToAvailable_UpdatesIsLockedAndShowChevron()
+    public void TransitionFromLockedToAvailable_UnlocksTheStep()
     {
         var state = CreateState();
         state.IsAvailable = false;
 
         state.IsLocked.Should().BeTrue();
-        state.ShowChevron.Should().BeFalse();
 
         state.IsAvailable = true;
 
         state.IsLocked.Should().BeFalse();
-        state.ShowChevron.Should().BeTrue();
-    }
-
-    [Fact]
-    public void TransitionFromAvailableToComplete_HidesChevron()
-    {
-        var state = CreateState();
-        state.IsAvailable = true;
-
-        state.ShowChevron.Should().BeTrue();
-
-        state.IsComplete = true;
-
-        state.ShowChevron.Should().BeFalse();
-    }
-
-    [Fact]
-    public void ExpandCollapseCycle_TogglesChevronRotation()
-    {
-        var state = CreateState();
-
-        state.ChevronRotation.Should().Be(0);
-
-        state.IsExpanded = true;
-        state.ChevronRotation.Should().Be(180);
-
-        state.IsExpanded = false;
-        state.ChevronRotation.Should().Be(0);
     }
 }

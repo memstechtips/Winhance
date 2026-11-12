@@ -13,6 +13,9 @@ public sealed record InstallOptions
     public bool Interactive { get; init; }
 
     public static readonly InstallOptions Default = new();
+
+    // A portable has no installer to decide, so "let the installer decide" means everyone, as before scopes existed.
+    public InstallScope ScopeForPortable() => Scope == InstallScope.User ? InstallScope.User : InstallScope.Machine;
 }
 
 // FollowsDefaults: the per-app dialog's "use the default options" switch; Options is what the dialog shows either way.

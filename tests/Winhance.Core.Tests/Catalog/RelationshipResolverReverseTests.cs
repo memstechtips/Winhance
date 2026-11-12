@@ -28,7 +28,7 @@ public class RelationshipResolverReverseTests
         };
 
     [Fact]
-    public void Broken_requirement_resets_an_active_dependent()
+    public void ResolveReverseCascade_BrokenRequirement_ResetsActiveDependent()
     {
         var a = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) }, new Link("b", LinkKind.Requires, TestKeys.Of("On")));
         var actions = RelationshipResolver.ResolveReverseCascade("b", TestKeys.Of("Off"), new[] { a },
@@ -37,21 +37,21 @@ public class RelationshipResolverReverseTests
     }
 
     [Fact]
-    public void Requirement_still_met_resets_nothing()
+    public void ResolveReverseCascade_RequirementStillMet_ResetsNothing()
     {
         var a = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) }, new Link("b", LinkKind.Requires, TestKeys.Of("On")));
         Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", TestKeys.Of("On"), new[] { a }, id => TestKeys.Of("On"), default));
     }
 
     [Fact]
-    public void Dependent_already_at_default_is_not_reset()
+    public void ResolveReverseCascade_DependentAlreadyAtDefault_IsNotReset()
     {
         var a = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) }, new Link("b", LinkKind.Requires, TestKeys.Of("On")));
         Assert.Empty(RelationshipResolver.ResolveReverseCascade("b", TestKeys.Of("Off"), new[] { a }, id => TestKeys.Of("Off"), default));
     }
 
     [Fact]
-    public void Reverse_cascade_opt_out_is_respected()
+    public void ResolveReverseCascade_OptedOut_ResetsNothing()
     {
         var a = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) },
             new Link("b", LinkKind.Requires, TestKeys.Of("On")) { ReverseCascade = false });
@@ -59,7 +59,7 @@ public class RelationshipResolverReverseTests
     }
 
     [Fact]
-    public void Parent_snaps_when_all_children_match_an_option()
+    public void ResolveReverseSync_AllChildrenMatchAnOption_SnapsParent()
     {
         var parent = S("p", new[]
         {
@@ -72,7 +72,7 @@ public class RelationshipResolverReverseTests
     }
 
     [Fact]
-    public void Parent_does_not_snap_when_children_are_mixed()
+    public void ResolveReverseSync_MixedChildren_DoesNotSnapParent()
     {
         var parent = S("p", new[]
         {
@@ -84,7 +84,7 @@ public class RelationshipResolverReverseTests
     }
 
     [Fact]
-    public void Parent_already_in_matching_state_is_not_reapplied()
+    public void ResolveReverseSync_ParentAlreadyMatching_IsNotReapplied()
     {
         var parent = S("p", new[]
         {
@@ -96,7 +96,7 @@ public class RelationshipResolverReverseTests
     }
 
     [Fact]
-    public void Setting_not_controlling_the_child_is_ignored()
+    public void ResolveReverseSync_SettingNotControllingChild_IsIgnored()
     {
         var other = S("o", new[] { St(TestKeys.Of("x")), St(TestKeys.Of("y"), isDefault: true) });
         Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { other }, id => TestKeys.Of("Off")));

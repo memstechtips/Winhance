@@ -13,5 +13,4 @@
     <!-- Icon Converters -->
     <converters:IconConverter x:Key="IconConverter"/>
     <converters:SectionIconConverter x:Key="SectionIconConverter"/>
-    <converters:StringToGeometryConverter x:Key="StringToGeometryConverter"/>
 </ResourceDictionary>

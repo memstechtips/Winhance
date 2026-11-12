@@ -6,7 +6,7 @@ namespace Winhance.Infrastructure.Tests.Catalog;
 public class SettingCatalogFindTests
 {
     [Fact]
-    public void Find_resolves_canonical_alias_and_miss()
+    public void Find_CanonicalIdAliasAndMiss_ResolveAsExpected()
     {
         var canonical = "explorer-customization-thispc-folder-desktop";
         var s = SettingCatalog.Find(canonical);

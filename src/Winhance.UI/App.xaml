@@ -16,6 +16,8 @@
                 <ResourceDictionary Source="ms-appx:///Features/Common/Resources/Converters.xaml" />
                 <!-- Shared setting templates and styles (code-behind enabled for x:Bind) -->
                 <resources:SettingTemplates />
+                <!-- The input each settings card hosts -->
+                <resources:SettingInputTemplates />
                 <!-- Centralized feature icons -->
                 <ResourceDictionary Source="ms-appx:///Features/Common/Resources/FeatureIcons.xaml" />
                 <!-- InfoBadge pill styles, foreground brushes, and icon template selector -->

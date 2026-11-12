@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Winhance.Core.Features.Autounattend;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Events;
@@ -9,7 +10,7 @@ using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
-using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.WimUtil.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
@@ -21,51 +22,38 @@ namespace Winhance.UI.Features.Autounattend.ViewModels;
 public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
 {
     // Punctuation rather than a word, so it needs no locale key.
-    private const string Loading = "...";
-
-    // Sidebar order; FeatureDefinitions.All declares Customize first.
-    private static readonly (string Category, string LabelKey, string DefaultLabel)[] IncludedGroupLayout =
-    [
-        ("SoftwareApps", "Nav_SoftwareAndApps", "Software & Apps"),
-        ("Optimize", "Nav_Optimize", "Optimize"),
-        ("Customize", "Nav_Customize", "Customize"),
-    ];
-
-    // Each feature page's own header key; they do not all follow the feature id. The English sits here because
-    // FeatureDefinitions.DefaultName says "Windows Apps" where the tab says "Windows Apps & Features".
-    private static readonly Dictionary<string, (string Key, string DefaultLabel)> IncludedLabels = new(StringComparer.Ordinal)
-    {
-        [FeatureIds.WindowsApps] = ("SoftwareApps_Tab_WindowsApps", "Windows Apps & Features"),
-        [FeatureIds.ExternalApps] = ("SoftwareApps_Tab_ExternalApps", "External Software"),
-        [FeatureIds.Privacy] = ("Feature_Privacy_Name", "Privacy & Security"),
-        [FeatureIds.Power] = ("Feature_Power_Name", "Power"),
-        [FeatureIds.GamingPerformance] = ("Feature_GamingPerformance_Name", "Gaming & Performance"),
-        [FeatureIds.Update] = ("Feature_Update_Name", "Update"),
-        [FeatureIds.Notifications] = ("Feature_Notifications_Name", "Notifications"),
-        [FeatureIds.Sound] = ("Feature_Sound_Name", "Sound"),
-        [FeatureIds.WindowsTheme] = ("Feature_WindowsTheme_Name", "Windows Theme"),
-        [FeatureIds.Taskbar] = ("Feature_Taskbar_Name", "Taskbar"),
-        [FeatureIds.StartMenu] = ("Feature_StartMenu_Name", "Start Menu"),
-        [FeatureIds.Explorer] = ("Feature_Explorer_Name", "Explorer"),
-        [FeatureIds.TimeRegionLanguage] = ("Feature_TimeRegionLanguage_Name", "Time, region and language"),
-    };
+    internal const string Loading = "...";
 
     private readonly ICatalogSettingsRegistry _registry;
     private readonly ICatalogScopeProvider _scope;
     private readonly IAppSelectionSource _apps;
-    private readonly IWindowsAppsService _windowsApps;
-    private readonly IExternalAppsService _externalApps;
     private readonly WimUtilSession _session;
+    private readonly ISystemInfoProvider _systemInfo;
+    private readonly IBuilderModeEntry _builderEntry;
+
+    private static readonly BuilderSeed[] SeedOrder =
+        [BuilderSeed.CurrentMachine, BuilderSeed.Recommended, BuilderSeed.WindowsDefaults, BuilderSeed.ConfigFile];
 
     private ISubscriptionToken? _filterStateChangedSubscription;
-    private SettingItemViewModel? _winhanceOnNewPc;
     private SettingItemViewModel? _ownInstallers;
     private SettingItemViewModel? _stageApps;
+    private SettingItemViewModel? _computerName;
+    private SettingItemViewModel? _uniqueName;
+    private string? _uniqueNameDescription;
+    private bool _reseeding;
+    private string? _thisPcEnding;
     private IncludedSummary? _summary;
     private int _loadVersion;
     private int _includedHosts;
-    private bool _isIncludedExpanded = true;
-    private string _includedCountText = Loading;
+    private bool _installsApps;
+    private bool _winhanceDecided;
+    private bool _showsModeTags;
+    private SettingItemViewModel? _netfx3;
+    private SettingItemViewModel? _netfx3RemoveSource;
+    private string? _netfx3RemoveSourceDescription;
+
+    private const string Netfx3SettingId = "autounattend-netfx3";
+    private const string Netfx3RemoveSourceId = "autounattend-netfx3-remove-source";
 
     public AutounattendViewModel(
         ISettingsLoadingService settingsLoadingService,
@@ -77,19 +65,27 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
         ICatalogSettingsRegistry registry,
         ICatalogScopeProvider scope,
         IAppSelectionSource apps,
-        IWindowsAppsService windowsApps,
-        IExternalAppsService externalApps,
-        WimUtilSession session)
+        WimUtilSession session,
+        ISystemInfoProvider systemInfo,
+        IBuilderModeEntry builderEntry)
         : base(settingsLoadingService, logService, localizationService, dispatcherService, eventBus, applicationModeService)
     {
         _registry = registry;
         _scope = scope;
         _apps = apps;
-        _windowsApps = windowsApps;
-        _externalApps = externalApps;
         _session = session;
+        _systemInfo = systemInfo;
+        _builderEntry = builderEntry;
+        RemovedApps = new IncludedAppsCardViewModel(
+            "SoftwareApps", FeatureIds.WindowsApps, FeatureDefinitions.Get(FeatureIds.WindowsApps)!.IconKey, RequestPage);
+        InstalledApps = new InstalledAppsCardViewModel(
+            "SoftwareApps", FeatureIds.ExternalApps, FeatureDefinitions.Get(FeatureIds.ExternalApps)!.IconKey, RequestPage);
+        OptimizeSettings = new IncludedCardViewModel("Optimize", null, FeatureDefinitions.CategoryIconKey("Optimize"), RequestPage);
+        CustomizeSettings = new IncludedCardViewModel("Customize", null, FeatureDefinitions.CategoryIconKey("Customize"), RequestPage);
         _session.EditionsChanged += OnSessionEditionsChanged;
+        _session.BuiltIntoImageChanged += OnSessionBuiltIntoImageChanged;
         _localizationService.LanguageChanged += OnPageTextLanguageChanged;
+        _builderEntry.StartedFromChanged += OnStartedFromChanged;
         // The base constructor assigns it; the nullable analysis of this constructor cannot see that.
         GroupedSettings!.CollectionChanged += OnGroupedSettingsChanged;
     }
@@ -104,33 +100,60 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
         "Autounattend_Included_Description",
         "The choices on this page are written into the answer file together with your selections in the features below.");
 
-    public string IncludedIcon => MaterialIcons.FormatListBulleted.Glyph;
+    public bool ShowsStartedFrom => _builderEntry.StartedFrom is not null;
 
-    public ObservableCollection<IncludedRowViewModel> IncludedGroups { get; } = [];
+    public string StartedFromHeader => Text("Builder_StartedFrom_Name", "Started from");
 
-    public string IncludedCountText
+    public string StartedFromDescription => Text(
+        "Builder_StartedFrom_Description",
+        "Pick another start to begin again. Builder changes made so far are lost.");
+
+    public IReadOnlyList<string> StartSeedOptions => SeedOrder.Select(SeedLabel).ToList();
+
+    public int SelectedSeedIndex => _builderEntry.StartedFrom is { } seed ? Array.IndexOf(SeedOrder, seed) : -1;
+
+    public async Task ChangeSeedAsync(int index)
     {
-        get => _includedCountText;
-        private set => SetProperty(ref _includedCountText, value);
-    }
+        // A second pick while the confirmation is open would open a second ContentDialog, which WinUI refuses.
+        if (_reseeding || index < 0 || index >= SeedOrder.Length || index == SelectedSeedIndex)
+            return;
 
-    public bool IsIncludedExpanded
-    {
-        get => _isIncludedExpanded;
-        private set
+        _reseeding = true;
+        try
         {
-            if (SetProperty(ref _isIncludedExpanded, value))
-            {
-                OnPropertyChanged(nameof(IncludedCornerRadius));
-            }
+            if (await _builderEntry.ReseedAsync(SeedOrder[index]))
+                await RefreshIncludedAsync();
+        }
+        finally
+        {
+            _reseeding = false;
+
+            // A declined change leaves the box showing the pick, so it is set back to the session's seed.
+            OnPropertyChanged(nameof(SelectedSeedIndex));
         }
     }
 
-    public Microsoft.UI.Xaml.CornerRadius IncludedCornerRadius => IsIncludedExpanded && IncludedGroups.Count > 0
-        ? new Microsoft.UI.Xaml.CornerRadius(4, 4, 0, 0)
-        : new Microsoft.UI.Xaml.CornerRadius(4);
+    private string SeedLabel(BuilderSeed seed) => seed switch
+    {
+        BuilderSeed.CurrentMachine => Text("Dialog_BuilderSeed_CurrentMachine", "The current state of this machine"),
+        BuilderSeed.Recommended => Text("Dialog_BuilderSeed_Recommended", "All Winhance recommended settings"),
+        BuilderSeed.WindowsDefaults => Text("Dialog_BuilderSeed_WindowsDefaults", "All Windows default settings"),
+        _ => Text("Dialog_BuilderSeed_ConfigFile", "A saved Winhance config or answer file"),
+    };
 
-    public void ToggleIncludedExpander() => IsIncludedExpanded = !IsIncludedExpanded;
+    private void OnStartedFromChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(ShowsStartedFrom));
+        OnPropertyChanged(nameof(SelectedSeedIndex));
+    }
+
+    public IncludedAppsCardViewModel RemovedApps { get; }
+
+    public InstalledAppsCardViewModel InstalledApps { get; }
+
+    public IncludedCardViewModel OptimizeSettings { get; }
+
+    public IncludedCardViewModel CustomizeSettings { get; }
 
     public Task LoadIncludedAsync()
     {
@@ -185,6 +208,9 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
 
     private void OnPageTextLanguageChanged(object? sender, EventArgs e) => TryRelabelIncluded();
 
+    private void RequestPage(string pageTag, string? featureId) =>
+        _eventBus.Publish(new PageRequestedEvent { PageTag = pageTag, FeatureId = featureId });
+
     // Neither caller catches: the view awaits LoadIncludedAsync from an async void Loaded handler, and the
     // language change arrives on an event handler.
     private void TryRelabelIncluded()
@@ -198,6 +224,28 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
             LogIncludedFailure(ex);
             ShowIncludedPlaceholder();
         }
+
+        ShowWinhanceOnNewPc();
+        ShowModeTags();
+    }
+
+    // The WIMUtil page shows where each change lands; the Autounattend page has no image, so it shows none.
+    public void ShowModeTags(bool show)
+    {
+        _showsModeTags = show;
+        ShowModeTags();
+    }
+
+    private void ShowModeTags()
+    {
+        var inImage = _showsModeTags && _session.BuiltIntoImage ? Text("WIMUtil_Tag_InImage", "In the image") : string.Empty;
+        var duringSetup = _showsModeTags ? Text("WIMUtil_Tag_DuringSetup", "During setup") : string.Empty;
+        var imageOrSetup = _session.BuiltIntoImage ? inImage : duringSetup;
+
+        RemovedApps.ShowTag(imageOrSetup);
+        OptimizeSettings.ShowTag(imageOrSetup);
+        CustomizeSettings.ShowTag(imageOrSetup);
+        InstalledApps.ShowTag(duringSetup);
     }
 
     private void LogIncludedFailure(Exception ex) =>
@@ -206,164 +254,167 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
     private void ShowIncludedPlaceholder()
     {
         _summary = null;
-        ExternalAppsRow()?.Attach(null, null);
-        IncludedGroups.Clear();
-        IncludedCountText = Loading;
-        OnPropertyChanged(nameof(IncludedCornerRadius));
+        foreach (var card in new IncludedCardViewModel[] { RemovedApps, InstalledApps, OptimizeSettings, CustomizeSettings })
+            card.Show(Loading, string.Empty, string.Empty);
+        RemovedApps.ShowNames([], string.Empty, string.Empty);
+        InstalledApps.ShowNames([], string.Empty, string.Empty);
     }
 
     private void RelabelIncluded()
     {
         OnPropertyChanged(nameof(IncludedTitle));
         OnPropertyChanged(nameof(IncludedDescription));
-
-        var expanded = IncludedGroups
-            .Where(existing => existing.IsExpanded)
-            .Select(existing => existing.Key)
-            .ToHashSet(StringComparer.Ordinal);
+        OnPropertyChanged(nameof(StartedFromHeader));
+        OnPropertyChanged(nameof(StartedFromDescription));
+        OnPropertyChanged(nameof(StartSeedOptions));
+        OnPropertyChanged(nameof(SelectedSeedIndex));
 
         if (_summary is not { } summary)
         {
-            ExternalAppsRow()?.Attach(null, null);
-            IncludedGroups.Clear();
-            IncludedCountText = Loading;
-            OnPropertyChanged(nameof(IncludedCornerRadius));
+            ShowIncludedPlaceholder();
             return;
         }
 
-        var format = _localizationService.GetStringOrDefault("Autounattend_Included_Count", "{0} of {1} included");
-        var windowsAppsFormat = _localizationService.GetStringOrDefault(
-            "Autounattend_Included_WindowsApps_Count",
-            "{0} will be removed from Windows");
+        // Every lookup first, so one that throws cannot leave half the cards relabelled.
+        var softwareApps = Text("Nav_SoftwareAndApps", "Software & Apps");
+        var optimize = Text("Nav_Optimize", "Optimize");
+        var customize = Text("Nav_Customize", "Customize");
+        var seeList = Text("Autounattend_Included_SeeList", "See list");
+        var hideList = Text("Autounattend_Included_HideList", "Hide list");
 
-        // Built whole first, so a label lookup that throws cannot leave half a list on the page.
-        var rebuilt = new List<IncludedRowViewModel>();
+        int installs = summary.InstalledApps.Count + (_ownInstallers?.Rows.Count ?? 0);
+        var removedHeader = CountText(
+            summary.RemovedApps.Count,
+            ("Autounattend_Included_WindowsApps_None", "No Windows apps removed"),
+            ("Autounattend_Included_WindowsApps_One", "1 Windows app removed"),
+            ("Autounattend_Included_WindowsApps", "{0} Windows apps removed"));
+        var installedHeader = CountText(
+            installs,
+            ("Autounattend_Included_ExternalApps_None", "No apps installed after setup"),
+            ("Autounattend_Included_ExternalApps_One", "1 app installed after setup"),
+            ("Autounattend_Included_ExternalApps", "{0} apps installed after setup"));
+        var removedDescription = summary.RemovedApps.Count > 0
+            ? Preview(summary.RemovedApps)
+            : Text("Autounattend_Included_WindowsApps_Hint", "Tick apps on Windows Apps & Features to remove them during setup.");
+        var installedDescription = summary.InstalledApps.Count > 0
+            ? Preview(summary.InstalledApps)
+            : installs > 0
+                ? string.Empty
+                : Text("Autounattend_Included_ExternalApps_Hint", "Tick apps on External Software, or add your own installers below.");
+        var openSoftwareApps = Format("Autounattend_Included_Change", "Change in {0}", softwareApps);
+        var openOptimize = Format("Autounattend_Included_Change", "Change in {0}", optimize);
+        var openCustomize = Format("Autounattend_Included_Change", "Change in {0}", customize);
+        var optimizeDescription = SettingsText(summary.Optimize);
+        var customizeDescription = SettingsText(summary.Customize);
 
-        foreach (var group in summary.Groups)
-        {
-            var features = group.Features
-                .Select(feature => feature.FeatureId == FeatureIds.ExternalApps
-                    ? NewExternalAppsRow(feature)
-                    : new IncludedRowViewModel(
-                        feature.FeatureId,
-                        _localizationService.GetStringOrDefault(feature.LabelKey, feature.DefaultLabel),
-                        IncludedCountFormat(
-                            feature.FeatureId == FeatureIds.WindowsApps ? windowsAppsFormat : format,
-                            feature.Included,
-                            feature.Total),
-                        feature.IconResourceKey,
-                        [],
-                        RefreshIncludedCorners))
-                .ToList();
-
-            rebuilt.Add(new IncludedRowViewModel(
-                group.LabelKey,
-                _localizationService.GetStringOrDefault(group.LabelKey, group.DefaultLabel),
-                IncludedCountFormat(format, group.Included, group.Total),
-                group.IconResourceKey,
-                features,
-                RefreshIncludedCorners));
-        }
-
-        var countText = IncludedCountFormat(format, summary.Included, summary.Total);
-
-        ExternalAppsRow()?.Attach(null, null);
-        IncludedGroups.Clear();
-        foreach (var row in rebuilt)
-        {
-            IncludedGroups.Add(row);
-        }
-
-        ExternalAppsRow()?.Attach(_ownInstallers, _stageApps);
-
-        foreach (var row in IncludedGroups.Where(built => expanded.Contains(built.Key)))
-        {
-            row.ToggleExpander();
-        }
-
-        IncludedCountText = countText;
-        OnPropertyChanged(nameof(IncludedCornerRadius));
-        RefreshIncludedCorners();
-        ShowWinhanceOnNewPc();
+        RemovedApps.Show(removedHeader, removedDescription, openSoftwareApps);
+        RemovedApps.ShowNames(summary.RemovedApps, seeList, hideList);
+        InstalledApps.Show(installedHeader, installedDescription, openSoftwareApps);
+        InstalledApps.ShowNames(summary.InstalledApps, seeList, hideList);
+        OptimizeSettings.Show(optimize, optimizeDescription, openOptimize);
+        CustomizeSettings.Show(customize, customizeDescription, openCustomize);
+        _session.Changes = new(summary.RemovedApps.Count, installs, summary.Optimize.Included + summary.Customize.Included);
     }
 
-    private ExternalAppsRowViewModel NewExternalAppsRow(IncludedFeature feature) =>
-        new(
-            feature.FeatureId,
-            _localizationService.GetStringOrDefault(feature.LabelKey, feature.DefaultLabel),
-            IncludedCountFormat(
-                _localizationService.GetStringOrDefault(
-                    "Autounattend_Included_ExternalApps_Count",
-                    "{0} will be installed by Winhance"),
-                feature.Included,
-                feature.Total),
-            feature.IconResourceKey,
-            RefreshIncludedCorners,
-            feature.Included)
+    private string Text(string key, string english) => _localizationService.GetStringOrDefault(key, english);
+
+    // The format comes from 29 translated files, so a broken one falls back to the English rather than throwing.
+    private string Format(string key, string english, params object[] args)
+    {
+        try
         {
-            WarningText = _localizationService.GetStringOrDefault(
-                "Autounattend_Included_ExternalApps_NotInstalled",
-                "'Winhance on the new PC' is set to 'Don't add', so these apps will not be installed."),
+            return string.Format(Text(key, english), args);
+        }
+        catch (FormatException)
+        {
+            return string.Format(english, args);
+        }
+    }
+
+    private string CountText(int count, (string Key, string English) none, (string Key, string English) one, (string Key, string English) many) =>
+        count switch
+        {
+            0 => Text(none.Key, none.English),
+            1 => Text(one.Key, one.English),
+            _ => Format(many.Key, many.English, count),
         };
 
-    private ExternalAppsRowViewModel? ExternalAppsRow() =>
-        IncludedGroups.SelectMany(group => group.Children).OfType<ExternalAppsRowViewModel>().FirstOrDefault();
+    private string Preview(IReadOnlyList<string> names) =>
+        names.Count <= IncludedAppsCardViewModel.PreviewNames
+            ? string.Join(", ", names)
+            : Format("Autounattend_Included_More", "{0} and {1} more", string.Join(", ", names.Take(IncludedAppsCardViewModel.PreviewNames)), names.Count - IncludedAppsCardViewModel.PreviewNames);
 
-    // Until the card loads it reads as its seed state, the desktop shortcut.
+    private string SettingsText(IncludedCount count) => (count.Included == count.Total, count.Included == 1) switch
+    {
+        (true, true) => Format("Autounattend_Included_Settings_One", "{0} setting set on the new PC", count.Included),
+        (true, false) => Format("Autounattend_Included_Settings", "{0} settings set on the new PC", count.Included),
+        (false, true) => Format("Autounattend_Included_Settings_One_LeftOut", "{0} setting set on the new PC, {1} left out", count.Included, count.Total - count.Included),
+        (false, false) => Format("Autounattend_Included_Settings_LeftOut", "{0} settings set on the new PC, {1} left out", count.Included, count.Total - count.Included),
+    };
+
+    // Apps on the file need Winhance on the new PC to install them, so they decide the card that installs it.
     private void ShowWinhanceOnNewPc()
     {
-        if (ExternalAppsRow() is not { } row)
+        bool installs = _summary?.InstalledApps.Count > 0 || _ownInstallers?.HasRows == true;
+        bool decided = installs || KeepsRemovedAppsWithWinhance();
+        if (installs == _installsApps && decided == _winhanceDecided)
             return;
 
-        var state = _winhanceOnNewPc?.CurrentStateLabel;
-        bool installs = row.AppCount > 0 || _ownInstallers?.HasRows == true;
-        row.IsWarning = installs && state == LocKey.Setting.AutounattendDesktopShortcut.Option0.Value;
-        row.Description = !installs || row.IsWarning
-            ? string.Empty
-            : state == LocKey.Setting.AutounattendDesktopShortcut.Option2.Value
-                ? _localizationService.GetStringOrDefault(
-                    "Autounattend_Included_ExternalApps_Automatic",
-                    "Installed automatically after setup")
-                : _localizationService.GetStringOrDefault(
-                    "Autounattend_Included_ExternalApps_Shortcut",
-                    "Installed from the 'Install Winhance' desktop shortcut");
+        _installsApps = installs;
+        _winhanceDecided = decided;
+        RefreshDeclaredGates();
     }
 
-    // The page's cards are rebuilt on every load, so the cards the External Software row reads are looked up again
-    // whenever the groups change.
+    // Mirrors WinhanceOnNewPc.KeepsRemovedAppsWithWinhance, read from the live cards instead of a selection set.
+    private bool KeepsRemovedAppsWithWinhance() =>
+        _summary?.RemovedApps.Count > 0
+        && Settings?.FirstOrDefault(setting => setting.SettingId == WinhanceOnNewPc.KeepRemovedId)?.CurrentStateLabel
+            == LocKey.Setting.AutounattendKeepRemoved.Option2.Value;
+
+    // Setup installs .NET from the media's source files, so a file applied during setup cannot ask to delete them.
+    private bool NeedsNetfx3Source() =>
+        !_session.BuiltIntoImage
+        && Settings?.FirstOrDefault(setting => setting.SettingId == Netfx3SettingId)?.CurrentStateLabel
+            == LocKey.Common.Enabled.Value;
+
+    protected override LocKey? DecidedByPage(SettingItemViewModel setting)
+    {
+        if (setting.SettingId == Netfx3RemoveSourceId && NeedsNetfx3Source())
+            return LocKey.Common.Disabled;
+
+        // The image build cleans up offline, so the file adds no second cleanup on the new PC.
+        if (setting.SettingId == AutounattendCleanup.SettingId && _session.BuiltIntoImage)
+            return LocKey.Common.Disabled;
+
+        // The keep-removed card changes only refresh the gates, so it is read live here, never latched in _installsApps.
+        return (_installsApps || KeepsRemovedAppsWithWinhance()) && setting.SettingId == WinhanceOnNewPc.SettingId ? WinhanceOnNewPc.InstallsAutomatically : null;
+    }
+
+    protected override string? DisabledReasonFor(SettingItemViewModel setting) => setting.SettingId switch
+    {
+        Netfx3RemoveSourceId => string.Format(
+            _localizationService.GetString("Autounattend_Disabled_Netfx3Source"),
+            Settings?.FirstOrDefault(card => card.SettingId == Netfx3SettingId)?.Name),
+        AutounattendCleanup.SettingId => _localizationService.GetString("Autounattend_Disabled_CleanupInImage"),
+        WinhanceOnNewPc.SettingId => _localizationService.GetString("Autounattend_Disabled_WinhanceInstalls"),
+        _ => null,
+    };
+
+    // The page's cards are rebuilt on every load, so the installer cards are looked up again whenever the groups change.
     private void OnGroupedSettingsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         ShowMediaEditions();
+        WatchComputerName();
+        WatchNetfx3();
 
         var cards = GroupedSettings.SelectMany(group => group).ToList();
-        var winhance = cards.FirstOrDefault(setting => setting.SettingId == "autounattend-desktop-shortcut");
         var ownInstallers = cards.FirstOrDefault(setting => setting.SettingId == OwnInstaller.SettingId);
         var stageApps = cards.FirstOrDefault(setting => setting.SettingId == OwnInstaller.StageAppsId);
-        if (ReferenceEquals(winhance, _winhanceOnNewPc)
-            && ReferenceEquals(ownInstallers, _ownInstallers)
-            && ReferenceEquals(stageApps, _stageApps))
+        if (ReferenceEquals(ownInstallers, _ownInstallers) && ReferenceEquals(stageApps, _stageApps))
             return;
 
-        WatchWinhanceOnNewPc(winhance);
         WatchInstallerCards(ownInstallers, stageApps);
-        ShowWinhanceOnNewPc();
-    }
-
-    private void WatchWinhanceOnNewPc(SettingItemViewModel? card)
-    {
-        if (_winhanceOnNewPc is not null)
-            _winhanceOnNewPc.PropertyChanged -= OnWinhanceOnNewPcChanged;
-
-        _winhanceOnNewPc = card;
-
-        if (card is not null)
-            card.PropertyChanged += OnWinhanceOnNewPcChanged;
-    }
-
-    private void OnWinhanceOnNewPcChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == nameof(SettingItemViewModel.SelectedValue))
-            ShowWinhanceOnNewPc();
+        TryRelabelIncluded();
     }
 
     private void WatchInstallerCards(SettingItemViewModel? ownInstallers, SettingItemViewModel? stageApps)
@@ -377,17 +428,94 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
         if (ownInstallers is not null)
             ownInstallers.PropertyChanged += OnOwnInstallersChanged;
 
-        ExternalAppsRow()?.Attach(ownInstallers, stageApps);
+        InstalledApps.Attach(ownInstallers, stageApps);
     }
 
+    // Raised on every add and remove, so the count follows each one.
     private void OnOwnInstallersChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(SettingItemViewModel.HasRows))
-            ShowWinhanceOnNewPc();
+            TryRelabelIncluded();
     }
 
-    // The External Software row draws the installer cards. The edition cards describe the image a WIMUtil session
-    // is building, so they show only in a session started there.
+    // A child card is not in GroupedSettings, so both name cards come from Settings.
+    private void WatchComputerName()
+    {
+        var name = Settings?.FirstOrDefault(setting => setting.SettingId == UniqueComputerName.NameSettingId);
+        var unique = Settings?.FirstOrDefault(setting => setting.SettingId == UniqueComputerName.SettingId);
+        if (ReferenceEquals(name, _computerName) && ReferenceEquals(unique, _uniqueName))
+            return;
+
+        if (_computerName is not null)
+            _computerName.PropertyChanged -= OnComputerNameChanged;
+
+        _computerName = name;
+        _uniqueName = unique;
+        _uniqueNameDescription = unique?.Description;
+
+        if (name is not null)
+            name.PropertyChanged += OnComputerNameChanged;
+
+        _ = ShowNamePreviewAsync();
+    }
+
+    private void WatchNetfx3()
+    {
+        var netfx3 = Settings?.FirstOrDefault(setting => setting.SettingId == Netfx3SettingId);
+        var removeSource = Settings?.FirstOrDefault(setting => setting.SettingId == Netfx3RemoveSourceId);
+        if (ReferenceEquals(netfx3, _netfx3) && ReferenceEquals(removeSource, _netfx3RemoveSource))
+            return;
+
+        if (_netfx3 is not null)
+            _netfx3.PropertyChanged -= OnNetfx3Changed;
+
+        _netfx3 = netfx3;
+        _netfx3RemoveSource = removeSource;
+        _netfx3RemoveSourceDescription = removeSource?.Description;
+
+        if (netfx3 is not null)
+            netfx3.PropertyChanged += OnNetfx3Changed;
+
+        ShowNetfx3SourceNote();
+    }
+
+    private void OnNetfx3Changed(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(SettingItemViewModel.IsSelected) or nameof(SettingItemViewModel.SelectedValue))
+            ShowNetfx3SourceNote();
+    }
+
+    private void ShowNetfx3SourceNote()
+    {
+        if (_netfx3RemoveSource is not { } card || _netfx3RemoveSourceDescription is null)
+            return;
+
+        card.Description = NeedsNetfx3Source()
+            ? _netfx3RemoveSourceDescription + "\n" + Text("Autounattend_Netfx3Source_Needed", "Setup needs these files to install .NET Framework.")
+            : _netfx3RemoveSourceDescription;
+    }
+
+    private void OnComputerNameChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SettingItemViewModel.TextValue))
+            _ = ShowNamePreviewAsync();
+    }
+
+    // This PC's ending is read once and kept, so the preview does not change while the user types.
+    private async Task ShowNamePreviewAsync()
+    {
+        _thisPcEnding ??= await Task.Run(() =>
+            UniqueComputerName.Ending(_systemInfo.BiosSerialNumber(), _systemInfo.NetworkCardAddress())
+            ?? UniqueComputerName.RandomEnding());
+        if (_uniqueName is not { } card || _uniqueNameDescription is null)
+            return;
+
+        var name = UniqueComputerName.Name(_computerName?.TextValue, _thisPcEnding);
+        card.Description = _uniqueNameDescription + "\n" + Format("Autounattend_ComputerName_Preview", "On this PC it would be {0}.", name);
+    }
+
+    // The apps card draws the installer cards. The edition cards describe the image a WIMUtil session is building,
+    // so they show only in a session started there.
     protected override bool IsShownOnPage(SettingItemViewModel setting) =>
         setting.SettingId is not (OwnInstaller.SettingId or OwnInstaller.StageAppsId)
         && (_session.Editions.Count > 0 || setting.Setting?.Targets.Any(target => target is AutounattendMedia) != true);
@@ -399,6 +527,14 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
         IsShownOnPage(setting) && setting.Setting?.SeedsFromThisPc != true;
 
     private void OnSessionEditionsChanged(object? sender, EventArgs e) => ShowMediaEditions();
+
+    private void OnSessionBuiltIntoImageChanged(object? sender, EventArgs e)
+    {
+        ShowModeTags();
+        ShowWinhanceOnNewPc();
+        ShowNetfx3SourceNote();
+        RefreshDeclaredGates();
+    }
 
     private void ShowMediaEditions()
     {
@@ -419,212 +555,157 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
     {
         await _registry.InitializeAsync();
 
+        var removed = (await _apps.CheckedWindowsAppsAsync()).Select(app => app.Name).ToList();
+        var installed = (await _apps.CheckedExternalAppsAsync()).Select(app => app.Name).ToList();
+        return new IncludedSummary(
+            removed,
+            installed,
+            CountSettings(FeatureDefinitions.OptimizeFeatures),
+            CountSettings(FeatureDefinitions.CustomizeFeatures));
+    }
+
+    private IncludedCount CountSettings(HashSet<string> features)
+    {
         var scope = _scope.Current;
-        var included = new Dictionary<string, int>(StringComparer.Ordinal);
-        var total = new Dictionary<string, int>(StringComparer.Ordinal);
 
-        foreach (var featureId in SettingCatalog.ByFeature.Keys)
-        {
-            // The saved file can carry fewer: SettingSnapshotSource drops a setting whose live state could not be read.
-            var inScope = _registry.GetByFeature(featureId, scope);
-            included[featureId] = inScope.Count(setting => _applicationModeService.IsIncluded(setting.Id));
-            total[featureId] = inScope.Count;
-        }
-
-        included[FeatureIds.WindowsApps] = (await _apps.CheckedWindowsAppsAsync()).Count;
-        included[FeatureIds.ExternalApps] = (await _apps.CheckedExternalAppsAsync()).Count;
-        total[FeatureIds.WindowsApps] = (await _windowsApps.GetAppsAsync()).Count();
-        total[FeatureIds.ExternalApps] = (await _externalApps.GetAppsAsync()).Count();
-
-        return new IncludedSummary(IncludedGroupLayout
-            .Select(group => new IncludedGroup(
-                group.LabelKey,
-                group.DefaultLabel,
-                FeatureDefinitions.CategoryIconKey(group.Category),
-                FeatureDefinitions.All
-                    .Where(feature => feature.Category == group.Category)
-                    .Select(feature =>
-                    {
-                        var (key, defaultLabel) = IncludedLabel(feature.Id);
-                        return new IncludedFeature(
-                            feature.Id,
-                            key,
-                            defaultLabel,
-                            feature.IconKey,
-                            included.TryGetValue(feature.Id, out var n) ? n : 0,
-                            total.TryGetValue(feature.Id, out var m) ? m : 0);
-                    })
-                    .ToList()))
-            .ToList());
+        // The saved file can carry fewer: SettingSnapshotSource drops a setting whose live state could not be read.
+        var inScope = SettingCatalog.ByFeature.Keys
+            .Where(features.Contains)
+            .SelectMany(featureId => _registry.GetByFeature(featureId, scope))
+            .ToList();
+        return new IncludedCount(inScope.Count(setting => _applicationModeService.IsIncluded(setting.Id)), inScope.Count);
     }
-
-    private void RefreshIncludedCorners()
-    {
-        var visible = new List<IncludedRowViewModel>();
-        foreach (var group in IncludedGroups)
-        {
-            visible.Add(group);
-            if (group.IsExpanded)
-            {
-                visible.AddRange(group.Children);
-            }
-        }
-
-        for (int i = 0; i < visible.Count; i++)
-        {
-            visible[i].SetLastVisible(i == visible.Count - 1);
-        }
-    }
-
-    // The format comes from 29 translated files, so a broken one must not throw.
-    internal static string IncludedCountFormat(string format, int included, int total)
-    {
-        try
-        {
-            return string.Format(format, included, total);
-        }
-        catch (FormatException)
-        {
-            return $"{included}/{total}";
-        }
-    }
-
-    internal static string IncludedLabelKey(string featureId) => IncludedLabel(featureId).Key;
-
-    private static (string Key, string DefaultLabel) IncludedLabel(string featureId) =>
-        IncludedLabels.TryGetValue(featureId, out var label)
-            ? label
-            : throw new ArgumentOutOfRangeException(
-                nameof(featureId), featureId, "No summary row label is mapped for this feature.");
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
             _localizationService.LanguageChanged -= OnPageTextLanguageChanged;
+            _builderEntry.StartedFromChanged -= OnStartedFromChanged;
             GroupedSettings.CollectionChanged -= OnGroupedSettingsChanged;
             _session.EditionsChanged -= OnSessionEditionsChanged;
-            WatchWinhanceOnNewPc(null);
+            _session.BuiltIntoImageChanged -= OnSessionBuiltIntoImageChanged;
             WatchInstallerCards(null, null);
+            if (_netfx3 is not null)
+                _netfx3.PropertyChanged -= OnNetfx3Changed;
+            if (_computerName is not null)
+                _computerName.PropertyChanged -= OnComputerNameChanged;
             ReleaseIncluded();
         }
         base.Dispose(disposing);
     }
 
-    private sealed record IncludedFeature(
-        string FeatureId,
-        string LabelKey,
-        string DefaultLabel,
-        string IconResourceKey,
-        int Included,
-        int Total);
+    private sealed record IncludedCount(int Included, int Total);
 
-    private sealed record IncludedGroup(
-        string LabelKey,
-        string DefaultLabel,
-        string IconResourceKey,
-        IReadOnlyList<IncludedFeature> Features)
+    private sealed record IncludedSummary(
+        IReadOnlyList<string> RemovedApps,
+        IReadOnlyList<string> InstalledApps,
+        IncludedCount Optimize,
+        IncludedCount Customize);
+}
+
+public partial class IncludedCardViewModel(string pageTag, string? featureId, string iconResourceKey, Action<string, string?> openPage)
+    : ObservableObject
+{
+    public string PageTag => pageTag;
+
+    public string? FeatureId => featureId;
+
+    public string IconResourceKey => iconResourceKey;
+
+    [ObservableProperty]
+    public partial string Header { get; private set; } = AutounattendViewModel.Loading;
+
+    [ObservableProperty]
+    public partial string Description { get; private set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string OpenPageLabel { get; private set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string Tag { get; private set; } = string.Empty;
+
+    public void OpenPage() => openPage(pageTag, featureId);
+
+    internal void ShowTag(string tag) => Tag = tag;
+
+    internal void Show(string header, string description, string openPageLabel)
     {
-        public int Included => Features.Sum(f => f.Included);
-
-        public int Total => Features.Sum(f => f.Total);
-    }
-
-    private sealed record IncludedSummary(IReadOnlyList<IncludedGroup> Groups)
-    {
-        public int Included => Groups.Sum(g => g.Included);
-
-        public int Total => Groups.Sum(g => g.Total);
+        Header = header;
+        Description = description;
+        OpenPageLabel = openPageLabel;
     }
 }
 
-public partial class IncludedRowViewModel : ObservableObject
+// The full list sits in a child card, so the description only has to name the first few.
+public partial class IncludedAppsCardViewModel(string pageTag, string? featureId, string iconResourceKey, Action<string, string?> openPage)
+    : IncludedCardViewModel(pageTag, featureId, iconResourceKey, openPage)
 {
-    private readonly Action _onExpansionChanged;
-    private bool _isExpanded;
-    private bool _isLastVisible;
+    // Past this many names the description points at the full list instead.
+    internal const int PreviewNames = 3;
 
-    public IncludedRowViewModel(
-        string key,
-        string name,
-        string countText,
-        string iconResourceKey,
-        IReadOnlyList<IncludedRowViewModel> children,
-        Action onExpansionChanged)
-    {
-        Key = key;
-        Name = name;
-        CountText = countText;
-        IconResourceKey = iconResourceKey;
-        Children = children;
-        _onExpansionChanged = onExpansionChanged;
-    }
+    private string _seeList = string.Empty;
+    private string _hideList = string.Empty;
 
-    public string Key { get; }
+    [ObservableProperty]
+    public partial string Names { get; private set; } = string.Empty;
 
-    public string Name { get; }
+    [ObservableProperty]
+    public partial bool HasList { get; private set; }
 
-    public string CountText { get; }
+    [ObservableProperty]
+    public partial bool IsListOpen { get; private set; }
 
-    public string IconResourceKey { get; }
+    public string ListToggleLabel => IsListOpen ? _hideList : _seeList;
 
-    public IReadOnlyList<IncludedRowViewModel> Children { get; }
+    public bool ShowsList => HasList && IsListOpen;
 
-    public bool IsExpanded
-    {
-        get => _isExpanded;
-        private set
-        {
-            if (SetProperty(ref _isExpanded, value))
-            {
-                _onExpansionChanged();
-            }
-        }
-    }
+    public Microsoft.UI.Xaml.CornerRadius CornerRadius => HasChildren
+        ? new Microsoft.UI.Xaml.CornerRadius(4, 4, 0, 0)
+        : new Microsoft.UI.Xaml.CornerRadius(4);
 
-    public Microsoft.UI.Xaml.CornerRadius CornerRadius => _isLastVisible
+    public Microsoft.UI.Xaml.CornerRadius ListCornerRadius => ListIsLast
         ? new Microsoft.UI.Xaml.CornerRadius(0, 0, 4, 4)
         : new Microsoft.UI.Xaml.CornerRadius(0);
 
-    public void ToggleExpander() => IsExpanded = !IsExpanded;
+    protected virtual bool HasChildren => ShowsList;
 
-    internal void SetLastVisible(bool isLastVisible)
+    protected virtual bool ListIsLast => true;
+
+    public void ToggleList() => IsListOpen = !IsListOpen;
+
+    internal void ShowNames(IReadOnlyList<string> names, string seeList, string hideList)
     {
-        if (_isLastVisible != isLastVisible)
-        {
-            _isLastVisible = isLastVisible;
-            OnPropertyChanged(nameof(CornerRadius));
-        }
+        _seeList = seeList;
+        _hideList = hideList;
+        Names = string.Join(", ", names);
+        HasList = names.Count > PreviewNames;
+        OnPropertyChanged(nameof(ListToggleLabel));
+    }
+
+    partial void OnHasListChanged(bool value) => ShowCorners();
+
+    partial void OnIsListOpenChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ListToggleLabel));
+        ShowCorners();
+    }
+
+    protected void ShowCorners()
+    {
+        OnPropertyChanged(nameof(ShowsList));
+        OnPropertyChanged(nameof(CornerRadius));
+        OnPropertyChanged(nameof(ListCornerRadius));
     }
 }
 
-// The staging tick and the installer list are two catalog cards the page keeps off its grouped list; this row draws them.
-public sealed partial class ExternalAppsRowViewModel : IncludedRowViewModel
+// The staging tick and the installer list are two catalog cards the page keeps off its grouped list; this card draws
+// them under the apps, so they show without expanding anything.
+public sealed partial class InstalledAppsCardViewModel(string pageTag, string? featureId, string iconResourceKey, Action<string, string?> openPage)
+    : IncludedAppsCardViewModel(pageTag, featureId, iconResourceKey, openPage)
 {
     private SettingItemViewModel? _ownInstallers;
     private SettingItemViewModel? _stageApps;
-
-    public ExternalAppsRowViewModel(
-        string key,
-        string name,
-        string countText,
-        string iconResourceKey,
-        Action onExpansionChanged,
-        int appCount)
-        : base(key, name, countText, iconResourceKey, [], onExpansionChanged)
-    {
-        AppCount = appCount;
-    }
-
-    internal int AppCount { get; }
-
-    [ObservableProperty]
-    public partial string Description { get; internal set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial bool IsWarning { get; internal set; }
-
-    public string WarningText { get; init; } = string.Empty;
 
     public bool HasInstallerCards => _ownInstallers is not null && _stageApps is not null;
 
@@ -646,9 +727,17 @@ public sealed partial class ExternalAppsRowViewModel : IncludedRowViewModel
 
     public bool HasOwnInstallers => _ownInstallers?.HasRows == true;
 
+    public Microsoft.UI.Xaml.CornerRadius OwnInstallersCornerRadius => HasOwnInstallers
+        ? new Microsoft.UI.Xaml.CornerRadius(0)
+        : new Microsoft.UI.Xaml.CornerRadius(0, 0, 4, 4);
+
+    protected override bool HasChildren => ShowsList || HasInstallerCards;
+
+    protected override bool ListIsLast => !HasInstallerCards;
+
     public void AddOwnInstaller() => _ownInstallers?.AddRow();
 
-    // Rows and cards are rebuilt at different times, so either side can arrive first and either can be replaced.
+    // The page's cards are rebuilt on every load, so either one can be replaced or not loaded yet.
     internal void Attach(SettingItemViewModel? ownInstallers, SettingItemViewModel? stageApps)
     {
         if (_ownInstallers is not null)
@@ -687,5 +776,7 @@ public sealed partial class ExternalAppsRowViewModel : IncludedRowViewModel
         OnPropertyChanged(nameof(AddOwnInstallerLabel));
         OnPropertyChanged(nameof(OwnInstallerRows));
         OnPropertyChanged(nameof(HasOwnInstallers));
+        OnPropertyChanged(nameof(OwnInstallersCornerRadius));
+        ShowCorners();
     }
 }

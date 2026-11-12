@@ -123,7 +123,7 @@ public class TimeRegionLanguageServiceTests
         ApplyRequestResolver.Resolve(settingId, enable: true, value: key, resetToDefault: false, options: Providers);
 
     [Fact]
-    public void Every_zone_with_a_display_name_is_offered_in_ascending_utc_offset_order()
+    public void Options_WithZones_OffersEveryZoneWithADisplayNameInAscendingUtcOffsetOrder()
     {
         var options = Service.Options(TimeZone, ZoneMachine());
 
@@ -133,7 +133,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void Two_zones_at_one_offset_are_ordered_by_their_display_name()
+    public void Options_WithTwoZonesAtOneOffset_OrdersThemByDisplayName()
     {
         var machine = ZoneMachine()
             .Sub(Zones, "South Africa Standard Time", "Egypt Standard Time")
@@ -145,7 +145,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_zone_with_no_readable_TZI_is_offered_last()
+    public void Options_WithAZoneWithNoReadableTzi_OffersItLast()
     {
         // Its Display claims +00:00, so this fails the moment the label is trusted over the TZI.
         var machine = ZoneMachine()
@@ -157,13 +157,13 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_zone_with_no_display_name_is_not_offered()
+    public void Options_WithAZoneWithNoDisplayName_DoesNotOfferIt()
     {
         Service.Options(TimeZone, ZoneMachine()).Should().NotContain(o => o.Value == "Broken Zone");
     }
 
     [Fact]
-    public void The_live_zone_is_the_TimeZoneKeyName_value()
+    public void CurrentKey_ForTimeZone_IsTheTimeZoneKeyNameValue()
     {
         var machine = ZoneMachine().Set(Info, "TimeZoneKeyName", "South Africa Standard Time");
 
@@ -171,13 +171,13 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_machine_with_no_TimeZoneKeyName_has_no_selection()
+    public void CurrentKey_ForTimeZoneWithNoTimeZoneKeyName_HasNoSelection()
     {
         Service.CurrentKey(TimeZone, ZoneMachine()).Should().BeNull();
     }
 
     [Fact]
-    public void Applying_a_zone_writes_its_key_name_and_nothing_else()
+    public void SetFor_WithAZone_WritesItsKeyNameAndNothingElse()
     {
         var set = SetFor(TimeZone, "UTC");
 
@@ -188,7 +188,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_second_zone_writes_its_own_key_name()
+    public void SetFor_WithASecondZone_WritesItsOwnKeyName()
     {
         var set = SetFor(TimeZone, "Pacific Standard Time");
 
@@ -196,19 +196,19 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void An_empty_key_writes_nothing()
+    public void SetFor_WithAnEmptyZoneKey_WritesNothing()
     {
         SetFor(TimeZone, "").Should().BeNull();
     }
 
     [Fact]
-    public void A_time_zone_setting_is_a_keyed_selection()
+    public void Control_OnTheTimeZoneSetting_IsKeyedSelection()
     {
         TimeZone.Control.Should().Be(ControlKind.KeyedSelection);
     }
 
     [Fact]
-    public void The_fake_answers_subkeys_and_existence_under_either_spelling_of_the_hive()
+    public void GetSubKeyNames_UnderEitherSpellingOfTheHive_AnswersSubkeysAndExistence()
     {
         var machine = ZoneMachine();
 
@@ -221,7 +221,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void Applying_a_zone_also_asks_tzutil_to_switch_the_running_clock()
+    public void EffectFor_WithAZone_AsksTzutilToSwitchTheRunningClock()
     {
         var effect = Service.EffectFor(TimeZone, "South Africa Standard Time");
 
@@ -232,7 +232,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_second_zone_gets_its_own_tzutil_argument()
+    public void EffectFor_WithASecondZone_GetsItsOwnTzutilArgument()
     {
         var script = (ScriptEffect)Service.EffectFor(TimeZone, "UTC")!;
 
@@ -240,7 +240,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_list_that_needs_no_nudge_declares_none()
+    public void EffectFor_ForListsThatNeedNoNudge_DeclaresNone()
     {
         Service.EffectFor(Format, "en-US").Should().BeNull();
         Service.EffectFor(SystemLocale, "en-US").Should().BeNull();
@@ -248,7 +248,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void Applying_the_time_zone_setting_emits_the_registry_write_and_the_nudge()
+    public void Resolve_WithTheTimeZoneSetting_EmitsTheRegistryWriteAndTheNudge()
     {
         var plan = PlanFor("region-time-zone", "UTC");
 
@@ -268,7 +268,7 @@ public class TimeRegionLanguageServiceTests
     [InlineData("UTC'; Start-Process calc; '")]
     [InlineData("UTC\r\nStart-Process calc")]
     [InlineData("UTC;calc")]
-    public void A_key_that_could_break_out_of_the_tzutil_command_is_not_a_zone(string key)
+    public void SetFor_WithAKeyThatCouldBreakOutOfTheTzutilCommand_IsNotAZone(string key)
     {
         SetFor(TimeZone, key).Should().BeNull();
         Service.EffectFor(TimeZone, key).Should().BeNull();
@@ -282,7 +282,7 @@ public class TimeRegionLanguageServiceTests
     [InlineData("Central Standard Time (Mexico)")]
     [InlineData("Mid-Atlantic Standard Time")]
     [InlineData("Russia Time Zone 10")]
-    public void A_windows_zone_id_with_spaces_and_punctuation_is_accepted_and_quoted_whole(string key)
+    public void EffectFor_WithAWindowsZoneIdWithSpacesAndPunctuation_AcceptsItAndQuotesItWhole(string key)
     {
         SetFor(TimeZone, key)!["TimeZoneKeyName"].WritePayload.Should().Be(key);
         var script = Assert.IsType<ScriptEffect>(Service.EffectFor(TimeZone, key));
@@ -290,27 +290,27 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void Every_zone_this_pc_has_is_a_key_the_setting_accepts()
+    public void Accepts_WithEveryZoneThisPcHas_IsTrue()
     {
         foreach (var zone in TimeZoneInfo.GetSystemTimeZones())
             Service.Accepts(TimeZone, zone.Id).Should().BeTrue(zone.Id);
     }
 
     [Fact]
-    public void A_zone_id_longer_than_windows_stores_is_not_a_zone()
+    public void SetFor_WithAZoneIdLongerThanWindowsStores_IsNotAZone()
     {
         SetFor(TimeZone, new string('A', 127)).Should().NotBeNull();
         SetFor(TimeZone, new string('A', 128)).Should().BeNull();
     }
 
     [Fact]
-    public void A_hostile_zone_key_from_a_config_resolves_to_no_plan()
+    public void Resolve_WithAHostileZoneKeyFromAConfig_ReturnsNoPlan()
     {
         PlanFor("region-time-zone", "UTC\"; Start-Process calc; \"").Should().BeNull();
     }
 
     [Fact]
-    public void Every_setting_writes_exactly_the_value_names_it_declares_as_written_targets()
+    public void SetFor_ForEverySetting_WritesExactlyTheValueNamesItDeclaresAsWrittenTargets()
     {
         // ApplyPlanBuilder walks Targets, not the Set: a name only the service knows is written nowhere, a target only
         // the setting declares is written with nothing, and either way the apply reports Succeeded.
@@ -326,7 +326,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void The_machines_specific_cultures_are_offered_by_culture_name()
+    public void Options_ForFormat_OffersTheMachinesSpecificCulturesByCultureName()
     {
         var options = Service.Options(Format, new FakeDetectionContext());
 
@@ -337,7 +337,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void The_offered_cultures_come_out_sorted_by_their_display_name()
+    public void Options_ForFormat_SortsTheOfferedCulturesByDisplayName()
     {
         var labels = Service.Options(Format, new FakeDetectionContext()).Select(o => o.Label).ToList();
 
@@ -345,7 +345,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void The_live_format_is_the_LocaleName_value()
+    public void CurrentKey_ForFormat_IsTheLocaleNameValue()
     {
         var machine = new FakeDetectionContext().Set(International, "LocaleName", "de-DE");
 
@@ -353,13 +353,13 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_machine_with_no_LocaleName_has_no_selection()
+    public void CurrentKey_ForFormatWithNoLocaleName_HasNoSelection()
     {
         Service.CurrentKey(Format, new FakeDetectionContext()).Should().BeNull();
     }
 
     [Fact]
-    public void Applying_en_US_writes_the_whole_American_format()
+    public void SetFor_WithEnUs_WritesTheWholeAmericanFormat()
     {
         var culture = CultureInfo.GetCultureInfo("en-US");
         var set = SetFor(Format, "en-US");
@@ -399,7 +399,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void Applying_de_DE_writes_the_German_format()
+    public void SetFor_WithDeDe_WritesTheGermanFormat()
     {
         var set = SetFor(Format, "de-DE");
 
@@ -415,7 +415,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void Applying_de_DE_rewrites_what_an_American_format_left_behind()
+    public void SetFor_WithDeDe_RewritesWhatAnAmericanFormatLeftBehind()
     {
         var set = SetFor(Format, "de-DE")!;
         var american = SetFor(Format, "en-US")!;
@@ -455,7 +455,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void No_written_value_carries_a_mark_ICU_adds_and_windows_does_not()
+    public void SetFor_WithArabic_WritesNoMarkThatIcuAddsAndWindowsDoesNot()
     {
         var arabic = SetFor(Format, "ar-SA")!;
 
@@ -464,7 +464,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void Every_offered_format_writes_numbers_windows_can_read()
+    public void ValueFor_WithEveryOfferedFormat_WritesNumbersWindowsCanRead()
     {
         foreach (var option in Service.Options(Format, new FakeDetectionContext()))
         {
@@ -478,13 +478,13 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_culture_this_machine_does_not_have_writes_nothing()
+    public void SetFor_WithACultureThisMachineDoesNotHave_WritesNothing()
     {
         SetFor(Format, "zz-ZZ").Should().BeNull();
     }
 
     [Fact]
-    public void No_written_pattern_carries_a_narrow_no_break_space()
+    public void SetFor_WithSweptCultures_WritesNoPatternCarryingANarrowNoBreakSpace()
     {
         // Win32 reads U+202F as a literal it cannot render, so a pattern carrying one shows up in the clock as typed.
         foreach (var culture in SweptCultures)
@@ -501,7 +501,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_quoted_literal_in_a_pattern_is_written_as_it_stands()
+    public void SetFor_WithAQuotedLiteralInAPattern_WritesItAsItStands()
     {
         // Win32 date pictures copy single-quoted text unchanged; unquoted, the d of the Spanish de is a day token.
         // Windows quotes the spaces around it as well, where ICU quotes the word alone - measured, and another
@@ -510,7 +510,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_regional_format_setting_is_a_keyed_selection()
+    public void Control_OnTheRegionalFormatSetting_IsKeyedSelection()
     {
         Format.Control.Should().Be(ControlKind.KeyedSelection);
         SetFor(Format, "en-US")!.Keys.Should().BeEquivalentTo(FormatValueNames);
@@ -541,7 +541,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_culture_with_no_LCID_omits_Locale_and_en_US_keeps_its_hex_value()
+    public void SetFor_WithACultureWithNoLcid_OmitsLocaleAndKeepsEnUsHexValue()
     {
         var noLcidCulture = CultureInfo.GetCultures(CultureTypes.SpecificCultures)
             .First(c => c.LCID == TimeRegionLanguageService.NoLcid);
@@ -552,7 +552,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void Every_region_is_offered_once_keyed_by_its_iso_code()
+    public void Options_ForHomeLocation_OffersEachRegionOnceKeyedByIsoCode()
     {
         var options = Service.Options(HomeLocation, new FakeDetectionContext());
 
@@ -564,7 +564,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void An_area_that_is_not_a_country_is_not_offered()
+    public void Options_ForHomeLocation_DoesNotOfferAnAreaThatIsNotACountry()
     {
         // es-419, en-001 and en-150 build a RegionInfo whose "ISO code" is a UN M49 area number, which has no GeoId.
         var values = Service.Options(HomeLocation, new FakeDetectionContext()).Select(o => o.Value).ToList();
@@ -575,7 +575,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void The_offered_regions_come_out_sorted_by_their_display_name()
+    public void Options_ForHomeLocation_SortsTheOfferedRegionsByDisplayName()
     {
         var labels = Service.Options(HomeLocation, new FakeDetectionContext()).Select(o => o.Label).ToList();
 
@@ -583,7 +583,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void The_live_region_is_the_Nation_geo_id_resolved_back_to_its_iso_code()
+    public void CurrentKey_ForHomeLocation_ResolvesTheNationGeoIdBackToItsIsoCode()
     {
         var machine = new FakeDetectionContext().Set(Geo, "Nation", GeoIdOf("ZA"));
 
@@ -591,7 +591,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void An_American_machine_reads_back_as_the_United_States()
+    public void CurrentKey_WithAnAmericanGeoId_ReadsBackAsTheUnitedStates()
     {
         // US is the GeoId a region with no geography data falls back to, so it breaks first if the lookup walks cultures.
         var machine = new FakeDetectionContext().Set(Geo, "Nation", GeoIdOf("US"));
@@ -600,7 +600,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_Nation_no_region_claims_falls_back_to_the_Name_value()
+    public void CurrentKey_WithANationNoRegionClaims_FallsBackToTheNameValue()
     {
         var machine = new FakeDetectionContext()
             .Set(Geo, "Nation", "999999")
@@ -610,13 +610,13 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_machine_with_neither_value_has_no_selection()
+    public void CurrentKey_ForHomeLocationWithNeitherValue_HasNoSelection()
     {
         Service.CurrentKey(HomeLocation, new FakeDetectionContext()).Should().BeNull();
     }
 
     [Fact]
-    public void Applying_a_region_writes_the_geo_id_and_the_iso_code()
+    public void SetFor_WithARegion_WritesTheGeoIdAndTheIsoCode()
     {
         var set = SetFor(HomeLocation, "US");
 
@@ -628,7 +628,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_second_region_writes_a_different_geo_id()
+    public void SetFor_WithASecondRegion_WritesADifferentGeoId()
     {
         var us = SetFor(HomeLocation, "US")!["Nation"].WritePayload;
         var za = SetFor(HomeLocation, "ZA")!["Nation"].WritePayload;
@@ -637,7 +637,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_region_whose_cultures_carry_no_geography_still_writes_its_own_geo_id()
+    public void SetFor_WithARegionWhoseCulturesCarryNoGeography_StillWritesItsOwnGeoId()
     {
         // A RegionInfo built from a culture with no geography data reports the US GeoId; some of Canada's have none.
         var set = SetFor(HomeLocation, "CA");
@@ -647,20 +647,20 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_region_that_is_not_a_region_writes_nothing()
+    public void SetFor_WithAKeyThatIsNotARegion_WritesNothing()
     {
         SetFor(HomeLocation, "ZZ").Should().BeNull();
     }
 
     [Fact]
-    public void A_home_location_setting_is_a_keyed_selection()
+    public void Control_OnTheHomeLocationSetting_IsKeyedSelection()
     {
         HomeLocation.Control.Should().Be(ControlKind.KeyedSelection);
         SetFor(HomeLocation, "US")!.Keys.Should().BeEquivalentTo(WrittenTargetKeys(HomeLocation));
     }
 
     [Fact]
-    public void Every_layout_with_a_layout_text_is_offered_sorted_by_that_text()
+    public void Options_ForKeyboardLayout_SortsLayoutsByLayoutText()
     {
         var options = Service.Options(KeyboardLayout, LayoutMachine());
 
@@ -671,7 +671,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void Two_layouts_sharing_a_layout_text_are_ordered_by_their_klid()
+    public void Options_WithTwoLayoutsSharingALayoutText_OrdersThemByKlid()
     {
         var machine = LayoutMachine()
             .Sub(Layouts, "00020409", "00000409")
@@ -681,13 +681,13 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_layout_with_no_layout_text_is_not_offered()
+    public void Options_WithALayoutWithNoLayoutText_DoesNotOfferIt()
     {
         Service.Options(KeyboardLayout, LayoutMachine()).Should().NotContain(o => o.Value == "0000dead");
     }
 
     [Fact]
-    public void The_live_layout_is_the_first_preload_entry()
+    public void CurrentKey_ForKeyboardLayout_IsTheFirstPreloadEntry()
     {
         var machine = LayoutMachine().Set(Preload, "1", "00000809");
 
@@ -695,7 +695,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_substituted_preload_reports_the_layout_that_actually_loads()
+    public void CurrentKey_WithASubstitutedPreload_ReportsTheLayoutThatActuallyLoads()
     {
         var machine = LayoutMachine()
             .Set(Preload, "1", "00000409")
@@ -706,7 +706,7 @@ public class TimeRegionLanguageServiceTests
 
     // A real machine writes a lowercase KLID into Preload and the same layout in uppercase under Substitutes.
     [Fact]
-    public void A_lowercase_preload_finds_its_uppercase_substitute()
+    public void CurrentKey_WithALowercasePreload_FindsItsUppercaseSubstitute()
     {
         var machine = LayoutMachine()
             .Set(Preload, "1", "00001c09")
@@ -716,13 +716,13 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_machine_with_no_preload_has_no_selection()
+    public void CurrentKey_ForKeyboardLayoutWithNoPreload_HasNoSelection()
     {
         Service.CurrentKey(KeyboardLayout, LayoutMachine()).Should().BeNull();
     }
 
     [Fact]
-    public void Applying_a_layout_writes_the_first_preload_entry()
+    public void SetFor_WithALayout_WritesTheFirstPreloadEntry()
     {
         var set = SetFor(KeyboardLayout, "00000809");
 
@@ -733,7 +733,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_second_layout_writes_its_own_klid()
+    public void SetFor_WithASecondLayout_WritesItsOwnKlid()
     {
         var set = SetFor(KeyboardLayout, "00010409");
 
@@ -741,7 +741,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_lowercase_klid_is_a_layout_id()
+    public void SetFor_WithALowercaseKlid_TreatsItAsALayoutId()
     {
         var set = SetFor(KeyboardLayout, "00001c09");
 
@@ -749,7 +749,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_key_that_is_not_a_layout_id_writes_nothing()
+    public void SetFor_WithAKeyThatIsNotALayoutId_WritesNothing()
     {
         SetFor(KeyboardLayout, "US").Should().BeNull();
         SetFor(KeyboardLayout, "0409").Should().BeNull();
@@ -758,7 +758,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void Applying_a_layout_also_removes_the_substitute_filed_under_its_id()
+    public void EffectFor_WithALayout_RemovesTheSubstituteFiledUnderItsId()
     {
         var removal = Assert.IsType<RegContentEffect>(Service.EffectFor(KeyboardLayout, "00000409"));
 
@@ -768,7 +768,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void Applying_a_layout_emits_the_preload_write_and_then_the_substitute_removal()
+    public void Resolve_WithALayout_EmitsThePreloadWriteThenTheSubstituteRemoval()
     {
         var plan = PlanFor("region-keyboard-layout", "00000809");
 
@@ -782,14 +782,14 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_key_that_is_not_a_layout_id_gets_no_substitute_removal()
+    public void EffectFor_WithAKeyThatIsNotALayoutId_GivesNoSubstituteRemoval()
     {
         Service.EffectFor(KeyboardLayout, "0409\"=-\r\n[HKEY_LOCAL_MACHINE\\SOFTWARE]").Should().BeNull();
         Service.EffectFor(KeyboardLayout, "zzzzzzzz").Should().BeNull();
     }
 
     [Fact]
-    public void The_answer_file_script_runs_tzutil_for_the_system_and_the_substitute_removal_for_the_user()
+    public void Emit_WithTimeZoneAndKeyboardLayout_RunsTzutilForTheSystemAndTheSubstituteRemovalForTheUser()
     {
         var emitter = new ApplyOpScriptEmitter(Mock.Of<ILogService>(), Providers);
 
@@ -814,13 +814,13 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_keyboard_layout_setting_is_a_keyed_selection()
+    public void Control_OnTheKeyboardLayoutSetting_IsKeyedSelection()
     {
         KeyboardLayout.Control.Should().Be(ControlKind.KeyedSelection);
     }
 
     [Fact]
-    public void Every_culture_windows_can_set_as_the_system_locale_is_offered()
+    public void Options_ForSystemLocale_OffersEveryCultureWindowsCanSetAsTheSystemLocale()
     {
         var options = Service.Options(SystemLocale, new FakeDetectionContext());
 
@@ -834,7 +834,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_culture_with_no_code_pages_of_its_own_is_not_a_system_locale()
+    public void Options_WithACultureWithNoCodePagesOfItsOwn_DoesNotOfferItAsASystemLocale()
     {
         // Hindi is Unicode-only: no ANSI code page at all, and the CP_OEMCP / CP_MACCP sentinels for the other
         // two. Windows leaves such a locale out of the language-for-non-Unicode-programs list.
@@ -845,7 +845,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void The_offered_system_locales_come_out_sorted_by_their_display_name()
+    public void Options_ForSystemLocale_SortsTheOfferedLocalesByDisplayName()
     {
         var labels = Service.Options(SystemLocale, new FakeDetectionContext()).Select(o => o.Label).ToList();
 
@@ -853,7 +853,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void The_live_locale_is_the_hex_lcid_under_Nls_Language()
+    public void CurrentKey_ForSystemLocale_IsTheHexLcidUnderNlsLanguage()
     {
         var machine = new FakeDetectionContext().Set(Language, "Default", "0409");
 
@@ -861,7 +861,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void The_live_locale_is_reported_even_when_it_is_not_offered()
+    public void CurrentKey_WithALocaleThatIsNotOffered_StillReportsIt()
     {
         var machine = new FakeDetectionContext().Set(Language, "Default", "0439");
 
@@ -869,7 +869,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_hex_lcid_no_culture_claims_has_no_selection()
+    public void CurrentKey_WithAHexLcidNoCultureClaims_HasNoSelection()
     {
         var machine = new FakeDetectionContext().Set(Language, "Default", "FFFF");
 
@@ -877,7 +877,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_machine_with_no_Default_value_has_no_selection()
+    public void CurrentKey_ForSystemLocaleWithNoDefaultValue_HasNoSelection()
     {
         Service.CurrentKey(SystemLocale, new FakeDetectionContext()).Should().BeNull();
     }
@@ -888,7 +888,7 @@ public class TimeRegionLanguageServiceTests
     [InlineData("de-DE", "0407", "1252", "850", "10000")]
     // Basque reports the CP_MACCP sentinel, so MACCP falls back to Mac Roman rather than naming a sentinel.
     [InlineData("eu-ES", "042D", "1252", "850", "10000")]
-    public void Applying_a_culture_writes_its_lcid_and_all_three_code_pages(
+    public void SetFor_WithACulture_WritesItsLcidAndAllThreeCodePages(
         string key, string lcid, string ansi, string oem, string mac)
     {
         var set = SetFor(SystemLocale, key);
@@ -902,13 +902,13 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_system_locale_this_machine_does_not_have_writes_nothing()
+    public void SetFor_WithASystemLocaleThisMachineDoesNotHave_WritesNothing()
     {
         SetFor(SystemLocale, "zz-ZZ").Should().BeNull();
     }
 
     [Fact]
-    public void Every_offered_system_locale_writes_a_well_formed_set()
+    public void SetFor_WithEveryOfferedSystemLocale_WritesAWellFormedSet()
     {
         var declared = WrittenTargetKeys(SystemLocale).ToList();
 
@@ -929,13 +929,13 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void A_system_locale_setting_is_a_keyed_selection()
+    public void Control_OnTheSystemLocaleSetting_IsKeyedSelection()
     {
         SystemLocale.Control.Should().Be(ControlKind.KeyedSelection);
     }
 
     [Fact]
-    public void The_short_date_card_offers_its_recommended_patterns_first()
+    public void Options_ForShortDate_OffersTheRecommendedPatternsFirst()
     {
         Service.Options(ShortDate, new FakeDetectionContext()).Take(5).Select(option => option.Value)
             .Should().Equal("M/d/yyyy", "dd/MM/yyyy", "yyyy-MM-dd", "yyyy/MM/dd", "dd MMM yyyy");
@@ -949,7 +949,7 @@ public class TimeRegionLanguageServiceTests
     [InlineData("hi-IN")]
     [InlineData("ja-JP")]
     [InlineData("ar-SA")]
-    public void Every_pattern_a_regional_format_writes_is_offered_by_the_short_date_card(string culture)
+    public void Options_ForShortDate_OffersEveryPatternARegionalFormatWrites(string culture)
     {
         var written = SetFor(Format, culture)!["sShortDate"].WritePayload;
 
@@ -958,7 +958,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void The_short_date_key_is_the_pattern_the_machine_carries()
+    public void CurrentKey_ForShortDate_IsThePatternTheMachineCarries()
     {
         var machine = new FakeDetectionContext().Set(International, "sShortDate", "dd.MM.yyyy");
 
@@ -966,7 +966,7 @@ public class TimeRegionLanguageServiceTests
     }
 
     [Fact]
-    public void Applying_a_short_date_writes_that_pattern_and_nothing_else()
+    public void SetFor_WithAShortDate_WritesThatPatternAndNothingElse()
     {
         var set = SetFor(ShortDate, "dd.MM.yyyy")!;
 
@@ -977,6 +977,47 @@ public class TimeRegionLanguageServiceTests
     [Theory]
     [InlineData("")]
     [InlineData("dd/MM/yyyy\r\nStart-Process calc")]
-    public void A_pattern_that_is_empty_or_carries_control_characters_is_not_a_short_date(string key) =>
+    public void Accepts_WithAnEmptyPatternOrOneWithControlCharacters_IsFalse(string key) =>
         Service.Accepts(ShortDate, key).Should().BeFalse();
+
+    [Fact]
+    public void Options_AfterCallerClearsReturnedList_DoesNotEmptyTheNextOne()
+    {
+        var first = (List<DynamicOption>)Service.Options(Format, new FakeDetectionContext());
+        var count = first.Count;
+        first.Clear();
+
+        Service.Options(Format, new FakeDetectionContext()).Should().HaveCount(count);
+    }
+
+    [Fact]
+    public void Options_AfterUiLanguageSwitch_RelabelsTheListsInThatLanguage()
+    {
+        var previous = CultureInfo.CurrentUICulture;
+        try
+        {
+            Service.Options(Format, new FakeDetectionContext());
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("de-DE");
+
+            Service.Options(Format, new FakeDetectionContext()).Single(o => o.Value == "en-US").Label
+                .Should().Be(CultureInfo.GetCultureInfo("en-US").DisplayName);
+            Service.Options(HomeLocation, new FakeDetectionContext()).Single(o => o.Value == "US").Label
+                .Should().Be(new RegionInfo("US").DisplayName);
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
+    }
+
+    [Fact]
+    public void CurrentKey_OnEveryCall_ReadsTheMachineSettingAgain()
+    {
+        Service.Options(Format, new FakeDetectionContext());
+
+        Service.CurrentKey(Format, new FakeDetectionContext().Set(International, "LocaleName", "de-DE")).Should().Be("de-DE");
+        Service.CurrentKey(Format, new FakeDetectionContext().Set(International, "LocaleName", "en-ZA")).Should().Be("en-ZA");
+        Service.CurrentKey(HomeLocation, new FakeDetectionContext().Set(Geo, "Nation", GeoIdOf("ZA"))).Should().Be("ZA");
+        Service.CurrentKey(HomeLocation, new FakeDetectionContext().Set(Geo, "Nation", GeoIdOf("US"))).Should().Be("US");
+    }
 }

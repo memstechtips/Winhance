@@ -14,8 +14,9 @@ public static class DnsAddress
             && address.AddressFamily == AddressFamily.InterNetwork;
     }
 
+    // A zone ("fe80::1%12") means nothing in a DNS server entry, and .NET accepts any text after the %.
     public static bool IsIPv6(string text) =>
-        text.Contains(':') && IPAddress.TryParse(text.Trim(), out var address)
+        text.Contains(':') && !text.Contains('%') && IPAddress.TryParse(text.Trim(), out var address)
             && address.AddressFamily == AddressFamily.InterNetworkV6;
 
     // Windows takes only an https template.

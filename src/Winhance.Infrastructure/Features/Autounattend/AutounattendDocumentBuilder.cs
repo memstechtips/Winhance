@@ -1,6 +1,7 @@
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
+using Winhance.Core.Features.Autounattend;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Infrastructure.Features.Autounattend.Helpers;
 using Winhance.Infrastructure.Features.Autounattend.Writers;
@@ -32,6 +33,7 @@ internal static class AutounattendDocumentBuilder
         WriteScriptExtractor(doc);
         Account.Write(doc, context);
         Elements.Write(doc, context);
+        WriteComputerNameScript(doc, context);
         OobeNetwork.Write(doc, context);
         WriteWinhancementsScript(doc, context);
         WriteEmbeddedPictures(doc, context);
@@ -52,6 +54,21 @@ internal static class AutounattendDocumentBuilder
         doc.Pass("specialize").Component("Microsoft-Windows-Deployment")
             .AddRunSynchronousCommand(AutounattendScripts.ExtractCommand, AutounattendScripts.ExtractDescription);
         doc.Extensions().Add(new XElement(AutounattendDocument.WinhanceExtensions + "ExtractScript", AutounattendScripts.ExtractScript));
+    }
+
+    // The toggle names the PC TEMPNAME; this script runs detached and keeps writing the real name until the restart, the
+    // way Schneegans' unattend-generator does. It reads the network card, so it runs before OobeNetwork turns them off.
+    private static void WriteComputerNameScript(XDocument doc, AutounattendRenderContext context)
+    {
+        if (context.Checked(UniqueComputerName.SettingId) != true)
+            return;
+
+        doc.Pass("specialize").Component("Microsoft-Windows-Deployment").AddRunSynchronousCommand(
+            $"powershell.exe -NoProfile -WindowStyle Hidden -Command \"Start-Process powershell.exe '-NoProfile -ExecutionPolicy Bypass -File {ScriptPaths.UnattendComputerNameScriptPath}' -WindowStyle Hidden; Start-Sleep 10\"",
+            "Gives Each PC Its Own Computer Name");
+        doc.Extensions().Add(new XElement(AutounattendDocument.WinhanceExtensions + "File",
+            new XAttribute("path", ScriptPaths.UnattendComputerNameScriptPath),
+            new XCData(AutounattendScripts.SetComputerName(context.Text(UniqueComputerName.NameSettingId)))));
     }
 
     private static void WriteWinhancementsScript(XDocument doc, AutounattendRenderContext context)

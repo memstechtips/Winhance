@@ -20,7 +20,7 @@ public class AnswerFileEquivalenceTests
         AnswerFileScenarios.All.Select(scenario => new object[] { scenario.Name });
 
     [Fact]
-    public void Every_fixture_on_disk_has_a_scenario()
+    public void Fixtures_EveryFixtureOnDisk_HasAScenario()
     {
         var files = Directory.GetFiles(FixtureDir, "*.xml").Select(Path.GetFileNameWithoutExtension);
 
@@ -29,7 +29,7 @@ public class AnswerFileEquivalenceTests
 
     [Theory]
     [MemberData(nameof(ScenarioNames))]
-    public void Each_scenario_renders_the_answer_file_its_fixture_holds(string name)
+    public void Serialize_EachScenario_RendersTheAnswerFileItsFixtureHolds(string name)
     {
         var scenario = AnswerFileScenarios.All.Single(candidate => candidate.Name == name);
         var expected = Fixture(name);
@@ -40,7 +40,7 @@ public class AnswerFileEquivalenceTests
     }
 
     [Fact]
-    public void A_set_that_chose_nothing_renders_the_file_the_defaults_render()
+    public void Serialize_EmptySelectionSet_RendersTheDefaultsFixture()
     {
         var expected = Fixture("defaults");
         var actual = Rendered(SelectionSet.Empty);

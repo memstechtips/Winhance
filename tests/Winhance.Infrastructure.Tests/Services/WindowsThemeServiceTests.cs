@@ -64,7 +64,7 @@ public class WindowsThemeServiceTests
             Times.Once);
 
     [Fact]
-    public void A_picture_is_re_asserted_from_the_path_the_registry_holds()
+    public void RefreshDesktop_Picture_ReassertsFromThePathTheRegistryHolds()
     {
         Kind(0);
         Reads(DesktopKey, "WallPaper", @"D:\one.jpg");
@@ -75,7 +75,7 @@ public class WindowsThemeServiceTests
     }
 
     [Fact]
-    public void No_recorded_kind_is_treated_as_a_picture()
+    public void RefreshDesktop_NoRecordedKind_TreatsItAsAPicture()
     {
         Kind(null);
         Reads(DesktopKey, "WallPaper", @"D:\one.jpg");
@@ -88,7 +88,7 @@ public class WindowsThemeServiceTests
     // Measured on a Spotlight VM (2026-09-16): WallPaper holds a REAL file under DesktopSpotlight\Assets, so the
     // picture branch would show it and write BackgroundType = 0, turning Spotlight off silently.
     [Fact]
-    public void Spotlight_is_left_alone_rather_than_pinned_as_a_picture()
+    public void RefreshDesktop_Spotlight_IsLeftAlone()
     {
         Kind(3);
         Reads(DesktopKey, "WallPaper",
@@ -106,7 +106,7 @@ public class WindowsThemeServiceTests
 
     // Windows empties WallPaper for a colour and keeps the last picture in CurrentWallpaperPath.
     [Fact]
-    public void Switching_back_from_a_colour_shows_the_last_picture_and_records_it()
+    public void RefreshDesktop_SwitchBackFromColour_ShowsTheLastPictureAndRecordsIt()
     {
         Kind(0);
         Reads(DesktopKey, "WallPaper", string.Empty);
@@ -120,7 +120,7 @@ public class WindowsThemeServiceTests
     }
 
     [Fact]
-    public void Switching_back_from_a_slideshow_skips_the_transcoded_slide()
+    public void RefreshDesktop_SwitchBackFromSlideshow_SkipsTheTranscodedSlide()
     {
         Kind(0);
         Reads(DesktopKey, "WallPaper", Transcoded);
@@ -132,7 +132,7 @@ public class WindowsThemeServiceTests
     }
 
     [Fact]
-    public void A_last_picture_that_is_gone_falls_back_to_the_latest_recent_image()
+    public void RefreshDesktop_LastPictureGone_FallsBackToTheLatestRecentImage()
     {
         Kind(0);
         Reads(WallpapersKey, "CurrentWallpaperPath", @"D:\gone.jpg");
@@ -145,7 +145,7 @@ public class WindowsThemeServiceTests
     }
 
     [Fact]
-    public void A_picture_kind_with_no_picture_anywhere_shows_nothing_and_says_so()
+    public void RefreshDesktop_PictureKindWithNoPicture_ReturnsFalseAndLogsWarning()
     {
         Kind(0);
         Reads(DesktopKey, "WallPaper", string.Empty);
@@ -160,7 +160,7 @@ public class WindowsThemeServiceTests
 
     // COLORREF is 0x00BBGGRR: 0 99 177 paints as 0xB16300, not 0x0063B1. The empty path takes the old picture off.
     [Fact]
-    public void A_solid_color_paints_through_the_system_colors_and_clears_the_picture()
+    public void RefreshDesktop_SolidColor_PaintsThroughSystemColorsAndClearsThePicture()
     {
         Kind(1);
         Reads(ColorsKey, "Background", "0 99 177");
@@ -172,7 +172,7 @@ public class WindowsThemeServiceTests
     }
 
     [Fact]
-    public void A_colour_the_registry_cannot_answer_for_still_clears_the_picture()
+    public void RefreshDesktop_ColourTheRegistryCannotAnswerFor_StillClearsThePicture()
     {
         Kind(1);
         Reads(ColorsKey, "Background", "not a colour");
@@ -184,7 +184,7 @@ public class WindowsThemeServiceTests
     }
 
     [Fact]
-    public void Switching_to_a_slideshow_starts_the_album_windows_recorded()
+    public void RefreshDesktop_SwitchToSlideshow_StartsTheAlbumWindowsRecorded()
     {
         Kind(2);
         RecordedAlbum();
@@ -202,7 +202,7 @@ public class WindowsThemeServiceTests
     }
 
     [Fact]
-    public void A_slideshow_the_shell_set_with_no_recorded_album_restarts_the_album_the_shell_reports()
+    public void RefreshDesktop_ShellSlideshowWithNoRecordedAlbum_RestartsTheAlbumTheShellReports()
     {
         Kind(2);
         _slideshow.Setup(s => s.Folder()).Returns(Album);
@@ -213,7 +213,7 @@ public class WindowsThemeServiceTests
     }
 
     [Fact]
-    public void A_slideshow_with_no_recorded_album_starts_nothing_and_says_so()
+    public void RefreshDesktop_SlideshowWithNoRecordedAlbum_StartsNothingAndLogsWarning()
     {
         Kind(2);
 
@@ -225,7 +225,7 @@ public class WindowsThemeServiceTests
 
     // Windows writes Interval when a slideshow starts, so an album that has never run one ticks at 30 minutes.
     [Fact]
-    public void A_slideshow_with_no_recorded_tick_runs_at_the_windows_default()
+    public void SetSlideshow_NoRecordedTick_RunsAtTheWindowsDefault()
     {
         _sut.SetSlideshow(Album).Should().BeTrue();
 
@@ -233,7 +233,7 @@ public class WindowsThemeServiceTests
     }
 
     [Fact]
-    public void The_broadcast_decides_what_the_refresh_reports()
+    public void RefreshDesktop_BroadcastFails_ReturnsFalseAndLogsError()
     {
         Kind(0);
         Reads(DesktopKey, "WallPaper", @"D:\one.jpg");
@@ -247,7 +247,7 @@ public class WindowsThemeServiceTests
     }
 
     [Fact]
-    public void Refreshing_a_picture_records_the_path_and_the_kind_windows_reads_back()
+    public void RefreshDesktop_Picture_RecordsThePathAndKindWindowsReadsBack()
     {
         Kind(null);
         Reads(DesktopKey, "WallPaper", @"C:\Windows\Web\Wallpaper\Windows\img19.jpg");
@@ -266,7 +266,7 @@ public class WindowsThemeServiceTests
     }
 
     [Fact]
-    public void An_album_hands_the_shell_the_folder_and_the_options_beside_it()
+    public void SetSlideshow_Album_HandsTheShellTheFolderAndItsOptions()
     {
         Reads(SlideshowKey, "Interval", 60000);
         Reads(SlideshowKey, "Shuffle", 0);
@@ -280,7 +280,7 @@ public class WindowsThemeServiceTests
 
     // The shell writes the folder id and the ini itself, so nothing here writes the registry for a slideshow.
     [Fact]
-    public void An_album_writes_no_registry_value_and_broadcasts_nothing()
+    public void SetSlideshow_Album_WritesNoRegistryValueAndBroadcastsNothing()
     {
         _sut.SetSlideshow(Album).Should().BeTrue();
 
@@ -294,7 +294,7 @@ public class WindowsThemeServiceTests
 
     // The COM object acts on the profile of the process that created it: under OTS, the admin's desktop.
     [Fact]
-    public void An_album_under_ots_elevation_is_refused_and_logged()
+    public void SetSlideshow_UnderOtsElevation_IsRefusedAndLogged()
     {
         _interactiveUser.Setup(i => i.IsOtsElevation).Returns(true);
         _interactiveUser.Setup(i => i.InteractiveUserName).Returns("Marco");
@@ -306,7 +306,7 @@ public class WindowsThemeServiceTests
     }
 
     [Fact]
-    public void A_slideshow_refresh_under_ots_elevation_is_refused_too()
+    public void RefreshDesktop_SlideshowUnderOtsElevation_IsRefusedAndLogged()
     {
         Kind(2);
         RecordedAlbum();
@@ -320,7 +320,7 @@ public class WindowsThemeServiceTests
     }
 
     [Fact]
-    public void An_album_this_pc_does_not_have_is_refused_and_logged()
+    public void SetSlideshow_AlbumThisPcDoesNotHave_IsRefusedAndLogged()
     {
         _files.Setup(f => f.DirectoryExists(Album)).Returns(false);
 
@@ -331,7 +331,7 @@ public class WindowsThemeServiceTests
     }
 
     [Fact]
-    public void A_shell_that_refuses_the_album_is_reported_not_thrown()
+    public void SetSlideshow_ShellRefusesTheAlbum_ReturnsFalseInsteadOfThrowing()
     {
         _slideshow
             .Setup(s => s.Set(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<bool>()))

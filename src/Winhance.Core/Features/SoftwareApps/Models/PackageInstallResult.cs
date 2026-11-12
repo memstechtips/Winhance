@@ -20,6 +20,9 @@ public record PackageInstallResult(
     InstallFailureReason FailureReason = InstallFailureReason.None,
     string? ErrorMessage = null)
 {
+    // winget installed a Store package the app had open: Windows holds the new version until the app next starts.
+    public bool RegistrationDeferred { get; init; }
+
     public static PackageInstallResult Succeeded() => new(true);
 
     public static PackageInstallResult Failed(InstallFailureReason reason, string? message = null)

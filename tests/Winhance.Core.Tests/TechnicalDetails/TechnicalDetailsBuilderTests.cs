@@ -4,7 +4,6 @@ using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.TechnicalDetails;
 using Xunit;
 using Winhance.TestSupport;
@@ -229,6 +228,19 @@ public class TechnicalDetailsBuilderTests
         code.Select(b => b.Label).Should().Equal("When set to On", "When set to Off");
     }
 
+    // The card skips the redraw when a refresh yields an equal matrix, so equal state must give an equal matrix.
+    [Fact]
+    public void Build_SameStateTwice_GivesEqualMatrices()
+    {
+        var first = TechnicalDetailsBuilder.Build(RegContentSetting(), Snap(isSelected: true), FallbackLoc(), Build);
+        var second = TechnicalDetailsBuilder.Build(RegContentSetting(), Snap(isSelected: true), FallbackLoc(), Build);
+        var changed = TechnicalDetailsBuilder.Build(RegContentSetting(), Snap(isSelected: false), FallbackLoc(), Build);
+
+        second.Should().Be(first);
+        second!.GetHashCode().Should().Be(first!.GetHashCode());
+        changed.Should().NotBe(first);
+    }
+
     private static OptionMatrix MatrixOf(OptionMatrix? matrix) =>
         matrix.Should().NotBeNull().And.Subject.As<OptionMatrix>();
 
@@ -255,7 +267,7 @@ public class TechnicalDetailsBuilderTests
     };
 
     [Fact]
-    public void An_answer_file_toggle_documents_its_element_and_what_each_option_writes()
+    public void Build_AnswerFileToggle_DocumentsItsElementAndWhatEachOptionWrites()
     {
         var matrix = MatrixOf(TechnicalDetailsBuilder.Build(AnswerFileToggle(), Snap(), FallbackLoc(), Build));
 
@@ -269,7 +281,7 @@ public class TechnicalDetailsBuilderTests
     }
 
     [Fact]
-    public void Setup_commands_render_as_code_blocks_labelled_by_option()
+    public void Build_SetupCommands_RenderAsCodeBlocksLabelledByOption()
     {
         var matrix = MatrixOf(TechnicalDetailsBuilder.Build(AnswerFileToggle(), Snap(), FallbackLoc(), Build));
 
@@ -288,7 +300,7 @@ public class TechnicalDetailsBuilderTests
     };
 
     [Fact]
-    public void A_text_setting_documents_the_rule_and_the_default_it_starts_on()
+    public void Build_TextSetting_DocumentsTheRuleAndItsDefault()
     {
         var matrix = MatrixOf(TechnicalDetailsBuilder.Build(TextSetting(), Snap(), FallbackLoc(), Build));
 
@@ -301,7 +313,7 @@ public class TechnicalDetailsBuilderTests
     }
 
     [Fact]
-    public void A_text_setting_with_no_default_leaves_that_cell_empty()
+    public void Build_TextSettingWithNoDefault_LeavesThatCellEmpty()
     {
         var setting = TextSetting() with { TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything."))) };
 
@@ -324,7 +336,7 @@ public class TechnicalDetailsBuilderTests
     };
 
     [Fact]
-    public void A_list_setting_documents_the_fields_it_offers()
+    public void Build_ListSetting_DocumentsTheFieldsItOffers()
     {
         var matrix = MatrixOf(TechnicalDetailsBuilder.Build(ListSetting(), Snap(), FallbackLoc(), Build));
 
@@ -346,7 +358,7 @@ public class TechnicalDetailsBuilderTests
     };
 
     [Fact]
-    public void A_slideshow_box_documents_the_target_the_folder_goes_to()
+    public void Build_SlideshowBox_DocumentsTheTargetTheFolderGoesTo()
     {
         var matrix = MatrixOf(TechnicalDetailsBuilder.Build(AlbumSetting(), Snap(), FallbackLoc(), Build));
 
@@ -358,7 +370,7 @@ public class TechnicalDetailsBuilderTests
     }
 
     [Fact]
-    public void A_slideshow_box_documents_the_script_that_runs_on_a_new_install()
+    public void Build_SlideshowBox_DocumentsTheScriptThatRunsOnANewInstall()
     {
         var matrix = MatrixOf(TechnicalDetailsBuilder.Build(AlbumSetting(), Snap(), FallbackLoc(), Build));
 
@@ -1016,7 +1028,7 @@ public class TechnicalDetailsBuilderTests
     }
 
     [Fact]
-    public void A_keyed_selection_documents_its_target_and_says_the_options_come_from_windows()
+    public void Build_KeyedSelection_DocumentsItsTargetAndSaysOptionsComeFromWindows()
     {
         // The docs export passes an empty snapshot: no machine, so no option rows.
         var matrix = MatrixOf(TechnicalDetailsBuilder.Build(
@@ -1030,7 +1042,7 @@ public class TechnicalDetailsBuilderTests
 
     // The website keys on these shapes: the group kinds, the column count and the row order.
     [Fact]
-    public void The_power_plan_documents_the_five_predefined_plans_without_a_machine()
+    public void Build_PowerPlan_DocumentsTheFivePredefinedPlansWithoutAMachine()
     {
         var matrix = MatrixOf(TechnicalDetailsBuilder.Build(PowerPlanSetting(), new SettingStateSnapshot(), FallbackLoc(), Build));
 
@@ -1041,7 +1053,7 @@ public class TechnicalDetailsBuilderTests
     }
 
     [Fact]
-    public void The_picture_documents_the_three_pictures_windows_ships_beside_the_values_it_reads()
+    public void Build_WallpaperPicture_DocumentsTheThreeWindowsPicturesBesideTheValuesItReads()
     {
         var picture = SettingCatalog.Find("theme-wallpaper-picture")!;
 
@@ -1065,7 +1077,7 @@ public class TechnicalDetailsBuilderTests
     }
 
     [Fact]
-    public void The_keyboard_layout_documents_the_substitutes_key_as_written_because_applying_clears_it()
+    public void Build_KeyboardLayout_DocumentsTheSubstitutesKeyAsWritten()
     {
         var layout = SettingCatalog.Find("region-keyboard-layout")!;
 
@@ -1078,7 +1090,7 @@ public class TechnicalDetailsBuilderTests
     }
 
     [Fact]
-    public void The_colour_documents_the_twenty_four_swatches_captioned_by_their_own_hex()
+    public void Build_WallpaperColour_DocumentsTwentyFourSwatchesCaptionedByTheirHex()
     {
         var color = SettingCatalog.Find("theme-wallpaper-color")!;
 

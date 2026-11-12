@@ -79,15 +79,15 @@ public class CatalogDefaultApplyConformanceTests
     };
 
     [Fact]
-    public void Win10_22H2_vm_windows_defaults_write_nothing_it_shipped_without()
+    public void ApplyWindowsDefaults_OnWin1022H2Vm_WritesNothingItShippedWithout()
         => RunFixture("cleaninstall-win10-22h2-pro-vm.json", Win10VmExpected);
 
     [Fact]
-    public void Win11_25H2_gold_laptop_windows_defaults_write_nothing_it_shipped_without()
+    public void ApplyWindowsDefaults_OnWin1125H2GoldLaptop_WritesNothingItShippedWithout()
         => RunFixture("cleaninstall-win11-25h2-gold-laptop.json", GoldLaptopExpected);
 
     [Fact]
-    public void Win11_25H2_post_update_vm_windows_defaults_write_nothing_it_shipped_without()
+    public void ApplyWindowsDefaults_OnWin1125H2PostUpdateVm_WritesNothingItShippedWithout()
         => RunFixture("cleaninstall-win11-25h2-post-update-vm.json", PostUpdateVmExpected);
 
     private static void RunFixture(string fixtureName, IReadOnlyDictionary<string, string> expectedWriters)

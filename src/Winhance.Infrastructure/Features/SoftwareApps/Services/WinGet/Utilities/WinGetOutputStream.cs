@@ -9,9 +9,6 @@ internal enum WinGetOperation
     Upgrade,
     Uninstall,
     Download,
-
-    // Installing winget itself (App Installer) with the bundled winget.
-    Bootstrap,
 }
 
 // One winget run's output: the banner that frames the command in the task terminal, the per-line
@@ -28,6 +25,11 @@ internal sealed class WinGetOutputStream(
 {
     private DateTime _lastProgressReport = DateTime.MinValue;
     private WinGetProgressParser.WinGetPhase? _lastLoggedPhase;
+
+    // winget exits 0 when it could only stage a Store package that is in use, so this line is the only sign of it.
+    internal const string RegistrationDeferredLine = "InstallFlowRegistrationDeferred";
+
+    internal bool RegistrationDeferred { get; private set; }
 
     // These arrive as permanent output when ConPTY re-emits a \r\n-terminated progress bar, but are already handled by onProgressLine.
     internal static bool IsProgressBarLine(string line)
@@ -48,13 +50,13 @@ internal sealed class WinGetOutputStream(
         Terminal("---");
     }
 
-    internal void WriteFooter(WinGetCliRunner.WinGetCliResult result, int timeoutMs, int idleTimeoutMs)
+    internal void WriteFooter(WinGetCliRunner.WinGetCliResult result)
     {
         Terminal("---");
 
         // A bare -1 (0xFFFFFFFF) is Winhance's own kill, not a winget verdict —
         // say so, or support transcripts read like a winget bug (see issue #675).
-        var terminationNote = WinGetCliRunner.DescribeTermination(result, timeoutMs, idleTimeoutMs, localization);
+        var terminationNote = WinGetCliRunner.DescribeTermination(result, localization);
         if (terminationNote != null)
         {
             logService?.LogWarning(terminationNote);
@@ -69,6 +71,9 @@ internal sealed class WinGetOutputStream(
     {
         try
         {
+            if (line.Trim() == RegistrationDeferredLine)
+                RegistrationDeferred = true;
+
             // When ConPTY is active, winget's first progress bar render uses \r\n.
             // The \r fires onProgressLine (transient), then \n fires onOutputLine
             // (permanent) for the same content. Skip the permanent duplicate here
@@ -79,30 +84,19 @@ internal sealed class WinGetOutputStream(
             var displayLine = WinGetProgressParser.TranslateLine(line);
             var progress = WinGetProgressParser.ParseLine(line);
 
-            // The bootstrap run logs every line that says something instead of one line per phase, and keeps
-            // spinner and bar fragments out of both the log and the terminal.
-            var isBootstrap = operation == WinGetOperation.Bootstrap;
-            var shownLine = isBootstrap && IsNoise(line) ? null : displayLine;
-            if (isBootstrap && shownLine != null)
-                logService?.LogInformation(shownLine);
-
             if (progress == null)
             {
-                if (shownLine != null)
-                    Terminal(shownLine);
+                if (displayLine != null)
+                    Terminal(displayLine);
                 return;
             }
 
-            if (!isBootstrap && progress.Phase != _lastLoggedPhase && IsWorthLogging(progress.Phase))
+            if (progress.Phase != _lastLoggedPhase && IsWorthLogging(progress.Phase))
             {
                 _lastLoggedPhase = progress.Phase;
                 if (displayLine != null)
                     logService?.LogInformation(displayLine);
             }
-
-            var percent = PercentFor(progress);
-            if (percent == NoPercent)
-                return;
 
             // Complete is never throttled, or the bar can stop short of the end.
             var now = DateTime.UtcNow;
@@ -113,7 +107,7 @@ internal sealed class WinGetOutputStream(
             _lastProgressReport = now;
             taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail
             {
-                Progress = percent,
+                Progress = PercentFor(progress),
                 StatusText = StatusFor(progress.Phase),
                 TerminalOutput = progress.Percent.HasValue && progress.Phase != WinGetProgressParser.WinGetPhase.Complete
                     ? null : (displayLine ?? line),
@@ -132,6 +126,14 @@ internal sealed class WinGetOutputStream(
         Terminal(line);
     }
 
+    // The next progress update replaces this status text when winget starts reporting again.
+    internal void ReportStall()
+    {
+        var text = localization.GetString("Progress_WinGet_NoProgress");
+        logService?.LogInformation(text);
+        taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail { StatusText = text, TerminalOutput = text });
+    }
+
     internal void ForwardProgressLine(string line) =>
         WinGetProgressParser.Forward(line, taskProgressService, logService);
 
@@ -148,18 +150,10 @@ internal sealed class WinGetOutputStream(
         _ => WinGetProgressParser.WinGetPhase.Installing,
     };
 
-    private const int NoPercent = 0;
-
     // Download spends the whole run in one phase, so it spreads over the range install splits between
-    // fetching and installing. Bootstrap is one step of a longer winget install: it stops at 95, and a phase with
-    // no place on that bar reports nothing.
+    // fetching and installing.
     private int PercentFor(WinGetProgressParser.WinGetProgressInfo progress) => (operation, progress.Phase) switch
     {
-        (WinGetOperation.Bootstrap, WinGetProgressParser.WinGetPhase.Found) => 15,
-        (WinGetOperation.Bootstrap, WinGetProgressParser.WinGetPhase.Downloading) => 15 + (int)((progress.Percent ?? 0) * 0.55),
-        (WinGetOperation.Bootstrap, WinGetProgressParser.WinGetPhase.Installing) => 70 + (int)((progress.Percent ?? 0) * 0.25),
-        (WinGetOperation.Bootstrap, WinGetProgressParser.WinGetPhase.Complete) => 95,
-        (WinGetOperation.Bootstrap, _) => NoPercent,
         (_, WinGetProgressParser.WinGetPhase.Found) => 30,
         (_, WinGetProgressParser.WinGetPhase.Complete) => 100,
         (WinGetOperation.Install or WinGetOperation.Upgrade, WinGetProgressParser.WinGetPhase.Downloading) => 30 + (int)((progress.Percent ?? 0) * 0.4),
@@ -171,7 +165,6 @@ internal sealed class WinGetOutputStream(
 
     private string StatusFor(WinGetProgressParser.WinGetPhase phase) => (operation, phase) switch
     {
-        (WinGetOperation.Bootstrap, _) => localization.GetString("Progress_WinGet_Installing"),
         (_, WinGetProgressParser.WinGetPhase.Found) => localization.GetString("Progress_WinGet_FoundPackage", displayName),
         (WinGetOperation.Install or WinGetOperation.Upgrade, WinGetProgressParser.WinGetPhase.Downloading) => localization.GetString("Progress_Downloading", displayName),
         (WinGetOperation.Install, WinGetProgressParser.WinGetPhase.Installing) => localization.GetString("Progress_Installing", displayName),
@@ -184,23 +177,6 @@ internal sealed class WinGetOutputStream(
         (WinGetOperation.Download, WinGetProgressParser.WinGetPhase.Complete) => localization.GetString("Progress_WinGet_DownloadedSuccess", displayName),
         _ => localization.GetString("Progress_Processing", displayName),
     };
-
-    private static bool IsNoise(string line)
-    {
-        if (string.IsNullOrWhiteSpace(line))
-            return true;
-
-        var trimmed = line.Trim();
-
-        // Progress bar characters
-        if (trimmed.Contains('█') || trimmed.Contains('▒'))
-            return true;
-
-        if (trimmed.Length <= 2 && (trimmed == "-" || trimmed == "\\" || trimmed == "|" || trimmed == "/"))
-            return true;
-
-        return false;
-    }
 
     private void Terminal(string text) =>
         taskProgressService?.UpdateDetailedProgress(new TaskProgressDetail { TerminalOutput = text });

@@ -1,15 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Automation;
-using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
-using Winhance.UI.Helpers;
 using Winhance.UI.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
@@ -27,7 +23,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
     private Dictionary<string, NavButton>? _navButtons;
     private MoreMenuViewModel? _moreMenuViewModel;
     private ILogService? _logService;
-    private ILocalizationService? _localizationService;
 
     public static readonly DependencyProperty IsPaneOpenProperty =
         DependencyProperty.Register(
@@ -49,6 +44,10 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
             typeof(MainWindowViewModel),
             typeof(NavSidebar),
             new PropertyMetadata(null));
+
+    // The page the docs link opens for; MainWindow updates it on every navigation because SelectedTag
+    // reads "More" while this flyout is open.
+    public string? CurrentPageTag { get; set; }
 
     public bool IsPaneOpen
     {
@@ -175,7 +174,7 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
             switch (tag)
             {
                 case "OpenDocs":
-                    _moreMenuViewModel.OpenDocsCommand.Execute(null);
+                    _moreMenuViewModel.OpenDocsCommand.Execute(CurrentPageTag);
                     break;
                 case "ReportBug":
                     _moreMenuViewModel.ReportBugCommand.Execute(null);
@@ -243,42 +242,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         {
             kvp.Value.IsSelected = kvp.Key == SelectedTag;
         }
-    }
-
-    public void SetButtonLocked(string tag, bool isLocked, string? tooltip = null)
-    {
-        if (_navButtons == null || !_navButtons.TryGetValue(tag, out var button))
-        {
-            return;
-        }
-
-        var wasLocked = button.IsLocked;
-        button.IsLocked = isLocked;
-
-        var helpText = NavLockPolicy.HelpTextFor(isLocked, tooltip);
-        ToolTipService.SetToolTip(button, helpText.Length > 0 ? helpText : null);
-        AutomationProperties.SetHelpText(button, helpText);
-
-        if (NavLockPolicy.ShouldAnnounceUnlock(wasLocked, isLocked))
-        {
-            AnnounceUnlocked(button);
-        }
-    }
-
-    private void AnnounceUnlocked(NavButton button)
-    {
-        _localizationService ??= App.Services.GetService<ILocalizationService>();
-        var format = _localizationService.GetStringOrDefault(
-            "Nav_Unlocked_Announcement", "{0} is now available");
-
-        var peer = FrameworkElementAutomationPeer.FromElement(button)
-                   ?? FrameworkElementAutomationPeer.CreatePeerForElement(button);
-
-        peer?.RaiseNotificationEvent(
-            AutomationNotificationKind.ActionCompleted,
-            AutomationNotificationProcessing.ImportantMostRecent,
-            NavLockPolicy.UnlockAnnouncement(format, button.Text),
-            "NavButtonUnlocked");
     }
 
     public NavButton? GetButton(string tag)

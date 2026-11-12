@@ -11,7 +11,7 @@
     d:DesignWidth="400">
 
     <!-- Bound through DataContext (the ViewModel is an ObservableObject), matching the pattern used by
-         WindowsAppsHelpContent. Deliberately has NO close button: the pending state is real, and letting
+         the other views. Deliberately has NO close button: the pending state is real, and letting
          the user dismiss it would leave them believing their settings already took effect. -->
     <Grid Visibility="{Binding IsBarVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
           AutomationProperties.LiveSetting="Polite">

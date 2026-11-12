@@ -14,4 +14,8 @@ public interface IStagedAppInstaller
 
     // Deletes the folder once the installer succeeds, unless the answer file asked to keep it.
     Task<bool> InstallAsync(StagedInstaller installer, IProgress<TaskProgressDetail>? progress = null, CancellationToken cancellationToken = default);
+
+    // Undoes a portable InstallAsync laid out, in every scope it was installed for. Null when this app has none, so the
+    // caller uses its own uninstall path: winget cannot remove a portable it did not install.
+    Task<OperationResult<bool>?> UninstallPortableAsync(ItemDefinition app, CancellationToken cancellationToken = default);
 }

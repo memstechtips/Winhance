@@ -9,6 +9,116 @@
     xmlns:fluentIcons="using:FluentIcons.WinUI"
     xmlns:commonControls="using:Winhance.UI.Features.Common.Controls">
 
+    <Page.Resources>
+        <Style x:Key="ExpanderInfoBarStyle" TargetType="InfoBar"/>
+        <local:BackgroundRowTemplateSelector x:Key="BackgroundRowTemplateSelector">
+            <local:BackgroundRowTemplateSelector.ModeTemplate>
+                <DataTemplate x:DataType="viewModels:ModeRow">
+                    <controls:SettingsCard
+                        Header="{x:Bind Vm.ModeHeader, Mode=OneWay}"
+                        Description="{x:Bind Vm.ModeDescription, Mode=OneWay}">
+                        <controls:SettingsCard.HeaderIcon>
+                            <fluentIcons:FluentIcon Icon="Settings" IconVariant="Regular"/>
+                        </controls:SettingsCard.HeaderIcon>
+                        <ComboBox
+                            x:Name="KeepRemovedModeComboBox"
+                            MinWidth="260"
+                            IsEnabled="{x:Bind Enabled}"
+                            ItemsSource="{x:Bind Vm.ModeOptions}"
+                            SelectedItem="{x:Bind Vm.SelectedModeOption, Mode=TwoWay}"
+                            DisplayMemberPath="DisplayText"
+                            AutomationProperties.Name="{x:Bind Vm.ModeHeader, Mode=OneWay}"/>
+                    </controls:SettingsCard>
+                </DataTemplate>
+            </local:BackgroundRowTemplateSelector.ModeTemplate>
+            <local:BackgroundRowTemplateSelector.EmptyListTemplate>
+                <DataTemplate x:DataType="viewModels:EmptyListRow">
+                    <InfoBar
+                        x:Name="KeepRemovedEmptyInfoBar"
+                        Style="{StaticResource ExpanderInfoBarStyle}"
+                        IsOpen="True"
+                        IsClosable="False"
+                        Severity="Informational"
+                        Margin="16,8"
+                        Message="{x:Bind Message}">
+                        <InfoBar.ActionButton>
+                            <Button
+                                x:Name="KeepRemovedOpenSoftwareAppsButton"
+                                Content="{x:Bind ActionText}"
+                                Command="{x:Bind Action}"/>
+                        </InfoBar.ActionButton>
+                    </InfoBar>
+                </DataTemplate>
+            </local:BackgroundRowTemplateSelector.EmptyListTemplate>
+            <local:BackgroundRowTemplateSelector.FolderSafeTemplate>
+                <DataTemplate x:DataType="viewModels:FolderSafeRow">
+                    <InfoBar
+                        x:Name="TaskSafetyProtectedInfoBar"
+                        Style="{StaticResource ExpanderInfoBarStyle}"
+                        IsOpen="True"
+                        IsClosable="False"
+                        Severity="Success"
+                        Margin="16,8"
+                        Message="{x:Bind Message}"/>
+                </DataTemplate>
+            </local:BackgroundRowTemplateSelector.FolderSafeTemplate>
+            <local:BackgroundRowTemplateSelector.FolderUnsafeTemplate>
+                <DataTemplate x:DataType="viewModels:FolderUnsafeRow">
+                    <InfoBar
+                        x:Name="TaskSafetyNeedsRepairInfoBar"
+                        Style="{StaticResource ExpanderInfoBarStyle}"
+                        IsOpen="True"
+                        IsClosable="False"
+                        Severity="Warning"
+                        Margin="16,8"
+                        Message="{x:Bind Message}">
+                        <InfoBar.ActionButton>
+                            <Button
+                                x:Name="TaskSafetyRepairButton"
+                                Content="{x:Bind ActionText}"
+                                Command="{x:Bind Action}"/>
+                        </InfoBar.ActionButton>
+                    </InfoBar>
+                </DataTemplate>
+            </local:BackgroundRowTemplateSelector.FolderUnsafeTemplate>
+            <local:BackgroundRowTemplateSelector.CategoryTemplate>
+                <DataTemplate x:DataType="viewModels:CategoryRow">
+                    <controls:SettingsCard
+                        Header="{x:Bind Title}"
+                        Description="{x:Bind Detail}"
+                        Opacity="{x:Bind Opacity}"
+                        HeaderIcon="{x:Bind IconKey, Converter={StaticResource SectionIconConverter}}">
+                        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                            <Border Style="{StaticResource BadgeInstalledStyle}" Visibility="{x:Bind ShowHealthy}">
+                                <TextBlock Text="{x:Bind Pill}"
+                                           Style="{StaticResource BadgeTextStyle}"
+                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                            </Border>
+                            <Border Style="{StaticResource BadgeNonReinstallableStyle}" Visibility="{x:Bind ShowUnhealthy}">
+                                <TextBlock Text="{x:Bind Pill}"
+                                           Style="{StaticResource BadgeTextStyle}"
+                                           Foreground="{ThemeResource BadgeDangerForeground}"/>
+                            </Border>
+                            <Button Content="{x:Bind RepairText}" Command="{x:Bind Repair}" IsEnabled="{x:Bind ButtonsEnabled}" Visibility="{x:Bind CanRepair}"/>
+                            <Button Content="{x:Bind RemoveText}" Command="{x:Bind Remove}" IsEnabled="{x:Bind ButtonsEnabled}" Visibility="{x:Bind CanRemove}"/>
+                            <Button Content="{x:Bind StopText}" Command="{x:Bind Stop}" IsEnabled="{x:Bind ButtonsEnabled}" Visibility="{x:Bind CanStop}"/>
+                        </StackPanel>
+                    </controls:SettingsCard>
+                </DataTemplate>
+            </local:BackgroundRowTemplateSelector.CategoryTemplate>
+            <local:BackgroundRowTemplateSelector.TaskTemplate>
+                <DataTemplate x:DataType="viewModels:TaskRow">
+                    <controls:SettingsCard Header="{x:Bind Title}" Description="{x:Bind Detail}" Opacity="{x:Bind Opacity}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="{x:Bind PrimaryText}" Command="{x:Bind Primary}" Visibility="{x:Bind HasPrimary}"/>
+                            <Button Content="{x:Bind SecondaryText}" Command="{x:Bind Secondary}" Visibility="{x:Bind HasSecondary}"/>
+                        </StackPanel>
+                    </controls:SettingsCard>
+                </DataTemplate>
+            </local:BackgroundRowTemplateSelector.TaskTemplate>
+        </local:BackgroundRowTemplateSelector>
+    </Page.Resources>
+
 
     <Grid Padding="0,0,12,0">
         <Grid.RowDefinitions>
@@ -30,6 +140,7 @@
             CornerRadius="8"
             Margin="0,16,0,12">
             <ScrollViewer
+                x:Name="PageScrollViewer"
                 Padding="0,24,0,24"
                 VerticalScrollBarVisibility="Auto"
                 HorizontalScrollBarVisibility="Disabled">
@@ -82,47 +193,80 @@
                                 DisplayMemberPath="DisplayText"/>
                         </controls:SettingsCard>
 
+                        <!-- System Protection Group -->
+                        <TextBlock
+                            Text="{x:Bind ViewModel.SystemProtectionLabel, Mode=OneWay}"
+                            Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
+
+                        <!-- Create Restore Point -->
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.SystemProtectionHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.SystemProtectionDescription, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <fluentIcons:FluentIcon Icon="ShieldTask" IconVariant="Regular"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                                <ProgressRing
+                                    IsActive="{x:Bind ViewModel.IsCreatingRestorePoint, Mode=OneWay}"
+                                    Visibility="{x:Bind ViewModel.IsCreatingRestorePoint, Mode=OneWay}"
+                                    Width="20" Height="20"/>
+                                <Button
+                                    Content="{x:Bind ViewModel.CreateRestorePointButtonText, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.CreateRestorePointCommand}"
+                                    Visibility="{x:Bind ViewModel.IsCreatingRestorePoint, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                            </StackPanel>
+                        </controls:SettingsCard>
+
                         <!-- Background and updates Group -->
                         <TextBlock
                             Text="{x:Bind ViewModel.BackgroundLabel, Mode=OneWay}"
                             Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
 
-                        <controls:SettingsCard
-                            Header="{x:Bind ViewModel.CloseToTrayHeader, Mode=OneWay}"
-                            Description="{x:Bind ViewModel.CloseToTrayDescription, Mode=OneWay}">
-                            <controls:SettingsCard.HeaderIcon>
-                                <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular"/>
-                            </controls:SettingsCard.HeaderIcon>
-                            <ToggleSwitch
-                                x:Name="CloseToTraySwitch"
-                                IsOn="{x:Bind ViewModel.CloseToTray, Mode=TwoWay}"
-                                AutomationProperties.Name="{x:Bind ViewModel.CloseToTrayHeader, Mode=OneWay}"/>
-                        </controls:SettingsCard>
-
-                        <controls:SettingsCard
-                            Header="{x:Bind ViewModel.MinimizeToTrayHeader, Mode=OneWay}"
-                            Description="{x:Bind ViewModel.MinimizeToTrayDescription, Mode=OneWay}">
-                            <controls:SettingsCard.HeaderIcon>
-                                <fluentIcons:FluentIcon Icon="ArrowMinimize" IconVariant="Regular"/>
-                            </controls:SettingsCard.HeaderIcon>
-                            <ToggleSwitch
-                                x:Name="MinimizeToTraySwitch"
-                                IsOn="{x:Bind ViewModel.MinimizeToTray, Mode=TwoWay}"
-                                AutomationProperties.Name="{x:Bind ViewModel.MinimizeToTrayHeader, Mode=OneWay}"/>
-                        </controls:SettingsCard>
-
-                        <controls:SettingsCard
-                            Header="{x:Bind ViewModel.StartInTrayHeader, Mode=OneWay}"
-                            Description="{x:Bind ViewModel.StartInTrayDescription, Mode=OneWay}">
-                            <controls:SettingsCard.HeaderIcon>
+                        <controls:SettingsExpander
+                            x:Name="TrayExpander"
+                            Header="{x:Bind ViewModel.TrayHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.TrayDescription, Mode=OneWay}"
+                            IsExpanded="True">
+                            <controls:SettingsExpander.HeaderIcon>
                                 <fluentIcons:FluentIcon Icon="Power" IconVariant="Regular"/>
-                            </controls:SettingsCard.HeaderIcon>
-                            <ToggleSwitch
-                                x:Name="StartInTraySwitch"
-                                IsOn="{x:Bind ViewModel.StartInTrayAtSignIn, Mode=TwoWay}"
-                                IsEnabled="{x:Bind ViewModel.CanStartInTrayAtSignIn, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind ViewModel.StartInTrayHeader, Mode=OneWay}"/>
-                        </controls:SettingsCard>
+                            </controls:SettingsExpander.HeaderIcon>
+                            <controls:SettingsExpander.Items>
+                                <controls:SettingsCard
+                                    Header="{x:Bind ViewModel.CloseToTrayHeader, Mode=OneWay}"
+                                    Description="{x:Bind ViewModel.CloseToTrayDescription, Mode=OneWay}">
+                                    <controls:SettingsCard.HeaderIcon>
+                                        <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular"/>
+                                    </controls:SettingsCard.HeaderIcon>
+                                    <ToggleSwitch
+                                        x:Name="CloseToTraySwitch"
+                                        IsOn="{x:Bind ViewModel.CloseToTray, Mode=TwoWay}"
+                                        AutomationProperties.Name="{x:Bind ViewModel.CloseToTrayHeader, Mode=OneWay}"/>
+                                </controls:SettingsCard>
+                                <controls:SettingsCard
+                                    Header="{x:Bind ViewModel.MinimizeToTrayHeader, Mode=OneWay}"
+                                    Description="{x:Bind ViewModel.MinimizeToTrayDescription, Mode=OneWay}">
+                                    <controls:SettingsCard.HeaderIcon>
+                                        <fluentIcons:FluentIcon Icon="ArrowMinimize" IconVariant="Regular"/>
+                                    </controls:SettingsCard.HeaderIcon>
+                                    <ToggleSwitch
+                                        x:Name="MinimizeToTraySwitch"
+                                        IsOn="{x:Bind ViewModel.MinimizeToTray, Mode=TwoWay}"
+                                        AutomationProperties.Name="{x:Bind ViewModel.MinimizeToTrayHeader, Mode=OneWay}"/>
+                                </controls:SettingsCard>
+                                <controls:SettingsCard
+                                    Header="{x:Bind ViewModel.StartInTrayHeader, Mode=OneWay}"
+                                    Description="{x:Bind ViewModel.StartInTrayDescription, Mode=OneWay}">
+                                    <controls:SettingsCard.HeaderIcon>
+                                        <fluentIcons:FluentIcon Icon="Power" IconVariant="Regular"/>
+                                    </controls:SettingsCard.HeaderIcon>
+                                    <ToggleSwitch
+                                        x:Name="StartInTraySwitch"
+                                        IsOn="{x:Bind ViewModel.StartInTrayAtSignIn, Mode=TwoWay}"
+                                        IsEnabled="{x:Bind ViewModel.CanStartInTrayAtSignIn, Mode=OneWay}"
+                                        AutomationProperties.Name="{x:Bind ViewModel.StartInTrayHeader, Mode=OneWay}"/>
+                                </controls:SettingsCard>
+                            </controls:SettingsExpander.Items>
+                        </controls:SettingsExpander>
 
                         <controls:SettingsCard
                             Header="{x:Bind ViewModel.UpdateCheckHeader, Mode=OneWay}"
@@ -154,15 +298,13 @@
                                 AutomationProperties.Name="{x:Bind ViewModel.UpdateActionHeader, Mode=OneWay}"/>
                         </controls:SettingsCard>
 
-                        <!-- Configuration Group -->
                         <TextBlock
-                            Text="{x:Bind ViewModel.ConfigurationLabel, Mode=OneWay}"
+                            Text="{x:Bind ViewModel.ConfigsProfilesLabel, Mode=OneWay}"
                             Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
 
-                        <!-- Import/Export Configuration -->
                         <controls:SettingsCard
-                            Header="{x:Bind ViewModel.BackupRestoreHeader, Mode=OneWay}"
-                            Description="{x:Bind ViewModel.BackupRestoreDescription, Mode=OneWay}">
+                            Header="{x:Bind ViewModel.ConfigFileHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.ConfigFileDescription, Mode=OneWay}">
                             <controls:SettingsCard.HeaderIcon>
                                 <fluentIcons:FluentIcon Icon="ArrowSync" IconVariant="Regular"/>
                             </controls:SettingsCard.HeaderIcon>
@@ -183,10 +325,6 @@
                                 </Button>
                             </StackPanel>
                         </controls:SettingsCard>
-
-                        <TextBlock
-                            Text="{x:Bind ViewModel.ProfilesLabel, Mode=OneWay}"
-                            Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
 
                         <controls:SettingsExpander
                             Header="{x:Bind ViewModel.ProfilesHeader, Mode=OneWay}"
@@ -215,6 +353,25 @@
                         </controls:SettingsExpander>
 
                         <controls:SettingsCard
+                            Header="{x:Bind ViewModel.ReapplyHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.ReapplyDescription, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <fluentIcons:FluentIcon Icon="ArrowRepeatAll" IconVariant="Regular"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <ToggleSwitch
+                                x:Name="ReapplyAtSignInSwitch"
+                                IsOn="{x:Bind ViewModel.ReapplyAtSignIn, Mode=TwoWay}"
+                                IsEnabled="{x:Bind ViewModel.CanReapplyAtSignIn, Mode=OneWay}"
+                                AutomationProperties.Name="{x:Bind ViewModel.ReapplyHeader, Mode=OneWay}"/>
+                        </controls:SettingsCard>
+
+                        <InfoBar
+                            IsOpen="{x:Bind ViewModel.ReapplyAtSignIn, Mode=OneWay}"
+                            IsClosable="False"
+                            Severity="Warning"
+                            Message="{x:Bind ViewModel.ReapplyWarning, Mode=OneWay}"/>
+
+                        <controls:SettingsCard
                             Header="{x:Bind ViewModel.SaveProfileHeader, Mode=OneWay}"
                             Description="{x:Bind ViewModel.SaveProfileDescription, Mode=OneWay}">
                             <controls:SettingsCard.HeaderIcon>
@@ -236,48 +393,26 @@
                             </StackPanel>
                         </controls:SettingsCard>
 
-                        <controls:SettingsCard
-                            Header="{x:Bind ViewModel.ReapplyHeader, Mode=OneWay}"
-                            Description="{x:Bind ViewModel.ReapplyDescription, Mode=OneWay}">
-                            <controls:SettingsCard.HeaderIcon>
-                                <fluentIcons:FluentIcon Icon="ArrowRepeatAll" IconVariant="Regular"/>
-                            </controls:SettingsCard.HeaderIcon>
-                            <ToggleSwitch
-                                x:Name="ReapplyAtSignInSwitch"
-                                IsOn="{x:Bind ViewModel.ReapplyAtSignIn, Mode=TwoWay}"
-                                IsEnabled="{x:Bind ViewModel.CanReapplyAtSignIn, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind ViewModel.ReapplyHeader, Mode=OneWay}"/>
-                        </controls:SettingsCard>
-
-                        <InfoBar
-                            IsOpen="True"
-                            IsClosable="False"
-                            Severity="Warning"
-                            Message="{x:Bind ViewModel.ReapplyWarning, Mode=OneWay}"/>
-
-                        <!-- System Protection Group -->
+                        <!-- Background tasks Group -->
                         <TextBlock
-                            Text="{x:Bind ViewModel.SystemProtectionLabel, Mode=OneWay}"
+                            Text="{x:Bind ViewModel.BackgroundTasksLabel, Mode=OneWay}"
                             Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
 
-                        <!-- Create Restore Point -->
-                        <controls:SettingsCard
-                            Header="{x:Bind ViewModel.SystemProtectionHeader, Mode=OneWay}"
-                            Description="{x:Bind ViewModel.SystemProtectionDescription, Mode=OneWay}">
-                            <controls:SettingsCard.HeaderIcon>
-                                <fluentIcons:FluentIcon Icon="ShieldTask" IconVariant="Regular"/>
-                            </controls:SettingsCard.HeaderIcon>
-                            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                                <ProgressRing
-                                    IsActive="{x:Bind ViewModel.IsCreatingRestorePoint, Mode=OneWay}"
-                                    Visibility="{x:Bind ViewModel.IsCreatingRestorePoint, Mode=OneWay}"
-                                    Width="20" Height="20"/>
-                                <Button
-                                    Content="{x:Bind ViewModel.CreateRestorePointButtonText, Mode=OneWay}"
-                                    Command="{x:Bind ViewModel.CreateRestorePointCommand}"
-                                    Visibility="{x:Bind ViewModel.IsCreatingRestorePoint, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
-                            </StackPanel>
-                        </controls:SettingsCard>
+                        <controls:SettingsExpander
+                            x:Name="KeepRemovedExpander"
+                            Header="{x:Bind ViewModel.KeepRemovedHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.KeepRemovedDescription, Mode=OneWay}"
+                            ItemsSource="{x:Bind ViewModel.KeepRemovedChildren}"
+                            ItemTemplate="{StaticResource BackgroundRowTemplateSelector}"
+                            IsExpanded="True">
+                            <controls:SettingsExpander.HeaderIcon>
+                                <fluentIcons:FluentIcon Icon="ArrowSync" IconVariant="Regular"/>
+                            </controls:SettingsExpander.HeaderIcon>
+                            <ToggleSwitch
+                                x:Name="KeepRemovedSwitch"
+                                IsOn="{x:Bind ViewModel.KeepRemovedEnabled, Mode=TwoWay}"
+                                AutomationProperties.Name="{x:Bind ViewModel.KeepRemovedHeader, Mode=OneWay}"/>
+                        </controls:SettingsExpander>
 
                     </StackPanel>
                 </Grid>

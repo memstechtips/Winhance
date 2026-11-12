@@ -34,7 +34,7 @@ public class MediaEditionsTests
     }
 
     [Fact]
-    public void An_edition_with_no_generic_key_is_left_for_Setup_to_ask()
+    public void OptionFor_EditionWithNoGenericKey_ReturnsNull()
     {
         MediaEditions.OptionFor("ServerStandard").Should().BeNull();
         MediaEditions.OptionFor(string.Empty).Should().BeNull();
@@ -46,7 +46,7 @@ public class MediaEditionsTests
     [InlineData(0, "Professional", false)]
     [InlineData(null, "Professional", false)]
     [InlineData(4, "ServerStandard", true)]
-    public void PicksAnother_is_true_only_when_the_pick_names_a_different_edition(int? option, string keptEditionId, bool expected)
+    public void PicksAnother_PickedOption_IsTrueOnlyWhenItNamesADifferentEdition(int? option, string keptEditionId, bool expected)
     {
         MediaEditions.PicksAnother(option, keptEditionId).Should().Be(expected);
     }

@@ -38,11 +38,16 @@ internal sealed class SettingStatusBannerManager
 
         if (optionWarnings is { } w
             && selectedIndex >= 0 && selectedIndex < w.Count
-            && w[selectedIndex] is { } warning)
+            && w[selectedIndex] is { Always: false } warning)
         {
             // Error is a consequence the user is about to cause; an advisory describes a state they are already in.
             return new BannerState(warning.Text, warning.Advisory ? InfoBarSeverity.Warning : InfoBarSeverity.Error);
         }
+
+        // A risk warning stands before the choice is made, so it shows for every selection, the custom state included.
+        // Options that share one text (Manual and Disabled) print it once.
+        if (optionWarnings?.Where(x => x is { Always: true }).Select(x => x!.Text).Distinct().ToList() is { Count: > 0 } risks)
+            return new BannerState(string.Join("\n", risks), InfoBarSeverity.Warning);
 
         // Cross-group child settings info (promotional banner). The precomputed message already includes the header.
         if (!string.IsNullOrEmpty(crossGroupInfoMessage))

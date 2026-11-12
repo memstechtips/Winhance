@@ -69,6 +69,19 @@ internal sealed class StartupUiCoordinator
         _sponsorsShown = ShowLoadingSponsorsAsync(loadingSponsors, loadingSponsorsHeading, loadingSponsorPills);
     }
 
+    // Off the UI thread, so it never holds up the window; the Background tasks page refreshes when it finishes.
+    private async Task MaintainAsync()
+    {
+        try
+        {
+            await Task.Run(() => App.Services.GetRequiredService<IBackgroundTaskService>().MaintainAsync());
+        }
+        catch (Exception ex)
+        {
+            _logService?.LogError("Keeping the removed apps removed failed", ex);
+        }
+    }
+
     private static async Task ShowLoadingSponsorsAsync(StackPanel loadingSponsors, TextBlock loadingSponsorsHeading, StackPanel loadingSponsorPills)
     {
         var sponsorsService = App.Services.GetService<ISponsorsService>();
@@ -123,12 +136,6 @@ internal sealed class StartupUiCoordinator
             Padding = new Thickness(LoadingSponsorPillInset, LoadingSponsorPillInset, 16, LoadingSponsorPillInset),
             CornerRadius = new CornerRadius(LoadingSponsorPillRadius)
         };
-    }
-
-    private static async Task LoadAppListsAsync(SoftwareAppsPage page)
-    {
-        await page.ViewModel.InitializeWindowsAppsAsync();
-        await page.ViewModel.InitializeExternalAppsAsync();
     }
 
     private static async Task PrewarmSponsorsAsync()
@@ -231,22 +238,21 @@ internal sealed class StartupUiCoordinator
             contentFrame.Navigate(typeof(SoftwareAppsPage), "startup");
 
             // Both app tabs have their own loading overlay, so the window opens before they finish (#702). Only an
-            // install or config run from the command line needs the Windows Apps states first. External Apps waits
-            // for Windows Apps either way: the two share the winget detection cache.
+            // install or config run from the command line needs the Windows Apps states first.
             page = contentFrame.Content as SoftwareAppsPage;
             if (page != null)
             {
                 if (launch.InstallsApps || launch.ConfigFile is not null)
                 {
+                    page.ViewModel.InitializeExternalAppsAsync().FireAndForget(_logService!);
                     StartupLogger.Log("Awaiting Windows Apps initialization...");
                     await page.ViewModel.InitializeWindowsAppsAsync();
                     StartupLogger.Log("Windows Apps initialization complete");
-                    page.ViewModel.InitializeExternalAppsAsync().FireAndForget(_logService!);
                 }
                 else
                 {
                     StartupLogger.Log("Loading the app lists in the background");
-                    LoadAppListsAsync(page).FireAndForget(_logService!);
+                    page.ViewModel.InitializeAsync().FireAndForget(_logService!);
                 }
             }
         }
@@ -274,22 +280,19 @@ internal sealed class StartupUiCoordinator
 
         StartupLogger.Log("Startup complete, overlay hidden");
 
-        if (launch.SwitchesProfile)
+        if (!launch.RunsInBackground)
+            _ = MaintainAsync();
+        else
         {
-            var tray = App.Services.GetRequiredService<TrayController>();
             try
             {
-                // A launch made only to switch, like the sign-in re-apply, leaves nothing running behind it.
-                if (await tray.RunCommandLineProfileAsync(launch) && !launch.StartInTray && !tray.StaysOpen)
-                {
-                    tray.RemoveIcon();
-                    Application.Current.Exit();
-                    return;
-                }
+                if (launch.Maintain)
+                    await MaintainAsync();
+                await App.Services.GetRequiredService<TrayController>().RunBackgroundLaunchAsync(launch);
             }
             catch (Exception ex)
             {
-                _logService?.LogError("Switching the command-line profile failed", ex);
+                _logService?.LogError("The background launch failed", ex);
             }
         }
 

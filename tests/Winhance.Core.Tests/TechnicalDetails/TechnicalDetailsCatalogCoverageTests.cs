@@ -106,4 +106,27 @@ public class TechnicalDetailsCatalogCoverageTests
         matrix.Options.Skip(1).Should().OnlyContain(o => !o.IsRecommended && !o.IsWindowsDefault,
             "no other state carries a role, and inventing one would be worse than saying nothing");
     }
+
+    // Absent on a named value removes only that value; the policy key stays. Saying "deletes key" here told
+    // users Winhance wipes the whole WorkplaceJoin key.
+    [Fact]
+    public void AbsentNamedValue_SaysDeletesValue()
+    {
+        var setting = SettingCatalog.Find("security-workplace-join-messages")!;
+
+        var matrix = TechnicalDetailsBuilder.Build(setting, new SettingStateSnapshot(), FallbackLoc(), Build)!;
+
+        matrix.Options[0].Cells.Select(c => c.Text).Should().Equal("deletes value");
+    }
+
+    // A key-existence target (no value name) set Absent deletes the whole key.
+    [Fact]
+    public void AbsentKeyExistenceTarget_SaysDeletesKey()
+    {
+        var setting = SettingCatalog.Find("explorer-customization-duplicate-removable-drives")!;
+
+        var matrix = TechnicalDetailsBuilder.Build(setting, new SettingStateSnapshot(), FallbackLoc(), Build)!;
+
+        matrix.Options[1].Cells.Select(c => c.Text).Should().Equal("deletes key");
+    }
 }

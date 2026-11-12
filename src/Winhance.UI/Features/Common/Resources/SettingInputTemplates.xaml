@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The input each settings card hosts. App-wide rather than in SettingsCardItem's own resources, which every card
+     instance parsed again. -->
+<ResourceDictionary
+    x:Class="Winhance.UI.Features.Common.Resources.SettingInputTemplates"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:viewModels="using:Winhance.UI.Features.Optimize.ViewModels"
+    xmlns:commonViewModels="using:Winhance.UI.Features.Common.ViewModels"
+    xmlns:selectors="using:Winhance.UI.Features.Common.TemplateSelectors"
+    xmlns:local="using:Winhance.UI.Features.Common.Controls">
+
+    <!-- WHEN A CONTROL GETS ITS OWN UserControl, AND WHEN IT STAYS INLINE
+         (the rule, so the mix below reads as a decision rather than as drift)
+
+         Extract to a shared control when EITHER is true:
+           1. The same control is declared more than once. Selection and Numeric each had four
+              declarations across the single / AC-only / AC+DC layouts, and the outcome overlay was
+              added to one and forgotten on the rest. One declaration, one place to change.
+           2. Its behaviour cannot live beside its markup. The toggle has only ONE declaration, so
+              rule 1 does not apply - it was extracted because its knob animation sat in this file's
+              code-behind and had to walk the visual tree to find its own icon, since x:Name is not
+              reachable inside a DataTemplate.
+
+         Otherwise leave it inline. Action is a single declaration whose behaviour is fully expressed
+         here, so wrapping it would buy symmetry and cost a file, a pair of dependency properties and
+         a hop to read it. Symmetry is not a benefit.
+
+         Either way, CardTemplateOutcomeCoverageTests enforces that any template hosting an input
+         control also reports a value Winhance could not place - so correctness never depends on
+         which side of this rule a control falls. -->
+
+    <DataTemplate x:Key="ToggleSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+        <local:SettingToggleSwitch Setting="{x:Bind}"/>
+    </DataTemplate>
+
+    <DataTemplate x:Key="CheckBoxSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+        <local:SettingCheckBox Setting="{x:Bind}"/>
+    </DataTemplate>
+
+    <!-- Selection and Numeric settings come in three flavours - one value, or a powercfg setting split into
+         plugged-in and on-battery values. Each is ONE control (local:SettingComboBox / local:SettingNumberBox)
+         owning its Quick-Set pair, its input and its outcome overlay; the AC-only and AC+DC layouts are one
+         template apiece, with the battery column bound to HasBattery. -->
+
+    <DataTemplate x:Key="SelectionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+        <local:SettingComboBox Setting="{x:Bind}" Mode="Single" DeleteRequested="OnOptionDeleteRequested"/>
+    </DataTemplate>
+
+    <DataTemplate x:Key="NumericSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+        <local:SettingNumberBox Setting="{x:Bind}" Mode="Single"/>
+    </DataTemplate>
+
+    <!-- Power selection: the on-battery column only exists on a machine with a battery. The 120px pin
+         stops two columns growing to their widest item and squeezing the badges out of the row. -->
+    <DataTemplate x:Key="PowerSelectionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+        <StackPanel Orientation="Horizontal" Spacing="12">
+            <StackPanel Spacing="4">
+                <TextBlock Text="{x:Bind PluggedInText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"
+                           Visibility="{x:Bind HasBattery, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                <local:SettingComboBox Setting="{x:Bind}" Mode="Ac"
+                                       PinnedWidth="{x:Bind PowerColumnWidth(HasBattery), Mode=OneWay}"/>
+            </StackPanel>
+            <StackPanel Spacing="4"
+                        Visibility="{x:Bind HasBattery, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Text="{x:Bind OnBatteryText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
+                <local:SettingComboBox Setting="{x:Bind}" Mode="Dc"
+                                       PinnedWidth="{x:Bind PowerColumnWidth(HasBattery), Mode=OneWay}"/>
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PowerNumericSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+        <StackPanel Orientation="Horizontal" Spacing="12">
+            <StackPanel Spacing="4">
+                <TextBlock Text="{x:Bind PluggedInText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"
+                           Visibility="{x:Bind HasBattery, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                <local:SettingNumberBox Setting="{x:Bind}" Mode="Ac"/>
+            </StackPanel>
+            <StackPanel Spacing="4"
+                        Visibility="{x:Bind HasBattery, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Text="{x:Bind OnBatteryText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
+                <local:SettingNumberBox Setting="{x:Bind}" Mode="Dc"/>
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ActionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+        <!-- The ONE input template with no outcome overlay, by design: an action button runs a task,
+             it does not display a detected state, so there is nothing for detection to fail to place.
+             CardTemplateOutcomeCoverageTests exempts this template by name. -->
+        <Button
+            Content="{x:Bind ActionButtonText}"
+            Command="{x:Bind RunActionCommand}"
+            Visibility="{x:Bind ShowActionButton, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+            AutomationProperties.Name="{x:Bind A11yName(ActionButtonText), Mode=OneWay}"/>
+    </DataTemplate>
+
+    <DataTemplate x:Key="TextBoxSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+        <local:SettingTextBox Setting="{x:Bind}"/>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ListSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+        <Button
+            Content="{x:Bind ListAddLabel, Mode=OneWay}"
+            Click="{x:Bind AddRow}"/>
+    </DataTemplate>
+
+    <DataTemplate x:Key="CheckListSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+        <ItemsControl ItemsSource="{x:Bind CheckItems}" IsTabStop="False">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="commonViewModels:CheckListItemViewModel">
+                    <CheckBox Content="{x:Bind Key}" IsChecked="{x:Bind IsChecked, Mode=TwoWay}"/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </DataTemplate>
+
+    <DataTemplate x:Key="TileSelectionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+        <local:SettingTileSelection Setting="{x:Bind}" Part="Tiles"/>
+    </DataTemplate>
+
+    <selectors:SettingTemplateSelector
+        x:Key="SettingTemplateSelector"
+        ToggleTemplate="{StaticResource ToggleSettingTemplate}"
+        CheckBoxTemplate="{StaticResource CheckBoxSettingTemplate}"
+        SelectionTemplate="{StaticResource SelectionSettingTemplate}"
+        NumericTemplate="{StaticResource NumericSettingTemplate}"
+        ActionTemplate="{StaticResource ActionSettingTemplate}"
+        TextBoxTemplate="{StaticResource TextBoxSettingTemplate}"
+        ListTemplate="{StaticResource ListSettingTemplate}"
+        CheckListTemplate="{StaticResource CheckListSettingTemplate}"
+        TileSelectionTemplate="{StaticResource TileSelectionSettingTemplate}"
+        PowerSelectionTemplate="{StaticResource PowerSelectionSettingTemplate}"
+        PowerNumericTemplate="{StaticResource PowerNumericSettingTemplate}"/>
+</ResourceDictionary>

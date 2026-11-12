@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Moq;
 using Winhance.Core.Features.WimUtil.Interfaces;
 using Winhance.Core.Features.WimUtil.Models;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -31,7 +32,6 @@ public class WimUtilViewModelTests : IDisposable
     private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
     private readonly Mock<IFilePickerService> _mockFilePickerService = new();
-    private readonly Mock<IResourceService> _mockResourceService = new();
 
     private readonly Mock<IAnswerFileValidator> _mockAnswerFileValidator = new();
     private readonly Mock<IAutounattendReader> _mockAutounattendReader = new();
@@ -55,6 +55,10 @@ public class WimUtilViewModelTests : IDisposable
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
             .Returns((string key, object[] _) => key);
+
+        _mockLocalizationService
+            .Setup(l => l.GetString("WIMUtil_Step_Header", It.IsAny<object[]>()))
+            .Returns((string _, object[] args) => $"{args[0]}. {args[1]}");
 
         _mockLocalizationService.MirrorTryGetString();
 
@@ -99,7 +103,6 @@ public class WimUtilViewModelTests : IDisposable
             _mockProcessExecutor.Object,
             _mockFileSystemService.Object,
             _mockFilePickerService.Object,
-            _mockResourceService.Object,
             _mockAnswerFileValidator.Object,
             _mockAutounattendReader.Object,
             _mockApplicationModeService.Object,
@@ -109,7 +112,8 @@ public class WimUtilViewModelTests : IDisposable
             Mock.Of<ITargetWindowsService>(),
             Mock.Of<IWindowsUpdateListService>(),
             _mockUpdateStager.Object,
-            _mockOfflineServicingService.Object);
+            _mockOfflineServicingService.Object,
+            Mock.Of<IUserPreferencesService>());
     }
 
     public void Dispose()
@@ -132,7 +136,7 @@ public class WimUtilViewModelTests : IDisposable
     [Fact]
     public void Constructor_PropagatesStep1WorkingDirectoryToAllSubVMs()
     {
-        // Step1 sets WorkingDirectory in its constructor to TempPath\WinhanceWIM.
+        // Step1 sets WorkingDirectory in its constructor.
         // WimUtilViewModel must propagate this initial value to all sub-VMs,
         // because PropertyChanged subscriptions aren't active during construction.
         var expected = _sut.Step1.WorkingDirectory;
@@ -152,7 +156,6 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step2State.Should().NotBeNull();
         _sut.Step3State.Should().NotBeNull();
         _sut.Step4State.Should().NotBeNull();
-        _sut.Step5State.Should().NotBeNull();
     }
 
     [Fact]
@@ -164,7 +167,7 @@ public class WimUtilViewModelTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_Step2Through5_AreNotExpandedOrAvailable()
+    public void Constructor_Step2Through4_AreNotExpandedOrAvailable()
     {
         _sut.Step2State.IsExpanded.Should().BeFalse();
         _sut.Step2State.IsAvailable.Should().BeFalse();
@@ -174,16 +177,182 @@ public class WimUtilViewModelTests : IDisposable
 
         _sut.Step4State.IsExpanded.Should().BeFalse();
         _sut.Step4State.IsAvailable.Should().BeFalse();
-
-        _sut.Step5State.IsExpanded.Should().BeFalse();
-        _sut.Step5State.IsAvailable.Should().BeFalse();
     }
 
     [Fact]
-    public void Constructor_Step4AndStep5States_CarryTheirStepNumbers()
+    public void Constructor_StepStates_CarryTheirStepNumbers()
     {
+        _sut.Step1State.StepNumber.Should().Be(1);
+        _sut.Step2State.StepNumber.Should().Be(2);
+        _sut.Step3State.StepNumber.Should().Be(3);
         _sut.Step4State.StepNumber.Should().Be(4);
-        _sut.Step5State.StepNumber.Should().Be(5);
+    }
+
+    [Fact]
+    public void Constructor_StepStates_CarryTheirIcons()
+    {
+        _sut.Step1State.Glyph.Should().Be("\uE958");
+        _sut.Step2State.Icon.Should().Be(FluentIcons.Common.Icon.WrenchScrewdriver);
+        _sut.Step3State.Icon.Should().Be(FluentIcons.Common.Icon.Options);
+        _sut.Step4State.Icon.Should().Be(FluentIcons.Common.Icon.Rocket);
+    }
+
+    [Fact]
+    public void CreatingMedia_LocksSteps2And3_AndUnlocksThemAfterwards()
+    {
+        _sut.Step1.IsExtractionComplete = true;
+        _sut.Step2State.IsAvailable.Should().BeTrue();
+        _sut.Step3State.IsAvailable.Should().BeTrue();
+
+        _sut.Step5.IsCreatingMedia = true;
+
+        _sut.Step2State.IsAvailable.Should().BeFalse();
+        _sut.Step3State.IsAvailable.Should().BeFalse();
+        var expandedBefore = _sut.Step2State.IsExpanded;
+        _sut.NavigateToStepCommand.Execute("2");
+        _sut.Step2State.IsExpanded.Should().Be(expandedBefore);
+
+        _sut.Step5.IsCreatingMedia = false;
+
+        _sut.Step2State.IsAvailable.Should().BeTrue();
+        _sut.Step3State.IsAvailable.Should().BeTrue();
+    }
+
+    [Fact]
+    public void StepHeaders_KeepTheNumberOutOfTheTitle()
+    {
+        _sut.OnNavigatedTo();
+
+        _sut.Step1State.Title.Should().Be("WIMUtil_Step1_Title");
+        _sut.Step2State.Title.Should().Be("WIMUtil_Step2_Title");
+        _sut.Step3State.Title.Should().Be("WIMUtil_Step3_Title");
+        _sut.Step4State.Title.Should().Be("WIMUtil_Step4_Title");
+        _sut.Step3State.AccessibleName.Should().Be("3. WIMUtil_Step3_Title");
+    }
+
+    [Fact]
+    public void Steps_AreTheFourStatesInOrder_AndOnlyTheLastHasNoNextStep()
+    {
+        _sut.Steps.Should().Equal(_sut.Step1State, _sut.Step2State, _sut.Step3State, _sut.Step4State);
+        _sut.Steps.Select(s => s.HasNextStep).Should().Equal(true, true, true, false);
+    }
+
+    [Fact]
+    public void SetCurrentStep_MarksExactlyOneStep_AndStartsOnStep1()
+    {
+        _sut.Steps.Select(s => s.IsCurrent).Should().Equal(true, false, false, false);
+
+        _sut.SetCurrentStep(3);
+
+        _sut.Steps.Select(s => s.IsCurrent).Should().Equal(false, false, true, false);
+    }
+
+    [Fact]
+    public void ShowStep_ExpandsAnAvailableStep_AndMakesItCurrent()
+    {
+        _sut.Step1.IsExtractionComplete = true;
+        _sut.Step3State.IsExpanded = false;
+
+        _sut.ShowStep(3);
+
+        _sut.Step3State.IsExpanded.Should().BeTrue();
+        _sut.Step3State.IsCurrent.Should().BeTrue();
+        _sut.Step1State.IsCurrent.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ShowStep_LeavesALockedStepShut()
+    {
+        _sut.Step3State.IsAvailable.Should().BeFalse();
+
+        _sut.ShowStep(3).Should().BeFalse();
+
+        _sut.Step3State.IsExpanded.Should().BeFalse();
+        _sut.Step1State.IsCurrent.Should().BeTrue();
+    }
+
+    [Fact]
+    public void StepDoneState_FollowsTheStepsCompletion()
+    {
+        _sut.Steps.Select(s => s.IsComplete).Should().AllBeEquivalentTo(false);
+
+        _sut.Step1.IsExtractionComplete = true;
+        _sut.Step2.Choice = AnswerFileChoice.Builder;
+
+        _sut.Step1State.IsComplete.Should().BeTrue();
+        _sut.Step2State.IsComplete.Should().BeTrue();
+        _sut.Step4State.IsComplete.Should().BeFalse();
+    }
+
+    [Fact]
+    public void StepDoneState_LockedStepsShowNoTick_EvenWithAChoiceMade()
+    {
+        _sut.Step2.Choice = AnswerFileChoice.Builder;
+        _sut.Step4.AddUpdate = true;
+
+        _sut.Step2State.IsComplete.Should().BeFalse();
+        _sut.Step3State.IsComplete.Should().BeFalse();
+
+        _sut.Step1.IsExtractionComplete = true;
+
+        _sut.Step2State.IsComplete.Should().BeTrue();
+        _sut.Step3State.IsComplete.Should().BeTrue();
+    }
+
+    [Fact]
+    public void NavigateToStepCommand_OpeningAStep_MakesItCurrent()
+    {
+        _sut.Step1.IsExtractionComplete = true;
+        _sut.Step4State.IsExpanded = false;
+
+        _sut.NavigateToStepCommand.Execute("4");
+
+        _sut.Steps.Select(s => s.IsCurrent).Should().Equal(false, false, false, true);
+
+        _sut.NavigateToStepCommand.Execute("4");
+
+        _sut.Step4State.IsCurrent.Should().BeTrue();
+    }
+
+    [Fact]
+    public void UsbDestination_Step4HeaderSaysWriteToUsb()
+    {
+        _sut.Step1.IsExtractionComplete = true;
+        _sut.Step4State.StatusText.Should().Be("WIMUtil_Status_ReadyToCreateIso");
+
+        _sut.Step5.Destination = WimOutputDestination.Usb;
+
+        _sut.Step4State.Title.Should().Be("WIMUtil_ButtonWriteUsb");
+        _sut.Step4State.Icon.Should().Be(FluentIcons.Common.Icon.UsbStick);
+        _sut.Step4State.StatusText.Should().Be("WIMUtil_Label_NoUsbSelected");
+
+        _sut.Step5.SelectedUsbTarget = new RemovableDrive(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false, HasRemovableMedia: true);
+
+        _sut.Step4State.StatusText.Should().Be("WIMUtil_Status_ReadyToWriteUsb");
+
+        _sut.Step5.IsIsoCreated = true;
+
+        _sut.Step4State.StatusText.Should().Be("WIMUtil_Desc_UsbWriteSuccess");
+
+        _sut.Step5.Destination = WimOutputDestination.Iso;
+
+        _sut.Step4State.Title.Should().Be("WIMUtil_Step4_Title");
+        _sut.Step4State.Icon.Should().Be(FluentIcons.Common.Icon.Rocket);
+        _sut.Step4State.StatusText.Should().Be("WIMUtil_Status_IsoCreated");
+    }
+
+    [Fact]
+    public void WriteToUsb_IsDisabledUntilADriveIsPicked()
+    {
+        _sut.CreateMediaCommand.CanExecute(null).Should().BeTrue();
+
+        _sut.Step5.Destination = WimOutputDestination.Usb;
+
+        _sut.CreateMediaCommand.CanExecute(null).Should().BeFalse();
+
+        _sut.Step5.SelectedUsbTarget = new RemovableDrive(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false, HasRemovableMedia: true);
+
+        _sut.CreateMediaCommand.CanExecute(null).Should().BeTrue();
     }
 
     [Fact]
@@ -267,21 +436,24 @@ public class WimUtilViewModelTests : IDisposable
     }
 
     [Fact]
-    public void GenerateWinhanceXmlCommand_ForwardsToStep2()
+    public void ShowBuildDetailsCommand_ForwardsToStep5()
     {
-        _sut.GenerateWinhanceXmlCommand.Should().BeSameAs(_sut.Step2.GenerateWinhanceXmlCommand);
+        _sut.ShowBuildDetailsCommand.Should().BeSameAs(_sut.Step5.ShowBuildDetailsCommand);
+    }
+
+    [Fact]
+    public void DeleteWorkingFolderAfterBuild_ReadsAndWritesStep5()
+    {
+        _sut.DeleteWorkingFolderAfterBuild = true;
+
+        _sut.Step5.DeleteWorkingFolderAfterBuild.Should().BeTrue();
+        _sut.BuildCards.Should().BeSameAs(_sut.Step5.BuildCards);
     }
 
     [Fact]
     public void CreateMediaCommand_ForwardsToStep5()
     {
         _sut.CreateMediaCommand.Should().BeSameAs(_sut.Step5.CreateMediaCommand);
-    }
-
-    [Fact]
-    public void AddWindowsUpdateCard_ForwardsToStep4()
-    {
-        _sut.AddWindowsUpdateCard.Should().BeSameAs(_sut.Step4.AddWindowsUpdateCard);
     }
 
     [Fact]
@@ -320,6 +492,86 @@ public class WimUtilViewModelTests : IDisposable
         _mockApplicationModeService.Raise(m => m.ModeChanged += null, this, EventArgs.Empty);
 
         raised.Should().Contain(nameof(WimUtilViewModel.IsAutounattendSession));
+    }
+
+    private void ArrangeAutounattendSession()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _mockApplicationModeService.Setup(m => m.CurrentBuilderTarget).Returns(BuilderTarget.Autounattend);
+    }
+
+    [Fact]
+    public void ModeTags_FollowTheServicingChoice()
+    {
+        _sut.ModeTagText.Should().Be("WIMUtil_Tag_DuringSetup");
+
+        _sut.SelectBuiltIntoImage();
+
+        _sut.ModeTagText.Should().Be("WIMUtil_Tag_InImage");
+        _sut.InImageTagText.Should().Be("WIMUtil_Tag_InImage");
+        _sut.DuringSetupTagText.Should().Be("WIMUtil_Tag_DuringSetup");
+
+        _sut.SelectDuringSetup();
+
+        _sut.ModeTagText.Should().Be("WIMUtil_Tag_DuringSetup");
+    }
+
+    [Fact]
+    public void WithoutASession_NoAnswerFileIsChosenAndStepThreeShowsNothingForIt()
+    {
+        _sut.Step2.Choice.Should().Be(AnswerFileChoice.None);
+        _sut.ShowsSummaryCards.Should().BeFalse();
+        _sut.ShowsAnswerFileCard.Should().BeFalse();
+    }
+
+    [Fact]
+    public void InASession_TheBuilderIsChosenAndStepThreeShowsTheSummaryCardsAndTheAnswerFileCard()
+    {
+        ArrangeAutounattendSession();
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, this, EventArgs.Empty);
+
+        _sut.Step2.Choice.Should().Be(AnswerFileChoice.Builder);
+        _sut.ShowsSummaryCards.Should().BeTrue();
+        _sut.ShowsAnswerFileCard.Should().BeTrue();
+    }
+
+    [Fact]
+    public void WithTheUsersOwnFile_StepThreeNamesItAndHidesTheSummaryCards()
+    {
+        var file = Path.Combine(Path.GetTempPath(), "mine.xml");
+        _sut.Step2.SelectedXmlPath = file;
+        _sut.Step2.Choice = AnswerFileChoice.OwnXml;
+
+        _sut.ShowsSummaryCards.Should().BeFalse();
+        _sut.ShowsAnswerFileCard.Should().BeTrue();
+        _sut.AnswerFileCardTitle.Should().Be("mine.xml");
+        _sut.AnswerFileCardDescription.Should().Be("WIMUtil_Step3_AnswerFile_OwnFile");
+    }
+
+    [Fact]
+    public void TheCleanupCard_AppearsOnlyWhenBuiltIntoTheImage()
+    {
+        _sut.ShowsCleanupCard.Should().BeFalse();
+
+        _sut.SelectBuiltIntoImage();
+        _sut.ShowsCleanupCard.Should().BeTrue();
+
+        _sut.SelectDuringSetup();
+        _sut.ShowsCleanupCard.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CleanupOptions_AreNoneDuringSetupAndTheTickedBoxesInTheImage()
+    {
+        _sut.CleanupOptions.Should().Be(ImageCleanupOptions.None);
+
+        _sut.SelectBuiltIntoImage();
+        _sut.CleanupOptions.Should().Be(new ImageCleanupOptions(true, true, true, true, true));
+
+        _sut.CleanupResetBase = false;
+        _sut.CleanupCrashReports = false;
+
+        _sut.CleanupOptions.Should().Be(new ImageCleanupOptions(false, true, true, true, false));
     }
 
     [Fact]
@@ -368,113 +620,78 @@ public class WimUtilViewModelTests : IDisposable
     }
 
     [Fact]
-    public void RemovingEditions_LocksTheStepsThatReadTheImageUntilItEnds()
+    public void Step3Header_SaysSoWhenNothingWasAdded()
     {
-        _mockWimImageService
-            .Setup(w => w.DetectAllImageFormatsAsync(It.IsAny<string>()))
-            .ReturnsAsync(new ImageDetectionResult());
         _sut.Step1.IsExtractionComplete = true;
-        _sut.Step4State.IsExpanded = false;
-        _sut.Step5State.IsExpanded = false;
 
-        _sut.Step2.IsRemovingEditions = true;
-
-        _sut.Step2State.IsAvailable.Should().BeFalse();
-        _sut.Step3State.IsAvailable.Should().BeFalse();
-        _sut.Step4State.IsAvailable.Should().BeFalse();
-        _sut.Step5State.IsAvailable.Should().BeFalse();
-        _sut.Step4State.StatusText.Should().Be("WIMUtil_Status_RemovingEditions");
-        _sut.Step5State.StatusText.Should().Be("WIMUtil_Status_RemovingEditions");
-        _sut.NavigateToStepCommand.Execute("4");
-        _sut.Step4State.IsExpanded.Should().BeFalse();
-        _sut.NavigateToStepCommand.Execute("5");
-        _sut.Step5State.IsExpanded.Should().BeFalse();
-
-        _sut.Step2.IsRemovingEditions = false;
-
-        _sut.Step2State.IsAvailable.Should().BeTrue();
         _sut.Step3State.IsAvailable.Should().BeTrue();
-        _sut.Step4State.IsAvailable.Should().BeTrue();
-        _sut.Step5State.IsAvailable.Should().BeTrue();
+        _sut.Step3State.IsComplete.Should().BeFalse();
+        _sut.Step3State.StatusText.Should().Be("WIMUtil_Status_NoChangesAdded");
     }
 
     [Fact]
-    public void Step4Header_SaysSoWhenNoUpdateWasAdded()
+    public void Step3Header_ShowsUpdateAddedOnceTheUpdateIsChosen()
     {
         _sut.Step1.IsExtractionComplete = true;
 
-        _sut.Step4State.IsAvailable.Should().BeTrue();
-        _sut.Step4State.StatusText.Should().Be("WIMUtil_Status_NoUpdateAdded");
+        _sut.Step4.AddUpdate = true;
+
+        _sut.Step3State.IsComplete.Should().BeTrue();
+        _sut.Step3State.StatusText.Should().Be("WIMUtil_Status_UpdateAdded");
     }
 
     [Fact]
-    public void Step4Header_ShowsUpdateAddedOnceTheUpdateIsStaged()
+    public void Step3Header_JoinsDriversAndUpdate()
     {
         _sut.Step1.IsExtractionComplete = true;
 
-        _sut.Step4.IsUpdateAdded = true;
+        _sut.Step3.AddSystemDrivers = true;
+        _sut.Step4.AddUpdate = true;
 
-        _sut.Step4State.IsComplete.Should().BeTrue();
-        _sut.Step4State.StatusText.Should().Be("WIMUtil_Status_UpdateAdded");
+        _sut.Step3State.IsComplete.Should().BeTrue();
+        _sut.Step3State.StatusText.Should().Contain("WIMUtil_Status_UpdateAdded").And.Contain(", ");
     }
 
     [Fact]
-    public void RemovingEditions_LocksStep1AndItsImageActionsUntilItEnds()
-    {
-        _mockWimImageService
-            .Setup(w => w.DetectAllImageFormatsAsync(It.IsAny<string>()))
-            .ReturnsAsync(new ImageDetectionResult
-            {
-                WimInfo = new ImageFormatInfo { Format = ImageFormat.Wim, FileSizeBytes = 4_000_000_000L }
-            });
-        _sut.Step1.IsExtractionComplete = true;
-        _sut.ConvertImageCard.IsEnabled.Should().BeTrue();
-
-        _sut.Step2.IsRemovingEditions = true;
-
-        _sut.Step1State.IsAvailable.Should().BeFalse();
-        _sut.Step1State.StatusText.Should().Be("WIMUtil_Status_RemovingEditions");
-        _sut.ConvertImageCard.IsEnabled.Should().BeFalse();
-        _sut.NavigateToStepCommand.Execute("1");
-        _sut.Step1State.IsExpanded.Should().BeTrue();
-
-        _sut.Step2.IsRemovingEditions = false;
-
-        _sut.Step1State.IsAvailable.Should().BeTrue();
-        _sut.ConvertImageCard.IsEnabled.Should().BeTrue();
-    }
-
-    [Fact]
-    public void RemovingEditions_WhenItEnds_ReadsTheImageAgainForTheConvertCard()
+    public void CreatingMedia_WhenItEnds_ReadsTheImageAgainForTheConvertCard()
     {
         _mockWimImageService
             .Setup(w => w.DetectAllImageFormatsAsync(It.IsAny<string>()))
             .ReturnsAsync(new ImageDetectionResult());
-        _sut.Step2.IsRemovingEditions = true;
+        _sut.Step5.IsCreatingMedia = true;
         _mockWimImageService.Invocations.Clear();
 
-        _sut.Step2.IsRemovingEditions = false;
+        _sut.Step5.IsCreatingMedia = false;
 
         _mockWimImageService.Verify(w => w.DetectAllImageFormatsAsync(It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
-    public void Step2Header_ShowsTheStep2StatusOnceAnXmlIsAdded()
+    public void Step2Header_ShowsTheStep2StatusOnceAnXmlIsChosen()
     {
         ArrangeXmlAdded();
 
-        _sut.Step2State.StatusText.Should().Be("WIMUtil_Status_XmlGenSuccess");
+        _sut.Step2State.StatusText.Should().Be("WIMUtil_Status_XmlSelectSuccess");
     }
 
     [Fact]
     public void Step2Header_WithoutAnXml_SaysSo()
     {
         _sut.Step1.IsExtractionComplete = true;
-        _sut.Step2.XmlStatus = "WIMUtil_Status_XmlGenSuccess";
 
-        _sut.Step2.IsXmlAdded = false;
-
+        _sut.Step2State.IsComplete.Should().BeFalse();
         _sut.Step2State.StatusText.Should().Be("WIMUtil_Status_NoXmlAdded");
+    }
+
+    [Fact]
+    public void Step2Header_NamesTheWinhanceAnswerFile()
+    {
+        _sut.Step1.IsExtractionComplete = true;
+
+        _sut.Step2.Choice = AnswerFileChoice.Builder;
+
+        _sut.Step2State.IsComplete.Should().BeTrue();
+        _sut.Step2State.StatusText.Should().Be("WIMUtil_Status_AnswerFileBuilder");
     }
 
     [Fact]
@@ -494,7 +711,7 @@ public class WimUtilViewModelTests : IDisposable
 
         _sut.AnswerFileCheck.Publish("C:\\Downloads\\broken.xml", new AnswerFileReport([ErrorFinding()]));
 
-        _sut.Step2State.StatusText.Should().Be("WIMUtil_Status_XmlGenSuccess");
+        _sut.Step2State.StatusText.Should().Be("WIMUtil_Status_XmlSelectSuccess");
         _sut.AnswerFileBannerOpen.Should().BeTrue();
         _sut.AnswerFileBannerTitle.Should().Be("WIMUtil_AnswerFile_Verdict_WillFail");
     }
@@ -507,14 +724,14 @@ public class WimUtilViewModelTests : IDisposable
 
         _sut.AnswerFileCheck.Publish(null, null);
 
-        _sut.Step2State.StatusText.Should().Be("WIMUtil_Status_XmlGenSuccess");
+        _sut.Step2State.StatusText.Should().Be("WIMUtil_Status_XmlSelectSuccess");
     }
 
     private void ArrangeXmlAdded()
     {
         _sut.Step1.IsExtractionComplete = true;
-        _sut.Step2.IsXmlAdded = true;
-        _sut.Step2.XmlStatus = "WIMUtil_Status_XmlGenSuccess";
+        _sut.Step2.Choice = AnswerFileChoice.OwnXml;
+        _sut.Step2.XmlStatus = "WIMUtil_Status_XmlSelectSuccess";
     }
 
     private static AnswerFileFinding ErrorFinding() =>
@@ -586,136 +803,83 @@ public class WimUtilViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task AStepCheck_LandsOnTheBanner()
-    {
-        ArrangeDriverRun();
-        _mockAnswerFileValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AnswerFileReport([ErrorFinding()]));
-
-        await _sut.Step3.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
-
-        _sut.AnswerFileBannerOpen.Should().BeTrue();
-        _sut.AnswerFileBannerTitle.Should().Be("WIMUtil_AnswerFile_Verdict_WillFail");
-    }
-
-    [Fact]
-    public async Task AStepCheck_AlsoMovesTheStep2Header()
-    {
-        ArrangeDriverRun();
-        ArrangeXmlAdded();
-        _sut.AnswerFileCheck.Publish(MediaCopy, new AnswerFileReport([WarningFinding()]));
-        _sut.Step2State.StatusText.Should().Be("WIMUtil_AnswerFile_Verdict_MayFail");
-        _mockAnswerFileValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AnswerFileReport([ErrorFinding()]));
-
-        await _sut.Step3.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
-
-        _sut.Step2State.StatusText.Should().Be("WIMUtil_AnswerFile_Verdict_WillFail");
-        _sut.AnswerFileBannerTitle.Should().Be("WIMUtil_AnswerFile_Verdict_WillFail");
-    }
-
-    private void ArrangeDriverRun()
-    {
-        _mockTaskProgressService.Setup(t => t.StartTask(It.IsAny<string>(), It.IsAny<bool>())).Returns(new CancellationTokenSource());
-        _mockTaskProgressService.Setup(t => t.CurrentTaskCancellationSource).Returns(new CancellationTokenSource());
-        _mockTaskProgressService.Setup(t => t.CreateDetailedProgress()).Returns(new Progress<TaskProgressDetail>());
-        _mockDialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>())).ReturnsAsync(new ConfirmationResponse { Confirmed = true });
-        _mockWimCustomizationService
-            .Setup(c => c.AddDriversAsync(It.IsAny<string>(), null, It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-        _mockFileSystemService.Setup(f => f.FileExists(It.Is<string>(x => x.EndsWith("autounattend.xml", StringComparison.Ordinal)))).Returns(true);
-    }
-
-    private ServicingChoice BuiltIntoImage => _sut.ServicingChoices.Single(c => c.BuiltIntoImage);
-
-    [Fact]
-    public void SelectedServicing_ForwardsToImageFormatAndRaisesIsBuiltIntoImage()
+    public void SelectBuiltIntoImage_ForwardsToImageFormatAndRaisesTheModeProperties()
     {
         var raised = new List<string?>();
         _sut.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
 
-        _sut.SelectedServicing = BuiltIntoImage;
+        _sut.SelectBuiltIntoImage();
 
         _sut.ImageFormat.IsBuiltIntoImage.Should().BeTrue();
         _sut.IsBuiltIntoImage.Should().BeTrue();
+        _sut.IsDuringSetup.Should().BeFalse();
         raised.Should().Contain(nameof(WimUtilViewModel.IsBuiltIntoImage))
-            .And.Contain(nameof(WimUtilViewModel.ShowConvertImageCard))
-            .And.Contain(nameof(WimUtilViewModel.ServicingCardDescription));
-        _sut.ServicingCardDescription.Should().Be("WIMUtil_Servicing_BuiltIn_Detail");
+            .And.Contain(nameof(WimUtilViewModel.IsDuringSetup))
+;
     }
 
     [Fact]
-    public void ImageMode_HidesTheConvertHeaderWithItsCard()
+    public void SelectDuringSetup_GoesBackFromBuiltIntoImage()
     {
-        _sut.ShowOptionalConvertText.Should().BeTrue();
-        var raised = new List<string?>();
-        _sut.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+        _sut.SelectBuiltIntoImage();
 
-        _sut.SelectedServicing = BuiltIntoImage;
+        _sut.SelectDuringSetup();
 
-        _sut.ShowConvertImageCard.Should().BeFalse();
-        _sut.ShowOptionalConvertText.Should().BeFalse();
-        raised.Should().Contain(nameof(WimUtilViewModel.ShowOptionalConvertText));
+        _sut.IsBuiltIntoImage.Should().BeFalse();
+        _sut.IsDuringSetup.Should().BeTrue();
     }
 
     [Fact]
-    public void ImageMode_PushesTheFlagToSteps2To5()
+    public void SelectingAMode_WhileTheChoiceIsLocked_ChangesNothing()
     {
-        _sut.SelectedServicing = BuiltIntoImage;
+        _sut.Step5.IsCreatingMedia = true;
 
-        _sut.Step2.IsBuiltIntoImage.Should().BeTrue();
+        _sut.SelectBuiltIntoImage();
+
+        _sut.IsBuiltIntoImage.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ImageMode_ShowsTheEditionCardOnlyBuiltIn()
+    {
+        _sut.ImageFormat.ShowConversionCard = true;
+        _sut.ShowEditionCard.Should().BeFalse();
+
+        _sut.SelectBuiltIntoImage();
+
+        _sut.ShowEditionCard.Should().BeTrue();
+        _sut.EditionCardDescription.Should().Be("WIMUtil_Card_Edition_Description");
+    }
+
+    [Fact]
+    public void ImageMode_PushesTheFlagToSteps2To5AndTheSession()
+    {
+        _session.BuiltIntoImage.Should().BeFalse();
+
+        _sut.SelectBuiltIntoImage();
+
         _sut.Step3.IsBuiltIntoImage.Should().BeTrue();
         _sut.Step4.IsBuiltIntoImage.Should().BeTrue();
         _sut.Step5.IsBuiltIntoImage.Should().BeTrue();
+        _session.BuiltIntoImage.Should().BeTrue();
 
-        _sut.SelectedServicing = _sut.ServicingChoices.Single(c => !c.BuiltIntoImage);
+        _sut.SelectDuringSetup();
 
         _sut.Step5.IsBuiltIntoImage.Should().BeFalse();
+        _session.BuiltIntoImage.Should().BeFalse();
     }
 
     [Fact]
-    public void ImageMode_TellsStep5WhenTheImageIsReady()
-    {
-        _sut.SelectedServicing = BuiltIntoImage;
-
-        _sut.ImageFormat.CurrentImageFormat = new ImageFormatInfo
-        {
-            Format = ImageFormat.Wim,
-            Editions = [new ImageEdition(1, "Windows 11 Pro", "Professional")],
-        };
-
-        _sut.Step5.IsReadyForServicing.Should().BeTrue();
-        _sut.EditionCardDescription.Should().Be("WIMUtil_Card_Edition_Description_Ready");
-    }
-
-    [Fact]
-    public void ImageMode_Step3AndStep4HeadersSayStep5BuildsThemIn()
+    public void ImageMode_Step3HeaderSaysTheImageBuildsThemIn()
     {
         _sut.Step1.IsExtractionComplete = true;
-        _sut.Step3.AreDriversAdded = true;
-        _sut.Step4.IsUpdateAdded = true;
+        _sut.Step3.AddSystemDrivers = true;
+        _sut.Step4.AddUpdate = true;
 
-        _sut.SelectedServicing = BuiltIntoImage;
+        _sut.SelectBuiltIntoImage();
 
-        _sut.Step3State.StatusText.Should().Be("WIMUtil_Status_DriversReadyForImage");
-        _sut.Step4State.StatusText.Should().Be("WIMUtil_Status_UpdateReadyForImage");
-    }
-
-    [Fact]
-    public void RemovingEditions_LocksTheServicingChoiceUntilItEnds()
-    {
-        _mockWimImageService
-            .Setup(w => w.DetectAllImageFormatsAsync(It.IsAny<string>()))
-            .ReturnsAsync(new ImageDetectionResult());
-        _sut.CanChangeServicing.Should().BeTrue();
-
-        _sut.Step2.IsRemovingEditions = true;
-        _sut.CanChangeServicing.Should().BeFalse();
-
-        _sut.Step2.IsRemovingEditions = false;
-        _sut.CanChangeServicing.Should().BeTrue();
+        _sut.Step3State.StatusText.Should().Contain("WIMUtil_Status_DriversReadyForImage")
+            .And.Contain("WIMUtil_Status_UpdateReadyForImage");
     }
 
     [Fact]
@@ -737,50 +901,6 @@ public class WimUtilViewModelTests : IDisposable
     }
 
     [Fact]
-    public void CreatingMedia_EndingDoesNotUnlockTheImageWhileEditionsAreBeingRemoved()
-    {
-        _sut.Step2.IsRemovingEditions = true;
-        _sut.Step5.IsCreatingMedia = true;
-
-        _sut.Step5.IsCreatingMedia = false;
-
-        _sut.ImageFormat.IsImageLocked.Should().BeTrue();
-    }
-
-    [Theory]
-    [InlineData(true, true, true)]
-    [InlineData(true, false, false)]
-    [InlineData(false, true, false)]
-    public void ShowServicingTimeNote_OnlyInImageModeWithSomethingStagedOnDisk(bool imageMode, bool staged, bool expected)
-    {
-        _mockOfflineServicingService.Setup(o => o.HasStagedItems(It.IsAny<string>())).Returns(staged);
-        _sut.SelectedServicing = _sut.ServicingChoices.Single(c => c.BuiltIntoImage == imageMode);
-
-        _sut.ShowServicingTimeNote.Should().Be(expected);
-    }
-
-    [Fact]
-    public void ShowServicingTimeNote_HeldFlagsWithNothingStaged_StaysHidden()
-    {
-        _mockOfflineServicingService.Setup(o => o.HasStagedItems(It.IsAny<string>())).Returns(false);
-        _sut.SelectedServicing = _sut.ServicingChoices.Single(c => c.BuiltIntoImage);
-        _sut.Step3.AreDriversAdded = true;
-        _sut.Step4.IsUpdateAdded = true;
-
-        _sut.ShowServicingTimeNote.Should().BeFalse();
-    }
-
-    [Fact]
-    public void ShowServicingTimeNote_ReopenedMediaAlreadyHoldingDrivers_Shows()
-    {
-        _mockOfflineServicingService.Setup(o => o.HasStagedItems(It.IsAny<string>())).Returns(true);
-        _sut.SelectedServicing = _sut.ServicingChoices.Single(c => c.BuiltIntoImage);
-
-        _sut.Step3.AreDriversAdded.Should().BeFalse();
-        _sut.ShowServicingTimeNote.Should().BeTrue();
-    }
-
-    [Fact]
     public void LanguageChanged_RaisesTheServicingWarningTexts()
     {
         var changed = new List<string?>();
@@ -790,11 +910,51 @@ public class WimUtilViewModelTests : IDisposable
 
         changed.Should().Contain(new[]
         {
-            nameof(_sut.HostDismWarningText),
             nameof(_sut.MountFolderWarningText),
             nameof(_sut.ShowUsbHardDrivesText),
             nameof(_sut.ShowUsbHardDrivesWarningText),
+            nameof(_sut.DuringSetupTitle),
+            nameof(_sut.BuiltIntoImageTitle),
+            nameof(_sut.YourImageHeadingText),
+            nameof(_sut.AnswerFileChoiceTitle),
+            nameof(_sut.AddSystemDriversText),
+            nameof(_sut.AddUpdateText),
+            nameof(_sut.FormatCardTitle),
         });
+    }
+
+    [Fact]
+    public void FormatCard_SaysWhichFormatTheImageIsAndHowBig()
+    {
+        _mockLocalizationService
+            .Setup(l => l.GetString("WIMUtil_Format_Current", It.IsAny<object[]>()))
+            .Returns((string _, object[] args) => $"{args[0]} ({args[1]})");
+        const long size = 4_294_967_296L;
+
+        _sut.ImageFormat.CurrentImageFormat = new ImageFormatInfo { Format = ImageFormat.Esd, FileSizeBytes = size };
+
+        _sut.FormatCardDescription.Should().Be(
+            $"ESD ({WimImageFormatViewModel.FormatFileSize(size)}) WIMUtil_Format_Description");
+    }
+
+    [Fact]
+    public void FormatCard_WithBothFormatsOnTheMedia_NamesNoCurrentFormat()
+    {
+        _sut.ImageFormat.CurrentImageFormat = new ImageFormatInfo { Format = ImageFormat.Wim, FileSizeBytes = 1_000L };
+        _sut.ImageFormat.BothFormatsExist = true;
+
+        _sut.FormatCardDescription.Should().Be("WIMUtil_Format_Description");
+    }
+
+    [Fact]
+    public void FormatCard_UpdatesWhenTheImageChanges()
+    {
+        var changed = new List<string?>();
+        _sut.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        _sut.ImageFormat.CurrentImageFormat = new ImageFormatInfo { Format = ImageFormat.Wim, FileSizeBytes = 1_000L };
+
+        changed.Should().Contain(nameof(_sut.FormatCardDescription));
     }
 
     [Theory]
@@ -804,18 +964,19 @@ public class WimUtilViewModelTests : IDisposable
     {
         const string workDir = "C:\\WorkDir";
         _sut.Step1.WorkingDirectory = workDir;
+        _mockWimCustomizationService.Setup(w => w.AreDriversOnMedia(workDir)).Returns(true);
+        _sut.Step3.PickUpMedia();
         _mockWimCustomizationService.Setup(w => w.AreDriversOnMedia(workDir)).Returns(driversStillOnMedia);
-        _sut.Step3.AreDriversAdded = true;
-        _sut.Step4.IsUpdateAdded = true;
+        _sut.Step4.AddUpdate = true;
         _sut.Step5.IsBuiltIntoImage = true;
-        _sut.Step5.IsReadyForServicing = true;
         _sut.Step5.OutputIsoPath = "D:\\Output\\test.iso";
         _mockTaskProgressService.Setup(t => t.CurrentTaskCancellationSource).Returns(new CancellationTokenSource());
         _mockTaskProgressService.Setup(t => t.CreateDetailedProgress()).Returns(new Progress<TaskProgressDetail>());
         _mockOfflineServicingService.Setup(o => o.HasStagedItems(workDir)).Returns(true);
         _mockOfflineServicingService
-            .Setup(o => o.ServiceAsync(workDir, It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Setup(o => o.ServiceAsync(It.Is<OfflineBuildRequest>(r => r.WorkingDirectory == workDir), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<IProgress<ServicingPhaseUpdate>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new OfflineServicingResult(drivers, ServicedItemOutcome.Added));
+        _mockOfflineServicingService.Setup(o => o.PhasesFor(It.IsAny<OfflineBuildRequest>())).Returns([ServicingPhase.Mount]);
         _mockUpdateStager.Setup(s => s.IsStaged(workDir)).Returns(false);
         _mockIsoService
             .Setup(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
@@ -827,7 +988,7 @@ public class WimUtilViewModelTests : IDisposable
 
         await _sut.CreateMediaCommand.ExecuteAsync(null);
 
-        _sut.Step3.AreDriversAdded.Should().Be(driversStillOnMedia);
-        _sut.Step4.IsUpdateAdded.Should().BeFalse();
+        _sut.Step3.HasDriverChoice.Should().Be(driversStillOnMedia);
+        _sut.Step4.AddUpdate.Should().BeFalse();
     }
 }

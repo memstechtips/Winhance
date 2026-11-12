@@ -17,16 +17,24 @@ public class WindowsAppUninstallServiceTests
     private readonly Mock<ILogService> _logService = new();
     private readonly Mock<IWindowsAppsService> _windowsAppsService = new();
     private readonly Mock<IBloatRemovalService> _bloatRemovalService = new();
+    private readonly Mock<IBackgroundTaskService> _backgroundTaskService = new();
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
     private readonly Mock<IMultiScriptProgressService> _multiScriptProgressService = new();
     private readonly Mock<IChangeHistoryService> _changeHistoryService = new();
     private readonly Mock<ISettingApplicationService> _settingApplicationService = new();
     private readonly Mock<IPendingRestartService> _pendingRestartService = new();
 
+    public WindowsAppUninstallServiceTests()
+    {
+        _backgroundTaskService.Setup(x => x.GetMode()).Returns(KeepRemovedMode.Scripts);
+        _backgroundTaskService.Setup(x => x.AddKeptAppsAsync(It.IsAny<IEnumerable<string>>())).ReturnsAsync(OperationResult.Succeeded());
+    }
+
     private WindowsAppUninstallService CreateSut() => new(
         _logService.Object,
         _windowsAppsService.Object,
         _bloatRemovalService.Object,
+        _backgroundTaskService.Object,
         _taskProgressService.Object,
         _multiScriptProgressService.Object,
         _changeHistoryService.Object,
@@ -63,7 +71,7 @@ public class WindowsAppUninstallServiceTests
             times);
 
     [Fact]
-    public async Task Removing_Game_Bar_turns_Game_DVR_off_once()
+    public async Task UninstallAppsAsync_RemovingGameBar_TurnsGameDvrOffOnce()
     {
         _settingApplicationService.Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
@@ -75,7 +83,7 @@ public class WindowsAppUninstallServiceTests
     }
 
     [Fact]
-    public async Task Removing_Widgets_raises_the_Explorer_restart_bar()
+    public async Task UninstallAppsAsync_RemovingWidgets_RaisesTheExplorerRestartBar()
     {
         BloatRemovalReturns(RemovalOutcome.Success);
 
@@ -86,7 +94,7 @@ public class WindowsAppUninstallServiceTests
     }
 
     [Fact]
-    public async Task Removing_Widgets_in_parallel_raises_the_Explorer_restart_bar()
+    public async Task UninstallAppsInParallelAsync_RemovingWidgets_RaisesTheExplorerRestartBar()
     {
         _multiScriptProgressService.Setup(x => x.StartMultiScriptTask(It.IsAny<string[]>())).Returns(new CancellationTokenSource());
         _multiScriptProgressService.Setup(x => x.CreateScriptProgress(It.IsAny<int>())).Returns(new Progress<TaskProgressDetail>());
@@ -100,7 +108,7 @@ public class WindowsAppUninstallServiceTests
     [Theory]
     [InlineData(RemovalOutcome.DeferredToScheduledTask)]
     [InlineData(RemovalOutcome.Failed)]
-    public async Task An_unfinished_Widgets_removal_raises_no_bar(RemovalOutcome outcome)
+    public async Task UninstallAppsAsync_UnfinishedWidgetsRemoval_RaisesNoBar(RemovalOutcome outcome)
     {
         BloatRemovalReturns(outcome);
 
@@ -110,7 +118,7 @@ public class WindowsAppUninstallServiceTests
     }
 
     [Fact]
-    public async Task Removing_other_apps_leaves_Game_DVR_alone()
+    public async Task UninstallAppsAsync_RemovingOtherApps_LeavesGameDvrAlone()
     {
         BloatRemovalReturns(RemovalOutcome.Success);
 
@@ -120,7 +128,7 @@ public class WindowsAppUninstallServiceTests
     }
 
     [Fact]
-    public async Task A_failed_Game_Bar_removal_leaves_Game_DVR_alone()
+    public async Task UninstallAppsAsync_FailedGameBarRemoval_LeavesGameDvrAlone()
     {
         BloatRemovalReturns(RemovalOutcome.Failed);
 
@@ -130,7 +138,7 @@ public class WindowsAppUninstallServiceTests
     }
 
     [Fact]
-    public async Task Removing_Game_Bar_on_its_own_card_turns_Game_DVR_off()
+    public async Task UninstallAppAsync_RemovingGameBarOnItsOwnCard_TurnsGameDvrOff()
     {
         _settingApplicationService.Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
@@ -143,7 +151,7 @@ public class WindowsAppUninstallServiceTests
     }
 
     [Fact]
-    public async Task Removing_Game_Bar_in_parallel_turns_Game_DVR_off()
+    public async Task UninstallAppsInParallelAsync_RemovingGameBar_TurnsGameDvrOff()
     {
         _settingApplicationService.Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
@@ -157,7 +165,7 @@ public class WindowsAppUninstallServiceTests
     }
 
     [Fact]
-    public async Task A_Game_DVR_failure_does_not_fail_the_removal()
+    public async Task UninstallAppsAsync_GameDvrFailure_DoesNotFailTheRemoval()
     {
         _settingApplicationService.Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ThrowsAsync(new InvalidOperationException("registry locked"));
@@ -454,7 +462,7 @@ public class WindowsAppUninstallServiceTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Edge_and_WebView2_together_run_one_script_and_log_both(bool parallel)
+    public async Task UninstallAppsAsync_EdgeAndWebView2Together_RunOneScriptAndLogBoth(bool parallel)
     {
         var edge = new ItemDefinition { Id = "windows-app-edge", Name = "Edge", Description = "", RemovalScript = () => "edge", RemovalScriptName = "EdgeRemoval" };
         var webView = new ItemDefinition { Id = "windows-app-edge-webview", Name = "WebView2", Description = "", RemovalScript = () => "full", RemovalScriptName = "EdgeRemoval", AlsoRemoves = ["windows-app-edge"] };
@@ -554,6 +562,38 @@ public class WindowsAppUninstallServiceTests
         await sut.UninstallAppsAsync(apps, saveRemovalScripts: true);
 
         _bloatRemovalService.Verify(x => x.PersistRemovalScriptsAsync(apps), Times.Once);
+        _bloatRemovalService.Verify(x => x.CleanupAllRemovalArtifactsAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task UninstallAppsAsync_SaveRemovalScripts_WinhanceMode_RecordsTheAppsAndWritesNoScripts()
+    {
+        _backgroundTaskService.Setup(x => x.GetMode()).Returns(KeepRemovedMode.Winhance);
+        var apps = new List<ItemDefinition>
+        {
+            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = ["Microsoft.App1"] }
+        };
+        BloatRemovalReturns(RemovalOutcome.Success);
+
+        await CreateSut().UninstallAppsAsync(apps, saveRemovalScripts: true);
+
+        _backgroundTaskService.Verify(x => x.AddKeptAppsAsync(It.Is<IEnumerable<string>>(ids => ids.Single() == "app1")), Times.Once);
+        _bloatRemovalService.Verify(x => x.PersistRemovalScriptsAsync(It.IsAny<List<ItemDefinition>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UninstallAppsAsync_DontSaveRemovalScripts_WinhanceMode_StopsKeepingThemWithoutTouchingScripts()
+    {
+        _backgroundTaskService.Setup(x => x.GetMode()).Returns(KeepRemovedMode.Winhance);
+        var apps = new List<ItemDefinition>
+        {
+            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = ["Microsoft.App1"] }
+        };
+        BloatRemovalReturns(RemovalOutcome.Success);
+
+        await CreateSut().UninstallAppsAsync(apps, saveRemovalScripts: false);
+
+        _backgroundTaskService.Verify(x => x.RemoveKeptApp("app1"), Times.Once);
         _bloatRemovalService.Verify(x => x.CleanupAllRemovalArtifactsAsync(), Times.Never);
     }
 
@@ -683,6 +723,36 @@ public class WindowsAppUninstallServiceTests
         result.Success.Should().BeTrue();
         result.Result.Should().Be(2);
         _multiScriptProgressService.Verify(x => x.CompleteMultiScriptTask(), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(false, false, "DONE: nothing to remove, none of the 2 apps were installed")]
+    [InlineData(true, false, "DONE: removed 1 of 2 apps, the rest were not installed")]
+    [InlineData(true, true, "DONE: removed 2 apps")]
+    public async Task UninstallAppsInParallelAsync_LogsOnlyTheAppsThatWereInstalled(bool firstInstalled, bool secondInstalled, string expected)
+    {
+        var apps = new List<ItemDefinition>
+        {
+            new() { Id = "app1", Name = "App1", Description = "Desc1", AppxPackageName = ["Microsoft.App1"], IsInstalled = firstInstalled },
+            new() { Id = "app2", Name = "App2", Description = "Desc2", AppxPackageName = ["Microsoft.App2"], IsInstalled = secondInstalled }
+        };
+        _multiScriptProgressService
+            .Setup(x => x.StartMultiScriptTask(It.IsAny<string[]>()))
+            .Returns(new CancellationTokenSource());
+        _multiScriptProgressService
+            .Setup(x => x.CreateScriptProgress(It.IsAny<int>()))
+            .Returns(new Progress<TaskProgressDetail>());
+        _bloatRemovalService
+            .Setup(x => x.ExecuteBloatRemovalAsync(
+                It.IsAny<List<ItemDefinition>>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RemovalOutcome.Success);
+
+        await CreateSut().UninstallAppsInParallelAsync(apps);
+
+        _logService.Invocations.Should().Contain(i => i.Arguments.Any(a => a as string == expected));
+        _logService.Invocations.Should().NotContain(i => i.Arguments.Any(a => (a as string ?? "").StartsWith("DONE: Successfully")));
     }
 
     [Fact]

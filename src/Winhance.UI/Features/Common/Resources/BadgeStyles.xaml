@@ -6,63 +6,63 @@
     xmlns:fluentIcons="using:FluentIcons.WinUI">
 
     <ResourceDictionary.ThemeDictionaries>
-
+        <!-- Pill colours alias WinUI's status pairs (Recommended = Success, Default = Neutral,
+             Custom = Caution, Preference = Attention, Danger = Critical), so they follow the
+             theme, the accent colour and High Contrast. Each theme repeats the aliases because a
+             StaticResource only re-resolves per theme dictionary. -->
         <ResourceDictionary x:Key="Dark">
-            <!-- Recommended: green -->
-            <SolidColorBrush x:Key="BadgeRecommendedBackground" Color="#223FB950"/>
-            <SolidColorBrush x:Key="BadgeRecommendedBorder"     Color="#403FB950"/>
-            <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF3FB950"/>
-
-            <!-- Default: subtle light grey -->
-            <SolidColorBrush x:Key="BadgeDefaultBackground" Color="#12FFFFFF"/>
-            <SolidColorBrush x:Key="BadgeDefaultBorder"     Color="#24FFFFFF"/>
-            <SolidColorBrush x:Key="BadgeDefaultForeground" Color="#99FFFFFF"/>
-
-            <!-- Custom: amber -->
-            <SolidColorBrush x:Key="BadgeCustomBackground" Color="#22F0A030"/>
-            <SolidColorBrush x:Key="BadgeCustomBorder"     Color="#40F0A030"/>
-            <SolidColorBrush x:Key="BadgeCustomForeground" Color="#FFF0A030"/>
-
-            <!-- Preference: blue -->
-            <SolidColorBrush x:Key="BadgePreferenceBackground" Color="#2280B3FF"/>
-            <SolidColorBrush x:Key="BadgePreferenceBorder"     Color="#4080B3FF"/>
-            <SolidColorBrush x:Key="BadgePreferenceForeground" Color="#FF80B3FF"/>
-
-            <!-- Danger: red -->
-            <SolidColorBrush x:Key="BadgeDangerBackground" Color="#22F25555"/>
-            <SolidColorBrush x:Key="BadgeDangerBorder"     Color="#40F25555"/>
-            <SolidColorBrush x:Key="BadgeDangerForeground" Color="#FFF25555"/>
-
+            <StaticResource x:Key="BadgeRecommendedBackground" ResourceKey="SystemFillColorSuccessBackgroundBrush"/>
+            <StaticResource x:Key="BadgeRecommendedBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeRecommendedForeground" ResourceKey="SystemFillColorSuccessBrush"/>
+            <StaticResource x:Key="BadgeDefaultBackground" ResourceKey="SystemFillColorNeutralBackgroundBrush"/>
+            <StaticResource x:Key="BadgeDefaultBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeDefaultForeground" ResourceKey="SystemFillColorNeutralBrush"/>
+            <StaticResource x:Key="BadgeCustomBackground" ResourceKey="SystemFillColorCautionBackgroundBrush"/>
+            <StaticResource x:Key="BadgeCustomBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeCustomForeground" ResourceKey="SystemFillColorCautionBrush"/>
+            <StaticResource x:Key="BadgePreferenceBackground" ResourceKey="SystemFillColorAttentionBackgroundBrush"/>
+            <StaticResource x:Key="BadgePreferenceBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgePreferenceForeground" ResourceKey="SystemFillColorAttentionBrush"/>
+            <StaticResource x:Key="BadgeDangerBackground" ResourceKey="SystemFillColorCriticalBackgroundBrush"/>
+            <StaticResource x:Key="BadgeDangerBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeDangerForeground" ResourceKey="SystemFillColorCriticalBrush"/>
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Light">
-            <!-- Recommended: darker green for legibility on white -->
-            <SolidColorBrush x:Key="BadgeRecommendedBackground" Color="#221A7F37"/>
-            <SolidColorBrush x:Key="BadgeRecommendedBorder"     Color="#401A7F37"/>
-            <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF1A7F37"/>
-
-            <!-- Default: dark on light -->
-            <SolidColorBrush x:Key="BadgeDefaultBackground" Color="#10000000"/>
-            <SolidColorBrush x:Key="BadgeDefaultBorder"     Color="#33000000"/>
-            <SolidColorBrush x:Key="BadgeDefaultForeground" Color="#99000000"/>
-
-            <!-- Custom: darker amber -->
-            <SolidColorBrush x:Key="BadgeCustomBackground" Color="#22B36800"/>
-            <SolidColorBrush x:Key="BadgeCustomBorder"     Color="#40B36800"/>
-            <SolidColorBrush x:Key="BadgeCustomForeground" Color="#FFB36800"/>
-
-            <!-- Preference: darker blue -->
-            <SolidColorBrush x:Key="BadgePreferenceBackground" Color="#221E5FBF"/>
-            <SolidColorBrush x:Key="BadgePreferenceBorder"     Color="#401E5FBF"/>
-            <SolidColorBrush x:Key="BadgePreferenceForeground" Color="#FF1E5FBF"/>
-
-            <!-- Danger: darker red for legibility on white -->
-            <SolidColorBrush x:Key="BadgeDangerBackground" Color="#22C42B1C"/>
-            <SolidColorBrush x:Key="BadgeDangerBorder"     Color="#40C42B1C"/>
-            <SolidColorBrush x:Key="BadgeDangerForeground" Color="#FFC42B1C"/>
-
+            <StaticResource x:Key="BadgeRecommendedBackground" ResourceKey="SystemFillColorSuccessBackgroundBrush"/>
+            <StaticResource x:Key="BadgeRecommendedBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeRecommendedForeground" ResourceKey="SystemFillColorSuccessBrush"/>
+            <StaticResource x:Key="BadgeDefaultBackground" ResourceKey="SystemFillColorNeutralBackgroundBrush"/>
+            <StaticResource x:Key="BadgeDefaultBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeDefaultForeground" ResourceKey="SystemFillColorNeutralBrush"/>
+            <StaticResource x:Key="BadgeCustomBackground" ResourceKey="SystemFillColorCautionBackgroundBrush"/>
+            <StaticResource x:Key="BadgeCustomBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeCustomForeground" ResourceKey="SystemFillColorCautionBrush"/>
+            <StaticResource x:Key="BadgePreferenceBackground" ResourceKey="SystemFillColorAttentionBackgroundBrush"/>
+            <StaticResource x:Key="BadgePreferenceBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgePreferenceForeground" ResourceKey="SystemFillColorAttentionBrush"/>
+            <StaticResource x:Key="BadgeDangerBackground" ResourceKey="SystemFillColorCriticalBackgroundBrush"/>
+            <StaticResource x:Key="BadgeDangerBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeDangerForeground" ResourceKey="SystemFillColorCriticalBrush"/>
         </ResourceDictionary>
 
+        <ResourceDictionary x:Key="HighContrast">
+            <StaticResource x:Key="BadgeRecommendedBackground" ResourceKey="SystemFillColorSuccessBackgroundBrush"/>
+            <StaticResource x:Key="BadgeRecommendedBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeRecommendedForeground" ResourceKey="SystemFillColorSuccessBrush"/>
+            <StaticResource x:Key="BadgeDefaultBackground" ResourceKey="SystemFillColorNeutralBackgroundBrush"/>
+            <StaticResource x:Key="BadgeDefaultBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeDefaultForeground" ResourceKey="SystemFillColorNeutralBrush"/>
+            <StaticResource x:Key="BadgeCustomBackground" ResourceKey="SystemFillColorCautionBackgroundBrush"/>
+            <StaticResource x:Key="BadgeCustomBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeCustomForeground" ResourceKey="SystemFillColorCautionBrush"/>
+            <StaticResource x:Key="BadgePreferenceBackground" ResourceKey="SystemFillColorAttentionBackgroundBrush"/>
+            <StaticResource x:Key="BadgePreferenceBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgePreferenceForeground" ResourceKey="SystemFillColorAttentionBrush"/>
+            <StaticResource x:Key="BadgeDangerBackground" ResourceKey="SystemFillColorCriticalBackgroundBrush"/>
+            <StaticResource x:Key="BadgeDangerBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeDangerForeground" ResourceKey="SystemFillColorCriticalBrush"/>
+        </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 
 
@@ -117,18 +117,16 @@
         <Setter Property="BorderBrush" Value="{ThemeResource BadgeCustomBorder}"/>
     </Style>
 
-    <!-- NEW Badge Style -->
-    <!-- Small red badge used next to setting/feature names to indicate new additions.
-         NOT based on BadgePillBase — the NEW badge has its own compact shape. -->
+    <!-- NEW badge beside setting and section names, in the system accent colour. -->
     <Style x:Key="NewBadgeBorderStyle" TargetType="Border">
         <Setter Property="Padding" Value="5,1"/>
-        <Setter Property="CornerRadius" Value="3"/>
-        <Setter Property="Background" Value="#E81123"/>
+        <Setter Property="CornerRadius" Value="{StaticResource ControlCornerRadius}"/>
+        <Setter Property="Background" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
 
     <Style x:Key="NewBadgeTextStyle" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
         <Setter Property="FontSize" Value="10"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>

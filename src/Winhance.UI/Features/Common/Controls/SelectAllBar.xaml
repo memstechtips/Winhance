@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.SelectAllBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
+    x:DefaultBindMode="OneWay"
+    IsTabStop="False">
+
+    <UserControl.Resources>
+        <DataTemplate x:Key="SelectAllContentTemplate">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Viewbox Width="20" Height="20" VerticalAlignment="Center">
+                    <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"/>
+                </Viewbox>
+                <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:Key="SelectInstalledContentTemplate">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Viewbox Width="20" Height="20" VerticalAlignment="Center">
+                    <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"/>
+                </Viewbox>
+                <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:Key="SelectUpdatesContentTemplate">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Viewbox Width="20" Height="20" VerticalAlignment="Center">
+                    <fluentIcons:FluentIcon Icon="Clock" IconVariant="Color"/>
+                </Viewbox>
+                <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:Key="SelectNotInstalledContentTemplate">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Viewbox Width="20" Height="20" VerticalAlignment="Center">
+                    <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color"/>
+                </Viewbox>
+                <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <StackPanel Orientation="Horizontal" Spacing="12">
+        <CheckBox Content="{x:Bind Source.SelectAllLabel}" ContentTemplate="{StaticResource SelectAllContentTemplate}" MinWidth="0"
+                  IsChecked="{x:Bind Source.IsAllSelected}"
+                  Command="{x:Bind Source.ToggleSelectAllCommand}"/>
+        <CheckBox Content="{x:Bind Source.SelectAllInstalledLabel}" ContentTemplate="{StaticResource SelectInstalledContentTemplate}" MinWidth="0"
+                  IsChecked="{x:Bind Source.IsAllSelectedInstalled}"
+                  Command="{x:Bind Source.ToggleSelectAllInstalledCommand}"/>
+        <CheckBox Content="{x:Bind Source.SelectAllNotInstalledLabel}" ContentTemplate="{StaticResource SelectNotInstalledContentTemplate}" MinWidth="0"
+                  IsChecked="{x:Bind Source.IsAllSelectedNotInstalled}"
+                  Command="{x:Bind Source.ToggleSelectAllNotInstalledCommand}"/>
+        <CheckBox Content="{x:Bind Source.SelectAllWithUpdatesLabel}" ContentTemplate="{StaticResource SelectUpdatesContentTemplate}" MinWidth="0"
+                  IsEnabled="{x:Bind Source.HasUpdates}"
+                  IsChecked="{x:Bind Source.IsAllSelectedWithUpdates}"
+                  Command="{x:Bind Source.ToggleSelectAllWithUpdatesCommand}"/>
+    </StackPanel>
+</UserControl>

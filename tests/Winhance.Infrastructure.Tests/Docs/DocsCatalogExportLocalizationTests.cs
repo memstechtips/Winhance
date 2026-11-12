@@ -5,7 +5,7 @@ namespace Winhance.Infrastructure.Tests.Docs;
 public class DocsCatalogExportLocalizationTests
 {
     [Fact]
-    public void Resolves_a_shipped_setting_name_from_en_json()
+    public void TryGetString_ShippedSettingName_ResolvesFromEnJson()
     {
         var loc = EnJsonLocalization.Load();
 
@@ -15,7 +15,7 @@ public class DocsCatalogExportLocalizationTests
     }
 
     [Fact]
-    public void Missing_key_is_reported_missing_not_bracketed()
+    public void TryGetString_MissingKey_IsReportedMissingNotBracketed()
     {
         var loc = EnJsonLocalization.Load();
 
@@ -24,7 +24,7 @@ public class DocsCatalogExportLocalizationTests
     }
 
     [Fact]
-    public void Formats_placeholders()
+    public void GetString_WithPlaceholder_FormatsIt()
     {
         var loc = EnJsonLocalization.Load();
 

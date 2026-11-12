@@ -20,7 +20,7 @@ public class PowerPossibleOptionsTests
             .ToList();
 
     [Fact]
-    public async Task Every_power_card_answers_its_choices_and_the_walk_ends()
+    public async Task GetPossibleValuesAsync_EveryPowerCard_AnswersItsChoicesAndTheWalkEnds()
     {
         var service = new PowerSettingsQueryService(new Mock<ILogService>().Object);
         var runaway = new List<string>();
@@ -56,7 +56,7 @@ public class PowerPossibleOptionsTests
     }
 
     [Fact]
-    public async Task A_setting_that_takes_a_range_offers_no_choices()
+    public async Task GetPossibleValuesAsync_SettingThatTakesARange_OffersNoChoices()
     {
         var service = new PowerSettingsQueryService(new Mock<ILogService>().Object);
         var ranges = PowerCards().Where(c => c.Id is "power-display-timeout" or "power-sleep-timeout").ToList();

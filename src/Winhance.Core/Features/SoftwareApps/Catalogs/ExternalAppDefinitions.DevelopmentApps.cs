@@ -102,7 +102,7 @@ public static partial class ExternalAppDefinitions
                         Id = "external-app-vscode",
                         Name = "Microsoft Visual Studio Code",
                         Description = "Microsoft's code editor with extensions, debugging, and Git integration",
-                        RegistryDisplayName = "Microsoft Visual Studio Code ({version})",
+                        RegistryDisplayName = "Microsoft Visual Studio Code|Microsoft Visual Studio Code (User)",
                         GroupName = "Development Apps",
                         WinGetPackageId = ["Microsoft.VisualStudioCode"],
                         ChocoPackageId = "vscode",

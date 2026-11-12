@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
@@ -96,8 +97,8 @@ public class SettingApplicationServiceTests
     // The catalog Setting the funnel resolves for an id. REAL catalog Setting for a paired id (so
     // Control/Id AND the change-history rendering are all live-catalog-correct); a fake TOGGLE-shaped Setting for
     // an unpaired test id (non-null so the not-found throw guard passes; the resolver then yields a null plan ->
-    // Failed, which the unpaired-id tests assert). Rendering reads SettingCatalog.Find independently, so a fake
-    // id renders no receipt. Two Enabled/Disabled states => Control == Toggle.
+    // Failed, which the unpaired-id tests assert), so a fake id never reaches the receipt. Two Enabled/Disabled
+    // states => Control == Toggle.
     private static Setting CatalogOrFake(string id) =>
         SettingCatalog.Find(id) ?? new Setting
         {
@@ -286,9 +287,8 @@ public class SettingApplicationServiceTests
         // run inside a single SuppressRestarts() scope and produce exactly ONE coalesced restart
         // covering the primary action AND every recommended setting.
         // The recommended applier + the coalesced-restart flush are catalog-Setting typed, and SAS builds the
-        // restart set from the primary's catalog Setting (renderSetting = Find(settingId)). The test id must be a
-        // REAL catalog Action so renderSetting resolves and joins the flush set; GetById returns that same
-        // catalog Action Setting, whose Control == Action drives the branch.
+        // restart set from the primary's catalog Setting, which GetById returns; its Control == Action drives the
+        // branch.
         var actionId = SettingCatalog.All.First(s => s.Control == ControlKind.Action).Id;
         SetupSettingInRegistry(actionId);
 
@@ -376,7 +376,7 @@ public class SettingApplicationServiceTests
         var handler = new Mock<ISpecialSettingHandler>();
         handler
             .Setup(h => h.TryApplySpecialSettingAsync(
-                It.IsAny<string>(), It.IsAny<object>(), It.IsAny<bool>(), It.IsAny<ISettingApplicationService>()))
+                It.IsAny<string>(), It.IsAny<object>(), It.IsAny<ISettingApplicationService>()))
             .ReturnsAsync(false);
         _mockSpecialHandlerRegistry.Setup(r => r.TryGet(actionId)).Returns(handler.Object);
 
@@ -1148,6 +1148,24 @@ public class SettingApplicationServiceTests
     }
 
     [Fact]
+    public async Task ApplySettingAsync_RetiredId_AppliesAndAnnouncesTheCanonicalSetting()
+    {
+        // Old config files still name the This PC folders by their Windows 10 ids. The page listens for the
+        // canonical id, and the relationship pass belongs to the canonical setting.
+        const string retired = "explorer-customization-thispc-folder-desktop-win10";
+        const string canonical = "explorer-customization-thispc-folder-desktop";
+        SetupSettingInRegistry(retired);
+
+        await _service.ApplySettingAsync(new ApplySettingRequest { SettingId = retired, Enable = true });
+
+        _mockEventBus.Verify(e => e.Publish(It.Is<SettingAppliedEvent>(x => x.SettingId == canonical)), Times.Once);
+        _mockLog.Verify(l => l.Log(
+            LogLevel.Debug,
+            It.Is<string>(m => m.Contains($"Relationship scope for '{canonical}'")),
+            null, It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
     public async Task ApplySettingAsync_SettingWithARequiresLink_DetectsOnlyTheScopeAndStillFiresTheFollowOn()
     {
         // The other half of the same rule: narrowing the batch must not narrow BEHAVIOUR. A setting whose
@@ -1208,7 +1226,7 @@ public class SettingApplicationServiceTests
 
     // Called directly: the before-state provider is mocked empty, so ApplySettingAsync has no before side to render.
     [Fact]
-    public void A_keyed_receipt_names_the_option_on_both_sides()
+    public void FormatStateDisplay_KeyedSelection_NamesOptionBeforeAndAfter()
     {
         var setting = FakeOptionProvider.SettingFor();
 
@@ -1220,7 +1238,7 @@ public class SettingApplicationServiceTests
 
     // If the shipped setting stopped deriving as KeyedSelection, the Toggle arm would render "Enabled" for a time zone.
     [Fact]
-    public void A_shipped_keyed_receipt_names_the_time_zone()
+    public void FormatStateDisplay_ShippedTimeZoneSetting_NamesTheTimeZone()
     {
         var setting = SettingCatalog.Find("region-time-zone")!;
 
@@ -1230,7 +1248,7 @@ public class SettingApplicationServiceTests
 
     // The one reachable null plan: a config written on a PC that has this locale, applied on one that does not.
     [Fact]
-    public async Task A_keyed_option_this_PC_cannot_write_names_the_option_it_dropped()
+    public async Task ApplySettingAsync_KeyedOptionThisPcCannotWrite_NamesTheOptionItDropped()
     {
         _mockLocalization
             .Setup(l => l.GetString("Setting_KeyedOption_NotApplied", It.IsAny<object[]>()))
@@ -1249,7 +1267,7 @@ public class SettingApplicationServiceTests
     }
 
     [Fact]
-    public async Task A_refused_keyed_option_is_named_to_the_import_summary()
+    public async Task ApplySettingAsync_RefusedKeyedOptionDuringImport_NamesItInTheImportSummary()
     {
         _mockLocalization
             .Setup(l => l.GetString("Setting_KeyedOption_NotApplied", It.IsAny<object[]>()))
@@ -1270,7 +1288,7 @@ public class SettingApplicationServiceTests
     }
 
     [Fact]
-    public async Task A_refused_keyed_option_with_an_untranslated_name_is_named_by_its_key_not_the_miss_marker()
+    public async Task ApplySettingAsync_RefusedKeyedOptionWithUntranslatedName_NamesItByKeyNotMissMarker()
     {
         _mockLocalization
             .Setup(l => l.GetString("Setting_KeyedOption_NotApplied", It.IsAny<object[]>()))
@@ -1293,7 +1311,7 @@ public class SettingApplicationServiceTests
     }
 
     [Fact]
-    public async Task A_refused_keyed_option_outside_an_import_is_not_queued()
+    public async Task ApplySettingAsync_RefusedKeyedOptionOutsideImport_IsNotQueued()
     {
         SetupSettingInRegistry("region-system-locale");
 
@@ -1310,7 +1328,7 @@ public class SettingApplicationServiceTests
     // The key is whatever someone else's config file holds, and the summary is plain text: a line break in it
     // would read as another setting that was not applied.
     [Fact]
-    public async Task A_refused_key_reaches_the_summary_flattened_and_bounded()
+    public async Task ApplySettingAsync_RefusedKey_ReachesSummaryFlattenedAndBounded()
     {
         _mockLocalization
             .Setup(l => l.GetString("Setting_KeyedOption_NotApplied", It.IsAny<object[]>()))
@@ -1344,7 +1362,7 @@ public class SettingApplicationServiceTests
 
     // A KLID is opaque: without the list the machine offered, the receipt would show 00000409 and 00000809.
     [Fact]
-    public async Task A_keyed_receipt_reads_the_labels_the_machine_offered()
+    public async Task ApplySettingAsync_KeyedSettingWithOfferedLabels_LogsLabelsInReceipt()
     {
         SetupSettingInRegistry("region-keyboard-layout");
         _mockSettingStateProvider
@@ -1371,11 +1389,57 @@ public class SettingApplicationServiceTests
     }
 
     [Fact]
-    public void A_keyed_option_the_machine_does_not_offer_renders_as_its_key()
+    public void FormatStateDisplay_KeyedOptionNotOffered_RendersItsKey()
     {
         var setting = SettingCatalog.Find("region-keyboard-layout")!;
 
         _service.FormatStateDisplay(setting, enable: true, "00000407", hasBattery: true, KeyboardLayouts)
             .Should().Be("00000407");
+    }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(1, 0)]
+    public async Task ApplySettingAsync_ThemeMode_WritesBothThemeKeys(int optionIndex, int expected)
+    {
+        SetupSettingInRegistry("theme-mode-windows");
+
+        var result = await _service.ApplySettingAsync(new ApplySettingRequest { SettingId = "theme-mode-windows", Enable = true, Value = optionIndex, SkipValuePrerequisites = true });
+
+        result.Success.Should().BeTrue();
+        _mockStateWriter.Verify(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(),
+            It.Is<object>(v => v.Equals(expected))), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_ThemeModeMixedIndex_WritesNothing()
+    {
+        // Index 2 is the detect-only "Mixed" state. Reverse-sync hands the master this index when the two
+        // theme children disagree, and writing Light here would undo the child the user just changed.
+        SetupSettingInRegistry("theme-mode-windows");
+
+        var result = await _service.ApplySettingAsync(new ApplySettingRequest { SettingId = "theme-mode-windows", Enable = true, Value = 2 });
+
+        result.Success.Should().BeTrue();
+        _mockStateWriter.Verify(w => w.WriteRegistry(It.IsAny<RegTarget>(), It.IsAny<string>(), It.IsAny<object>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApplySettingAsync_RestartHandling_RunsInsideOneBroadcastScope()
+    {
+        SetupSettingInRegistry("theme-mode-windows");
+        bool scopeOpen = false;
+        bool handledInsideScope = false;
+        var scope = new Mock<IDisposable>();
+        scope.Setup(d => d.Dispose()).Callback(() => scopeOpen = false);
+        _mockRestart.Setup(r => r.CoalesceBroadcasts()).Callback(() => scopeOpen = true).Returns(scope.Object);
+        _mockRestart.Setup(r => r.HandleProcessAndServiceRestartsAsync(It.IsAny<Setting>()))
+            .Callback(() => handledInsideScope = scopeOpen).Returns(Task.CompletedTask);
+
+        await _service.ApplySettingAsync(new ApplySettingRequest { SettingId = "theme-mode-windows", Enable = true, Value = 0, SkipValuePrerequisites = true });
+
+        handledInsideScope.Should().BeTrue();
+        scopeOpen.Should().BeFalse("the scope must close so its one broadcast goes out");
+        _mockRestart.Verify(r => r.CoalesceBroadcasts(), Times.Once);
     }
 }

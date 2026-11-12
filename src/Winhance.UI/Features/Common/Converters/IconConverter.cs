@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Reflection;
 using Material.Icons;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
@@ -7,6 +9,12 @@ namespace Winhance.UI.Features.Common.Converters;
 
 public sealed partial class IconConverter : IValueConverter
 {
+    // Every card runs this, so the reflection lookup and the icon-name parse are done once per type and per name.
+    // The built element and its Geometry are not cached: an element takes one parent, and WinUI does not support
+    // one Geometry instance on two paths.
+    private static readonly ConcurrentDictionary<Type, (PropertyInfo? Icon, PropertyInfo? Pack)> Accessors = new();
+    private static readonly ConcurrentDictionary<string, string?> MaterialData = new(StringComparer.OrdinalIgnoreCase);
+
     // IconSource form: an IconSourceElement the template declares can bind Opacity; an element a converter returns cannot.
     public object? Convert(object value, Type targetType, object parameter, string language) =>
         typeof(IconSource).IsAssignableFrom(targetType) ? BuildSource(value, parameter) : Build(value, parameter);
@@ -54,9 +62,8 @@ public sealed partial class IconConverter : IValueConverter
         }
         else if (value != null)
         {
-            var type = value.GetType();
-            var iconProperty = type.GetProperty("Icon");
-            var iconPackProperty = type.GetProperty("IconPack");
+            var (iconProperty, iconPackProperty) = Accessors.GetOrAdd(
+                value.GetType(), t => (t.GetProperty("Icon"), t.GetProperty("IconPack")));
 
             iconName = iconProperty?.GetValue(value)?.ToString();
             iconPack = iconPackProperty?.GetValue(value)?.ToString() ?? "Material";
@@ -65,10 +72,11 @@ public sealed partial class IconConverter : IValueConverter
         return string.IsNullOrEmpty(iconName) ? null : (iconName, iconPack);
     }
 
-    private static string? MaterialPathData(string iconName) =>
-        Enum.TryParse<MaterialIconKind>(iconName, ignoreCase: true, out var iconKind)
-            ? MaterialIconDataProvider.GetData(iconKind)
-            : null;
+    internal static string? MaterialPathData(string iconName) =>
+        MaterialData.GetOrAdd(iconName, name =>
+            Enum.TryParse<MaterialIconKind>(name, ignoreCase: true, out var iconKind)
+                ? MaterialIconDataProvider.GetData(iconKind)
+                : null);
 
     private static Uri AppAssetUri(string fileName) => new($"ms-appx:///Assets/AppIcons/{fileName}");
 

@@ -24,8 +24,6 @@ public class ExternalAppsServiceTests
     private readonly Mock<ILogService> _logService = new();
     private readonly Mock<IWinGetPackageInstaller> _winGetPackageInstaller = new();
     private readonly Mock<IWinGetDetectionService> _winGetDetectionService = new();
-    private readonly Mock<IWinGetBootstrapper> _winGetBootstrapper = new();
-    private readonly Mock<IAppStatusDiscoveryService> _appStatusDiscoveryService = new();
     private readonly Mock<IExternalAppUninstallService> _externalAppUninstallService = new();
     private readonly Mock<IDirectDownloadService> _directDownloadService = new();
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
@@ -50,12 +48,16 @@ public class ExternalAppsServiceTests
         _installOptions.Setup(x => x.EffectiveFor(It.IsAny<string>())).Returns(InstallOptions.Default);
     }
 
+    private void SetupStartMenuFolder(string programs)
+    {
+        _interactiveUserService.Setup(x => x.GetInteractiveUserFolderPath(Environment.SpecialFolder.Programs)).Returns(programs);
+        _fileSystemService.Setup(x => x.CombinePath(It.IsAny<string[]>())).Returns((string[] parts) => string.Join(@"\", parts));
+    }
+
     private ExternalAppsService CreateSut() => new(
         _logService.Object,
         _winGetPackageInstaller.Object,
         _winGetDetectionService.Object,
-        _winGetBootstrapper.Object,
-        _appStatusDiscoveryService.Object,
         _externalAppUninstallService.Object,
         _directDownloadService.Object,
         _taskProgressService.Object,
@@ -65,14 +67,6 @@ public class ExternalAppsServiceTests
         _processExecutor.Object,
         _changeHistoryService.Object,
         _installOptions.Object);
-
-    [Fact]
-    public void DomainName_ReturnsExternalApps()
-    {
-        var sut = CreateSut();
-
-        sut.DomainName.Should().Be("ExternalApps");
-    }
 
     [Fact]
     public async Task GetAppsAsync_ReturnsNonEmptyList()
@@ -764,7 +758,7 @@ public class ExternalAppsServiceTests
     }
 
     [Fact]
-    public async Task InstallAppOnNewPcAsync_PortableInstaller_SkipsTheMachineWideAttempt()
+    public async Task InstallAppOnNewPcAsync_PortableInstaller_InstallsForEveryone()
     {
         var sut = CreateSut();
         _winGetDetectionService
@@ -772,15 +766,15 @@ public class ExternalAppsServiceTests
             .ReturnsAsync("portable");
         _winGetPackageInstaller
             .Setup(x => x.InstallPackageAsync(
-                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), InstallOptions.Default, It.IsAny<CancellationToken>()))
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), MachineScope, It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Succeeded());
 
         var result = await sut.InstallAppOnNewPcAsync(WinGetApp);
 
         result.Success.Should().BeTrue();
         _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
-            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), MachineScope, It.IsAny<CancellationToken>()),
-            Times.Never);
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -872,10 +866,9 @@ public class ExternalAppsServiceTests
     }
 
     [Fact]
-    public async Task InstallAppAsync_PortablePackage_DropsTheScopeAndKeepsTheRest()
+    public async Task InstallAppAsync_PortablePackage_KeepsTheChosenScopeAndTheRest()
     {
         var sut = CreateSut();
-        var withoutScope = AllOptions with { Scope = InstallScope.Default };
         _installOptions.Setup(x => x.EffectiveFor("ext-app")).Returns(AllOptions);
         _winGetDetectionService
             .Setup(x => x.GetInstallerTypeAsync("Publisher.ExtApp", It.IsAny<CancellationToken>()))
@@ -888,10 +881,29 @@ public class ExternalAppsServiceTests
         await sut.InstallAppAsync(WinGetApp);
 
         _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
-            "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), withoutScope, It.IsAny<CancellationToken>()),
+            "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), AllOptions, It.IsAny<CancellationToken>()),
             Times.Once);
         _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
             It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallAppAsync_PortablePackageWithNoChosenScope_InstallsForEveryone()
+    {
+        var sut = CreateSut();
+        _winGetDetectionService
+            .Setup(x => x.GetInstallerTypeAsync("Publisher.ExtApp", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("portable");
+        _winGetPackageInstaller
+            .Setup(x => x.InstallPackageAsync(
+                "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), It.IsAny<InstallOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackageInstallResult.Succeeded());
+
+        await sut.InstallAppAsync(WinGetApp);
+
+        _winGetPackageInstaller.Verify(x => x.InstallPackageAsync(
+            "Publisher.ExtApp", "winget", "External App", It.IsAny<string?>(), MachineScope, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -976,6 +988,56 @@ public class ExternalAppsServiceTests
             Times.Once);
     }
 
+    [Theory]
+    [InlineData(@"..\..\Windows")]
+    [InlineData(@"C:\Windows")]
+    [InlineData(@"\\server\share")]
+    [InlineData(".")]
+    [InlineData("..")]
+    [InlineData("")]
+    [InlineData("a:b")]
+    public async Task UninstallAppAsync_AppNameIsNotAPlainFolderName_DeletesNoStartMenuFolder(string appName)
+    {
+        SetupStartMenuFolder(@"C:\Programs");
+        _externalAppUninstallService
+            .Setup(x => x.UninstallAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+        _fileSystemService.Setup(x => x.DirectoryExists(It.IsAny<string>())).Returns(true);
+
+        await CreateSut().UninstallAppAsync(new ItemDefinition { Id = "x", Name = appName, Description = "" });
+
+        _fileSystemService.Verify(x => x.DeleteDirectory(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UninstallAppAsync_PlainAppName_RemovesItsStartMenuFolder()
+    {
+        SetupStartMenuFolder(@"C:\Programs");
+        _externalAppUninstallService
+            .Setup(x => x.UninstallAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+        _fileSystemService.Setup(x => x.DirectoryExists(@"C:\Programs\VLC")).Returns(true);
+
+        await CreateSut().UninstallAppAsync(new ItemDefinition { Id = "vlc", Name = "VLC", Description = "" });
+
+        _fileSystemService.Verify(x => x.DeleteDirectory(@"C:\Programs\VLC", true), Times.Once);
+    }
+
+    [Fact]
+    public async Task UninstallAppAsync_StartMenuFolderIsALink_LeavesItAlone()
+    {
+        SetupStartMenuFolder(@"C:\Programs");
+        _externalAppUninstallService
+            .Setup(x => x.UninstallAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+        _fileSystemService.Setup(x => x.DirectoryExists(@"C:\Programs\VLC")).Returns(true);
+        _fileSystemService.Setup(x => x.GetFileAttributes(@"C:\Programs\VLC")).Returns(FileAttributes.Directory | FileAttributes.ReparsePoint);
+
+        await CreateSut().UninstallAppAsync(new ItemDefinition { Id = "vlc", Name = "VLC", Description = "" });
+
+        _fileSystemService.Verify(x => x.DeleteDirectory(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
     [Fact]
     public async Task UninstallAppAsync_Success_LogsAppRemoved()
     {
@@ -1046,41 +1108,6 @@ public class ExternalAppsServiceTests
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("cancelled");
-    }
-
-    [Fact]
-    public async Task CheckBatchInstalledAsync_DelegatesToExternalAppsStatus()
-    {
-        var sut = CreateSut();
-        var definitions = new List<ItemDefinition>
-        {
-            new() { Id = "app1", Name = "App1", Description = "Desc1" },
-            new() { Id = "app2", Name = "App2", Description = "Desc2" }
-        };
-
-        var expected = new Dictionary<string, bool>
-        {
-            { "app1", true },
-            { "app2", false }
-        };
-
-        _appStatusDiscoveryService
-            .Setup(x => x.GetExternalAppsInstallationStatusAsync(definitions))
-            .ReturnsAsync(expected);
-
-        var result = await sut.CheckBatchInstalledAsync(definitions);
-
-        result.Should().BeEquivalentTo(expected);
-    }
-
-    [Fact]
-    public void InvalidateStatusCache_DelegatesToDiscoveryService()
-    {
-        var sut = CreateSut();
-
-        sut.InvalidateStatusCache();
-
-        _appStatusDiscoveryService.Verify(x => x.InvalidateCache(), Times.Once);
     }
 
     [Fact]

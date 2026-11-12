@@ -36,6 +36,8 @@
 
     <x:String x:Key="TimeRegionLanguageIconSymbol">GlobeSearch</x:String>
 
+    <x:String x:Key="ContextMenuIconSymbol">CursorClick</x:String>
+
     <!-- Folder - Used for Explorer -->
     <x:String x:Key="ExplorerIconPath">M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z</x:String>
 
@@ -74,18 +76,6 @@
     <!-- Power Plan Icons -->
     <!-- DeleteForever - Used for power plan deletion -->
     <x:String x:Key="DeleteForeverIconPath">M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19M8.46,11.88L9.87,10.47L12,12.59L14.12,10.47L15.53,11.88L13.41,14L15.53,16.12L14.12,17.53L12,15.41L9.88,17.53L8.47,16.12L10.59,14L8.46,11.88M15.5,4L14.5,3H9.5L8.5,4H5V6H19V4H15.5Z</x:String>
-
-    <!-- WIMUtil section icons -->
-    <!-- FileXmlBox - Used for the XML card in WIMUtil step 2 -->
-    <x:String x:Key="AutounattendXmlIconPath">M13 9H18.5L13 3.5V9M6 2H14L20 8V20A2 2 0 0 1 18 22H6A2 2 0 0 1 4 20V4A2 2 0 0 1 6 2M6.12 15.5L9.86 19.24L11.28 17.83L8.95 15.5L11.28 13.17L9.86 11.76L6.12 15.5M17.28 15.5L13.54 11.76L12.12 13.17L14.45 15.5L12.12 17.83L13.54 19.24L17.28 15.5Z</x:String>
-    <!-- FileDownload - Used for XML in WIMUtil Steps -->
-    <x:String x:Key="FileDownloadIconPath">M14,2H6C4.89,2 4,2.89 4,4V20C4,21.11 4.89,22 6,22H18C19.11,22 20,21.11 20,20V8L14,2M12,19L8,15H10.5V12H13.5V15H16L12,19M13,9V3.5L18.5,9H13Z</x:String>
-    <!-- MemoryArrowDown - Used for Drivers in WIMUtil Steps -->
-    <x:String x:Key="MemoryArrowDownIconPath">M19 19V15H17V19H15L18 22L21 19H19M12.1 19H11V21H9V19H7C5.9 19 5 18.1 5 17V15H3V13H5V11H3V9H5V7C5 5.9 5.9 5 7 5H9V3H11V5H13V3H15V5H17C18.1 5 19 5.9 19 7V9H21V11H19V12.1C18.7 12 18.3 12 18 12S17.3 12 17 12.1V7H7V17H12.1C12 17.3 12 17.7 12 18S12 18.7 12.1 19M9 15H12.8C13.3 14.1 14.1 13.3 15 12.8V9H9V15M11 11H13V13H11V11Z</x:String>
-    <!-- WrenchClock - Used for ISO Creation in WIMUtil Steps -->
-    <x:String x:Key="WrenchClockIconPath">M10 6.2C10 4.3 8.8 2.6 7 2V5.7H4V2C2.2 2.6 1 4.3 1 6.2C1 8.1 2.2 9.8 4 10.4V21.4C4 21.8 4.2 22 4.5 22H6.5C6.8 22 7 21.8 7 21.5V10.5C8.8 9.9 10 8.2 10 6.2M16 8C16 8 15.9 8 16 8C12.1 8.1 9 11.2 9 15C9 18.9 12.1 22 16 22S23 18.9 23 15 19.9 8 16 8M16 20C13.2 20 11 17.8 11 15S13.2 10 16 10 21 12.2 21 15 18.8 20 16 20M15 11V16L18.6 18.2L19.4 17L16.5 15.3V11H15Z</x:String>
-    <!-- ToolBox - Used for Windows ADK in WIMUtil Steps -->
-    <x:String x:Key="ToolBoxIconPath">M18 16H16V15H8V16H6V15H2V20H22V15H18V16M20 8H17V6C17 4.9 16.1 4 15 4H9C7.9 4 7 4.9 7 6V8H4C2.9 8 2 8.9 2 10V14H6V12H8V14H16V12H18V14H22V10C22 8.9 21.1 8 20 8M15 8H9V6H15V8Z</x:String>
 
     <!-- Filter Icons -->
     <!-- Filter with checkmark - Used when Windows version filter is ON -->

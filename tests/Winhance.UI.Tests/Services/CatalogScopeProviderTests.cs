@@ -48,7 +48,7 @@ public class CatalogScopeProviderTests
     }
 
     [Fact]
-    public void Builder_mode_includes_answer_file_only_settings()
+    public void Current_BuilderMode_IncludesAnswerFileOnlySettings()
     {
         _mode.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
 
@@ -58,7 +58,7 @@ public class CatalogScopeProviderTests
     [Theory]
     [InlineData(WinhanceMode.Normal)]
     [InlineData(WinhanceMode.ConfigReview)]
-    public void Live_system_does_not(WinhanceMode mode)
+    public void Current_LiveSystem_ExcludesAnswerFileOnlySettings(WinhanceMode mode)
     {
         _mode.Setup(m => m.CurrentMode).Returns(mode);
 
@@ -66,7 +66,7 @@ public class CatalogScopeProviderTests
     }
 
     [Fact]
-    public void Builder_gates_on_the_target_build_and_ignores_the_version_filter()
+    public void Current_Builder_GatesOnTheTargetBuildAndIgnoresTheVersionFilter()
     {
         _mode.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
         _versionFilter.Setup(f => f.IsFilterEnabled).Returns(false);
@@ -79,7 +79,7 @@ public class CatalogScopeProviderTests
     }
 
     [Fact]
-    public void Builder_with_no_target_includes_every_version()
+    public void Current_BuilderWithNoTarget_IncludesEveryVersion()
     {
         _mode.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
         _versionFilter.Setup(f => f.IsFilterEnabled).Returns(true);
@@ -92,7 +92,7 @@ public class CatalogScopeProviderTests
     }
 
     [Fact]
-    public void Live_system_never_carries_a_target()
+    public void Current_LiveSystem_NeverCarriesATarget()
     {
         _mode.Setup(m => m.CurrentMode).Returns(WinhanceMode.Normal);
         _targetWindows.Setup(t => t.Build).Returns(26300);

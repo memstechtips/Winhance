@@ -24,7 +24,7 @@ public class AnswerFileOnlyShapeTests
         new() { Label = label, Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of("true") } };
 
     [Fact]
-    public void An_element_target_alone_is_answer_file_only()
+    public void IsAnswerFileOnly_ElementTargetAlone_ReturnsTrue()
     {
         var setting = With(
             [new AutounattendElement("K", "oobeSystem", "Microsoft-Windows-Shell-Setup", "OOBE/HideEULAPage")],
@@ -34,7 +34,7 @@ public class AnswerFileOnlyShapeTests
     }
 
     [Fact]
-    public void A_registry_target_makes_it_a_live_setting()
+    public void IsAnswerFileOnly_RegistryTarget_ReturnsFalse()
     {
         var setting = With(
             [new RegTarget("K", TestPaths, "V", RegistryValueKind.DWord)],
@@ -44,7 +44,7 @@ public class AnswerFileOnlyShapeTests
     }
 
     [Fact]
-    public void A_read_only_registry_target_beside_an_element_keeps_it_answer_file_only()
+    public void IsAnswerFileOnly_ReadOnlyRegistryTargetBesideElement_ReturnsTrue()
     {
         var setting = With(
             [
@@ -57,7 +57,7 @@ public class AnswerFileOnlyShapeTests
     }
 
     [Fact]
-    public void Read_only_registry_targets_alone_write_nothing_so_it_is_not_answer_file_only()
+    public void IsAnswerFileOnly_ReadOnlyRegistryTargetsAlone_ReturnsFalse()
     {
         var setting = With(
             [new RegTarget("seed", TestPaths, "V", RegistryValueKind.String) { ReadOnly = true }],
@@ -67,7 +67,7 @@ public class AnswerFileOnlyShapeTests
     }
 
     [Fact]
-    public void A_setup_command_with_no_targets_is_answer_file_only()
+    public void IsAnswerFileOnly_SetupCommandWithNoTargets_ReturnsTrue()
     {
         var setting = With(
             [],
@@ -84,7 +84,7 @@ public class AnswerFileOnlyShapeTests
     }
 
     [Fact]
-    public void An_action_with_no_targets_and_no_state_effects_is_not()
+    public void IsAnswerFileOnly_ActionWithNoTargetsOrStateEffects_ReturnsFalse()
     {
         var setting = With([], []) with { Effects = [new ScriptEffect("s", RunContext.System)] };
 
@@ -92,7 +92,7 @@ public class AnswerFileOnlyShapeTests
     }
 
     [Fact]
-    public void A_script_effect_on_a_state_keeps_it_answer_file_only()
+    public void IsAnswerFileOnly_ScriptEffectOnAState_ReturnsTrue()
     {
         var setting = With(
             [],
@@ -106,7 +106,7 @@ public class AnswerFileOnlyShapeTests
 
     // A ReadOnly HibernateEnabled target would make hibernation answer-file-only and drop it off the Optimize page.
     [Fact]
-    public void Hibernation_carries_scripts_but_writes_a_target_so_it_stays_live()
+    public void IsAnswerFileOnly_HibernationWithScriptsAndATarget_ReturnsFalse()
     {
         SettingCatalog.ById["power-hibernation-enable"].IsAnswerFileOnly.Should().BeFalse();
     }

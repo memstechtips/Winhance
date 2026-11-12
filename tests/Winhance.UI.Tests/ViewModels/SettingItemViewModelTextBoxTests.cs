@@ -71,7 +71,7 @@ public class SettingItemViewModelTextBoxTests
     private ChoiceValue Recorded(string settingId) => _authored[settingId].Value;
 
     [Fact]
-    public void A_value_the_rule_refuses_is_shown_and_recorded_nowhere()
+    public void OnTextBoxChanged_WithAValueTheRuleRefuses_ShowsItAndRecordsNothing()
     {
         var sut = CreateSut(ProductKey);
 
@@ -83,7 +83,7 @@ public class SettingItemViewModelTextBoxTests
     }
 
     [Fact]
-    public void A_value_the_rule_accepts_is_recorded_normalized()
+    public void OnTextBoxChanged_WithAValueTheRuleAccepts_RecordsItNormalized()
     {
         var sut = CreateSut(ProductKey);
 
@@ -97,7 +97,7 @@ public class SettingItemViewModelTextBoxTests
     }
 
     [Fact]
-    public void Clearing_the_box_records_an_empty_value()
+    public void OnTextBoxChanged_WhenTheBoxIsCleared_RecordsAnEmptyValue()
     {
         var sut = CreateSut(ComputerName);
         sut.OnTextBoxChanged("MYPC");
@@ -111,7 +111,7 @@ public class SettingItemViewModelTextBoxTests
 
     // A typed album path would apply at every parent folder on the way, so the box takes only what Browse returns.
     [Fact]
-    public void A_box_that_names_a_picker_is_read_only()
+    public void TextBoxPicker_WhenTheBoxNamesAPicker_MakesItReadOnly()
     {
         var album = CreateSut(SlideshowAlbum);
 
@@ -122,7 +122,7 @@ public class SettingItemViewModelTextBoxTests
     }
 
     [Fact]
-    public void The_same_value_twice_is_recorded_once()
+    public void OnTextBoxChanged_WithTheSameValueTwice_RecordsItOnce()
     {
         var sut = CreateSut(ComputerName);
 
@@ -133,7 +133,7 @@ public class SettingItemViewModelTextBoxTests
     }
 
     [Fact]
-    public void A_keystroke_that_normalizes_onto_the_recorded_value_records_nothing_new()
+    public void OnTextBoxChanged_WhenTheKeystrokeNormalizesOntoTheRecordedValue_RecordsNothingNew()
     {
         var sut = CreateSut(ProductKey);
         sut.OnTextBoxChanged("VK7JG-NPHTM-C97JM-9MPGT-3V66T");
@@ -146,7 +146,7 @@ public class SettingItemViewModelTextBoxTests
 
     // A pick is deliberate, and picking the album the box already shows is how a slideshow is started again.
     [Fact]
-    public void Browsing_to_the_folder_the_box_already_shows_still_records_it()
+    public void BrowseForText_WithTheFolderTheBoxAlreadyShows_StillRecordsIt()
     {
         var picker = new Mock<IFilePickerService>();
         picker.Setup(p => p.PickFolder(It.IsAny<string?>())).Returns(@"D:\Pictures\Holiday");
@@ -160,7 +160,7 @@ public class SettingItemViewModelTextBoxTests
     }
 
     [Fact]
-    public void A_cancelled_browse_records_nothing()
+    public void BrowseForText_WhenCancelled_RecordsNothing()
     {
         var picker = new Mock<IFilePickerService>();
         var album = CreateSut(SlideshowAlbum, picker.Object);

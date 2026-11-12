@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
@@ -8,6 +9,7 @@ using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.WimUtil.Interfaces;
 using Winhance.Core.Features.WimUtil.Models;
+using Winhance.TestSupport;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.WimUtil.Models;
@@ -41,7 +43,7 @@ public class SelectionSaveServiceTests
     private readonly Mock<ISelectionSetBuilder> _selections = new();
     private readonly Mock<IConfigFileWriter> _configFiles = new();
     private readonly Mock<IAutounattendWriter> _autounattend = new();
-    private readonly Mock<ISaveFilePicker> _picker = new();
+    private readonly Mock<IFilePickerService> _picker = new();
     private readonly Mock<IFileStore> _fileStore = new();
     private readonly Mock<IWindowsThemeService> _theme = new();
     private readonly Mock<IFileSystemService> _files = new();
@@ -205,6 +207,79 @@ public class SelectionSaveServiceTests
         await Sut().SaveAsync(BuilderTarget.Config, SetWithApps);
 
         _validator.Verify(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // Each check starts powershell.exe, so a save must parse its scripts once, not once per stage.
+    [Fact]
+    public async Task AnAnswerFileSave_ChecksTheFileOnce()
+    {
+        ArrangePicker(XmlPath);
+
+        await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps);
+
+        _validator.Verify(v => v.ValidateAsync(XmlPath, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AnAnswerFileSave_ShowsTheProgressBar_UntilTheCheckHasRun()
+    {
+        ArrangePicker(XmlPath);
+        var steps = new List<string>();
+        _progress.Setup(p => p.StartTask("Builder_Save_SavingAnswerFile", true)).Callback(() => steps.Add("start"));
+        _autounattend
+            .Setup(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()))
+            .Callback(() => steps.Add("write"))
+            .ReturnsAsync(XmlPath);
+        _validator
+            .Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback(() => steps.Add("check"))
+            .ReturnsAsync(new AnswerFileReport([]));
+        _progress.Setup(p => p.CompleteTask()).Callback(() => steps.Add("complete"));
+        _dialogs.Setup(d => d.ShowSummaryAsync(It.IsAny<SummaryRequest>())).Callback(() => steps.Add("dialog"));
+
+        await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps);
+
+        steps.Should().Equal("start", "write", "check", "complete", "dialog");
+    }
+
+    [Fact]
+    public async Task AnAnswerFileWriteFailure_FailsTheProgressBar()
+    {
+        ArrangePicker(XmlPath);
+        _autounattend
+            .Setup(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()))
+            .ThrowsAsync(new IOException("disk full"));
+
+        var act = () => Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps);
+
+        await act.Should().ThrowAsync<IOException>();
+        _progress.Verify(p => p.FailTask(), Times.Once);
+        _progress.Verify(p => p.CompleteTask(), Times.Never);
+    }
+
+    [Fact]
+    public async Task AConfigSave_ShowsNoProgressBar()
+    {
+        ArrangePicker(ConfigPath);
+
+        await Sut().SaveAsync(BuilderTarget.Config, SetWithApps);
+
+        _progress.Verify(p => p.StartTask(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    // WIMUtil checks the file itself once the save returns, so the service must not check it as well.
+    [Fact]
+    public async Task ReportSuccessInDialog_False_LeavesTheCheckToTheCaller_ButStillShowsTheProgressBar()
+    {
+        await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps, new SelectionSaveOptions
+        {
+            FixedPath = XmlPath,
+            ReportSuccessInDialog = false,
+        });
+
+        _validator.Verify(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _progress.Verify(p => p.StartTask("Builder_Save_SavingAnswerFile", true), Times.Once);
+        _progress.Verify(p => p.CompleteTask(), Times.Once);
     }
 
     [Fact]
@@ -569,7 +644,8 @@ public class SelectionSaveServiceTests
             It.IsAny<IProgress<TaskProgressDetail>>(),
             It.IsAny<CancellationToken>()), Times.Once);
         _progress.Verify(p => p.StartTask("WIMUtil_Status_StagingApps", false), Times.Once);
-        _progress.Verify(p => p.CompleteTask(), Times.Once);
+        // One for the save, one for the staging.
+        _progress.Verify(p => p.CompleteTask(), Times.Exactly(2));
         _staging.Verify(a => a.RemoveStaged(It.IsAny<string>()), Times.Never);
     }
 
@@ -702,7 +778,7 @@ public class SelectionSaveServiceTests
 
         _staging.Verify(a => a.RemoveStaged(WorkingDirectory), Times.Once);
         VerifyStaged(Times.Never());
-        _progress.Verify(p => p.StartTask(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+        _progress.Verify(p => p.StartTask("WIMUtil_Status_StagingApps", It.IsAny<bool>()), Times.Never);
     }
 
     [Fact]
@@ -725,20 +801,35 @@ public class SelectionSaveServiceTests
     }
 
     [Fact]
-    public async Task TheBarsSave_OnTheMedia_NamesTheAppsThatCouldNotBeStaged()
+    public async Task TheBarsSave_OnTheMedia_NamesTheAppsThatCouldNotBeStagedAndWhy()
     {
         ArrangePicker(XmlPath);
         _session.WorkingDirectory = WorkingDirectory;
         _loc.Setup(l => l.GetString("WIMUtil_Msg_AppsNotStaged", It.IsAny<object[]>()))
             .Returns((string _, object[] args) => "Not on the media:" + args[0]);
-        ArrangeStaging().ReturnsAsync((IReadOnlyList<StagedApp>)[new StagedApp("Google Chrome", false), new StagedApp("Steam", true)]);
+        _loc.Setup(l => l.GetString("WIMUtil_Generate_Summary_AppNotStaged", It.IsAny<object[]>()))
+            .Returns((string _, object[] args) => $"{args[0]} ({args[1]})");
+        ArrangeStaging().ReturnsAsync((IReadOnlyList<StagedApp>)
+            [new StagedApp("Google Chrome", StagingOutcome.NoInstallerForArchitecture), new StagedApp("Steam", StagingOutcome.OnMedia)]);
 
         await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithExternalApp());
 
         _dialogs.Verify(d => d.ShowInformationAsync(
-            "Not on the media:Google Chrome",
+            "Not on the media:Google Chrome (WIMUtil_Generate_Result_AppNoInstaller)",
             "Dialog_Information",
             It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public void ReasonKey_EveryStagingOutcome_HasItsOwnEnglishText()
+    {
+        var en = JsonSerializer.Deserialize<Dictionary<string, string>>(
+            File.ReadAllText(Path.Combine(RepoPaths.LocalizationDir(), "en.json")))!;
+
+        var keys = Enum.GetValues<StagingOutcome>().Select(SelectionSaveService.ReasonKey).ToList();
+
+        keys.Should().OnlyHaveUniqueItems();
+        en.Keys.Should().Contain(keys);
     }
 
     // WIMUtil gathers the run into one summary of its own, so the service hands it the outcomes instead of
@@ -746,12 +837,13 @@ public class SelectionSaveServiceTests
     [Fact]
     public async Task Autounattend_OnTheMedia_ReturnsEveryStagingOutcomeAndOpensNoDialog()
     {
-        ArrangeStaging().ReturnsAsync((IReadOnlyList<StagedApp>)[new StagedApp("Google Chrome", true), new StagedApp("Steam", false)]);
+        ArrangeStaging().ReturnsAsync((IReadOnlyList<StagedApp>)
+            [new StagedApp("Google Chrome", StagingOutcome.OnMedia), new StagedApp("Steam", StagingOutcome.DownloadFailed)]);
 
         var saved = await SaveOnTheMediaAsync(SetWithExternalApp());
 
         saved.Path.Should().Be(XmlPath);
-        saved.Apps.Should().Equal(new StagedApp("Google Chrome", true), new StagedApp("Steam", false));
+        saved.Apps.Should().Equal(new StagedApp("Google Chrome", StagingOutcome.OnMedia), new StagedApp("Steam", StagingOutcome.DownloadFailed));
         _dialogs.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
@@ -764,7 +856,8 @@ public class SelectionSaveServiceTests
 
         savedPath.Should().Be(XmlPath);
         _progress.Verify(p => p.FailTask(), Times.Once);
-        _progress.Verify(p => p.CompleteTask(), Times.Never);
+        // The save's own bar, which closed before the staging began.
+        _progress.Verify(p => p.CompleteTask(), Times.Once);
         _dialogs.Verify(d => d.ShowWarningAsync("The media is full", "Dialog_Warning", It.IsAny<string>()), Times.Once);
         _log.Verify(
             l => l.Log(LogLevel.Error, It.Is<string>(m => m.Contains("The media is full")), It.IsAny<Exception>(), It.IsAny<string>()),
@@ -776,9 +869,10 @@ public class SelectionSaveServiceTests
     {
         ArrangeStaging().ThrowsAsync(new OperationCanceledException());
 
-        string? savedPath = (await SaveOnTheMediaAsync(SetWithExternalApp())).Path;
+        var saved = await SaveOnTheMediaAsync(SetWithExternalApp());
 
-        savedPath.Should().Be(XmlPath);
+        saved.Path.Should().Be(XmlPath);
+        saved.StagingCancelled.Should().BeTrue();
         _progress.Verify(p => p.CancelTask(), Times.Once);
         _progress.Verify(p => p.FailTask(), Times.Never);
         _dialogs.Verify(d => d.ShowWarningAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);

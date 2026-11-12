@@ -41,7 +41,7 @@ internal sealed class AppStagingService(
                 && (catalog.FirstOrDefault(item => string.Equals(item.Id, choice.Id, StringComparison.Ordinal)) ?? PackageSearchItem.FromId(choice.Id)) is { } app)
                 apps.Add(app);
             else
-                outcomes.Add(new StagedApp(choice.Name, false));
+                outcomes.Add(new StagedApp(choice.Name, StagingOutcome.Skipped));
         }
 
         // The answer file says amd64 where winget and the catalog's download URLs say x64. Never x86: the Winhance
@@ -67,14 +67,13 @@ internal sealed class AppStagingService(
             var appFolder = files.CombinePath(appsFolder, app.Id);
             DeleteSubfoldersExcept(appFolder, architectures);
 
-            var staged = false;
+            var outcome = StagingOutcome.Skipped;
             foreach (var architecture in architectures)
             {
-                if (await StageAppAsync(app, architecture, files.CombinePath(appFolder, architecture), progress, cancellationToken).ConfigureAwait(false))
-                    staged = true;
+                outcome = Best(outcome, await StageAppAsync(app, architecture, files.CombinePath(appFolder, architecture), progress, cancellationToken).ConfigureAwait(false));
             }
 
-            outcomes.Add(new StagedApp(app.Name, staged));
+            outcomes.Add(new StagedApp(app.Name, outcome));
             if (files.DirectoryExists(appFolder) && files.GetDirectories(appFolder).Length == 0)
                 DeleteFolder(appFolder);
         }
@@ -95,52 +94,79 @@ internal sealed class AppStagingService(
             DeleteSubfoldersExcept(ownFolder, [.. onMediaOnly.Select(installer => files.GetFileNameWithoutExtension(installer.FilePath))]);
         foreach (var installer in ownInstallers)
         {
-            var staged = await Task.Run(
+            var outcome = await Task.Run(
                 () => onMediaOnly.Contains(installer) ? KeepOwnInstaller(installer, ownFolder) : StageOwnInstaller(installer, ownFolder),
                 cancellationToken).ConfigureAwait(false);
-            outcomes.Add(new StagedApp(files.GetFileName(installer.FilePath), staged));
+            outcomes.Add(new StagedApp(files.GetFileName(installer.FilePath), outcome));
         }
 
         var winhanceInstaller = OnMedia(mediaFolder, ScriptPaths.UnattendWinhanceInstallerPath);
-        outcomes.Add(new StagedApp("Winhance", await IsUpToDateAsync(winhanceInstaller, cancellationToken).ConfigureAwait(false)
+        var winhanceStaged = await IsUpToDateAsync(winhanceInstaller, cancellationToken).ConfigureAwait(false)
             || await StageWinhanceInstallerAsync(winhanceInstaller, progress, cancellationToken).ConfigureAwait(false)
-            || files.FileExists(winhanceInstaller)));
+            || files.FileExists(winhanceInstaller);
+        outcomes.Add(new StagedApp("Winhance", winhanceStaged ? StagingOutcome.OnMedia : StagingOutcome.DownloadFailed));
 
         return outcomes;
     }
 
     public void RemoveStaged(string mediaFolder) => DeleteFolder(OnMedia(mediaFolder, ScriptPaths.UnattendAppsDirectory));
 
-    private async Task<bool> StageAppAsync(
+    private static StagingOutcome Best(StagingOutcome a, StagingOutcome b) => a < b ? a : b;
+
+    // The folder is named for the PC that runs it, not for what is inside: a 32-bit installer in the x64 folder runs
+    // under WOW64, and Windows 11 on Arm runs x64 and x86 under emulation. winget's -a x64 never matches a neutral
+    // installer, so neutral is asked for by name.
+    private static string[] DownloadArchitectures(string architecture) => architecture switch
+    {
+        "arm64" => ["arm64", "neutral", "x64", "x86"],
+        _ => [architecture, "neutral", "x86"],
+    };
+
+    private async Task<StagingOutcome> StageAppAsync(
         ItemDefinition app,
         string architecture,
         string folder,
         IProgress<TaskProgressDetail>? progress,
         CancellationToken cancellationToken)
     {
+        var outcome = StagingOutcome.Skipped;
         try
         {
-            if (HoldsRunnableInstaller(folder))
-                return true;
+            if (HoldsOfflineInstaller(folder, acceptPackaged: true))
+                return StagingOutcome.OnMedia;
 
-            if (app.WinGetPackageId is [var packageId, ..])
+            // An msix installs for the signed-in user alone, so the catalog's download, which installs for everyone,
+            // goes first and the msix is fetched again only when that fails.
+            var packageId = app.WinGetPackageId is [var id, ..] ? id : null;
+            var hasDownload = app.ExternalApp is not null;
+            string? packagedArchitecture = null;
+            if (packageId != null)
             {
-                // Machine scope first so one copy installs for everyone; a package whose only installer is per-user
-                // has nothing at that scope, so ask again without one.
-                foreach (var forAllUsers in new[] { true, false })
+                // Only a missing installer moves on to the next architecture: a failed download would trade a 64-bit
+                // app the new PC gets online for a 32-bit one on the media.
+                foreach (var downloadArchitecture in DownloadArchitectures(architecture))
                 {
-                    ResetFolder(folder);
-                    if (await winGet.DownloadPackageAsync(packageId, architecture, forAllUsers, folder, app.Name, cancellationToken).ConfigureAwait(false)
-                        && HoldsRunnableInstaller(folder))
-                        return true;
+                    var attempt = await DownloadAsync(packageId, downloadArchitecture, app.Name, folder, acceptPackaged: !hasDownload, cancellationToken).ConfigureAwait(false);
+                    if (attempt == StagingOutcome.OnMedia)
+                        return attempt;
+                    outcome = Best(outcome, attempt);
+                    if (attempt == StagingOutcome.NeedsWinGet && HoldsOfflineInstaller(folder, acceptPackaged: true))
+                        packagedArchitecture = downloadArchitecture;
+                    if (attempt != StagingOutcome.NoInstallerForArchitecture)
+                        break;
                 }
             }
 
-            if (app.ExternalApp is not null)
+            if (hasDownload)
             {
                 ResetFolder(folder);
                 if (await downloads.DownloadAsync(app, architecture, folder, progress, cancellationToken).ConfigureAwait(false) is not null)
-                    return true;
+                    return StagingOutcome.OnMedia;
+                outcome = Best(outcome, StagingOutcome.DownloadFailed);
+
+                if (packageId != null && packagedArchitecture != null
+                    && await DownloadAsync(packageId, packagedArchitecture, app.Name, folder, acceptPackaged: true, cancellationToken).ConfigureAwait(false) == StagingOutcome.OnMedia)
+                    return StagingOutcome.OnMedia;
             }
         }
         catch (OperationCanceledException)
@@ -152,15 +178,39 @@ internal sealed class AppStagingService(
         catch (Exception ex)
         {
             log.LogWarning($"Could not stage {app.Name} ({architecture}): {ex.Message}");
+            outcome = Best(outcome, StagingOutcome.DownloadFailed);
         }
 
-        log.LogInformation($"{app.Name} ({architecture}) is not on the media; the new PC downloads it after setup");
+        log.LogInformation($"{app.Name} ({architecture}) is not on the media ({outcome}); the new PC downloads it after setup");
         DeleteFolder(folder);
-        return false;
+        return outcome;
     }
 
-    // winget's msix, zip and portable packages need winget itself to install them, so the new PC gets those online.
-    private bool HoldsRunnableInstaller(string folder)
+    private async Task<StagingOutcome> DownloadAsync(string packageId, string architecture, string name, string folder, bool acceptPackaged, CancellationToken cancellationToken)
+    {
+        // Machine scope first so one copy installs for everyone; a package whose only installer is per-user
+        // has nothing at that scope, so ask again without one.
+        var outcome = StagingOutcome.Skipped;
+        foreach (var forAllUsers in new[] { true, false })
+        {
+            ResetFolder(folder);
+            var result = await winGet.DownloadPackageAsync(packageId, architecture, forAllUsers, folder, name, cancellationToken).ConfigureAwait(false);
+            var attempt = result switch
+            {
+                { Success: true } => HoldsOfflineInstaller(folder, acceptPackaged) ? StagingOutcome.OnMedia : StagingOutcome.NeedsWinGet,
+                { FailureReason: InstallFailureReason.NoApplicableInstallers } => StagingOutcome.NoInstallerForArchitecture,
+                _ => StagingOutcome.DownloadFailed,
+            };
+            if (attempt == StagingOutcome.OnMedia)
+                return attempt;
+            outcome = Best(outcome, attempt);
+        }
+
+        return outcome;
+    }
+
+    // A package type Winhance cannot install itself (a font, a zip holding an msix) is left to winget online.
+    private bool HoldsOfflineInstaller(string folder, bool acceptPackaged)
     {
         if (WinGetManifest.InstallerIn(files, folder) is null)
             return false;
@@ -168,7 +218,8 @@ internal sealed class AppStagingService(
         return files.GetFiles(folder)
             .Where(WinGetManifest.IsManifest)
             .All(path => WinGetManifest.TryRead(files.ReadAllText(path)) is { } manifest
-                && WinGetManifest.IsRunnable(manifest.InstallerType));
+                && manifest.InstallsWithoutWinGet
+                && (acceptPackaged || !manifest.IsPackaged));
     }
 
     private bool IsOnMediaOnly(OwnInstaller installer, string ownFolder) =>
@@ -177,14 +228,14 @@ internal sealed class AppStagingService(
             files.CombinePath(ownFolder, files.GetFileNameWithoutExtension(installer.FilePath)),
             files.GetFileName(installer.FilePath)));
 
-    private bool StageOwnInstaller(OwnInstaller installer, string ownFolder)
+    private StagingOutcome StageOwnInstaller(OwnInstaller installer, string ownFolder)
     {
         try
         {
             if (!files.FileExists(installer.FilePath))
             {
                 log.LogWarning($"Own installer not found: {installer.FilePath}");
-                return false;
+                return StagingOutcome.NotFound;
             }
 
             var name = files.GetFileNameWithoutExtension(installer.FilePath);
@@ -196,26 +247,26 @@ internal sealed class AppStagingService(
             files.CopyFile(installer.FilePath, files.CombinePath(folder, files.GetFileName(installer.FilePath)));
             WriteSwitches(installer, folder);
 
-            return true;
+            return StagingOutcome.OnMedia;
         }
         catch (Exception ex)
         {
             log.LogWarning($"Could not stage {installer.FilePath}: {ex.Message}");
-            return false;
+            return StagingOutcome.CopyFailed;
         }
     }
 
-    private bool KeepOwnInstaller(OwnInstaller installer, string ownFolder)
+    private StagingOutcome KeepOwnInstaller(OwnInstaller installer, string ownFolder)
     {
         try
         {
             WriteSwitches(installer, files.CombinePath(ownFolder, files.GetFileNameWithoutExtension(installer.FilePath)));
-            return true;
+            return StagingOutcome.OnMedia;
         }
         catch (Exception ex)
         {
             log.LogWarning($"Could not update the switches of {installer.FilePath} on the media: {ex.Message}");
-            return false;
+            return StagingOutcome.CopyFailed;
         }
     }
 

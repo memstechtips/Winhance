@@ -64,7 +64,6 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(IWindowsThemeService))]
     [InlineData(typeof(IFileStore))]
     [InlineData(typeof(IOptionProviderRegistry))]
-    [InlineData(typeof(ThemeModeApplier))]
     [InlineData(typeof(TimeRegionLanguageService))]
     public void Resolve_CoreInfrastructureServices_AllNonNull(Type serviceType)
     {

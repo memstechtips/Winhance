@@ -63,6 +63,7 @@ public class LocalizationUntranslatedValueTests
         // translating either.
         "SettingGroup_Xbox",
         "SettingGroup_ATIPowerPlay",
+        "WIMUtil_AnswerFile_Builder",
         "SettingGroup_InternetExplorer",
         "SettingGroup_PCI_Express",
         "Setting_privacy-turn-off-copilot_Name",
@@ -73,11 +74,17 @@ public class LocalizationUntranslatedValueTests
         "Setting_gaming-disable-mpo_Name",
         // "ARM64" - the processor architecture winget's --architecture names; it has no localized form.
         "InstallOptions_Architecture_Arm64",
+        // "{0}: {1}" - app name and reason; placeholders and a colon, no words to translate.
+        "WIMUtil_Generate_Summary_AppNotStaged",
         // The Windows release names, and the surname of the author of the online answer-file generator next
         // to the file format it emits. The ten locales that differ only reorder them ("XML de Schneegans").
         "WIMUtil_ButtonWindows10",
         "WIMUtil_ButtonWindows11",
         "WIMUtil_ButtonSchneegans",
+
+        // The Windows image file formats, named by their extensions as DISM's /Compress and /Export-Image do.
+        "WIMUtil_Format_Wim",
+        "WIMUtil_Format_Esd",
 
         // Microsoft feature names Microsoft itself leaves in English. "Click to Do" stands in 27 of the 28
         // files. "Xbox Game DVR" names the GameDVR registry family the setting writes (GameDVR_Enabled,

@@ -7,5 +7,5 @@ public interface IBulkSettingsActionService
 {
     Task<int> ApplyRecommendedAsync(IEnumerable<string> settingIds, IProgress<TaskProgressDetail>? progress = null);
     Task<int> ResetToDefaultsAsync(IEnumerable<string> settingIds, IProgress<TaskProgressDetail>? progress = null);
-    Task<int> GetAffectedCountAsync(IEnumerable<string> settingIds, BulkActionType actionType);
+    Task<IReadOnlyList<string>> GetAffectedSettingIdsAsync(IEnumerable<string> settingIds, BulkActionType actionType);
 }

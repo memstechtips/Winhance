@@ -70,6 +70,7 @@ public static class MaterialIcons
     public static readonly Icon ClipboardTextClockOutline = new(IconPack.Material, "ClipboardTextClockOutline");
     public static readonly Icon ClockAlertOutline = new(IconPack.Material, "ClockAlertOutline");
     public static readonly Icon ClockStart = new(IconPack.Material, "ClockStart");
+    public static readonly Icon CloseOctagon = new(IconPack.Material, "CloseOctagon");
     public static readonly Icon CloudOff = new(IconPack.Material, "CloudOff");
     public static readonly Icon CloudQuestion = new(IconPack.Material, "CloudQuestion");
     public static readonly Icon CloudSearch = new(IconPack.Material, "CloudSearch");
@@ -122,6 +123,7 @@ public static class MaterialIcons
     public static readonly Icon FolderAlert = new(IconPack.Material, "FolderAlert");
     public static readonly Icon FolderClockOutline = new(IconPack.Material, "FolderClockOutline");
     public static readonly Icon FolderMultiple = new(IconPack.Material, "FolderMultiple");
+    public static readonly Icon FolderRefresh = new(IconPack.Material, "FolderRefresh");
     public static readonly Icon FolderSearch = new(IconPack.Material, "FolderSearch");
     public static readonly Icon FolderTable = new(IconPack.Material, "FolderTable");
     public static readonly Icon FormDropdown = new(IconPack.Material, "FormDropdown");
@@ -145,6 +147,7 @@ public static class MaterialIcons
     public static readonly Icon Keyboard = new(IconPack.Material, "Keyboard");
     public static readonly Icon KeyboardOff = new(IconPack.Material, "KeyboardOff");
     public static readonly Icon KeyboardOutline = new(IconPack.Material, "KeyboardOutline");
+    public static readonly Icon LanConnect = new(IconPack.Material, "LanConnect");
     public static readonly Icon LanDisconnect = new(IconPack.Material, "LanDisconnect");
     public static readonly Icon Laptop = new(IconPack.Material, "Laptop");
     public static readonly Icon LightbulbNight = new(IconPack.Material, "LightbulbNight");
@@ -292,4 +295,5 @@ public static class MaterialIcons
     public static readonly Icon WifiOff = new(IconPack.Material, "WifiOff");
     public static readonly Icon WindowRestore = new(IconPack.Material, "WindowRestore");
     public static readonly Icon Wrap = new(IconPack.Material, "Wrap");
+    public static readonly Icon Wrench = new(IconPack.Material, "Wrench");
 }

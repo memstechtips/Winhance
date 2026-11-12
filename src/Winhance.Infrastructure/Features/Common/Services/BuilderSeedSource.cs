@@ -90,5 +90,5 @@ internal sealed class BuilderSeedSource : IBuilderSeedSource
     }
 
     private static int ToSystemUnits(int displayValue, Setting setting) =>
-        RecommendedSettingsResolver.ConvertDisplayToSystemUnits(displayValue, setting.Numeric!.Units);
+        PowerCfgValues.ToSystem(displayValue, setting.Numeric!.Units);
 }

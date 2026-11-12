@@ -9,12 +9,9 @@ internal static class WinGetCliRunner
 {
     private const int DefaultTimeoutMs = 300_000; // 5 minutes — wall-clock cap for short queries
 
-    // Installs need a wall clock because the idle timer cannot see a stall: winget prints a spinner frame every
-    // 5 seconds whether or not it is progressing (measured on v1.28.240), so a wedged run re-arms the idle deadline
-    // forever. 2 hours is deliberately generous - the 1.5 GB package measured needs ~100 minutes on a 2 Mbps link,
-    // and a user who wants out sooner has the cancel button.
-    public const int InstallTimeoutMs = 7_200_000;
-    public const int InstallIdleTimeoutMs = 180_000;
+    // A user-started install, update or removal has no time limit; the user has the cancel button. When winget goes
+    // this long without a line of output, the caller is told so the task dialog can say it is still waiting.
+    public const int StallNoticeMs = 180_000;
 
     // A killed process reports exit code -1 (0xFFFFFFFF), meaningless as a winget code - callers use this to tell
     // the user what really happened.
@@ -22,7 +19,6 @@ internal static class WinGetCliRunner
     {
         None,
         Cancelled,
-        IdleTimeout,
         WallClockTimeout,
     }
 
@@ -33,31 +29,13 @@ internal static class WinGetCliRunner
         TerminationReason Termination = TerminationReason.None);
 
     // For the terminal output dialog, so users and support transcripts don't see a bare -1 (0xFFFFFFFF).
-    // These four reasons are the ONLY explanation a user gets when Winhance kills winget itself, and they
-    // land in the task-output dialog and in support transcripts, so they are localized. The service is
-    // nullable because WinGetInstaller holds a nullable one; GetStringOrDefault handles the null.
-    public static string? DescribeTermination(
-        WinGetCliResult result, int timeoutMs, int idleTimeoutMs, ILocalizationService? localization)
+    public static string? DescribeTermination(WinGetCliResult result, ILocalizationService? localization)
     {
-        var idleMinutes = idleTimeoutMs / 60_000;
-        var limitMinutes = timeoutMs / 60_000;
-
-        return result.Termination switch
-        {
-            TerminationReason.IdleTimeout => localization.GetStringOrDefault(
-                "WinGet_TerminatedIdle",
-                $"winget was terminated by Winhance after producing no output for {idleMinutes} minutes. " +
-                "It normally prints progress every few seconds, so it had stopped responding rather than working slowly.",
-                idleMinutes),
-            TerminationReason.WallClockTimeout => localization.GetStringOrDefault(
-                "WinGet_TerminatedTimeLimit",
-                $"winget was terminated by Winhance after exceeding the {limitMinutes} minute time limit.",
-                limitMinutes),
-            TerminationReason.Cancelled => localization.GetStringOrDefault(
+        return result.Termination == TerminationReason.Cancelled
+            ? localization.GetStringOrDefault(
                 "WinGet_TerminatedCancelled",
-                "winget was terminated because the operation was cancelled."),
-            _ => null,
-        };
+                "winget was terminated because the operation was cancelled.")
+            : null;
     }
 
     // Bundled copy first (version-locked); system winget only when the bundled one is missing. System winget can be
@@ -132,9 +110,9 @@ internal static class WinGetCliRunner
 
     // Used in log line prefixes so support transcripts make it obvious which CLI ran.
 
-    // timeoutMs: wall-clock kill; 0 or Timeout.Infinite disables it (callers relying on idleTimeoutMs). idleTimeoutMs:
-    // kill when no stdout/stderr/progress arrives for this long; the timer resets on every line, so slow-but-progressing
-    // installs keep renewing their deadline. exePathOverride forces a binary (e.g. the bundled copy when installing
+    // timeoutMs: wall-clock kill for short queries; 0 or Timeout.Infinite disables it, which user-started installs
+    // use. onStall fires once after stallAfterMs with no stdout/stderr/progress, and again after any later quiet
+    // spell; it never ends the run. exePathOverride forces a binary (e.g. the bundled copy when installing
     // AppInstaller itself). interactiveUserService + OTS runs winget as the interactive user so packages land in the
     // right scope. asShellUser runs it unelevated as the signed-in user instead, whether or not OTS is in play.
     // onProgressLine gets the transient \r fragments; only \r\n lines reach onOutputLine. Cancellation kills the
@@ -148,14 +126,15 @@ internal static class WinGetCliRunner
         string? exePathOverride = null,
         IInteractiveUserService? interactiveUserService = null,
         Action<string>? onProgressLine = null,
-        int idleTimeoutMs = 0,
+        Action? onStall = null,
+        int stallAfterMs = StallNoticeMs,
         bool asShellUser = false)
     {
         var exePath = exePathOverride ?? GetWinGetExePath(interactiveUserService)
             ?? throw new FileNotFoundException("winget.exe not found. Bundled CLI may be missing.");
 
         CancellationTokenSource? wallClockCts = null;
-        CancellationTokenSource? idleCts = null;
+        Timer? stallTimer = null;
         CancellationTokenSource? linkedCts = null;
         try
         {
@@ -165,11 +144,8 @@ internal static class WinGetCliRunner
                 wallClockCts = new CancellationTokenSource(timeoutMs);
                 tokens.Add(wallClockCts.Token);
             }
-            if (idleTimeoutMs > 0)
-            {
-                idleCts = new CancellationTokenSource(idleTimeoutMs);
-                tokens.Add(idleCts.Token);
-            }
+            if (onStall != null)
+                stallTimer = new Timer(_ => onStall(), null, stallAfterMs, Timeout.Infinite);
             linkedCts = CancellationTokenSource.CreateLinkedTokenSource(tokens.ToArray());
 
             // Classifies why the process ended. Only a kill via Process.Kill reports
@@ -181,31 +157,34 @@ internal static class WinGetCliRunner
                     return TerminationReason.None;
                 if (cancellationToken.IsCancellationRequested)
                     return TerminationReason.Cancelled;
-                if (idleCts?.IsCancellationRequested == true)
-                    return TerminationReason.IdleTimeout;
                 if (wallClockCts?.IsCancellationRequested == true)
                     return TerminationReason.WallClockTimeout;
                 return TerminationReason.None;
             }
 
-            // Wrap callbacks so any output line resets the idle deadline. Wall-clock CTS
-            // is NOT reset — it stays an absolute upper bound. When idleCts is null the
-            // wrappers are unnecessary, but keeping them uniform avoids branchy plumbing.
-            var capturedIdleCts = idleCts;
-            var capturedIdleMs = idleTimeoutMs;
-            Action<string>? wrapOutput = (onOutputLine == null && capturedIdleCts == null) ? null : line =>
+            // Output and error lines re-arm the stall notice. Progress lines re-arm it only when they changed:
+            // winget prints a spinner frame every ~5 s whether or not it is working, so counting those would
+            // hide a real wedge.
+            var capturedStallTimer = stallTimer;
+            Action<string>? wrapOutput = (onOutputLine == null && capturedStallTimer == null) ? null : line =>
             {
-                ResetIdle(capturedIdleCts, capturedIdleMs);
+                RearmStall(capturedStallTimer, stallAfterMs);
                 onOutputLine?.Invoke(line);
             };
-            Action<string>? wrapError = (onErrorLine == null && capturedIdleCts == null) ? null : line =>
+            Action<string>? wrapError = (onErrorLine == null && capturedStallTimer == null) ? null : line =>
             {
-                ResetIdle(capturedIdleCts, capturedIdleMs);
+                RearmStall(capturedStallTimer, stallAfterMs);
                 onErrorLine?.Invoke(line);
             };
-            Action<string>? wrapProgress = (onProgressLine == null && capturedIdleCts == null) ? null : line =>
+            var lastProgressKey = "";
+            Action<string>? wrapProgress = (onProgressLine == null && capturedStallTimer == null) ? null : line =>
             {
-                ResetIdle(capturedIdleCts, capturedIdleMs);
+                var key = ProgressKey(line);
+                if (key != lastProgressKey)
+                {
+                    lastProgressKey = key;
+                    RearmStall(capturedStallTimer, stallAfterMs);
+                }
                 onProgressLine?.Invoke(line);
             };
 
@@ -221,7 +200,7 @@ internal static class WinGetCliRunner
             }
 
             // OTS: run winget as the interactive user so packages install to their scope. The helper's own
-            // wall-clock stays off (0): linkedCts already carries wall-clock, idle and caller cancellation.
+            // wall-clock stays off (0): linkedCts already carries wall-clock and caller cancellation.
             if (interactiveUserService != null
                 && interactiveUserService.IsOtsElevation
                 && interactiveUserService.HasInteractiveUserToken)
@@ -314,15 +293,25 @@ internal static class WinGetCliRunner
         {
             linkedCts?.Dispose();
             wallClockCts?.Dispose();
-            idleCts?.Dispose();
+            stallTimer?.Dispose();
         }
     }
 
-    private static void ResetIdle(CancellationTokenSource? cts, int idleTimeoutMs)
+    // The parsed percent when there is one, else the text without spinner glyphs: empty for a bare spinner frame.
+    internal static string ProgressKey(string line)
     {
-        if (cts == null) return;
-        try { cts.CancelAfter(idleTimeoutMs); }
-        catch (ObjectDisposedException) { } // race with cleanup; idle no longer relevant
+        var percent = WinGetProgressParser.ParseLine(line)?.Percent;
+        if (percent.HasValue)
+            return percent.Value.ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+
+        return string.Concat(line.Where(c => !char.IsWhiteSpace(c) && c is not ('-' or '\\' or '|' or '/')));
+    }
+
+    private static void RearmStall(Timer? timer, int stallAfterMs)
+    {
+        if (timer == null) return;
+        try { timer.Change(stallAfterMs, Timeout.Infinite); }
+        catch (ObjectDisposedException) { } // race with cleanup; the notice no longer matters
     }
 
     // Classifies lines by terminator: \r -> progress (transient, onProgressLine); \n -> permanent (onOutputLine);

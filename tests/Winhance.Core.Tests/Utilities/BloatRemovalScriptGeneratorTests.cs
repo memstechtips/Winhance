@@ -68,16 +68,38 @@ public class BloatRemovalScriptGeneratorTests
     }
 
     [Fact]
-    public void The_Xbox_fix_redirects_the_Game_Bar_links_and_leaves_Game_DVR_to_its_setting()
+    public void GenerateScript_WithXboxRegistryFix_RedirectsGameBarLinksAndLeavesGameDvrAlone()
     {
         var script = BloatRemovalScriptGenerator.GenerateScript(
             new List<string> { "Microsoft.XboxGamingOverlay" }, new List<string>(),
             new List<string>(), new List<string>(),
             includeXboxRegistryFix: true);
 
-        script.Should().Contain(@"HKCR\ms-gamebar\shell\open\command");
+        script.Should().Contain(@"ms-gamebarservices").And.Contain(@"$key\shell\open\command");
         script.Should().NotContain("GameDVR");
         script.Should().NotContain("AppCaptureEnabled");
+    }
+
+    [Fact]
+    public void GenerateScript_TakesTheImageAndSoftwareRootWithLiveDefaults()
+    {
+        var script = BloatRemovalScriptGenerator.GenerateScript(new List<string>(), new List<string>(), new List<string>(), new List<string>(), includeXboxRegistryFix: true);
+
+        script.Should().Contain("param([string]$Image = '',");
+        script.Should().Contain("[string]$SoftwareRoot = 'HKEY_LOCAL_MACHINE\\SOFTWARE'");
+        script.Should().Contain("$classes = if ($Offline) { \"$SoftwareRoot\\Classes\" } else { 'HKCR' }");
+    }
+
+    [Fact]
+    public void GenerateScript_OnAnImage_RunsOnlyTheXboxRedirect()
+    {
+        var script = BloatRemovalScriptGenerator.GenerateScript(
+            new List<string> { "Microsoft.XboxGamingOverlay" }, new List<string>(), new List<string>(), new List<string> { "OneNote" },
+            includeXboxRegistryFix: true);
+
+        script.IndexOf("if (-not $Offline) {", StringComparison.Ordinal).Should().BePositive()
+            .And.BeLessThan(script.IndexOf("ms-gamebarservices", StringComparison.Ordinal));
+        script.Should().Contain("if ($Offline) { Write-Host $Message; return }");
     }
 
     [Fact]
@@ -184,5 +206,28 @@ public class BloatRemovalScriptGeneratorTests
         var updated = BloatRemovalScriptGenerator.UpdateScriptTemplate(original);
 
         updated.Should().Contain("MSTeams");
+    }
+
+    [Fact]
+    public void GenerateScript_NameWithAQuote_IsEscaped()
+    {
+        var script = BloatRemovalScriptGenerator.GenerateScript(
+            new List<string> { "Evil'; calc; '" }, new List<string>(), new List<string>(), new List<string>());
+
+        script.Should().Contain("    'Evil''; calc; '''");
+        script.Should().NotContain("    'Evil'; calc");
+    }
+
+    [Fact]
+    public void UpdateScriptTemplate_EscapedName_RoundTripsUnchanged()
+    {
+        var original = BloatRemovalScriptGenerator.GenerateScript(
+            new List<string> { "Evil'; calc; '", "Microsoft.BingWeather" }, new List<string>(), new List<string>(), new List<string>());
+
+        var updated = BloatRemovalScriptGenerator.UpdateScriptTemplate(original);
+
+        BloatRemovalScriptGenerator.ExtractArrayFromScript(updated, BloatRemovalScriptGenerator.PackagesArray)
+            .Should().Equal("Evil'; calc; '", "Microsoft.BingWeather");
+        updated.Should().Contain("    'Evil''; calc; '''");
     }
 }

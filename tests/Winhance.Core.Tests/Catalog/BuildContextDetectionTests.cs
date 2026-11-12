@@ -45,7 +45,7 @@ public class BuildContextDetectionTests
     }
 
     [Fact]
-    public void Win11_uses_the_value_target()
+    public void Detect_OnWindows11_UsesTheValueTarget()
     {
         var s = TwoMechanismSetting();
         Assert.Equal(LocKey.Common.Enabled.Value,CatalogDiscovery.Detect(s, new Ctx { CurrentBuild = new(22631), Value = 0, KeyPresent = false }).Label);
@@ -53,7 +53,7 @@ public class BuildContextDetectionTests
     }
 
     [Fact]
-    public void Win10_uses_the_key_existence_target()
+    public void Detect_OnWindows10_UsesTheKeyExistenceTarget()
     {
         var s = TwoMechanismSetting();
         Assert.Equal(LocKey.Common.Enabled.Value,CatalogDiscovery.Detect(s, new Ctx { CurrentBuild = new(19045), Value = null, KeyPresent = true }).Label);
@@ -61,7 +61,7 @@ public class BuildContextDetectionTests
     }
 
     [Fact]
-    public void Apply_emits_only_the_build_active_target()
+    public void Build_ForWindows11_EmitsOnlyTheBuildActiveTarget()
     {
         var s = TwoMechanismSetting();
         var win11 = ApplyPlanBuilder.Build(s, LocKey.Common.Enabled, new WinBuild(22631));

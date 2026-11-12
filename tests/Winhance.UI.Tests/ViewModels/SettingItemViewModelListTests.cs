@@ -126,7 +126,7 @@ public class SettingItemViewModelListTests
     private static ListFieldViewModel FieldOf(ListRowViewModel row, string key) => row.FieldFor(key)!;
 
     [Fact]
-    public void The_only_row_cannot_be_removed_until_a_second_one_exists()
+    public void CanRemove_OnlyRow_IsFalseUntilASecondRowExists()
     {
         var sut = CreateSut();
 
@@ -141,7 +141,7 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public void A_list_with_a_file_field_adds_no_row_when_the_picker_is_cancelled()
+    public void AddRow_FileFieldPickerCancelled_AddsNoRow()
     {
         var sut = CreateCard(OwnInstallersSetting, InputType.List);
 
@@ -152,7 +152,7 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public void A_list_with_a_file_field_opens_the_picker_with_the_catalog_filter()
+    public void AddRow_FileField_OpensPickerWithCatalogFilter()
     {
         ArrangePicked(@"C:\Setup\Reader.exe");
         var sut = CreateCard(OwnInstallersSetting, InputType.List);
@@ -167,7 +167,7 @@ public class SettingItemViewModelListTests
 
     // The row's first box is the picked file, so a row that leaves its other boxes empty is still a filled row.
     [Fact]
-    public void A_picked_file_is_recorded_at_once_with_its_other_fields_empty()
+    public void AddRow_PickedFile_RecordsItAtOnceWithOtherFieldsEmpty()
     {
         ArrangePicked(@"C:\Setup\Reader.exe");
         var sut = CreateCard(OwnInstallersSetting, InputType.List);
@@ -181,7 +181,7 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public void Text_typed_beside_a_picked_file_is_recorded_on_its_row()
+    public void FieldText_TypedBesidePickedFile_IsRecordedOnItsRow()
     {
         ArrangePicked(@"C:\Setup\Reader.exe");
         var sut = CreateCard(OwnInstallersSetting, InputType.List);
@@ -195,7 +195,7 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public void The_only_row_of_a_list_that_can_be_empty_can_be_removed()
+    public void Remove_OnlyRowOfListThatCanBeEmpty_RemovesIt()
     {
         ArrangePicked(@"C:\Setup\Reader.exe");
         var sut = CreateCard(OwnInstallersSetting, InputType.List);
@@ -210,7 +210,7 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public void Adding_a_row_records_nothing_until_it_has_a_name()
+    public void AddRow_WithoutName_RecordsNothing()
     {
         var sut = CreateSut();
 
@@ -221,7 +221,7 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public void Naming_a_row_puts_it_in_the_record()
+    public void FieldText_NamingARow_PutsItInTheRecord()
     {
         var sut = CreateSut();
         sut.AddRow();
@@ -233,7 +233,7 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public void Every_field_the_catalog_declares_is_on_the_row()
+    public void AddRow_Always_PutsEveryCatalogFieldOnTheRow()
     {
         var sut = CreateSut();
 
@@ -244,7 +244,7 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public void The_second_row_taking_the_sign_in_clears_the_first()
+    public void AutoLogonChecked_SecondRowTakingIt_ClearsTheFirst()
     {
         var sut = CreateSut();
         sut.AddRow();
@@ -260,7 +260,7 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public void Removing_the_signing_in_row_records_no_automatic_sign_in()
+    public void Remove_SigningInRow_RecordsNoAutomaticSignIn()
     {
         var sut = CreateSut();
         sut.AddRow();
@@ -277,7 +277,7 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public void A_row_in_the_users_group_cannot_sign_in()
+    public void AutoLogonChecked_RowInUsersGroup_CannotSignIn()
     {
         var sut = CreateSut();
         sut.AddRow();
@@ -293,7 +293,7 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public void The_password_banner_shows_only_while_a_config_file_is_being_built()
+    public void ShowPasswordBanner_Always_ShowsOnlyWhileConfigFileIsBeingBuilt()
     {
         var sut = CreateSut();
         sut.ShowPasswordBanner.Should().BeTrue();
@@ -308,7 +308,7 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public void Ticking_the_box_records_the_same_rows_with_the_passwords_kept()
+    public void SavePasswords_Ticked_RecordsSameRowsWithPasswordsKept()
     {
         var sut = CreateSut();
         sut.AddRow();
@@ -325,7 +325,7 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public void A_row_edit_after_the_box_still_records_the_box()
+    public void FieldText_EditAfterSavePasswordsTicked_StillRecordsTheBox()
     {
         var sut = CreateSut();
         sut.SavePasswords = true;
@@ -337,7 +337,7 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public void A_password_ending_in_a_space_reaches_the_config_file_and_comes_back_whole()
+    public void SavePasswords_PasswordEndingInSpace_ReachesConfigFileAndComesBackWhole()
     {
         var sut = CreateSut();
         sut.AddRow();
@@ -355,7 +355,7 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public async Task Flipping_the_parent_away_and_back_keeps_the_rows()
+    public async Task CommitComboBoxSelection_ParentFlippedAwayAndBack_KeepsRows()
     {
         var parent = CreateParent();
         var list = CreateSut();
@@ -363,7 +363,7 @@ public class SettingItemViewModelListTests
         var feature = CreateFeature();
         await feature.LoadSettingsAsync();
 
-        parent.ApplySelectionValue(CreateTheAccountsNow);
+        parent.CommitComboBoxSelection(CreateTheAccountsNow);
         list.EffectiveIsEnabled.Should().BeTrue();
         list.AddRow();
         FieldOf(list.Rows[0], "name").Text = "Marco";
@@ -371,10 +371,10 @@ public class SettingItemViewModelListTests
         list.AddRow();
         FieldOf(list.Rows[1], "name").Text = "Guest";
 
-        parent.ApplySelectionValue(LocalAccountOnly);
+        parent.CommitComboBoxSelection(LocalAccountOnly);
         list.EffectiveIsEnabled.Should().BeFalse(because: "a greyed card is how the closed gate shows");
 
-        parent.ApplySelectionValue(CreateTheAccountsNow);
+        parent.CommitComboBoxSelection(CreateTheAccountsNow);
 
         list.Rows.Select(row => FieldOf(row, "name").Text).Should().Equal("Marco", "Guest");
         FieldOf(list.Rows[0], "auto-logon").Checked.Should().BeTrue();
@@ -385,7 +385,7 @@ public class SettingItemViewModelListTests
 
     // Opening the page again, a language change or a filter change throws every card away and builds a new one.
     [Fact]
-    public async Task A_rebuild_between_the_flips_brings_the_rows_back()
+    public async Task LoadSettingsAsync_RebuildBetweenParentFlips_BringsRowsBack()
     {
         var parent = CreateParent();
         var list = CreateSut();
@@ -393,13 +393,13 @@ public class SettingItemViewModelListTests
         var feature = CreateFeature();
         await feature.LoadSettingsAsync();
 
-        parent.ApplySelectionValue(CreateTheAccountsNow);
+        parent.CommitComboBoxSelection(CreateTheAccountsNow);
         list.AddRow();
         FieldOf(list.Rows[0], "name").Text = "Marco";
         FieldOf(list.Rows[0], "password").Text = "hunter2";
         FieldOf(list.Rows[0], "auto-logon").Checked = true;
         list.SavePasswords = true;
-        parent.ApplySelectionValue(LocalAccountOnly);
+        parent.CommitComboBoxSelection(LocalAccountOnly);
 
         // The factory applies the overlay as the last thing it does, so a rebuilt card arrives carrying it.
         var rebuiltParent = CreateParent();
@@ -409,7 +409,7 @@ public class SettingItemViewModelListTests
         SetupLoad(rebuiltParent, rebuiltList);
         await feature.RefreshSettingsAsync();
 
-        rebuiltParent.ApplySelectionValue(CreateTheAccountsNow);
+        rebuiltParent.CommitComboBoxSelection(CreateTheAccountsNow);
 
         rebuiltList.EffectiveIsEnabled.Should().BeTrue();
         rebuiltList.Rows.Should().ContainSingle();
@@ -422,7 +422,7 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public void A_row_typed_out_of_order_is_recorded_whole_once_it_has_a_name()
+    public void FieldText_RowTypedOutOfOrder_IsRecordedWholeOnceNamed()
     {
         var sut = CreateSut();
         sut.AddRow();
@@ -440,7 +440,7 @@ public class SettingItemViewModelListTests
 
     // The sign-in box is IsEnabled-bound to the condition, so this order cannot be typed on screen.
     [Fact]
-    public void A_sign_in_ticked_under_the_wrong_group_does_not_come_back_with_it()
+    public void OptionIndex_SignInTickedUnderWrongGroup_DoesNotComeBackWithGroupChange()
     {
         var sut = CreateSut();
         sut.AddRow();
@@ -456,7 +456,7 @@ public class SettingItemViewModelListTests
     }
 
     [Fact]
-    public void Moving_the_group_away_drops_a_sign_in_already_taken()
+    public void OptionIndex_GroupMovedAway_DropsSignInAlreadyTaken()
     {
         var sut = CreateSut();
         sut.AddRow();

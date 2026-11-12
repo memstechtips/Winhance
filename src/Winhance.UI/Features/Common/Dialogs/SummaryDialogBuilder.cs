@@ -46,11 +46,21 @@ internal class SummaryDialogBuilder(ILocalizationService localization)
             });
         }
 
-        if (request.Sections.Count > 0)
+        if (request.Sections.Count > 0 || request.Table is not null)
         {
             var sections = new StackPanel { Spacing = 16 };
             foreach (var section in request.Sections)
                 sections.Children.Add(BuildSection(section));
+
+            if (request.Table is { } table)
+            {
+                // The right margin matches the list's scroll bar gutter so the headings sit over their columns.
+                var header = TableRow(table.Columns, header: true);
+                header.Margin = new Thickness(13, 0, 29, -8);
+                content.Children.Add(header);
+                foreach (var group in table.Groups)
+                    sections.Children.Add(BuildTableGroup(group));
+            }
 
             content.Children.Add(new ScrollViewer
             {
@@ -59,6 +69,7 @@ internal class SummaryDialogBuilder(ILocalizationService localization)
                 // in the window or the checkbox below it is squeezed flat (measured on a 722 DIP window).
                 MaxHeight = Math.Max(160, xamlRoot.Size.Height - 300
                     - (request.Verdict is null ? 0 : 72)
+                    - (request.Table is null ? 0 : 28)
                     - (string.IsNullOrEmpty(request.CheckboxText) ? 0 : 44)),
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 Padding = new Thickness(0, 0, 16, 0),
@@ -119,6 +130,48 @@ internal class SummaryDialogBuilder(ILocalizationService localization)
             panel.Children.Add(BuildRow(row));
 
         return panel;
+    }
+
+    private static StackPanel BuildTableGroup(SummaryTableGroup group)
+    {
+        var panel = new StackPanel { Spacing = 4 };
+        panel.Children.Add(new TextBlock
+        {
+            Text = group.Heading,
+            Style = CodeBuiltStyle.Named("BodyStrongTextBlockStyle"),
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 0, 4),
+        });
+
+        foreach (var cells in group.Rows)
+        {
+            panel.Children.Add(new Border
+            {
+                Child = TableRow(cells, header: false),
+                Padding = new Thickness(12, 8, 12, 8),
+                CornerRadius = new CornerRadius(4),
+                Style = CodeBuiltStyle.Named("CodeBuilt.CardSurface"),
+            });
+        }
+
+        return panel;
+    }
+
+    // The first column holds the name, the longest cell, so it gets twice the width of the others.
+    private static Grid TableRow(IReadOnlyList<string> cells, bool header)
+    {
+        var grid = new Grid { ColumnSpacing = 12 };
+        for (int i = 0; i < cells.Count; i++)
+        {
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(i == 0 ? 2 : 1, GridUnitType.Star) });
+            var cell = header
+                ? new TextBlock { Text = cells[i], Style = CodeBuiltStyle.Named("CodeBuilt.CaptionSecondaryText") }
+                : new TextBlock { Text = cells[i] };
+            cell.TextWrapping = TextWrapping.Wrap;
+            Grid.SetColumn(cell, i);
+            grid.Children.Add(cell);
+        }
+        return grid;
     }
 
     private static Border BuildRow(SummaryRow row)

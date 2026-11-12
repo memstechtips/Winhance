@@ -31,7 +31,7 @@ public class RelationshipResolverTests
     private static LocKey? None(string _) => null;
 
     [Fact]
-    public void Activation_fires_requires_when_not_met()
+    public void ResolveForward_RequiresNotMet_FiresRequiresOnActivation()
     {
         var s = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) },
             new Link("b", LinkKind.Requires, TestKeys.Of("On")));
@@ -40,7 +40,7 @@ public class RelationshipResolverTests
     }
 
     [Fact]
-    public void Requires_already_met_fires_nothing()
+    public void ResolveForward_RequiresAlreadyMet_FiresNothing()
     {
         var s = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) },
             new Link("b", LinkKind.Requires, TestKeys.Of("On")));
@@ -49,7 +49,7 @@ public class RelationshipResolverTests
     }
 
     [Fact]
-    public void Applying_the_default_state_fires_nothing()
+    public void ResolveForward_DefaultState_FiresNothing()
     {
         var s = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) },
             new Link("b", LinkKind.Requires, TestKeys.Of("On")));
@@ -57,7 +57,7 @@ public class RelationshipResolverTests
     }
 
     [Fact]
-    public void Default_on_owner_fires_requires_from_its_windowsdefault_state()
+    public void ResolveForward_DefaultOnOwner_FiresRequiresFromWindowsDefaultState()
     {
         // Regression: a default-ON setting whose ACTIVE state IS its WindowsDefault must still fire its
         // prerequisite when applied. Proves the old "skip forward triggers on the WindowsDefault state" is gone.
@@ -78,7 +78,7 @@ public class RelationshipResolverTests
     }
 
     [Fact]
-    public void Enables_always_fires_with_force_even_if_met()
+    public void ResolveForward_EnablesLinkAlreadyMet_FiresWithForce()
     {
         var s = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) },
             new Link("b", LinkKind.Enables, TestKeys.Of("On")));
@@ -89,7 +89,7 @@ public class RelationshipResolverTests
     }
 
     [Fact]
-    public void Controls_on_the_state_drive_children()
+    public void ResolveForward_ControlsOnState_DrivesChildren()
     {
         var s = S("a",
             new[]
@@ -103,7 +103,7 @@ public class RelationshipResolverTests
     }
 
     [Fact]
-    public void Unknown_target_state_returns_empty()
+    public void ResolveForward_UnknownTargetState_ReturnsEmpty()
     {
         var s = S("a", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) });
         Assert.Empty(RelationshipResolver.ResolveForward(s, TestKeys.Of("Nope"), None));
@@ -121,7 +121,7 @@ public class RelationshipResolverTests
     });
 
     [Fact]
-    public void ReverseSync_snaps_parent_to_a_matching_preset()
+    public void ResolveReverseSync_MatchingPreset_SnapsParentToIt()
     {
         LocKey? Cur(string id) => id switch { "c1" => TestKeys.Of("Off"), "c2" => TestKeys.Of("Off"), "m" => TestKeys.Of("Custom"), _ => null };
         var actions = RelationshipResolver.ResolveReverseSync("c1", new[] { Master() }, Cur);
@@ -129,7 +129,7 @@ public class RelationshipResolverTests
     }
 
     [Fact]
-    public void ReverseSync_snaps_parent_to_the_no_controls_neutral_not_the_windows_default()
+    public void ResolveReverseSync_NoPresetMatches_SnapsParentToNoControlsNeutralNotWindowsDefault()
     {
         // c1=Off,c2=On matches no preset; master currently "Appearance" -> drops to the neutral "Custom"
         // (the no-Controls state), NOT to the WindowsDefault "LetWindows" (which carries its own preset).
@@ -140,14 +140,14 @@ public class RelationshipResolverTests
     }
 
     [Fact]
-    public void ReverseSync_no_action_when_parent_already_at_target()
+    public void ResolveReverseSync_ParentAlreadyAtTarget_TakesNoAction()
     {
         LocKey? Cur(string id) => id switch { "c1" => TestKeys.Of("Off"), "c2" => TestKeys.Of("On"), "m" => TestKeys.Of("Custom"), _ => null };
         Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { Master() }, Cur));
     }
 
     [Fact]
-    public void ReverseSync_ignores_parents_that_dont_control_the_child()
+    public void ResolveReverseSync_ParentsThatDoNotControlChild_AreIgnored()
     {
         var other = S("other", new[] { St(TestKeys.Of("On")), St(TestKeys.Of("Off"), isDefault: true) });
         Assert.Empty(RelationshipResolver.ResolveReverseSync("c1", new[] { other }, None));

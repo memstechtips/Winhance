@@ -28,9 +28,12 @@ public class ConfigApplicationExecutionServiceTests
     private readonly Mock<IChangeHistoryService> _mockChangeHistoryService = new();
     private readonly Mock<IInstallOptionsService> _mockInstallOptions = new();
     private readonly Mock<ICoverageSummaryService> _mockCoverageSummary = new();
+    private readonly Mock<IDisposable> _importScope = new();
 
     public ConfigApplicationExecutionServiceTests()
     {
+        _mockConfigImportState.Setup(s => s.Begin()).Returns(_importScope.Object);
+
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
@@ -89,7 +92,7 @@ public class ConfigApplicationExecutionServiceTests
             .Callback(() => calls.Add("install"))
             .Returns(Task.CompletedTask);
 
-        await CreateService().ExecuteConfigImportAsync(config, new ImportOptions { ProcessExternalAppsInstallation = true });
+        await CreateService().ExecuteConfigImportAsync(config, new ImportOptions { ProcessExternalAppsInstallation = true }, null);
 
         calls.Should().Equal("begin", "install", "end");
     }
@@ -105,7 +108,7 @@ public class ConfigApplicationExecutionServiceTests
             .Setup(s => s.DetectIncompatibleSettings(It.IsAny<WinhanceConfigFile>()))
             .Returns(new List<string>());
 
-        await CreateService().ExecuteConfigImportAsync(config, new ImportOptions { ProcessExternalAppsInstallation = true });
+        await CreateService().ExecuteConfigImportAsync(config, new ImportOptions { ProcessExternalAppsInstallation = true }, null);
 
         _mockConfigAppSelectionService.Verify(s => s.ProcessExternalAppsInstallationAsync(It.IsAny<ConfigSection>()), Times.Once);
         _mockInstallOptions.Verify(o => o.BeginSession(It.IsAny<InstallOptionsStore>()), Times.Never);
@@ -123,7 +126,7 @@ public class ConfigApplicationExecutionServiceTests
             .Returns(new List<string>());
 
         var service = CreateService();
-        await service.ExecuteConfigImportAsync(config, options);
+        await service.ExecuteConfigImportAsync(config, options, null);
 
         _mockDialogService.Verify(d => d.ShowMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
@@ -144,7 +147,7 @@ public class ConfigApplicationExecutionServiceTests
             .Returns(filteredConfig);
 
         var service = CreateService();
-        await service.ExecuteConfigImportAsync(config, options);
+        await service.ExecuteConfigImportAsync(config, options, null);
 
         _mockConfigLoadService.Verify(
             s => s.FilterConfigForCurrentSystem(config),
@@ -176,7 +179,7 @@ public class ConfigApplicationExecutionServiceTests
             .Returns(new List<string>());
 
         var service = CreateService();
-        await service.ExecuteConfigImportAsync(config, options);
+        await service.ExecuteConfigImportAsync(config, options, null);
 
         _mockConfigAppSelectionService.Verify(
             s => s.SelectWindowsAppsFromConfigAsync(It.IsAny<ConfigSection>()),
@@ -208,7 +211,7 @@ public class ConfigApplicationExecutionServiceTests
             .ReturnsAsync((false, true));
 
         var service = CreateService();
-        await service.ExecuteConfigImportAsync(config, options);
+        await service.ExecuteConfigImportAsync(config, options, null);
 
         _mockConfigAppSelectionService.Verify(
             s => s.ConfirmWindowsAppsRemovalAsync(),
@@ -240,7 +243,7 @@ public class ConfigApplicationExecutionServiceTests
             .ReturnsAsync((false, true));
 
         var service = CreateService();
-        await service.ExecuteConfigImportAsync(config, options);
+        await service.ExecuteConfigImportAsync(config, options, null);
 
         _mockConfigAppSelectionService.Verify(
             s => s.ClearWindowsAppsSelectionAsync(),
@@ -285,21 +288,15 @@ public class ConfigApplicationExecutionServiceTests
             .Returns(true);
 
         var service = CreateService();
-        await service.ExecuteConfigImportAsync(config, options);
+        await service.ExecuteConfigImportAsync(config, options, null);
 
         _mockOverlayService.Verify(o => o.ShowOverlay(It.IsAny<string>(), It.IsAny<string?>()), Times.Once);
         _mockOverlayService.Verify(o => o.HideOverlay(), Times.Once);
     }
 
     [Fact]
-    public async Task ExecuteConfigImportAsync_SetsAndClearsConfigImportState()
+    public async Task ExecuteConfigImportAsync_OpensAndClosesOneImportScope()
     {
-        var isActiveValues = new List<bool>();
-
-        _mockConfigImportState
-            .SetupSet(s => s.IsActive = It.IsAny<bool>())
-            .Callback<bool>(v => isActiveValues.Add(v));
-
         var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
@@ -335,11 +332,57 @@ public class ConfigApplicationExecutionServiceTests
             .Returns(true);
 
         var service = CreateService();
-        await service.ExecuteConfigImportAsync(config, options);
+        await service.ExecuteConfigImportAsync(config, options, null);
 
-        isActiveValues.Should().Contain(true);
-        isActiveValues.Should().Contain(false);
-        isActiveValues.Last().Should().BeFalse();
+        _mockConfigImportState.Verify(s => s.Begin(), Times.Once);
+        _importScope.Verify(d => d.Dispose(), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplySettingsQuietlyAsync_TakesNotAppliedBeforeClosingTheImportScope()
+    {
+        var calls = new List<string>();
+        _importScope.Setup(d => d.Dispose()).Callback(() => calls.Add("dispose"));
+        _mockConfigImportState.Setup(s => s.TakeNotApplied()).Callback(() => calls.Add("take")).Returns(["Skipped"]);
+        CaptureAppliedSections();
+        var config = new WinhanceConfigFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection { IsIncluded = true, Items = [new ConfigurationItem { Id = "s1", Name = "S1", IsSelected = true }] },
+                },
+            },
+        };
+
+        var notApplied = await CreateService().ApplySettingsQuietlyAsync(config, "Gaming", isWindowsDefaults: false, restartExplorer: false, broadcastRegional: false);
+
+        notApplied.Should().Equal("Skipped");
+        calls.Should().Equal("take", "dispose");
+    }
+
+    [Fact]
+    public void WithCleanActionSections_TickedCleanTaskbarWithNoTaskbarSection_AddsItAsActionOnly()
+    {
+        var sections = new List<string> { "Optimize", "Optimize_Privacy" };
+
+        var options = ConfigApplicationExecutionService.WithCleanActionSections(new ImportOptions { ApplyCleanTaskbar = true }, sections);
+
+        sections.Should().Equal("Optimize", "Optimize_Privacy", "Customize", "Customize_Taskbar");
+        options.ActionOnlySubsections.Should().BeEquivalentTo("Customize_Taskbar");
+    }
+
+    [Fact]
+    public void WithCleanActionSections_SectionAlreadySelected_LeavesItAsAFullSection()
+    {
+        var sections = new List<string> { "Customize", "Customize_StartMenu" };
+
+        var options = ConfigApplicationExecutionService.WithCleanActionSections(new ImportOptions { ApplyCleanStartMenu = true }, sections);
+
+        sections.Should().Equal("Customize", "Customize_StartMenu");
+        options.ActionOnlySubsections.Should().BeEmpty();
     }
 
     [Fact]
@@ -356,7 +399,7 @@ public class ConfigApplicationExecutionServiceTests
             .Returns((string key, object[] args) => $"{key}:{args[0]}");
 
         var service = CreateService();
-        await service.ExecuteConfigImportAsync(config, options);
+        await service.ExecuteConfigImportAsync(config, options, null);
 
         _mockOverlayService.Verify(o => o.HideOverlay(), Times.Once);
         _mockDialogService.Verify(
@@ -389,7 +432,7 @@ public class ConfigApplicationExecutionServiceTests
             .Returns(new List<string>());
 
         var service = CreateService();
-        await service.ExecuteConfigImportAsync(config, options);
+        await service.ExecuteConfigImportAsync(config, options, null);
 
         _mockConfigAppSelectionService.Verify(
             s => s.SelectExternalAppsFromConfigAsync(It.IsAny<ConfigSection>()),
@@ -461,7 +504,7 @@ public class ConfigApplicationExecutionServiceTests
             .Returns(Task.CompletedTask);
 
         var service = CreateService();
-        await service.ExecuteConfigImportAsync(config, options);
+        await service.ExecuteConfigImportAsync(config, options, null);
 
         _mockPolicyCleanupService.Verify(p => p.CleanupPolicyKeys(), Times.Once);
     }
@@ -510,7 +553,7 @@ public class ConfigApplicationExecutionServiceTests
             .Returns(Task.CompletedTask);
 
         var service = CreateService();
-        await service.ExecuteConfigImportAsync(config, options);
+        await service.ExecuteConfigImportAsync(config, options, null);
 
         _mockPolicyCleanupService.Verify(p => p.CleanupPolicyKeys(), Times.Never);
     }
@@ -558,10 +601,12 @@ public class ConfigApplicationExecutionServiceTests
             .Returns(Task.CompletedTask);
 
         var service = CreateService();
-        await service.ExecuteConfigImportAsync(config, options);
+        await service.ExecuteConfigImportAsync(config, options, @"C:\Configs\mine.winhance");
 
         _mockCoverageSummary.Verify(
             c => c.ShowImportSummaryAsync(
+                It.IsAny<WinhanceConfigFile>(),
+                @"C:\Configs\mine.winhance",
                 It.Is<IReadOnlyList<string>>(setAside => setAside.Contains("Lid close action (Power)")),
                 It.IsAny<IReadOnlyList<string>>()),
             Times.Once);
@@ -610,10 +655,12 @@ public class ConfigApplicationExecutionServiceTests
             .Returns(Task.CompletedTask);
 
         var service = CreateService();
-        await service.ExecuteConfigImportAsync(config, options);
+        await service.ExecuteConfigImportAsync(config, options, null);
 
         _mockCoverageSummary.Verify(
             c => c.ShowImportSummaryAsync(
+                It.IsAny<WinhanceConfigFile>(),
+                It.IsAny<string?>(),
                 It.IsAny<IReadOnlyList<string>>(),
                 It.Is<IReadOnlyList<string>>(notApplied => notApplied.Any(line => line.Contains("Mars Standard Time")))),
             Times.Once);

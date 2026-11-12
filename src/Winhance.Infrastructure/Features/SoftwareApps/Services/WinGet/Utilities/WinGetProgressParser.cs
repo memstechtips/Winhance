@@ -57,6 +57,7 @@ internal static class WinGetProgressParser
         ["ExtractArchiveSucceeded"] = "Archive extracted",
         ["InstallFlowStartingPackageInstall"] = "Installing...",
         ["InstallFlowInstallSuccess"] = "Installation successful",
+        ["InstallFlowRegistrationDeferred"] = "Installed, finishes when the app next starts",
         ["SourceOpenFailedSuggestion"] = "WinGet source unavailable",
         ["UnexpectedErrorExecutingCommand"] = "Unexpected error",
         ["InstallingDependencies"] = "Installing dependencies...",

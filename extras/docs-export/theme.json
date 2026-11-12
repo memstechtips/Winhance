@@ -1,46 +1,44 @@
 {
   "schemaVersion": 1,
   "themes": {
-    "light": {
-      "BadgeRecommendedBackground": "#221A7F37",
-      "BadgeRecommendedBorder": "#401A7F37",
-      "BadgeRecommendedForeground": "#FF1A7F37",
-      "BadgeDefaultBackground": "#10000000",
-      "BadgeDefaultBorder": "#33000000",
-      "BadgeDefaultForeground": "#99000000",
-      "BadgeCustomBackground": "#22B36800",
-      "BadgeCustomBorder": "#40B36800",
-      "BadgeCustomForeground": "#FFB36800",
-      "BadgePreferenceBackground": "#221E5FBF",
-      "BadgePreferenceBorder": "#401E5FBF",
-      "BadgePreferenceForeground": "#FF1E5FBF",
-      "BadgeDangerBackground": "#22C42B1C",
-      "BadgeDangerBorder": "#40C42B1C",
-      "BadgeDangerForeground": "#FFC42B1C"
-    },
-    "dark": {
-      "BadgeRecommendedBackground": "#223FB950",
-      "BadgeRecommendedBorder": "#403FB950",
-      "BadgeRecommendedForeground": "#FF3FB950",
-      "BadgeDefaultBackground": "#12FFFFFF",
-      "BadgeDefaultBorder": "#24FFFFFF",
-      "BadgeDefaultForeground": "#99FFFFFF",
-      "BadgeCustomBackground": "#22F0A030",
-      "BadgeCustomBorder": "#40F0A030",
-      "BadgeCustomForeground": "#FFF0A030",
-      "BadgePreferenceBackground": "#2280B3FF",
-      "BadgePreferenceBorder": "#4080B3FF",
-      "BadgePreferenceForeground": "#FF80B3FF",
-      "BadgeDangerBackground": "#22F25555",
-      "BadgeDangerBorder": "#40F25555",
-      "BadgeDangerForeground": "#FFF25555"
-    }
+    "light": {},
+    "dark": {}
   },
   "aliases": {
     "light": {
+      "BadgeRecommendedBackground": "SystemFillColorSuccessBackgroundBrush",
+      "BadgeRecommendedBorder": "ControlStrokeColorDefaultBrush",
+      "BadgeRecommendedForeground": "SystemFillColorSuccessBrush",
+      "BadgeDefaultBackground": "SystemFillColorNeutralBackgroundBrush",
+      "BadgeDefaultBorder": "ControlStrokeColorDefaultBrush",
+      "BadgeDefaultForeground": "SystemFillColorNeutralBrush",
+      "BadgeCustomBackground": "SystemFillColorCautionBackgroundBrush",
+      "BadgeCustomBorder": "ControlStrokeColorDefaultBrush",
+      "BadgeCustomForeground": "SystemFillColorCautionBrush",
+      "BadgePreferenceBackground": "SystemFillColorAttentionBackgroundBrush",
+      "BadgePreferenceBorder": "ControlStrokeColorDefaultBrush",
+      "BadgePreferenceForeground": "SystemFillColorAttentionBrush",
+      "BadgeDangerBackground": "SystemFillColorCriticalBackgroundBrush",
+      "BadgeDangerBorder": "ControlStrokeColorDefaultBrush",
+      "BadgeDangerForeground": "SystemFillColorCriticalBrush",
       "TechDetail.Table.StrokeBrush": "CardStrokeColorDefaultBrush"
     },
     "dark": {
+      "BadgeRecommendedBackground": "SystemFillColorSuccessBackgroundBrush",
+      "BadgeRecommendedBorder": "ControlStrokeColorDefaultBrush",
+      "BadgeRecommendedForeground": "SystemFillColorSuccessBrush",
+      "BadgeDefaultBackground": "SystemFillColorNeutralBackgroundBrush",
+      "BadgeDefaultBorder": "ControlStrokeColorDefaultBrush",
+      "BadgeDefaultForeground": "SystemFillColorNeutralBrush",
+      "BadgeCustomBackground": "SystemFillColorCautionBackgroundBrush",
+      "BadgeCustomBorder": "ControlStrokeColorDefaultBrush",
+      "BadgeCustomForeground": "SystemFillColorCautionBrush",
+      "BadgePreferenceBackground": "SystemFillColorAttentionBackgroundBrush",
+      "BadgePreferenceBorder": "ControlStrokeColorDefaultBrush",
+      "BadgePreferenceForeground": "SystemFillColorAttentionBrush",
+      "BadgeDangerBackground": "SystemFillColorCriticalBackgroundBrush",
+      "BadgeDangerBorder": "ControlStrokeColorDefaultBrush",
+      "BadgeDangerForeground": "SystemFillColorCriticalBrush",
       "TechDetail.Table.StrokeBrush": "ControlStrokeColorDefaultBrush"
     }
   },
@@ -109,8 +107,8 @@
       "basedOn": null,
       "setters": {
         "Padding": "5,1",
-        "CornerRadius": "3",
-        "Background": "#E81123",
+        "CornerRadius": "{StaticResource ControlCornerRadius}",
+        "Background": "{ThemeResource AccentFillColorDefaultBrush}",
         "VerticalAlignment": "Center"
       }
     },
@@ -118,7 +116,7 @@
       "target": "TextBlock",
       "basedOn": null,
       "setters": {
-        "Foreground": "White",
+        "Foreground": "{ThemeResource TextOnAccentFillColorPrimaryBrush}",
         "FontSize": "10",
         "FontWeight": "SemiBold"
       }

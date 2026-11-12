@@ -1,15 +1,15 @@
 using System.Text.Json;
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Autounattend;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Selections;
-using Winhance.Core.Features.SoftwareApps.Interfaces;
-using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.WimUtil.Models;
 using Winhance.TestSupport;
 using Winhance.UI.Features.Autounattend.ViewModels;
@@ -32,41 +32,22 @@ public class AutounattendViewModelTests
     private readonly Mock<ICatalogSettingsRegistry> _registry = new();
     private readonly Mock<ICatalogScopeProvider> _scope = new();
     private readonly Mock<IAppSelectionSource> _apps = new();
-    private readonly Mock<IWindowsAppsService> _windowsApps = new();
-    private readonly Mock<IExternalAppsService> _externalApps = new();
     private readonly Mock<ISubscriptionToken> _subscription = new();
     private readonly Mock<IFilePickerService> _filePicker = new();
     private readonly Mock<IApplicationModeService> _builder = new();
     private readonly Dictionary<string, SettingChoice> _authored = new();
     private readonly WimUtilSession _session = new();
+    private readonly Mock<ISystemInfoProvider> _systemInfo = new();
+    private readonly Mock<IBuilderModeEntry> _builderEntry = new();
     private Func<FilterStateChangedEvent, Task>? _filterStateChangedHandler;
 
-    private static readonly int GroupedSettings = SettingCatalog.ByFeature
-        .Where(kv => !FeatureDefinitions.AutounattendFeatures.Contains(kv.Key))
+    private static readonly int OptimizeSettings = SettingCatalog.ByFeature
+        .Where(kv => FeatureDefinitions.OptimizeFeatures.Contains(kv.Key))
         .Sum(kv => kv.Value.Count);
 
-    private static readonly bool[] OptimizeOpenOnly = [false, true, false];
-
-    private static readonly string[] SoftwareAppsOrder = [FeatureIds.WindowsApps, FeatureIds.ExternalApps];
-
-    private static readonly string[] OptimizeOrder =
-    [
-        FeatureIds.Privacy,
-        FeatureIds.Power,
-        FeatureIds.GamingPerformance,
-        FeatureIds.Update,
-        FeatureIds.Notifications,
-        FeatureIds.Sound,
-    ];
-
-    private static readonly string[] CustomizeOrder =
-    [
-        FeatureIds.WindowsTheme,
-        FeatureIds.Taskbar,
-        FeatureIds.StartMenu,
-        FeatureIds.Explorer,
-        FeatureIds.TimeRegionLanguage,
-    ];
+    private static readonly int CustomizeSettings = SettingCatalog.ByFeature
+        .Where(kv => FeatureDefinitions.CustomizeFeatures.Contains(kv.Key))
+        .Sum(kv => kv.Value.Count);
 
     public AutounattendViewModelTests()
     {
@@ -87,10 +68,6 @@ public class AutounattendViewModelTests
             .ReturnsAsync((IReadOnlyList<AppChoice>)[App("a"), App("b")]);
         _apps.Setup(a => a.CheckedExternalAppsAsync())
             .ReturnsAsync((IReadOnlyList<AppChoice>)[App("c")]);
-        _windowsApps.Setup(s => s.GetAppsAsync())
-            .ReturnsAsync((IEnumerable<ItemDefinition>)Definitions(5));
-        _externalApps.Setup(s => s.GetAppsAsync())
-            .ReturnsAsync((IEnumerable<ItemDefinition>)Definitions(4));
 
         _eventBus
             .Setup(e => e.SubscribeAsync(It.IsAny<Func<FilterStateChangedEvent, Task>>()))
@@ -106,11 +83,6 @@ public class AutounattendViewModelTests
 
     private static AppChoice App(string id) => new(id, id, null, null, null, null);
 
-    private static List<ItemDefinition> Definitions(int count) =>
-        Enumerable.Range(0, count)
-            .Select(i => new ItemDefinition { Id = $"app-{i}", Name = $"App {i}", Description = "x" })
-            .ToList();
-
     private static Dictionary<string, string> EnglishStrings() =>
         JsonSerializer.Deserialize<Dictionary<string, string>>(
             File.ReadAllText(Path.Combine(RepoPaths.LocalizationDir(), "en.json")))!;
@@ -125,12 +97,77 @@ public class AutounattendViewModelTests
         _registry.Object,
         _scope.Object,
         _apps.Object,
-        _windowsApps.Object,
-        _externalApps.Object,
-        _session);
+        _session,
+        _systemInfo.Object,
+        _builderEntry.Object);
 
-    private static ExternalAppsRowViewModel ExternalAppsRow(AutounattendViewModel sut) =>
-        sut.IncludedGroups[0].Children[1].Should().BeOfType<ExternalAppsRowViewModel>().Subject;
+    [Fact]
+    public void StartedFromCard_ShowsOnlyWhileASeedIsKnown_AndSelectsItsOption()
+    {
+        var sut = CreateSut();
+        sut.ShowsStartedFrom.Should().BeFalse();
+        sut.SelectedSeedIndex.Should().Be(-1);
+
+        _builderEntry.SetupGet(b => b.StartedFrom).Returns(BuilderSeed.WindowsDefaults);
+        _builderEntry.Raise(b => b.StartedFromChanged += null, EventArgs.Empty);
+
+        sut.ShowsStartedFrom.Should().BeTrue();
+        sut.StartSeedOptions[sut.SelectedSeedIndex].Should().Be("All Windows default settings");
+    }
+
+    [Fact]
+    public async Task PickingAnotherSeed_ReseedsOnce_AndRefreshesTheSummary()
+    {
+        _builderEntry.SetupGet(b => b.StartedFrom).Returns(BuilderSeed.CurrentMachine);
+        _builderEntry.Setup(b => b.ReseedAsync(BuilderSeed.Recommended)).ReturnsAsync(true);
+
+        await CreateSut().ChangeSeedAsync(1);
+
+        _builderEntry.Verify(b => b.ReseedAsync(BuilderSeed.Recommended), Times.Once);
+        _apps.Verify(a => a.CheckedWindowsAppsAsync(), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task PickingTheSeedItStartedFrom_AsksNothing()
+    {
+        _builderEntry.SetupGet(b => b.StartedFrom).Returns(BuilderSeed.Recommended);
+
+        await CreateSut().ChangeSeedAsync(1);
+
+        _builderEntry.Verify(b => b.ReseedAsync(It.IsAny<BuilderSeed>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ADeclinedReseed_PutsTheBoxBackOnTheSessionsSeed()
+    {
+        _builderEntry.SetupGet(b => b.StartedFrom).Returns(BuilderSeed.CurrentMachine);
+        _builderEntry.Setup(b => b.ReseedAsync(It.IsAny<BuilderSeed>())).ReturnsAsync(false);
+        var sut = CreateSut();
+        var changed = new List<string?>();
+        sut.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        await sut.ChangeSeedAsync(2);
+
+        changed.Should().Contain(nameof(AutounattendViewModel.SelectedSeedIndex));
+        sut.SelectedSeedIndex.Should().Be(0);
+        _apps.Verify(a => a.CheckedWindowsAppsAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task ASecondPickWhileTheConfirmationIsOpen_IsIgnored()
+    {
+        _builderEntry.SetupGet(b => b.StartedFrom).Returns(BuilderSeed.CurrentMachine);
+        var confirmation = new TaskCompletionSource<bool>();
+        _builderEntry.Setup(b => b.ReseedAsync(It.IsAny<BuilderSeed>())).Returns(confirmation.Task);
+        var sut = CreateSut();
+
+        var first = sut.ChangeSeedAsync(1);
+        await sut.ChangeSeedAsync(2);
+        confirmation.SetResult(false);
+        await first;
+
+        _builderEntry.Verify(b => b.ReseedAsync(It.IsAny<BuilderSeed>()), Times.Once);
+    }
 
     // The page's own card, driven the way the page reads it: a Selection's SelectedValue is its state index.
     private SettingItemViewModel WinhanceOnNewPcCard(int state)
@@ -158,13 +195,13 @@ public class AutounattendViewModelTests
     }
 
     [Fact]
-    public void ModuleId_is_the_Autounattend_feature()
+    public void ModuleId_Always_IsTheAutounattendFeature()
     {
         CreateSut().ModuleId.Should().Be(FeatureIds.Autounattend);
     }
 
     [Fact]
-    public void DisplayName_comes_from_the_feature_name_key()
+    public void DisplayName_Always_ComesFromFeatureNameKey()
     {
         _localization.PresentKey("Feature_Autounattend_Name", "Unattend");
 
@@ -172,7 +209,7 @@ public class AutounattendViewModelTests
     }
 
     [Fact]
-    public async Task Search_text_inside_the_page_name_still_filters_the_cards()
+    public async Task SearchText_InsidePageName_StillFiltersCards()
     {
         _localization.PresentKey("Feature_Autounattend_Name", "Autounattend");
         var sut = CreateSut();
@@ -181,7 +218,7 @@ public class AutounattendViewModelTests
         var filtered = new TaskCompletionSource();
         sut.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(sut.IsVisibleInSearch))
+            if (e.PropertyName == nameof(sut.HasVisibleSettings))
                 filtered.TrySetResult();
         };
 
@@ -192,7 +229,7 @@ public class AutounattendViewModelTests
     }
 
     [Fact]
-    public void The_cards_start_empty_and_not_loading()
+    public void Constructor_Always_StartsWithNoCardsAndNotLoading()
     {
         var sut = CreateSut();
 
@@ -203,7 +240,7 @@ public class AutounattendViewModelTests
     }
 
     [Fact]
-    public void Dispose_is_safe_to_call_twice()
+    public void Dispose_CalledTwice_DoesNotThrow()
     {
         var sut = CreateSut();
 
@@ -216,208 +253,216 @@ public class AutounattendViewModelTests
         act.Should().NotThrow();
     }
 
+    private IncludedCardViewModel[] Cards(AutounattendViewModel sut) =>
+        [sut.RemovedApps, sut.InstalledApps, sut.OptimizeSettings, sut.CustomizeSettings];
+
     [Fact]
-    public void Before_the_load_the_summary_card_shows_a_placeholder_and_no_rows()
+    public void Header_BeforeTheLoad_IsAPlaceholderOnEveryCard()
     {
         var sut = CreateSut();
 
-        sut.IncludedCountText.Should().Be("...");
-        sut.IncludedGroups.Should().BeEmpty();
-        sut.IncludedCornerRadius.Should().Be(new Microsoft.UI.Xaml.CornerRadius(4));
+        Cards(sut).Select(card => card.Header).Should().AllBe("...");
+        sut.RemovedApps.HasList.Should().BeFalse();
     }
 
     [Fact]
-    public async Task The_load_builds_three_group_rows_with_their_features_under_them()
-    {
-        var sut = CreateSut();
-
-        await sut.LoadIncludedAsync();
-
-        sut.IncludedGroups.Should().HaveCount(3);
-        sut.IncludedGroups.Select(g => g.Name).Should().Equal("Software & Apps", "Optimize", "Customize");
-        sut.IncludedGroups.Select(g => g.Key).Should().Equal("Nav_SoftwareAndApps", "Nav_Optimize", "Nav_Customize");
-        sut.IncludedGroups[0].Children.Select(c => c.Key).Should().Equal(SoftwareAppsOrder);
-        sut.IncludedGroups[1].Children.Select(c => c.Key).Should().Equal(OptimizeOrder);
-        sut.IncludedGroups[2].Children.Select(c => c.Key).Should().Equal(CustomizeOrder);
-        sut.IncludedGroups[0].Children.Select(c => c.Name).Should().Equal("Windows Apps & Features", "External Software");
-    }
-
-    [Fact]
-    public async Task Every_row_draws_the_icon_the_sidebar_or_its_own_page_draws()
+    public async Task LoadIncludedAsync_AppCards_LeadWithWhatChangesAndNameTheApps()
     {
         var sut = CreateSut();
 
         await sut.LoadIncludedAsync();
 
-        sut.IncludedGroups.Select(g => g.IconResourceKey)
-            .Should().Equal("SoftwareAppsIconSymbol", "OptimizeIconSymbol", "CustomizeIconSymbol");
-        foreach (var feature in sut.IncludedGroups.SelectMany(g => g.Children))
-        {
-            feature.IconResourceKey.Should().Be(FeatureDefinitions.Get(feature.Key)!.IconKey);
-        }
+        sut.RemovedApps.Header.Should().Be("2 Windows apps removed");
+        sut.RemovedApps.Description.Should().Be("a, b");
+        sut.InstalledApps.Header.Should().Be("1 app installed after setup");
+        sut.InstalledApps.Description.Should().Be("c");
+        sut.RemovedApps.HasList.Should().BeFalse(because: "the description already names every app");
     }
 
     [Fact]
-    public async Task Every_row_label_key_exists_in_en_json_and_the_fallback_matches_its_English()
+    public async Task LoadIncludedAsync_WithNoApps_CardsSaySoAndHowToAddSome()
     {
-        var en = EnglishStrings();
+        _apps.Setup(a => a.CheckedWindowsAppsAsync()).ReturnsAsync((IReadOnlyList<AppChoice>)[]);
+        _apps.Setup(a => a.CheckedExternalAppsAsync()).ReturnsAsync((IReadOnlyList<AppChoice>)[]);
         var sut = CreateSut();
 
         await sut.LoadIncludedAsync();
 
-        var rows = sut.IncludedGroups
-            .Select(group => (Key: group.Key, group.Name))
-            .Concat(sut.IncludedGroups.SelectMany(g => g.Children)
-                .Select(feature => (Key: AutounattendViewModel.IncludedLabelKey(feature.Key), feature.Name)))
-            .ToList();
-
-        rows.Should().HaveCount(16);
-        foreach (var (key, name) in rows)
-        {
-            en.Should().ContainKey(key);
-            en[key].Should().Be(name, key);
-        }
+        sut.RemovedApps.Header.Should().Be("No Windows apps removed");
+        sut.RemovedApps.Description.Should().Be("Tick apps on Windows Apps & Features to remove them during setup.");
+        sut.InstalledApps.Header.Should().Be("No apps installed after setup");
+        sut.InstalledApps.Description.Should().Be("Tick apps on External Software, or add your own installers below.");
     }
 
     [Fact]
-    public void A_feature_with_no_mapped_label_is_refused_loudly()
+    public async Task LoadIncludedAsync_LongList_PreviewsThreeNamesAndOpensTheRestInAChildCard()
     {
-        var act = () => AutounattendViewModel.IncludedLabelKey("WindowsCapabilities");
+        _apps.Setup(a => a.CheckedWindowsAppsAsync())
+            .ReturnsAsync((IReadOnlyList<AppChoice>)[App("a"), App("b"), App("c"), App("d"), App("e")]);
+        var sut = CreateSut();
+        await sut.LoadIncludedAsync();
+        var card = sut.RemovedApps;
 
-        act.Should().Throw<ArgumentOutOfRangeException>();
+        card.Header.Should().Be("5 Windows apps removed");
+        card.Description.Should().Be("a, b, c and 2 more");
+        card.HasList.Should().BeTrue();
+        card.ShowsList.Should().BeFalse();
+        card.ListToggleLabel.Should().Be("See list");
+        card.CornerRadius.Should().Be(new Microsoft.UI.Xaml.CornerRadius(4));
+
+        card.ToggleList();
+
+        card.ShowsList.Should().BeTrue();
+        card.Names.Should().Be("a, b, c, d, e");
+        card.ListToggleLabel.Should().Be("Hide list");
+        card.CornerRadius.Should().Be(new Microsoft.UI.Xaml.CornerRadius(4, 4, 0, 0));
+        card.ListCornerRadius.Should().Be(new Microsoft.UI.Xaml.CornerRadius(0, 0, 4, 4));
     }
 
     [Fact]
-    public async Task The_app_rows_say_what_is_removed_and_what_Winhance_installs()
+    public async Task LoadIncludedAsync_SettingsCards_SayHowManySettingsTheNewPcGets()
     {
         var sut = CreateSut();
 
         await sut.LoadIncludedAsync();
 
-        sut.IncludedGroups[0].Children[0].CountText.Should().Be("2 will be removed from Windows");
-        sut.IncludedGroups[0].Children[1].CountText.Should().Be("1 will be installed by Winhance");
-        sut.IncludedGroups[0].CountText.Should().Be("3 of 9 included");
+        sut.OptimizeSettings.Header.Should().Be("Optimize");
+        sut.OptimizeSettings.Description.Should().Be($"{OptimizeSettings} settings set on the new PC");
+        sut.CustomizeSettings.Header.Should().Be("Customize");
+        sut.CustomizeSettings.Description.Should().Be($"{CustomizeSettings} settings set on the new PC");
     }
 
     [Fact]
-    public async Task A_settings_row_counts_what_is_included_out_of_what_is_in_scope()
+    public async Task LoadIncludedAsync_WhenUserLeftSettingsOut_CountNamesThem()
     {
+        var excluded = SettingCatalog.ByFeature[FeatureIds.Privacy].Take(2).Select(setting => setting.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        _mode.Setup(m => m.IsIncluded(It.IsAny<string>())).Returns<string>(id => !excluded.Contains(id));
         var sut = CreateSut();
 
         await sut.LoadIncludedAsync();
 
-        var privacy = SettingCatalog.ByFeature[FeatureIds.Privacy].Count;
-        sut.IncludedGroups[1].Children[0].CountText.Should().Be($"{privacy} of {privacy} included");
+        sut.OptimizeSettings.Description.Should().Be($"{OptimizeSettings - 2} settings set on the new PC, 2 left out");
     }
 
     [Fact]
-    public async Task A_setting_the_filters_hide_is_not_counted_on_either_side()
+    public async Task LoadIncludedAsync_SettingHiddenByFilters_IsNotCountedOnEitherSide()
     {
+        var sound = SettingCatalog.ByFeature[FeatureIds.Sound].Count;
         _registry.Setup(r => r.GetByFeature(FeatureIds.Sound, It.IsAny<CatalogScope>()))
             .Returns(SettingCatalog.ByFeature[FeatureIds.Sound].Take(2).ToList());
         var sut = CreateSut();
 
         await sut.LoadIncludedAsync();
 
-        sut.IncludedGroups[1].Children[5].CountText.Should().Be("2 of 2 included");
+        sut.OptimizeSettings.Description.Should().Be($"{OptimizeSettings - sound + 2} settings set on the new PC");
     }
 
     [Fact]
-    public async Task The_settings_count_drops_what_the_user_left_out()
-    {
-        var privacy = SettingCatalog.ByFeature[FeatureIds.Privacy];
-        var excluded = privacy.Take(2).Select(setting => setting.Id).ToHashSet(StringComparer.Ordinal);
-        _mode.Setup(m => m.IsIncluded(It.IsAny<string>()))
-            .Returns<string>(id => !excluded.Contains(id));
-
-        var sut = CreateSut();
-        await sut.LoadIncludedAsync();
-
-        sut.IncludedGroups[1].Children[0].CountText.Should().Be($"{privacy.Count - 2} of {privacy.Count} included");
-    }
-
-    [Fact]
-    public async Task The_card_totals_the_three_groups()
-    {
-        var sut = CreateSut();
-
-        await sut.LoadIncludedAsync();
-
-        var settings = GroupedSettings;
-        sut.IncludedCountText.Should().Be($"{settings + 3} of {settings + 9} included");
-    }
-
-    [Fact]
-    public async Task Only_the_last_row_still_on_screen_rounds_its_bottom_corners()
-    {
-        var flat = new Microsoft.UI.Xaml.CornerRadius(0);
-        var rounded = new Microsoft.UI.Xaml.CornerRadius(0, 0, 4, 4);
-        var sut = CreateSut();
-        await sut.LoadIncludedAsync();
-
-        sut.IncludedGroups[0].CornerRadius.Should().Be(flat);
-        sut.IncludedGroups[2].CornerRadius.Should().Be(rounded);
-
-        sut.IncludedGroups[2].ToggleExpander();
-
-        sut.IncludedGroups[2].CornerRadius.Should().Be(flat);
-        sut.IncludedGroups[2].Children[^1].CornerRadius.Should().Be(rounded);
-    }
-
-    [Fact]
-    public async Task Collapsing_the_summary_card_rounds_all_four_of_its_corners()
+    public async Task OpenPage_EveryCard_LinksToThePageThatChangesIt()
     {
         var sut = CreateSut();
         await sut.LoadIncludedAsync();
 
-        sut.IncludedCornerRadius.Should().Be(new Microsoft.UI.Xaml.CornerRadius(4, 4, 0, 0));
+        sut.RemovedApps.OpenPageLabel.Should().Be("Change in Software & Apps");
+        sut.OptimizeSettings.OpenPageLabel.Should().Be("Change in Optimize");
 
-        sut.ToggleIncludedExpander();
+        sut.RemovedApps.OpenPage();
+        sut.InstalledApps.OpenPage();
+        sut.CustomizeSettings.OpenPage();
 
-        sut.IncludedCornerRadius.Should().Be(new Microsoft.UI.Xaml.CornerRadius(4));
+        _eventBus.Verify(e => e.Publish(It.Is<PageRequestedEvent>(
+            r => r.PageTag == "SoftwareApps" && r.FeatureId == FeatureIds.WindowsApps)), Times.Once);
+        _eventBus.Verify(e => e.Publish(It.Is<PageRequestedEvent>(
+            r => r.PageTag == "SoftwareApps" && r.FeatureId == FeatureIds.ExternalApps)), Times.Once);
+        _eventBus.Verify(e => e.Publish(It.Is<PageRequestedEvent>(
+            r => r.PageTag == "Customize" && r.FeatureId == null)), Times.Once);
     }
 
     [Fact]
-    public async Task A_source_that_throws_leaves_the_placeholder_and_logs_rather_than_taking_the_page_down()
+    public void IconResourceKey_EveryCard_MatchesTheIconItsOwnPageDraws()
+    {
+        var sut = CreateSut();
+
+        sut.RemovedApps.IconResourceKey.Should().Be(FeatureDefinitions.Get(FeatureIds.WindowsApps)!.IconKey);
+        sut.InstalledApps.IconResourceKey.Should().Be(FeatureDefinitions.Get(FeatureIds.ExternalApps)!.IconKey);
+        sut.OptimizeSettings.IconResourceKey.Should().Be("OptimizeIconSymbol");
+        sut.CustomizeSettings.IconResourceKey.Should().Be("CustomizeIconSymbol");
+    }
+
+    [Theory]
+    [InlineData("Autounattend_Included_WindowsApps", "{0} Windows apps removed")]
+    [InlineData("Autounattend_Included_WindowsApps_One", "1 Windows app removed")]
+    [InlineData("Autounattend_Included_WindowsApps_None", "No Windows apps removed")]
+    [InlineData("Autounattend_Included_WindowsApps_Hint", "Tick apps on Windows Apps & Features to remove them during setup.")]
+    [InlineData("Autounattend_Included_ExternalApps", "{0} apps installed after setup")]
+    [InlineData("Autounattend_Included_ExternalApps_One", "1 app installed after setup")]
+    [InlineData("Autounattend_Included_ExternalApps_None", "No apps installed after setup")]
+    [InlineData("Autounattend_Included_ExternalApps_Hint", "Tick apps on External Software, or add your own installers below.")]
+    [InlineData("Autounattend_Included_More", "{0} and {1} more")]
+    [InlineData("Autounattend_Included_SeeList", "See list")]
+    [InlineData("Autounattend_Included_HideList", "Hide list")]
+    [InlineData("Autounattend_Included_Change", "Change in {0}")]
+    [InlineData("Autounattend_Included_Settings", "{0} settings set on the new PC")]
+    [InlineData("Autounattend_Included_Settings_LeftOut", "{0} settings set on the new PC, {1} left out")]
+    [InlineData("Autounattend_Included_Settings_One", "{0} setting set on the new PC")]
+    [InlineData("Autounattend_Included_Settings_One_LeftOut", "{0} setting set on the new PC, {1} left out")]
+    [InlineData("Autounattend_ComputerName_Preview", "On this PC it would be {0}.")]
+    public void EnglishFallbacks_EveryKey_MatchesTheEnglishInEnJson(string key, string english)
+    {
+        EnglishStrings().Should().ContainKey(key).WhoseValue.Should().Be(english);
+    }
+
+    [Fact]
+    public async Task LoadIncludedAsync_WhenKeyIsPresent_WinsOverTheEnglishFallback()
+    {
+        _localization.PresentKey("Autounattend_Included_Name", "Aus anderen Bereichen");
+        _localization.PresentKey("Autounattend_Included_WindowsApps", "{0} Windows-Apps entfernt");
+        var sut = CreateSut();
+
+        await sut.LoadIncludedAsync();
+
+        sut.IncludedTitle.Should().Be("Aus anderen Bereichen");
+        sut.RemovedApps.Header.Should().Be("2 Windows-Apps entfernt");
+    }
+
+    [Fact]
+    public async Task LoadIncludedAsync_WhenTranslatedFormatIsBroken_FallsBackToTheEnglish()
+    {
+        _localization.PresentKey("Autounattend_Included_WindowsApps", "{0 Windows-Apps entfernt");
+        var sut = CreateSut();
+
+        await sut.LoadIncludedAsync();
+
+        sut.RemovedApps.Header.Should().Be("2 Windows apps removed");
+    }
+
+    [Fact]
+    public async Task LoadIncludedAsync_WhenSourceThrows_LeavesThePlaceholderAndLogsInsteadOfTakingThePageDown()
     {
         _apps.Setup(a => a.CheckedWindowsAppsAsync()).ThrowsAsync(new InvalidOperationException("no provider"));
         var sut = CreateSut();
 
         await sut.LoadIncludedAsync();
 
-        sut.IncludedCountText.Should().Be("...");
-        sut.IncludedGroups.Should().BeEmpty();
+        Cards(sut).Select(card => card.Header).Should().AllBe("...");
         _log.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("no provider")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
-    public async Task A_present_key_wins_over_the_English_fallback()
+    public async Task LoadIncludedAsync_WhenRelabelThrows_CatchesAndLogsIt()
     {
-        _localization.PresentKey("Autounattend_Included_Name", "Aus anderen Bereichen");
-        _localization.PresentKey("Autounattend_Included_Count", "{1} moechten, {0} gewaehlt");
-        _localization.PresentKey("Autounattend_Included_WindowsApps_Count", "{0} werden entfernt");
+        _localization.Setup(l => l.GetString("Nav_Optimize")).Throws(new InvalidOperationException("bad label"));
         var sut = CreateSut();
 
         await sut.LoadIncludedAsync();
 
-        sut.IncludedTitle.Should().Be("Aus anderen Bereichen");
-        sut.IncludedGroups[0].CountText.Should().Be("9 moechten, 3 gewaehlt");
-        sut.IncludedGroups[0].Children[0].CountText.Should().Be("2 werden entfernt");
+        Cards(sut).Select(card => card.Header).Should().AllBe("...");
+        _log.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("bad label")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
-    public async Task A_broken_translation_of_the_count_format_still_shows_both_numbers()
-    {
-        _localization.PresentKey("Autounattend_Included_Count", "{0 of {1} included");
-        var sut = CreateSut();
-
-        await sut.LoadIncludedAsync();
-
-        sut.IncludedGroups[0].CountText.Should().Be("3/9");
-    }
-
-    [Fact]
-    public async Task The_filter_subscription_outlives_a_second_host_until_both_have_released()
+    public async Task ReleaseIncluded_SecondHost_KeepsFilterSubscriptionUntilBothHaveReleased()
     {
         // The Unattend page and WIMUtil's card host one view model, and the new host can load before the old unloads.
         var sut = CreateSut();
@@ -432,74 +477,7 @@ public class AutounattendViewModelTests
     }
 
     [Fact]
-    public async Task An_expanded_group_row_stays_expanded_after_a_second_load()
-    {
-        var sut = CreateSut();
-        await sut.LoadIncludedAsync();
-        sut.IncludedGroups[1].ToggleExpander();
-
-        await sut.LoadIncludedAsync();
-
-        sut.IncludedGroups[1].Key.Should().Be("Nav_Optimize");
-        sut.IncludedGroups.Select(g => g.IsExpanded).Should().Equal(OptimizeOpenOnly);
-    }
-
-    [Fact]
-    public async Task A_throwing_relabel_is_caught_and_logged()
-    {
-        _localization.Setup(l => l.GetString("Nav_Optimize")).Throws(new InvalidOperationException("bad label"));
-        var sut = CreateSut();
-
-        await sut.LoadIncludedAsync();
-
-        sut.IncludedCountText.Should().Be("...");
-        sut.IncludedGroups.Should().BeEmpty();
-        _log.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("bad label")), It.IsAny<string>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task A_superseded_load_that_throws_does_not_clear_the_card()
-    {
-        var firstLoad = new TaskCompletionSource<IReadOnlyList<AppChoice>>();
-        var calls = 0;
-        _apps.Setup(a => a.CheckedWindowsAppsAsync())
-            .Returns(() => ++calls == 1
-                ? firstLoad.Task
-                : Task.FromResult((IReadOnlyList<AppChoice>)[App("a"), App("b")]));
-        var sut = CreateSut();
-        var settings = GroupedSettings;
-
-        var superseded = sut.LoadIncludedAsync();
-        await sut.LoadIncludedAsync();
-        sut.IncludedCountText.Should().Be($"{settings + 3} of {settings + 9} included");
-
-        firstLoad.SetException(new InvalidOperationException("too late"));
-        await superseded;
-
-        sut.IncludedCountText.Should().Be($"{settings + 3} of {settings + 9} included");
-        sut.IncludedGroups.Should().HaveCount(3);
-        _log.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("too late")), It.IsAny<string>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task Flipping_the_hardware_filter_counts_the_settings_rows_again()
-    {
-        var soundInScope = true;
-        _registry.Setup(r => r.GetByFeature(FeatureIds.Sound, It.IsAny<CatalogScope>()))
-            .Returns(() => soundInScope ? SettingCatalog.ByFeature[FeatureIds.Sound] : Array.Empty<Setting>());
-        var sut = CreateSut();
-        await sut.LoadIncludedAsync();
-        var sound = SettingCatalog.ByFeature[FeatureIds.Sound].Count;
-        sut.IncludedGroups[1].Children[5].CountText.Should().Be($"{sound} of {sound} included");
-
-        soundInScope = false;
-        await RaiseFilterStateChanged();
-
-        sut.IncludedGroups[1].Children[5].CountText.Should().Be("0 of 0 included");
-    }
-
-    [Fact]
-    public async Task The_filter_subscription_is_taken_once_however_often_the_page_loads()
+    public async Task LoadIncludedAsync_CalledRepeatedly_TakesTheFilterSubscriptionOnce()
     {
         var sut = CreateSut();
 
@@ -512,7 +490,7 @@ public class AutounattendViewModelTests
     }
 
     [Fact]
-    public async Task Release_drops_the_filter_subscription_and_the_next_load_takes_it_again()
+    public async Task ReleaseIncluded_AfterLoad_DropsTheFilterSubscriptionAndTheNextLoadTakesItAgain()
     {
         var sut = CreateSut();
         await sut.LoadIncludedAsync();
@@ -528,14 +506,45 @@ public class AutounattendViewModelTests
     }
 
     [Fact]
-    public void The_summary_card_names_a_material_glyph_for_IconConverter()
+    public async Task LoadIncludedAsync_WhenSupersededLoadThrows_DoesNotClearTheCards()
     {
-        // IconConverter builds a PathIcon, which needs the XAML runtime, so only the glyph name can be pinned here.
-        CreateSut().IncludedIcon.Should().Be("FormatListBulleted");
+        var firstLoad = new TaskCompletionSource<IReadOnlyList<AppChoice>>();
+        var calls = 0;
+        _apps.Setup(a => a.CheckedWindowsAppsAsync())
+            .Returns(() => ++calls == 1
+                ? firstLoad.Task
+                : Task.FromResult((IReadOnlyList<AppChoice>)[App("a"), App("b")]));
+        var sut = CreateSut();
+
+        var superseded = sut.LoadIncludedAsync();
+        await sut.LoadIncludedAsync();
+        sut.RemovedApps.Header.Should().Be("2 Windows apps removed");
+
+        firstLoad.SetException(new InvalidOperationException("too late"));
+        await superseded;
+
+        sut.RemovedApps.Header.Should().Be("2 Windows apps removed");
+        _log.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("too late")), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
-    public async Task A_language_change_relabels_the_rows_and_keeps_the_counts()
+    public async Task FilterStateChanged_WhenHardwareFilterFlips_CountsTheSettingsAgain()
+    {
+        var sound = SettingCatalog.ByFeature[FeatureIds.Sound].Count;
+        var soundInScope = true;
+        _registry.Setup(r => r.GetByFeature(FeatureIds.Sound, It.IsAny<CatalogScope>()))
+            .Returns(() => soundInScope ? SettingCatalog.ByFeature[FeatureIds.Sound] : Array.Empty<Setting>());
+        var sut = CreateSut();
+        await sut.LoadIncludedAsync();
+
+        soundInScope = false;
+        await RaiseFilterStateChanged();
+
+        sut.OptimizeSettings.Description.Should().Be($"{OptimizeSettings - sound} settings set on the new PC");
+    }
+
+    [Fact]
+    public async Task LanguageChanged_Always_RelabelsTheCardsAndKeepsTheCounts()
     {
         var sut = CreateSut();
         await sut.LoadIncludedAsync();
@@ -543,19 +552,8 @@ public class AutounattendViewModelTests
 
         RaiseLanguageChanged();
 
-        sut.IncludedGroups[1].Name.Should().Be("Optimieren");
-        sut.IncludedGroups[0].Children[0].CountText.Should().Be("2 will be removed from Windows");
-    }
-
-    [Fact]
-    public async Task Only_the_external_apps_row_carries_the_install_options()
-    {
-        var sut = CreateSut();
-
-        await sut.LoadIncludedAsync();
-
-        sut.IncludedGroups[0].Children[0].Should().BeOfType<IncludedRowViewModel>();
-        sut.IncludedGroups[0].Children[1].Should().BeOfType<ExternalAppsRowViewModel>();
+        sut.OptimizeSettings.Header.Should().Be("Optimieren");
+        sut.RemovedApps.Header.Should().Be("2 Windows apps removed");
     }
 
     private const string Reader = "C:\\Setup\\Reader.exe";
@@ -615,24 +613,24 @@ public class AutounattendViewModelTests
     }
 
     [Fact]
-    public async Task The_install_options_show_once_their_cards_are_loaded_with_or_without_a_WIMUtil_folder()
+    public async Task LoadIncludedAsync_CardsLoaded_ShowInstallOptionsWithOrWithoutWimUtilFolder()
     {
         var sut = CreateSut();
         await sut.LoadIncludedAsync();
-        ExternalAppsRow(sut).HasInstallerCards.Should().BeFalse();
+        sut.InstalledApps.HasInstallerCards.Should().BeFalse();
 
         LoadInstallerCards(sut);
 
         _session.WorkingDirectory.Should().BeNull();
-        ExternalAppsRow(sut).HasInstallerCards.Should().BeTrue();
+        sut.InstalledApps.HasInstallerCards.Should().BeTrue();
     }
 
     [Fact]
-    public async Task A_reloaded_page_hands_the_row_its_new_cards()
+    public async Task LoadIncludedAsync_ReloadedPage_HandsRowItsNewCards()
     {
         var sut = CreateSut();
         await sut.LoadIncludedAsync();
-        var row = ExternalAppsRow(sut);
+        var row = sut.InstalledApps;
         var (staleStage, _) = LoadInstallerCards(sut);
 
         sut.GroupedSettings.Clear();
@@ -647,7 +645,7 @@ public class AutounattendViewModelTests
 
     // With the media's editions loaded every other media card shows on the grouped list; these two never do.
     [Fact]
-    public void The_installer_cards_are_drawn_by_the_row_and_stay_off_the_grouped_list()
+    public void GroupedSettings_InstallerCards_AreDrawnByRowAndStayOffGroupedList()
     {
         _session.Editions = [new(1, "Windows 11 Home", "Core")];
         var sut = CreateSut();
@@ -659,12 +657,12 @@ public class AutounattendViewModelTests
     }
 
     [Fact]
-    public async Task Unticking_the_media_checkbox_records_the_choice_and_a_rebuilt_row_still_reads_it()
+    public async Task StageOnMedia_Unticked_RecordsChoiceAndRebuiltRowStillReadsIt()
     {
         var sut = CreateSut();
         await sut.LoadIncludedAsync();
         LoadInstallerCards(sut);
-        var row = ExternalAppsRow(sut);
+        var row = sut.InstalledApps;
         row.StageOnMedia.Should().BeTrue();
 
         row.StageOnMedia = false;
@@ -672,18 +670,17 @@ public class AutounattendViewModelTests
         _authored[OwnInstaller.StageAppsId].Value.Should().Be(new ChoiceValue.CheckBox(false));
         row.StageOnMedia.Should().BeFalse();
         await sut.LoadIncludedAsync();
-        ExternalAppsRow(sut).Should().NotBeSameAs(row);
-        ExternalAppsRow(sut).StageOnMedia.Should().BeFalse();
+        row.StageOnMedia.Should().BeFalse();
     }
 
     [Fact]
-    public async Task Adding_an_installer_adds_a_row_and_records_it()
+    public async Task AddOwnInstaller_PickedFile_AddsRowAndRecordsIt()
     {
         ArrangePicks(Reader);
         var sut = CreateSut();
         await sut.LoadIncludedAsync();
         LoadInstallerCards(sut);
-        var row = ExternalAppsRow(sut);
+        var row = sut.InstalledApps;
 
         row.AddOwnInstaller();
 
@@ -695,12 +692,12 @@ public class AutounattendViewModelTests
     }
 
     [Fact]
-    public async Task A_cancelled_pick_adds_nothing()
+    public async Task AddOwnInstaller_CancelledPick_AddsNothing()
     {
         var sut = CreateSut();
         await sut.LoadIncludedAsync();
         LoadInstallerCards(sut);
-        var row = ExternalAppsRow(sut);
+        var row = sut.InstalledApps;
 
         row.AddOwnInstaller();
 
@@ -709,13 +706,13 @@ public class AutounattendViewModelTests
     }
 
     [Fact]
-    public async Task Typing_switches_records_them_on_that_installer()
+    public async Task OwnInstallerRows_TypedSwitches_AreRecordedOnThatInstaller()
     {
         ArrangePicks(Reader);
         var sut = CreateSut();
         await sut.LoadIncludedAsync();
         LoadInstallerCards(sut);
-        var row = ExternalAppsRow(sut);
+        var row = sut.InstalledApps;
         row.AddOwnInstaller();
 
         row.OwnInstallerRows!.Single().FieldFor("switches")!.Text = " /sAll ";
@@ -724,13 +721,13 @@ public class AutounattendViewModelTests
     }
 
     [Fact]
-    public async Task Remove_takes_the_row_and_its_record_away_down_to_none()
+    public async Task Remove_EachRow_TakesRowAndRecordAwayDownToNone()
     {
         ArrangePicks(Reader, Vpn);
         var sut = CreateSut();
         await sut.LoadIncludedAsync();
         LoadInstallerCards(sut);
-        var row = ExternalAppsRow(sut);
+        var row = sut.InstalledApps;
         row.AddOwnInstaller();
         row.AddOwnInstaller();
 
@@ -747,13 +744,13 @@ public class AutounattendViewModelTests
     }
 
     [Fact]
-    public async Task The_row_shows_the_cards_own_text_and_follows_it()
+    public async Task InstalledApps_Always_ShowsTheCardsOwnTextAndFollowsIt()
     {
         ArrangePicks(Reader);
         var sut = CreateSut();
         await sut.LoadIncludedAsync();
         var (stage, installers) = LoadInstallerCards(sut);
-        var row = ExternalAppsRow(sut);
+        var row = sut.InstalledApps;
         row.AddOwnInstaller();
 
         row.StageOnMediaLabel.Should().Be("Put the installers on the ISO");
@@ -769,79 +766,271 @@ public class AutounattendViewModelTests
 
         row.StageOnMediaLabel.Should().Be("Installer auf die ISO");
         row.OwnInstallersName.Should().Be("Eigene Installer");
-        raised.Should().Contain(nameof(ExternalAppsRowViewModel.StageOnMediaLabel))
-            .And.Contain(nameof(ExternalAppsRowViewModel.OwnInstallersName));
+        raised.Should().Contain(nameof(InstalledAppsCardViewModel.StageOnMediaLabel))
+            .And.Contain(nameof(InstalledAppsCardViewModel.OwnInstallersName));
     }
 
     [Fact]
-    public async Task The_row_reads_out_how_Winhance_reaches_the_new_PC_and_follows_the_card()
+    public void Description_OfTheUniqueNameCard_PreviewsThisPcsNameAndFollowsTheTypedName()
     {
+        _systemInfo.Setup(s => s.BiosSerialNumber()).Returns("PF3A7F3A");
         var sut = CreateSut();
-        await sut.LoadIncludedAsync();
-        var row = ExternalAppsRow(sut);
-        row.Description.Should().Be("Installed from the 'Install Winhance' desktop shortcut",
-            because: "until the card loads it reads as its seed state");
+        var name = InstallerCard(UniqueComputerName.NameSettingId, InputType.TextBox, "Computer name");
+        var unique = InstallerCard(UniqueComputerName.SettingId, InputType.Toggle, "Unique name");
+        sut.Settings = [name, unique];
+        sut.GroupedSettings.Add(new SettingsGroup("Setup screens", [name]));
 
-        var card = WinhanceOnNewPcCard(2);
+        SpinWait.SpinUntil(() => unique.Description.Contains("WINHANCE-7F3A"), TimeSpan.FromSeconds(5)).Should().BeTrue();
+        unique.Description.Should().StartWith("Unique name, described\n");
+
+        name.TextValue = "OFFICE";
+        SpinWait.SpinUntil(() => unique.Description.Contains("OFFICE-7F3A"), TimeSpan.FromSeconds(5)).Should().BeTrue();
+        unique.Description.Should().NotContain("WINHANCE");
+    }
+
+    // Built in a Builder session, so the card shows the decided state the way the page shows it.
+    private SettingItemViewModel AuthoredWinhanceOnNewPcCard(AutounattendViewModel sut, int state)
+    {
+        var card = InstallerCard(WinhanceOnNewPc.SettingId, InputType.Selection, "Winhance on the new PC");
+        card.SelectedValue = state;
+        sut.Settings = [card];
         sut.GroupedSettings.Add(new SettingsGroup("General", [card]));
-        row.Description.Should().Be("Installed automatically after setup");
-
-        card.SelectedValue = 1;
-
-        row.Description.Should().Be("Installed from the 'Install Winhance' desktop shortcut");
-        row.IsWarning.Should().BeFalse();
+        return card;
     }
 
     [Fact]
-    public async Task Dont_add_with_apps_checked_warns_instead_of_reading_out()
+    public async Task LoadIncludedAsync_WithAppsOnTheFile_InstallsWinhanceAutomaticallyAndGreysTheCard()
     {
         var sut = CreateSut();
-        sut.GroupedSettings.Add(new SettingsGroup("General", [WinhanceOnNewPcCard(0)]));
+        var card = AuthoredWinhanceOnNewPcCard(sut, 1);
 
         await sut.LoadIncludedAsync();
 
-        var row = ExternalAppsRow(sut);
-        row.IsWarning.Should().BeTrue();
-        row.WarningText.Should().Be("'Winhance on the new PC' is set to 'Don't add', so these apps will not be installed.");
-        row.Description.Should().BeEmpty();
+        card.DecidedState.Should().Be(WinhanceOnNewPc.InstallsAutomatically);
+        card.SelectedValue.Should().Be(2);
+        card.ParentIsEnabled.Should().BeFalse();
     }
 
     [Fact]
-    public async Task With_nothing_to_install_the_row_neither_reads_out_nor_warns_until_an_installer_is_added()
+    public async Task LoadIncludedAsync_WhenKeepingRemovedAppsWithWinhance_CountsAsAnInstallAndDecidesTheCard()
+    {
+        _apps.Setup(a => a.CheckedExternalAppsAsync()).ReturnsAsync((IReadOnlyList<AppChoice>)[]);
+        var sut = CreateSut();
+        var card = InstallerCard(WinhanceOnNewPc.SettingId, InputType.Selection, "Winhance on the new PC");
+        var keepRemoved = InstallerCard(WinhanceOnNewPc.KeepRemovedId, InputType.Selection, "Keep removed apps");
+        keepRemoved.SelectedValue = 2;
+        sut.Settings = [card, keepRemoved];
+        sut.GroupedSettings.Add(new SettingsGroup("General", [card, keepRemoved]));
+
+        await sut.LoadIncludedAsync();
+
+        card.DecidedState.Should().Be(WinhanceOnNewPc.InstallsAutomatically);
+    }
+
+    [Fact]
+    public async Task LoadIncludedAsync_WhenNotKeepingRemovedApps_LeavesTheCardToTheUser()
+    {
+        _apps.Setup(a => a.CheckedExternalAppsAsync()).ReturnsAsync((IReadOnlyList<AppChoice>)[]);
+        var sut = CreateSut();
+        var card = InstallerCard(WinhanceOnNewPc.SettingId, InputType.Selection, "Winhance on the new PC");
+        var keepRemoved = InstallerCard(WinhanceOnNewPc.KeepRemovedId, InputType.Selection, "Keep removed apps");
+        keepRemoved.SelectedValue = 1;
+        sut.Settings = [card, keepRemoved];
+        sut.GroupedSettings.Add(new SettingsGroup("General", [card, keepRemoved]));
+
+        await sut.LoadIncludedAsync();
+
+        card.DecidedState.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DecidedState_WhenKeepRemovedAppsSwitchedOffAfterLoad_HandsTheCardBackToTheUser()
+    {
+        _apps.Setup(a => a.CheckedExternalAppsAsync()).ReturnsAsync((IReadOnlyList<AppChoice>)[]);
+        var sut = CreateSut();
+        var card = InstallerCard(WinhanceOnNewPc.SettingId, InputType.Selection, "Winhance on the new PC");
+        var keepRemoved = InstallerCard(WinhanceOnNewPc.KeepRemovedId, InputType.Selection, "Keep removed apps");
+        keepRemoved.SelectedValue = 2;
+        sut.Settings = [card, keepRemoved];
+        sut.GroupedSettings.Add(new SettingsGroup("General", [card, keepRemoved]));
+        await sut.LoadIncludedAsync();
+        card.DecidedState.Should().Be(WinhanceOnNewPc.InstallsAutomatically);
+
+        keepRemoved.SelectedValue = 1;
+        _session.Editions = [];
+
+        card.DecidedState.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(false, true, true)]
+    [InlineData(false, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, false)]
+    public async Task LoadIncludedAsync_RemoveSourceCard_IsDecidedOnlyDuringSetupWithNetFx3On(bool builtIntoImage, bool netfx3On, bool decided)
+    {
+        _session.BuiltIntoImage = builtIntoImage;
+        var sut = CreateSut();
+        var netfx3 = InstallerCard("autounattend-netfx3", InputType.Toggle, "NetFx3");
+        netfx3.IsSelected = netfx3On;
+        var removeSource = InstallerCard("autounattend-netfx3-remove-source", InputType.Toggle, "Remove the source");
+        sut.Settings = [netfx3, removeSource];
+        sut.GroupedSettings.Add(new SettingsGroup("General", [netfx3, removeSource]));
+
+        await sut.LoadIncludedAsync();
+
+        (removeSource.DecidedState == LocKey.Common.Disabled).Should().Be(decided);
+        removeSource.ParentIsEnabled.Should().Be(!decided);
+        removeSource.Description.Contains("Setup needs these files").Should().Be(decided);
+    }
+
+    [Fact]
+    public async Task BuiltIntoImage_WhenSwitched_ReopensOrClosesTheRemoveSourceCard()
+    {
+        var sut = CreateSut();
+        var netfx3 = InstallerCard("autounattend-netfx3", InputType.Toggle, "NetFx3");
+        netfx3.IsSelected = true;
+        var removeSource = InstallerCard("autounattend-netfx3-remove-source", InputType.Toggle, "Remove the source");
+        sut.Settings = [netfx3, removeSource];
+        sut.GroupedSettings.Add(new SettingsGroup("General", [netfx3, removeSource]));
+        await sut.LoadIncludedAsync();
+        removeSource.ParentIsEnabled.Should().BeFalse();
+
+        _session.BuiltIntoImage = true;
+
+        removeSource.ParentIsEnabled.Should().BeTrue();
+        removeSource.Description.Should().NotContain("Setup needs these files");
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public async Task LoadIncludedAsync_CleanupCard_IsDecidedOffWhenChangesAreBuiltIntoTheImage(bool builtIntoImage, bool decided)
+    {
+        _session.BuiltIntoImage = builtIntoImage;
+        var sut = CreateSut();
+        var cleanup = InstallerCard("autounattend-cleanup", InputType.Toggle, "Clean up");
+        sut.Settings = [cleanup];
+        sut.GroupedSettings.Add(new SettingsGroup("General", [cleanup]));
+
+        await sut.LoadIncludedAsync();
+
+        (cleanup.DecidedState == LocKey.Common.Disabled).Should().Be(decided);
+        cleanup.ParentIsEnabled.Should().Be(!decided);
+    }
+
+    [Fact]
+    public async Task LoadIncludedAsync_WithoutShowModeTags_LeavesEveryCardUntagged()
+    {
+        var sut = CreateSut();
+        await sut.LoadIncludedAsync();
+
+        sut.RemovedApps.Tag.Should().BeEmpty();
+        sut.InstalledApps.Tag.Should().BeEmpty();
+        sut.OptimizeSettings.Tag.Should().BeEmpty();
+        sut.CustomizeSettings.Tag.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ShowModeTags_WhenBuiltIntoTheImage_TagsOnlyTheInstalledAppsDuringSetup()
+    {
+        _session.BuiltIntoImage = true;
+        var sut = CreateSut();
+        await sut.LoadIncludedAsync();
+
+        sut.ShowModeTags(true);
+
+        sut.RemovedApps.Tag.Should().Be("In the image");
+        sut.OptimizeSettings.Tag.Should().Be("In the image");
+        sut.CustomizeSettings.Tag.Should().Be("In the image");
+        sut.InstalledApps.Tag.Should().Be("During setup");
+    }
+
+    [Fact]
+    public async Task ShowModeTags_DuringSetup_TagsEveryCardDuringSetup()
+    {
+        var sut = CreateSut();
+        await sut.LoadIncludedAsync();
+
+        sut.ShowModeTags(true);
+
+        new[] { sut.RemovedApps, sut.InstalledApps, sut.OptimizeSettings, sut.CustomizeSettings }
+            .Should().OnlyContain(card => card.Tag == "During setup");
+    }
+
+    [Fact]
+    public async Task ShowModeTags_WhenServicingModeChanges_TagsFollowAndGoAwayWhenHidden()
+    {
+        var sut = CreateSut();
+        await sut.LoadIncludedAsync();
+        sut.ShowModeTags(true);
+
+        _session.BuiltIntoImage = true;
+        sut.RemovedApps.Tag.Should().Be("In the image");
+
+        sut.ShowModeTags(false);
+        sut.RemovedApps.Tag.Should().BeEmpty();
+        sut.InstalledApps.Tag.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task FilterStateChanged_WithNoAppsLeft_ReturnsTheCardToTheUser()
+    {
+        var sut = CreateSut();
+        var card = AuthoredWinhanceOnNewPcCard(sut, 1);
+        await sut.LoadIncludedAsync();
+
+        _apps.Setup(a => a.CheckedExternalAppsAsync()).ReturnsAsync((IReadOnlyList<AppChoice>)[]);
+        await RaiseFilterStateChanged();
+
+        card.DecidedState.Should().BeNull();
+        card.ParentIsEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AddOwnInstaller_Always_CountsAsAnAppAndDecidesTheCard()
     {
         _apps.Setup(a => a.CheckedExternalAppsAsync()).ReturnsAsync((IReadOnlyList<AppChoice>)[]);
         ArrangePicks(Reader);
         var sut = CreateSut();
-        LoadInstallerCards(sut, WinhanceOnNewPcCard(0));
+        var card = InstallerCard(WinhanceOnNewPc.SettingId, InputType.Selection, "Winhance on the new PC");
+        LoadInstallerCards(sut, card);
         await sut.LoadIncludedAsync();
-        var row = ExternalAppsRow(sut);
-        row.IsWarning.Should().BeFalse();
-        row.Description.Should().BeEmpty();
+        sut.InstalledApps.Header.Should().Be("No apps installed after setup");
+        card.DecidedState.Should().BeNull();
 
-        row.AddOwnInstaller();
+        sut.InstalledApps.AddOwnInstaller();
 
-        row.IsWarning.Should().BeTrue();
+        sut.InstalledApps.Header.Should().Be("1 app installed after setup");
+        sut.InstalledApps.Description.Should().BeEmpty();
+        card.DecidedState.Should().Be(WinhanceOnNewPc.InstallsAutomatically);
     }
 
     [Fact]
-    public async Task The_external_apps_row_falls_back_to_the_English_in_en_json()
+    public async Task AddOwnInstaller_WithTickedApps_AddsTheInstallerToTheInstalledCount()
     {
-        var en = EnglishStrings();
+        ArrangePicks(Reader);
         var sut = CreateSut();
-        sut.GroupedSettings.Add(new SettingsGroup("General", [WinhanceOnNewPcCard(2)]));
-
+        LoadInstallerCards(sut);
         await sut.LoadIncludedAsync();
 
-        var row = ExternalAppsRow(sut);
-        sut.IncludedGroups[0].Children[0].CountText
-            .Should().Be(en["Autounattend_Included_WindowsApps_Count"].Replace("{0}", "2"));
-        row.CountText.Should().Be(en["Autounattend_Included_ExternalApps_Count"].Replace("{0}", "1"));
-        row.Description.Should().Be(en["Autounattend_Included_ExternalApps_Automatic"]);
-        row.WarningText.Should().Be(en["Autounattend_Included_ExternalApps_NotInstalled"]);
+        sut.InstalledApps.AddOwnInstaller();
 
-        sut.GroupedSettings[0][0].SelectedValue = 1;
+        sut.InstalledApps.Header.Should().Be("2 apps installed after setup");
+        sut.InstalledApps.Description.Should().Be("c");
+    }
 
-        row.Description.Should().Be(en["Autounattend_Included_ExternalApps_Shortcut"]);
+    [Fact]
+    public async Task CornerRadius_WhenInstallerCardsLoad_JoinsTheAppsCardUnderItsHeader()
+    {
+        var sut = CreateSut();
+        await sut.LoadIncludedAsync();
+        sut.InstalledApps.CornerRadius.Should().Be(new Microsoft.UI.Xaml.CornerRadius(4));
+
+        LoadInstallerCards(sut);
+
+        sut.InstalledApps.CornerRadius.Should().Be(new Microsoft.UI.Xaml.CornerRadius(4, 4, 0, 0));
+        sut.InstalledApps.OwnInstallersCornerRadius.Should().Be(new Microsoft.UI.Xaml.CornerRadius(0, 0, 4, 4));
     }
 
     private SettingItemViewModel MediaEditionsListCard()
@@ -866,7 +1055,7 @@ public class AutounattendViewModelTests
     }
 
     [Fact]
-    public void The_media_cards_stay_hidden_without_a_WIMUtil_session_and_the_rest_stay_shown()
+    public void Settings_WithoutWimUtilSession_HidesMediaCardsAndShowsTheRest()
     {
         var sut = CreateSut();
         var checklist = MediaEditionsListCard();
@@ -881,7 +1070,7 @@ public class AutounattendViewModelTests
     }
 
     [Fact]
-    public void A_WIMUtil_session_shows_the_media_cards_with_its_editions()
+    public void Settings_WithWimUtilSession_ShowsMediaCardsWithItsEditions()
     {
         _session.Editions = [new(1, "Windows 11 Home", "Core"), new(2, "Windows 11 Pro", "Professional")];
         var sut = CreateSut();

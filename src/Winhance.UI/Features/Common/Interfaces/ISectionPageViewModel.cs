@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -39,6 +40,18 @@ public interface ISectionPageViewModel : INotifyPropertyChanged
     bool HasNoSearchResults { get; }
 
     string NoResultsText { get; }
+
+    bool IsStateFilterActive { get; }
+
+    string ActiveStateFilterText { get; }
+
+    string ClearStateFilterTooltip { get; }
+
+    bool IsShowAllVisible { get; }
+
+    string ShowAllText { get; }
+
+    IRelayCommand ShowAllSettingsCommand { get; }
 
     // One item per section, in declaration order - the page iterates these instead of a static Sections list plus
     // a key-to-ViewModel lookup, so "the sections of this page" has one meaning.

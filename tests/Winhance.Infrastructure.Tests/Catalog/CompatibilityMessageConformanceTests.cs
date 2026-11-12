@@ -13,7 +13,7 @@ public class CompatibilityMessageConformanceTests
         AvailabilityCompatibility.DeriveCompatibilityMessage(a, b);
 
     [Fact]
-    public void Win10_machine_with_win11_required_ranges_yields_Windows11Only()
+    public void Derive_Win10MachineWithWin11RequiredRanges_YieldsWindows11Only()
     {
         Assert.Equal("Compatibility_Windows11Only",
             Derive(Avail(BuildRange.Windows11), new WinBuild(19045)));
@@ -26,28 +26,28 @@ public class CompatibilityMessageConformanceTests
     }
 
     [Fact]
-    public void Win11_machine_with_win10_only_range_yields_Windows10Only()
+    public void Derive_Win11MachineWithWin10OnlyRange_YieldsWindows10Only()
     {
         Assert.Equal("Compatibility_Windows10Only",
             Derive(Avail(BuildRange.Windows10), new WinBuild(22621)));
     }
 
     [Fact]
-    public void Lower_bound_violation_yields_MinBuild()
+    public void Derive_LowerBoundViolation_YieldsMinBuild()
     {
         Assert.Equal("Compatibility_MinBuild|26100",
             Derive(Avail(new BuildRange(new WinBuild(26100), Unbounded)), new WinBuild(22621)));
     }
 
     [Fact]
-    public void Equal_build_lower_revision_yields_MinBuild_with_revision()
+    public void Derive_EqualBuildLowerRevision_YieldsMinBuildWithRevision()
     {
         Assert.Equal("Compatibility_MinBuild|26100.4484",
             Derive(Avail(new BuildRange(new WinBuild(26100, 4484), Unbounded)), new WinBuild(26100, 3000)));
     }
 
     [Fact]
-    public void Upper_bound_violation_with_os_boundary_min_yields_MaxBuild()
+    public void Derive_UpperBoundViolationWithOsBoundaryMin_YieldsMaxBuild()
     {
         // A Min of exactly (22000, 0) is the OS-boundary clamp, NOT an interior window bound, so an upper
         // violation reads as MaxBuild (the start-menu-layout shape), not BuildRange.
@@ -56,14 +56,14 @@ public class CompatibilityMessageConformanceTests
     }
 
     [Fact]
-    public void Equal_build_higher_revision_yields_MaxBuild_with_revision()
+    public void Derive_EqualBuildHigherRevision_YieldsMaxBuildWithRevision()
     {
         Assert.Equal("Compatibility_MaxBuild|26100.500",
             Derive(Avail(new BuildRange(new WinBuild(22000), new WinBuild(26100, 500))), new WinBuild(26100, 600)));
     }
 
     [Fact]
-    public void Single_interior_window_yields_BuildRange()
+    public void Derive_SingleInteriorWindow_YieldsBuildRange()
     {
         var window = Avail(new BuildRange(new WinBuild(22621), new WinBuild(26099, int.MaxValue)));
 
@@ -76,20 +76,20 @@ public class CompatibilityMessageConformanceTests
     }
 
     [Fact]
-    public void Multiple_ranges_yield_joined_BuildRange()
+    public void Derive_MultipleRanges_YieldsJoinedBuildRange()
     {
         var multi = Avail(BuildRange.Between(19041, 19045), BuildRange.Between(22621, 26099));
         Assert.Equal("Compatibility_BuildRange|19041-19045 or 22621-26099", Derive(multi, new WinBuild(20000)));
     }
 
     [Fact]
-    public void Allowed_build_yields_null()
+    public void Derive_AllowedBuild_YieldsNull()
     {
         Assert.Null(Derive(Avail(BuildRange.Windows11), new WinBuild(26100)));
     }
 
     [Fact]
-    public void Empty_builds_yields_null()
+    public void Derive_EmptyBuilds_YieldsNull()
     {
         Assert.Null(Derive(Availability.Everywhere, new WinBuild(19045)));
     }
@@ -102,7 +102,7 @@ public class CompatibilityMessageConformanceTests
     [InlineData("start-menu-clean-11", 26100, "Compatibility_Windows11Only")]
     [InlineData("start-menu-clean-10", 19045, "Compatibility_Windows10Only")]
     [InlineData("start-menu-clean-11", 19045, "Compatibility_Windows11Only")]
-    public void Every_version_view_labels_both_twins(string id, int liveBuild, string expected)
+    public void ForScope_EveryVersionView_LabelsBothTwins(string id, int liveBuild, string expected)
     {
         Assert.Equal(expected, AvailabilityCompatibility.ForScope(SettingCatalog.ById[id].Availability, EveryVersion, new WinBuild(liveBuild, 9550)));
     }
@@ -110,7 +110,7 @@ public class CompatibilityMessageConformanceTests
     [Theory]
     [InlineData(26100, 7171, "Compatibility_MinBuild|26100.7171")]
     [InlineData(26100, 0, "Compatibility_MinBuild|26100")]
-    public void A_fitting_setting_names_the_bound_it_needs(int minBuild, int minRevision, string expected)
+    public void ForScope_FittingSetting_NamesTheBoundItNeeds(int minBuild, int minRevision, string expected)
     {
         var a = Avail(new BuildRange(new WinBuild(minBuild, minRevision), Unbounded));
 
@@ -118,7 +118,7 @@ public class CompatibilityMessageConformanceTests
     }
 
     [Fact]
-    public void A_fitting_setting_with_an_upper_bound_names_it()
+    public void ForScope_FittingSettingWithUpperBound_NamesIt()
     {
         var startLayout = Avail(new BuildRange(new WinBuild(22000), new WinBuild(26120, int.MaxValue)));
         var taskbarWindow = Avail(BuildRange.Between(22621, 26099));
@@ -128,7 +128,7 @@ public class CompatibilityMessageConformanceTests
     }
 
     [Fact]
-    public void A_scope_that_only_shows_fitting_settings_labels_nothing()
+    public void ForScope_ScopeShowingOnlyFittingSettings_LabelsNothing()
     {
         var win10 = Avail(BuildRange.Windows10);
 

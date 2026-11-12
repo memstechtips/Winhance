@@ -10,7 +10,7 @@ public class AutounattendDocumentTests
     private static readonly XNamespace U = AutounattendDocument.Unattend;
 
     [Fact]
-    public void Skeleton_has_the_seven_passes_in_setup_order_and_nothing_else()
+    public void NewSkeleton_Always_HasTheSevenPassesInSetupOrderAndNothingElse()
     {
         var doc = AutounattendDocument.NewSkeleton();
 
@@ -22,7 +22,7 @@ public class AutounattendDocumentTests
     }
 
     [Fact]
-    public void Component_is_created_once_with_the_standard_attributes()
+    public void Component_CalledTwice_CreatesItOnceWithTheStandardAttributes()
     {
         var settings = AutounattendDocument.NewSkeleton().Pass("specialize");
 
@@ -40,7 +40,7 @@ public class AutounattendDocumentTests
     }
 
     [Fact]
-    public void Child_lands_in_schema_order_whatever_the_call_order()
+    public void Child_AnyCallOrder_LandsInSchemaOrder()
     {
         var shell = AutounattendDocument.NewSkeleton().Pass("oobeSystem").Component("Microsoft-Windows-Shell-Setup");
 
@@ -53,7 +53,7 @@ public class AutounattendDocumentTests
     }
 
     [Fact]
-    public void ElementPath_orders_OOBE_flags_the_way_the_template_did_and_replaces_in_place()
+    public void ElementPath_OobeFlags_OrdersThemLikeTheTemplateAndReplacesInPlace()
     {
         var shell = AutounattendDocument.NewSkeleton().Pass("oobeSystem").Component("Microsoft-Windows-Shell-Setup");
 
@@ -68,7 +68,7 @@ public class AutounattendDocumentTests
     }
 
     [Fact]
-    public void ElementPath_walks_component_order_then_appends_the_deeper_names()
+    public void ElementPath_DeepPath_WalksComponentOrderThenAppendsTheDeeperNames()
     {
         var setup = AutounattendDocument.NewSkeleton().Pass("windowsPE").Component("Microsoft-Windows-Setup");
 
@@ -83,7 +83,7 @@ public class AutounattendDocumentTests
     }
 
     [Fact]
-    public void RunSynchronous_commands_are_numbered_in_insertion_order()
+    public void AddRunSynchronousCommand_SeveralCommands_NumbersThemInInsertionOrder()
     {
         var deployment = AutounattendDocument.NewSkeleton().Pass("specialize").Component("Microsoft-Windows-Deployment");
 
@@ -99,7 +99,7 @@ public class AutounattendDocumentTests
     }
 
     [Fact]
-    public void FirstLogon_commands_are_numbered_and_carry_no_action_attribute()
+    public void AddFirstLogonCommand_SeveralCommands_NumbersThemAndCarriesNoActionAttribute()
     {
         var shell = AutounattendDocument.NewSkeleton().Pass("oobeSystem").Component("Microsoft-Windows-Shell-Setup");
 
@@ -113,7 +113,7 @@ public class AutounattendDocumentTests
     }
 
     [Fact]
-    public void SetSetting_creates_then_replaces()
+    public void SetSetting_CalledTwice_CreatesThenReplaces()
     {
         var userData = AutounattendDocument.NewSkeleton().Pass("windowsPE").Component("Microsoft-Windows-Setup").Child("UserData");
 
@@ -124,7 +124,7 @@ public class AutounattendDocumentTests
     }
 
     [Fact]
-    public void Extensions_is_created_once_after_the_passes()
+    public void Extensions_CalledTwice_CreatesItOnceAfterThePasses()
     {
         var doc = AutounattendDocument.NewSkeleton();
 

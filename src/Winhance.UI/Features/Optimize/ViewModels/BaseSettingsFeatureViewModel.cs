@@ -1,8 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Microsoft.UI.Dispatching;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
@@ -14,6 +12,7 @@ using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
+using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Common.ViewModels;
 using ISettingsLoadingService = Winhance.UI.Features.Common.Interfaces.ISettingsLoadingService;
 
@@ -31,6 +30,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     private bool _settingsLoaded = false;
     private bool _isSubscribed = false;
     private readonly SemaphoreSlim _loadingSemaphore = new(1, 1);
+    private const int SearchDebounceMs = 150;
     private CancellationTokenSource? _searchDebounceTokenSource;
     private ISubscriptionToken? _settingAppliedSubscription;
     private ISubscriptionToken? _filterStateChangedSubscription;
@@ -46,7 +46,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     // drained on the UI thread in OnRelatedRefreshTick); the timer is created and driven only on the UI thread.
     private readonly object _relatedRefreshLock = new();
     private readonly HashSet<SettingItemViewModel> _pendingRelatedRefresh = new();
-    private DispatcherQueueTimer? _relatedRefreshTimer;
+    private IDebounceTimer? _relatedRefreshTimer;
 
     [ObservableProperty]
     public partial ObservableCollection<SettingItemViewModel> Settings { get; set; }
@@ -58,15 +58,11 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     public partial bool IsLoading { get; set; }
 
     [ObservableProperty]
-    public partial bool IsExpanded { get; set; }
-
-    [ObservableProperty]
     public partial string SearchText { get; set; }
 
     public abstract string ModuleId { get; }
     public virtual string DisplayName => GetDisplayName();
     public bool HasVisibleSettings => Settings.Any(s => s.EffectiveIsVisible);
-    public bool IsVisibleInSearch => HasVisibleSettings;
     public int SettingsCount => Settings?.Count ?? 0;
 
     public string GroupDescriptionText
@@ -100,9 +96,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
     }
 
-    public IRelayCommand LoadSettingsCommand { get; }
-    public IRelayCommand ToggleExpandCommand { get; }
-
     protected BaseSettingsFeatureViewModel(
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,
@@ -111,6 +104,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         IEventBus eventBus,
         IApplicationModeService applicationModeService)
     {
+        LiveInstanceTracker.Shared.Register(this);
         _settingsLoadingService = settingsLoadingService;
         _logService = logService;
         _localizationService = localizationService;
@@ -120,11 +114,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
         Settings = new ObservableCollection<SettingItemViewModel>();
         GroupedSettings = new ObservableCollection<SettingsGroup>();
-        IsExpanded = true;
         SearchText = string.Empty;
-
-        LoadSettingsCommand = new RelayCommand(() => LoadSettingsAsync().FireAndForget(_logService));
-        ToggleExpandCommand = new RelayCommand(() => IsExpanded = !IsExpanded);
     }
 
     // Called from LoadSettingsAsync on first load, not the constructor, to avoid side effects during DI construction.
@@ -195,22 +185,11 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         _dispatcherService.RunOnUIThread(ArmRelatedRefreshTimer);
     }
 
-    // UI thread. Creates the debounce timer lazily (its Tick fires on the UI thread) and restarts the ~300ms
-    // interval on every event, so a burst of relationship-leaf applies re-detects the union exactly once.
+    // UI thread. Restarting on every event means a burst of relationship-leaf applies re-detects the union once.
     private void ArmRelatedRefreshTimer()
     {
-        if (_relatedRefreshTimer is null)
-        {
-            var queue = DispatcherQueue.GetForCurrentThread();
-            if (queue is null)
-                return; // no UI dispatcher on this thread - cannot schedule (never happens on the real UI thread)
-            _relatedRefreshTimer = queue.CreateTimer();
-            _relatedRefreshTimer.Interval = TimeSpan.FromMilliseconds(300);
-            _relatedRefreshTimer.IsRepeating = false;
-            _relatedRefreshTimer.Tick += (_, _) => OnRelatedRefreshTick();
-        }
-        _relatedRefreshTimer.Stop();
-        _relatedRefreshTimer.Start();
+        _relatedRefreshTimer ??= _dispatcherService.CreateDebounceTimer(TimeSpan.FromMilliseconds(300), OnRelatedRefreshTick);
+        _relatedRefreshTimer.Restart();
     }
 
     // UI thread (timer Tick). Drains the pending set and re-detects it as one subset. Respects the same Builder-mode
@@ -416,7 +395,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             RebuildGroupedSettings();
 
             OnPropertyChanged(nameof(HasVisibleSettings));
-            OnPropertyChanged(nameof(IsVisibleInSearch));
             OnPropertyChanged(nameof(SettingsCount));
             OnPropertyChanged(nameof(GroupDescriptionText));
 
@@ -468,8 +446,8 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         {
             try
             {
-                token.ThrowIfCancellationRequested();
-
+                // Filters once typing pauses, so a fast typist re-lays out the list once rather than per key.
+                await Task.Delay(SearchDebounceMs, token).ConfigureAwait(false);
                 _dispatcherService.RunOnUIThread(ApplyVisibility);
             }
             catch (OperationCanceledException)
@@ -515,7 +493,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             RebuildGroupedSettings();
 
             OnPropertyChanged(nameof(HasVisibleSettings));
-            OnPropertyChanged(nameof(IsVisibleInSearch));
             OnPropertyChanged(nameof(SettingsCount));
             OnPropertyChanged(nameof(GroupDescriptionText));
 
@@ -621,27 +598,53 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
         foreach (var setting in Settings)
         {
-            bool gateOpen = IsGateSatisfied(setting.Setting?.EnabledWhen);
+            var decidedByPage = DecidedByPage(setting);
+            bool gateOpen = decidedByPage is null && IsGateSatisfied(setting.Setting?.EnabledWhen);
             setting.ParentIsEnabled = gateOpen;
+            setting.DisabledReason = gateOpen ? null : ReasonFor(setting, decidedByPage is not null);
             setting.ParentIsVisible = IsShownOnPage(setting)
                 && (IsGateSatisfied(setting.Setting?.VisibleWhen) || ShownForReview(setting));
 
-            var decided = DecidedState(setting, gateOpen);
+            var decided = decidedByPage ?? DecidedState(setting, gateOpen);
             if (setting.DecidedState != decided)
             {
                 setting.DecidedState = decided;
-                setting.ApplyAuthoredOverlay();
+                if (decided is null)
+                    setting.ShowUndecided();
+                else
+                    setting.ApplyAuthoredOverlay();
             }
         }
 
         RefreshLastChild();
 
         OnPropertyChanged(nameof(HasVisibleSettings));
-        OnPropertyChanged(nameof(IsVisibleInSearch));
     }
 
     // A page can hide a card for something only the page knows, such as where its session started.
     protected virtual bool IsShownOnPage(SettingItemViewModel setting) => true;
+
+    // A page can also decide a card from something outside the catalog's gates; the card then shows that state, greyed.
+    protected virtual LocKey? DecidedByPage(SettingItemViewModel setting) => null;
+
+    // The text a page shows on a card it decided, saying what made the decision.
+    protected virtual string? DisabledReasonFor(SettingItemViewModel setting) => null;
+
+    // A card gated on a card the page decided carries that card's reason, since changing the other card is no remedy.
+    private string? ReasonFor(SettingItemViewModel setting, bool decidedByPage)
+    {
+        if (decidedByPage)
+            return DisabledReasonFor(setting);
+
+        if (setting.Setting?.EnabledWhen is not { } gate || !_settingsById.TryGetValue(gate.OtherId, out var other))
+            return null;
+
+        if (DecidedByPage(other) is not null)
+            return DisabledReasonFor(other);
+
+        var key = gate.States is [var only] && only == LocKey.Common.Enabled ? "Setting_Disabled_TurnOn" : "Setting_Disabled_Change";
+        return string.Format(_localizationService.GetString(key), other.Name);
+    }
 
     // On a page of several features, text inside a feature's name shows that whole feature.
     protected virtual bool SearchMatchesFeatureName => true;
@@ -659,10 +662,11 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         ApplyVisibility();
     }
 
+    // The state filter never hides a card the review waits on, for the same reason the gates do not (ShownForReview).
     private bool PassesViewFilter(SettingItemViewModel setting) =>
         _onlyChanges is { } onlyChanges
             ? onlyChanges(setting.SettingId)
-            : setting.MatchesStateFilter(_stateFilter);
+            : setting.MatchesStateFilter(_stateFilter) || ShownForReview(setting);
 
     // The only writer of IsVisible. Search pulls a matched parent's children in with it; the view filter then
     // applies to each card on its own, and a child that survives brings its parent back, because the parent's
@@ -699,7 +703,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         RefreshLastChild();
 
         OnPropertyChanged(nameof(HasVisibleSettings));
-        OnPropertyChanged(nameof(IsVisibleInSearch));
     }
 
     private void RefreshLastChild()
@@ -757,14 +760,17 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     private void OnSettingStateChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(SettingItemViewModel.IsSelected)
-            or nameof(SettingItemViewModel.SelectedValue)
-            or nameof(SettingItemViewModel.HasReviewDiff)
-            or nameof(SettingItemViewModel.HasReviewAction))
+        bool reviewChanged = e.PropertyName is nameof(SettingItemViewModel.HasReviewDiff)
+            or nameof(SettingItemViewModel.HasReviewAction);
+
+        if (reviewChanged
+            || e.PropertyName is nameof(SettingItemViewModel.IsSelected) or nameof(SettingItemViewModel.SelectedValue))
         {
             RefreshDeclaredGates();
         }
-        else if (e.PropertyName is nameof(SettingItemViewModel.IsAtRecommended) or nameof(SettingItemViewModel.IsAtDefault)
+
+        if ((reviewChanged
+                || e.PropertyName is nameof(SettingItemViewModel.IsAtRecommended) or nameof(SettingItemViewModel.IsAtDefault))
             && _stateFilter != SettingStateFilter.All && _onlyChanges is null)
         {
             QueueApplyVisibility();

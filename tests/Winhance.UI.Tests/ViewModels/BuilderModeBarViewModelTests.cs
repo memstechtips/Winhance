@@ -43,11 +43,9 @@ public class BuilderModeBarViewModelTests : IDisposable
         _mockApplicationModeService.Setup(m => m.GetBuilderEdits()).Returns(new List<SettingChoice>());
 
         _mockHardwareFilterService.Setup(f => f.IsFilterEnabled).Returns(true);
-        _mockHardwareFilterService.Setup(f => f.SetAsync(It.IsAny<bool>())).Returns(Task.CompletedTask);
 
         _mockScopeProvider.Setup(p => p.Current).Returns(BuilderScope with { IncludeOtherHardware = true });
         _mockTargetWindows.Setup(t => t.Build).Returns(26300);
-        _mockTargetWindows.Setup(t => t.SetAsync(It.IsAny<int?>())).Returns(Task.CompletedTask);
     }
 
     private BuilderModeBarViewModel CreateSut() => _sut = new(
@@ -106,7 +104,7 @@ public class BuilderModeBarViewModelTests : IDisposable
 
         await sut.SetShowOtherHardwareAsync(true);
 
-        _mockHardwareFilterService.Verify(f => f.SetAsync(false), Times.Once);
+        _mockHardwareFilterService.Verify(f => f.Set(false), Times.Once);
     }
 
     [Fact]
@@ -116,7 +114,7 @@ public class BuilderModeBarViewModelTests : IDisposable
 
         await sut.SetShowOtherHardwareAsync(false);
 
-        _mockHardwareFilterService.Verify(f => f.SetAsync(true), Times.Once);
+        _mockHardwareFilterService.Verify(f => f.Set(true), Times.Once);
     }
 
     [Fact]
@@ -129,7 +127,7 @@ public class BuilderModeBarViewModelTests : IDisposable
         await sut.SetShowOtherHardwareAsync(false);
 
         _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
-        _mockHardwareFilterService.Verify(f => f.SetAsync(true), Times.Once);
+        _mockHardwareFilterService.Verify(f => f.Set(true), Times.Once);
     }
 
     [Fact]
@@ -148,7 +146,7 @@ public class BuilderModeBarViewModelTests : IDisposable
 
         shown!.Title.Should().Be("Dialog_NarrowHardware_Title");
         shown.Message.Should().Be("Dialog_NarrowHardware_Message:2");
-        _mockHardwareFilterService.Verify(f => f.SetAsync(true), Times.Once);
+        _mockHardwareFilterService.Verify(f => f.Set(true), Times.Once);
     }
 
     [Fact]
@@ -164,7 +162,7 @@ public class BuilderModeBarViewModelTests : IDisposable
 
         await sut.SetShowOtherHardwareAsync(false);
 
-        _mockHardwareFilterService.Verify(f => f.SetAsync(It.IsAny<bool>()), Times.Never);
+        _mockHardwareFilterService.Verify(f => f.Set(It.IsAny<bool>()), Times.Never);
         changed.Should().Contain(nameof(BuilderModeBarViewModel.ShowOtherHardware));
     }
 
@@ -177,7 +175,7 @@ public class BuilderModeBarViewModelTests : IDisposable
         await sut.SetShowOtherHardwareAsync(true);
 
         _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
-        _mockHardwareFilterService.Verify(f => f.SetAsync(false), Times.Once);
+        _mockHardwareFilterService.Verify(f => f.Set(false), Times.Once);
     }
 
     [Fact]
@@ -266,7 +264,7 @@ public class BuilderModeBarViewModelTests : IDisposable
         await sut.SetTargetWindowsAsync(26200);
 
         _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
-        _mockTargetWindows.Verify(t => t.SetAsync(26200), Times.Once);
+        _mockTargetWindows.Verify(t => t.Set(26200), Times.Once);
     }
 
     [Fact]
@@ -284,7 +282,7 @@ public class BuilderModeBarViewModelTests : IDisposable
 
         shown!.Title.Should().Be("Dialog_NarrowWindows_Title");
         shown.Message.Should().Be("Dialog_NarrowWindows_Message:1,Windows 11 25H2");
-        _mockTargetWindows.Verify(t => t.SetAsync(It.IsAny<int?>()), Times.Never);
+        _mockTargetWindows.Verify(t => t.Set(It.IsAny<int?>()), Times.Never);
     }
 
     [Fact]
@@ -296,7 +294,7 @@ public class BuilderModeBarViewModelTests : IDisposable
         await sut.SetTargetWindowsAsync(null);
 
         _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
-        _mockTargetWindows.Verify(t => t.SetAsync(null), Times.Once);
+        _mockTargetWindows.Verify(t => t.Set(null), Times.Once);
     }
 
     [Fact]

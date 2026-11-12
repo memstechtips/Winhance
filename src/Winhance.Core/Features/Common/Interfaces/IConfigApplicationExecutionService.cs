@@ -4,7 +4,8 @@ namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface IConfigApplicationExecutionService
 {
-    Task ExecuteConfigImportAsync(WinhanceConfigFile config, ImportOptions options);
+    // sourcePath is the user's own file, null for a preset or a backup; it powers the summary's updated-copy offer.
+    Task ExecuteConfigImportAsync(WinhanceConfigFile config, ImportOptions options, string? sourcePath);
     Task ApplyConfigurationWithOptionsAsync(
         WinhanceConfigFile config,
         List<string> selectedSections,

@@ -1,4 +1,6 @@
 using FluentAssertions;
+using Moq;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.Infrastructure.Features.Common.Utilities;
 using Winhance.Infrastructure.Features.WimUtil.Services;
@@ -57,7 +59,7 @@ public class DriverInstallScriptTests
                    "  $global:LASTEXITCODE = $exitByFolder[$folder]\n" +
                    "  \"fake pnputil $($a -join ' ')\" }\n";
 
-        return await new PowerShellRunner(new FileSystemService()).RunScriptAsync(fake + redirected.ReplaceLineEndings("\n").Trim() + "\n");
+        return await new PowerShellRunner(new FileSystemService(Mock.Of<ILogService>())).RunScriptAsync(fake + redirected.ReplaceLineEndings("\n").Trim() + "\n");
     }
 
     [Fact]

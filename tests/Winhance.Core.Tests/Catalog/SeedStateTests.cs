@@ -25,7 +25,7 @@ public class SeedStateTests
     };
 
     [Fact]
-    public void The_seed_is_the_Recommended_state_when_the_two_roles_sit_on_different_states()
+    public void SeedState_RolesOnDifferentStates_IsTheRecommendedState()
     {
         var setting = AnswerFileToggle([StateRole.WindowsDefault], [StateRole.Recommended]);
 
@@ -33,7 +33,7 @@ public class SeedStateTests
     }
 
     [Fact]
-    public void The_seed_is_the_WindowsDefault_state_when_nothing_is_recommended()
+    public void SeedState_NothingRecommended_IsTheWindowsDefaultState()
     {
         var setting = AnswerFileToggle([StateRole.WindowsDefault], []);
 
@@ -41,14 +41,14 @@ public class SeedStateTests
     }
 
     [Fact]
-    public void A_setting_with_neither_role_has_no_seed()
+    public void SeedState_NeitherRole_IsNull()
     {
         AnswerFileToggle([], []).SeedState.Should().BeNull();
     }
 
     // A build-scoped role names no state for a file written before Windows exists.
     [Fact]
-    public void A_build_scoped_role_is_not_a_seed()
+    public void SeedState_BuildScopedRole_IsNotUsed()
     {
         StateRole[] windows11Only = [new StateRole(RoleKind.Recommended) { AppliesTo = [BuildRange.Windows11] }];
 
@@ -56,7 +56,7 @@ public class SeedStateTests
     }
 
     [Fact]
-    public void A_choice_the_set_does_not_hold_resolves_to_the_seed_and_a_held_one_wins_over_it()
+    public void ChosenState_ChoiceTheSetDoesNotHold_ResolvesToTheSeedAndAHeldOneWins()
     {
         var setting = AnswerFileToggle([StateRole.WindowsDefault], [StateRole.Recommended]);
 
@@ -65,7 +65,7 @@ public class SeedStateTests
     }
 
     [Fact]
-    public void A_read_only_registry_target_on_an_answer_file_setting_seeds_it_from_this_PC()
+    public void SeedsFromThisPc_ReadOnlyRegistryTarget_IsTrue()
     {
         var plain = AnswerFileToggle([StateRole.WindowsDefault], []);
         var seeded = AnswerFileToggle(
@@ -78,7 +78,7 @@ public class SeedStateTests
     }
 
     [Fact]
-    public void A_live_setting_never_seeds_from_this_PC()
+    public void SeedsFromThisPc_LiveSetting_IsFalse()
     {
         SettingCatalog.ById["power-hibernation-enable"].SeedsFromThisPc.Should().BeFalse();
     }

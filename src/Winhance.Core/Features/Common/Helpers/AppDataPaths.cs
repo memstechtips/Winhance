@@ -9,8 +9,16 @@ public static class AppDataPaths
 
     private static readonly string? PortableRoot = PortableRootFor(AppContext.BaseDirectory, File.Exists);
 
-    public static string MachineRoot =>
-        Root(PortableRoot, Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData));
+    public static bool IsPortable => PortableRoot is not null;
+
+    public static string MachineRoot => PortableRoot ?? InstalledMachineRoot;
+
+    // The folder a scheduled task or an answer file reaches, whatever mode Winhance itself runs in.
+    public static string InstalledMachineRoot =>
+        Root(null, Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData));
+
+    // Where an installed Winhance keeps this user's settings and backups, whatever mode this copy runs in.
+    public static string InstalledUserRoot(string localAppData) => Root(null, localAppData);
 
     // The caller picks whose LocalAppData: the interactive user's under OTS elevation, or the process user's.
     public static string UserRoot(string localAppData) => Root(PortableRoot, localAppData);
@@ -20,51 +28,4 @@ public static class AppDataPaths
 
     internal static string Root(string? portableRoot, string installedBase) =>
         portableRoot ?? Path.Combine(installedBase, "Winhance");
-
-    // A portable copy's first run takes the installed copy's settings, backups and change history, once. The
-    // originals stay, because an installed Winhance on this PC still reads them. Logs and caches rebuild themselves.
-    public static IReadOnlyList<string> CopyInstalledData(string localAppData) =>
-        PortableRoot is null
-            ? []
-            : CopyInstalledData(
-                PortableRoot,
-                Root(null, localAppData),
-                Root(null, Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData)));
-
-    internal static IReadOnlyList<string> CopyInstalledData(string portableRoot, string installedUserRoot, string installedMachineRoot)
-    {
-        var copied = new List<string>();
-        foreach (var folder in new[] { "Config", "Backup" })
-        {
-            var source = Path.Combine(installedUserRoot, folder);
-            var target = Path.Combine(portableRoot, folder);
-            if (!Directory.Exists(source) || Directory.Exists(target))
-                continue;
-
-            // Into a temp folder first, so a copy cut short is retried next run instead of counting as done.
-            var staging = target + ".copying";
-            if (Directory.Exists(staging))
-                Directory.Delete(staging, recursive: true);
-            foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
-            {
-                var destination = Path.Combine(staging, Path.GetRelativePath(source, file));
-                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-                File.Copy(file, destination);
-            }
-            Directory.CreateDirectory(staging);
-            Directory.Move(staging, target);
-            copied.Add(target);
-        }
-
-        var history = Path.Combine(installedMachineRoot, "ChangeHistory.txt");
-        var historyTarget = Path.Combine(portableRoot, "ChangeHistory.txt");
-        if (File.Exists(history) && !File.Exists(historyTarget))
-        {
-            Directory.CreateDirectory(portableRoot);
-            File.Copy(history, historyTarget);
-            copied.Add(historyTarget);
-        }
-
-        return copied;
-    }
 }

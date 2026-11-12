@@ -13,7 +13,6 @@ public class IsoServiceTests
     private readonly Mock<IFileSystemService> _mockFileSystem = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<ILocalizationService> _mockLocalization = new();
-    private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
     private readonly Mock<IDismProcessRunner> _mockDismRunner = new();
     private readonly Mock<IIsoImageReader> _mockIsoImageReader = new();
     private readonly Mock<IIsoImageWriter> _mockIsoImageWriter = new();
@@ -37,7 +36,6 @@ public class IsoServiceTests
             _mockFileSystem.Object,
             _mockLogService.Object,
             _mockLocalization.Object,
-            _mockProcessExecutor.Object,
             _mockDismRunner.Object,
             _mockIsoImageReader.Object,
             _mockIsoImageWriter.Object,
@@ -169,15 +167,64 @@ public class IsoServiceTests
         result.Should().BeFalse();
     }
 
-    private Mock<IIsoAttachment> GivenAnExtractableIso()
+    [Fact]
+    public async Task ExtractIsoAsync_ExistingWorkingFolder_IsDeletedWithoutPowerShell()
+    {
+        GivenAnExtractableIso();
+        var deleted = false;
+        _mockFileSystem.Setup(fs => fs.DirectoryExists(@"C:\work")).Returns(() => !deleted);
+        _mockFileSystem.Setup(fs => fs.GetFiles(@"C:\work", "*", SearchOption.AllDirectories)).Returns([@"C:\work\a.txt", @"C:\work\link"]);
+        _mockFileSystem.Setup(fs => fs.GetFileAttributes(@"C:\work\a.txt")).Returns(FileAttributes.ReadOnly);
+        _mockFileSystem.Setup(fs => fs.GetFileAttributes(@"C:\work\link")).Returns(FileAttributes.ReparsePoint);
+        _mockFileSystem.Setup(fs => fs.DeleteDirectory(@"C:\work", true)).Callback(() => deleted = true);
+
+        var result = await _service.ExtractIsoAsync(@"C:\src.iso", @"C:\work");
+
+        result.Should().BeTrue();
+        _mockFileSystem.Verify(fs => fs.SetFileAttributes(@"C:\work\a.txt", FileAttributes.Normal), Times.Once);
+        _mockFileSystem.Verify(fs => fs.SetFileAttributes(@"C:\work\link", It.IsAny<FileAttributes>()), Times.Never);
+        _mockFileSystem.Verify(fs => fs.DeleteDirectory(@"C:\work", true), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExtractIsoAsync_FolderNameWithAQuote_StillClears()
+    {
+        const string folder = @"C:\it's work";
+        GivenAnExtractableIso(folder);
+        var deleted = false;
+        _mockFileSystem.Setup(fs => fs.DirectoryExists(folder)).Returns(() => !deleted);
+        _mockFileSystem.Setup(fs => fs.GetFiles(folder, "*", SearchOption.AllDirectories)).Returns([]);
+        _mockFileSystem.Setup(fs => fs.DeleteDirectory(folder, true)).Callback(() => deleted = true);
+
+        var result = await _service.ExtractIsoAsync(@"C:\src.iso", folder);
+
+        result.Should().BeTrue();
+        _mockFileSystem.Verify(fs => fs.DeleteDirectory(folder, true), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExtractIsoAsync_WorkingFolderCannotBeDeleted_ReturnsFalseAndLogsWhy()
+    {
+        GivenAnExtractableIso();
+        _mockFileSystem.Setup(fs => fs.DirectoryExists(@"C:\work")).Returns(true);
+        _mockFileSystem.Setup(fs => fs.GetFiles(@"C:\work", "*", SearchOption.AllDirectories)).Returns([]);
+        _mockFileSystem.Setup(fs => fs.DeleteDirectory(@"C:\work", true)).Throws(new IOException("in use"));
+
+        var result = await _service.ExtractIsoAsync(@"C:\src.iso", @"C:\work");
+
+        result.Should().BeFalse();
+        _mockLogService.Verify(l => l.LogError(It.Is<string>(m => m.Contains("Could not delete the existing working directory")), It.IsAny<Exception>(), It.IsAny<string>()), Times.Once);
+    }
+
+    private Mock<IIsoAttachment> GivenAnExtractableIso(string workingDirectory = @"C:\work")
     {
         _mockFileSystem.Setup(fs => fs.FileExists(@"C:\src.iso")).Returns(true);
         _mockFileSystem.Setup(fs => fs.GetExtension(@"C:\src.iso")).Returns(".iso");
         _mockFileSystem.Setup(fs => fs.GetFileSize(@"C:\src.iso")).Returns(5_000_000_000L);
-        _mockFileSystem.Setup(fs => fs.DirectoryExists(@"C:\work")).Returns(false);
+        _mockFileSystem.Setup(fs => fs.DirectoryExists(workingDirectory)).Returns(false);
         _mockFileSystem
-            .Setup(fs => fs.GetDirectories(@"C:\work", "*", System.IO.SearchOption.TopDirectoryOnly))
-            .Returns([@"C:\work\sources", @"C:\work\boot"]);
+            .Setup(fs => fs.GetDirectories(workingDirectory, "*", System.IO.SearchOption.TopDirectoryOnly))
+            .Returns([$@"{workingDirectory}\sources", $@"{workingDirectory}\boot"]);
         _mockFileSystem.Setup(fs => fs.GetFileName(It.IsAny<string>())).Returns((string p) => Path.GetFileName(p));
         _mockDismRunner.Setup(d => d.CheckDiskSpaceAsync(It.IsAny<string>(), It.IsAny<long>(), It.IsAny<string>()))
             .ReturnsAsync(true);

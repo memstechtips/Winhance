@@ -19,6 +19,9 @@ public interface IReviewModeViewModelCoordinator
     // For re-entering review mode while the singleton ViewModels still have settings loaded.
     void ReapplyReviewDiffsToExistingSettings();
 
+    // Every page's Quick Actions Accept All at once, plus the import defaults for selected apps that have no action yet.
+    void AcceptAllRemaining();
+
     Task RemoveWindowsAppsAsync(bool skipConfirmation, bool saveRemovalScripts);
 
     Task InstallWindowsAppsAsync();

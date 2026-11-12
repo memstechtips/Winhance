@@ -2,7 +2,6 @@ using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Models;
 using Winhance.TestSupport;
 
 using Winhance.Core.Features.Common.Localization;

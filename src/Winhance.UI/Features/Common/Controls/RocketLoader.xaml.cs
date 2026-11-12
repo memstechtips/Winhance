@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
-using Windows.UI.ViewManagement;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Controls;
@@ -17,8 +16,6 @@ public sealed partial class RocketLoader : UserControl
             typeof(bool),
             typeof(RocketLoader),
             new PropertyMetadata(false, (d, _) => ((RocketLoader)d).Update()));
-
-    private static readonly UISettings UiSettings = new();
 
     public RocketLoader()
     {
@@ -40,8 +37,9 @@ public sealed partial class RocketLoader : UserControl
     {
         Visibility = IsActive ? Visibility.Visible : Visibility.Collapsed;
 
-        // With Windows' animation effects off the rocket stands still, as the website does for reduced motion.
-        if (IsActive && IsLoaded && UiSettings.AnimationsEnabled)
+        // Not gated on Windows' animation effects: Winhance's own performance settings turn them off, which would
+        // freeze the loader on the very machines that wait longest.
+        if (IsActive && IsLoaded)
             FlightStoryboard.Begin();
         else
             FlightStoryboard.Stop();

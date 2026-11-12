@@ -1,10 +1,13 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.Core.Features.Common.Extensions;
+using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.ViewModels;
@@ -24,6 +27,7 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
     private readonly IReadOnlyList<ISettingsFeatureViewModel> _featureViewModels;
     private readonly Dictionary<string, ISettingsFeatureViewModel> _viewModelBySectionKey;
     private bool _isInitialized;
+    private WinhanceMode _lastMode;
 
     // The source the overview cards and the breadcrumb flyout are generated from; each item derives its own badges
     // from observed state, so nothing has to remember to refresh them.
@@ -42,6 +46,9 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasNoSearchResults))]
     [NotifyPropertyChangedFor(nameof(NoResultsText))]
+    [NotifyPropertyChangedFor(nameof(IsStateFilterActive))]
+    [NotifyPropertyChangedFor(nameof(ActiveStateFilterText))]
+    [NotifyPropertyChangedFor(nameof(IsShowAllVisible))]
     public partial SettingStateFilter StateFilter { get; set; }
 
     [ObservableProperty]
@@ -88,6 +95,32 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
     public string NoResultsText => _localizationService.GetString(
         string.IsNullOrWhiteSpace(SearchText) ? "View_StateFilter_NoResults" : "Common_Search_NoResults");
 
+    public bool IsStateFilterActive => StateFilter != SettingStateFilter.All;
+
+    // Same words as the View menu item the filter was picked from.
+    public string ActiveStateFilterText => string.Format(
+        _localizationService.GetStringOrDefault("View_StateFilter_Chip", "Filter: {0}"),
+        StateFilter switch
+        {
+            SettingStateFilter.Recommended => _localizationService.GetStringOrDefault("InfoBadge_Recommended", "Recommended"),
+            SettingStateFilter.WindowsDefault => _localizationService.GetStringOrDefault("View_StateFilter_WindowsDefault", "Windows default"),
+            SettingStateFilter.Custom => _localizationService.GetStringOrDefault("View_StateFilter_Custom", "Custom"),
+            _ => _localizationService.GetStringOrDefault("View_StateFilter_All", "All settings"),
+        });
+
+    public string ClearStateFilterTooltip =>
+        _localizationService.GetStringOrDefault("View_StateFilter_Clear_Tooltip", "Clear the filter and show all settings");
+
+    // A search that finds nothing is the search's answer; only an empty list caused by the filter alone offers this.
+    public bool IsShowAllVisible =>
+        IsStateFilterActive && string.IsNullOrWhiteSpace(SearchText) && HasNoSearchResults;
+
+    public string ShowAllText => _localizationService.GetStringOrDefault("View_StateFilter_ShowAll", "Show all settings");
+
+    // The page owns the filter and its saved preference, and follows StateFilter when it changes here.
+    [RelayCommand]
+    private void ShowAllSettings() => StateFilter = SettingStateFilter.All;
+
     protected SectionPageViewModel(
         ILogService logService,
         ILocalizationService localizationService,
@@ -98,6 +131,7 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         ICatalogScopeProvider scope,
         IApplicationModeService modeService)
     {
+        LiveInstanceTracker.Shared.Register(this);
         _logService = logService;
         _localizationService = localizationService;
         _badgeService = badgeService;
@@ -117,6 +151,8 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         SearchText = string.Empty;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
+        _lastMode = _modeService.CurrentMode;
+        _modeService.ModeChanged += OnModeChanged;
     }
 
     public void Dispose()
@@ -124,6 +160,7 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         if (_disposed) return;
         _disposed = true;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        _modeService.ModeChanged -= OnModeChanged;
         foreach (var vm in _featureViewModels)
             vm.PropertyChanged -= OnFeaturePropertyChanged;
 
@@ -162,11 +199,6 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         OverviewItems = overviewItems;
     }
 
-    protected ISettingsFeatureViewModel GetFeatureByModuleId(string moduleId)
-    {
-        return _featureViewModels.First(vm => vm.ModuleId == moduleId);
-    }
-
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         OnPropertyChanged(nameof(PageTitle));
@@ -174,13 +206,22 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         OnPropertyChanged(nameof(BreadcrumbRootText));
         OnPropertyChanged(nameof(SearchPlaceholder));
         OnPropertyChanged(nameof(NoResultsText));
+        OnPropertyChanged(nameof(ActiveStateFilterText));
+        OnPropertyChanged(nameof(ClearStateFilterTooltip));
+        OnPropertyChanged(nameof(ShowAllText));
+    }
+
+    private void RaiseNoResultsChanged()
+    {
+        OnPropertyChanged(nameof(HasNoSearchResults));
+        OnPropertyChanged(nameof(IsShowAllVisible));
     }
 
     // A feature filters its cards on a later dispatcher turn, so the answer here changes after SearchText has raised.
     private void OnFeaturePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(ISettingsFeatureViewModel.HasVisibleSettings))
-            OnPropertyChanged(nameof(HasNoSearchResults));
+            RaiseNoResultsChanged();
     }
 
     public virtual async Task InitializeAsync()
@@ -226,6 +267,17 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
     public void OnNavigatedFrom()
     {
         SearchText = string.Empty;
+    }
+
+    // A search typed in one mode would hide the next mode's settings. Builder to Builder is a target switch, not a new mode.
+    private void OnModeChanged(object? sender, EventArgs e)
+    {
+        var mode = _modeService.CurrentMode;
+        if (mode != WinhanceMode.Builder || _lastMode != WinhanceMode.Builder)
+        {
+            SearchText = string.Empty;
+        }
+        _lastMode = mode;
     }
 
     public ISettingsFeatureViewModel? GetSectionViewModel(string sectionKey)
@@ -281,9 +333,7 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
                     SearchSuggestions.Add(new SearchSuggestionItem(
                         setting.Name ?? "Unknown",
                         section.Key,
-                        viewModel.DisplayName,
-                        section.IconGlyphKey
-                    ));
+                        viewModel.DisplayName));
 
                     if (SearchSuggestions.Count >= 5)
                         return;
@@ -302,7 +352,7 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         OnPropertyChanged(nameof(IsInDetailPage));
         OnPropertyChanged(nameof(CurrentSectionName));
         OnPropertyChanged(nameof(CurrentSectionItem));
-        OnPropertyChanged(nameof(HasNoSearchResults));
+        RaiseNoResultsChanged();
 
         if (!string.IsNullOrEmpty(SearchText))
         {
@@ -331,7 +381,7 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         }
 
         UpdateSearchSuggestions(value);
-        OnPropertyChanged(nameof(HasNoSearchResults));
+        RaiseNoResultsChanged();
         OnPropertyChanged(nameof(NoResultsText));
     }
 }

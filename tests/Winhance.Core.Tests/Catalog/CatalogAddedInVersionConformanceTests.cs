@@ -8,7 +8,7 @@ namespace Winhance.Core.Tests.Catalog;
 public class CatalogAddedInVersionConformanceTests
 {
     [Fact]
-    public void Every_catalog_AddedInVersion_parses_as_System_Version()
+    public void AddedInVersion_OnEveryCatalogSetting_ParsesAsSystemVersion()
     {
         var withVersion = SettingCatalog.All
             .Where(s => !string.IsNullOrWhiteSpace(s.Display.AddedInVersion))

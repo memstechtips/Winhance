@@ -11,9 +11,7 @@
             Mode="Single"
             Kind="TwoState"/>
 
-        <!-- AnimatedIcon.State: the check glyph mirrors the nearest ancestor's state and the card moves its own
-             on hover, which drew a check into an unticked box. -->
-        <Grid VerticalAlignment="Center" AnimatedIcon.State="Normal">
+        <Grid VerticalAlignment="Center">
             <!-- MinWidth 0 drops the width the stock style reserves for content; this box has none. -->
             <CheckBox
                 IsChecked="{x:Bind IsChecked, Mode=OneWay}"

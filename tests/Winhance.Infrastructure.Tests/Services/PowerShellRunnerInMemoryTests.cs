@@ -42,4 +42,27 @@ public class PowerShellRunnerInMemoryTests
         var output = await runner.RunScriptInMemoryAsync("Write-Output 'hello from memory'");
         output.Should().Contain("hello from memory");
     }
+
+    [Fact]
+    public async Task RunScriptFromStdinAsync_ScriptLargerThanTheEncodedCommandCap_Runs()
+    {
+        var runner = NewRunner();
+        var padding = new string('x', 60_000);
+        var output = await runner.RunScriptFromStdinAsync($"$pad = '{padding}'; Write-Output \"ok $($pad.Length)\"");
+        output.Should().Contain("ok 60000");
+    }
+
+    [Fact]
+    public async Task RunScriptFromStdinAsync_NonAsciiInTheScript_SurvivesAsUtf8()
+    {
+        var runner = NewRunner();
+        var output = await runner.RunScriptFromStdinAsync("Write-Output ([int][char]'\u00e9')");
+        output.Should().Contain("233");
+    }
+
+    [Fact]
+    public void StdinStub_DecodesStdinAsUtf8AndRunsItAsAScriptBlock()
+    {
+        PowerShellRunner.StdinStub.Should().Contain("OpenStandardInput").And.Contain("UTF8.GetString").And.Contain("ScriptBlock]::Create");
+    }
 }

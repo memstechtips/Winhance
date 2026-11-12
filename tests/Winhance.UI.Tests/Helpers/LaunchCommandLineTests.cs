@@ -104,6 +104,52 @@ public class LaunchCommandLineTests
     }
 
     [Fact]
+    public void Parse_Exit_ClosesTheWindowedAppLikeItsX()
+    {
+        Parse("--exit").ExitFromTray.Should().BeTrue();
+        Parse().ExitFromTray.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Parse_DiagMemory_SetsTheFlag()
+    {
+        Parse("--diag-memory").DiagMemory.Should().BeTrue();
+        Parse().DiagMemory.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Parse_TrayAlone_RunsTheTrayHost()
+    {
+        Parse("--tray").RunsTrayHost.Should().BeTrue();
+        Parse().RunsTrayHost.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("--profile Gaming")]
+    [InlineData("--reapply-profile")]
+    [InlineData("--check-app-updates Scheduled")]
+    [InlineData(@"--config C:\Configs\Gaming.winhance")]
+    [InlineData("--install-apps firefox")]
+    public void Parse_TrayWithAJob_RunsTheFullApp(string job)
+    {
+        Parse([.. job.Split(' '), "--tray"]).RunsTrayHost.Should().BeFalse();
+        _errors.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("Manual", AppUpdateCheckLaunch.Manual)]
+    [InlineData("Scheduled", AppUpdateCheckLaunch.Scheduled)]
+    public void Parse_CheckAppUpdates_ChecksInTheBackground(string kind, AppUpdateCheckLaunch expected)
+    {
+        var options = Parse("--check-app-updates", kind);
+
+        options.CheckAppUpdates.Should().Be(expected);
+        options.RunsInBackground.Should().BeTrue();
+        options.StartsHidden.Should().BeTrue();
+        _errors.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Parse_Profile_SwitchesInTheBackground()
     {
         var options = Parse("--profile", "My Gaming");
@@ -133,6 +179,27 @@ public class LaunchCommandLineTests
 
         options.Profile.Should().Be("My Gaming");
         _errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Parse_Maintain_SetsTheFlagAndStaysOutOfTheBackgroundModes()
+    {
+        var options = Parse("--maintain");
+
+        options.Maintain.Should().BeTrue();
+        options.RunsInBackground.Should().BeFalse();
+        options.StartsHidden.Should().BeFalse();
+        options.MaintainsAlone.Should().BeTrue();
+        _errors.Should().BeEmpty();
+        Parse().Maintain.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("--tray")]
+    [InlineData("--reapply-profile")]
+    public void Parse_MaintainWithAnotherSignInJob_DoesNotRunAlone(string other)
+    {
+        Parse("--maintain", other).MaintainsAlone.Should().BeFalse();
     }
 
     [Theory]

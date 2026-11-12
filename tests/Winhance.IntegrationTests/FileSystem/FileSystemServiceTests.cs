@@ -1,5 +1,7 @@
+using Moq;
 using System.Text;
 using FluentAssertions;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.IntegrationTests.Fixtures;
 using Xunit;
@@ -15,7 +17,7 @@ public class FileSystemServiceTests : IClassFixture<TempDirectoryFixture>
     public FileSystemServiceTests(TempDirectoryFixture fixture)
     {
         _fixture = fixture;
-        _service = new FileSystemService();
+        _service = new FileSystemService(Mock.Of<ILogService>());
     }
 
     private string TempFile(string name) => Path.Combine(_fixture.TempPath, name);

@@ -6,11 +6,7 @@ public interface INavBadgeService
 {
     IReadOnlyList<NavBadgeUpdate> ComputeNavBadges();
 
-    int GetSoftwareAppsSelectedCount();
-
     void SubscribeToSoftwareAppsChanges(Action onChanged);
 
     void UnsubscribeFromSoftwareAppsChanges();
-
-    bool IsSoftwareAppsBadgeSubscribed { get; }
 }

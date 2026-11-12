@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -14,6 +15,7 @@ public class ReviewModeBarViewModelTests : IDisposable
     private readonly Mock<IConfigReviewDiffService> _mockConfigReviewDiffService = new();
     private readonly Mock<IConfigReviewBadgeService> _mockConfigReviewBadgeService = new();
     private readonly Mock<IConfigurationService> _mockConfigurationService = new();
+    private readonly Mock<IReviewModeViewModelCoordinator> _mockVmCoordinator = new();
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
@@ -42,6 +44,7 @@ public class ReviewModeBarViewModelTests : IDisposable
             _mockConfigReviewDiffService.Object,
             _mockConfigReviewBadgeService.Object,
             _mockConfigurationService.Object,
+            _mockVmCoordinator.Object,
             _mockDispatcherService.Object,
             _mockLocalizationService.Object,
             _mockDialogService.Object,
@@ -257,6 +260,67 @@ public class ReviewModeBarViewModelTests : IDisposable
         _sut.CanApplyReviewedConfig.Should().BeFalse();
     }
 
+    private void EnterReviewWithOpenSections(params string[] featuresInConfig)
+    {
+        foreach (var feature in featuresInConfig)
+            _mockConfigReviewBadgeService.Setup(b => b.IsFeatureInConfig(feature)).Returns(true);
+        _mockConfigReviewModeService.Setup(s => s.IsInReviewMode).Returns(true);
+        _mockConfigReviewModeService.Raise(s => s.ReviewModeChanged += null, this, EventArgs.Empty);
+    }
+
+    [Fact]
+    public void ApplyBlockedTooltip_NamesEverySectionStillOpen()
+    {
+        _mockVmCoordinator.Setup(c => c.HasSelectedWindowsApps).Returns(true);
+
+        EnterReviewWithOpenSections(FeatureIds.WindowsApps, FeatureIds.ExternalApps, FeatureIds.Privacy, FeatureIds.Taskbar);
+
+        _sut.CanApplyReviewedConfig.Should().BeFalse();
+        _sut.ReviewModeApplyBlockedTooltip.Should().Be("Still to review: Windows Apps & Features, Optimize, Customize");
+        _sut.CanAcceptAllRemaining.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ApplyBlockedTooltip_LeavesOutAnAppListWithAnActionChosen()
+    {
+        _mockVmCoordinator.Setup(c => c.HasSelectedWindowsApps).Returns(true);
+        _mockVmCoordinator.Setup(c => c.IsWindowsAppsRemoveAction).Returns(true);
+        _mockVmCoordinator.Setup(c => c.HasSelectedExternalApps).Returns(true);
+
+        EnterReviewWithOpenSections(FeatureIds.WindowsApps, FeatureIds.ExternalApps);
+
+        _sut.ReviewModeApplyBlockedTooltip.Should().Be("Still to review: External Software");
+    }
+
+    [Fact]
+    public void ApplyBlockedTooltip_IsGone_OnceApplyIsAllowed()
+    {
+        EnterReviewWithOpenSections(FeatureIds.Privacy);
+        _sut.ReviewModeApplyBlockedTooltip.Should().NotBeNull();
+
+        _mockConfigReviewBadgeService.Setup(b => b.IsSectionFullyReviewed("Optimize")).Returns(true);
+        _mockConfigReviewBadgeService.Raise(b => b.BadgeStateChanged += null, this, EventArgs.Empty);
+
+        _sut.CanApplyReviewedConfig.Should().BeTrue();
+        _sut.ReviewModeApplyBlockedTooltip.Should().BeNull();
+        _sut.CanAcceptAllRemaining.Should().BeFalse();
+    }
+
+    [Fact]
+    public void AcceptAllRemaining_IsHidden_OutsideReview()
+    {
+        _sut.CanAcceptAllRemaining.Should().BeFalse();
+        _sut.ReviewModeApplyBlockedTooltip.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task AcceptAllRemainingCommand_AcceptsThroughTheCoordinator()
+    {
+        await _sut.AcceptAllRemainingCommand.ExecuteAsync(null);
+
+        _mockVmCoordinator.Verify(c => c.AcceptAllRemaining(), Times.Once);
+    }
+
     [Fact]
     public void CanApplyReviewedConfig_AllReviewed_ReturnsTrue()
     {
@@ -464,6 +528,7 @@ public class ReviewModeBarViewModelTests : IDisposable
             _mockConfigReviewDiffService.Object,
             _mockConfigReviewBadgeService.Object,
             _mockConfigurationService.Object,
+            _mockVmCoordinator.Object,
             _mockDispatcherService.Object,
             _mockLocalizationService.Object,
             _mockDialogService.Object,
@@ -487,6 +552,7 @@ public class ReviewModeBarViewModelTests : IDisposable
             _mockConfigReviewDiffService.Object,
             _mockConfigReviewBadgeService.Object,
             _mockConfigurationService.Object,
+            _mockVmCoordinator.Object,
             _mockDispatcherService.Object,
             _mockLocalizationService.Object,
             _mockDialogService.Object,

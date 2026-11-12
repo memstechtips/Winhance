@@ -112,12 +112,12 @@ public class BuilderSaveServiceTests
     public async Task SaveAsProfile_FromABuiltInProfile_StartsWithNoName()
     {
         TextInputRequest? asked = null;
-        _entry.Setup(e => e.EditingProfile).Returns(new SettingsProfile("builtin:recommended", "Recommended", ProfileKind.Recommended, null));
+        _entry.Setup(e => e.EditingProfile).Returns(new SettingsProfile("builtin:focus", "Winhance Focus", ProfileKind.Focus, null));
         _dialogs.Setup(d => d.AskTextAsync(It.IsAny<TextInputRequest>())).Callback((TextInputRequest r) => asked = r).ReturnsAsync((string?)null);
 
         await Sut().SaveAsProfileAsync();
 
         asked!.Text.Should().BeEmpty();
-        asked.IsValid("Recommended").Should().BeFalse();
+        asked.IsValid("Winhance Focus").Should().BeFalse();
     }
 }

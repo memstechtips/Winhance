@@ -1,6 +1,5 @@
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Catalog;
 
@@ -53,6 +52,13 @@ public sealed record PowerCfgTarget(
     public string? Units { get; init; }
     public RegTarget? EnablementKey { get; init; }      // unhide a hidden powercfg setting before query
     public bool CheckForHardwareControl { get; init; }
+}
+
+// Every catalog power setting writes AC and DC separately; Both writes one value to each.
+public enum PowerModeSupport
+{
+    Both,
+    Separate,
 }
 
 public sealed record TaskTarget(string Key, string TaskPath) : Target(Key);

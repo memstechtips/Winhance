@@ -9,6 +9,28 @@ namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilitie
 // the same shape for an installer the user added, so one reader covers both.
 internal sealed record WinGetManifest(string InstallerType, string? Silent, string? Custom, string? Scope, IReadOnlySet<int> SuccessCodes)
 {
+    // A zip holds the installer winget runs: one file of a runnable type, or the portable app's files.
+    internal string? NestedInstallerType { get; init; }
+    internal IReadOnlyList<NestedInstallerFile> NestedInstallerFiles { get; init; } = [];
+    internal string? Command { get; init; }
+    internal string? InstallerUrl { get; init; }
+    internal string? PackageIdentifier { get; init; }
+    internal string? DisplayName { get; init; }
+    internal string? DisplayVersion { get; init; }
+    internal string? Publisher { get; init; }
+    internal string? PackageUrl { get; init; }
+    internal string? SupportUrl { get; init; }
+
+    internal string RunType => InstallerType == "zip" ? NestedInstallerType ?? InstallerType : InstallerType;
+
+    internal bool IsPortable => RunType == "portable" && (InstallerType == "portable" || NestedInstallerFiles.Count > 0);
+
+    // An msix installs for the signed-in user alone.
+    internal bool IsPackaged => InstallerType is "msix" or "appx";
+
+    internal bool InstallsWithoutWinGet =>
+        IsPortable || IsPackaged || (IsRunnable(RunType) && (InstallerType != "zip" || NestedInstallerFiles.Count == 1));
+
     private static readonly HashSet<string> RunnableTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "msi", "wix", "burn", "inno", "nullsoft", "exe",
@@ -41,16 +63,36 @@ internal sealed record WinGetManifest(string InstallerType, string? Silent, stri
         if (installerType == null)
             return null;
 
+        var nestedType = (Text(installer, "NestedInstallerType") ?? Text(root, "NestedInstallerType"))?.ToLowerInvariant();
+        var runType = installerType == "zip" ? nestedType ?? installerType : installerType;
+        var nestedFiles = Entries(installer, "NestedInstallerFiles").Concat(Entries(root, "NestedInstallerFiles"))
+            .Select(entry => Text(entry, "RelativeFilePath") is { } path ? new NestedInstallerFile(path, Text(entry, "PortableCommandAlias")) : null)
+            .OfType<NestedInstallerFile>()
+            .ToList();
+        var arp = Entries(installer, "AppsAndFeaturesEntries").Concat(Entries(root, "AppsAndFeaturesEntries")).FirstOrDefault();
+
         var silent = Text(installer, "InstallerSwitches", "Silent") ?? Text(root, "InstallerSwitches", "Silent");
         var custom = Text(installer, "InstallerSwitches", "Custom") ?? Text(root, "InstallerSwitches", "Custom");
         var scope = (Text(installer, "Scope") ?? Text(root, "Scope"))?.ToLowerInvariant();
 
         return new WinGetManifest(
             installerType,
-            silent ?? DefaultSilent(installerType),
+            silent ?? DefaultSilent(runType),
             custom,
             scope,
-            SuccessCodesFor(installerType, installer, root));
+            SuccessCodesFor(runType, installer, root))
+        {
+            NestedInstallerType = nestedType,
+            NestedInstallerFiles = nestedFiles,
+            Command = Entries(installer, "Commands").Concat(Entries(root, "Commands")).Select(entry => Text(entry)).FirstOrDefault(command => command != null),
+            InstallerUrl = Text(installer, "InstallerUrl"),
+            PackageIdentifier = Text(root, "PackageIdentifier"),
+            DisplayName = Text(arp, "DisplayName") ?? Text(root, "PackageName"),
+            DisplayVersion = Text(arp, "DisplayVersion") ?? Text(root, "PackageVersion"),
+            Publisher = Text(arp, "Publisher") ?? Text(root, "Publisher"),
+            PackageUrl = Text(root, "PackageUrl"),
+            SupportUrl = Text(root, "PublisherSupportUrl"),
+        };
     }
 
     internal static string Write(string installerType, string silent)
@@ -71,7 +113,7 @@ internal sealed record WinGetManifest(string InstallerType, string? Silent, stri
         return writer.ToString();
     }
 
-    internal static bool IsRunnable(string installerType) => RunnableTypes.Contains(installerType);
+    private static bool IsRunnable(string installerType) => RunnableTypes.Contains(installerType);
 
     internal static bool IsManifest(string path) =>
         string.Equals(Path.GetExtension(path), ".yaml", StringComparison.OrdinalIgnoreCase);
@@ -87,11 +129,11 @@ internal sealed record WinGetManifest(string InstallerType, string? Silent, stri
 
     internal (string FileName, string Arguments)? CommandFor(string installerPath)
     {
-        if (!IsRunnable(InstallerType) || string.IsNullOrWhiteSpace(Silent))
+        if (!IsRunnable(RunType) || string.IsNullOrWhiteSpace(Silent))
             return null;
 
         var switches = string.IsNullOrWhiteSpace(Custom) ? Silent : $"{Silent} {Custom}";
-        if (InstallerType is not ("msi" or "wix"))
+        if (RunType is not ("msi" or "wix"))
             return (installerPath, switches);
 
         // An msi whose own tables leave ALLUSERS unset installs for the running user alone.
@@ -161,3 +203,5 @@ internal sealed record WinGetManifest(string InstallerType, string? Silent, stri
     private static string? Text(YamlNode? node, params string[] path) =>
         Node(node, path) is YamlScalarNode { Value: { } value } && !string.IsNullOrWhiteSpace(value) ? value.Trim() : null;
 }
+
+internal sealed record NestedInstallerFile(string RelativeFilePath, string? PortableCommandAlias);

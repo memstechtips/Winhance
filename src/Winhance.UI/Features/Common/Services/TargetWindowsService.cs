@@ -9,31 +9,21 @@ namespace Winhance.UI.Features.Common.Services;
 
 // Session-only like the hardware filter. Starts at the newest release rather than this PC's build, because an
 // answer file is nearly always used for a fresh install from current media.
-public sealed class TargetWindowsService : ITargetWindowsService
+public sealed class TargetWindowsService(IEventBus eventBus, ILogService logService) : ITargetWindowsService
 {
-    private readonly IEventBus _eventBus;
-    private readonly ILogService _log;
-
-    public TargetWindowsService(IEventBus eventBus, ILogService log)
-    {
-        _eventBus = eventBus;
-        _log = log;
-    }
-
     public int? Build { get; private set; } = WindowsReleases.Latest.Build;
 
     public event EventHandler? Changed;
 
-    public Task SetAsync(int? build)
+    public void Set(int? build)
     {
-        if (Build == build) return Task.CompletedTask;
+        if (Build == build) return;
 
         Build = build;
-        _eventBus.Publish(new FilterStateChangedEvent(build is not null));
+        eventBus.Publish(new FilterStateChangedEvent(build is not null));
         Changed?.Invoke(this, EventArgs.Empty);
-        _log.Log(LogLevel.Info, $"Builder target Windows set to: {build?.ToString() ?? "all versions"}");
-        return Task.CompletedTask;
+        logService.Log(LogLevel.Info, $"Builder target Windows set to: {build?.ToString() ?? "all versions"}");
     }
 
-    public Task ResetAsync() => SetAsync(WindowsReleases.Latest.Build);
+    public void Reset() => Set(WindowsReleases.Latest.Build);
 }

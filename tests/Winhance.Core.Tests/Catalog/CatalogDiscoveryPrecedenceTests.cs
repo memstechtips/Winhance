@@ -60,21 +60,21 @@ public class CatalogDiscoveryPrecedenceTests
     };
 
     [Fact]
-    public void Preference_on_with_absent_mirror_reads_enabled() // the 29-diff bug case
+    public void Detect_WhenPreferenceOnAndMirrorAbsent_ReadsEnabled() // the 29-diff bug case
     {
         var ctx = new Ctx(new() { [(Pref, "Enabled")] = 1 });
         Assert.Equal(LocKey.Common.Enabled.Value, CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 
     [Fact]
-    public void Group_policy_override_wins_over_preference()
+    public void Detect_WhenGroupPolicyOverridesPreference_GroupPolicyWins()
     {
         var ctx = new Ctx(new() { [(Pref, "Enabled")] = 1, [(Gpo, "DisabledByGroupPolicy")] = 1 });
         Assert.Equal(LocKey.Common.Disabled.Value, CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 
     [Fact]
-    public void Overrides_target_wins_over_preference_like_a_policy()
+    public void Detect_WhenOverridesTargetConflictsWithPreference_OverridesTargetWins()
     {
         var setting = AdSetting() with
         {
@@ -89,21 +89,21 @@ public class CatalogDiscoveryPrecedenceTests
     }
 
     [Fact]
-    public void Nothing_present_falls_to_default_on_fallback()
+    public void Detect_WhenNothingPresent_FallsToTheFallbackState()
     {
         var ctx = new Ctx(new());
         Assert.Equal(LocKey.Common.Enabled.Value, CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 
     [Fact]
-    public void Preference_off_reads_disabled()
+    public void Detect_WhenPreferenceOff_ReadsDisabled()
     {
         var ctx = new Ctx(new() { [(Pref, "Enabled")] = 0 });
         Assert.Equal(LocKey.Common.Disabled.Value, CatalogDiscovery.Detect(AdSetting(), ctx).Label);
     }
 
     [Fact]
-    public void Two_independent_preference_keys_keep_all_match() // AND-semantics, e.g. theme-mode-windows
+    public void Detect_WithTwoIndependentPreferenceKeys_RequiresAllToMatch() // AND-semantics, e.g. theme-mode-windows
     {
         // apps-theme AND system-theme: each key discriminates a different state, so precedence (decide on one)
         // would be wrong - a mixed machine must stay Custom, not mis-report a concrete state.
@@ -129,7 +129,7 @@ public class CatalogDiscoveryPrecedenceTests
     }
 
     [Fact]
-    public void Single_target_behaves_as_before()
+    public void Detect_WithSingleTarget_MatchesTheStateForTheValue()
     {
         var setting = new Setting
         {
@@ -148,7 +148,7 @@ public class CatalogDiscoveryPrecedenceTests
     }
 
     [Fact]
-    public void Present_but_unmatched_value_reads_custom_despite_fallback()
+    public void Detect_WhenValuePresentButUnmatched_ReadsCustomDespiteFallback()
     {
         // Enabled=5 is PRESENT but matches neither Of(1).OrAbsent() nor Of(0): detection is honest and
         // reports Custom (null) instead of falling to the IsFallback state.
@@ -157,7 +157,7 @@ public class CatalogDiscoveryPrecedenceTests
     }
 
     [Fact]
-    public void Absent_unmatched_value_still_falls_to_fallback()
+    public void Detect_WhenValueAbsentAndUnmatched_FallsToTheFallbackState()
     {
         // Absence is what fallbacks are for: deciding value absent + no state pattern matching absence
         // -> the IsFallback label, not Custom.
@@ -177,7 +177,7 @@ public class CatalogDiscoveryPrecedenceTests
     }
 
     [Fact]
-    public void Present_value_matching_fallbacks_own_pattern_reads_fallback()
+    public void Detect_WhenValueMatchesFallbackOwnPattern_ReadsTheFallbackState()
     {
         // Matched != fell through: a present value that matches the IsFallback state's OWN pattern
         // (Enabled=1 vs Of(1).OrAbsent()) returns that state via the normal match, never Custom.

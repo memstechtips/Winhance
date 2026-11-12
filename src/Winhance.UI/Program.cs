@@ -17,7 +17,7 @@ namespace Winhance.UI;
 // Runs BEFORE WinUI 3 initialization to redirect duplicate instances.
 public static class Program
 {
-    private const string AppKey = "Winhance-SingleInstance-Key";
+    internal const string AppKey = "Winhance-SingleInstance-Key";
 
     [STAThread]
     public static void Main(string[] args)
@@ -28,6 +28,23 @@ public static class Program
             StartupLogger.Log($"Args: {string.Join(", ", args)}");
             StartupLogger.Log($"CurrentDirectory: {Environment.CurrentDirectory}");
             StartupLogger.Log($"BaseDirectory: {AppContext.BaseDirectory}");
+
+            // Runs beside a user's open Winhance, so it takes no instance key either.
+            if (LaunchCommandLine.Parse(args, _ => { }).MaintainsAlone)
+            {
+                StartupLogger.Log("Starting the keep-removed job");
+                TrayHost.RunMaintenance();
+                return;
+            }
+
+            // Takes no instance key, so a full app started later runs as the main instance and tells the host to leave.
+            var launch = LaunchCommandLine.Parse(args, _ => { });
+            if (launch.RunsTrayHost && !MainInstanceRunning())
+            {
+                StartupLogger.Log("Starting the tray host");
+                TrayHost.Run(MainInstanceRunning, launch.Maintain);
+                return;
+            }
 
             StartupLogger.Log("Checking single instance...");
             if (!HandleSingleInstance())
@@ -59,6 +76,8 @@ public static class Program
             throw;
         }
     }
+
+    private static bool MainInstanceRunning() => AppInstance.GetInstances().Any(instance => instance.Key == AppKey);
 
     private static bool HandleSingleInstance()
     {
@@ -127,8 +146,10 @@ public static class Program
         {
             if (App.Services.GetService<TrayController>() is not { } tray)
                 return;
-            if (launch.SwitchesProfile)
-                tray.RunCommandLineProfileAsync(launch).FireAndForget(App.Services.GetRequiredService<ILogService>());
+            if (launch.ExitFromTray)
+                tray.ExitAsync().FireAndForget(App.Services.GetRequiredService<ILogService>());
+            else if (launch.RunsInBackground)
+                tray.RunBackgroundLaunchAsync(launch).FireAndForget(App.Services.GetRequiredService<ILogService>());
             else if (launch.StartInTray)
                 tray.StayInTray();
             else

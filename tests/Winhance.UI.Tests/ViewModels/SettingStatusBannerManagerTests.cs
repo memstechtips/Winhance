@@ -87,6 +87,53 @@ public class SettingStatusBannerManagerTests
         result!.Value.Message.Should().BeNull();
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(ComboBoxConstants.CustomStateIndex)]
+    public void ComputeBannerForValue_WithRiskWarning_ShowsItWhateverIsSelected(int selected)
+    {
+        var optionWarnings = new OptionWarning?[] { null, new("Disabling breaks it.", true, Always: true) };
+
+        var result = _manager.ComputeBannerForValue(selected, optionWarnings, null, 2, null);
+
+        result!.Value.Message.Should().Be("Disabling breaks it.");
+        result.Value.Severity.Should().Be(InfoBarSeverity.Warning);
+    }
+
+    [Fact]
+    public void ComputeBannerForValue_WithRiskWarningRepeatedOnTwoOptions_ShowsItOnce()
+    {
+        var risk = new OptionWarning("Manual or Disabled breaks Night Light.", true, Always: true);
+
+        var result = _manager.ComputeBannerForValue(2, new OptionWarning?[] { risk, risk, null }, null, 3, null);
+
+        result!.Value.Message.Should().Be("Manual or Disabled breaks Night Light.");
+    }
+
+    [Fact]
+    public void ComputeBannerForValue_WithTwoRiskWarnings_ShowsBothOnSeparateLines()
+    {
+        var optionWarnings = new OptionWarning?[]
+        {
+            null, new("Pausing is risky.", true, Always: true), new("Disabling is riskier.", true, Always: true),
+        };
+
+        var result = _manager.ComputeBannerForValue(0, optionWarnings, null, 3, null);
+
+        result!.Value.Message.Should().Be("Pausing is risky.\nDisabling is riskier.");
+    }
+
+    [Fact]
+    public void ComputeBannerForValue_WithOutcomeNoteOnSelectedOption_ShowsTheNoteNotTheRisk()
+    {
+        var optionWarnings = new OptionWarning?[] { new("Risk.", true, Always: true), new("Outcome.", true) };
+
+        var result = _manager.ComputeBannerForValue(1, optionWarnings, null, 2, null);
+
+        result!.Value.Message.Should().Be("Outcome.");
+    }
+
     [Fact]
     public void ComputeBannerForValue_WithCrossGroupMessage_CustomIndex_ShowsCrossGroupMessage()
     {

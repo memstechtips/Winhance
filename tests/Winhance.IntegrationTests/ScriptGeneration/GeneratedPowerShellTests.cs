@@ -16,22 +16,20 @@ using Xunit;
 
 namespace Winhance.IntegrationTests.ScriptGeneration;
 
-// Runs the REAL Windows PowerShell on the generating machine: the whole live-catalog script must parse, the two
-// validators must actually fail on bad input, and the registry helpers the old emitters lacked must do to an HKCU
-// scratch key what WindowsRegistryService does.
+// Runs the REAL Windows PowerShell on the generating machine: the whole live-catalog script must parse, and the
+// registry helpers must do to an HKCU scratch key what WindowsRegistryService does.
 [Trait("Category", "Integration")]
 public class GeneratedPowerShellTests
 {
-    private static PowerShellRunner Runner() => new(new FileSystemService());
+    private static PowerShellRunner Runner() => new(new FileSystemService(Mock.Of<ILogService>()));
 
-    private static WinhancementsScriptBuilder Builder(IPowerShellRunner runner, ILocalizationService? localization = null)
+    private static WinhancementsScriptBuilder Builder(ILocalizationService? localization = null)
     {
         var version = new Mock<IWindowsVersionService>();
         version.Setup(v => v.GetWindowsBuildNumber()).Returns(26100);
         version.Setup(v => v.GetWindowsBuildRevision()).Returns(4000);
         return new WinhancementsScriptBuilder(
             new Mock<ILogService>().Object,
-            runner,
             version.Object,
             localization ?? new Mock<ILocalizationService>().Object,
             OptionProviderFixtures.Registry());
@@ -91,20 +89,17 @@ public class GeneratedPowerShellTests
     [InlineData(2)]
     public async Task LiveCatalogScript_ParsesUnderWindowsPowerShell(int winhanceCardOption)
     {
-        var script = await Builder(Runner()).BuildAsync(LiveCatalogChoices(winhanceCardOption), SettingCatalog.ByFeature);
+        var script = await Builder().BuildAsync(LiveCatalogChoices(winhanceCardOption), SettingCatalog.ByFeature);
 
         script.Should().Contain("function Set-RegistryCompositeValue");
         script.Should().Contain("Set-RegistryCompositeValue -Path").And.Contain("Set-RegistryStringFlag -Path").And.Contain("Lock-RegistryKey -Path");
+        var errors = await Runner().FindParseErrorsAsync(new Dictionary<string, string> { ["Winhancements.ps1"] = script });
+        errors.Should().BeEmpty();
     }
 
     [Fact]
     public async Task LiveCatalogScript_ParsesInEveryLanguage()
     {
-        var builderRunner = new Mock<IPowerShellRunner>();
-        builderRunner
-            .Setup(r => r.ValidateScriptSyntaxAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
         var scripts = new Dictionary<string, string>();
         foreach (var file in Directory.GetFiles(RepoPaths.LocalizationDir(), "*.json"))
         {
@@ -115,7 +110,7 @@ public class GeneratedPowerShellTests
                 .Returns((string key) => strings.TryGetValue(key, out var text) ? text : $"[{key}]");
             localization.MirrorTryGetString();
 
-            scripts[Path.GetFileNameWithoutExtension(file)] = await Builder(builderRunner.Object, localization.Object)
+            scripts[Path.GetFileNameWithoutExtension(file)] = await Builder(localization.Object)
                 .BuildAsync(LiveCatalogChoices(1), SettingCatalog.ByFeature);
         }
 
@@ -138,22 +133,6 @@ public class GeneratedPowerShellTests
         var errors = await Runner().FindParseErrorsAsync(new Dictionary<string, string> { ["Install-Winhance.ps1"] = body });
 
         errors.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task ValidateScriptSyntax_RejectsAParseError()
-    {
-        var act = () => Runner().ValidateScriptSyntaxAsync("function Broken { param($a) \n if ($a) { Write-Host 'missing brace' ");
-
-        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*PARSE_ERROR*");
-    }
-
-    [Fact]
-    public async Task ValidateXmlSyntax_RejectsMalformedXml()
-    {
-        var act = () => Runner().ValidateXmlSyntaxAsync("<unattend><settings></unattend>");
-
-        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*XML_ERROR*");
     }
 
     [Fact]

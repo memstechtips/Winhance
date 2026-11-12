@@ -1,13 +1,16 @@
 using System.Text;
+using Winhance.Core.Features.Autounattend;
 using Winhance.Core.Features.Autounattend.Interfaces;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.SoftwareApps.Utilities;
 using Winhance.Infrastructure.Features.Autounattend.Helpers;
 using Winhance.Infrastructure.Features.Autounattend.ScriptSections;
+using Winhance.Infrastructure.Features.Common.Utilities;
 using static Winhance.Infrastructure.Features.Autounattend.Helpers.PowerShellScriptUtilities;
 
 namespace Winhance.Infrastructure.Features.Autounattend.Services;
@@ -15,7 +18,6 @@ namespace Winhance.Infrastructure.Features.Autounattend.Services;
 internal sealed class WinhancementsScriptBuilder : IWinhancementsScriptBuilder
 {
     private readonly ILogService _logService;
-    private readonly IPowerShellRunner _powerShellRunner;
     private readonly IWindowsVersionService _windowsVersionService;
     private readonly ILocalizationService _localizationService;
     private readonly IOptionProviderRegistry _optionProviders;
@@ -23,13 +25,11 @@ internal sealed class WinhancementsScriptBuilder : IWinhancementsScriptBuilder
 
     public WinhancementsScriptBuilder(
         ILogService logService,
-        IPowerShellRunner powerShellRunner,
         IWindowsVersionService windowsVersionService,
         ILocalizationService localizationService,
         IOptionProviderRegistry optionProviders)
     {
         _logService = logService;
-        _powerShellRunner = powerShellRunner;
         _windowsVersionService = windowsVersionService;
         _localizationService = localizationService;
         _optionProviders = optionProviders;
@@ -66,6 +66,7 @@ internal sealed class WinhancementsScriptBuilder : IWinhancementsScriptBuilder
         sb.AppendLine();
         sb.AppendLine("if (-not $UserCustomizations) {");
         sb.AppendLine();
+        AppendProgramDataLock(sb, "    ");
 
         // PowerShell maps no HKU: drive by default; the user bridge below maps its own.
         if (emitted.SystemPassByFeature.Values.Any(text => text.Contains(@"'HKU:\", StringComparison.Ordinal)))
@@ -74,10 +75,20 @@ internal sealed class WinhancementsScriptBuilder : IWinhancementsScriptBuilder
             sb.AppendLine();
         }
 
-        if (set.WindowsApps.Count > 0)
+        var cleansUp = AutounattendCleanup.Wanted(set);
+        if (set.WindowsApps.Count > 0 || cleansUp)
         {
             _appRemovalSection.AppendScriptsDirectorySetup(sb, "    ");
-            await _appRemovalSection.AppendBloatRemovalScriptAsync(sb, set.WindowsApps, "    ").ConfigureAwait(false);
+        }
+
+        if (set.WindowsApps.Count > 0)
+        {
+            await _appRemovalSection.AppendBloatRemovalScriptAsync(sb, set.WindowsApps, "    ", RemovalModeOf(set)).ConfigureAwait(false);
+        }
+
+        if (cleansUp)
+        {
+            CleanupScriptSection.AppendCleanupTask(sb, AutounattendCleanup.Options(set), "    ");
         }
 
         AppendPowerSection(sb, emitted.PowerPlan, emitted.PowerRows, HiddenRows(emitted.PowerRows, byFeature), "    ");
@@ -124,20 +135,17 @@ internal sealed class WinhancementsScriptBuilder : IWinhancementsScriptBuilder
         // A .ps1 of the user's runs in this session, so a helper it calls goes into the file too.
         ScriptPreambleSection.AppendHelperFunctions(script,
             string.Join(Environment.NewLine, userScripts.Where(s => s.Extension == ".ps1").Select(s => s.Content).Prepend(body)));
-        var scriptContent = script.Append(body).ToString();
+        // Not parsed here: the answer file validator parses this script with every other one the file carries, in
+        // one powershell.exe launch.
+        return script.Append(body).ToString();
+    }
 
-        try
-        {
-            await _powerShellRunner.ValidateScriptSyntaxAsync(scriptContent).ConfigureAwait(false);
-            _logService.Log(LogLevel.Info, "Winhancements.ps1 script passed PowerShell syntax validation");
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"Winhancements.ps1 script failed PowerShell syntax validation: {ex.Message}");
-            throw;
-        }
-
-        return scriptContent;
+    private static AppRemovalMode RemovalModeOf(SelectionSet set)
+    {
+        var chosen = set.StateOf(WinhanceOnNewPc.KeepRemovedId)?.Label;
+        return chosen == LocKey.Setting.AutounattendKeepRemoved.Option0 ? AppRemovalMode.Once
+            : chosen == LocKey.Setting.AutounattendKeepRemoved.Option2 ? AppRemovalMode.Winhance
+            : AppRemovalMode.Scripts;
     }
 
     private static IEnumerable<string> FeaturesInSectionOrder(IReadOnlyDictionary<string, IReadOnlyList<Winhance.Core.Features.Common.Catalog.Setting>> byFeature) =>
@@ -336,6 +344,16 @@ internal sealed class WinhancementsScriptBuilder : IWinhancementsScriptBuilder
             .Select(target => (target.SubgroupGuid, target.SettingGuid))
             .ToHashSet();
         return rows.Where(row => hidden.Contains((row.SubgroupGuid, row.SettingGuid))).ToList();
+    }
+
+    // The post-setup SYSTEM task runs from this folder, so only SYSTEM and Administrators may write to it. Children keep inheriting.
+    private static void AppendProgramDataLock(StringBuilder sb, string indent)
+    {
+        sb.AppendLine($"{indent}$winhanceRoot = 'C:\\ProgramData\\Winhance'");
+        sb.AppendLine($"{indent}takeown /f $winhanceRoot /r /a /d y 2>&1 | Out-Null");
+        sb.AppendLine($"{indent}icacls $winhanceRoot /inheritance:r /grant:r {FolderLock.IcaclsGrantArguments} 2>&1 | Out-Null");
+        sb.AppendLine($"{indent}icacls \"$winhanceRoot\\*\" /inheritance:e /t /c 2>&1 | Out-Null");
+        sb.AppendLine();
     }
 
     private static void AppendPowerSection(StringBuilder sb, PowerPlanChoice? plan, IReadOnlyList<PowerCfgRow> rows, IReadOnlyList<PowerCfgRow> hiddenRows, string indent)

@@ -19,6 +19,7 @@ public static class UserPreferenceKeys
     public const string UiZoomFactor = "UiZoomFactor";
     public const string SupportAskedAt = "SupportAskedAt";
     public const string InstallAppsForAllUsers = "InstallAppsForAllUsers";
+    public const string ChocolateyIgnoreChecksums = "ChocolateyIgnoreChecksums";
     public const string AppInstallOptions = "AppInstallOptions";
     public const string CloseToTray = "CloseToTray";
     public const string MinimizeToTray = "MinimizeToTray";
@@ -27,11 +28,19 @@ public static class UserPreferenceKeys
     public const string AppUpdateAction = "AppUpdateAction";
     public const string LastAppUpdateCheck = "LastAppUpdateCheck";
     public const string LastNotifiedAppUpdates = "LastNotifiedAppUpdates";
+    public const string TrayAppUpdates = "TrayAppUpdates";
+    public const string TrayWinhanceUpdate = "TrayWinhanceUpdate";
+    public const string TrayAttention = "TrayAttention";
+    public const string LastWinhanceUpdateCheck = "LastWinhanceUpdateCheck";
+    public const string LastNotifiedWinhanceUpdate = "LastNotifiedWinhanceUpdate";
     public const string SoftwareAppsViewMode = "SoftwareAppsViewMode";
     public const string SoftwareAppsSortMode = "SoftwareAppsSortMode";
     public const string SoftwareAppsFilter = "SoftwareAppsFilter";
+    public const string WimUtilWorkingDirectory = "WimUtilWorkingDirectory";
     public const string ActiveProfile = "ActiveProfile";
     public const string ActiveProfileFailed = "ActiveProfileFailed";
+    public const string Theme = "Theme";
+    public const string Language = "Language";
 
     // Followed by the profile id; holds the Winhance version the reminder was turned off for.
     public const string ProfileReminderOffPrefix = "ProfileReminderOff_";

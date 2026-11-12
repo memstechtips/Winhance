@@ -5,9 +5,9 @@ public interface ITargetWindowsService
 {
     int? Build { get; }
 
-    Task SetAsync(int? build);
+    void Set(int? build);
 
-    Task ResetAsync();
+    void Reset();
 
     event EventHandler? Changed;
 }

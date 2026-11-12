@@ -20,6 +20,9 @@ internal class ProcessRestartManager(
 
     private int _suppressCount;
 
+    // AsyncLocal, so only the apply that opened the scope (and the follow-ons it awaits) feeds the batch.
+    private readonly AsyncLocal<BroadcastBatch?> _batch = new();
+
     // Test seam: production never reads it (the broadcast is fire-and-forget and observes its own failures), but the
     // suite needs a deterministic point to await instead of racing the thread pool.
     internal Task LastBroadcastTask { get; private set; } = Task.CompletedTask;
@@ -43,6 +46,49 @@ internal class ProcessRestartManager(
         }
     }
 
+    public IDisposable CoalesceBroadcasts()
+    {
+        var batch = new BroadcastBatch(this, _batch.Value);
+        _batch.Value = batch;
+        return batch;
+    }
+
+    // A nested scope hands its notices to the outer one, so only the outermost scope broadcasts.
+    private sealed class BroadcastBatch(ProcessRestartManager owner, BroadcastBatch? previous) : IDisposable
+    {
+        private readonly List<string> _settingIds = new();
+        private bool _themeAffecting;
+        private bool _desktopAffecting;
+        private int _disposed;
+
+        public void Add(bool themeAffecting, bool desktopAffecting, IEnumerable<string> settingIds)
+        {
+            lock (_settingIds)
+            {
+                _themeAffecting |= themeAffecting;
+                _desktopAffecting |= desktopAffecting;
+                _settingIds.AddRange(settingIds);
+            }
+        }
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) == 1)
+                return;
+            owner._batch.Value = previous;
+
+            lock (_settingIds)
+            {
+                if (_settingIds.Count == 0)
+                    return;
+                if (previous is not null)
+                    previous.Add(_themeAffecting, _desktopAffecting, _settingIds);
+                else
+                    owner.DispatchBroadcast(_themeAffecting, _desktopAffecting, string.Join("', '", _settingIds));
+            }
+        }
+    }
+
     public Task HandleProcessAndServiceRestartsAsync(Setting setting)
     {
         var (processes, services) = CollectRestartTargets(new[] { setting });
@@ -53,7 +99,8 @@ internal class ProcessRestartManager(
         // Which broadcast this setting deserves is DECLARED BY THE SETTING (ApplyBehavior.NotifyWindows),
         // next to its confirmation gate and its restart - not inferred from the registry paths it writes.
         return HandleRestartsAsync(processes.FirstOrDefault(), services.FirstOrDefault(), setting.Id,
-            WantsAppearanceNotice(setting), WantsDesktopNotice(setting));
+            WantsAppearanceNotice(setting), WantsDesktopNotice(setting),
+            setting.Apply.NotifyWindows.HasFlag(WindowsChange.Settings));
     }
 
     // Explorer is deliberately NOT restarted here. Killing the shell per setting means a user toggling
@@ -62,7 +109,7 @@ internal class ProcessRestartManager(
     // with no shell at all. Instead we broadcast (so anything that CAN take effect live does) and
     // register the setting; the user restarts once, when they choose, from the pending-restart bar.
     private Task HandleRestartsAsync(string? restartProcess, string? restartService, string settingId,
-        bool themeAffecting, bool desktopAffecting)
+        bool themeAffecting, bool desktopAffecting, bool settingsNotice)
     {
         bool isExplorer = RestartProcess.NamesExplorer(restartProcess);
 
@@ -72,7 +119,7 @@ internal class ProcessRestartManager(
         //                   effect live does so before the user gets round to restarting.
         // Gating the broadcast on isExplorer alone is what silently stopped the theme applying the moment
         // its (unnecessary) Explorer restart was removed: the notice was reachable only via the restart.
-        if (themeAffecting || desktopAffecting || isExplorer)
+        if (themeAffecting || desktopAffecting || settingsNotice || isExplorer)
         {
             // The broadcast kills nothing, so it runs even under a suppress scope or during an import -
             // it is what makes live-updatable settings apply immediately.
@@ -86,11 +133,10 @@ internal class ProcessRestartManager(
             // killed afterwards so there is no ordering hazard, and the HGlobal the theme send allocates
             // lives and dies entirely inside the call.
 
-            // The dispatch line is logged HERE, on the caller's thread, so it lands in the log where
-            // the user expects it even though the send itself goes to the thread pool - and so a
-            // broadcast that never returns at all still leaves a trace saying it started.
-            LogBroadcastDispatch(themeAffecting, desktopAffecting, settingId);
-            LastBroadcastTask = Task.Run(() => RunBroadcast(themeAffecting, desktopAffecting, settingId));
+            if (_batch.Value is { } batch)
+                batch.Add(themeAffecting, desktopAffecting, new[] { settingId });
+            else
+                DispatchBroadcast(themeAffecting, desktopAffecting, settingId);
         }
 
         // Only a restart-carrying setting raises the pending bar. A setting that merely declares a
@@ -128,6 +174,12 @@ internal class ProcessRestartManager(
         return Task.CompletedTask;
     }
 
+    private void DispatchBroadcast(bool themeAffecting, bool desktopAffecting, string settingId)
+    {
+        LogBroadcastDispatch(themeAffecting, desktopAffecting, settingId);
+        LastBroadcastTask = Task.Run(() => RunBroadcast(themeAffecting, desktopAffecting, settingId));
+    }
+
     // Which set of messages went out, so the split is visible in the field rather than only in the source.
     private static string BroadcastVariant(bool themeAffecting, bool desktopAffecting) =>
         (themeAffecting ? "theme+" : string.Empty) + (desktopAffecting ? "desktop+" : string.Empty) + "generic";
@@ -140,8 +192,8 @@ internal class ProcessRestartManager(
         logService.Log(LogLevel.Debug,
             $"Broadcasting shell refresh ({BroadcastVariant(themeAffecting, desktopAffecting)}) {BroadcastScope(settingId)}");
 
-    // TIMES the broadcast: a user reading their own log used to see a two-second gap with nothing in it. Normal runs
-    // stay Debug; at or past SlowBroadcastMs it is promoted to a Warning. Catches EVERYTHING: on the per-apply path
+    // TIMES the broadcast, which can take seconds and would otherwise show in the user's log as an unexplained gap.
+    // Normal runs stay Debug; at or past SlowBroadcastMs it is promoted to a Warning. Catches EVERYTHING: on the per-apply path
     // this runs on a background task nobody awaits, so an escaping exception would vanish into the thread pool.
     private void RunBroadcast(bool themeAffecting, bool desktopAffecting, string? settingId)
     {

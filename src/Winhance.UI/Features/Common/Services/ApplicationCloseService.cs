@@ -44,21 +44,34 @@ public class ApplicationCloseService : IApplicationCloseService
         _localizationService = localizationService;
     }
 
+    public async Task ExitAsync()
+    {
+        await RunBeforeShutdownAsync();
+        ShutdownAction();
+    }
+
+    private async Task RunBeforeShutdownAsync()
+    {
+        if (BeforeShutdown == null)
+        {
+            return;
+        }
+
+        try
+        {
+            await BeforeShutdown.Invoke();
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Error running cleanup tasks: {ex.Message}", ex);
+        }
+    }
+
     public async Task<OperationResult> CheckOperationsAndCloseAsync()
     {
         try
         {
-            if (BeforeShutdown != null)
-            {
-                try
-                {
-                    await BeforeShutdown.Invoke();
-                }
-                catch (Exception ex)
-                {
-                    _logService.LogError($"Error running cleanup tasks: {ex.Message}", ex);
-                }
-            }
+            await RunBeforeShutdownAsync();
 
             if (_taskProgressService.IsTaskRunning)
             {
@@ -108,7 +121,7 @@ public class ApplicationCloseService : IApplicationCloseService
     {
         try
         {
-            if (await ShouldAskForSupportAsync())
+            if (await AskIsDueAsync(_supportAskSchedule, _logService))
             {
                 _logService.LogInformation("Showing support dialog");
                 await _dialogService.ShowSponsorsDialogAsync(SponsorsDialogMode.Exit);
@@ -130,15 +143,15 @@ public class ApplicationCloseService : IApplicationCloseService
     }
 
     // Unreadable preferences must not silence the ask.
-    private async Task<bool> ShouldAskForSupportAsync()
+    internal static async Task<bool> AskIsDueAsync(ISupportAskSchedule schedule, ILogService logService)
     {
         try
         {
-            return await _supportAskSchedule.ShouldAskOnExitAsync();
+            return await schedule.ShouldAskOnExitAsync();
         }
         catch (Exception ex)
         {
-            _logService.LogError($"Error checking the support ask schedule: {ex.Message}", ex);
+            logService.LogError($"Error checking the support ask schedule: {ex.Message}", ex);
             return true;
         }
     }

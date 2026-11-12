@@ -42,28 +42,6 @@ internal static class ClassesDefinition
             },
         },
 
-        [typeof(InstallOptions)] = new()
-        {
-            ProjectedClassType = typeof(InstallOptions),
-            InterfaceType = typeof(IInstallOptions),
-            Clsids = new Dictionary<ClsidContext, Guid>()
-            {
-                [ClsidContext.Prod] = new Guid("1095F097-EB96-453B-B4E6-1613637F3B14"),
-                [ClsidContext.Dev] = new Guid("44FE0580-62F7-44D4-9E91-AA9614AB3E86"),
-            },
-        },
-
-        [typeof(UninstallOptions)] = new()
-        {
-            ProjectedClassType = typeof(UninstallOptions),
-            InterfaceType = typeof(IUninstallOptions),
-            Clsids = new Dictionary<ClsidContext, Guid>()
-            {
-                [ClsidContext.Prod] = new Guid("E1D9A11E-9F85-4D87-9C17-2B93143ADB8D"),
-                [ClsidContext.Dev] = new Guid("AA2A5C04-1AD9-46C4-B74F-6B334AD7EB8C"),
-            },
-        },
-
         [typeof(PackageMatchFilter)] = new()
         {
             ProjectedClassType = typeof(PackageMatchFilter),

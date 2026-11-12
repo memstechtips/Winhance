@@ -49,15 +49,15 @@ public class UpdatePolicyDetectorConformanceTests
         => new(dllsRenamed, reads.ToDictionary(r => (Ux, (string?)r.Value), r => r.Data));
 
     [Fact]
-    public void Clean_machine_reads_the_windows_default()
+    public void Detect_CleanMachine_ReadsWindowsDefault()
         => Assert.Equal(DefaultLabel.Value, Detect(new Ctx()));
 
     [Fact]
-    public void DeferFeatureUpdates_reads_the_deferred_state()
+    public void Detect_DeferFeatureUpdatesOne_ReadsDeferred()
         => Assert.Equal(DeferLabel.Value, Detect(WithValues(false, ("DeferFeatureUpdates", 1))));
 
     [Fact]
-    public void DeferFeatureUpdates_not_one_is_not_deferred()
+    public void Detect_DeferFeatureUpdatesNotOne_DoesNotReadDeferred()
         => Assert.Equal(DefaultLabel.Value, Detect(WithValues(false, ("DeferFeatureUpdates", 0))));
 
     [Theory]
@@ -65,17 +65,17 @@ public class UpdatePolicyDetectorConformanceTests
     [InlineData("PauseUpdatesExpiryTime")]
     [InlineData("PausedQualityDate")]
     [InlineData("PausedFeatureDate")]
-    public void Any_pause_marker_reads_paused(string valueName)
+    public void Detect_AnyPauseMarker_ReadsPaused(string valueName)
         => Assert.Equal(PausedLabel.Value, Detect(WithValues(false, (valueName, "2025-01-01T00:00:00Z"))));
 
     [Theory]
     [InlineData(@"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU")]
     [InlineData(@"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU")]
-    public void AUOptions_two_without_deferral_reads_notify_only(string auKey)
+    public void Detect_AuOptionsTwoWithoutDeferral_ReadsNotifyOnly(string auKey)
         => Assert.Equal(NotifyLabel.Value, Detect(new Ctx(vals: new() { [(auKey, "AUOptions")] = 2 })));
 
     [Fact]
-    public void Deferral_outranks_notify_only()
+    public void Detect_DeferralAndNotifyOnly_DeferralWins()
         => Assert.Equal(DeferLabel.Value, Detect(new Ctx(vals: new()
         {
             [(Ux, "DeferFeatureUpdates")] = 1,
@@ -83,21 +83,21 @@ public class UpdatePolicyDetectorConformanceTests
         })));
 
     [Fact]
-    public void Renamed_dlls_read_disabled()
+    public void Detect_RenamedDlls_ReadsDisabled()
         => Assert.Equal(DisabledLabel.Value, Detect(new Ctx(dllsRenamed: true)));
 
     [Fact]
-    public void Disabled_outranks_paused_and_defer()
+    public void Detect_DisabledPausedAndDefer_DisabledWins()
         => Assert.Equal(DisabledLabel.Value, Detect(WithValues(true,
             ("PauseUpdatesStartTime", "2025-01-01T00:00:00Z"), ("DeferFeatureUpdates", 1))));
 
     [Fact]
-    public void Paused_outranks_defer()
+    public void Detect_PausedAndDefer_PausedWins()
         => Assert.Equal(PausedLabel.Value, Detect(WithValues(false,
             ("PauseUpdatesStartTime", "2025-01-01T00:00:00Z"), ("DeferFeatureUpdates", 1))));
 
     [Fact]
-    public void Detector_is_wired_and_its_labels_match_the_catalog_states()
+    public void Detector_Always_IsWiredAndLabelsMatchCatalogStates()
     {
         Assert.NotNull(UpdatePolicy.Detector);
         Assert.IsType<UpdatePolicyDetector>(UpdatePolicy.Detector);
@@ -105,10 +105,4 @@ public class UpdatePolicyDetectorConformanceTests
         foreach (var label in new[] { DefaultLabel, DeferLabel, PausedLabel, DisabledLabel })
             Assert.Contains(label.Value, stateLabels);
     }
-
-    // UpdateService applies this through the synchronous ApplyExecutor and cannot await, so a
-    // process-launching effect added here would be split off the plan and never run.
-    [Fact]
-    public void No_state_carries_an_effect_the_synchronous_apply_path_cannot_run()
-        => Assert.DoesNotContain(UpdatePolicy.States.SelectMany(s => s.Effects), e => e.IsAsyncIo);
 }

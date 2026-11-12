@@ -41,6 +41,7 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IInitializationService, Winhance.Core.Features.Common.Services.InitializationService>();
 
         services.AddSingleton<IFileSystemService, FileSystemService>();
+        services.AddSingleton<IPortableDataCopy, Winhance.Infrastructure.Features.Common.Utilities.PortableDataCopy>();
 
         services.AddSingleton<IPowerSchemeOperations, PowerSchemeOperations>();
 
@@ -53,6 +54,7 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IChangeHistoryService, ChangeHistoryService>();
 
         services.AddSingleton<ISystemParametersService, SystemParametersService>();
+        services.AddSingleton<IServiceStartControl, ServiceStartControl>();
 
         services.AddSingleton<IPowerShellRunner, Winhance.Infrastructure.Features.Common.Utilities.PowerShellRunner>();
 
@@ -66,7 +68,6 @@ public static class InfrastructureServicesExtensions
             new SpecialSettingHandlerRegistry(() => new Dictionary<string, ISpecialSettingHandler>
             {
                 ["updates-policy-mode"]  = sp.GetRequiredService<UpdateService>(),
-                ["theme-mode-windows"]   = sp.GetRequiredService<ThemeModeApplier>(),
             }));
         services.AddSingleton<IOptionProviderRegistry>(sp =>
             new OptionProviderRegistry(() => sp.GetServices<IOptionProvider>()));
@@ -111,6 +112,7 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IVersionService, VersionService>();
         services.AddSingleton<ISponsorsService, SponsorsService>();
 
+        services.AddSingleton<IBackgroundTaskService, BackgroundTaskService>();
         services.AddSingleton<IScriptMigrationService, ScriptMigrationService>();
         services.AddSingleton<IRemovalScriptUpdateService, RemovalScriptUpdateService>();
 
@@ -179,6 +181,14 @@ public static class InfrastructureServicesExtensions
             Winhance.Infrastructure.Features.WimUtil.Services.WimCustomizationService>();
         services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IOfflineServicingService,
             Winhance.Infrastructure.Features.WimUtil.Services.OfflineServicingService>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IRegistryHiveNative,
+            Winhance.Infrastructure.Features.WimUtil.Services.RegistryHiveNative>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IOfflineHiveLoader,
+            Winhance.Infrastructure.Features.WimUtil.Services.OfflineHiveLoader>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IOfflineAppRemover,
+            Winhance.Infrastructure.Features.WimUtil.Services.OfflineAppRemover>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IOfflineSettingsApplier,
+            Winhance.Infrastructure.Features.WimUtil.Services.OfflineSettingsApplier>();
         services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IAppStagingService,
             Winhance.Infrastructure.Features.WimUtil.Services.AppStagingService>();
         services.AddSingleton<Winhance.Core.Features.Autounattend.Interfaces.IWinhancementsScriptBuilder,
@@ -205,8 +215,6 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<TimeRegionLanguageService>();
         services.AddSingleton<IOptionProvider>(sp => sp.GetRequiredService<TimeRegionLanguageService>());
 
-        services.AddSingleton<ThemeModeApplier>();
-
         return services;
     }
 
@@ -230,6 +238,7 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IWindowsAppUninstallService, WindowsAppUninstallService>();
 
         services.AddSingleton<IAppxPackageSource, AppxPackageSource>();
+        services.AddSingleton<IDismComponentReader, DismComponentReader>();
 
         services.AddSingleton<IAppxIconSource, AppxIconSource>();
 
@@ -237,8 +246,6 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IIconManifestService, IconManifestService>();
 
         services.AddSingleton<IAppIconResolver, AppIconResolver>();
-
-        services.AddSingleton<IAppStatusDiscoveryService, AppStatusDiscoveryService>();
 
         services.AddSingleton<WinGetComSession>();
         services.AddSingleton<IWinGetBootstrapper, WinGetBootstrapper>();
@@ -249,8 +256,11 @@ public static class InfrastructureServicesExtensions
 
         services.AddSingleton<IExternalAppUninstallService, ExternalAppUninstallService>();
         services.AddSingleton<IInstalledAppsService, InstalledAppsService>();
-
-        services.AddSingleton<IStoreDownloadService, StoreDownloadService>();
+        services.AddSingleton<IStoreCatalogService>(sp => new StoreCatalogService(
+            new System.Net.Http.HttpClient(new System.Net.Http.HttpClientHandler
+            { AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate }),
+            sp.GetRequiredService<IWindowsRegistryService>(),
+            sp.GetRequiredService<ILogService>()));
 
         services.AddSingleton<IDirectDownloadService, DirectDownloadService>();
         services.AddSingleton<IStagedAppInstaller, StagedAppInstaller>();

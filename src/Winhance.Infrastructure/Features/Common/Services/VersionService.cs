@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Helpers;
@@ -12,13 +13,15 @@ internal class VersionService : IVersionService
 {
     internal const string LatestInstallerUrl = "https://github.com/memstechtips/Winhance/releases/latest/download/Winhance.Installer.exe";
 
-    // Dev-only override: when WINHANCE_LOCAL_INSTALLER points at an existing
-    // file, the in-app updater skips the GitHub round-trip entirely and uses
-    // that file as the "downloaded" installer. Used to test the silent-install
-    // flow (issue #649 and friends) without publishing a real release. Inert
-    // unless both conditions hold (env var set AND file exists), and every
-    // activation emits a loud [DEV MODE] warning log.
+    private const string InstallerAssetName = "Winhance.Installer.exe";
+    private const string Sha256DigestPrefix = "sha256:";
+
+#if DEBUG
+    // Debug builds only: when WINHANCE_LOCAL_INSTALLER points at an existing file,
+    // the updater skips GitHub and stages that file, to test the silent-install flow
+    // without publishing a release.
     private const string LocalInstallerEnvVar = "WINHANCE_LOCAL_INSTALLER";
+#endif
 
     private readonly ILogService _logService;
     private readonly IFileSystemService _fileSystemService;
@@ -26,6 +29,9 @@ internal class VersionService : IVersionService
     private readonly string _latestReleaseApiUrl = "https://api.github.com/repos/memstechtips/Winhance/releases/latest";
     private readonly string _userAgent = "Winhance-Update-Checker";
     private string? _downloadedInstallerPath;
+    private string? _expectedInstallerSha256;
+    // Held open until the app exits so nothing can replace the installer before it starts.
+    private FileStream? _lockedInstaller;
 
     public VersionService(ILogService logService, IFileSystemService fileSystemService, HttpClient httpClient)
     {
@@ -60,6 +66,7 @@ internal class VersionService : IVersionService
 
     public async Task<VersionInfo> CheckForUpdateAsync(CancellationToken cancellationToken = default)
     {
+#if DEBUG
         if (TryGetLocalInstallerOverride() is { } localPath)
         {
             _logService.Log(LogLevel.Warning,
@@ -71,6 +78,7 @@ internal class VersionService : IVersionService
                 IsUpdateAvailable = true,
             };
         }
+#endif
 
         var latestVersion = await GetLatestReleaseAsync(cancellationToken).ConfigureAwait(false);
         if (string.IsNullOrEmpty(latestVersion.Version))
@@ -97,12 +105,7 @@ internal class VersionService : IVersionService
                     ? "Checking for updates..."
                     : $"Checking for updates (attempt {attempt}/{maxRetries})...");
 
-                using var request = new HttpRequestMessage(HttpMethod.Get, _latestReleaseApiUrl);
-                request.Headers.TryAddWithoutValidation("User-Agent", _userAgent);
-                HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
-                response.EnsureSuccessStatusCode();
-
-                string responseBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                string responseBody = await GetLatestReleaseJsonAsync(cancellationToken).ConfigureAwait(false);
                 using var doc = JsonDocument.Parse(responseBody);
 
                 string tagName = doc.RootElement.GetProperty("tag_name").GetString() ?? "v0.0.0";
@@ -135,6 +138,16 @@ internal class VersionService : IVersionService
         return new VersionInfo { IsUpdateAvailable = false };
     }
 
+    private async Task<string> GetLatestReleaseJsonAsync(CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, _latestReleaseApiUrl);
+        request.Headers.TryAddWithoutValidation("User-Agent", _userAgent);
+        using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private static bool IsTransientError(Exception ex)
     {
         // DNS resolution failures, timeouts, and connection refused are transient
@@ -148,41 +161,107 @@ internal class VersionService : IVersionService
 
     public async Task DownloadAndInstallUpdateAsync(CancellationToken cancellationToken = default)
     {
+#if DEBUG
         if (TryGetLocalInstallerOverride() is { } localPath)
         {
             _logService.Log(LogLevel.Warning,
                 $"Dev mode: {LocalInstallerEnvVar} set to {localPath}. Skipping HTTP download and using the local file as the staged installer.");
             _downloadedInstallerPath = localPath;
-            // Match the async signature without doing real I/O.
-            await Task.CompletedTask.ConfigureAwait(false);
+            await using var localStream = new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
+            _expectedInstallerSha256 = Convert.ToHexString(await SHA256.HashDataAsync(localStream, cancellationToken).ConfigureAwait(false));
             return;
         }
+#endif
 
         _logService.Log(LogLevel.Info, "Downloading update...");
 
-        string tempPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "Winhance.Installer.exe");
+        string releaseJson = await GetLatestReleaseJsonAsync(cancellationToken).ConfigureAwait(false);
+        (string downloadUrl, string expectedSha256) = ReadInstallerAsset(releaseJson);
 
-        // Download the installer using streaming to avoid loading the entire file into memory
-        using var downloadRequest = new HttpRequestMessage(HttpMethod.Get, LatestInstallerUrl);
+        string tempPath = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), InstallerAssetName);
+
+        using var downloadRequest = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
         downloadRequest.Headers.TryAddWithoutValidation("User-Agent", _userAgent);
         using var response = await _httpClient.SendAsync(downloadRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        // Use explicit block so streams are disposed before returning
+        string actualSha256;
+        using (var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256))
         {
             await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             await using var fileStream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
-            await contentStream.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
+            var buffer = new byte[81920];
+            int read;
+            while ((read = await contentStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+            {
+                hasher.AppendData(buffer, 0, read);
+                await fileStream.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+            }
+
+            actualSha256 = Convert.ToHexString(hasher.GetHashAndReset());
+        }
+
+        if (!string.Equals(actualSha256, expectedSha256, StringComparison.OrdinalIgnoreCase))
+        {
+            File.Delete(tempPath);
+            _logService.Log(LogLevel.Error, $"Update installer hash mismatch: expected {expectedSha256}, got {actualSha256}. File deleted.");
+            throw new InvalidOperationException("The downloaded update did not match the checksum GitHub published for it, so it was discarded.");
         }
 
         _downloadedInstallerPath = tempPath;
-        _logService.Log(LogLevel.Info, $"Update downloaded to {tempPath}");
+        _expectedInstallerSha256 = expectedSha256;
+        _logService.Log(LogLevel.Info, $"Update downloaded to {tempPath} and verified.");
+    }
+
+    // Takes the URL and the digest from the same release response so the file and its hash always agree.
+    private (string DownloadUrl, string Sha256) ReadInstallerAsset(string releaseJson)
+    {
+        using var doc = JsonDocument.Parse(releaseJson);
+        if (doc.RootElement.TryGetProperty("assets", out JsonElement assets) && assets.ValueKind == JsonValueKind.Array)
+        {
+            foreach (JsonElement asset in assets.EnumerateArray())
+            {
+                if (asset.TryGetProperty("name", out JsonElement name) && name.GetString() == InstallerAssetName)
+                {
+                    string? digest = asset.TryGetProperty("digest", out JsonElement digestElement) ? digestElement.GetString() : null;
+                    string? url = asset.TryGetProperty("browser_download_url", out JsonElement urlElement) ? urlElement.GetString() : null;
+                    if (digest is not null && digest.StartsWith(Sha256DigestPrefix, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(url))
+                        return (url, digest[Sha256DigestPrefix.Length..]);
+                    break;
+                }
+            }
+        }
+
+        _logService.Log(LogLevel.Error, $"The latest release has no {InstallerAssetName} asset with a SHA-256 digest. Update aborted.");
+        throw new InvalidOperationException("The latest release does not publish a checksum for the installer, so the update was not downloaded.");
+    }
+
+    // Opens the file with no write or delete sharing, then hashes that same handle, so the bytes
+    // checked are the bytes that will run.
+    internal static FileStream OpenVerifiedInstaller(string path, string expectedSha256)
+    {
+        var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        try
+        {
+            string actual = Convert.ToHexString(SHA256.HashData(stream));
+            if (!string.Equals(actual, expectedSha256, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("The downloaded installer changed after it was verified, so it was not started.");
+            return stream;
+        }
+        catch
+        {
+            stream.Dispose();
+            throw;
+        }
     }
 
     public void LaunchInstallerAndRestart()
     {
-        if (string.IsNullOrEmpty(_downloadedInstallerPath))
+        if (string.IsNullOrEmpty(_downloadedInstallerPath) || string.IsNullOrEmpty(_expectedInstallerSha256))
             throw new InvalidOperationException("No update has been downloaded.");
+
+        _lockedInstaller?.Dispose();
+        _lockedInstaller = OpenVerifiedInstaller(_downloadedInstallerPath, _expectedInstallerSha256);
 
         string appDir = AppContext.BaseDirectory;
         bool isPortable = _fileSystemService.FileExists(_fileSystemService.CombinePath(appDir, AppDataPaths.PortableMarkerFileName));
@@ -204,6 +283,7 @@ internal class VersionService : IVersionService
         });
     }
 
+#if DEBUG
     private string? TryGetLocalInstallerOverride()
     {
         string? path = Environment.GetEnvironmentVariable(LocalInstallerEnvVar);
@@ -217,6 +297,7 @@ internal class VersionService : IVersionService
         }
         return path;
     }
+#endif
 
     // Always pins the install directory via /DIR= (issue #649): without it Inno's UsePreviousAppDir/DefaultDirName
     // chain can resolve {app} to C:\Program Files\Winhance for a custom-path install, or ~\Desktop\Winhance for a

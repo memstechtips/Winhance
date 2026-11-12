@@ -89,6 +89,7 @@ function Run-TestProject {
     # TERMINATING error, which would kill the runner before it could parse, print or log anything.
     # Scope Continue to the call so stderr is just more output.
     $output = & { $ErrorActionPreference = "Continue"; Invoke-Expression $cmd 2>&1 } | Out-String
+    $exitCode = $LASTEXITCODE
     Add-Log "### $Name"
     Add-Log $output
 
@@ -117,6 +118,13 @@ function Run-TestProject {
         # Could not parse - treat as failure
         Write-Host $output
         $failed = 1; $passed = 0; $skipped = 0
+    }
+
+    # An aborted run (a crashed test host) can still print a zero failed-count, so the marker and the exit code
+    # outrank the numbers.
+    if ($failed -eq 0 -and ($exitCode -ne 0 -or $output -match 'Test Run Aborted\.')) {
+        Write-Host "  FAILED: dotnet test exited with $exitCode or the run aborted, despite a zero failed-count" -ForegroundColor Red
+        $failed = 1
     }
 
     $script:totalPassed  += $passed

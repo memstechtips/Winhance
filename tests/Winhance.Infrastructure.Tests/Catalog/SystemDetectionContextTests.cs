@@ -1,7 +1,6 @@
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Common.Catalog;
 using Winhance.Infrastructure.Tests.Services;
@@ -48,7 +47,7 @@ public class SystemDetectionContextTests
     };
 
     [Fact]
-    public void GetValue_delegates_to_registry()
+    public void GetValue_Always_DelegatesToRegistry()
     {
         var (ctx, reg, _, _, _) = Build();
         reg.Setup(r => r.GetValue("HKLM\\Test", "ValueName")).Returns(42);
@@ -57,7 +56,7 @@ public class SystemDetectionContextTests
     }
 
     [Fact]
-    public void GetValue_maps_null_value_name_to_empty_string()
+    public void GetValue_NullValueName_MapsToEmptyString()
     {
         var (ctx, reg, _, _, _) = Build();
         reg.Setup(r => r.GetValue("HKLM\\Test", "")).Returns(7);
@@ -66,7 +65,7 @@ public class SystemDetectionContextTests
     }
 
     [Fact]
-    public void KeyExists_and_GetSubKeyNames_delegate_to_registry()
+    public void KeyExistsAndGetSubKeyNames_Always_DelegateToRegistry()
     {
         var (ctx, reg, _, _, _) = Build();
         reg.Setup(r => r.KeyExists("HKLM\\Present")).Returns(true);
@@ -77,7 +76,7 @@ public class SystemDetectionContextTests
     }
 
     [Fact]
-    public void IsSystemRestoreEnabled_delegates_to_restore_service()
+    public void IsSystemRestoreEnabled_Always_DelegatesToRestoreService()
     {
         var (ctx, _, restore, _, _) = Build();
         restore.Setup(r => r.IsEnabledForC()).Returns(true);
@@ -86,7 +85,7 @@ public class SystemDetectionContextTests
     }
 
     [Fact]
-    public void CurrentBuild_reads_build_number_and_ubr()
+    public void CurrentBuild_Always_ReadsBuildNumberAndUbr()
     {
         var (ctx, reg, _, _, _) = Build();
         reg.Setup(r => r.GetValue(CurrentVersionKey, "CurrentBuildNumber")).Returns("22631");
@@ -99,7 +98,7 @@ public class SystemDetectionContextTests
     }
 
     [Fact]
-    public async Task ScheduledTaskEnabled_returns_the_prefetched_value()
+    public async Task ScheduledTaskEnabled_PrefetchedPath_ReturnsThePrefetchedValue()
     {
         var (ctx, _, _, tasks, _) = Build();
         tasks.Setup(t => t.GetTasksEnabled(It.IsAny<IReadOnlyCollection<string>>()))
@@ -112,7 +111,7 @@ public class SystemDetectionContextTests
     }
 
     [Fact]
-    public async Task ScheduledTaskEnabled_returns_null_for_an_unfetched_path()
+    public async Task ScheduledTaskEnabled_UnfetchedPath_ReturnsNull()
     {
         var (ctx, _, _, _, _) = Build();
 
@@ -122,7 +121,7 @@ public class SystemDetectionContextTests
     }
 
     [Fact]
-    public async Task PowerCfgValue_serves_ac_and_dc_from_the_batched_read()
+    public async Task PowerCfgValue_AfterBatchedRead_ServesAcAndDc()
     {
         var (ctx, _, _, _, power) = Build();
         power.Setup(p => p.GetPowerSettingsACDCAsync(It.IsAny<IReadOnlyCollection<(string subgroupGuid, string settingGuid)>>()))
@@ -136,7 +135,7 @@ public class SystemDetectionContextTests
     }
 
     [Fact]
-    public async Task PowerCfgValue_returns_null_when_the_setting_is_absent_from_the_read_set()
+    public async Task PowerCfgValue_SettingAbsentFromReadSet_ReturnsNull()
     {
         var (ctx, _, _, _, power) = Build();
         power.Setup(p => p.GetPowerSettingsACDCAsync(It.IsAny<IReadOnlyCollection<(string subgroupGuid, string settingGuid)>>()))
@@ -149,7 +148,7 @@ public class SystemDetectionContextTests
     }
 
     [Fact]
-    public async Task PrefetchAsync_requests_only_the_batch_s_own_power_targets()
+    public async Task PrefetchAsync_Always_RequestsOnlyTheBatchsOwnPowerTargets()
     {
         var (ctx, _, _, _, power) = Build();
         IReadOnlyCollection<(string subgroupGuid, string settingGuid)>? asked = null;
@@ -169,7 +168,7 @@ public class SystemDetectionContextTests
     }
 
     [Fact]
-    public void PowerCfgValue_returns_null_before_any_prefetch()
+    public void PowerCfgValue_BeforeAnyPrefetch_ReturnsNull()
     {
         var (ctx, _, _, _, _) = Build();
 
@@ -177,7 +176,7 @@ public class SystemDetectionContextTests
     }
 
     [Fact]
-    public async Task ActivePowerPlanGuid_returns_the_lowercased_active_scheme()
+    public async Task ActivePowerPlanGuid_Always_ReturnsTheLowercasedActiveScheme()
     {
         var (ctx, _, _, _, power) = Build();
         power.Setup(p => p.GetActivePowerPlanAsync())
@@ -196,7 +195,7 @@ public class SystemDetectionContextTests
     }
 
     [Fact]
-    public async Task PrefetchAsync_does_not_read_power_when_no_setting_needs_it()
+    public async Task PrefetchAsync_NoSettingNeedsPower_DoesNotReadPower()
     {
         var (ctx, reg, _, _, power) = Build();
         reg.Setup(r => r.GetValue(CurrentVersionKey, It.IsAny<string>())).Returns("0");
@@ -217,7 +216,7 @@ public class SystemDetectionContextTests
     };
 
     [Fact]
-    public async Task InstalledPowerPlans_reflects_the_prefetched_plans_via_PowerPlanOptions_Build()
+    public async Task InstalledPowerPlans_AfterPrefetch_ReflectsThePrefetchedPlansViaPowerPlanOptionsBuild()
     {
         var (ctx, _, _, _, power) = Build();
         var systemPlans = new List<PowerPlan>
@@ -240,7 +239,7 @@ public class SystemDetectionContextTests
     }
 
     [Fact]
-    public void InstalledPowerPlans_returns_empty_before_any_prefetch()
+    public void InstalledPowerPlans_BeforeAnyPrefetch_ReturnsEmpty()
     {
         var (ctx, _, _, _, _) = Build();
 
@@ -248,7 +247,7 @@ public class SystemDetectionContextTests
     }
 
     [Fact]
-    public async Task The_power_service_offers_the_prefetched_plans_and_reports_the_active_one()
+    public async Task Options_AfterPrefetch_OffersThePrefetchedPlansAndCurrentKeyReportsTheActiveOne()
     {
         var (ctx, _, _, _, power) = Build();
         power.Setup(p => p.GetActivePowerPlanAsync())

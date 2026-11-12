@@ -13,13 +13,17 @@ internal class ExternalAppUninstallService(
     ILogService logService,
     IWindowsRegistryService registry,
     ITaskProgressService taskProgressService,
-    IProcessExecutor processExecutor) : IExternalAppUninstallService
+    IProcessExecutor processExecutor,
+    IStagedAppInstaller stagedAppInstaller) : IExternalAppUninstallService
 {
     public async Task<OperationResult<bool>> UninstallAsync(
         ItemDefinition item,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        if (await stagedAppInstaller.UninstallPortableAsync(item, cancellationToken).ConfigureAwait(false) is { } portable)
+            return portable;
+
         var method = await DetermineUninstallMethodAsync(item).ConfigureAwait(false);
 
         return method switch
@@ -202,6 +206,14 @@ internal class ExternalAppUninstallService(
             var (fileName, arguments) = ParseUninstallString(uninstallString);
 
             await processExecutor.ShellExecuteAsync(fileName, arguments, waitForExit: true, cancellationToken).ConfigureAwait(false);
+
+            // winget exits 0 for a package it cannot remove, so its entry still being there is the failure signal.
+            if (string.Equals(Path.GetFileNameWithoutExtension(fileName), "winget", StringComparison.OrdinalIgnoreCase)
+                && (await GetUninstallStringAsync(item).ConfigureAwait(false)).Found)
+            {
+                logService.LogError($"winget left {item.Name} installed");
+                return OperationResult<bool>.Failed($"Uninstall failed: {item.Name} is still installed");
+            }
 
             logService.LogInformation($"Uninstall process for {item.Name} completed successfully");
             taskProgressService.UpdateProgress(100, $"Uninstall process for {item.Name} completed successfully");
@@ -402,14 +414,14 @@ internal class ExternalAppUninstallService(
         // "AutoHotkey 1.{version}"), since item.Name ("AutoHotkey v1") won't
         // fuzzy-match the actual registry DisplayName ("AutoHotkey 1.1.37.02").
         if (!string.IsNullOrEmpty(item.RegistrySubKeyName)
-            && AppStatusDiscoveryService.MatchesPattern(entry.KeyName, item.RegistrySubKeyName))
+            && InstalledStatus.MatchesPattern(entry.KeyName, item.RegistrySubKeyName))
         {
             return true;
         }
 
         if (!string.IsNullOrEmpty(item.RegistryDisplayName)
             && entry.DisplayName.Length > 0
-            && AppStatusDiscoveryService.MatchesPattern(entry.DisplayName, item.RegistryDisplayName))
+            && InstalledStatus.MatchesPattern(entry.DisplayName, item.RegistryDisplayName))
         {
             return true;
         }

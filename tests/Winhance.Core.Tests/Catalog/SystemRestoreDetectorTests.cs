@@ -26,10 +26,10 @@ public class SystemRestoreDetectorTests
     private static readonly SystemRestoreDetector Restore = new(TestKeys.Of("On"), TestKeys.Of("Off"));
 
     [Fact]
-    public void Restore_enabled_resolves_to_on()
+    public void Detect_RestoreEnabled_ResolvesToOn()
         => Assert.Equal("On", Restore.Detect(Dummy, new FakeCtx { RestoreEnabled = true }));
 
     [Fact]
-    public void Restore_disabled_resolves_to_off()
+    public void Detect_RestoreDisabled_ResolvesToOff()
         => Assert.Equal("Off", Restore.Detect(Dummy, new FakeCtx { RestoreEnabled = false }));
 }

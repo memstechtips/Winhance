@@ -16,6 +16,19 @@ public class AutounattendCatalogTests
 
     private static readonly string[] PageOrder =
     [
+        "autounattend-netfx3",
+        "autounattend-netfx3-remove-source",
+        "autounattend-keep-removed",
+        "autounattend-cleanup",
+        "autounattend-cleanup-old-components",
+        "autounattend-cleanup-update-downloads",
+        "autounattend-cleanup-servicing-logs",
+        "autounattend-cleanup-temp-files",
+        "autounattend-cleanup-crash-reports",
+        "autounattend-desktop-shortcut",
+        "autounattend-delete-installers",
+        "autounattend-stage-apps",
+        "autounattend-own-installers",
         "autounattend-architecture-x64",
         "autounattend-architecture-arm64",
         "autounattend-architecture-x86",
@@ -28,6 +41,7 @@ public class AutounattendCatalogTests
         "autounattend-disk-number",
         "autounattend-disk-system-size",
         "autounattend-disk-recovery-size",
+        "autounattend-compact",
         "autounattend-account",
         "autounattend-accounts",
         "autounattend-oobe-network",
@@ -45,17 +59,26 @@ public class AutounattendCatalogTests
         "autounattend-network-page",
         "autounattend-privacy",
         "autounattend-computer-name",
-        "autounattend-netfx3",
-        "autounattend-desktop-shortcut",
-        "autounattend-delete-installers",
-        "autounattend-stage-apps",
-        "autounattend-own-installers",
+        "autounattend-computer-name-unique",
         "autounattend-user-script-system",
         "autounattend-user-script-user",
     ];
 
     private static readonly ControlKind[] ControlOrder =
     [
+        ControlKind.Toggle,
+        ControlKind.Toggle,
+        ControlKind.Selection,
+        ControlKind.Toggle,
+        ControlKind.CheckBox,
+        ControlKind.CheckBox,
+        ControlKind.CheckBox,
+        ControlKind.CheckBox,
+        ControlKind.CheckBox,
+        ControlKind.Selection,
+        ControlKind.Toggle,
+        ControlKind.CheckBox,
+        ControlKind.List,
         ControlKind.CheckBox,
         ControlKind.CheckBox,
         ControlKind.CheckBox,
@@ -68,6 +91,7 @@ public class AutounattendCatalogTests
         ControlKind.TextBox,
         ControlKind.TextBox,
         ControlKind.TextBox,
+        ControlKind.Toggle,
         ControlKind.Selection,
         ControlKind.List,
         ControlKind.Selection,
@@ -86,10 +110,6 @@ public class AutounattendCatalogTests
         ControlKind.Selection,
         ControlKind.TextBox,
         ControlKind.Toggle,
-        ControlKind.Selection,
-        ControlKind.Toggle,
-        ControlKind.CheckBox,
-        ControlKind.List,
         ControlKind.List,
         ControlKind.List,
     ];
@@ -149,20 +169,20 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void The_page_is_its_settings_in_the_order_the_cards_are_drawn()
+    public void All_Always_ListsSettingsInCardDrawOrder()
     {
         AutounattendCatalog.All.Select(s => s.Id).Should().Equal(PageOrder);
     }
 
     [Fact]
-    public void Every_setting_writes_the_answer_file_and_nothing_else()
+    public void All_Always_AreAnswerFileOnly()
     {
         foreach (var setting in AutounattendCatalog.All)
             setting.IsAnswerFileOnly.Should().BeTrue(setting.Id);
     }
 
     [Fact]
-    public void Every_setting_passes_the_validator()
+    public void All_Always_PassCatalogValidator()
     {
         var errors = AutounattendCatalog.All
             .SelectMany(CatalogValidator.Validate)
@@ -173,7 +193,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void Every_relationship_the_page_declares_resolves_inside_it()
+    public void All_Always_HaveRelationshipsThatResolveInsidePage()
     {
         var errors = CatalogValidator.ValidateCatalog(AutounattendCatalog.All)
             .Select(e => $"{e.SettingId}: {e.Message}")
@@ -183,13 +203,13 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void Each_card_derives_the_control_kind_its_mechanism_implies()
+    public void All_Always_DeriveControlKindFromMechanism()
     {
         AutounattendCatalog.All.Select(s => s.Control).Should().Equal(ControlOrder);
     }
 
     [Fact]
-    public void Every_role_is_unconditional_and_context_free()
+    public void All_WithStates_HaveUnconditionalContextFreeRoles()
     {
         // A build-scoped role slips past the validator's one-per-context rule and is invisible to the seed.
         // A file written before Windows exists has no build to scope to.
@@ -207,6 +227,18 @@ $bytes[21] = 34
     // is what Windows Setup does when the file says nothing.
     private static readonly (string Id, LocKey Seed, LocKey WindowsDefault)[] StartingStates =
     [
+        ("autounattend-netfx3", LocKey.Common.Enabled, LocKey.Common.Disabled),
+        ("autounattend-netfx3-remove-source", LocKey.Common.Disabled, LocKey.Common.Disabled),
+        ("autounattend-keep-removed", LocKey.Setting.AutounattendKeepRemoved.Option1, LocKey.Setting.AutounattendKeepRemoved.Option1),
+        ("autounattend-cleanup", LocKey.Common.Enabled, LocKey.Common.Disabled),
+        ("autounattend-cleanup-old-components", LocKey.Common.Checked, LocKey.Common.Unchecked),
+        ("autounattend-cleanup-update-downloads", LocKey.Common.Checked, LocKey.Common.Unchecked),
+        ("autounattend-cleanup-servicing-logs", LocKey.Common.Checked, LocKey.Common.Unchecked),
+        ("autounattend-cleanup-temp-files", LocKey.Common.Checked, LocKey.Common.Unchecked),
+        ("autounattend-cleanup-crash-reports", LocKey.Common.Checked, LocKey.Common.Unchecked),
+        ("autounattend-desktop-shortcut", LocKey.Setting.AutounattendDesktopShortcut.Option1, LocKey.Setting.AutounattendDesktopShortcut.Option0),
+        ("autounattend-delete-installers", LocKey.Common.Enabled, LocKey.Common.Enabled),
+        ("autounattend-stage-apps", LocKey.Common.Checked, LocKey.Common.Checked),
         ("autounattend-architecture-x64", LocKey.Common.Checked, LocKey.Common.Checked),
         ("autounattend-architecture-arm64", LocKey.Common.Checked, LocKey.Common.Checked),
         ("autounattend-architecture-x86", LocKey.Common.Checked, LocKey.Common.Checked),
@@ -214,6 +246,7 @@ $bytes[21] = 34
         ("autounattend-media-editions", LocKey.Setting.AutounattendMediaEditions.Option0, LocKey.Setting.AutounattendMediaEditions.Option0),
         ("autounattend-hardware-checks", LocKey.Common.Disabled, LocKey.Common.Enabled),
         ("autounattend-disk", LocKey.Setting.AutounattendDisk.Option0, LocKey.Setting.AutounattendDisk.Option0),
+        ("autounattend-compact", LocKey.Common.Disabled, LocKey.Common.Disabled),
         ("autounattend-account", LocKey.Setting.AutounattendAccount.Option0, LocKey.Setting.AutounattendAccount.Option1),
         ("autounattend-oobe-network", LocKey.Setting.AutounattendOobeNetwork.Option1, LocKey.Setting.AutounattendOobeNetwork.Option0),
         ("autounattend-user-folders", LocKey.Setting.AutounattendUserFolders.Option0, LocKey.Setting.AutounattendUserFolders.Option0),
@@ -224,14 +257,11 @@ $bytes[21] = 34
         ("autounattend-oem-registration-page", LocKey.Common.Disabled, LocKey.Common.Enabled),
         ("autounattend-network-page", LocKey.Common.Disabled, LocKey.Common.Enabled),
         ("autounattend-privacy", LocKey.Setting.AutounattendPrivacy.Option0, LocKey.Setting.AutounattendPrivacy.Option2),
-        ("autounattend-netfx3", LocKey.Common.Enabled, LocKey.Common.Disabled),
-        ("autounattend-desktop-shortcut", LocKey.Setting.AutounattendDesktopShortcut.Option1, LocKey.Setting.AutounattendDesktopShortcut.Option0),
-        ("autounattend-delete-installers", LocKey.Common.Enabled, LocKey.Common.Enabled),
-        ("autounattend-stage-apps", LocKey.Common.Checked, LocKey.Common.Checked),
+        ("autounattend-computer-name-unique", LocKey.Common.Disabled, LocKey.Common.Disabled),
     ];
 
     [Fact]
-    public void Every_card_with_states_starts_a_new_file_on_its_seed_state()
+    public void All_WithStates_SeedNewFileOnSeedState()
     {
         SettingCatalog.All.Where(s => s.IsAnswerFileOnly).Should().BeSubsetOf(AutounattendCatalog.All);
         var withStates = AutounattendCatalog.All.Where(s => s.States.Count > 0).ToList();
@@ -243,7 +273,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void The_WindowsDefault_role_marks_what_Setup_does_when_the_file_says_nothing()
+    public void All_WithStates_MarkWindowsDefaultRoleAsSetupBehaviorWhenFileIsSilent()
     {
         AutounattendCatalog.All.Where(s => s.States.Count > 0)
             .Select(s => (s.Id, s.States.Single(st => st.HasRole(RoleKind.WindowsDefault)).Label))
@@ -252,7 +282,7 @@ $bytes[21] = 34
 
     // The architecture boxes start from this PC's processor, so no state of theirs is a recommendation.
     [Fact]
-    public void The_Recommended_role_is_the_seed_on_every_card_but_the_architecture_boxes()
+    public void All_WithStates_MakeRecommendedRoleTheSeedExceptOnArchitectureBoxes()
     {
         foreach (var setting in AutounattendCatalog.All.Where(s => s.States.Count > 0))
         {
@@ -269,7 +299,7 @@ $bytes[21] = 34
     [InlineData("autounattend-architecture-x64", "amd64", "AMD64")]
     [InlineData("autounattend-architecture-arm64", "arm64", "ARM64")]
     [InlineData("autounattend-architecture-x86", "x86", "x86")]
-    public void Each_architecture_is_a_check_box_that_starts_checked_on_the_PC_it_names(string id, string architecture, string thisPc)
+    public void ArchitectureCard_PerArchitecture_IsCheckBoxCheckedOnMatchingPc(string id, string architecture, string thisPc)
     {
         var setting = S(id);
 
@@ -290,7 +320,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void No_two_architecture_cards_claim_the_same_processor()
+    public void ArchitectureCards_Always_ClaimDistinctProcessors()
     {
         var accepted = AutounattendCatalog.All
             .Where(s => s.Targets.OfType<AutounattendArchitecture>().Any())
@@ -301,7 +331,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void The_edition_dropdown_offers_the_generic_keys_and_the_two_that_carry_none()
+    public void EditionCard_Always_OffersGenericKeysAndTwoWithoutKey()
     {
         var states = S("autounattend-edition").States;
 
@@ -332,7 +362,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void The_product_key_box_opens_only_when_the_edition_defers_to_it()
+    public void ProductKeyCard_Always_EnablesOnlyWhenEditionDefersToIt()
     {
         var setting = S("autounattend-product-key");
 
@@ -349,7 +379,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void The_account_list_opens_only_when_Setup_is_asked_to_create_them()
+    public void AccountsCard_Always_EnablesOnlyWhenSetupCreatesAccounts()
     {
         var setting = S("autounattend-accounts");
 
@@ -363,7 +393,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void The_account_row_declares_the_seven_fields_the_answer_file_writes()
+    public void AccountsCard_Always_DeclaresSevenAnswerFileFields()
     {
         var fields = S("autounattend-accounts").List!.Fields;
 
@@ -389,7 +419,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void The_first_account_is_seeded_from_this_PCs_logon_through_read_only_registry_targets()
+    public void AccountsCard_Always_SeedsFirstAccountFromLogonThroughReadOnlyRegistryTargets()
     {
         var setting = S("autounattend-accounts");
         var seeds = setting.Targets.OfType<RegTarget>().ToList();
@@ -403,7 +433,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void The_computer_name_is_seeded_from_this_PCs_host_name_through_a_read_only_registry_target()
+    public void ComputerNameCard_Always_SeedsFromHostNameThroughReadOnlyRegistryTarget()
     {
         var setting = S("autounattend-computer-name");
         var seed = setting.Targets.OfType<RegTarget>().Single();
@@ -416,7 +446,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void Both_offline_account_choices_hide_the_online_sign_in_screens()
+    public void AccountCard_OfflineChoices_HideOnlineSignInScreens()
     {
         Written(State("autounattend-account", LocKey.Setting.AutounattendAccount.Option0), "hide-online").Should().Be("true");
         Written(State("autounattend-account", LocKey.Setting.AutounattendAccount.Option2), "hide-online").Should().Be("true");
@@ -425,7 +455,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void A_local_account_asks_for_the_local_account_screen_and_nothing_else()
+    public void AccountCard_LocalAccount_RunsOnlyTheLocalAccountScreenCommand()
     {
         var local = S("autounattend-account").States.Single(s => s.Label == LocKey.Setting.AutounattendAccount.Option0);
 
@@ -442,7 +472,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void Cutting_the_adapters_is_authored_once_on_the_network_card()
+    public void OobeNetworkCard_OfflineState_AuthorsAdapterCutOnce()
     {
         var card = S("autounattend-oobe-network");
         var offline = card.States.Single(s => s.Label == LocKey.Setting.AutounattendOobeNetwork.Option1);
@@ -460,7 +490,7 @@ $bytes[21] = 34
     // from it. Authoring the same decision twice is how a greyed card ends up promising one thing while the
     // file carries the other.
     [Fact]
-    public void The_account_mode_decides_the_network_card_for_the_two_modes_that_have_no_say()
+    public void AccountCard_ModesWithNoSay_ControlTheNetworkCard()
     {
         const string network = "autounattend-oobe-network";
         var account = S("autounattend-account");
@@ -476,7 +506,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void The_account_list_carries_the_command_that_deletes_the_cached_file()
+    public void AccountsCard_Always_CarriesPasswordCleanupCommand()
     {
         var cleanup = S("autounattend-accounts").List!.PasswordCleanup;
 
@@ -486,7 +516,7 @@ $bytes[21] = 34
 
     // The cards only record what to look for; the drive is found on the new PC, so no card names a letter to find it by.
     [Fact]
-    public void The_user_folders_card_stays_on_C_by_default_and_records_how_to_find_the_drive()
+    public void UserFoldersCard_Default_StaysOnCAndRecordsHowToFindDrive()
     {
         var states = S("autounattend-user-folders").States;
 
@@ -524,7 +554,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void The_label_list_offers_this_PCs_labels_and_records_the_one_picked()
+    public void UserFoldersLabelCard_Always_OffersVolumeLabelsAndRecordsThePicked()
     {
         var setting = S("autounattend-user-folders-label");
 
@@ -535,7 +565,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void The_size_and_type_filters_start_empty_and_on_any_drive()
+    public void UserFoldersFilters_Default_StartEmptyOnAnyDrive()
     {
         var size = S("autounattend-user-folders-min-size");
         size.TextBox!.Default.Should().BeNull();
@@ -550,7 +580,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void The_letter_dropdown_offers_D_to_Z_and_starts_on_D()
+    public void UserFoldersLetterCard_Always_OffersDToZStartingOnD()
     {
         var states = S("autounattend-user-folders-letter").States;
 
@@ -565,7 +595,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void The_folder_box_finds_the_drive_once_as_the_system_then_moves_the_six_folders_as_each_account()
+    public void UserFoldersFolderCard_Always_FindsDriveOnceAsSystemThenMovesSixFoldersPerAccount()
     {
         var setting = S("autounattend-user-folders-folder");
 
@@ -599,7 +629,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void Turning_the_hardware_checks_off_fires_the_six_LabConfig_commands_in_order()
+    public void HardwareChecksCard_Disabled_FiresSixLabConfigCommandsInOrder()
     {
         State("autounattend-hardware-checks", LocKey.Common.Enabled).Effects.Should().BeEmpty();
         State("autounattend-hardware-checks", LocKey.Common.Disabled).HasRole(RoleKind.Recommended).Should().BeTrue(
@@ -620,7 +650,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void NetFx3_is_enabled_from_the_media_in_the_specialize_pass()
+    public void NetFx3Card_Enabled_EnablesFromMediaInSpecializePass()
     {
         var command = (AutounattendCommand)State("autounattend-netfx3", LocKey.Common.Enabled).Effects.Single();
 
@@ -633,7 +663,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void The_Winhance_card_chooses_between_no_shortcut_a_shortcut_and_an_install_after_setup()
+    public void DesktopShortcutCard_Always_OffersNoShortcutShortcutOrInstallAfterSetup()
     {
         var setting = S("autounattend-desktop-shortcut");
 
@@ -672,7 +702,7 @@ $bytes[21] = 34
 
     // The catalog spells the install script out in both states, so this keeps the two copies from drifting apart.
     [Fact]
-    public void Both_Winhance_card_states_write_the_same_install_script()
+    public void DesktopShortcutCard_ShortcutAndAutomaticStates_WriteSameInstallScript()
     {
         var shortcut = S("autounattend-desktop-shortcut").States[1].Effects.Cast<ScriptEffect>().Single(s => s.When == AppsToInstall.Some).Script;
         var automatic = S("autounattend-desktop-shortcut").States[2].Effects.Cast<ScriptEffect>().Single(s => s.Run == RunContext.System).Script;
@@ -689,7 +719,7 @@ $bytes[21] = 34
 
     // The script deleting itself is what marks the install as done; there is no registry flag to set or clear.
     [Fact]
-    public void No_answer_file_script_keeps_a_registry_flag_for_the_install()
+    public void AnswerFileScripts_Always_KeepNoRegistryFlagForInstall()
     {
         var scripts = AutounattendCatalog.All
             .SelectMany(setting => setting.States)
@@ -706,7 +736,7 @@ $bytes[21] = 34
     [InlineData("autounattend-licence-page", "OOBE/HideEULAPage")]
     [InlineData("autounattend-oem-registration-page", "OOBE/HideOEMRegistrationScreen")]
     [InlineData("autounattend-network-page", "OOBE/HideWirelessSetupInOOBE")]
-    public void Each_setup_page_toggle_hides_its_page_by_default(string id, string path)
+    public void SetupPageToggle_PerPage_HidesItsPageByDefault(string id, string path)
     {
         var element = (AutounattendElement)S(id).Targets.Single();
         element.Pass.Should().Be("oobeSystem");
@@ -720,7 +750,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void The_privacy_dropdown_writes_3_then_1_then_nothing()
+    public void PrivacyCard_States_WriteThreeThenOneThenNothing()
     {
         var states = S("autounattend-privacy").States;
 
@@ -733,7 +763,7 @@ $bytes[21] = 34
     [Theory]
     [InlineData("autounattend-user-script-system", RunContext.System)]
     [InlineData("autounattend-user-script-user", RunContext.User)]
-    public void A_user_script_card_is_a_list_of_typed_scripts_that_names_its_section(string id, RunContext run)
+    public void UserScriptCard_PerSection_IsTypedScriptListNamingItsSection(string id, RunContext run)
     {
         var setting = SettingCatalog.Find(id)!;
 
@@ -747,7 +777,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void The_installer_cards_are_a_staging_tick_and_a_list_of_picked_files_that_change_the_media()
+    public void InstallerCards_Always_AreStagingTickAndPickedFileListThatChangeMedia()
     {
         var stage = SettingCatalog.Find("autounattend-stage-apps")!;
         stage.Control.Should().Be(ControlKind.CheckBox);
@@ -765,7 +795,7 @@ $bytes[21] = 34
 
     // The card's own buttons read "Add a script", not the accounts card's "Add an account".
     [Fact]
-    public void Every_list_card_names_its_own_add_and_remove_buttons()
+    public void ListCards_Always_NameTheirOwnAddAndRemoveButtons()
     {
         SettingCatalog.All.Where(s => s.List is not null)
             .Should().NotBeEmpty()
@@ -773,7 +803,50 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void The_page_is_wired_into_the_live_catalog_under_its_own_feature()
+    public void KeepRemovedSetting_Always_OffersThreeWaysAndStartsOnScriptsAndTasks()
+    {
+        var setting = S("autounattend-keep-removed");
+
+        setting.States.Select(st => st.Label).Should().Equal(
+            LocKey.Setting.AutounattendKeepRemoved.Option0,
+            LocKey.Setting.AutounattendKeepRemoved.Option1,
+            LocKey.Setting.AutounattendKeepRemoved.Option2);
+        setting.Targets.Should().BeEmpty();
+        State(setting.Id, LocKey.Setting.AutounattendKeepRemoved.Option1).HasRole(RoleKind.Recommended).Should().BeTrue();
+        State(setting.Id, LocKey.Setting.AutounattendKeepRemoved.Option1).HasRole(RoleKind.WindowsDefault).Should().BeTrue();
+        State(setting.Id, LocKey.Setting.AutounattendKeepRemoved.Option0).Effects.Should().BeEmpty();
+        State(setting.Id, LocKey.Setting.AutounattendKeepRemoved.Option1).Effects.Should().BeEmpty();
+        // The mode is written by the removal section, which only exists when apps are removed.
+        State(setting.Id, LocKey.Setting.AutounattendKeepRemoved.Option2).Effects.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CompactSetting_Always_WritesCompactTrueInWindowsPEAndOtherwiseLeavesItToSetup()
+    {
+        var setting = S("autounattend-compact");
+
+        var target = setting.Targets.Should().ContainSingle().Which.Should().BeOfType<AutounattendElement>().Subject;
+        (target.Pass, target.Component, target.Path).Should().Be(("windowsPE", "Microsoft-Windows-Setup", "ImageInstall/OSImage/Compact"));
+        Written(State(setting.Id, LocKey.Common.Enabled), "compact").Should().Be("true");
+        State(setting.Id, LocKey.Common.Disabled).Set["compact"].AcceptsAbsent.Should().BeTrue();
+        State(setting.Id, LocKey.Common.Disabled).HasRole(RoleKind.WindowsDefault).Should().BeTrue();
+    }
+
+    [Fact]
+    public void NetFx3RemoveSourceSetting_Always_IsAMediaOnlyChildOfTheDotNetCardThatStartsOff()
+    {
+        var setting = S("autounattend-netfx3-remove-source");
+
+        setting.UiParentId.Should().Be("autounattend-netfx3");
+        setting.Targets.Should().ContainSingle().Which.Should().Be(new AutounattendMedia("remove-sxs"));
+        setting.EnabledWhen.Should().BeNull();
+        State(setting.Id, LocKey.Common.Disabled).HasRole(RoleKind.WindowsDefault).Should().BeTrue();
+        State(setting.Id, LocKey.Common.Disabled).HasRole(RoleKind.Recommended).Should().BeTrue();
+        setting.States.SelectMany(st => st.Effects).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AutounattendCatalog_Always_IsWiredIntoLiveCatalogUnderItsOwnFeature()
     {
         AutounattendCatalog.FeatureId.Should().Be(FeatureIds.Autounattend);
         SettingCatalog.ByFeature[FeatureIds.Autounattend].Should().Equal(AutounattendCatalog.All);
@@ -784,7 +857,7 @@ $bytes[21] = 34
     }
 
     [Fact]
-    public void No_live_setting_points_a_relationship_at_an_answer_file_setting()
+    public void LiveSettings_Always_NeverPointRelationshipAtAnswerFileSetting()
     {
         // Answer-file settings are filtered out of SettingCatalog.All on Live System, so a live setting naming one
         // would send the relationship cascade's GetById after a setting that is not there.

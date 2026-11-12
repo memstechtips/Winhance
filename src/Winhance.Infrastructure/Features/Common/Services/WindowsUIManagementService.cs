@@ -276,18 +276,22 @@ internal class WindowsUIManagementService : IWindowsUIManagementService
         Anonymous = { ki = new KEYBDINPUT { wVk = VIRTUAL_KEY.VK_NUMLOCK, wScan = 0x45, dwFlags = KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY | flags } },
     };
 
-    public unsafe void BroadcastRegionalSettingChange()
+    public void BroadcastRegionalSettingChange() => BroadcastSettingChange("intl");
+
+    public void BroadcastEnvironmentChange() => BroadcastSettingChange("Environment");
+
+    private static unsafe void BroadcastSettingChange(string area)
     {
-        IntPtr intlPtr = Marshal.StringToHGlobalUni("intl");
+        IntPtr areaPtr = Marshal.StringToHGlobalUni(area);
         try
         {
             PInvoke.SendMessageTimeout(
                 HWND.HWND_BROADCAST, PInvoke.WM_SETTINGCHANGE,
-                default, intlPtr, SEND_MESSAGE_TIMEOUT_FLAGS.SMTO_ABORTIFHUNG, 1000);
+                default, areaPtr, SEND_MESSAGE_TIMEOUT_FLAGS.SMTO_ABORTIFHUNG, 1000);
         }
         finally
         {
-            Marshal.FreeHGlobal(intlPtr);
+            Marshal.FreeHGlobal(areaPtr);
         }
     }
 }

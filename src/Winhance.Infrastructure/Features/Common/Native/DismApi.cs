@@ -88,13 +88,14 @@ internal static class DismApi
         out IntPtr capability,
         out uint count);
 
+    // DismFeatureInfo opens with the same two fields as DISM_FEATURE, which is all the caller reads.
     [DllImport("dismapi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    public static extern int DismGetFeatures(
+    public static extern int DismGetFeatureInfo(
         uint session,
+        [MarshalAs(UnmanagedType.LPWStr)] string featureName,
         [MarshalAs(UnmanagedType.LPWStr)] string? identifier,
         int packageIdentifier,
-        out IntPtr feature,
-        out uint count);
+        out IntPtr featureInfo);
 
     [DllImport("dismapi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     public static extern int DismGetImageInfo(

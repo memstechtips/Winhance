@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -9,7 +10,6 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Helpers;
-using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -138,28 +138,28 @@ public class DialogService : IDialogService
         });
     }
 
-    public async Task<(ImportOption? Option, ImportOptions Options)> ShowConfigImportOptionsDialogAsync()
+    public async Task<(ImportOption? Option, ImportOptions Options, bool HideExplanation)> ShowConfigImportOptionsDialogAsync(ModeEntryNotes notes)
     {
         return await ExecuteDialogAsync(async () =>
         {
-            var builder = new Dialogs.ConfigImportDialogBuilder(_localization);
+            var builder = new Dialogs.ConfigImportDialogBuilder(_localization, notes);
             var dialog = builder.Build(XamlRoot!);
             ConfigureDialog(dialog);
             var result = await dialog.ShowAsync();
             return builder.ExtractResult(result);
-        }, ((ImportOption?)null, new ImportOptions { ReviewBeforeApplying = true }));
+        }, ((ImportOption?)null, new ImportOptions { ReviewBeforeApplying = true }, false));
     }
 
-    public async Task<BuilderSeed?> ShowBuilderSeedDialogAsync()
+    public async Task<(BuilderSeed? Seed, bool HideExplanation)> ShowBuilderSeedDialogAsync(ModeEntryNotes notes)
     {
         return await ExecuteDialogAsync(async () =>
         {
-            var builder = new Dialogs.BuilderSeedDialogBuilder(_localization);
+            var builder = new Dialogs.BuilderSeedDialogBuilder(_localization, notes);
             var dialog = builder.Build();
             ConfigureDialog(dialog);
             var result = await dialog.ShowAsync();
             return builder.ExtractResult(result);
-        }, (BuilderSeed?)null);
+        }, ((BuilderSeed?)null, false));
     }
 
     public async Task<InstallOptionsChoice?> ShowInstallOptionsDialogAsync(string? appName, InstallOptionsChoice current)
@@ -189,24 +189,19 @@ public class DialogService : IDialogService
                 });
             }
 
-            if (confirmationRequest.Items is { Count: > 0 } items)
+            var rows = confirmationRequest.ItemDetails
+                ?? confirmationRequest.Items?.Select(name => new ConfirmationItem(name)).ToList();
+            if (rows is { Count: > 0 })
             {
-                var itemContainerStyle = new Style(typeof(ListViewItem));
-                itemContainerStyle.Setters.Add(new Setter(ListViewItem.PaddingProperty, new Thickness(0)));
-                itemContainerStyle.Setters.Add(new Setter(ListViewItem.MinHeightProperty, 0d));
-
-                // Plain strings would clip at the dialog edge; each row is a wrapping TextBlock instead.
-                var listView = new ListView
-                {
-                    ItemsSource = items.Select(item => new TextBlock { Text = item, TextWrapping = TextWrapping.Wrap }).ToList(),
-                    MaxHeight = 300,
-                    SelectionMode = ListViewSelectionMode.None,
-                    ItemContainerStyle = itemContainerStyle
-                };
+                // A plain panel, not a ListView: the ListView under-measures rows with inline icons and
+                // cuts the last one off. Rows wrap rather than clip at the dialog edge.
+                var rowPanel = new StackPanel { Spacing = 4 };
+                foreach (var row in rows)
+                    rowPanel.Children.Add(BuildItemRow(row));
 
                 var listContainer = new Border
                 {
-                    Child = listView,
+                    Child = new ScrollViewer { Content = rowPanel, MaxHeight = 300 },
                     CornerRadius = new CornerRadius(4),
                     Padding = new Thickness(8),
                     Style = CodeBuiltStyle.Named("CodeBuilt.CardSurface")
@@ -215,26 +210,28 @@ public class DialogService : IDialogService
                 contentPanel.Children.Add(listContainer);
             }
 
+            if (confirmationRequest.InstabilityLegend is { Length: > 0 } instabilityLegend)
+                contentPanel.Children.Add(BuildLegend(instabilityLegend, FluentIcons.Common.Icon.ErrorCircle, InfoBarSeverity.Warning));
+            if (confirmationRequest.NoReinstallLegend is { Length: > 0 } noReinstallLegend)
+                contentPanel.Children.Add(BuildLegend(noReinstallLegend, FluentIcons.Common.Icon.Flag, InfoBarSeverity.Informational));
+
             CheckBox? checkBox = null;
             if (!string.IsNullOrEmpty(confirmationRequest.CheckboxText))
             {
-                var checkboxText = confirmationRequest.CheckboxText;
-                checkBox = new CheckBox
-                {
-                    Content = checkboxText,
-                    IsChecked = confirmationRequest.CheckboxInitiallyChecked
-                };
-
-                checkBox.Checked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
-                    checkBox,
-                    $"{checkboxText}: {_localization.GetStringOrDefault("Common_Checked", "Checked")}",
-                    "CheckboxStateChange");
-                checkBox.Unchecked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
-                    checkBox,
-                    $"{checkboxText}: {_localization.GetStringOrDefault("Common_Unchecked", "Unchecked")}",
-                    "CheckboxStateChange");
-
+                checkBox = DialogAccessibilityHelper.AnnouncedCheckBox(
+                    confirmationRequest.CheckboxText, confirmationRequest.CheckboxInitiallyChecked, _localization);
                 contentPanel.Children.Add(checkBox);
+                if (!string.IsNullOrEmpty(confirmationRequest.CheckboxDescription))
+                {
+                    contentPanel.Children.Add(new TextBlock
+                    {
+                        Text = confirmationRequest.CheckboxDescription,
+                        TextWrapping = TextWrapping.Wrap,
+                        Margin = new Thickness(28, -8, 0, 0),
+                        FontSize = 12,
+                        Opacity = 0.7,
+                    });
+                }
             }
 
             var dialog = new ContentDialog
@@ -267,6 +264,41 @@ public class DialogService : IDialogService
             };
         }, new ConfirmationResponse { Confirmed = false, CheckboxChecked = false });
     }
+
+    // The name wraps with the icons riding inline after it, the way the app cards put the "!" after the title.
+    private static RichTextBlock BuildItemRow(ConfirmationItem item)
+    {
+        var paragraph = new Paragraph();
+        paragraph.Inlines.Add(new Run { Text = item.Name });
+        if (item.HasInstabilityWarning)
+            paragraph.Inlines.Add(BuildRowIcon(FluentIcons.Common.Icon.ErrorCircle));
+        if (item.CannotBeReinstalled)
+            paragraph.Inlines.Add(BuildRowIcon(FluentIcons.Common.Icon.Flag));
+
+        var row = new RichTextBlock { TextWrapping = TextWrapping.Wrap };
+        row.Blocks.Add(paragraph);
+        return row;
+    }
+
+    private static InlineUIContainer BuildRowIcon(FluentIcons.Common.Icon icon) => new()
+    {
+        Child = new Viewbox
+        {
+            Width = 16,
+            Height = 16,
+            Margin = new Thickness(6, 0, 0, -3),
+            Child = new FluentIcons.WinUI.FluentIcon { Icon = icon, IconVariant = FluentIcons.Common.IconVariant.Color }
+        }
+    };
+
+    private static InfoBar BuildLegend(string text, FluentIcons.Common.Icon icon, InfoBarSeverity severity) => new()
+    {
+        IsOpen = true,
+        IsClosable = false,
+        Severity = severity,
+        Message = text,
+        IconSource = new FluentIcons.WinUI.FluentIconSource { Icon = icon, IconVariant = FluentIcons.Common.IconVariant.Color }
+    };
 
     public async Task<bool> ShowSummaryAsync(SummaryRequest request) => (await AskSummaryAsync(request)).Confirmed;
 

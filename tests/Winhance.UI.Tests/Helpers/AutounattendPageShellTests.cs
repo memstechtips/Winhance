@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Winhance.UI.Tests.Helpers;
 
-// The page and WIMUtil host the same view; only the page wraps it in the shell Optimize and Customize use.
+// The page hosts the whole settings view in the shell Optimize and Customize use; WIMUtil hosts only its included cards.
 public class AutounattendPageShellTests
 {
     private static readonly XNamespace Controls = "using:Winhance.UI.Features.Common.Controls";
@@ -13,7 +13,7 @@ public class AutounattendPageShellTests
     private static readonly string FeaturesDir = Path.Combine(RepoPaths.SolutionDir(), "src", "Winhance.UI", "Features");
 
     [Fact]
-    public void The_page_is_the_shared_shell_with_the_settings_view_in_its_content_slot()
+    public void AutounattendPage_Always_IsTheSharedShellWithTheSettingsViewInItsContentSlot()
     {
         var page = XDocument.Load(Path.Combine(FeaturesDir, "Autounattend", "AutounattendPage.xaml")).Root!;
 
@@ -25,10 +25,38 @@ public class AutounattendPageShellTests
     }
 
     [Fact]
-    public void WIMUtil_still_embeds_the_settings_view_itself()
+    public void WimUtilPage_Always_HostsTheIncludedCardsInStepThreeAndNotTheWholeSettingsView()
     {
         var page = XDocument.Load(Path.Combine(FeaturesDir, "WimUtil", "WimUtilPage.xaml"));
 
-        page.Descendants(Autounattend + "AutounattendSettingsView").Should().ContainSingle();
+        page.Descendants(Autounattend + "AutounattendSettingsView").Should().BeEmpty();
+        var included = page.Descendants(Autounattend + "IncludedFromFeaturesView").Should().ContainSingle().Subject;
+        included.Attribute("LoadsItself")!.Value.Should().Be("True");
+        included.Attribute("ShowsModeTags")!.Value.Should().Be("True");
+    }
+
+    [Fact]
+    public void AutounattendSettingsView_Always_DrawsItsIncludedCardsWithTheSharedView()
+    {
+        var view = XDocument.Load(Path.Combine(FeaturesDir, "Autounattend", "AutounattendSettingsView.xaml"));
+
+        view.Descendants(Autounattend + "IncludedFromFeaturesView").Should().ContainSingle();
+    }
+
+    // Step 2 holds the answer-file choice, step 3 shows its summary above the drivers and updates, and the Generate card is gone.
+    [Fact]
+    public void WimUtilPage_Always_PutsTheChangesAboveTheDriversAndUpdates()
+    {
+        var elements = XDocument.Load(Path.Combine(FeaturesDir, "WimUtil", "WimUtilPage.xaml")).Descendants().ToList();
+        var drivers = elements.FindIndex(e => (string?)e.Attribute("IsChecked") == "{x:Bind ViewModel.Step3.AddSystemDrivers, Mode=TwoWay}");
+        int Index(string attribute, string binding) =>
+            elements.FindIndex(e => (string?)e.Attribute(attribute) == $"{{x:Bind ViewModel.{binding}}}");
+
+        drivers.Should().BeGreaterThan(0);
+        Index("IsChecked", "Step2.IsBuilderChosen, Mode=OneWay").Should().BeInRange(0, drivers);
+        elements.FindIndex(e => e.Name == Autounattend + "IncludedFromFeaturesView").Should().BeInRange(0, drivers);
+        Index("Command", "OpenAutounattendCommand").Should().BeInRange(0, drivers);
+        Index("Command", "GenerateWinhanceXmlCommand").Should().Be(-1);
+        Index("Command", "StartAutounattendSessionCommand").Should().Be(-1);
     }
 }

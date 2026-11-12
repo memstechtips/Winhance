@@ -1,12 +1,14 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
-using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Settings.ViewModels;
 using Xunit;
 using Winhance.TestSupport;
@@ -26,6 +28,10 @@ public class SettingsViewModelTests
     private readonly Mock<IScheduledTaskService> _mockScheduledTaskService = new();
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
     private readonly Mock<IProfileService> _mockProfiles = new();
+    private readonly Mock<IBackgroundTaskService> _mockBackgroundTasks = new();
+    private readonly Mock<IExplorerWindowManager> _mockExplorer = new();
+    private readonly Mock<IDispatcherService> _mockDispatcher = new();
+    private readonly Mock<IEventBus> _mockEventBus = new();
 
     public SettingsViewModelTests()
     {
@@ -54,12 +60,28 @@ public class SettingsViewModelTests
         _mockProfiles.Setup(p => p.GetProfiles()).Returns([]);
         _mockProfiles.Setup(p => p.PendingReboot).Returns([]);
         _mockProfiles.Setup(p => p.DriftAsync()).ReturnsAsync([]);
+        _mockDispatcher.Setup(d => d.RunOnUIThread(It.IsAny<Action>())).Callback((Action a) => a());
+        _mockBackgroundTasks.Setup(b => b.GetMode()).Returns(KeepRemovedMode.Winhance);
+        _mockBackgroundTasks.Setup(b => b.IsKeepRemovedOnAsync()).ReturnsAsync(false);
+        _mockBackgroundTasks.Setup(b => b.IsTaskSafetyOkAsync()).ReturnsAsync(true);
+        _mockBackgroundTasks.Setup(b => b.GetRemovalTasksAsync()).ReturnsAsync([]);
+        _mockBackgroundTasks.Setup(b => b.GetSignInOptionsAsync()).ReturnsAsync(SignInOptions.None);
+        _mockBackgroundTasks.Setup(b => b.SetSignInOptionAsync(It.IsAny<string>(), It.IsAny<bool>())).ReturnsAsync(OperationResult.Succeeded());
+        _mockBackgroundTasks.Setup(b => b.SetKeepRemovedOnAsync(It.IsAny<bool>())).ReturnsAsync(OperationResult.Succeeded());
+        _mockBackgroundTasks.Setup(b => b.SetModeAsync(It.IsAny<KeepRemovedMode>())).ReturnsAsync(OperationResult.Succeeded());
+        _mockBackgroundTasks.Setup(b => b.GetKeptApps()).Returns([]);
+        _mockBackgroundTasks.Setup(b => b.GetStatus()).Returns(new KeepRemovedStatus(null, "", [], null));
+        _mockBackgroundTasks.Setup(b => b.GetOtherTasksAsync()).ReturnsAsync([]);
+        _mockBackgroundTasks.Setup(b => b.GetEdgeRedirectAsync()).ReturnsAsync((RemovalTaskState?)null);
     }
 
-    private void GivenSignInTaskIsThisUsers(bool registered = true) =>
-        _mockScheduledTaskService
-            .Setup(s => s.IsSignInTaskRegisteredForAsync(SettingsViewModel.SignInTaskName, It.IsAny<string?>()))
-            .ReturnsAsync(registered);
+    private void GivenConfirmation(bool confirmed) =>
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = confirmed });
+
+    private void GivenSignInOptions(bool startInTray = false, bool reapply = false, bool maintain = false) =>
+        _mockBackgroundTasks.Setup(b => b.GetSignInOptionsAsync()).ReturnsAsync(new SignInOptions(startInTray, reapply, maintain));
 
     private SettingsViewModel CreateViewModel()
     {
@@ -77,37 +99,41 @@ public class SettingsViewModelTests
             _mockProfiles.Object,
             Mock.Of<IProcessExecutor>(),
             Mock.Of<IFilePickerService>(),
-            Mock.Of<ISaveFilePicker>(),
             Mock.Of<IBuilderModeEntry>(),
-            Mock.Of<ICoverageSummaryService>());
+            Mock.Of<ICoverageSummaryService>(),
+            _mockBackgroundTasks.Object,
+            _mockExplorer.Object,
+            _mockDispatcher.Object,
+            _mockEventBus.Object);
+    }
+
+    private async Task<SettingsViewModel> CreateReadyViewModelAsync()
+    {
+        var vm = CreateViewModel();
+        await vm.BackgroundTasksReady;
+        return vm;
     }
 
     [Fact]
-    public void Turning_on_start_in_tray_registers_the_sign_in_task_with_the_tray_flag()
+    public void StartInTrayAtSignIn_WhenTurnedOn_SetsTheTrayFlagOnTheSignInTask()
     {
-        _mockScheduledTaskService
-            .Setup(s => s.RegisterSignInTaskAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(OperationResult.Succeeded());
         var vm = CreateViewModel();
 
         vm.StartInTrayAtSignIn = true;
 
-        _mockScheduledTaskService.Verify(s => s.RegisterSignInTaskAsync(SettingsViewModel.SignInTaskName, It.IsAny<string>(), TrayController.StartInTrayFlag), Times.Once);
+        _mockBackgroundTasks.Verify(b => b.SetSignInOptionAsync(SignInTask.TrayFlag, true), Times.Once);
         vm.StartInTrayAtSignIn.Should().BeTrue();
     }
 
     [Fact]
-    public void Turning_on_reapply_registers_its_own_sign_in_task_with_the_reapply_flag()
+    public void ReapplyAtSignIn_WhenTurnedOn_SetsTheReapplyFlagOnTheSignInTask()
     {
-        _mockScheduledTaskService
-            .Setup(s => s.RegisterSignInTaskAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(OperationResult.Succeeded());
         var vm = CreateViewModel();
 
         vm.ReapplyAtSignIn = true;
 
-        _mockScheduledTaskService.Verify(s => s.RegisterSignInTaskAsync(SettingsViewModel.ReapplyTaskName, It.IsAny<string>(), TrayController.ReapplyProfileFlag), Times.Once);
-        _mockScheduledTaskService.Verify(s => s.RegisterSignInTaskAsync(SettingsViewModel.SignInTaskName, It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _mockBackgroundTasks.Verify(b => b.SetSignInOptionAsync(SignInTask.ReapplyFlag, true), Times.Once);
+        _mockBackgroundTasks.Verify(b => b.SetSignInOptionAsync(SignInTask.TrayFlag, It.IsAny<bool>()), Times.Never);
         vm.ReapplyAtSignIn.Should().BeTrue();
     }
 
@@ -116,11 +142,12 @@ public class SettingsViewModelTests
     [InlineData(1, false, "Profiles_Status_ChangedOne")]
     [InlineData(3, false, "Profiles_Status_Changed")]
     [InlineData(3, true, "Profiles_Status_Failed")]
-    public void Only_the_active_profile_shows_a_status(int drifted, bool failed, string status)
+    public void Profiles_Always_ShowStatusOnActiveProfileAndDescriptionOnTheOthers(int drifted, bool failed, string status)
     {
         _mockProfiles.Setup(p => p.GetProfiles()).Returns(
         [
-            new SettingsProfile(":recommended", "Recommended", ProfileKind.Recommended, null),
+            new SettingsProfile("builtin:focus", "Winhance Focus", ProfileKind.Focus, null, "Quiet while you play"),
+            new SettingsProfile("work", "Work", ProfileKind.User, @"C:\p\work.winhance"),
             new SettingsProfile("gaming", "Gaming", ProfileKind.User, @"C:\p\gaming.winhance"),
         ]);
         _mockProfiles.Setup(p => p.ActiveProfileId).Returns("gaming");
@@ -130,16 +157,15 @@ public class SettingsViewModelTests
         var vm = CreateViewModel();
 
         vm.Profiles.Select(r => (r.Name, r.Status, r.CanDelete)).Should().Equal(
-            ("Recommended", "", false),
+            ("Winhance Focus", "Quiet while you play", false),
+            ("Work", "", true),
             ("Gaming", status, true));
     }
 
     [Fact]
-    public void A_failed_sign_in_task_puts_the_switch_back()
+    public void StartInTrayAtSignIn_WhenTheSignInTaskFails_PutsTheSwitchBack()
     {
-        _mockScheduledTaskService
-            .Setup(s => s.RegisterSignInTaskAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(OperationResult.Failed("Access denied"));
+        _mockBackgroundTasks.Setup(b => b.SetSignInOptionAsync(It.IsAny<string>(), It.IsAny<bool>())).ReturnsAsync(OperationResult.Failed("Access denied"));
         var vm = CreateViewModel();
 
         vm.StartInTrayAtSignIn = true;
@@ -148,38 +174,56 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public void The_start_in_tray_switch_shows_whether_the_sign_in_task_exists_without_registering_it()
+    public void StartInTrayAtSignIn_WhenTheFolderIsUnsafe_PutsTheSwitchBackAndWarns()
     {
-        GivenSignInTaskIsThisUsers();
-
-        var vm = CreateViewModel();
-
-        vm.StartInTrayAtSignIn.Should().BeTrue();
-        _mockScheduledTaskService.Verify(
-            s => s.RegisterSignInTaskAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        _mockScheduledTaskService.Verify(s => s.UnregisterScheduledTaskAsync(It.IsAny<string>()), Times.Never);
-    }
-
-    [Fact]
-    public void A_late_answer_about_the_sign_in_task_does_not_undo_a_switch_the_user_flipped()
-    {
-        var registered = new TaskCompletionSource<bool>();
-        _mockScheduledTaskService
-            .Setup(s => s.IsSignInTaskRegisteredForAsync(SettingsViewModel.SignInTaskName, It.IsAny<string?>()))
-            .Returns(registered.Task);
-        _mockScheduledTaskService
-            .Setup(s => s.RegisterSignInTaskAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(OperationResult.Succeeded());
+        _mockBackgroundTasks.Setup(b => b.SetSignInOptionAsync(It.IsAny<string>(), It.IsAny<bool>())).ReturnsAsync(OperationResult.Failed(SignInTask.UnsafeFolderError));
         var vm = CreateViewModel();
 
         vm.StartInTrayAtSignIn = true;
-        registered.SetResult(false);
+
+        vm.StartInTrayAtSignIn.Should().BeFalse();
+        _mockDialogService.Verify(d => d.ShowWarningAsync("Settings_SignIn_UnsafeFolder_Message", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public void StartInTrayAtSignIn_WhenTheSignInTaskFails_ShowsNoWarning()
+    {
+        _mockBackgroundTasks.Setup(b => b.SetSignInOptionAsync(It.IsAny<string>(), It.IsAny<bool>())).ReturnsAsync(OperationResult.Failed("Access denied"));
+        var vm = CreateViewModel();
+
+        vm.StartInTrayAtSignIn = true;
+
+        _mockDialogService.Verify(d => d.ShowWarningAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BackgroundTasksReady_WhenSignInTaskHasOptions_ShowsThemWithoutChangingTheTask()
+    {
+        GivenSignInOptions(startInTray: true, reapply: true);
+
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.StartInTrayAtSignIn.Should().BeTrue();
+        vm.ReapplyAtSignIn.Should().BeTrue();
+        _mockBackgroundTasks.Verify(b => b.SetSignInOptionAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task StartInTrayAtSignIn_WhenSignInAnswerArrivesLate_KeepsTheUsersChoice()
+    {
+        var options = new TaskCompletionSource<SignInOptions>();
+        _mockBackgroundTasks.Setup(b => b.GetSignInOptionsAsync()).Returns(options.Task);
+        var vm = CreateViewModel();
+
+        vm.StartInTrayAtSignIn = true;
+        options.SetResult(SignInOptions.None);
+        await vm.BackgroundTasksReady;
 
         vm.StartInTrayAtSignIn.Should().BeTrue();
     }
 
     [Fact]
-    public void The_start_in_tray_switch_is_available_when_Winhance_runs_as_the_signed_in_user()
+    public void CanStartInTrayAtSignIn_WhenRunningAsTheSignedInUser_IsTrue()
     {
         var vm = CreateViewModel();
 
@@ -188,7 +232,7 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public void Under_another_accounts_administrator_rights_the_start_in_tray_switch_is_off_limits_and_says_why()
+    public void CanStartInTrayAtSignIn_UnderAnotherAccountsAdminRights_IsFalseAndSaysWhy()
     {
         _mockInteractiveUserService.Setup(i => i.IsOtsElevation).Returns(true);
 
@@ -200,17 +244,11 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public void Under_another_accounts_administrator_rights_the_signed_in_users_own_task_can_only_be_turned_off()
+    public async Task StartInTrayAtSignIn_UnderAnotherAccountsAdminRights_CanOnlyBeTurnedOff()
     {
         _mockInteractiveUserService.Setup(i => i.IsOtsElevation).Returns(true);
-        _mockInteractiveUserService.Setup(i => i.InteractiveUserSid).Returns("S-1-5-21-1-2-3-1001");
-        _mockScheduledTaskService
-            .Setup(s => s.IsSignInTaskRegisteredForAsync(SettingsViewModel.SignInTaskName, "S-1-5-21-1-2-3-1001"))
-            .ReturnsAsync(true);
-        _mockScheduledTaskService
-            .Setup(s => s.UnregisterScheduledTaskAsync(SettingsViewModel.SignInTaskName))
-            .ReturnsAsync(OperationResult.Succeeded());
-        var vm = CreateViewModel();
+        GivenSignInOptions(startInTray: true);
+        var vm = await CreateReadyViewModelAsync();
         vm.StartInTrayAtSignIn.Should().BeTrue();
         vm.CanStartInTrayAtSignIn.Should().BeTrue();
         vm.StartInTrayDescription.Should().Be("Settings_StartInTray_OtsUnavailable");
@@ -219,51 +257,34 @@ public class SettingsViewModelTests
 
         vm.StartInTrayAtSignIn = false;
 
-        _mockScheduledTaskService.Verify(s => s.UnregisterScheduledTaskAsync(SettingsViewModel.SignInTaskName), Times.Once);
+        _mockBackgroundTasks.Verify(b => b.SetSignInOptionAsync(SignInTask.TrayFlag, false), Times.Once);
         vm.CanStartInTrayAtSignIn.Should().BeFalse();
         changed.Should().Contain(nameof(SettingsViewModel.CanStartInTrayAtSignIn));
     }
 
     [Fact]
-    public void A_sign_in_task_another_user_registered_leaves_the_switch_off()
+    public async Task StartInTrayAtSignIn_WithNoSignInTaskForTheUser_BothSwitchesAreOff()
     {
-        _mockScheduledTaskService.Setup(s => s.IsTaskRegisteredAsync(SettingsViewModel.SignInTaskName)).ReturnsAsync(true);
-        GivenSignInTaskIsThisUsers(registered: false);
-
-        var vm = CreateViewModel();
+        var vm = await CreateReadyViewModelAsync();
 
         vm.StartInTrayAtSignIn.Should().BeFalse();
+        vm.ReapplyAtSignIn.Should().BeFalse();
     }
 
     [Fact]
-    public void Turning_off_start_in_tray_removes_this_users_sign_in_task()
+    public async Task StartInTrayAtSignIn_WhenTurnedOff_ClearsTheTrayFlag()
     {
-        GivenSignInTaskIsThisUsers();
-        _mockScheduledTaskService
-            .Setup(s => s.UnregisterScheduledTaskAsync(SettingsViewModel.SignInTaskName))
-            .ReturnsAsync(OperationResult.Succeeded());
-        var vm = CreateViewModel();
+        GivenSignInOptions(startInTray: true);
+        var vm = await CreateReadyViewModelAsync();
 
         vm.StartInTrayAtSignIn = false;
 
-        _mockScheduledTaskService.Verify(s => s.UnregisterScheduledTaskAsync(SettingsViewModel.SignInTaskName), Times.Once);
+        _mockBackgroundTasks.Verify(b => b.SetSignInOptionAsync(SignInTask.TrayFlag, false), Times.Once);
     }
 
-    [Fact]
-    public void Turning_off_start_in_tray_leaves_a_task_another_user_registered_since()
-    {
-        GivenSignInTaskIsThisUsers();
-        var vm = CreateViewModel();
-        GivenSignInTaskIsThisUsers(registered: false);
-
-        vm.StartInTrayAtSignIn = false;
-
-        _mockScheduledTaskService.Verify(s => s.UnregisterScheduledTaskAsync(It.IsAny<string>()), Times.Never);
-        vm.StartInTrayAtSignIn.Should().BeFalse();
-    }
 
     [Fact]
-    public void Update_dropdowns_offer_every_choice_and_save_the_pick()
+    public void SelectedUpdateCheckOption_WhenPicked_OffersEveryChoiceAndSavesThePick()
     {
         var vm = CreateViewModel();
 
@@ -589,9 +610,9 @@ public class SettingsViewModelTests
         changedProperties.Should().Contain(nameof(vm.LanguageDescription));
         changedProperties.Should().Contain(nameof(vm.ThemeHeader));
         changedProperties.Should().Contain(nameof(vm.ThemeDescription));
-        changedProperties.Should().Contain(nameof(vm.ConfigurationLabel));
-        changedProperties.Should().Contain(nameof(vm.BackupRestoreHeader));
-        changedProperties.Should().Contain(nameof(vm.BackupRestoreDescription));
+        changedProperties.Should().Contain(nameof(vm.ConfigsProfilesLabel));
+        changedProperties.Should().Contain(nameof(vm.ConfigFileHeader));
+        changedProperties.Should().Contain(nameof(vm.ConfigFileDescription));
         changedProperties.Should().Contain(nameof(vm.ImportButtonText));
         changedProperties.Should().Contain(nameof(vm.ExportButtonText));
     }
@@ -625,9 +646,9 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public void Dispose_UnsubscribesFromLanguageChanged()
+    public async Task Dispose_UnsubscribesFromLanguageChanged()
     {
-        var vm = CreateViewModel();
+        var vm = await CreateReadyViewModelAsync();
         vm.Dispose();
 
         var changedProperties = new List<string>();
@@ -650,5 +671,659 @@ public class SettingsViewModelTests
         };
 
         act.Should().NotThrow();
+    }
+
+    [Fact]
+    public async Task KeepRemovedEnabled_WhenServiceReportsOn_IsOn()
+    {
+        _mockBackgroundTasks.Setup(b => b.IsKeepRemovedOnAsync()).ReturnsAsync(true);
+
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.KeepRemovedEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task KeepRemovedEnabled_WhenTurnedOn_AsksTheServiceToKeep()
+    {
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.KeepRemovedEnabled = true;
+
+        _mockBackgroundTasks.Verify(b => b.SetKeepRemovedOnAsync(true), Times.Once);
+    }
+
+    [Fact]
+    public async Task KeepRemovedEnabled_WhenTurnedOffInWinhanceMode_TurnsOffWithoutConfirming()
+    {
+        _mockBackgroundTasks.Setup(b => b.IsKeepRemovedOnAsync()).ReturnsAsync(true);
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.KeepRemovedEnabled = false;
+
+        _mockBackgroundTasks.Verify(b => b.SetKeepRemovedOnAsync(false), Times.Once);
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task KeepRemovedEnabled_WhenTurnedOffInScriptsModeAndDeclined_StaysOn()
+    {
+        GivenScriptsWithAnEdgeTask();
+        GivenConfirmation(false);
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.KeepRemovedEnabled = false;
+        await Eventually(() => vm.KeepRemovedEnabled);
+
+        vm.KeepRemovedEnabled.Should().BeTrue();
+        _mockBackgroundTasks.Verify(b => b.SetKeepRemovedOnAsync(false), Times.Never);
+    }
+
+    [Fact]
+    public async Task KeepRemovedEnabled_WhenTurnedOffInScriptsModeAndConfirmed_TurnsOff()
+    {
+        GivenScriptsWithAnEdgeTask();
+        GivenConfirmation(true);
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.KeepRemovedEnabled = false;
+
+        await Eventually(() => _mockBackgroundTasks.Invocations.Any(i => i.Method.Name == nameof(IBackgroundTaskService.SetKeepRemovedOnAsync)));
+        _mockBackgroundTasks.Verify(b => b.SetKeepRemovedOnAsync(false), Times.Once);
+    }
+
+    [Fact]
+    public async Task KeepRemovedEnabled_WhenTheChangeFails_RevertsTheSwitch()
+    {
+        _mockBackgroundTasks.Setup(b => b.SetKeepRemovedOnAsync(true)).ReturnsAsync(OperationResult.Failed("no"));
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.KeepRemovedEnabled = true;
+        await Eventually(() => !vm.KeepRemovedEnabled);
+
+        vm.KeepRemovedEnabled.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(false, "BackgroundTasks_ChecksOnOpen")]
+    [InlineData(true, "BackgroundTasks_ChecksAtSignIn")]
+    public async Task KeepRemovedDescription_Always_SaysWhenWinhanceChecks(bool signInTask, string key)
+    {
+        GivenSignInOptions(startInTray: signInTask, maintain: signInTask);
+
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.KeepRemovedDescription.Should().EndWith(key);
+    }
+
+    [Fact]
+    public async Task ModeOptions_Always_SelectTheCurrentMode()
+    {
+        _mockBackgroundTasks.Setup(b => b.GetMode()).Returns(KeepRemovedMode.Scripts);
+
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.ModeOptions.Should().HaveCount(2);
+        vm.SelectedModeOption!.Value.Should().Be(KeepRemovedMode.Scripts);
+    }
+
+    [Fact]
+    public async Task SelectedModeOption_WhenAnotherModeIsPickedAndConfirmed_SwitchesMode()
+    {
+        GivenConfirmation(true);
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.SelectedModeOption = vm.ModeOptions.First(o => Equals(o.Value, KeepRemovedMode.Scripts));
+
+        await Eventually(() => _mockBackgroundTasks.Invocations.Any(i => i.Method.Name == nameof(IBackgroundTaskService.SetModeAsync)));
+        _mockBackgroundTasks.Verify(b => b.SetModeAsync(KeepRemovedMode.Scripts), Times.Once);
+    }
+
+    [Fact]
+    public async Task SelectedModeOption_WhenConfirmationIsCancelled_KeepsTheMode()
+    {
+        GivenConfirmation(false);
+        var vm = await CreateReadyViewModelAsync();
+        var winhance = vm.SelectedModeOption;
+
+        vm.SelectedModeOption = vm.ModeOptions.First(o => Equals(o.Value, KeepRemovedMode.Scripts));
+        await Eventually(() => ReferenceEquals(vm.SelectedModeOption, winhance));
+
+        vm.SelectedModeOption.Should().BeSameAs(winhance);
+        _mockBackgroundTasks.Verify(b => b.SetModeAsync(It.IsAny<KeepRemovedMode>()), Times.Never);
+    }
+
+    private void GivenScriptsWithAnEdgeTask(RemovalTaskHealth health = RemovalTaskHealth.Active)
+    {
+        _mockBackgroundTasks.Setup(b => b.GetMode()).Returns(KeepRemovedMode.Scripts);
+        _mockBackgroundTasks.Setup(b => b.IsKeepRemovedOnAsync()).ReturnsAsync(true);
+        _mockBackgroundTasks.Setup(b => b.GetRemovalTasksAsync()).ReturnsAsync(
+            [new RemovalTaskState("EdgeRemoval", health, "e.ps1", null, null, ["Microsoft Edge", "Edge Update"])]);
+    }
+
+    private void GivenReadableDetails()
+    {
+        _mockLocalization
+            .Setup(l => l.GetString("BackgroundTasks_Removes", It.IsAny<object[]>()))
+            .Returns((string _, object[] a) => $"Removes: {a[0]}");
+        _mockLocalization
+            .Setup(l => l.GetString("BackgroundTasks_TaskAndScript", It.IsAny<object[]>()))
+            .Returns((string _, object[] a) => $"Task: {a[0]} | Script: {a[1]}");
+    }
+
+    private static List<CategoryRow> Categories(SettingsViewModel vm) => vm.KeepRemovedChildren.OfType<CategoryRow>().ToList();
+
+    private static TaskRow LastCheckRow(SettingsViewModel vm) => vm.KeepRemovedChildren.OfType<TaskRow>().First();
+
+    [Fact]
+    public async Task KeepRemovedEnabled_WhenTurnedOnWithAnEmptyList_StaysOnAndShowsTheEmptyNote()
+    {
+        var on = false;
+        _mockBackgroundTasks.Setup(b => b.IsKeepRemovedOnAsync()).ReturnsAsync(() => on);
+        _mockBackgroundTasks.Setup(b => b.SetKeepRemovedOnAsync(true)).Callback(() => on = true).ReturnsAsync(OperationResult.Succeeded());
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.KeepRemovedEnabled = true;
+        await Eventually(() => _mockBackgroundTasks.Invocations.Any(i => i.Method.Name == nameof(IBackgroundTaskService.SetKeepRemovedOnAsync)));
+        await Task.Delay(150);
+
+        vm.KeepRemovedEnabled.Should().BeTrue();
+        vm.KeepRemovedChildren.OfType<EmptyListRow>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_WhenEmptyNoteButtonPressed_OpensSoftwareAndApps()
+    {
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.KeepRemovedChildren.OfType<EmptyListRow>().Single().Action.Execute(null);
+
+        _mockEventBus.Verify(e => e.Publish(It.Is<PageRequestedEvent>(ev => ev.PageTag == "SoftwareApps")), Times.Once);
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_WithKeptApps_ShowNoEmptyNote()
+    {
+        _mockBackgroundTasks.Setup(b => b.GetKeptApps()).Returns([new KeptApp("a", "App A", null, 0)]);
+
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.KeepRemovedChildren.OfType<EmptyListRow>().Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(true, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    public async Task KeepRemovedChildren_ModeRow_IsEnabledOnlyWithSwitchOnAndAKeptList(bool on, bool hasApps, bool enabled)
+    {
+        _mockBackgroundTasks.Setup(b => b.IsKeepRemovedOnAsync()).ReturnsAsync(on);
+        _mockBackgroundTasks.Setup(b => b.GetKeptApps()).Returns(hasApps ? [new KeptApp("a", "App A", null, 0)] : []);
+
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.KeepRemovedChildren[0].Should().BeOfType<ModeRow>().Which.Enabled.Should().Be(enabled);
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_InWinhanceMode_BuildOneRowPerCategoryFromTheKeptList()
+    {
+        _mockBackgroundTasks.Setup(b => b.IsKeepRemovedOnAsync()).ReturnsAsync(true);
+        GivenReadableDetails();
+        _mockBackgroundTasks.Setup(b => b.GetKeptApps()).Returns(
+        [
+            new KeptApp("a", "Copilot", null, 1, "BloatRemoval"),
+            new KeptApp("b", "Xbox", null, 2, "BloatRemoval"),
+            new KeptApp("c", "OneDrive", null, 0, "OneDriveRemoval"),
+        ]);
+
+        var vm = await CreateReadyViewModelAsync();
+
+        var rows = Categories(vm);
+        rows.Select(r => r.IconKey).Should().Equal("DeleteSweepIconPath", "MicrosoftOneDriveIconPath");
+        rows[0].Detail.Should().StartWith("Removes: Copilot, Xbox");
+        rows[0].CanStop.Should().BeTrue();
+        rows[0].CanRemove.Should().BeFalse();
+        rows[0].Opacity.Should().Be(1.0);
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_WhileKeepingIsOff_DimsTheCategoryRows()
+    {
+        _mockBackgroundTasks.Setup(b => b.GetKeptApps()).Returns([new KeptApp("a", "App A", null, 0)]);
+
+        var vm = await CreateReadyViewModelAsync();
+
+        Categories(vm).Single().Opacity.Should().BeLessThan(1.0);
+    }
+
+    [Fact]
+    public async Task Stop_OnCategoryRow_ConfirmsThenDropsItsApps()
+    {
+        GivenConfirmation(true);
+        var kept = new List<KeptApp>
+        {
+            new("a", "Copilot", null, 0, "BloatRemoval"),
+            new("b", "Edge", null, 0, "EdgeRemoval"),
+        };
+        _mockBackgroundTasks.Setup(b => b.GetKeptApps()).Returns(() => kept.ToList());
+        _mockBackgroundTasks.Setup(b => b.RemoveKeptApp("a")).Callback(() => kept.RemoveAll(k => k.Id == "a"));
+        var vm = await CreateReadyViewModelAsync();
+
+        Categories(vm).Single(r => r.IconKey == "DeleteSweepIconPath").Stop!.Execute(null);
+        await Eventually(() => Categories(vm).Count == 1);
+
+        _mockBackgroundTasks.Verify(b => b.RemoveKeptApp("a"), Times.Once);
+        _mockBackgroundTasks.Verify(b => b.RemoveKeptApp("b"), Times.Never);
+        Categories(vm).Single().IconKey.Should().Be("MicrosoftEdgeIconPath");
+    }
+
+    [Fact]
+    public async Task Stop_WhenConfirmationIsCancelled_LeavesTheListAlone()
+    {
+        GivenConfirmation(false);
+        _mockBackgroundTasks.Setup(b => b.GetKeptApps()).Returns([new KeptApp("a", "Copilot", null, 0, "BloatRemoval")]);
+        var vm = await CreateReadyViewModelAsync();
+
+        Categories(vm).Single().Stop!.Execute(null);
+        await Task.Delay(100);
+
+        _mockBackgroundTasks.Verify(b => b.RemoveKeptApp(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_InScriptsMode_ShowARowPerTaskWithPillAndPaths()
+    {
+        GivenReadableDetails();
+        _mockBackgroundTasks.Setup(b => b.GetRemovalTasksAsync()).ReturnsAsync(
+        [
+            new RemovalTaskState("EdgeRemoval", RemovalTaskHealth.Active, "e.ps1", null, null, ["Microsoft Edge"]),
+            new RemovalTaskState("BloatRemoval", RemovalTaskHealth.ScriptMissing, "b.ps1", null, null, []),
+        ]);
+        _mockBackgroundTasks.Setup(b => b.GetMode()).Returns(KeepRemovedMode.Scripts);
+
+        var vm = await CreateReadyViewModelAsync();
+
+        var rows = Categories(vm);
+        rows.Select(r => (r.IconKey, r.Pill, r.Healthy, r.CanRepair, r.CanRemove)).Should().Equal(
+            ("DeleteSweepIconPath", "BackgroundTasks_Health_ScriptMissing", false, true, true),
+            ("MicrosoftEdgeIconPath", "BackgroundTasks_Health_Active", true, false, true));
+        rows[1].Detail.Should().Be("Removes: Microsoft Edge\nTask: \\Winhance\\EdgeRemoval | Script: e.ps1\nBackgroundTasks_Task_NeverRan");
+    }
+
+    [Fact]
+    public async Task Repair_OnCategoryRow_AsksTheServiceToRepairThatTask()
+    {
+        GivenScriptsWithAnEdgeTask(RemovalTaskHealth.NoTask);
+        _mockBackgroundTasks.Setup(b => b.RepairRemovalTaskAsync("EdgeRemoval")).ReturnsAsync(OperationResult.Succeeded());
+        var vm = await CreateReadyViewModelAsync();
+
+        Categories(vm).Single().Repair!.Execute(null);
+
+        _mockBackgroundTasks.Verify(b => b.RepairRemovalTaskAsync("EdgeRemoval"), Times.Once);
+    }
+
+    [Fact]
+    public async Task Remove_OnCategoryRow_AsksTheServiceToRemoveThatTask()
+    {
+        GivenScriptsWithAnEdgeTask();
+        _mockBackgroundTasks.Setup(b => b.RemoveRemovalTaskAsync("EdgeRemoval")).ReturnsAsync(OperationResult.Succeeded());
+        var vm = await CreateReadyViewModelAsync();
+
+        Categories(vm).Single().Remove!.Execute(null);
+
+        _mockBackgroundTasks.Verify(b => b.RemoveRemovalTaskAsync("EdgeRemoval"), Times.Once);
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_WithEdgeRedirect_PlacesItUnderEdgeRemovalEvenWithSwitchOff()
+    {
+        _mockBackgroundTasks.Setup(b => b.GetKeptApps()).Returns(
+        [
+            new KeptApp("a", "Copilot", null, 0, "BloatRemoval"),
+            new KeptApp("b", "Edge", null, 0, "EdgeRemoval"),
+            new KeptApp("c", "OneDrive", null, 0, "OneDriveRemoval"),
+        ]);
+        _mockBackgroundTasks.Setup(b => b.GetEdgeRedirectAsync()).ReturnsAsync(
+            new RemovalTaskState("OpenWebSearchRepair", RemovalTaskHealth.Active, "C:\\f", null, null, []));
+
+        var vm = await CreateReadyViewModelAsync();
+
+        var rows = Categories(vm);
+        rows.Select(r => r.IconKey).Should().Equal(
+            "DeleteSweepIconPath", "MicrosoftEdgeIconPath", "TimeRegionLanguageIconSymbol", "MicrosoftOneDriveIconPath");
+        rows[2].Title.Should().Be("BackgroundTasks_Redirect_Title");
+        rows[2].Opacity.Should().Be(1.0);
+        rows[2].Healthy.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_WhenEdgeRedirectFolderIsGone_ShowsTheFolderMissingText()
+    {
+        _mockBackgroundTasks.Setup(b => b.GetEdgeRedirectAsync()).ReturnsAsync(
+            new RemovalTaskState("OpenWebSearchRepair", RemovalTaskHealth.ScriptMissing, "C:\\f", null, null, []));
+
+        var vm = await CreateReadyViewModelAsync();
+
+        Categories(vm).Single().Pill.Should().Be("BackgroundTasks_Redirect_FilesMissing");
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_WithoutRedirectTaskOrFolder_HasNoRedirectRow()
+    {
+        _mockBackgroundTasks.Setup(b => b.GetKeptApps()).Returns([new KeptApp("b", "Edge", null, 0, "EdgeRemoval")]);
+
+        var vm = await CreateReadyViewModelAsync();
+
+        Categories(vm).Select(r => r.Title).Should().NotContain("BackgroundTasks_Redirect_Title");
+    }
+
+    [Fact]
+    public async Task Maintained_WhenACheckFinishes_RefreshesTheRows()
+    {
+        var vm = await CreateReadyViewModelAsync();
+        _mockBackgroundTasks.Setup(b => b.GetKeptApps()).Returns([new KeptApp("a", "App A", null, 0)]);
+
+        _mockBackgroundTasks.Raise(b => b.Maintained += null, EventArgs.Empty);
+        await Eventually(() => Categories(vm).Count == 1);
+
+        Categories(vm).Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_WithLockedFolderInScriptsMode_ShowsTheProtectedNote()
+    {
+        GivenScriptsWithAnEdgeTask();
+
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.KeepRemovedChildren.OfType<FolderSafeRow>().Should().ContainSingle();
+        vm.KeepRemovedChildren.OfType<FolderUnsafeRow>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_WhenSafetyCheckFails_ShowsTheWarningWithARepairButton()
+    {
+        GivenScriptsWithAnEdgeTask();
+        _mockBackgroundTasks.Setup(b => b.IsTaskSafetyOkAsync()).ReturnsAsync(false);
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.KeepRemovedChildren.OfType<FolderUnsafeRow>().Single().Action.Execute(null);
+
+        vm.KeepRemovedChildren.OfType<FolderSafeRow>().Should().BeEmpty();
+        _mockBackgroundTasks.Verify(b => b.RepairTaskSafetyAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task RecheckTaskSafetyAsync_WhenLockBreaksThenReturns_FlipsTheSafetyNoteAndBack()
+    {
+        GivenScriptsWithAnEdgeTask();
+        var vm = await CreateReadyViewModelAsync();
+        vm.KeepRemovedChildren.OfType<FolderSafeRow>().Should().ContainSingle();
+
+        _mockBackgroundTasks.Setup(b => b.IsTaskSafetyOkAsync()).ReturnsAsync(false);
+        await vm.RecheckTaskSafetyAsync();
+
+        vm.KeepRemovedChildren.OfType<FolderUnsafeRow>().Should().ContainSingle();
+        vm.KeepRemovedChildren.OfType<FolderSafeRow>().Should().BeEmpty();
+
+        _mockBackgroundTasks.Setup(b => b.IsTaskSafetyOkAsync()).ReturnsAsync(true);
+        await vm.RecheckTaskSafetyAsync();
+
+        vm.KeepRemovedChildren.OfType<FolderSafeRow>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task RecheckTaskSafetyAsync_WhenLockIsUnchanged_LeavesTheRowsAlone()
+    {
+        GivenScriptsWithAnEdgeTask();
+        var vm = await CreateReadyViewModelAsync();
+        var before = vm.KeepRemovedChildren.ToList();
+
+        await vm.RecheckTaskSafetyAsync();
+
+        vm.KeepRemovedChildren.Should().Equal(before);
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_CategoryButtons_AreEnabledOnlyWhileTheSwitchIsOn()
+    {
+        _mockBackgroundTasks.Setup(b => b.GetKeptApps()).Returns([new KeptApp("b", "Edge", null, 0, "EdgeRemoval")]);
+        _mockBackgroundTasks.Setup(b => b.GetEdgeRedirectAsync()).ReturnsAsync(
+            new RemovalTaskState("OpenWebSearchRepair", RemovalTaskHealth.Active, "C:\\f", null, null, []));
+
+        var off = await CreateReadyViewModelAsync();
+
+        Categories(off).Select(r => r.ButtonsEnabled).Should().Equal(false, true);
+
+        _mockBackgroundTasks.Setup(b => b.IsKeepRemovedOnAsync()).ReturnsAsync(true);
+        var on = await CreateReadyViewModelAsync();
+
+        Categories(on).Select(r => r.ButtonsEnabled).Should().Equal(true, true);
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_InWinhanceModeWithNoRedirect_ShowNoSafetyNote()
+    {
+        _mockBackgroundTasks.Setup(b => b.GetKeptApps()).Returns([new KeptApp("a", "App A", null, 0)]);
+
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.KeepRemovedChildren.OfType<FolderSafeRow>().Should().BeEmpty();
+        vm.KeepRemovedChildren.OfType<FolderUnsafeRow>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_InWinhanceModeWithEdgeRedirect_ShowTheSafetyNote()
+    {
+        _mockBackgroundTasks.Setup(b => b.GetEdgeRedirectAsync()).ReturnsAsync(
+            new RemovalTaskState("OpenWebSearchRepair", RemovalTaskHealth.Active, "C:\\f", null, null, []));
+
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.KeepRemovedChildren.OfType<FolderSafeRow>().Should().ContainSingle();
+    }
+
+    [Theory]
+    [InlineData(KeepRemovedResult.NoApps, "BackgroundTasks_Result_NoApps")]
+    [InlineData(KeepRemovedResult.AllStillRemoved, "BackgroundTasks_Result_AllStillRemoved")]
+    [InlineData(KeepRemovedResult.RemovedAgain, "BackgroundTasks_Result_RemovedAgain")]
+    [InlineData(KeepRemovedResult.RemovalFailed, "BackgroundTasks_Result_RemovalFailed")]
+    public async Task KeepRemovedChildren_LastCheckRow_ShowsResultCodeAsLocalizedText(string code, string key)
+    {
+        _mockBackgroundTasks.Setup(b => b.GetStatus()).Returns(new KeepRemovedStatus(DateTime.Now, code, ["x"], null));
+        _mockLocalization
+            .Setup(l => l.GetString("BackgroundTasks_LastCheck", It.IsAny<object[]>()))
+            .Returns((string _, object[] args) => (string)args[1]);
+        _mockLocalization
+            .Setup(l => l.GetString("BackgroundTasks_Result_RemovedAgain", It.IsAny<object[]>()))
+            .Returns("BackgroundTasks_Result_RemovedAgain");
+
+        var vm = await CreateReadyViewModelAsync();
+
+        LastCheckRow(vm).Title.Should().Be(key);
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_LastCheckRowWithUnknownResult_ShowsItAsIs()
+    {
+        _mockBackgroundTasks.Setup(b => b.GetStatus()).Returns(new KeepRemovedStatus(DateTime.Now, "Something new", [], null));
+        _mockLocalization
+            .Setup(l => l.GetString("BackgroundTasks_LastCheck", It.IsAny<object[]>()))
+            .Returns((string _, object[] args) => (string)args[1]);
+
+        var vm = await CreateReadyViewModelAsync();
+
+        LastCheckRow(vm).Title.Should().Be("Something new");
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_WithRecentPutBack_ShowsItUnderTheCheckRowWithCatalogNames()
+    {
+        var at = DateTime.Now.AddDays(-1);
+        _mockBackgroundTasks.Setup(b => b.GetKeptApps()).Returns([new KeptApp("a", "App A", null, 1)]);
+        _mockBackgroundTasks.Setup(b => b.GetStatus()).Returns(new KeepRemovedStatus(DateTime.Now, KeepRemovedResult.AllStillRemoved, ["a", "gone"], at));
+        _mockLocalization
+            .Setup(l => l.GetString("BackgroundTasks_LastPutBack", It.IsAny<object[]>()))
+            .Returns((string _, object[] args) => $"{args[0]}|{args[1]}");
+
+        var vm = await CreateReadyViewModelAsync();
+
+        LastCheckRow(vm).Detail.Should().Be($"App A, gone|{at.ToString("g", System.Globalization.CultureInfo.CurrentCulture)}");
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_WithOldOrMissingPutBack_LeavesTheLineEmpty()
+    {
+        _mockBackgroundTasks.Setup(b => b.GetStatus()).Returns(new KeepRemovedStatus(DateTime.Now, KeepRemovedResult.AllStillRemoved, ["a"], DateTime.Now.AddDays(-90)));
+
+        var vm = await CreateReadyViewModelAsync();
+
+        LastCheckRow(vm).Detail.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_WithUnknownWinhanceTask_ShowsAPlainRowAtTheBottomWithWhatItRuns()
+    {
+        _mockBackgroundTasks.Setup(b => b.GetKeptApps()).Returns([new KeptApp("a", "App A", null, 0)]);
+        _mockBackgroundTasks.Setup(b => b.GetOtherTasksAsync()).ReturnsAsync(
+        [
+            new WinhanceTaskInfo("Custom", "C:\\tool.exe", "--go", "SYSTEM", true),
+        ]);
+
+        var vm = await CreateReadyViewModelAsync();
+
+        var last = vm.KeepRemovedChildren[^1].Should().BeOfType<TaskRow>().Subject;
+        last.Title.Should().Be("Custom");
+        last.Detail.Should().Be("C:\\tool.exe --go\nBackgroundTasks_RunsAs\nBackgroundTasks_Task_NeverRan");
+    }
+
+    private void GivenReadableRunDetails()
+    {
+        _mockLocalization
+            .Setup(l => l.GetString("BackgroundTasks_RunsAs", It.IsAny<object[]>()))
+            .Returns((string _, object[] a) => $"As {a[0]}");
+        _mockLocalization
+            .Setup(l => l.GetString("BackgroundTasks_RemovedOn", It.IsAny<object[]>()))
+            .Returns((string _, object[] a) => $"Removed {a[0]}");
+        _mockLocalization
+            .Setup(l => l.GetString("BackgroundTasks_Task_LastRun", It.IsAny<object[]>()))
+            .Returns((string _, object[] a) => $"Ran {a[0]} {a[1]}");
+        _mockLocalization
+            .Setup(l => l.GetString("BackgroundTasks_Task_Failed", It.IsAny<object[]>()))
+            .Returns((string _, object[] a) => $"Failed {a[0]}");
+    }
+
+    private static string ShortDateTime(DateTime at) => at.ToString("g", System.Globalization.CultureInfo.CurrentCulture);
+
+    [Theory]
+    [InlineData(0, "BackgroundTasks_Task_Succeeded")]
+    [InlineData(0x41301, "BackgroundTasks_Task_Running")]
+    [InlineData(0x1, "Failed 0x00000001")]
+    public async Task KeepRemovedChildren_OtherTaskRows_ShowWhoRunsThemAndHowTheLastRunEnded(int code, string outcome)
+    {
+        GivenReadableRunDetails();
+        var at = new DateTime(2026, 11, 3, 14, 30, 0);
+        _mockBackgroundTasks.Setup(b => b.GetOtherTasksAsync()).ReturnsAsync(
+            [new WinhanceTaskInfo("Custom", "C:\\tool.exe", "--go", "SYSTEM", true, at, code)]);
+
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.KeepRemovedChildren.OfType<TaskRow>().Last().Detail
+            .Should().Be($"C:\\tool.exe --go\nAs SYSTEM\nRan {ShortDateTime(at)} {outcome}");
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_OtherTaskRowWithoutRunAccount_SkipsThatLine()
+    {
+        _mockBackgroundTasks.Setup(b => b.GetOtherTasksAsync()).ReturnsAsync(
+            [new WinhanceTaskInfo("Custom", "C:\\tool.exe", "", "", true)]);
+
+        var vm = await CreateReadyViewModelAsync();
+
+        vm.KeepRemovedChildren.OfType<TaskRow>().Last().Detail
+            .Should().Be("C:\\tool.exe\nBackgroundTasks_Task_NeverRan");
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_RemovalTaskRows_ShowTheLastRunUnlessTheTaskIsMissing()
+    {
+        GivenReadableRunDetails();
+        var at = new DateTime(2026, 11, 3, 14, 30, 0);
+        _mockBackgroundTasks.Setup(b => b.GetMode()).Returns(KeepRemovedMode.Scripts);
+        _mockBackgroundTasks.Setup(b => b.GetRemovalTasksAsync()).ReturnsAsync(
+        [
+            new RemovalTaskState("EdgeRemoval", RemovalTaskHealth.Active, "e.ps1", at, 0, []),
+            new RemovalTaskState("BloatRemoval", RemovalTaskHealth.NoTask, "b.ps1", null, null, []),
+        ]);
+
+        var vm = await CreateReadyViewModelAsync();
+
+        var rows = Categories(vm);
+        rows[0].Detail.Should().NotContain("Ran ").And.NotContain("NeverRan");
+        rows[1].Detail.Should().EndWith($"Ran {ShortDateTime(at)} BackgroundTasks_Task_Succeeded");
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_EdgeRedirectRow_ShowsWhenItsTaskLastRan()
+    {
+        GivenReadableRunDetails();
+        var at = new DateTime(2026, 11, 3, 14, 30, 0);
+        _mockBackgroundTasks.Setup(b => b.GetEdgeRedirectAsync()).ReturnsAsync(
+            new RemovalTaskState("OpenWebSearch", RemovalTaskHealth.Active, "folder", at, 0, []));
+
+        var vm = await CreateReadyViewModelAsync();
+
+        Categories(vm).Single().Detail.Should().EndWith($"\nRan {ShortDateTime(at)} BackgroundTasks_Task_Succeeded");
+    }
+
+    [Fact]
+    public async Task KeepRemovedChildren_KeptAppRows_ShowWhenEachAppWasRemoved()
+    {
+        GivenReadableDetails();
+        GivenReadableRunDetails();
+        var removed = new DateTime(2026, 10, 1);
+        _mockBackgroundTasks.Setup(b => b.GetKeptApps()).Returns(
+        [
+            new KeptApp("a", "Copilot", removed, 0, "BloatRemoval"),
+            new KeptApp("b", "Xbox", null, 0, "BloatRemoval"),
+        ]);
+
+        var vm = await CreateReadyViewModelAsync();
+
+        Categories(vm).Single().Detail.Should().Contain(
+            $"Removed Copilot ({removed.ToString("d", System.Globalization.CultureInfo.CurrentCulture)})");
+    }
+
+    [Fact]
+    public async Task Primary_OnUnknownTaskRow_UnregistersTheTaskAndReloadsTheList()
+    {
+        var tasks = new List<WinhanceTaskInfo> { new("Custom", "c", "", "SYSTEM", true) };
+        _mockBackgroundTasks.Setup(b => b.GetOtherTasksAsync()).ReturnsAsync(() => tasks.ToList());
+        _mockScheduledTaskService
+            .Setup(s => s.UnregisterScheduledTaskAsync("Custom"))
+            .Callback(() => tasks.Clear())
+            .ReturnsAsync(OperationResult.Succeeded());
+        var vm = await CreateReadyViewModelAsync();
+
+        ((TaskRow)vm.KeepRemovedChildren[^1]).Primary!.Execute(null);
+        await Eventually(() => vm.KeepRemovedChildren.OfType<TaskRow>().All(r => r.Title != "Custom"));
+
+        vm.KeepRemovedChildren.OfType<TaskRow>().Select(r => r.Title).Should().NotContain("Custom");
+    }
+
+    [Fact]
+    public void RemovalTaskHealth_EveryValue_HasAPillTextKey()
+    {
+        var keys = Enum.GetValues<RemovalTaskHealth>().Select(h => "BackgroundTasks_Health_" + h);
+        var en = File.ReadAllText(Path.Combine(RepoPaths.LocalizationDir(), "en.json"));
+
+        keys.Should().OnlyContain(key => en.Contains("\"" + key + "\""));
+    }
+
+    private static async Task Eventually(Func<bool> condition)
+    {
+        for (var i = 0; i < 100 && !condition(); i++)
+            await Task.Delay(20);
     }
 }

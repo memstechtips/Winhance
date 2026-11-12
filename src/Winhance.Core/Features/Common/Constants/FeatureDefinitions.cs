@@ -10,6 +10,7 @@ public static class FeatureDefinitions
         new(FeatureIds.Taskbar, "Taskbar", "Customize", "TaskbarIconPath"),
         new(FeatureIds.StartMenu, "Start Menu", "Customize", "StartMenuIconPath"),
         new(FeatureIds.Explorer, "Explorer", "Customize", "ExplorerIconPath"),
+        new(FeatureIds.ContextMenu, "Context Menu", "Customize", "ContextMenuIconSymbol"),
         new(FeatureIds.TimeRegionLanguage, "Time, region and language", "Customize", "TimeRegionLanguageIconSymbol"),
 
         new(FeatureIds.Privacy, "Privacy & Security", "Optimize", "PrivacyIconPath"),

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Core.Features.Common.Catalog;
@@ -31,7 +32,7 @@ public static class ApplyExecutor
                     SlideshowSetOp s => writer.SetSlideshow(s.Target, s.Folder),
                     DnsSetOp d => writer.SetDns(d.Servers),
                     EffectOp fx => writer.RunEffect(fx.Effect),
-                    _ => true,
+                    _ => throw new UnreachableException($"No writer call for {op.GetType().Name}"),
                 };
                 if (!ok)
                     failures.Add($"Op failed: {op}");

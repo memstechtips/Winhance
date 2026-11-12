@@ -1,100 +1,44 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Winhance.UI.Features.WimUtil.Models;
 
-public class WizardStepState : INotifyPropertyChanged
+public partial class WizardStepState : ObservableObject
 {
-    private bool _isExpanded;
-    private bool _isAvailable;
-    private bool _isComplete;
-    private string _statusText = string.Empty;
-
-    private string _title = string.Empty;
-
     public int StepNumber { get; set; }
 
-    public string Title
-    {
-        get => _title;
-        set
-        {
-            if (_title != value)
-            {
-                _title = value;
-                OnPropertyChanged();
-            }
-        }
-    }
+    [ObservableProperty]
+    public partial FluentIcons.Common.Icon Icon { get; set; }
 
-    public string Icon { get; set; } = string.Empty;
+    // A Segoe Fluent Icons glyph, shown instead of Icon for a symbol the Fluent icon set lacks (it has no optical disc).
+    public string? Glyph { get; set; }
 
-    public string StatusText
-    {
-        get => _statusText;
-        set
-        {
-            if (_statusText != value)
-            {
-                _statusText = value;
-                OnPropertyChanged();
-            }
-        }
-    }
+    public bool HasGlyph => !string.IsNullOrEmpty(Glyph);
 
-    public bool IsExpanded
-    {
-        get => _isExpanded;
-        set
-        {
-            if (_isExpanded != value)
-            {
-                _isExpanded = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(ChevronRotation));
-            }
-        }
-    }
+    public bool UsesFluentIcon => !HasGlyph;
 
-    public bool IsAvailable
-    {
-        get => _isAvailable;
-        set
-        {
-            if (_isAvailable != value)
-            {
-                _isAvailable = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(IsLocked));
-                OnPropertyChanged(nameof(ShowChevron));
-            }
-        }
-    }
+    [ObservableProperty]
+    public partial string Title { get; set; } = string.Empty;
 
-    public bool IsComplete
-    {
-        get => _isComplete;
-        set
-        {
-            if (_isComplete != value)
-            {
-                _isComplete = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(ShowChevron));
-            }
-        }
-    }
+    [ObservableProperty]
+    public partial string AccessibleName { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string StatusText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool IsCurrent { get; set; }
+
+    public bool HasNextStep { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsExpanded { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsLocked))]
+    public partial bool IsAvailable { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsComplete { get; set; }
 
     public bool IsLocked => !IsAvailable;
-
-    public bool ShowChevron => !IsLocked && !IsComplete;
-
-    public double ChevronRotation => IsExpanded ? 180 : 0;
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
 }

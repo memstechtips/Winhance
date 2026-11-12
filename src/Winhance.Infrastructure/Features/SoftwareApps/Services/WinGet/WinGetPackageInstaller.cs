@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
@@ -31,7 +30,7 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
         _fileSystemService = fileSystemService;
     }
 
-    public async Task<bool> IsWinGetInstalledAsync(CancellationToken cancellationToken = default)
+    private async Task<bool> IsWinGetInstalledAsync(CancellationToken cancellationToken)
     {
         // Bundled CLI is always available if the app is correctly installed
         var exePath = WinGetCliRunner.GetWinGetExePath(_interactiveUserService);
@@ -62,6 +61,14 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
         return await InstallCoreAsync(packageId, UpgradeArguments(packageId, source), displayName, WinGetOperation.Upgrade, cancellationToken).ConfigureAwait(false);
     }
 
+    // winget's upgrade verb never finds a Store app's update, so this runs a forced install and reports it as an update.
+    public async Task<PackageInstallResult> UpdateFromStoreAsync(string storeId, string? displayName, CancellationToken cancellationToken)
+    {
+        if (IsAppInstaller(storeId))
+            await ReleaseWinGetServerAsync(cancellationToken).ConfigureAwait(false);
+        return await InstallCoreAsync(storeId, InstallArguments(storeId, WinGetSources.MsStore, null, InstallOptions.Default), displayName, WinGetOperation.Upgrade, cancellationToken).ConfigureAwait(false);
+    }
+
     internal static bool IsAppInstaller(string packageId)
         => packageId.Equals("Microsoft.AppInstaller", StringComparison.OrdinalIgnoreCase)
             || packageId.Equals("9NBLGGH4NNS1", StringComparison.OrdinalIgnoreCase);
@@ -70,19 +77,11 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
     private async Task ReleaseWinGetServerAsync(CancellationToken cancellationToken)
     {
         _comSession.Release();
-        for (int i = 0; i < 20 && IsWinGetServerRunning(); i++)
+        for (int i = 0; i < 20 && WinGetComSession.IsServerRunning(); i++)
             await Task.Delay(500, cancellationToken).ConfigureAwait(false);
-        _logService.LogInformation(IsWinGetServerRunning()
+        _logService.LogInformation(WinGetComSession.IsServerRunning()
             ? "WinGet COM server still running; App Installer may only stage its update"
             : "Released the WinGet COM server before updating App Installer");
-    }
-
-    private static bool IsWinGetServerRunning()
-    {
-        var processes = Process.GetProcessesByName("WindowsPackageManagerServer");
-        foreach (var process in processes)
-            process.Dispose();
-        return processes.Length > 0;
     }
 
     // --exact so an id like Git.Git never upgrades Git.GitLFS instead.
@@ -101,8 +100,12 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
             arguments += $" --source {source}";
         if (!string.IsNullOrWhiteSpace(installerOverride))
             arguments += $" --override \"{installerOverride}\"";
-        if (options.Scope != InstallScope.Default)
-            arguments += options.Scope == InstallScope.Machine ? " --scope machine" : " --scope user";
+        arguments += options.Scope switch
+        {
+            InstallScope.Machine => " --scope machine",
+            InstallScope.User => " --scope user",
+            _ => "",
+        };
         arguments += options.Architecture switch
         {
             InstallArchitecture.X64 => " --architecture x64",
@@ -121,7 +124,7 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
         return forAllUsers ? arguments + " --scope machine" : arguments;
     }
 
-    public async Task<bool> DownloadPackageAsync(string packageId, string architecture, bool forAllUsers, string destinationFolder, string? displayName, CancellationToken cancellationToken)
+    public async Task<PackageInstallResult> DownloadPackageAsync(string packageId, string architecture, bool forAllUsers, string destinationFolder, string? displayName, CancellationToken cancellationToken)
     {
         var arguments = DownloadArguments(packageId, architecture, forAllUsers, destinationFolder);
         var exePath = WinGetCliRunner.GetBundledWinGetExePath();
@@ -136,23 +139,28 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                 onOutputLine: output.HandleOutputLine,
                 onErrorLine: output.HandleErrorLine,
                 cancellationToken: cancellationToken,
-                timeoutMs: WinGetCliRunner.InstallTimeoutMs,
+                timeoutMs: 0,
                 exePathOverride: exePath,
                 // null keeps winget in this elevated process; under OTS it would run as the signed-in standard user.
                 interactiveUserService: null,
-                onProgressLine: output.ForwardProgressLine).ConfigureAwait(false);
+                onProgressLine: output.ForwardProgressLine,
+                onStall: output.ReportStall).ConfigureAwait(false);
 
-            output.WriteFooter(result, WinGetCliRunner.InstallTimeoutMs, idleTimeoutMs: 0);
+            output.WriteFooter(result);
 
             cancellationToken.ThrowIfCancellationRequested();
 
             if (result.ExitCode == 0)
-                return true;
+                return PackageInstallResult.Succeeded();
 
             var text = string.IsNullOrWhiteSpace(result.StandardError) ? result.StandardOutput : result.StandardError;
-            var tail = text.Length > 500 ? text[^500..] : text;
-            _logService?.LogWarning($"winget download of {packageId} ({architecture}) failed with exit code 0x{result.ExitCode:X8}: {tail.Trim()}");
-            return false;
+            var tail = (text.Length > 500 ? text[^500..] : text).Trim();
+            // Staging asks for each architecture in turn, so a package without one is expected, not a failure.
+            if (result.ExitCode == WinGetExitCodes.NoApplicableInstallers)
+                _logService?.LogInformation($"{packageId} has no {architecture} installer");
+            else
+                _logService?.LogWarning($"winget download of {packageId} ({architecture}) failed with exit code 0x{result.ExitCode:X8}: {tail}");
+            return PackageInstallResult.Failed(WinGetExitCodes.MapExitCode(result.ExitCode), tail);
         }
         catch (OperationCanceledException)
         {
@@ -161,7 +169,7 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
         catch (Exception ex)
         {
             _logService?.LogWarning($"winget download of {packageId} ({architecture}) failed: {ex.Message}");
-            return false;
+            return PackageInstallResult.Failed(InstallFailureReason.Other, ex.Message);
         }
     }
 
@@ -195,17 +203,24 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                 onOutputLine: output.HandleOutputLine,
                 onErrorLine: output.HandleErrorLine,
                 cancellationToken: cancellationToken,
-                timeoutMs: WinGetCliRunner.InstallTimeoutMs,
-                idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
+                timeoutMs: 0,
                 interactiveUserService: _interactiveUserService,
-                onProgressLine: output.ForwardProgressLine).ConfigureAwait(false);
+                onProgressLine: output.ForwardProgressLine,
+                onStall: output.ReportStall).ConfigureAwait(false);
 
-            output.WriteFooter(result, WinGetCliRunner.InstallTimeoutMs, WinGetCliRunner.InstallIdleTimeoutMs);
+            output.WriteFooter(result);
 
             // If the user cancelled while the process was running, throw before
             // checking the exit code so the OperationCanceledException handler fires
             // and the Chocolatey fallback prompt is never reached.
             cancellationToken.ThrowIfCancellationRequested();
+
+            if (WinGetExitCodes.IsSuccess(result.ExitCode) && output.RegistrationDeferred)
+            {
+                _logService?.LogInformation($"{packageId} was open, so Windows finishes installing the new version the next time it starts");
+                _taskProgressService?.UpdateProgress(100, _localization.GetString("Progress_UpdateFinishesOnNextStart", displayName));
+                return PackageInstallResult.Succeeded() with { RegistrationDeferred = true };
+            }
 
             if (WinGetExitCodes.IsSuccess(result.ExitCode))
             {
@@ -269,12 +284,12 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                     onOutputLine: output.HandleOutputLine,
                     onErrorLine: output.HandleErrorLine,
                     cancellationToken: cancellationToken,
-                    timeoutMs: WinGetCliRunner.InstallTimeoutMs,
-                    idleTimeoutMs: WinGetCliRunner.InstallIdleTimeoutMs,
+                    timeoutMs: 0,
                     interactiveUserService: _interactiveUserService,
                     onProgressLine: output.ForwardProgressLine,
+                    onStall: output.ReportStall,
                     asShellUser: asShellUser).ConfigureAwait(false);
-                output.WriteFooter(run, WinGetCliRunner.InstallTimeoutMs, WinGetCliRunner.InstallIdleTimeoutMs);
+                output.WriteFooter(run);
                 return run;
             }
 

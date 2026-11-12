@@ -5,6 +5,7 @@ using Windows.Win32.Graphics.Gdi;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Desktop;
@@ -128,10 +129,22 @@ internal sealed class WindowsThemeService : IWindowsThemeService, IOptionProvide
     // A key need not be one this PC offers: a config from another machine can name a picture or colour it never had.
     public bool Accepts(Setting setting, string key) => setting.Options!.Source switch
     {
-        OptionSource.Pictures => PictureFileConstants.IsPicture(key),
+        OptionSource.Pictures => AcceptsPicture(key),
         OptionSource.Colors => RegistryColorFromHex(key) is not null,
         var other => throw new ArgumentOutOfRangeException(nameof(setting), other, "Not a desktop background list."),
     };
+
+    // A picture on a network share would make Windows reach out to the share's host with the user's credentials.
+    private bool AcceptsPicture(string key)
+    {
+        if (!PictureFileConstants.IsPicture(key))
+            return false;
+        if (LocalPath.IsLocal(key))
+            return true;
+
+        _log.LogWarning($"Skipped wallpaper '{key}': only a picture on this PC is accepted");
+        return false;
+    }
 
     public string? ValueFor(OptionValue value, string key) =>
         value == OptionValue.Color

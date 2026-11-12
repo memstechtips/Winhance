@@ -39,29 +39,29 @@ public class RegTargetReaderTests
         new("K", paths, valueName, RegistryValueKind.DWord);
 
     [Fact]
-    public void Single_path_returns_the_value_present()
+    public void Read_SinglePath_ReturnsTheValueAsPresent()
     {
         var t = Reg(HklmA);
-        var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => p == @"HKLM\A" ? 1 : null));
+        var (val, present, _) = RegTargetReader.Read(t, new Ctx((p, v) => p == @"HKLM\A" ? 1 : null));
         Assert.True(present);
         Assert.Equal(1, val);
     }
 
     [Fact]
-    public void String_flag_mask_reduces_to_the_bit_state()
+    public void Read_StringFlagMask_ReducesToTheBitState()
     {
         var t = new RegTarget("K", HkcuA, "Flags", RegistryValueKind.String)
         { StringFlagMask = 0x04, StringFlagAbsentBase = 62 };
 
-        var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => "62"));
+        var (val, present, _) = RegTargetReader.Read(t, new Ctx((p, v) => "62"));
         Assert.True(present);
         Assert.Equal(true, val);      // default 62 has MKF_HOTKEYACTIVE set
 
-        (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => "130"));
+        (val, present, _) = RegTargetReader.Read(t, new Ctx((p, v) => "130"));
         Assert.True(present);
         Assert.Equal(false, val);     // 130 lacks the bit
 
-        (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => "not-a-number"));
+        (val, present, _) = RegTargetReader.Read(t, new Ctx((p, v) => "not-a-number"));
         Assert.False(present);        // unparseable reads as absent, never as a guess
     }
 
@@ -80,143 +80,143 @@ public class RegTargetReaderTests
     {
         var t = new RegTarget("K", HklmA, "SettingsPageVisibility", RegistryValueKind.String) { ListItem = "home", ListPrefix = "hide:" };
 
-        var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => value));
+        var (val, present, _) = RegTargetReader.Read(t, new Ctx((p, v) => value));
 
         Assert.True(present);
         Assert.Equal(expected, val);
     }
 
     [Fact]
-    public void Absent_everywhere_is_not_present()
+    public void Read_AbsentEverywhere_IsNotPresent()
     {
         var t = Reg(HklmAThenHkcuB);
-        var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => null));
+        var (val, present, _) = RegTargetReader.Read(t, new Ctx((p, v) => null));
         Assert.False(present);
         Assert.Null(val);
     }
 
     [Fact]
-    public void Mirror_takes_first_non_null_hklm_first()
+    public void Read_MirrorWithHklmFirst_TakesTheFirstNonNull()
     {
         // value only in the HKCU path; HKLM is ordered first but null, so HKCU wins as first non-null
         var t = Reg(HkcuBThenLongHklmA);
-        var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => p == @"HKCU\B" ? 7 : null));
+        var (val, present, _) = RegTargetReader.Read(t, new Ctx((p, v) => p == @"HKCU\B" ? 7 : null));
         Assert.True(present);
         Assert.Equal(7, val);
     }
 
     [Fact]
-    public void Mirror_prefers_hklm_when_both_present()
+    public void Read_MirrorWithBothPresent_PrefersHklm()
     {
         var t = Reg(LongHkcuBThenLongHklmA);
-        var (val, _) = RegTargetReader.Read(t, new Ctx((p, v) => p.StartsWith("HKEY_LOCAL_MACHINE") ? 9 : 1));
+        var (val, _, _) = RegTargetReader.Read(t, new Ctx((p, v) => p.StartsWith("HKEY_LOCAL_MACHINE") ? 9 : 1));
         Assert.Equal(9, val); // HKLM ordered first, its non-null wins
     }
 
     [Fact]
-    public void Bitmask_reduces_to_true_when_bit_set()
+    public void Read_BitmaskWithBitSet_ReducesToTrue()
     {
         var t = new RegTarget("K", HklmA, "V", RegistryValueKind.Binary)
         { ByteIndex = 1, BitMask = 0x04 };
-        var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => new byte[] { 0x00, 0x04 }));
+        var (val, present, _) = RegTargetReader.Read(t, new Ctx((p, v) => new byte[] { 0x00, 0x04 }));
         Assert.True(present);
         Assert.Equal(true, val);
     }
 
     [Fact]
-    public void Bitmask_reduces_to_false_when_bit_clear()
+    public void Read_BitmaskWithBitClear_ReducesToFalse()
     {
         var t = new RegTarget("K", HklmA, "V", RegistryValueKind.Binary)
         { ByteIndex = 1, BitMask = 0x04 };
-        var (val, _) = RegTargetReader.Read(t, new Ctx((p, v) => new byte[] { 0x00, 0x00 }));
+        var (val, _, _) = RegTargetReader.Read(t, new Ctx((p, v) => new byte[] { 0x00, 0x00 }));
         Assert.Equal(false, val);
     }
 
     [Fact]
-    public void ByteOnly_returns_the_byte_at_index()
+    public void Read_ByteOnly_ReturnsTheByteAtIndex()
     {
         var t = new RegTarget("K", HklmA, "V", RegistryValueKind.Binary)
         { ByteIndex = 2, ByteOnly = true };
-        var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => new byte[] { 0, 0, 42 }));
+        var (val, present, _) = RegTargetReader.Read(t, new Ctx((p, v) => new byte[] { 0, 0, 42 }));
         Assert.True(present);
         Assert.Equal((byte)42, val);
     }
 
     [Fact]
-    public void Bitmask_blob_too_short_is_absent()
+    public void Read_BitmaskBlobTooShort_IsAbsent()
     {
         var t = new RegTarget("K", HklmA, "V", RegistryValueKind.Binary)
         { ByteIndex = 5, BitMask = 0x01 };
-        var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => new byte[] { 0x01 }));
+        var (val, present, _) = RegTargetReader.Read(t, new Ctx((p, v) => new byte[] { 0x01 }));
         Assert.False(present);
         Assert.Null(val);
     }
 
     [Fact]
-    public void Composite_extracts_the_subkey_value()
+    public void Read_Composite_ExtractsTheSubkeyValue()
     {
         var t = new RegTarget("K", HkcuA, "DirectXUserGlobalSettings", RegistryValueKind.String)
         { CompositeStringKey = "SwapEffectUpgradeEnable" };
-        var (val, present) = RegTargetReader.Read(t,
+        var (val, present, _) = RegTargetReader.Read(t,
             new Ctx((p, v) => "VRROptimizeEnable=0;SwapEffectUpgradeEnable=1;AutoHDREnable=0"));
         Assert.True(present);
         Assert.Equal("1", val);
     }
 
     [Fact]
-    public void Composite_subkey_is_case_insensitive()
+    public void Read_CompositeSubkeyInOtherCase_StillMatches()
     {
         var t = new RegTarget("K", HkcuA, "V", RegistryValueKind.String)
         { CompositeStringKey = "swapeffectupgradeenable" };
-        var (val, _) = RegTargetReader.Read(t, new Ctx((p, v) => "SwapEffectUpgradeEnable=1"));
+        var (val, _, _) = RegTargetReader.Read(t, new Ctx((p, v) => "SwapEffectUpgradeEnable=1"));
         Assert.Equal("1", val);
     }
 
     [Fact]
-    public void Composite_missing_subkey_is_absent()
+    public void Read_CompositeMissingSubkey_IsAbsent()
     {
         var t = new RegTarget("K", HkcuA, "V", RegistryValueKind.String)
         { CompositeStringKey = "NotThere" };
-        var (val, present) = RegTargetReader.Read(t, new Ctx((p, v) => "SwapEffectUpgradeEnable=1"));
+        var (val, present, _) = RegTargetReader.Read(t, new Ctx((p, v) => "SwapEffectUpgradeEnable=1"));
         Assert.False(present);
         Assert.Null(val);
     }
 
     [Fact]
-    public void Composite_absent_value_is_absent()
+    public void Read_CompositeAbsentValue_IsAbsent()
     {
         var t = new RegTarget("K", HkcuA, "V", RegistryValueKind.String)
         { CompositeStringKey = "X" };
-        var (_, present) = RegTargetReader.Read(t, new Ctx((p, v) => null));
+        var (_, present, _) = RegTargetReader.Read(t, new Ctx((p, v) => null));
         Assert.False(present);
     }
 
     [Fact]
-    public void KeyExistence_target_is_present_when_key_exists()
+    public void Read_KeyExistenceTargetWithKeyPresent_IsPresent()
     {
         // ValueName == null -> the reading is (null, key-exists). The value reader is never consulted.
         var t = new RegTarget("KeyExists", LongHklmA, null, RegistryValueKind.None);
-        var (val, present) = RegTargetReader.Read(t,
+        var (val, present, _) = RegTargetReader.Read(t,
             new Ctx((p, v) => "should-be-ignored", keyExists: p => p == @"HKEY_LOCAL_MACHINE\A"));
         Assert.True(present);
         Assert.Null(val);
     }
 
     [Fact]
-    public void KeyExistence_target_is_absent_when_no_mirror_key_exists()
+    public void Read_KeyExistenceTargetWithNoMirrorKey_IsAbsent()
     {
         var t = new RegTarget("KeyExists",
             LongHklmAAndB, null, RegistryValueKind.None);
-        var (_, present) = RegTargetReader.Read(t, new Ctx((p, v) => null, keyExists: _ => false));
+        var (_, present, _) = RegTargetReader.Read(t, new Ctx((p, v) => null, keyExists: _ => false));
         Assert.False(present);
     }
 
     [Fact]
-    public void KeyExistence_target_is_present_when_any_mirror_key_exists()
+    public void Read_KeyExistenceTargetWithAnyMirrorKey_IsPresent()
     {
         var t = new RegTarget("KeyExists",
             LongHklmAAndB, null, RegistryValueKind.None);
-        var (_, present) = RegTargetReader.Read(t, new Ctx((p, v) => null, keyExists: p => p == @"HKEY_LOCAL_MACHINE\B"));
+        var (_, present, _) = RegTargetReader.Read(t, new Ctx((p, v) => null, keyExists: p => p == @"HKEY_LOCAL_MACHINE\B"));
         Assert.True(present);
     }
 }

@@ -36,6 +36,7 @@ public class AppInstallationServiceTests
     private readonly Mock<IFileSystemService> _fileSystemService = new();
     private readonly Mock<IChangeHistoryService> _changeHistoryService = new();
     private readonly Mock<IStagedAppInstaller> _stagedAppInstaller = new();
+    private readonly Mock<IBackgroundTaskService> _backgroundTaskService = new();
     private IReadOnlyList<string>? _statements;
     private string? _label;
 
@@ -51,7 +52,8 @@ public class AppInstallationServiceTests
         _taskProgressService.Object,
         _fileSystemService.Object,
         _changeHistoryService.Object,
-        _stagedAppInstaller.Object);
+        _stagedAppInstaller.Object,
+        _backgroundTaskService.Object);
 
     [Fact]
     public async Task InstallAppAsync_WindowsStoreApp_RoutesToWindowsAppsService()

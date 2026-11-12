@@ -8,7 +8,10 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.System;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
@@ -45,6 +48,8 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
     private TaskProgressCoordinator? _taskProgressCoordinator;
     private NavigationRouter? _navigationRouter;
+    private readonly NavHistory _navHistory = new();
+    private MemoryDiagnostics? _memoryDiagnostics;
     private WinhanceMode _lastMode = WinhanceMode.Normal;
     private StartupUiCoordinator? _startupUiCoordinator;
     private TitleBarManager? _titleBarManager;
@@ -97,6 +102,48 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         AppTitleBar.Loaded += AppTitleBar_Loaded;
 
         NavSidebar.Loaded += NavSidebar_Loaded;
+        ContentFrame.Navigated += ContentFrame_Navigated;
+        RootGrid.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(RootGrid_PointerPressed), handledEventsToo: true);
+    }
+
+    private void ContentFrame_Navigated(object sender, Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
+    {
+        _memoryDiagnostics?.LogNavigation(e.Content as Page);
+        var tag = _navigationRouter?.GetTagForCurrentPage(e.SourcePageType);
+        DocsButton.CommandParameter = tag;
+        NavSidebar.CurrentPageTag = tag;
+        _navHistory.Arrived(tag);
+        BackButton.IsEnabled = _navHistory.CanGoBack;
+    }
+
+    private void BackButton_Click(object sender, RoutedEventArgs e) => GoBackAsync().FireAndForget(_logService!);
+
+    private void BackAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        GoBackAsync().FireAndForget(_logService!);
+        args.Handled = true;
+    }
+
+    // The mouse's back button (XButton1), which most apps treat as Back.
+    private void RootGrid_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(RootGrid).Properties.IsXButton1Pressed) return;
+        GoBackAsync().FireAndForget(_logService!);
+        e.Handled = true;
+    }
+
+    private async Task GoBackAsync()
+    {
+        if (_navHistory.BeginBack() is not { } tag) return;
+        try
+        {
+            await OpenPageAsync(tag);
+        }
+        finally
+        {
+            _navHistory.EndBack();
+            BackButton.IsEnabled = _navHistory.CanGoBack;
+        }
     }
 
     private void NavSidebar_Loaded(object sender, RoutedEventArgs e)
@@ -128,7 +175,12 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
         _ = _startupUiCoordinator.RunStartupAndCompleteAsync(
             LoadingStatusText, ContentFrame, NavSidebar, LoadingOverlay, () => ViewModel,
-            markStartupComplete: () => _isStartupLoading = false);
+            markStartupComplete: () =>
+            {
+                _isStartupLoading = false;
+                if (App.Services.GetRequiredService<LaunchOptions>().ExitFromTray)
+                    _trayController?.ExitAsync().FireAndForget(_logService!);
+            });
     }
 
     private void InitializeWindowSizeManager()
@@ -254,8 +306,6 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                     DispatcherQueue.TryEnqueue(() =>
                     {
                         ApplyFlowDirection(localizationService.IsRightToLeft);
-
-                        ApplyNavLocks();
                     });
                 };
             }
@@ -323,7 +373,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
         // Defer passthrough region setup to ensure all elements are laid out
         DispatcherQueue.TryEnqueue(() =>
-            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons, ModeSwitcher));
+            _titleBarManager?.SetPassthroughRegions(AppTitleBar, NavButtons, TitleBarButtons, ModeSwitcher));
 
         FitTitleBar();
         FitNavPane(AppTitleBar.ActualWidth);
@@ -331,12 +381,12 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         {
             FitTitleBar();
             FitNavPane(args.NewSize.Width);
-            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons, ModeSwitcher);
+            _titleBarManager?.SetPassthroughRegions(AppTitleBar, NavButtons, TitleBarButtons, ModeSwitcher);
         };
         TitleBarButtons.SizeChanged += (_, _) =>
         {
             FitTitleBar();
-            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons, ModeSwitcher);
+            _titleBarManager?.SetPassthroughRegions(AppTitleBar, NavButtons, TitleBarButtons, ModeSwitcher);
         };
         // A language switch changes the labels' length without resizing the window.
         ModeSwitcher.SizeChanged += (_, _) => FitTitleBar();
@@ -421,12 +471,18 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                     _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
                 }
 
+                _memoryDiagnostics = App.Services.GetRequiredService<MemoryDiagnostics>();
+                _memoryDiagnostics.Log("startup");
+
                 _applicationModeService = App.Services.GetService<IApplicationModeService>();
                 if (_applicationModeService != null)
                 {
                     _applicationModeService.ModeChanged += OnApplicationModeChangedForNavLocks;
                 }
-                ApplyNavLocks();
+                LeaveUnavailablePage();
+
+                App.Services.GetService<IEventBus>()?.Subscribe<PageRequestedEvent>(request =>
+                    DispatcherQueue.TryEnqueue(() => OpenRequestedPageAsync(request).FireAndForget(_logService!)));
 
                 _ = ViewModel.LoadFilterPreferenceAsync();
 
@@ -524,7 +580,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     {
         var unbounded = new Size(double.PositiveInfinity, double.PositiveInfinity);
         double width = LeftPaddingColumn.ActualWidth + RightPaddingColumn.ActualWidth;
-        foreach (var element in new FrameworkElement[] { PaneToggleButton, AppIcon, AppTitleStack, ModeSwitcher, TitleBarButtons })
+        foreach (var element in new FrameworkElement[] { NavButtons, AppIcon, AppTitleStack, ModeSwitcher, TitleBarButtons })
         {
             element.Measure(unbounded);
             width += element.DesiredSize.Width;
@@ -565,10 +621,38 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
-        _navigationRouter?.NavigateToPage(ContentFrame, tag, applyNavBadges: ApplyNavBadges);
+        OpenPageAsync(tag).FireAndForget(_logService!);
     }
 
-    private void NavSidebar_MoreMenuClosed(object? sender, EventArgs e)
+    // Unattend and WIMUtil are never locked: the view model asks before changing mode, and a no keeps the current page.
+    private async Task<bool> OpenPageAsync(string? tag)
+    {
+        if (tag is null || ViewModel is not { } viewModel || !await viewModel.RequestPageAsync(tag))
+        {
+            SelectCurrentPage();
+            return false;
+        }
+
+        NavSidebar.SelectedTag = tag;
+        _navigationRouter?.NavigateToPage(ContentFrame, tag, applyNavBadges: ApplyNavBadges);
+        return true;
+    }
+
+    private async Task OpenRequestedPageAsync(PageRequestedEvent request)
+    {
+        if (!await OpenPageAsync(request.PageTag) || request.PageTag != "SoftwareApps")
+            return;
+
+        var softwareApps = App.Services.GetRequiredService<SoftwareAppsViewModel>();
+        if (request.FeatureId == FeatureIds.ExternalApps)
+            softwareApps.IsExternalAppsTabSelected = true;
+        else if (request.FeatureId == FeatureIds.WindowsApps)
+            softwareApps.IsWindowsAppsTabSelected = true;
+    }
+
+    private void NavSidebar_MoreMenuClosed(object? sender, EventArgs e) => SelectCurrentPage();
+
+    private void SelectCurrentPage()
     {
         var currentTag = _navigationRouter?.GetTagForCurrentPage(ContentFrame.CurrentSourcePageType);
         if (!string.IsNullOrEmpty(currentTag))
@@ -587,14 +671,14 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                     DispatcherQueue.TryEnqueue(ApplyNavBadges));
                 ApplyNavBadges();
 
-                ApplyNavLocks();
+                LeaveUnavailablePage();
             }
             else
             {
                 NavSidebar.ClearAllBadges();
                 _navBadgeService?.UnsubscribeFromSoftwareAppsChanges();
 
-                ApplyNavLocks();
+                LeaveUnavailablePage();
             }
         });
     }
@@ -609,7 +693,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         var mode = _applicationModeService?.CurrentMode ?? WinhanceMode.Normal;
         var builderOpened = mode == WinhanceMode.Builder && _lastMode != WinhanceMode.Builder;
         _lastMode = mode;
-        DispatcherQueue.TryEnqueue(ApplyNavLocks);
+        DispatcherQueue.TryEnqueue(LeaveUnavailablePage);
         if (builderOpened && App.Services.GetService<IBuilderModeEntry>()?.EditingProfile is not null)
             DispatcherQueue.TryEnqueue(LeaveSettingsPage);
     }
@@ -623,26 +707,17 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         NavSidebar.SelectedTag = "Optimize";
     }
 
-    private void ApplyNavLocks()
+    // A mode change can leave the frame on a page the new mode does not offer.
+    private void LeaveUnavailablePage()
     {
         var mode = _applicationModeService?.CurrentMode ?? WinhanceMode.Normal;
         var target = _applicationModeService?.CurrentBuilderTarget ?? BuilderTarget.Config;
-        var localizationService = App.Services.GetService<ILocalizationService>();
+        var currentTag = _navigationRouter?.GetTagForCurrentPage(ContentFrame.CurrentSourcePageType);
+        if (NavLockPolicy.GateFor(currentTag, mode, target) == PageGate.Open)
+            return;
 
-        SetNavLock("WimUtil", NavLockPolicy.IsWimUtilLocked(mode),
-            localizationService.GetStringOrDefault("Nav_AdvancedTools_Locked_Tooltip", "Unavailable during config review"));
-        SetNavLock("Autounattend", NavLockPolicy.IsAutounattendLocked(mode, target),
-            localizationService.GetStringOrDefault("Nav_Autounattend_Locked_Tooltip", "Available in Builder mode with Autounattend selected"));
-    }
-
-    private void SetNavLock(string tag, bool locked, string tooltip)
-    {
-        NavSidebar.SetButtonLocked(tag, locked, tooltip);
-        if (locked && _navigationRouter?.GetTagForCurrentPage(ContentFrame.CurrentSourcePageType) == tag)
-        {
-            _navigationRouter?.NavigateToPage(ContentFrame, "SoftwareApps", applyNavBadges: ApplyNavBadges);
-            NavSidebar.SelectedTag = "SoftwareApps";
-        }
+        _navigationRouter?.NavigateToPage(ContentFrame, "SoftwareApps", applyNavBadges: ApplyNavBadges);
+        NavSidebar.SelectedTag = "SoftwareApps";
     }
 
     private void ApplyNavBadges()
@@ -822,6 +897,12 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             ViewModel.ReviewModeBar.ApplyReviewedConfigCommand.Execute(null);
     }
 
+    private void ReviewModeAcceptAllRemainingButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel?.ReviewModeBar.AcceptAllRemainingCommand.CanExecute(null) == true)
+            ViewModel.ReviewModeBar.AcceptAllRemainingCommand.Execute(null);
+    }
+
     private void ReviewModeCancelButton_Click(object sender, RoutedEventArgs e)
     {
         if (ViewModel?.ReviewModeBar.CancelReviewModeCommand.CanExecute(null) == true)
@@ -914,20 +995,17 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
         if (tag != null)
         {
-            if (NavSidebar.GetButton(tag)?.IsLocked == true)
-            {
-                args.Handled = true;
-                return;
-            }
-            NavSidebar.SelectedTag = tag;
-            _navigationRouter?.NavigateToPage(ContentFrame, tag, applyNavBadges: ApplyNavBadges);
-
-            // Focus the NavButton so Narrator announces the page name
-            var navButton = NavSidebar.GetButton(tag);
-            navButton?.Focus(FocusState.Keyboard);
+            OpenPageAndFocusAsync(tag).FireAndForget(_logService!);
 
             args.Handled = true;
         }
+    }
+
+    private async Task OpenPageAndFocusAsync(string tag)
+    {
+        // Focus the NavButton so Narrator announces the page name
+        if (await OpenPageAsync(tag))
+            NavSidebar.GetButton(tag)?.Focus(FocusState.Keyboard);
     }
 
     private void ZoomInAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
@@ -1011,9 +1089,9 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
-        if (button.Command?.CanExecute(null) == true)
+        if (button.Command?.CanExecute(button.CommandParameter) == true)
         {
-            button.Command.Execute(null);
+            button.Command.Execute(button.CommandParameter);
         }
 
         // Announce after a short delay so async state changes are reflected

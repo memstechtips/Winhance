@@ -16,18 +16,16 @@ namespace Winhance.Infrastructure.Tests.Autounattend;
 public class WinhancementsScriptBuilderGoldenTests
 {
     private readonly Mock<ILogService> _log = new();
-    private readonly Mock<IPowerShellRunner> _ps = new();
     private readonly Mock<IWindowsVersionService> _version = new();
 
     public WinhancementsScriptBuilderGoldenTests()
     {
         _version.Setup(v => v.GetWindowsBuildNumber()).Returns(ParityCatalog.Build.Build);
         _version.Setup(v => v.GetWindowsBuildRevision()).Returns(ParityCatalog.Build.Revision);
-        _ps.Setup(p => p.ValidateScriptSyntaxAsync(It.IsAny<string>(), default)).Returns(Task.CompletedTask);
     }
 
     private WinhancementsScriptBuilder Builder() =>
-        new(_log.Object, _ps.Object, _version.Object, new Mock<ILocalizationService>().Object, new Mock<IOptionProviderRegistry>().Object);
+        new(_log.Object, _version.Object, new Mock<ILocalizationService>().Object, new Mock<IOptionProviderRegistry>().Object);
 
     private static readonly string[] PowerCfgIds = ["parity-powercfg-selection", "parity-slider"];
 
@@ -103,16 +101,6 @@ public class WinhancementsScriptBuilderGoldenTests
         var script = await Builder().BuildAsync(ParitySet(withPowerCfg: false), ParityCatalog.ByFeature);
 
         script.Should().NotContain("# POWER PLAN & POWERCFG SETTINGS");
-    }
-
-    [Fact]
-    public async Task ValidatesTheScriptSyntax_AndRethrowsOnFailure()
-    {
-        _ps.Setup(p => p.ValidateScriptSyntaxAsync(It.IsAny<string>(), default)).ThrowsAsync(new InvalidOperationException("bad"));
-
-        var act = () => Builder().BuildAsync(ParitySet(), ParityCatalog.ByFeature);
-
-        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]

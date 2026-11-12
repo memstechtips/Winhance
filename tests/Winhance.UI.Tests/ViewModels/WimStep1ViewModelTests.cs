@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.WimUtil.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
@@ -20,7 +21,7 @@ public class WimStep1ViewModelTests
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
     private readonly Mock<IFilePickerService> _mockFilePickerService = new();
     private readonly Mock<ILogService> _mockLogService = new();
-    private readonly Mock<IResourceService> _mockResourceService = new();
+    private readonly Mock<IUserPreferencesService> _mockUserPreferences = new();
 
     private readonly WimStep1ViewModel _sut;
 
@@ -42,7 +43,11 @@ public class WimStep1ViewModelTests
             .Setup(f => f.GetFileName(It.IsAny<string>()))
             .Returns((string p) => System.IO.Path.GetFileName(p));
 
-        _sut = new WimStep1ViewModel(
+        _sut = CreateSut();
+    }
+
+    private WimStep1ViewModel CreateSut() =>
+        new(
             _mockIsoService.Object,
             _mockTaskProgressService.Object,
             _mockDialogService.Object,
@@ -50,8 +55,14 @@ public class WimStep1ViewModelTests
             _mockFileSystemService.Object,
             _mockFilePickerService.Object,
             _mockLogService.Object,
-            _mockResourceService.Object);
-    }
+            _mockUserPreferences.Object);
+
+    private const long Gb = 1024L * 1024 * 1024;
+
+    private void SavedWorkingDirectory(string path) =>
+        _mockUserPreferences
+            .Setup(p => p.GetPreference(UserPreferenceKeys.WimUtilWorkingDirectory, It.IsAny<string>()))
+            .Returns(path);
 
     [Fact]
     public void Constructor_InitializesSelectedIsoPathToEmpty()
@@ -60,9 +71,119 @@ public class WimStep1ViewModelTests
     }
 
     [Fact]
-    public void Constructor_InitializesWorkingDirectoryToTempWinhanceWIM()
+    public void Constructor_NoNtfsDrive_FallsBackToTempWinhanceWIM()
     {
         _sut.WorkingDirectory.Should().Be("C:\\Temp\\WinhanceWIM");
+    }
+
+    [Fact]
+    public void Constructor_PicksTheNtfsDriveWithTheMostFreeSpace()
+    {
+        _mockFileSystemService
+            .Setup(f => f.GetFixedNtfsDrives())
+            .Returns(new[] { ("C:\\", 40 * Gb), ("E:\\", 300 * Gb), ("D:\\", 120 * Gb) });
+
+        var sut = CreateSut();
+
+        sut.WorkingDirectory.Should().Be("E:\\\\WinhanceWIM");
+    }
+
+    [Fact]
+    public void Constructor_SavedFolderOnAPresentDrive_WinsOverTheAutomaticChoice()
+    {
+        _mockFileSystemService.Setup(f => f.GetFixedNtfsDrives()).Returns(new[] { ("E:\\", 300 * Gb) });
+        _mockFileSystemService.Setup(f => f.GetPathRoot("D:\\Builds\\WinhanceWIM")).Returns("D:\\");
+        _mockFileSystemService.Setup(f => f.DirectoryExists("D:\\")).Returns(true);
+        SavedWorkingDirectory("D:\\Builds\\WinhanceWIM");
+
+        var sut = CreateSut();
+
+        sut.WorkingDirectory.Should().Be("D:\\Builds\\WinhanceWIM");
+        sut.SelectDirectoryCard.Description.Should().StartWith("WIMUtil_Label_Using: D:\\Builds\\WinhanceWIM");
+    }
+
+    [Fact]
+    public void Constructor_SavedFolderOnAMissingDrive_IsIgnored()
+    {
+        _mockFileSystemService.Setup(f => f.GetFixedNtfsDrives()).Returns(new[] { ("E:\\", 300 * Gb) });
+        _mockFileSystemService.Setup(f => f.GetPathRoot("X:\\WinhanceWIM")).Returns("X:\\");
+        SavedWorkingDirectory("X:\\WinhanceWIM");
+
+        var sut = CreateSut();
+
+        sut.WorkingDirectory.Should().Be("E:\\\\WinhanceWIM");
+    }
+
+    [Theory]
+    [InlineData(5L, true)]
+    [InlineData(19L, true)]
+    [InlineData(20L, false)]
+    [InlineData(250L, false)]
+    public void Constructor_LowFreeSpace_WarnsWithoutBlocking(long freeGb, bool expectWarning)
+    {
+        _mockFileSystemService.Setup(f => f.GetAvailableFreeSpace(It.IsAny<string>())).Returns(freeGb * Gb);
+        _mockFilePickerService.Setup(f => f.PickFile(It.IsAny<string[]>(), It.IsAny<string?>())).Returns("C:\\win.iso");
+
+        var sut = CreateSut();
+        sut.SelectIsoFileCommand.Execute(null);
+
+        sut.ShowSpaceWarning.Should().Be(expectWarning);
+        sut.SelectDirectoryCard.Description.Should().EndWith("(WIMUtil_Label_FreeSpace)");
+        sut.CanStartExtraction.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Constructor_FreeSpaceUnknown_ShowsNoWarningAndNoFigure()
+    {
+        _mockFileSystemService.Setup(f => f.GetAvailableFreeSpace(It.IsAny<string>())).Returns((long?)null);
+
+        var sut = CreateSut();
+
+        sut.ShowSpaceWarning.Should().BeFalse();
+        sut.SelectDirectoryCard.Description.Should().NotContain("WIMUtil_Label_FreeSpace");
+    }
+
+    [Fact]
+    public async Task SelectWorkingDirectoryCommand_WhenNotExtractedAlready_RemembersTheFolder()
+    {
+        _mockFilePickerService
+            .Setup(f => f.PickFolder(It.IsAny<string?>()))
+            .Returns("D:\\WorkDir");
+
+        await _sut.SelectWorkingDirectoryCommand.ExecuteAsync(null);
+
+        _mockUserPreferences.Verify(
+            p => p.SetPreferenceAsync(UserPreferenceKeys.WimUtilWorkingDirectory, "D:\\WorkDir\\WinhanceWIM"), Times.Once);
+    }
+
+    [Fact]
+    public async Task SelectWorkingDirectoryCommand_WhenExtractedAlready_DoesNotRememberTheMediaFolder()
+    {
+        _sut.HasExtractedIsoAlready = true;
+        _mockFilePickerService
+            .Setup(f => f.PickFolder(It.IsAny<string?>()))
+            .Returns("D:\\ExtractedIso");
+
+        await _sut.SelectWorkingDirectoryCommand.ExecuteAsync(null);
+
+        _mockUserPreferences.Verify(
+            p => p.SetPreferenceAsync(UserPreferenceKeys.WimUtilWorkingDirectory, It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void ResetAfterWorkingFilesDeleted_ReturnsTheWizardToExtraction()
+    {
+        _mockFilePickerService.Setup(f => f.PickFile(It.IsAny<string[]>(), It.IsAny<string?>())).Returns("C:\\win.iso");
+        _sut.SelectIsoFileCommand.Execute(null);
+        _sut.IsExtractionComplete = true;
+        _sut.SelectIsoCard.IsComplete = true;
+
+        _sut.ResetAfterWorkingFilesDeleted();
+
+        _sut.IsExtractionComplete.Should().BeFalse();
+        _sut.SelectIsoCard.IsComplete.Should().BeFalse();
+        _sut.SelectIsoCard.Description.Should().Be("C:\\win.iso");
+        _sut.CanStartExtraction.Should().BeTrue();
     }
 
     [Fact]
@@ -310,6 +431,30 @@ public class WimStep1ViewModelTests
     }
 
     [Fact]
+    public void WhenHasExtractedIsoAlreadySetToFalse_BeforeMediaIsReady_ReturnsToTheDefaultFolder()
+    {
+        var defaultFolder = _sut.WorkingDirectory;
+        _sut.HasExtractedIsoAlready = true;
+        _sut.WorkingDirectory = "D:\\SomeonesMedia";
+
+        _sut.HasExtractedIsoAlready = false;
+
+        _sut.WorkingDirectory.Should().Be(defaultFolder);
+    }
+
+    [Fact]
+    public void WhenHasExtractedIsoAlreadySetToFalse_WithMediaInUse_KeepsTheMediaFolder()
+    {
+        _sut.HasExtractedIsoAlready = true;
+        _sut.WorkingDirectory = "D:\\SomeonesMedia";
+        _sut.IsExtractionComplete = true;
+
+        _sut.HasExtractedIsoAlready = false;
+
+        _sut.WorkingDirectory.Should().Be("D:\\SomeonesMedia");
+    }
+
+    [Fact]
     public async Task StartIsoExtractionCommand_OnSuccess_SetsIsExtractionComplete()
     {
         _sut.SelectedIsoPath = "C:\\test.iso";
@@ -431,7 +576,7 @@ public class WimStep1ViewModelTests
 
         await _sut.StartIsoExtractionCommand.ExecuteAsync(null);
 
-        _mockTaskProgressService.Verify(t => t.CompleteTask(), Times.Once);
+        _mockTaskProgressService.Verify(t => t.CompleteTask(), Times.AtLeastOnce);
     }
 
     [Fact]

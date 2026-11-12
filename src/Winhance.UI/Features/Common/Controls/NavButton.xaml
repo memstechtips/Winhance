@@ -45,8 +45,7 @@
              clipping the icon's top edge (issue #668 iter3). -->
         <StackPanel HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    Spacing="2"
-                    Opacity="{x:Bind ContentOpacity, Mode=OneWay}">
+                    Spacing="2">
             <!-- Colored Fluent System Icon (IconVariant=Color). The Icon name is set
                  in code-behind from IconSymbol because Icon is an enum, not a string. -->
             <fluentIcons:FluentIcon x:Name="ButtonFluentIcon"
@@ -97,15 +96,5 @@
                    Margin="0,2,-4,0"
                    Visibility="{x:Bind BadgeVisibility, Mode=OneWay}"
                    Value="{x:Bind BadgeValue, Mode=OneWay}"/>
-
-        <!-- Locked Overlay -->
-        <Grid Visibility="{x:Bind LockedVisibility, Mode=OneWay}"
-              HorizontalAlignment="Center"
-              VerticalAlignment="Center">
-            <Viewbox Width="14" Height="14">
-                <PathIcon Data="{StaticResource PrivacyIconPath}"
-                          Foreground="#FFA500"/>
-            </Viewbox>
-        </Grid>
     </Grid>
 </UserControl>

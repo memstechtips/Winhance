@@ -36,7 +36,7 @@ internal class RecommendedSettingsApplier(
                 // A one-shot Action is not a stateful setting to bulk-recommend (mirrors BulkSettingsActionService's
                 // reset-loop exclusion). The else branch's BuildPowerCfgApplyValue would return null for it anyway;
                 // this guard is the explicit exclusion, and it also covers ApplyRecommendedForFeatureAsync, which
-                // does not go through ResolveSettingsAsync.
+                // does not go through ResolveSettings.
                 if (setting.Control is ControlKind.Action)
                     continue;
 

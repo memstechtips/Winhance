@@ -55,6 +55,28 @@ public class ApplicationCloseServiceTests
     }
 
     [Fact]
+    public async Task ExitAsync_RunsTheHookAndShutsDownWithoutAsking()
+    {
+        var hookInvoked = false;
+        var shutDown = false;
+        var service = CreateService();
+        service.BeforeShutdown = () =>
+        {
+            hookInvoked = true;
+            return Task.CompletedTask;
+        };
+        service.ShutdownAction = () => shutDown = true;
+        _mockTaskProgressService.Setup(t => t.IsTaskRunning).Returns(true);
+
+        await service.ExitAsync();
+
+        hookInvoked.Should().BeTrue();
+        shutDown.Should().BeTrue();
+        _mockDialogService.VerifyNoOtherCalls();
+        _mockSchedule.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task CheckOperationsAndCloseAsync_WhenBeforeShutdownSet_InvokesHook()
     {
         var hookInvoked = false;
@@ -259,6 +281,24 @@ public class ApplicationCloseServiceTests
 
         _mockDialogService.Verify(d => d.ShowSponsorsDialogAsync(SponsorsDialogMode.Exit), Times.Once);
         _mockSchedule.Verify(s => s.MarkAskedAsync(), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AskIsDueAsync_ReturnsWhatTheScheduleSays(bool due)
+    {
+        _mockSchedule.Setup(s => s.ShouldAskOnExitAsync()).ReturnsAsync(due);
+
+        (await ApplicationCloseService.AskIsDueAsync(_mockSchedule.Object, _mockLogService.Object)).Should().Be(due);
+    }
+
+    [Fact]
+    public async Task AskIsDueAsync_WhenScheduleThrows_StaysDue()
+    {
+        _mockSchedule.Setup(s => s.ShouldAskOnExitAsync()).ThrowsAsync(new IOException("unreadable"));
+
+        (await ApplicationCloseService.AskIsDueAsync(_mockSchedule.Object, _mockLogService.Object)).Should().BeTrue();
     }
 
     [Fact]

@@ -1,11 +1,12 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.WimUtil.Interfaces;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Exceptions;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.WimUtil.Models;
 using Winhance.UI.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.WimUtil.ViewModels;
 
@@ -18,7 +19,15 @@ public partial class WimStep1ViewModel : ObservableObject
     private readonly IFileSystemService _fileSystemService;
     private readonly IFilePickerService _filePickerService;
     private readonly ILogService _logService;
-    private readonly IResourceService _resourceService;
+    private readonly IUserPreferencesService _userPreferencesService;
+    private readonly string _automaticWorkingDirectory;
+
+    internal const string WorkingFolderName = "WinhanceWIM";
+
+    // Extracted media is about 7 GB, turning install.esd into install.wim adds about 5 GB and the ISO
+    // is about 7 GB more. Servicing needs more again, which its own note on the page covers.
+    internal const int LowSpaceGb = 20;
+    private const double BytesPerGb = 1024d * 1024 * 1024;
 
     [ObservableProperty]
     public partial string SelectedIsoPath { get; set; }
@@ -38,6 +47,12 @@ public partial class WimStep1ViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsExtractionComplete { get; set; }
 
+    [ObservableProperty]
+    public partial bool ShowSpaceWarning { get; set; }
+
+    [ObservableProperty]
+    public partial string SpaceWarningText { get; set; }
+
     // Raised each time a folder becomes the media, which IsExtractionComplete cannot signal once it is already true.
     public event EventHandler? MediaReady;
 
@@ -52,7 +67,7 @@ public partial class WimStep1ViewModel : ObservableObject
         IFileSystemService fileSystemService,
         IFilePickerService filePickerService,
         ILogService logService,
-        IResourceService resourceService)
+        IUserPreferencesService userPreferencesService)
     {
         _isoService = isoService;
         _taskProgressService = taskProgressService;
@@ -61,36 +76,87 @@ public partial class WimStep1ViewModel : ObservableObject
         _fileSystemService = fileSystemService;
         _filePickerService = filePickerService;
         _logService = logService;
-        _resourceService = resourceService;
+        _userPreferencesService = userPreferencesService;
 
         SelectedIsoPath = string.Empty;
-        WorkingDirectory = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "WinhanceWIM");
+        SpaceWarningText = string.Empty;
+        _automaticWorkingDirectory = AutomaticWorkingDirectory();
+        WorkingDirectory = SavedWorkingDirectory() ?? _automaticWorkingDirectory;
 
         CreateActionCards();
+        DescribeWorkingDirectory();
+    }
+
+    private string? SavedWorkingDirectory()
+    {
+        var saved = _userPreferencesService.GetPreference(UserPreferenceKeys.WimUtilWorkingDirectory, string.Empty);
+        return !string.IsNullOrEmpty(saved) && _fileSystemService.DirectoryExists(_fileSystemService.GetPathRoot(saved))
+            ? saved
+            : null;
+    }
+
+    // The biggest NTFS drive keeps a full copy of the media off a crowded system drive, and image
+    // servicing mounts next to this folder, which needs NTFS.
+    private string AutomaticWorkingDirectory()
+    {
+        var drives = _fileSystemService.GetFixedNtfsDrives();
+        var root = drives.Length > 0 ? drives.MaxBy(d => d.FreeBytes).Root : _fileSystemService.GetTempPath();
+        return _fileSystemService.CombinePath(root, WorkingFolderName);
+    }
+
+    // Low space only warns: the figure is an estimate and a build that fits must still be allowed.
+    private void DescribeWorkingDirectory()
+    {
+        var description = WorkingDirectory == _automaticWorkingDirectory
+            ? string.Format(_localizationService.GetString("WIMUtil_Card_SelectDirectory_Description_Default"), WorkingDirectory)
+            : $"{_localizationService.GetString("WIMUtil_Label_Using")}: {WorkingDirectory}";
+
+        if (_fileSystemService.GetAvailableFreeSpace(WorkingDirectory) is not { } freeBytes)
+        {
+            SelectDirectoryCard.Description = description;
+            ShowSpaceWarning = false;
+            return;
+        }
+
+        var freeGb = (freeBytes / BytesPerGb).ToString("F1");
+        SelectDirectoryCard.Description = $"{description} ({string.Format(_localizationService.GetString("WIMUtil_Label_FreeSpace"), freeGb)})";
+        SpaceWarningText = string.Format(
+            _localizationService.GetString("WIMUtil_Warning_LowWorkingSpace"), freeGb, _fileSystemService.GetPathRoot(WorkingDirectory), LowSpaceGb);
+        ShowSpaceWarning = freeBytes < LowSpaceGb * BytesPerGb;
+    }
+
+    // The media folder was deleted after the build, so the wizard starts over from extraction.
+    public void ResetAfterWorkingFilesDeleted()
+    {
+        IsExtractionComplete = false;
+        SelectIsoCard.IsComplete = false;
+        SelectIsoCard.Description = string.IsNullOrEmpty(SelectedIsoPath)
+            ? _localizationService.GetString("WIMUtil_Label_NoSelection")
+            : SelectedIsoPath;
+        if (!HasExtractedIsoAlready)
+            DescribeWorkingDirectory();
+        CanStartExtraction = !string.IsNullOrEmpty(SelectedIsoPath) && !string.IsNullOrEmpty(WorkingDirectory);
     }
 
     private void CreateActionCards()
     {
         SelectIsoCard = new WizardActionCard
         {
-            Icon = "\uE958",
             Title = _localizationService.GetString("WIMUtil_Card_SelectISO_Title"),
             Description = _localizationService.GetString("WIMUtil_Label_NoSelection"),
             ButtonText = _localizationService.GetString("WIMUtil_Card_SelectISO_Button"),
             ButtonCommand = SelectIsoFileCommand,
-            IsEnabled = true
+            IsEnabled = true,
+            BusyReason = _localizationService.GetString("WIMUtil_Disabled_Busy")
         };
 
         SelectDirectoryCard = new WizardActionCard
         {
-            IconPath = _resourceService.GetResourceIconPath("ExplorerIconPath"),
             Title = _localizationService.GetString("WIMUtil_Card_SelectDirectory_Title"),
-            Description = string.Format(
-                _localizationService.GetString("WIMUtil_Card_SelectDirectory_Description_Default"),
-                _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "WinhanceWIM")),
             ButtonText = _localizationService.GetString("WIMUtil_Card_SelectDirectory_Button"),
             ButtonCommand = SelectWorkingDirectoryCommand,
-            IsEnabled = true
+            IsEnabled = true,
+            BusyReason = _localizationService.GetString("WIMUtil_Disabled_Busy")
         };
     }
 
@@ -109,7 +175,7 @@ public partial class WimStep1ViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task SelectWorkingDirectory()
+    private async Task SelectWorkingDirectoryAsync()
     {
         var description = HasExtractedIsoAlready
             ? _localizationService.GetString("WIMUtil_FolderDialog_SelectExtracted")
@@ -139,11 +205,12 @@ public partial class WimStep1ViewModel : ObservableObject
         }
         else
         {
-            WorkingDirectory = _fileSystemService.CombinePath(selectedPath, "WinhanceWIM");
+            WorkingDirectory = _fileSystemService.CombinePath(selectedPath, WorkingFolderName);
             try
             {
                 _fileSystemService.CreateDirectory(WorkingDirectory);
-                SelectDirectoryCard.Description = $"{_localizationService.GetString("WIMUtil_Label_Using")}: {WorkingDirectory}";
+                _userPreferencesService.SetPreferenceAsync(UserPreferenceKeys.WimUtilWorkingDirectory, WorkingDirectory).FireAndForget(_logService);
+                DescribeWorkingDirectory();
                 CanStartExtraction = !string.IsNullOrEmpty(SelectedIsoPath) && !string.IsNullOrEmpty(WorkingDirectory);
             }
             catch (Exception ex)
@@ -184,20 +251,19 @@ public partial class WimStep1ViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task StartIsoExtraction()
+    private async Task StartIsoExtractionAsync()
     {
         try
         {
             SelectIsoCard.IsEnabled = false;
-            SelectIsoCard.Opacity = 0.5;
             SelectDirectoryCard.IsEnabled = false;
-            SelectDirectoryCard.Opacity = 0.5;
             IsExtracting = true;
 
             _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_Extracting"), true);
             var progress = _taskProgressService.CreateDetailedProgress();
 
             var success = await _isoService.ExtractIsoAsync(SelectedIsoPath, WorkingDirectory, progress, _taskProgressService.CurrentTaskCancellationSource!.Token);
+            _taskProgressService.CompleteTask();
 
             ResetExtractionState();
 
@@ -244,8 +310,7 @@ public partial class WimStep1ViewModel : ObservableObject
             SelectIsoCard.HasFailed = true;
             SelectIsoCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
             await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_ExtractionError"), ex.Message),
-                _localizationService.GetStringOrDefault("Dialog_Error", "Error"));
+                string.Format(_localizationService.GetString("WIMUtil_Msg_ExtractionError"), ex.Message));
         }
         finally
         {
@@ -256,21 +321,19 @@ public partial class WimStep1ViewModel : ObservableObject
     private void ResetExtractionState()
     {
         SelectIsoCard.IsEnabled = true;
-        SelectIsoCard.Opacity = 1.0;
         SelectDirectoryCard.IsEnabled = true;
-        SelectDirectoryCard.Opacity = 1.0;
         IsExtracting = false;
     }
 
     [RelayCommand]
-    private async Task OpenWindows10Download()
+    private async Task OpenWindows10DownloadAsync()
     {
         try { await Windows.System.Launcher.LaunchUriAsync(new Uri("https://www.microsoft.com/software-download/windows10")); }
         catch (Exception ex) { _logService.LogDebug($"Failed to launch Windows 10 download URL: {ex.Message}"); }
     }
 
     [RelayCommand]
-    private async Task OpenWindows11Download()
+    private async Task OpenWindows11DownloadAsync()
     {
         try { await Windows.System.Launcher.LaunchUriAsync(new Uri("https://www.microsoft.com/software-download/windows11")); }
         catch (Exception ex) { _logService.LogDebug($"Failed to launch Windows 11 download URL: {ex.Message}"); }
@@ -278,8 +341,17 @@ public partial class WimStep1ViewModel : ObservableObject
 
     partial void OnHasExtractedIsoAlreadyChanged(bool value)
     {
-        SelectDirectoryCard.Description = value
-            ? _localizationService.GetString("WIMUtil_Label_SelectExtracted")
-            : string.Format(_localizationService.GetString("WIMUtil_Card_SelectDirectory_Description_Default"), _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), "WinhanceWIM"));
+        if (value)
+        {
+            SelectDirectoryCard.Description = _localizationService.GetString("WIMUtil_Label_SelectExtracted");
+            ShowSpaceWarning = false;
+            return;
+        }
+
+        // A folder picked while the box was ticked holds the user's own media, and extracting into it would
+        // overwrite it. Once that media is in use the later steps point at it, so it stays.
+        if (!IsExtractionComplete)
+            WorkingDirectory = SavedWorkingDirectory() ?? _automaticWorkingDirectory;
+        DescribeWorkingDirectory();
     }
 }

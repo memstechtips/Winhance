@@ -44,11 +44,11 @@ public class FeatureNameKeyTests
     [InlineData("ExplorerCustomization", FeatureIds.Explorer)]
     [InlineData("Privacy", FeatureIds.Privacy)]
     [InlineData("NotAFeature", "NotAFeature")]
-    public void A_retired_feature_id_normalizes_to_the_current_one(string saved, string expected) =>
+    public void Normalize_RetiredFeatureId_ReturnsCurrentId(string saved, string expected) =>
         FeatureIdAliases.Normalize(saved).Should().Be(expected);
 
     [Fact]
-    public void No_alias_points_at_a_feature_the_catalog_lost()
+    public void Normalize_RetiredExplorerId_ResolvesToFeatureInCatalog()
     {
         var known = SettingCatalog.ByFeature.Keys.ToHashSet(StringComparer.Ordinal);
 

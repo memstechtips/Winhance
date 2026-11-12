@@ -586,7 +586,7 @@ public static class WindowsAppDefinitions
                     MsStoreId = "XPFFTQ037JWMHS",
                     CanBeReinstalled = true,
                     RemovalScript = () => EdgeRemovalScript.GetScript(),
-                    RemovalScriptName = "EdgeRemoval",
+                    RemovalScriptName = EdgeRemovalScript.ScriptName,
                     RemovalScriptRunsAtStartup = true
                 },
                 new ItemDefinition
@@ -601,7 +601,7 @@ public static class WindowsAppDefinitions
                     WinGetPackageId = ["Microsoft.EdgeWebView2Runtime"],
                     CanBeReinstalled = true,
                     RemovalScript = () => EdgeRemovalScript.GetScript(removeWebView2: true),
-                    RemovalScriptName = "EdgeRemoval",
+                    RemovalScriptName = EdgeRemovalScript.ScriptName,
                     RemovalScriptRunsAtStartup = true,
                     AlsoRemoves = ["windows-app-edge"]
                 },
@@ -627,7 +627,7 @@ public static class WindowsAppDefinitions
                     WinGetPackageId = ["Microsoft.OneDrive"],
                     CanBeReinstalled = true,
                     RemovalScript = () => OneDriveRemovalScript.GetScript(),
-                    RemovalScriptName = "OneDriveRemoval"
+                    RemovalScriptName = OneDriveRemovalScript.ScriptName
                 },
                 new ItemDefinition
                 {

@@ -2,10 +2,10 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Infrastructure.Features.Autounattend.Services;
+using Winhance.Infrastructure.Features.Common.Utilities;
 using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Autounattend;
@@ -23,18 +23,13 @@ public class WinhancementsScriptBuilderTests
     ];
 
     private readonly Mock<ILogService> _logService = new();
-    private readonly Mock<IPowerShellRunner> _powerShellRunner = new();
     private readonly Mock<IWindowsVersionService> _windowsVersionService = new();
     private readonly WinhancementsScriptBuilder _sut;
 
     public WinhancementsScriptBuilderTests()
     {
-        _powerShellRunner.Setup(s => s.ValidateScriptSyntaxAsync(It.IsAny<string>(), default))
-            .Returns(Task.CompletedTask);
-
         _sut = new WinhancementsScriptBuilder(
             _logService.Object,
-            _powerShellRunner.Object,
             _windowsVersionService.Object,
             new Mock<ILocalizationService>().Object,
             new Mock<IOptionProviderRegistry>().Object);
@@ -75,6 +70,14 @@ public class WinhancementsScriptBuilderTests
 
         result.Should().Contain(".SYNOPSIS");
         result.Should().Contain("param(");
+    }
+
+    [Fact]
+    public async Task BuildAsync_LocksTheProgramDataFolderWithTheGrantsTheAppChecksFor()
+    {
+        var result = await _sut.BuildAsync(SelectionSet.Empty, new Dictionary<string, IReadOnlyList<Setting>>());
+
+        result.Should().Contain($"/inheritance:r /grant:r {FolderLock.IcaclsGrantArguments} ");
     }
 
     [Fact]
@@ -212,7 +215,7 @@ public class WinhancementsScriptBuilderTests
     }
 
     [Fact]
-    public async Task BuildAsync_SetsUpTheScriptsDirectoryOnlyForAppRemoval()
+    public async Task BuildAsync_SetsUpTheScriptsDirectoryOnlyForAppRemovalOrCleanup()
     {
         var removal = new SelectionSet(
             Array.Empty<SettingChoice>(),
@@ -221,10 +224,63 @@ public class WinhancementsScriptBuilderTests
         var byFeature = new Dictionary<string, IReadOnlyList<Setting>>();
 
         var withApps = await _sut.BuildAsync(removal, byFeature);
-        var without = await _sut.BuildAsync(SelectionSet.Empty, byFeature);
+        var without = await _sut.BuildAsync(SetOf(CleanupChoice(false)), byFeature);
 
         withApps.Should().Contain("$scriptsDir = ");
         without.Should().NotContain("$scriptsDir");
+    }
+
+    private static SettingChoice CleanupChoice(bool on) => new("autounattend-cleanup", new ChoiceValue.Toggle(on));
+
+    [Fact]
+    public async Task BuildAsync_CleansUpAfterSetupByDefaultWithEveryBoxTicked()
+    {
+        var result = await _sut.BuildAsync(SelectionSet.Empty, new Dictionary<string, IReadOnlyList<Setting>>());
+
+        result.Should().Contain("$scriptsDir = ").And.Contain("-TaskName \"WinhanceCleanup\"");
+        result.Should().Contain("/StartComponentCleanup /ResetBase").And.Contain("WER\\ReportQueue");
+    }
+
+    [Fact]
+    public async Task BuildAsync_LeavesOutTheCleanupWhenItIsSwitchedOff()
+    {
+        var result = await _sut.BuildAsync(SetOf(CleanupChoice(false)), new Dictionary<string, IReadOnlyList<Setting>>());
+
+        result.Should().NotContain("WinhanceCleanup");
+    }
+
+    [Fact]
+    public async Task BuildAsync_CleansOnlyWhatTheUntickedBoxesLeaveAlone()
+    {
+        var set = SetOf(
+            CleanupChoice(true),
+            new SettingChoice("autounattend-cleanup-old-components", new ChoiceValue.CheckBox(false)),
+            new SettingChoice("autounattend-cleanup-temp-files", new ChoiceValue.CheckBox(false)));
+
+        var result = await _sut.BuildAsync(set, new Dictionary<string, IReadOnlyList<Setting>>());
+
+        result.Should().Contain("/StartComponentCleanup | Out-Null").And.NotContain("/ResetBase");
+        result.Should().Contain("SoftwareDistribution").And.NotContain("Windows\\Temp");
+    }
+
+    [Theory]
+    [InlineData(0, "WinhanceRemoveAppsAfterUpdate.ps1", "KeepRemoved", "Register-ScheduledTask -TaskName $script.Name")]
+    [InlineData(1, "Register-ScheduledTask -TaskName $script.Name", "KeepRemoved", "WinhanceRemoveAppsAfterUpdate.ps1")]
+    [InlineData(2, "KeepRemoved", "WinhanceRemoveAppsAfterUpdate.ps1", "Register-ScheduledTask -TaskName $script.Name")]
+    public async Task BuildAsync_RunsTheAppRemovalTheWayTheKeepRemovedCardPicks(int chosen, string present, string absentA, string absentB)
+    {
+        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>
+        {
+            [FeatureIds.Autounattend] = SettingCatalog.ByFeature[FeatureIds.Autounattend],
+        };
+        var set = new SelectionSet(
+            [new SettingChoice("autounattend-keep-removed", new ChoiceValue.Option(chosen))],
+            new[] { new AppChoice("windows-app-cortana", "Cortana", CortanaPackage, null, null, null) },
+            Array.Empty<AppChoice>());
+
+        var result = await _sut.BuildAsync(set, byFeature);
+
+        result.Should().Contain(present).And.NotContain(absentA).And.NotContain(absentB);
     }
 
     [Fact]
@@ -402,33 +458,6 @@ public class WinhancementsScriptBuilderTests
     }
 
     [Fact]
-    public async Task BuildAsync_CallsValidateScriptSyntax()
-    {
-        var set = SelectionSet.Empty;
-        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>();
-
-        await _sut.BuildAsync(set, byFeature);
-
-        _powerShellRunner.Verify(r => r.ValidateScriptSyntaxAsync(
-            It.IsAny<string>(), default), Times.Once);
-    }
-
-    [Fact]
-    public async Task BuildAsync_SyntaxValidationFails_Throws()
-    {
-        _powerShellRunner.Setup(s => s.ValidateScriptSyntaxAsync(It.IsAny<string>(), default))
-            .ThrowsAsync(new InvalidOperationException("Syntax error at line 42"));
-
-        var set = SelectionSet.Empty;
-        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>();
-
-        var act = () => _sut.BuildAsync(set, byFeature);
-
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*Syntax error*");
-    }
-
-    [Fact]
     public async Task BuildAsync_WithWindowsApps_EmitsAppRemoval()
     {
         var set = new SelectionSet(
@@ -498,7 +527,7 @@ public class WinhancementsScriptBuilderTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task A_file_that_removes_Game_Bar_turns_Game_DVR_off_whatever_the_card_says(bool cardOn)
+    public async Task BuildAsync_FileRemovesGameBar_TurnsGameDvrOffWhateverTheCardSays(bool cardOn)
     {
         var set = new SelectionSet(
             [new SettingChoice("gaming-xbox-game-dvr", new ChoiceValue.Toggle(cardOn))],
@@ -516,7 +545,7 @@ public class WinhancementsScriptBuilderTests
     }
 
     [Fact]
-    public async Task The_Winhance_plan_in_a_file_is_a_copy_of_Balanced_like_in_the_app()
+    public async Task BuildAsync_WinhancePlanInAFile_IsACopyOfBalancedLikeInTheApp()
     {
         var set = SetOf(new SettingChoice("power-plan-selection",
             new ChoiceValue.Keyed(PowerPlanCatalog.WinhancePowerPlanGuid, "Winhance Power Plan")));
@@ -532,7 +561,7 @@ public class WinhancementsScriptBuilderTests
     }
 
     [Fact]
-    public async Task A_file_that_keeps_Game_Bar_leaves_Game_DVR_to_the_card()
+    public async Task BuildAsync_FileKeepsGameBar_LeavesGameDvrToTheCard()
     {
         var set = new SelectionSet(
             [new SettingChoice("gaming-xbox-game-dvr", new ChoiceValue.Toggle(true))],
@@ -546,38 +575,6 @@ public class WinhancementsScriptBuilderTests
         var result = await _sut.BuildAsync(set, byFeature);
 
         result.Should().Contain("-Name 'GameDVR_Enabled' -Type 'DWord' -Value 1");
-    }
-
-    [Fact]
-    public async Task BuildAsync_ValidSyntax_LogsSuccess()
-    {
-        var set = SelectionSet.Empty;
-        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>();
-
-        await _sut.BuildAsync(set, byFeature);
-
-        _logService.Verify(l => l.Log(
-            LogLevel.Info,
-            It.Is<string>(s => s.Contains("passed PowerShell syntax validation")),
-            null, It.IsAny<string>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task BuildAsync_FailedSyntax_LogsError()
-    {
-        _powerShellRunner.Setup(s => s.ValidateScriptSyntaxAsync(It.IsAny<string>(), default))
-            .ThrowsAsync(new InvalidOperationException("Bad syntax"));
-
-        var set = SelectionSet.Empty;
-        var byFeature = new Dictionary<string, IReadOnlyList<Setting>>();
-
-        try { await _sut.BuildAsync(set, byFeature); }
-        catch { }
-
-        _logService.Verify(l => l.Log(
-            LogLevel.Error,
-            It.Is<string>(s => s.Contains("failed PowerShell syntax validation")),
-            null, It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

@@ -52,12 +52,12 @@ public class CatalogCustomStateScriptsConformanceTests
 
     // The answer file fills the server list on the new install, where the adapters exist.
     [Fact]
-    public void The_dns_script_keeps_its_server_list_placeholder()
+    public void CustomStateScripts_DnsServer_KeepsItsServerListPlaceholder()
         => Assert.Contains("$servers = @({{servers}})", SettingCatalog.Find("gaming-dns-server")!.CustomStateScripts[0].Script);
 
     // It writes what the live apply writes, never the netsh table that holds Windows' own DoH templates.
     [Fact]
-    public void The_dns_script_writes_the_adapter_registry_and_nudges_the_dns_client()
+    public void CustomStateScripts_DnsServer_WritesAdapterRegistryAndNudgesDnsClient()
     {
         var script = SettingCatalog.Find("gaming-dns-server")!.CustomStateScripts[0].Script;
 
@@ -68,7 +68,7 @@ public class CatalogCustomStateScriptsConformanceTests
     }
 
     [Fact]
-    public void The_album_script_keeps_its_value_placeholder()
+    public void CustomStateScripts_WallpaperAlbum_KeepsItsValuePlaceholder()
     {
         var setting = SettingCatalog.Find("theme-wallpaper-album");
         Assert.NotNull(setting);
@@ -77,7 +77,7 @@ public class CatalogCustomStateScriptsConformanceTests
 
     // ScriptPreambleSectionTests owns the here-string terminator invariant for Add-WinhanceDesktopType.
     [Fact]
-    public void The_album_script_compiles_the_interop_through_the_shared_helper()
+    public void CustomStateScripts_WallpaperAlbum_CompilesInteropThroughSharedHelper()
     {
         var script = SettingCatalog.Find("theme-wallpaper-album")!.CustomStateScripts[0].Script;
 

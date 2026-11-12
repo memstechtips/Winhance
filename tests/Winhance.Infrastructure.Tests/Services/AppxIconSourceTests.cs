@@ -21,6 +21,16 @@ public class AppxIconSourceTests
     }
 
     [Fact]
+    public async Task GetInstalledPackageMapAsync_ConcurrentCallers_ShareOneEnumeration()
+    {
+        var sut = new AppxIconSource(Mock.Of<ILogService>());
+
+        var maps = await Task.WhenAll(sut.GetInstalledPackageMapAsync(), sut.GetInstalledPackageMapAsync());
+
+        maps[1].Should().BeSameAs(maps[0]);
+    }
+
+    [Fact]
     public async Task GetLogoStreamAsync_ForFirstEnumeratedPackage_DoesNotThrow()
     {
         var sut = new AppxIconSource(Mock.Of<ILogService>());

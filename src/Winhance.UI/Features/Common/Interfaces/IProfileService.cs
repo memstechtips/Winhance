@@ -18,6 +18,7 @@ public interface IProfileService
 
     IReadOnlyList<SettingsProfile> GetProfiles();
     SettingsProfile? Find(string nameOrId);
+    SettingsProfile? FindById(string id);
     bool IsNameAvailable(string name);
 
     Task<SettingsProfile?> SaveCurrentAsync(string name);
@@ -40,4 +41,7 @@ public interface IProfileService
 
     // The active profile's settings this PC now reads differently, by name.
     Task<IReadOnlyList<string>> DriftAsync();
+
+    // Builds Before Winhance from the oldest backup once, and makes it the active profile when none known is.
+    Task EnsureBeforeWinhanceAsync();
 }

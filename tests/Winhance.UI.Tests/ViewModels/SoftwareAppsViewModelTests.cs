@@ -8,6 +8,7 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.Models;
+using Winhance.UI.Features.SoftwareApps.Services;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Xunit;
 
@@ -37,10 +38,9 @@ public class SoftwareAppsViewModelTests
     private readonly Mock<ILogService> _parentLogService = new();
     private readonly Mock<IDialogService> _parentDialogService = new();
     private readonly Mock<IUserPreferencesService> _userPreferencesService = new();
-    private readonly Mock<ISaveFilePicker> _saveFilePicker = new();
+    private readonly Mock<IFilePickerService> _filePicker = new();
     private readonly Mock<IConfigReviewModeService> _configReviewModeService = new();
     private readonly Mock<IConfigReviewBadgeService> _configReviewBadgeService = new();
-    private readonly Mock<IScheduledTaskService> _scheduledTaskService = new();
     private readonly Mock<IFileSystemService> _fileSystemService = new();
     private readonly Mock<IApplicationModeService> _applicationModeService = new();
     private readonly Mock<IInstalledAppsService> _installedAppsService = new();
@@ -80,6 +80,7 @@ public class SoftwareAppsViewModelTests
 
     private WindowsAppsViewModel CreateWindowsAppsVm() => new(
         _windowsAppsService.Object,
+        new Mock<IInstalledAppsService>().Object,
         _appInstallationService.Object,
         _windowsAppUninstallService.Object,
         _progressService.Object,
@@ -115,11 +116,19 @@ public class SoftwareAppsViewModelTests
             _userPreferencesService.Object,
             _configReviewModeService.Object,
             _configReviewBadgeService.Object,
-            _scheduledTaskService.Object,
             _fileSystemService.Object,
             _applicationModeService.Object,
-            _saveFilePicker.Object);
+            _filePicker.Object,
+            CreateMonitor(winVm, extVm));
     }
+
+    private AppUpdateMonitor CreateMonitor(WindowsAppsViewModel winVm, ExternalAppsViewModel extVm) => new(
+        extVm,
+        winVm,
+        _userPreferencesService.Object,
+        _parentLocalizationService.Object,
+        new Mock<IVersionService>().Object,
+        _parentLogService.Object);
 
     private void GivenBuilder(BuilderTarget target)
     {
@@ -138,9 +147,41 @@ public class SoftwareAppsViewModelTests
     }
 
     [Fact]
+    public async Task InitializeAsync_StartsExternalAppsWhileWindowsAppsIsStillLoading()
+    {
+        _dispatcherService.Setup(d => d.RunOnUIThreadWithContextAsync(It.IsAny<Func<Task>>()))
+            .Returns<Func<Task>>(f => f());
+        _extDispatcherService.Setup(d => d.RunOnUIThreadWithContextAsync(It.IsAny<Func<Task>>()))
+            .Returns<Func<Task>>(f => f());
+        var externalStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Bounded so tabs loaded one after the other fail this test instead of hanging the run.
+        _windowsAppsService.Setup(s => s.GetAppsAsync())
+            .Returns(async () =>
+            {
+                await externalStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                return Enumerable.Empty<ItemDefinition>();
+            });
+        var sut = CreateSut();
+        bool? windowsLoadingWhenExternalStarted = null;
+        _externalAppsService.Setup(s => s.GetAppsAsync())
+            .Callback(() =>
+            {
+                windowsLoadingWhenExternalStarted = sut.WindowsAppsViewModel.IsLoading;
+                externalStarted.TrySetResult();
+            })
+            .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+
+        await sut.InitializeAsync();
+
+        windowsLoadingWhenExternalStarted.Should().BeTrue();
+        sut.WindowsAppsViewModel.IsInitialized.Should().BeTrue();
+        sut.ExternalAppsViewModel.IsInitialized.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task ExportList_WritesTheTabAsUtf8CsvWithAByteOrderMark()
     {
-        _saveFilePicker.Setup(p => p.PickSavePath(It.IsAny<string>(), It.IsAny<string>(), "*.csv", It.IsAny<string>(), "csv"))
+        _filePicker.Setup(p => p.PickSavePath(It.IsAny<string>(), It.IsAny<string>(), "*.csv", It.IsAny<string>(), "csv"))
             .Returns(@"C:\apps.csv");
         string? written = null;
         _fileSystemService.Setup(f => f.WriteAllTextAsync(@"C:\apps.csv", It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -194,6 +235,36 @@ public class SoftwareAppsViewModelTests
     }
 
     [Fact]
+    public async Task RefreshInstallationStatusCommand_WhenTabLoaded_DropsTheCachedScanOnceAndRescansTheTab()
+    {
+        _windowsAppsService.Setup(s => s.GetAppsAsync()).ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.Windows, It.IsAny<CancellationToken>())).ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
+        _externalAppsService.Setup(s => s.GetAppsAsync()).ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>())).ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>())).ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
+        var sut = CreateSut();
+        await sut.WindowsAppsViewModel.LoadAppsAndCheckInstallationStatusAsync();
+        await sut.ExternalAppsViewModel.LoadAppsAndCheckInstallationStatusAsync();
+        sut.SelectExternalAppsTab();
+        _installedAppsService.Invocations.Clear();
+
+        await sut.RefreshInstallationStatusCommand.ExecuteAsync(null);
+
+        _installedAppsService.Verify(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+        _installedAppsService.Verify(s => s.Invalidate(), Times.Once);
+    }
+
+    [Fact]
+    public async Task RefreshInstallationStatusCommand_BeforeSelectedTabHasLoaded_DoesNotScan()
+    {
+        var sut = CreateSut();
+
+        await sut.RefreshInstallationStatusCommand.ExecuteAsync(null);
+
+        _installedAppsService.Verify(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public void Constructor_AssignsChildViewModels()
     {
         var winVm = CreateWindowsAppsVm();
@@ -206,10 +277,10 @@ public class SoftwareAppsViewModelTests
             _userPreferencesService.Object,
             _configReviewModeService.Object,
             _configReviewBadgeService.Object,
-            _scheduledTaskService.Object,
             _fileSystemService.Object,
             _applicationModeService.Object,
-            _saveFilePicker.Object);
+            _filePicker.Object,
+            CreateMonitor(winVm, extVm));
 
         sut.WindowsAppsViewModel.Should().BeSameAs(winVm);
         sut.ExternalAppsViewModel.Should().BeSameAs(extVm);
@@ -625,10 +696,10 @@ public class SoftwareAppsViewModelTests
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
-        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.Windows, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
         var sut = CreateSut();
         await sut.InitializeAsync();
         sut.SelectExternalAppsTab();
@@ -658,10 +729,10 @@ public class SoftwareAppsViewModelTests
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
-        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.Windows, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
 
         var sut = CreateSut();
 
@@ -680,10 +751,10 @@ public class SoftwareAppsViewModelTests
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
-        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.Windows, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
 
         var sut = CreateSut();
 
@@ -725,10 +796,10 @@ public class SoftwareAppsViewModelTests
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
-        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.Windows, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
 
         var sut = CreateSut();
         await sut.InitializeAsync();
@@ -748,10 +819,10 @@ public class SoftwareAppsViewModelTests
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
-        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.Windows, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
 
         var sut = CreateSut();
         await sut.InitializeAsync();
@@ -771,10 +842,10 @@ public class SoftwareAppsViewModelTests
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
-        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.Windows, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
 
         var sut = CreateSut();
         await sut.InitializeAsync();
@@ -792,10 +863,10 @@ public class SoftwareAppsViewModelTests
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
-        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.Windows, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
 
         var sut = CreateSut();
         await sut.InitializeAsync();
@@ -845,7 +916,7 @@ public class SoftwareAppsViewModelTests
     };
 
     private void GivenScan(params InstalledApp[] apps) =>
-        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new InstalledAppsScan(apps, true));
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>())).ReturnsAsync(new InstalledAppsScan(apps, true, new Dictionary<string, bool>()));
 
     private async Task<SoftwareAppsViewModel> CreateSutWithApps(params InstalledApp[] apps)
     {
@@ -869,7 +940,7 @@ public class SoftwareAppsViewModelTests
     }
 
     [Fact]
-    public async Task Showing_app_updates_opens_External_Software_with_the_updates_filter_on()
+    public async Task ShowAppUpdates_Always_OpensExternalSoftwareWithTheUpdatesFilterOn()
     {
         var sut = CreateSut();
 
@@ -882,7 +953,7 @@ public class SoftwareAppsViewModelTests
     }
 
     [Fact]
-    public void Entering_Builder_swaps_the_updates_filter_for_the_saved_one()
+    public void ModeChanged_WhenEnteringBuilder_SwapsTheUpdatesFilterForTheSavedOne()
     {
         _userPreferencesService.Setup(u => u.GetPreference(UserPreferenceKeys.SoftwareAppsFilter, It.IsAny<string>()))
             .Returns(nameof(AppFilter.Installed));
@@ -898,7 +969,7 @@ public class SoftwareAppsViewModelTests
     }
 
     [Fact]
-    public void A_mode_change_that_still_applies_to_this_pc_keeps_the_updates_filter()
+    public void ModeChanged_WhenItStillAppliesToThisPc_KeepsTheUpdatesFilter()
     {
         var sut = CreateSut();
         sut.ShowAppUpdates();
@@ -908,8 +979,43 @@ public class SoftwareAppsViewModelTests
         sut.ExternalAppsViewModel.Filter.Should().Be(AppFilter.UpdatesAvailable);
     }
 
+    [Theory]
+    [InlineData(WinhanceMode.Normal, WinhanceMode.ConfigReview)]
+    [InlineData(WinhanceMode.ConfigReview, WinhanceMode.Normal)]
+    [InlineData(WinhanceMode.Normal, WinhanceMode.Builder)]
+    [InlineData(WinhanceMode.Builder, WinhanceMode.ConfigReview)]
+    public void ModeChanged_WhenModeChanges_ClearsTheSearchOnBothTabs(WinhanceMode from, WinhanceMode to)
+    {
+        _applicationModeService.Setup(m => m.CurrentMode).Returns(from);
+        var sut = CreateSut();
+        sut.ShowAppUpdates();
+        sut.SearchText = "handbrake";
+
+        _applicationModeService.Setup(m => m.CurrentMode).Returns(to);
+        _applicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        sut.SearchText.Should().BeEmpty();
+        sut.ExternalAppsViewModel.SearchText.Should().BeEmpty();
+        sut.WindowsAppsViewModel.SearchText.Should().BeEmpty();
+    }
+
     [Fact]
-    public void Choosing_Installed_filters_both_tabs_and_is_saved()
+    public void ModeChanged_WhenOnlyBuilderTargetSwitches_KeepsTheSearch()
+    {
+        GivenBuilder(BuilderTarget.Config);
+        var sut = CreateSut();
+        sut.ShowAppUpdates();
+        sut.SearchText = "handbrake";
+
+        GivenBuilder(BuilderTarget.Autounattend);
+        _applicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        sut.SearchText.Should().Be("handbrake");
+        sut.ExternalAppsViewModel.SearchText.Should().Be("handbrake");
+    }
+
+    [Fact]
+    public void SetFilter_WithInstalled_FiltersBothTabsAndSavesIt()
     {
         var sut = CreateSut();
         var changed = new List<string?>();
@@ -925,7 +1031,7 @@ public class SoftwareAppsViewModelTests
     }
 
     [Fact]
-    public void Updates_available_filters_External_Software_only_and_is_not_saved()
+    public void SetFilter_WithUpdatesAvailable_FiltersExternalSoftwareOnlyAndDoesNotSaveIt()
     {
         var sut = CreateSut();
         sut.SetFilter(AppFilter.Installed);
@@ -945,7 +1051,7 @@ public class SoftwareAppsViewModelTests
     }
 
     [Fact]
-    public async Task The_saved_filter_is_restored_on_both_tabs()
+    public async Task InitializeExternalAppsAsync_WithASavedFilter_RestoresItOnBothTabs()
     {
         _userPreferencesService.Setup(u => u.GetPreference(UserPreferenceKeys.SoftwareAppsFilter, It.IsAny<string>()))
             .Returns("Installed");
@@ -959,7 +1065,7 @@ public class SoftwareAppsViewModelTests
     }
 
     [Fact]
-    public async Task An_installed_only_choice_saved_as_the_old_bool_carries_over()
+    public async Task InitializeExternalAppsAsync_WithTheOldInstalledOnlyBool_CarriesItOver()
     {
         _userPreferencesService.Setup(u => u.GetPreference("SoftwareAppsShowInstalledOnly", false)).Returns(true);
         _userPreferencesService.Setup(u => u.GetPreference(UserPreferenceKeys.SoftwareAppsFilter, It.IsAny<string>()))
@@ -973,7 +1079,7 @@ public class SoftwareAppsViewModelTests
     }
 
     [Fact]
-    public async Task The_install_button_names_what_it_will_do_with_the_ticked_apps()
+    public async Task PrimaryActionText_WithTickedApps_NamesWhatTheButtonWillDo()
     {
         var sut = await CreateSutWithApps(WithUpdate("Git"), UpToDate("VLC"));
         var changed = new List<string?>();
@@ -993,7 +1099,7 @@ public class SoftwareAppsViewModelTests
     }
 
     [Fact]
-    public async Task The_install_button_label_follows_an_update_that_goes_away_after_a_scan()
+    public async Task PrimaryActionText_WhenAnUpdateGoesAwayAfterAScan_FollowsIt()
     {
         var sut = await CreateSutWithApps(WithUpdate("Git"));
         Row(sut, "Git").IsSelected = true;
@@ -1009,7 +1115,7 @@ public class SoftwareAppsViewModelTests
     }
 
     [Fact]
-    public async Task On_Windows_Apps_the_install_button_keeps_the_install_label()
+    public async Task PrimaryActionText_OnWindowsApps_KeepsTheInstallLabel()
     {
         var sut = await CreateSutWithApps(WithUpdate("Git"));
         Row(sut, "Git").IsSelected = true;
@@ -1020,7 +1126,7 @@ public class SoftwareAppsViewModelTests
     }
 
     [Fact]
-    public async Task Install_on_External_Software_updates_a_ticked_app_that_has_an_update_without_asking()
+    public async Task InstallSelectedItemsCommand_OnExternalSoftwareWithAnUpdate_UpdatesWithoutAsking()
     {
         var sut = await CreateSutWithApps(WithUpdate("Git"));
         GivenUpdatesRun();
@@ -1037,7 +1143,7 @@ public class SoftwareAppsViewModelTests
 
     // Builder authors a file without touching this PC, so the button neither offers nor runs an update.
     [Fact]
-    public async Task In_Builder_the_install_button_keeps_the_install_label_and_updates_nothing()
+    public async Task InstallSelectedItemsCommand_InBuilder_KeepsTheInstallLabelAndUpdatesNothing()
     {
         GivenBuilder(BuilderTarget.Config);
         var sut = await CreateSutWithApps(WithUpdate("Git"));

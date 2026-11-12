@@ -10,7 +10,7 @@ namespace Winhance.Infrastructure.Tests.Catalog;
 public class CatalogUiParentConformanceTests
 {
     [Fact]
-    public void UiParentId_nesting_is_at_most_one_level()
+    public void UiParentId_Always_NestsAtMostOneLevel()
     {
         var children = SettingCatalog.All.Where(s => !string.IsNullOrEmpty(s.UiParentId)).ToList();
 

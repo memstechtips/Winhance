@@ -26,7 +26,7 @@ internal class PowerPlanActivationService(
     // The three schemes Windows itself owns. None can be recreated by duplication - the only
     // source to duplicate from would be the missing plan itself - so PowerRestoreDefaultPowerSchemes
     // is the sole way back.
-    private static readonly HashSet<string> WindowsDefaultSchemeGuids = new(StringComparer.OrdinalIgnoreCase)
+    internal static readonly HashSet<string> WindowsDefaultSchemeGuids = new(StringComparer.OrdinalIgnoreCase)
     {
         "a1841308-3541-4fab-bc81-f71556f20b4a",
         BalancedSchemeGuid,

@@ -27,7 +27,7 @@ public class OptionProviderRegistryTests
     };
 
     [Fact]
-    public void Every_option_list_has_the_provider_that_names_it()
+    public void For_EveryOptionSource_ReturnsTheProviderThatNamesIt()
     {
         var registry = OptionProviderFixtures.Registry();
 
@@ -36,7 +36,7 @@ public class OptionProviderRegistryTests
     }
 
     [Fact]
-    public void An_option_list_no_provider_handles_is_refused_by_name()
+    public void For_SourceNoProviderHandles_ThrowsNamingTheSource()
     {
         var registry = new OptionProviderRegistry(() => new IOptionProvider[] { new TimeRegionLanguageService() });
 
@@ -47,7 +47,7 @@ public class OptionProviderRegistryTests
 
     // A provider that cannot compute a target's From value throws at apply time, not when the catalog is written.
     [Fact]
-    public void Every_value_a_keyed_setting_takes_is_one_its_provider_computes()
+    public void ValueFor_EveryValueAKeyedSettingTakes_IsOneItsProviderComputes()
     {
         var registry = OptionProviderFixtures.Registry();
         var keyed = SettingCatalog.All.Where(s => s.Control == ControlKind.KeyedSelection).ToList();
@@ -71,7 +71,7 @@ public class OptionProviderRegistryTests
     }
 
     [Fact]
-    public void Every_keyed_setting_reads_its_options_and_key_off_a_pc_without_throwing()
+    public void Options_EveryKeyedSetting_ReadsOptionsAndKeyOffAPcWithoutThrowing()
     {
         var registry = OptionProviderFixtures.Registry();
 

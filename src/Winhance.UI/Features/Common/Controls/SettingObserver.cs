@@ -30,6 +30,14 @@ public sealed class SettingObserver
         _refresh();
     }
 
+    // A control reloaded with the setting it already had gets no Setting change, so Loaded calls this; a source
+    // still observed is left alone rather than redrawn.
+    public void Resume(INotifyPropertyChanged? source)
+    {
+        if (!ReferenceEquals(_observed, source))
+            Observe(source);
+    }
+
     public void Detach()
     {
         if (_observed is { } vm)

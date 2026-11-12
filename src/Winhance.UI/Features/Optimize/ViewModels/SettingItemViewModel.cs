@@ -21,7 +21,7 @@ using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Converters;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
-using Winhance.UI.Features.Common.Utilities;
+using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Common.ViewModels;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
@@ -218,6 +218,13 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public partial OptionMatrix? TechnicalDetailMatrix { get; set; }
 
     public bool HasTechnicalDetails => TechnicalDetailMatrix is not null;
+
+    partial void OnTechnicalDetailMatrixChanged(OptionMatrix? oldValue, OptionMatrix? newValue)
+    {
+        if ((oldValue is null) == (newValue is null)) return;
+        OnPropertyChanged(nameof(HasTechnicalDetails));
+        OnPropertyChanged(nameof(ShowTechnicalDetailsBar));
+    }
 
     public IRelayCommand<string> OpenRegeditCommand => _technicalDetailsManager.OpenRegeditCommand;
 
@@ -796,6 +803,51 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
+    // The "now" and "after" text for the bulk-action confirm list. A mode without its own target keeps its value.
+    public (string Now, string After) QuickSetChange(bool recommended)
+    {
+        string now = ShowsStateOverlay ? CustomStateText : CurrentValueText();
+        string after = InputType switch
+        {
+            InputType.Toggle or InputType.CheckBox when (recommended ? TwoStateRecommended : TwoStateDefault) is bool b =>
+                TwoStateText(b),
+            InputType.Selection when IsPowerCfgSetting => PowerPair(
+                OptionDisplayText((recommended ? AcSelectionRecommendedIndex : AcSelectionDefaultIndex) ?? AcValue),
+                OptionDisplayText((recommended ? DcSelectionRecommendedIndex : DcSelectionDefaultIndex) ?? DcValue)),
+            InputType.Selection => OptionDisplayText(recommended ? SelectionRecommendedIndex : SelectionDefaultIndex) ?? "",
+            InputType.NumericRange when SupportsSeparateACDC => PowerPair(
+                NumberText(recommended ? AcRecommendedValue : AcDefaultValue, AcNumericValue),
+                NumberText(recommended ? DcRecommendedValue : DcDefaultValue, DcNumericValue)),
+            InputType.NumericRange => NumberText(recommended ? NumericRecommendedValue : NumericDefaultValue, NumericValue),
+            _ => "",
+        };
+        return (now, after);
+    }
+
+    private string CurrentValueText() => InputType switch
+    {
+        InputType.Toggle or InputType.CheckBox => TwoStateText(IsSelected),
+        InputType.Selection when IsPowerCfgSetting && SupportsSeparateACDC =>
+            PowerPair(OptionDisplayText(AcValue), OptionDisplayText(DcValue)),
+        InputType.Selection => SelectedValue switch
+        {
+            int index => OptionDisplayText(index) ?? "",
+            string key => KeyedOptionLabel(key),
+            _ => "",
+        },
+        InputType.NumericRange when SupportsSeparateACDC => PowerPair(
+            AcNumericValue.ToString(CultureInfo.CurrentCulture), DcNumericValue.ToString(CultureInfo.CurrentCulture)),
+        InputType.NumericRange => NumericValue.ToString(CultureInfo.CurrentCulture),
+        _ => "",
+    };
+
+    private string NumberText(int? systemTarget, int currentDisplay) =>
+        (systemTarget is int v ? ConvertFromSystemUnits(v) : currentDisplay).ToString(CultureInfo.CurrentCulture);
+
+    // A PC without a battery only ever runs the plugged-in value, so the battery half would be noise.
+    private string PowerPair(string? ac, string? dc) =>
+        SupportsSeparateACDC && HasBattery ? $"{PluggedInText}: {ac}, {OnBatteryText}: {dc}" : ac ?? "";
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowFieldButtons))]
     [NotifyPropertyChangedFor(nameof(ShowFieldsError))]
@@ -1039,6 +1091,10 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         OnPropertyChanged(nameof(EffectiveIsEnabled));
     }
 
+    // Why the gate is closed, shown as the card's tooltip; null whenever ParentIsEnabled is true.
+    [ObservableProperty]
+    public partial string? DisabledReason { get; set; }
+
     // Kept apart from IsVisible because search and the view filter rewrite that one on every pass, which would
     // erase a declared gate.
     [ObservableProperty]
@@ -1126,6 +1182,16 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         {
             _isUpdatingFromEvent = wasUpdatingFromEvent;
         }
+    }
+
+    // Once nothing decides an authored card, it shows the machine's state under the user's own edit again. Outside
+    // authoring the decision was applied to the machine, so the last reading may be older than what the card shows.
+    public void ShowUndecided()
+    {
+        if (AuthorsIntent && _lastKnownState is { } state)
+            UpdateStateFromSystemState(state);
+        else
+            ApplyAuthoredOverlay();
     }
 
     private SettingChoice? DecidedChoice()
@@ -1503,7 +1569,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // Everything below is driven from Outcome through ONE map, because the same icon and text appear in
     // three places (the overlay knob, the selection adornment, the banner) and three hard-coded copies
     // would eventually disagree. All of it is consumed with x:Bind function-call syntax in
-    // SettingsCardItem.xaml, which re-evaluates whenever Outcome raises PropertyChanged - the same pattern
+    // the card templates, which re-evaluates whenever Outcome raises PropertyChanged - the same pattern
     // the A11yName(...) bindings already use.
 
     // Every non-Resolved outcome shows it, so a bad state is always visible and the toggle column keeps one
@@ -1828,6 +1894,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         IApplicationModeService? applicationModeService = null,
         IFilePickerService? filePickerService = null)
     {
+        LiveInstanceTracker.Shared.Register(this);
         _writeStrategySelector = writeStrategySelector;
         _logService = logService;
         _dialogService = dialogService;
@@ -1883,12 +1950,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         // sync with what the panel actually asks for.
         _technicalDetailsManager = new TechnicalDetailsManager(
             () => SettingId,
-            newSections =>
-            {
-                TechnicalDetailMatrix = newSections;
-                OnPropertyChanged(nameof(HasTechnicalDetails));
-                OnPropertyChanged(nameof(ShowTechnicalDetailsBar));
-            },
+            newSections => TechnicalDetailMatrix = newSections,
             logService,
             dispatcherService,
             regeditLauncher,
@@ -1988,6 +2050,17 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                         AcNumericValue = acNum;
                     if (HasBattery && numDict.TryGetValue("DCValue", out var dc) && TryReadInt(dc, out var dcNum))
                         DcNumericValue = dcNum;
+                }
+                else if (value is ChoiceValue.AcDcNumber acDc)
+                {
+                    // Config import sends the file's system units.
+                    AcNumericValue = ConvertFromSystemUnits(acDc.Ac);
+                    if (HasBattery)
+                        DcNumericValue = ConvertFromSystemUnits(acDc.Dc);
+                }
+                else if (value is ChoiceValue.Number number)
+                {
+                    NumericValue = ConvertFromSystemUnits(number.Value);
                 }
                 else if (value is int intValue)
                 {
@@ -2115,12 +2188,12 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                     Outcome = state.Outcome;
 
                     if (SupportsSeparateACDC && Setting is { States.Count: > 0 } sel
-                        && sel.Targets.OfType<PowerCfgTarget>().FirstOrDefault() is { } powerTarget)
+                        && sel.Targets.OfType<PowerCfgTarget>().Any())
                     {
                         if (state.AcValue is int acRaw)
-                            AcValue = FindStateIndexForPowerCfgValue(sel, powerTarget.Key, acRaw) ?? ComboBoxConstants.CustomStateIndex;
+                            AcValue = PowerCfgValues.OptionIndex(sel, acRaw) ?? ComboBoxConstants.CustomStateIndex;
                         if (state.DcValue is int dcRaw)
-                            DcValue = FindStateIndexForPowerCfgValue(sel, powerTarget.Key, dcRaw) ?? ComboBoxConstants.CustomStateIndex;
+                            DcValue = PowerCfgValues.OptionIndex(sel, dcRaw) ?? ComboBoxConstants.CustomStateIndex;
                     }
                     // Not a keyed card: its CurrentValue is the provider's index placeholder, not a key.
                     else if (state.CurrentValue != null && !IsKeyedSelection)
@@ -2129,6 +2202,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                         // ComboBox with nothing selected and the card's outcome overlay renders over it. The whole
                         // method already runs under _isUpdatingFromEvent, guarding programmatic control updates.
                         SelectedValue = state.CurrentValue;
+                        UpdateStatusBanner(state.CurrentValue);
                     }
                     break;
                 case InputType.NumericRange:
@@ -2169,24 +2243,10 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    // Maps a raw powercfg value (the AC or DC reading) to the State index whose Set[powerKey] accepts it.
-    // Returns null when no option matches.
-    private static int? FindStateIndexForPowerCfgValue(Setting setting, string powerKey, int rawValue)
-    {
-        var states = setting.States;
-        for (int i = 0; i < states.Count; i++)
-        {
-            if (states[i].Set.TryGetValue(powerKey, out var stateValue)
-                && stateValue.Matches(rawValue, present: true))
-                return i;
-        }
-        return null;
-    }
-
     private int ConvertFromSystemUnits(int systemValue)
     {
         var displayUnits = Setting?.Numeric?.Units;
-        return UnitConversionHelper.ConvertFromSystemUnits(systemValue, displayUnits);
+        return PowerCfgValues.ToDisplay(systemValue, displayUnits);
     }
 
     // Inverse of ConvertFromSystemUnits, used only by the numeric accessors. The catalog stores per-context
@@ -2196,7 +2256,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     private int ConvertToSystemUnits(int displayValue)
     {
         var displayUnits = Setting?.Numeric?.Units;
-        return UnitConversionHelper.ConvertToSystemUnits(displayValue, displayUnits);
+        return PowerCfgValues.ToSystem(displayValue, displayUnits);
     }
 
     public void OnToggleSwitchToggled(object sender)
@@ -2255,19 +2315,17 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // Using DropDownClosed instead of SelectionChanged because SelectionChanged fires during initialization
     public void OnComboBoxDropDownClosed(object sender)
     {
-        if (sender is not ComboBox comboBox || comboBox.SelectedValue is not { } value)
-            return;
+        if (sender is ComboBox { SelectedValue: { } value })
+            CommitComboBoxSelection(value);
+    }
 
+    // Split from the event handler above because a ComboBox cannot be constructed in a test.
+    public void CommitComboBoxSelection(object value)
+    {
         if (HasFields)
             FillFieldsFromPreset(value is int index ? index : ComboBoxConstants.CustomStateIndex);
         else
             HandleValueChangedAsync(value).FireAndForget(_logService);
-    }
-
-    public void ApplySelectionValue(object value)
-    {
-        _logService.LogDebug($"ApplySelectionValue called with value={value}, SettingId={SettingId}");
-        HandleValueChangedAsync(value).FireAndForget(_logService);
     }
 
     public void OnNumberBoxValueChanged(NumberBoxValueChangedEventArgs e)

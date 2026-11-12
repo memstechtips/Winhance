@@ -1,6 +1,7 @@
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Localization;
+using Winhance.Core.Features.Common.Selections;
 
 namespace Winhance.Core.Features.Common.Catalog;
 
@@ -17,10 +18,10 @@ public static class ApplyRequestResolver
         string settingId, bool enable, object? value, bool resetToDefault,
         IReadOnlyList<Setting> catalog, WinBuild? build = null, IOptionProviderRegistry? options = null)
     {
-        // Alias-normalize so a retired "-win10" This PC id resolves to its canonical MERGED catalog Setting (the 6
-        // build-gated merges); Normalize is identity for every other id. Config import already normalizes
-        // before apply (ConfigMigrationService); this covers the live UI apply, which passes the setting's id.
-        var setting = catalog.FirstOrDefault(s => s.Id == SettingIdAliases.Normalize(settingId));
+        // Config import normalizes ids before apply (ConfigMigrationService); this covers callers that pass a
+        // retired id straight through.
+        var canonicalId = SettingIdAliases.Normalize(settingId);
+        var setting = catalog.FirstOrDefault(s => s.Id == canonicalId);
         if (setting is null)
             return null; // unpaired (no catalog peer)
 
@@ -30,9 +31,14 @@ public static class ApplyRequestResolver
         if (setting.Control == ControlKind.TextBox
             && setting.Targets.OfType<DesktopSlideshowTarget>().FirstOrDefault() is { } slideshow)
         {
-            return value is string folder && folder.Length > 0
-                ? new ApplyOp[] { new SlideshowSetOp(slideshow, folder) }
-                : null;
+            // An empty box leaves the slideshow as it is, which is a skip, not a failure. So does a folder on a network
+            // share: reaching it would send the user's credentials to the share's host.
+            return value switch
+            {
+                string { Length: > 0 } folder when LocalPath.IsLocal(folder) => new ApplyOp[] { new SlideshowSetOp(slideshow, folder) },
+                string => System.Array.Empty<ApplyOp>(),
+                _ => null,
+            };
         }
 
         if (setting.Control == ControlKind.KeyedSelection)
@@ -167,13 +173,25 @@ public static class ApplyRequestResolver
                 return null; // remaining non-index selection value (string display-name)
 
             case ControlKind.Slider:
-                // Powercfg slider. The funnel always passes display-units AC/DC in a dictionary
-                // (UI quick-set, the recommended applier, and the config-import bridge all build that shape).
-                // Pull the two values and hand them to BuildPowerCfgNumeric, which converts display->system per
-                // Numeric.Units. The DC battery-gate is enforced downstream in the writer, so emit both contexts
-                // and keep this pure. Any other value shape (or a setting not authored as a Numeric) returns null.
-                if (setting.Numeric is not null
-                    && value is Dictionary<string, object?> numericDict
+                // The UI quick-set and the recommended applier pass display units in an {ACValue, DCValue}
+                // dictionary; config import and the answer file pass the decoded ChoiceValue, which holds system
+                // units, so a 90-second timeout is not rounded through whole minutes. The DC battery gate is the
+                // writer's, so both contexts are emitted here.
+                if (setting.Numeric is null)
+                    return null;
+                if (value is ChoiceValue.AcDcNumber acDc)
+                    return ApplyPlanBuilder.BuildPowerCfgSystemValues(setting, new[]
+                    {
+                        new ContextValue(PowerContext.AC, acDc.Ac),
+                        new ContextValue(PowerContext.DC, acDc.Dc),
+                    });
+                if (value is ChoiceValue.Number number)
+                    return ApplyPlanBuilder.BuildPowerCfgSystemValues(setting, new[]
+                    {
+                        new ContextValue(PowerContext.AC, number.Value),
+                        new ContextValue(PowerContext.DC, number.Value),
+                    });
+                if (value is Dictionary<string, object?> numericDict
                     && numericDict.TryGetValue("ACValue", out var acRaw)
                     && numericDict.TryGetValue("DCValue", out var dcRaw)
                     && TryToInt(acRaw) is { } ac

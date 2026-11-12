@@ -28,6 +28,9 @@ public enum WindowsChange
     // FREE: one key press. Windows saves the LIVE Num Lock state at sign-out over whatever was written, so the key
     // has to agree with the saved value or the change is lost.
     NumLock = 1 << 2,
+
+    // FREE: the generic WM_SETTINGCHANGE alone, for values Explorer and open windows re-read when told something changed.
+    Settings = 1 << 3,
 }
 
 // Reboot is separate (RequiresReboot); a setting may need both.

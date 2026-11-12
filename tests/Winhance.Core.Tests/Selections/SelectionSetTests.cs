@@ -13,7 +13,7 @@ public class SelectionSetTests
     private static SelectionSet Set(params SettingChoice[] choices) => new(choices, [], []);
 
     [Fact]
-    public void Value_finds_a_choice_whichever_side_names_the_retired_id()
+    public void Value_RetiredIdOnEitherSide_FindsTheChoice()
     {
         var value = new ChoiceValue.Toggle(false);
 
@@ -22,13 +22,13 @@ public class SelectionSetTests
     }
 
     [Fact]
-    public void Value_is_null_for_a_setting_the_set_does_not_hold()
+    public void Value_SettingTheSetDoesNotHold_ReturnsNull()
     {
         SelectionSet.Empty.Value(WinhanceOnNewPc).Should().BeNull();
     }
 
     [Fact]
-    public void StateOf_reads_the_chosen_option()
+    public void StateOf_ChosenOption_ReadsIt()
     {
         var set = Set(new SettingChoice(WinhanceOnNewPc, new ChoiceValue.Option(0)));
 
@@ -36,13 +36,13 @@ public class SelectionSetTests
     }
 
     [Fact]
-    public void StateOf_falls_back_to_the_seed_state_when_the_set_holds_no_choice()
+    public void StateOf_SetHoldsNoChoice_FallsBackToTheSeedState()
     {
         SelectionSet.Empty.StateOf(WinhanceOnNewPc)!.Label.Should().Be(LocKey.Setting.AutounattendDesktopShortcut.Option1);
     }
 
     [Fact]
-    public void StateOf_falls_back_to_the_seed_state_for_an_option_the_setting_does_not_have()
+    public void StateOf_OptionTheSettingDoesNotHave_FallsBackToTheSeedState()
     {
         var set = Set(new SettingChoice(WinhanceOnNewPc, new ChoiceValue.Option(99)));
 
@@ -50,7 +50,7 @@ public class SelectionSetTests
     }
 
     [Fact]
-    public void StateOf_is_null_for_an_id_the_catalog_does_not_know()
+    public void StateOf_IdTheCatalogDoesNotKnow_ReturnsNull()
     {
         SelectionSet.Empty.StateOf("no-such-setting").Should().BeNull();
     }

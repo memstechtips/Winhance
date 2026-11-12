@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.Optimize.Interfaces;
+using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.Infrastructure.Features.Optimize.Services;
 
 namespace Winhance.Infrastructure.Features.Common.Catalog;
@@ -19,6 +20,8 @@ internal sealed class WindowsStateWriter : IStateWriter
     private readonly IPowerPlanActivationService _activation;
     private readonly IWindowsThemeService _theme;
     private readonly IDnsSettingsService _dns;
+    private readonly ISystemParametersService _systemParameters;
+    private readonly IServiceStartControl _services;
     private readonly ILogService _log;
 
     // Process-launching effects (script / reg import) are deferred to IAsyncEffectRunner rather than blocked on here.
@@ -29,6 +32,8 @@ internal sealed class WindowsStateWriter : IStateWriter
         IPowerPlanActivationService activation,
         IWindowsThemeService theme,
         IDnsSettingsService dns,
+        ISystemParametersService systemParameters,
+        IServiceStartControl services,
         ILogService log)
     {
         _reg = reg;
@@ -37,14 +42,20 @@ internal sealed class WindowsStateWriter : IStateWriter
         _activation = activation;
         _theme = theme;
         _dns = dns;
+        _systemParameters = systemParameters;
+        _services = services;
         _log = log;
     }
 
     public bool WriteRegistry(RegTarget target, string path, object value)
     {
-        if (!_reg.CreateKey(path))
+        if (!_reg.CreateKey(path) || !_reg.SetValue(path, target.ValueName!, value, target.Type))
             return false;
-        return _reg.SetValue(path, target.ValueName!, value, target.Type);
+
+        if (target.ValueName == "Start" && value is int start and >= 2 and <= 4
+            && ServiceStartControl.ServiceNameOf(path) is { } service)
+            _services.Apply(service, start);
+        return true;
     }
 
     public bool DeleteRegistry(RegTarget target, string path)
@@ -218,6 +229,12 @@ internal sealed class WindowsStateWriter : IStateWriter
 
             case PowerPlanEffect p:
                 return ActivatePowerPlan(p.Guid);
+
+            // The registry write before it already persists the value, so a refusal only delays it to the next sign-in.
+            case SystemParameterEffect sp:
+                if (!_systemParameters.SetLive(sp.Parameter, sp.On))
+                    _log.Log(LogLevel.Warning, $"Windows did not take {sp.Parameter} live; it applies at the next sign-in");
+                return true;
 
             default:
                 // Unknown effect: no-op success (matches ApplyExecutor's permissive default for unknown ops).

@@ -130,6 +130,15 @@ public class SettingIncludeInFileTests
     }
 
     [Fact]
+    public void TheRemovedAppsCard_OffersNoIncludeCheckbox()
+    {
+        var setting = SettingCatalog.Find("autounattend-keep-removed")!;
+        var config = Config(setting.Id) with { Setting = setting, InputType = InputType.Selection };
+
+        CreateSut(config).ShowIncludeCheckbox.Should().BeFalse("the file holds the dropdown's choice whenever an app is removed");
+    }
+
+    [Fact]
     public void AnAnswerFileSetting_OffersNoIncludeCheckbox()
     {
         var config = Config("autounattend-computer-name") with

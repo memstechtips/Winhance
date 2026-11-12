@@ -30,6 +30,14 @@ public interface IWimImageService
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default);
 
+    // Exports every edition into a fresh file of the target format. A committed image keeps superseded data until it
+    // is exported, so this is what returns the space servicing left behind.
+    Task<EditionRemovalResult> RewriteAsync(
+        string workingDirectory,
+        ImageFormat targetFormat,
+        IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken cancellationToken = default);
+
     Task<bool> DeleteImageFileAsync(
         string workingDirectory,
         ImageFormat format,

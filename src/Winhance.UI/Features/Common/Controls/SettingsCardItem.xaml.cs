@@ -2,7 +2,6 @@ using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
-using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.UI.Features.Optimize.ViewModels;
 
@@ -28,6 +27,8 @@ public sealed partial class SettingsCardItem : UserControl
     public SettingsCardItem()
     {
         this.InitializeComponent();
+        // A card reloaded with the same setting (a cached page coming back) gets no Setting change to resubscribe on.
+        Loaded += (_, _) => SubscribeToSetting();
         Unloaded += (_, _) => UnsubscribeFromSetting();
     }
 
@@ -36,12 +37,17 @@ public sealed partial class SettingsCardItem : UserControl
         if (d is SettingsCardItem control)
         {
             control.UnsubscribeFromSetting();
-            if (e.NewValue is SettingItemViewModel vm)
-            {
-                control._subscribedSetting = vm;
-                vm.PropertyChanged += control.OnSettingPropertyChanged;
-            }
+            if (control.IsLoaded)
+                control.SubscribeToSetting();
         }
+    }
+
+    private void SubscribeToSetting()
+    {
+        if (_subscribedSetting is not null || Setting is not { } vm)
+            return;
+        _subscribedSetting = vm;
+        vm.PropertyChanged += OnSettingPropertyChanged;
     }
 
     private void UnsubscribeFromSetting()
@@ -118,11 +124,5 @@ public sealed partial class SettingsCardItem : UserControl
             InputType.NumericRange => vm.NumericValue.ToString(),
             _ => "applied"
         };
-    }
-
-    private void OnOptionDeleteRequested(object? sender, DynamicOption option)
-    {
-        if (sender is SettingComboBox { Setting.ParentFeatureViewModel: PowerOptimizationsViewModel power })
-            power.DeletePowerPlanCommand.Execute(option);
     }
 }

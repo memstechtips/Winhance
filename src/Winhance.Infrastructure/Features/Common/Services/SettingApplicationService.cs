@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.Common.TechnicalDetails;
 using Winhance.Infrastructure.Features.Common.Helpers;
 
@@ -105,7 +106,6 @@ internal class SettingApplicationService(
         // where the time went when it was not.
         var applyStopwatch = Stopwatch.StartNew();
 
-        var settingId = request.SettingId;
         var enable = request.Enable;
         var value = request.Value;
         var checkboxResult = request.CheckboxResult;
@@ -117,30 +117,13 @@ internal class SettingApplicationService(
             ? $"Dictionary[{string.Join(", ", dict.Select(kv => $"{kv.Key}:{kv.Value}"))}]"
             : value?.ToString() ?? "null";
 
-        logService.Log(LogLevel.Info, $"Applying setting '{settingId}' - Enable: {enable}, Value: {valueDisplay}");
+        logService.Log(LogLevel.Info, $"Applying setting '{request.SettingId}' - Enable: {enable}, Value: {valueDisplay}");
 
-        // The catalog registry's GetById alias-normalizes the id (a retired "-win10" This PC alias resolves to its
-        // canonical merged Setting) and OS-scopes membership, but a merged setting is OS-portable (Availability
-        // Everywhere + build-gated targets), so it resolves DIRECTLY here on either OS. A genuinely
-        // OS-incompatible or non-catalog id returns null and falls through to the throw.
-        var setting = settingsRegistry.GetById(settingId);
-        if (setting == null)
-            throw new ArgumentException($"Setting '{settingId}' not found in registry");
-
-        // A setting is "paired" when the catalog holds a peer for it. Paired settings run their relationships
-        // through the RelationshipResolver engine (ApplyCatalogRelationshipsAsync, AFTER the main apply); an
-        // unpaired setting runs no relationship pass. The only exact-match-unpaired settings are the 6
-        // dependency-free -win10 aliases.
-        bool paired = SettingCatalog.All.Any(s => s.Id == settingId);
-
-        // Pair the id to its catalog Setting for the change-history rendering methods (LogChangeHistory /
-        // FormatBeforeDisplay / FormatStateDisplay / GetOptionLabel). Find is alias-normalized (a -win10 This PC id
-        // resolves to its canonical merged Setting) and catalog-wide (NOT OS-scoped), so it degrades to null for a
-        // genuinely-unpaired id and the receipt is simply skipped rather than throwing. In production this is the
-        // same Setting as 'setting' above (the catalog registry's GetById resolves the identical canonical Setting);
-        // it is read separately so an unpaired id (unreachable past the throw, but exercised by the tests) skips the
-        // receipt via a null pairing instead of rendering a non-catalog object.
-        var renderSetting = SettingCatalog.Find(settingId);
+        // GetById maps a retired id (SettingIdAliases) to its catalog Setting and returns null for an id this OS
+        // does not carry, so everything below works on the canonical Setting whichever id the caller used.
+        var setting = settingsRegistry.GetById(request.SettingId)
+            ?? throw new ArgumentException($"Setting '{request.SettingId}' not found in registry");
+        var settingId = setting.Id;
 
         // Change-history receipt: capture the pre-apply state so the entry can say "before → after".
         // Captured BEFORE any relationship follow-on / nested applies run so they don't mutate the read.
@@ -156,8 +139,7 @@ internal class SettingApplicationService(
             try
             {
                 // The full-state provider reads the complete before-state incl. the typed AC/DC, consistent with
-                // the after-state and the live UI. A genuinely unpaired setting returns Success=false here, leaving
-                // beforeDisplay null - a cosmetic change-history gap that cannot arise for a real setting.
+                // the after-state and the live UI.
                 var state = request.BeforeState;
                 if (state is null)
                 {
@@ -165,9 +147,9 @@ internal class SettingApplicationService(
                     states.TryGetValue(settingId, out state);
                 }
 
-                if (renderSetting != null && state is { Success: true })
+                if (state is { Success: true })
                 {
-                    beforeDisplay = FormatBeforeDisplay(renderSetting, state, hasBattery);
+                    beforeDisplay = FormatBeforeDisplay(setting, state, hasBattery);
                     keyedOptions = state.DynamicOptions;
                 }
             }
@@ -189,15 +171,14 @@ internal class SettingApplicationService(
 
         var specialHandler = specialHandlerRegistry.TryGet(settingId);
         if (specialHandler != null
-            && await specialHandler.TryApplySpecialSettingAsync(settingId, value!, checkboxResult, this).ConfigureAwait(false))
+            && await specialHandler.TryApplySpecialSettingAsync(settingId, value!, this).ConfigureAwait(false))
         {
             await processRestartManager.HandleProcessAndServiceRestartsAsync(setting).ConfigureAwait(false);
 
             eventBus.Publish(new SettingAppliedEvent(settingId, enable, value));
             logService.Log(LogLevel.Info, $"Successfully applied setting '{settingId}' via special handler in {applyStopwatch.ElapsedMilliseconds}ms");
 
-            if (renderSetting != null)
-                LogChangeHistory(renderSetting, settingId, enable, value, beforeDisplay, keyedOptions);
+            LogChangeHistory(setting, settingId, enable, value, beforeDisplay, keyedOptions);
             return OperationResult.Succeeded();
         }
 
@@ -207,35 +188,38 @@ internal class SettingApplicationService(
         bool recommendedAppliedInline = applyRecommended && setting.Control == ControlKind.Action;
 
         OperationResult operationResult;
-        if (recommendedAppliedInline)
+        // A follow-on writes after its parent, so the parent's notice to Windows waits for it and all of them go out as
+        // one broadcast instead of one each.
+        using (processRestartManager.CoalesceBroadcasts())
         {
-            // One coalesced restart for the whole click: suppress the primary action's restart AND the
-            // recommended batch, then flush once for primary + recommended combined.
-            var toRestart = new List<Setting>();
-            using (processRestartManager.SuppressRestarts())
+            if (recommendedAppliedInline)
+            {
+                // One coalesced restart for the whole click: suppress the primary action's restart AND the
+                // recommended batch, then flush once for primary + recommended combined.
+                var toRestart = new List<Setting>();
+                using (processRestartManager.SuppressRestarts())
+                {
+                    operationResult = await ApplyOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
+                    toRestart.Add(setting);
+
+                    var recApplied = await recommendedSettingsApplier
+                        .ApplyRecommendedForFeatureAsync(settingId, this).ConfigureAwait(false);
+                    toRestart.AddRange(recApplied);
+                }
+                await processRestartManager.FlushCoalescedRestartsAsync(toRestart).ConfigureAwait(false);
+            }
+            else
             {
                 operationResult = await ApplyOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
-                if (renderSetting != null) toRestart.Add(renderSetting);
-
-                var recApplied = await recommendedSettingsApplier
-                    .ApplyRecommendedForFeatureAsync(settingId, this).ConfigureAwait(false);
-                toRestart.AddRange(recApplied);
             }
-            await processRestartManager.FlushCoalescedRestartsAsync(toRestart).ConfigureAwait(false);
-        }
-        else
-        {
-            operationResult = await ApplyOperationsAsync(setting, enable, value, resetToDefault).ConfigureAwait(false);
-        }
 
-        // Paired settings run ALL their relationships (forward Requires/Enables/Controls, reverse parent-sync,
-        // reverse cascade-disable) here, AFTER the main apply. A paired setting with no relationships makes this
-        // a harmless no-op.
-        if (!skipValuePrerequisites && paired)
-        {
-            var catalogSetting = SettingCatalog.All.First(s => s.Id == settingId);
-            var targetLabel = ResolveTargetLabel(catalogSetting, enable, value, resetToDefault, CurrentBuild());
-            await ApplyCatalogRelationshipsAsync(catalogSetting, targetLabel).ConfigureAwait(false);
+            // Relationships (forward Requires/Enables/Controls, reverse parent-sync, reverse cascade-disable) run AFTER
+            // the main apply. A setting with none makes this a no-op.
+            if (!skipValuePrerequisites)
+            {
+                var targetLabel = ResolveTargetLabel(setting, enable, value, resetToDefault, CurrentBuild());
+                await ApplyCatalogRelationshipsAsync(setting, targetLabel).ConfigureAwait(false);
+            }
         }
 
         // Always publish the event — even on partial failure, some operations may
@@ -295,8 +279,7 @@ internal class SettingApplicationService(
         }
 
         logService.Log(LogLevel.Info, $"Successfully applied setting '{settingId}' in {applyStopwatch.ElapsedMilliseconds}ms");
-        if (renderSetting != null)
-            LogChangeHistory(renderSetting, settingId, enable, value, beforeDisplay, keyedOptions);
+        LogChangeHistory(setting, settingId, enable, value, beforeDisplay, keyedOptions);
         return OperationResult.Succeeded();
     }
 
@@ -330,9 +313,6 @@ internal class SettingApplicationService(
     // shared visited set + self-skip prevents loops.
     private async Task ApplyCatalogRelationshipsAsync(Setting setting, LocKey? targetLabel)
     {
-        if (targetLabel is null)
-            return;
-
         if (targetLabel is not { } target) return;
 
         var targetState = setting.States.FirstOrDefault(st => st.Label == target);
@@ -465,7 +445,7 @@ internal class SettingApplicationService(
     // relationship is skipped, never thrown. State index == ComboBox option index by construction.
     private ApplySettingRequest? ToRequest(string targetId, LocKey label, bool isReset)
     {
-        var target = SettingCatalog.All.FirstOrDefault(s => s.Id == targetId);
+        var target = SettingCatalog.Find(targetId);
         if (target is null)
         {
             logService.Log(LogLevel.Warning, $"Relationship target '{targetId}' is not in the catalog - skipping");
@@ -582,8 +562,20 @@ internal class SettingApplicationService(
                 return value?.ToString() ?? ResolveLocalized(LocKey.Common.CustomState.Value) ?? "?";
 
             case ControlKind.Slider:
-                // After-values are display units (the config bridge converts on import; UI/recommended paths already
-                // supply display units) — render as-is, with unit suffix when available.
+                // A dictionary from the UI or recommended path is in display units; a ChoiceValue from config import
+                // or the answer file is in system units.
+                (int Ac, int Dc)? systemValues = value switch
+                {
+                    ChoiceValue.AcDcNumber pair => (pair.Ac, pair.Dc),
+                    ChoiceValue.Number single => (single.Value, single.Value),
+                    _ => null,
+                };
+                if (systemValues is { } system)
+                {
+                    var choiceUnits = RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting);
+                    return FormatPowerNumeric(choiceUnits, PowerCfgValues.ToDisplay(system.Ac, choiceUnits),
+                        PowerCfgValues.ToDisplay(system.Dc, choiceUnits), hasBattery);
+                }
                 if (value is Dictionary<string, object?> acdcNum
                     && acdcNum.TryGetValue("ACValue", out var acNum)
                     && acdcNum.TryGetValue("DCValue", out var dcNum)
@@ -621,8 +613,8 @@ internal class SettingApplicationService(
             && acInt.HasValue && dcInt.HasValue)
         {
             var units = RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting);
-            var ac = RecommendedSettingsResolver.ConvertSystemToDisplayUnits(acInt.Value, units);
-            var dc = RecommendedSettingsResolver.ConvertSystemToDisplayUnits(dcInt.Value, units);
+            var ac = PowerCfgValues.ToDisplay(acInt.Value, units);
+            var dc = PowerCfgValues.ToDisplay(dcInt.Value, units);
             return FormatPowerNumeric(units, ac, dc, hasBattery);
         }
 
@@ -630,7 +622,7 @@ internal class SettingApplicationService(
         // so FormatStateDisplay would render one label while the config-import after-value renders
         // "AC: x, DC: y". Render the before in the same AC/DC shape so no-op detection works. The raw
         // ACValue/DCValue here are SYSTEM PowerCfg values (e.g. an enum/code), not option indices —
-        // map each to its option index via the ValueMappings["PowerCfgValue"] lookup.
+        // map each to its option index.
         if (setting.Control == ControlKind.Selection
             && setting.Targets.OfType<PowerCfgTarget>().Any()
             && acInt.HasValue && dcInt.HasValue)
@@ -638,8 +630,8 @@ internal class SettingApplicationService(
             // No match for a raw PowerCfg value must render as the localized "Custom" label
             // (-1 -> GetOptionLabel out-of-range -> Custom). NEVER use the raw value as an option
             // index - raw 1 must not silently become Options[1].
-            var acIdx = RecommendedSettingsResolver.FindOptionIndexForPowerCfgValue(setting, acInt.Value) ?? -1;
-            var dcIdx = RecommendedSettingsResolver.FindOptionIndexForPowerCfgValue(setting, dcInt.Value) ?? -1;
+            var acIdx = PowerCfgValues.OptionIndex(setting, acInt.Value) ?? -1;
+            var dcIdx = PowerCfgValues.OptionIndex(setting, dcInt.Value) ?? -1;
             return ComposeAcDc(GetOptionLabel(setting, acIdx), GetOptionLabel(setting, dcIdx), hasBattery);
         }
 

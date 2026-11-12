@@ -268,6 +268,21 @@ public class SettingSnapshotSourceTests
     }
 
     [Fact]
+    public async Task PowerCfgSelection_Separate_AcMatchesNoOption_IsOmitted()
+    {
+        // 480 s is not an option; storing option 0 would import as "5 minutes" here and "Never" on a real setting.
+        Arrange(ParityFixtures.PowerCfgSelection("p"), new SettingStateResult { Success = true, CurrentValue = 1, AcValue = 480, DcValue = 300 });
+        (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task PowerCfgSelection_Separate_DcMatchesNoOption_IsOmitted()
+    {
+        Arrange(ParityFixtures.PowerCfgSelection("p"), new SettingStateResult { Success = true, CurrentValue = 1, AcValue = 900, DcValue = 480 });
+        (await Sut().CaptureAsync(CatalogScope.CurrentMachine)).Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task PowerCfgSelection_Separate_WithoutAcDcReadings_MapsIndex()
     {
         Arrange(ParityFixtures.PowerCfgSelection("p"), new SettingStateResult { Success = true, CurrentValue = 1 });
@@ -393,7 +408,7 @@ public class SettingSnapshotSourceTests
     }
 
     [Fact]
-    public async Task A_keyed_selection_is_snapshotted_as_its_key_and_the_label_the_machine_showed()
+    public async Task CaptureAsync_KeyedSelection_SnapshotsKeyAndLabelTheMachineShowed()
     {
         var setting = FakeOptionProvider.SettingFor();
         Arrange(setting, FakeOptionProvider.StateOn("beta"));
@@ -403,7 +418,7 @@ public class SettingSnapshotSourceTests
     }
 
     [Fact]
-    public async Task A_keyed_selection_the_machine_could_not_read_is_not_snapshotted()
+    public async Task CaptureAsync_KeyedSelectionMachineCouldNotRead_IsNotSnapshotted()
     {
         var setting = FakeOptionProvider.SettingFor();
         Arrange(setting, FakeOptionProvider.StateOn(null));

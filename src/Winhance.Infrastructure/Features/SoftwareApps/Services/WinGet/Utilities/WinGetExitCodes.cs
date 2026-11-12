@@ -12,7 +12,7 @@ internal static class WinGetExitCodes
     public const int InstallerHashMismatch = unchecked((int)0x8A150005);
     public const int DownloadError = unchecked((int)0x8A150007);
     public const int BlockedByPolicy = unchecked((int)0x8A150016);
-    public const int NoApplicableInstallers = unchecked((int)0x8A15001B);
+    public const int NoApplicableInstallers = unchecked((int)0x8A150010);
     public const int PackageAgreementsNotAccepted = unchecked((int)0x8A15000E);
     public const int NetworkError = unchecked((int)0x8A150006);
     public const int AlreadyInstalled = unchecked((int)0x8A150015);

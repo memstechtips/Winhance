@@ -11,7 +11,7 @@ public class BinaryValueRecoveryTests
     private static readonly string[] MultiString = ["a", "b"];
 
     [Fact]
-    public void Existing_byte_array_is_used_as_is()
+    public void Resolve_ExistingByteArray_ReturnsItUnchanged()
     {
         var current = new byte[] { 0x9E, 0x3E, 0x03, 0x80, 0x12, 0x00, 0x00, 0x00 };
         var buffer = BinaryValueRecovery.Resolve(current, byteIndex: 1);
@@ -19,7 +19,7 @@ public class BinaryValueRecoveryTests
     }
 
     [Fact]
-    public void Absent_value_yields_a_fresh_zeroed_buffer()
+    public void Resolve_AbsentValue_ReturnsFreshZeroedBuffer()
     {
         var buffer = BinaryValueRecovery.Resolve(null, byteIndex: 1);
         Assert.NotNull(buffer);
@@ -30,7 +30,7 @@ public class BinaryValueRecoveryTests
     // The real case: UserPreferencesMask stored as REG_EXPAND_SZ; the bytes were intact (a registry string is
     // UTF-16LE), displayed as U+1290 U+8003. Recovery must return those exact bytes, NOT zeros.
     [Fact]
-    public void String_value_is_recovered_to_its_underlying_utf16_bytes()
+    public void Resolve_StringValue_RecoversUnderlyingUtf16Bytes()
     {
         var original = new byte[] { 0x90, 0x12, 0x03, 0x80, 0x12, 0x00, 0x00, 0x00 };
 
@@ -47,7 +47,7 @@ public class BinaryValueRecoveryTests
     }
 
     [Fact]
-    public void Recovered_string_buffer_is_long_enough_for_the_edit_and_the_minimum()
+    public void Resolve_RecoveredString_BufferCoversEditAndMinimumLength()
     {
         var buffer = BinaryValueRecovery.Resolve("ab", byteIndex: 20);
         Assert.NotNull(buffer);
@@ -56,7 +56,7 @@ public class BinaryValueRecoveryTests
     }
 
     [Fact]
-    public void Empty_string_still_yields_a_usable_buffer_rather_than_a_refusal()
+    public void Resolve_EmptyString_ReturnsUsableBuffer()
     {
         var buffer = BinaryValueRecovery.Resolve(string.Empty, byteIndex: 0);
         Assert.NotNull(buffer);
@@ -67,19 +67,19 @@ public class BinaryValueRecoveryTests
     [InlineData(1)]                       // a DWORD sitting where REG_BINARY belongs
     [InlineData(1L)]
     [InlineData(true)]
-    public void Unrecoverable_types_refuse_instead_of_guessing(object current)
+    public void Resolve_UnrecoverableType_ReturnsNull(object current)
     {
         Assert.Null(BinaryValueRecovery.Resolve(current, byteIndex: 1));
     }
 
     [Fact]
-    public void Multi_string_refuses_too()
+    public void Resolve_MultiString_ReturnsNull()
     {
         Assert.Null(BinaryValueRecovery.Resolve(MultiString, byteIndex: 1));
     }
 
     [Fact]
-    public void Only_a_string_counts_as_recovered_for_logging()
+    public void IsRecoveredFromString_OnlyString_IsRecovered()
     {
         Assert.True(BinaryValueRecovery.IsRecoveredFromString("x"));
         Assert.False(BinaryValueRecovery.IsRecoveredFromString(null));
@@ -88,7 +88,7 @@ public class BinaryValueRecoveryTests
     }
 
     [Fact]
-    public void Editing_a_recovered_buffer_preserves_every_unrelated_byte()
+    public void Resolve_EditingRecoveredBuffer_PreservesUnrelatedBytes()
     {
         var original = new byte[] { 0x90, 0x12, 0x03, 0x80, 0x12, 0x00, 0x00, 0x00 };
         string asStoredString = Encoding.Unicode.GetString(original).TrimEnd('\0');

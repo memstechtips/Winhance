@@ -13,6 +13,388 @@ public static class AutounattendCatalog
 
     public static IReadOnlyList<Setting> All { get; } =
     [
+        new()
+        {
+            Id = "autounattend-netfx3",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendNetfx3.Name,
+                Description = LocKey.Setting.AutounattendNetfx3.Description,
+                GroupName = LocKey.SettingGroup.General,
+                Icon = MaterialIcons.PackageVariantPlus,
+                AddedInVersion = "26.09.07",
+            },
+            States =
+            [
+                new()
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = [StateRole.Recommended],
+                    // /LimitAccess keeps DISM off Windows Update; every filesystem drive is searched for
+                    // sources\sxs because the letter Setup gives the media is not known in advance. Path caps
+                    // at 259 characters, so anything added to this command has to be measured first.
+                    Effects =
+                    [
+                        new AutounattendCommand("specialize", "Microsoft-Windows-Deployment",
+                            "powershell.exe -NoProfile -WindowStyle Hidden -Command \"foreach($d in (gdr -PSProvider FileSystem)){$src=$d.Root+'sources\\sxs';if(Test-Path $src\\*.cab){dism /Online /Enable-Feature /FeatureName:NetFx3 /All /LimitAccess /Source:$src;break}}\"",
+                            "Enables .NET Framework 3.5 from Windows Installation Media"),
+                    ],
+                },
+                new() { Label = LocKey.Common.Disabled, Roles = [StateRole.WindowsDefault] },
+            ],
+        },
+        // Only the WIM Util session can act on this: it deletes sources\sxs from the media. A file made anywhere
+        // else has no media to change, so the card stays hidden there.
+        new()
+        {
+            Id = "autounattend-netfx3-remove-source",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendNetfx3RemoveSource.Name,
+                Description = LocKey.Setting.AutounattendNetfx3RemoveSource.Description,
+                GroupName = LocKey.SettingGroup.General,
+                Icon = MaterialIcons.PackageVariantRemove,
+                AddedInVersion = "26.11.09",
+            },
+            Targets = [new AutounattendMedia("remove-sxs")],
+            States =
+            [
+                new() { Label = LocKey.Common.Enabled },
+                new() { Label = LocKey.Common.Disabled, Roles = [StateRole.Recommended, StateRole.WindowsDefault] },
+            ],
+            UiParentId = "autounattend-netfx3",
+        },
+        // The removal script section reads the chosen state to decide what stays on the new PC. Only the
+        // Winhance state carries an effect: it sets the mode Winhance reads, and the section lists the apps.
+        new()
+        {
+            Id = "autounattend-keep-removed",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendKeepRemoved.Name,
+                Description = LocKey.Setting.AutounattendKeepRemoved.Description,
+                GroupName = LocKey.SettingGroup.General,
+                Icon = MaterialIcons.PackageVariantClosedMinus,
+                AddedInVersion = "26.11.09",
+            },
+            ReadWhileWritingAnswerFile = true,
+            States =
+            [
+                new() { Label = LocKey.Setting.AutounattendKeepRemoved.Option0 },
+                new() { Label = LocKey.Setting.AutounattendKeepRemoved.Option1, Roles = [StateRole.Recommended, StateRole.WindowsDefault] },
+                new() { Label = LocKey.Setting.AutounattendKeepRemoved.Option2 },
+            ],
+        },
+        // CleanupScriptSection reads these to register one startup task that frees disk space after setup. A file
+        // built into the image has the same cleanup done offline, so the page decides this card off there.
+        new()
+        {
+            Id = "autounattend-cleanup",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendCleanup.Name,
+                Description = LocKey.Setting.AutounattendCleanup.Description,
+                GroupName = LocKey.SettingGroup.General,
+                Icon = MaterialIcons.Broom,
+                AddedInVersion = "26.11.10",
+            },
+            ReadWhileWritingAnswerFile = true,
+            States =
+            [
+                new() { Label = LocKey.Common.Enabled, Roles = [StateRole.Recommended] },
+                new() { Label = LocKey.Common.Disabled, Roles = [StateRole.WindowsDefault] },
+            ],
+        },
+        new()
+        {
+            Id = "autounattend-cleanup-old-components",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendCleanupOldComponents.Name,
+                Description = LocKey.Setting.AutounattendCleanupOldComponents.Description,
+                GroupName = LocKey.SettingGroup.General,
+                Icon = MaterialIcons.History,
+                AddedInVersion = "26.11.10",
+            },
+            ReadWhileWritingAnswerFile = true,
+            States =
+            [
+                new() { Label = LocKey.Common.Checked, Roles = [StateRole.Recommended] },
+                new() { Label = LocKey.Common.Unchecked, Roles = [StateRole.WindowsDefault] },
+            ],
+            UiParentId = "autounattend-cleanup",
+            EnabledWhen = new("autounattend-cleanup", [LocKey.Common.Enabled]),
+        },
+        new()
+        {
+            Id = "autounattend-cleanup-update-downloads",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendCleanupUpdateDownloads.Name,
+                Description = LocKey.Setting.AutounattendCleanupUpdateDownloads.Description,
+                GroupName = LocKey.SettingGroup.General,
+                Icon = MaterialIcons.PackageDown,
+                AddedInVersion = "26.11.10",
+            },
+            ReadWhileWritingAnswerFile = true,
+            States =
+            [
+                new() { Label = LocKey.Common.Checked, Roles = [StateRole.Recommended] },
+                new() { Label = LocKey.Common.Unchecked, Roles = [StateRole.WindowsDefault] },
+            ],
+            UiParentId = "autounattend-cleanup",
+            EnabledWhen = new("autounattend-cleanup", [LocKey.Common.Enabled]),
+        },
+        new()
+        {
+            Id = "autounattend-cleanup-servicing-logs",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendCleanupServicingLogs.Name,
+                Description = LocKey.Setting.AutounattendCleanupServicingLogs.Description,
+                GroupName = LocKey.SettingGroup.General,
+                Icon = MaterialIcons.FileDocument,
+                AddedInVersion = "26.11.10",
+            },
+            ReadWhileWritingAnswerFile = true,
+            States =
+            [
+                new() { Label = LocKey.Common.Checked, Roles = [StateRole.Recommended] },
+                new() { Label = LocKey.Common.Unchecked, Roles = [StateRole.WindowsDefault] },
+            ],
+            UiParentId = "autounattend-cleanup",
+            EnabledWhen = new("autounattend-cleanup", [LocKey.Common.Enabled]),
+        },
+        new()
+        {
+            Id = "autounattend-cleanup-temp-files",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendCleanupTempFiles.Name,
+                Description = LocKey.Setting.AutounattendCleanupTempFiles.Description,
+                GroupName = LocKey.SettingGroup.General,
+                Icon = MaterialIcons.TrashCanOutline,
+                AddedInVersion = "26.11.10",
+            },
+            ReadWhileWritingAnswerFile = true,
+            States =
+            [
+                new() { Label = LocKey.Common.Checked, Roles = [StateRole.Recommended] },
+                new() { Label = LocKey.Common.Unchecked, Roles = [StateRole.WindowsDefault] },
+            ],
+            UiParentId = "autounattend-cleanup",
+            EnabledWhen = new("autounattend-cleanup", [LocKey.Common.Enabled]),
+        },
+        new()
+        {
+            Id = "autounattend-cleanup-crash-reports",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendCleanupCrashReports.Name,
+                Description = LocKey.Setting.AutounattendCleanupCrashReports.Description,
+                GroupName = LocKey.SettingGroup.General,
+                Icon = MaterialIcons.AlertOctagon,
+                AddedInVersion = "26.11.10",
+            },
+            ReadWhileWritingAnswerFile = true,
+            States =
+            [
+                new() { Label = LocKey.Common.Checked, Roles = [StateRole.Recommended] },
+                new() { Label = LocKey.Common.Unchecked, Roles = [StateRole.WindowsDefault] },
+            ],
+            UiParentId = "autounattend-cleanup",
+            EnabledWhen = new("autounattend-cleanup", [LocKey.Common.Enabled]),
+        },
+        new()
+        {
+            Id = "autounattend-desktop-shortcut",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendDesktopShortcut.Name,
+                Description = LocKey.Setting.AutounattendDesktopShortcut.Description,
+                GroupName = LocKey.SettingGroup.General,
+                Icon = new Icon(IconPack.AppAsset, "winhance-rocket-card.png"),
+                AddedInVersion = "26.09.10",
+            },
+            // {{external-app-ids}} becomes the External Apps chosen for the new PC, comma-separated, or nothing.
+            States =
+            [
+                new() { Label = LocKey.Setting.AutounattendDesktopShortcut.Option0, Roles = [StateRole.WindowsDefault] },
+                new()
+                {
+                    Label = LocKey.Setting.AutounattendDesktopShortcut.Option1,
+                    Roles = [StateRole.Recommended],
+                    // Byte 21 of a .lnk holds the link flags; 0x22 sets RunAsUser, so the shortcut asks for elevation.
+                    Effects =
+                    [
+                        new ScriptEffect(@"$shortcutPath = ""C:\Users\Default\Desktop\Install Winhance.lnk""
+$WshShell = New-Object -ComObject WScript.Shell
+$shortcut = $WshShell.CreateShortcut($shortcutPath)
+$shortcut.TargetPath = ""C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe""
+$shortcut.Arguments = ""-ExecutionPolicy Bypass -NoProfile -Command `""irm 'https://get.winhance.net' | iex`""""
+$shortcut.IconLocation = ""C:\Windows\System32\appwiz.cpl,0""
+$shortcut.WorkingDirectory = ""C:\Windows\System32""
+$shortcut.Description = ""Download and install Winhance from GitHub""
+$shortcut.Save()
+$bytes = [System.IO.File]::ReadAllBytes($shortcutPath)
+$bytes[21] = 34
+[System.IO.File]::WriteAllBytes($shortcutPath, $bytes)", RunContext.System) { When = AppsToInstall.None },
+                        new ScriptEffect(@"Set-Content -Path 'C:\ProgramData\Winhance\Unattend\Scripts\Install-Winhance.ps1' -Encoding UTF8 -Value @'
+# Installs Winhance, then starts it with the apps chosen for this PC. Exit 0 once Winhance is installed and started, 1 when that failed.
+$ErrorActionPreference = 'Stop'
+$apps = '{{external-app-ids}}'
+$options = '{{install-options}}'
+$installer = 'C:\ProgramData\Winhance\Unattend\Winhance.Installer.exe'
+$winhance = ""$env:ProgramFiles\Winhance\Winhance.exe""
+$ownInstallers = 'C:\ProgramData\Winhance\Unattend\Apps\Custom'
+try {
+    if (-not (Test-Path $winhance)) {
+        if (-not (Test-Path $installer)) {
+            $ProgressPreference = 'SilentlyContinue'
+            Invoke-WebRequest 'https://github.com/memstechtips/Winhance/releases/latest/download/Winhance.Installer.exe' -OutFile ""$installer.part"" -UseBasicParsing
+            Move-Item ""$installer.part"" $installer -Force
+        }
+        Start-Process $installer '/SILENT /SUPPRESSMSGBOXES /MERGETASKS=""regularinstall\desktopicon,regularinstall\startmenuicon""' -Wait
+        if (-not (Test-Path $winhance)) { exit 1 }
+        Remove-Item $installer -ErrorAction SilentlyContinue
+    }
+    $arguments = @()
+    if ($apps) { $arguments += ""--install-apps $apps"" }
+    if ($options) { $arguments += ""--install-options $options"" }
+    if (Test-Path $ownInstallers) { $arguments += ""--install-folder `""$ownInstallers`"""" }
+    if ($arguments) { Start-Process $winhance ($arguments -join ' ') }
+    Remove-Item 'C:\Users\Default\Desktop\Install Winhance.lnk', ""$env:USERPROFILE\Desktop\Install Winhance.lnk"", $PSCommandPath -ErrorAction SilentlyContinue
+    exit 0
+} catch {
+    exit 1
+}
+'@
+$shortcutPath = ""C:\Users\Default\Desktop\Install Winhance.lnk""
+$WshShell = New-Object -ComObject WScript.Shell
+$shortcut = $WshShell.CreateShortcut($shortcutPath)
+$shortcut.TargetPath = ""C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe""
+$shortcut.Arguments = ""-ExecutionPolicy Bypass -NoProfile -File `""C:\ProgramData\Winhance\Unattend\Scripts\Install-Winhance.ps1`""""
+$shortcut.IconLocation = ""C:\Windows\System32\appwiz.cpl,0""
+$shortcut.WorkingDirectory = ""C:\Windows\System32""
+$shortcut.Description = ""Download and install Winhance from GitHub""
+$shortcut.Save()
+$bytes = [System.IO.File]::ReadAllBytes($shortcutPath)
+$bytes[21] = 34
+[System.IO.File]::WriteAllBytes($shortcutPath, $bytes)", RunContext.System) { When = AppsToInstall.Some },
+                    ],
+                },
+                new()
+                {
+                    Label = LocKey.Setting.AutounattendDesktopShortcut.Option2,
+                    // The sign-in after Setup's restart runs the script, which deletes itself once Winhance is installed
+                    // and started, so a failed install retries at the next sign-in.
+                    Effects =
+                    [
+                        new ScriptEffect(@"Set-Content -Path 'C:\ProgramData\Winhance\Unattend\Scripts\Install-Winhance.ps1' -Encoding UTF8 -Value @'
+# Installs Winhance, then starts it with the apps chosen for this PC. Exit 0 once Winhance is installed and started, 1 when that failed.
+$ErrorActionPreference = 'Stop'
+$apps = '{{external-app-ids}}'
+$options = '{{install-options}}'
+$installer = 'C:\ProgramData\Winhance\Unattend\Winhance.Installer.exe'
+$winhance = ""$env:ProgramFiles\Winhance\Winhance.exe""
+$ownInstallers = 'C:\ProgramData\Winhance\Unattend\Apps\Custom'
+try {
+    if (-not (Test-Path $winhance)) {
+        if (-not (Test-Path $installer)) {
+            $ProgressPreference = 'SilentlyContinue'
+            Invoke-WebRequest 'https://github.com/memstechtips/Winhance/releases/latest/download/Winhance.Installer.exe' -OutFile ""$installer.part"" -UseBasicParsing
+            Move-Item ""$installer.part"" $installer -Force
+        }
+        Start-Process $installer '/SILENT /SUPPRESSMSGBOXES /MERGETASKS=""regularinstall\desktopicon,regularinstall\startmenuicon""' -Wait
+        if (-not (Test-Path $winhance)) { exit 1 }
+        Remove-Item $installer -ErrorAction SilentlyContinue
+    }
+    $arguments = @()
+    if ($apps) { $arguments += ""--install-apps $apps"" }
+    if ($options) { $arguments += ""--install-options $options"" }
+    if (Test-Path $ownInstallers) { $arguments += ""--install-folder `""$ownInstallers`"""" }
+    if ($arguments) { Start-Process $winhance ($arguments -join ' ') }
+    Remove-Item 'C:\Users\Default\Desktop\Install Winhance.lnk', ""$env:USERPROFILE\Desktop\Install Winhance.lnk"", $PSCommandPath -ErrorAction SilentlyContinue
+    exit 0
+} catch {
+    exit 1
+}
+'@", RunContext.System),
+                        new ScriptEffect(@"if (Test-Path 'C:\ProgramData\Winhance\Unattend\Scripts\Install-Winhance.ps1') { Start-ProcessAsUser -CommandLine ""powershell.exe -ExecutionPolicy Bypass -NoProfile -WindowStyle Hidden -File `""C:\ProgramData\Winhance\Unattend\Scripts\Install-Winhance.ps1`"""" | Out-Null }", RunContext.SignInAfterSetup),
+                    ],
+                },
+            ],
+        },
+        new()
+        {
+            Id = "autounattend-delete-installers",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendDeleteInstallers.Name,
+                Description = LocKey.Setting.AutounattendDeleteInstallers.Description,
+                GroupName = LocKey.SettingGroup.General,
+                Icon = MaterialIcons.TrashCanOutline,
+                AddedInVersion = "26.09.28",
+            },
+            // Winhance reads KeepStagedInstallers before it deletes an installer it has run.
+            States =
+            [
+                new() { Label = LocKey.Common.Enabled, Roles = [StateRole.Recommended, StateRole.WindowsDefault] },
+                new()
+                {
+                    Label = LocKey.Common.Disabled,
+                    Effects =
+                    [
+                        new ScriptEffect(@"New-Item -Path 'HKLM:\SOFTWARE\Winhance' -Force | Out-Null
+Set-ItemProperty -Path 'HKLM:\SOFTWARE\Winhance' -Name 'KeepStagedInstallers' -Value 1 -Type DWord", RunContext.System) { When = AppsToInstall.Some },
+                    ],
+                },
+            ],
+            UiParentId = "autounattend-desktop-shortcut",
+            EnabledWhen = new("autounattend-desktop-shortcut",
+                [LocKey.Setting.AutounattendDesktopShortcut.Option1, LocKey.Setting.AutounattendDesktopShortcut.Option2]),
+        },
+        // The External Software row on the page draws these two; WIMUtil acts on them when it generates the file.
+        new()
+        {
+            Id = "autounattend-stage-apps",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendStageApps.Name,
+                Description = LocKey.Setting.AutounattendStageApps.Description,
+                GroupName = LocKey.SettingGroup.General,
+                Icon = MaterialIcons.PackageDown,
+                AddedInVersion = "26.10.06",
+            },
+            Targets = [new AutounattendMedia("stage")],
+            States =
+            [
+                new() { Label = LocKey.Common.Checked, Roles = [StateRole.Recommended, StateRole.WindowsDefault] },
+                new() { Label = LocKey.Common.Unchecked },
+            ],
+        },
+        new()
+        {
+            Id = "autounattend-own-installers",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendOwnInstallers.Name,
+                Description = LocKey.Setting.AutounattendOwnInstallers.Description,
+                GroupName = LocKey.SettingGroup.General,
+                Icon = MaterialIcons.PackageVariantPlus,
+                AddedInVersion = "26.10.06",
+            },
+            List = new(
+                [
+                    new Field("file", FieldKind.File, LocKey.AutounattendOwnInstallers.File,
+                        Filter: new FileFilter(LocKey.AutounattendOwnInstallers.Filter, "*.exe;*.msi")),
+                    new Field("switches", FieldKind.Text, LocKey.AutounattendOwnInstallers.Switches),
+                ],
+                Add: LocKey.AutounattendOwnInstallers.Add,
+                Remove: LocKey.AutounattendOwnInstallers.Remove,
+                CanBeEmpty: true),
+            Targets = [new AutounattendMedia("installers")],
+        },
         // A file that carries more than one architecture installs on any of them.
         new()
         {
@@ -292,6 +674,26 @@ public static class AutounattendCatalog
             Targets = [new AutounattendElement("recovery-size", "windowsPE", "Microsoft-Windows-Setup", "DiskConfiguration/Disk/CreatePartitions")],
             UiParentId = "autounattend-disk",
             EnabledWhen = new("autounattend-disk", [LocKey.Setting.AutounattendDisk.Option1, LocKey.Setting.AutounattendDisk.Option2]),
+        },
+        // Compact goes last in OSImage, after InstallTo when the disk card wrote one. Setup compresses the install
+        // only when the element says true; leaving it out is Setup's own choice.
+        new()
+        {
+            Id = "autounattend-compact",
+            Display = new()
+            {
+                Name = LocKey.Setting.AutounattendCompact.Name,
+                Description = LocKey.Setting.AutounattendCompact.Description,
+                GroupName = LocKey.SettingGroup.DiskAndPartitions,
+                Icon = MaterialIcons.ArrowCollapseDown,
+                AddedInVersion = "26.11.09",
+            },
+            Targets = [new AutounattendElement("compact", "windowsPE", "Microsoft-Windows-Setup", "ImageInstall/OSImage/Compact")],
+            States =
+            [
+                new() { Label = LocKey.Common.Enabled, Set = new Dictionary<string, StateValue> { ["compact"] = Of("true") } },
+                new() { Label = LocKey.Common.Disabled, Set = new Dictionary<string, StateValue> { ["compact"] = Absent }, Roles = [StateRole.Recommended, StateRole.WindowsDefault] },
+            ],
         },
         new()
         {
@@ -797,225 +1199,29 @@ if (-not $root) {
                 new RegTarget("this-pc", [@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters"], "Hostname", RegistryValueKind.String) { ReadOnly = true },
             ],
         },
+        // After the name card in file order, so TEMPNAME replaces the typed name; the rename script turns the typed
+        // name into the prefix.
         new()
         {
-            Id = "autounattend-netfx3",
+            Id = "autounattend-computer-name-unique",
+            UiParentId = "autounattend-computer-name",
             Display = new()
             {
-                Name = LocKey.Setting.AutounattendNetfx3.Name,
-                Description = LocKey.Setting.AutounattendNetfx3.Description,
-                GroupName = LocKey.SettingGroup.General,
-                Icon = MaterialIcons.PackageVariantPlus,
-                AddedInVersion = "26.09.07",
+                Name = LocKey.Setting.AutounattendComputerNameUnique.Name,
+                Description = LocKey.Setting.AutounattendComputerNameUnique.Description,
+                GroupName = LocKey.SettingGroup.SetupScreens,
+                Icon = MaterialIcons.Fingerprint,
+                AddedInVersion = "26.11.02",
             },
+            Targets =
+            [
+                new AutounattendElement("name", "specialize", "Microsoft-Windows-Shell-Setup", "ComputerName"),
+            ],
             States =
             [
-                new()
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = [StateRole.Recommended],
-                    // /LimitAccess keeps DISM off Windows Update; every filesystem drive is searched for
-                    // sources\sxs because the letter Setup gives the media is not known in advance. Path caps
-                    // at 259 characters, so anything added to this command has to be measured first.
-                    Effects =
-                    [
-                        new AutounattendCommand("specialize", "Microsoft-Windows-Deployment",
-                            "powershell.exe -NoProfile -WindowStyle Hidden -Command \"foreach($d in (gdr -PSProvider FileSystem)){$src=$d.Root+'sources\\sxs';if(Test-Path $src\\*.cab){dism /Online /Enable-Feature /FeatureName:NetFx3 /All /LimitAccess /Source:$src;break}}\"",
-                            "Enables .NET Framework 3.5 from Windows Installation Media"),
-                    ],
-                },
-                new() { Label = LocKey.Common.Disabled, Roles = [StateRole.WindowsDefault] },
+                new() { Label = LocKey.Common.Enabled, Set = new Dictionary<string, StateValue> { ["name"] = Of("TEMPNAME") } },
+                new() { Label = LocKey.Common.Disabled, Roles = [StateRole.Recommended, StateRole.WindowsDefault] },
             ],
-        },
-        new()
-        {
-            Id = "autounattend-desktop-shortcut",
-            Display = new()
-            {
-                Name = LocKey.Setting.AutounattendDesktopShortcut.Name,
-                Description = LocKey.Setting.AutounattendDesktopShortcut.Description,
-                GroupName = LocKey.SettingGroup.General,
-                Icon = new Icon(IconPack.AppAsset, "winhance-rocket-card.png"),
-                AddedInVersion = "26.09.10",
-            },
-            // {{external-app-ids}} becomes the External Apps chosen for the new PC, comma-separated, or nothing.
-            States =
-            [
-                new() { Label = LocKey.Setting.AutounattendDesktopShortcut.Option0, Roles = [StateRole.WindowsDefault] },
-                new()
-                {
-                    Label = LocKey.Setting.AutounattendDesktopShortcut.Option1,
-                    Roles = [StateRole.Recommended],
-                    // Byte 21 of a .lnk holds the link flags; 0x22 sets RunAsUser, so the shortcut asks for elevation.
-                    Effects =
-                    [
-                        new ScriptEffect(@"$shortcutPath = ""C:\Users\Default\Desktop\Install Winhance.lnk""
-$WshShell = New-Object -ComObject WScript.Shell
-$shortcut = $WshShell.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = ""C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe""
-$shortcut.Arguments = ""-ExecutionPolicy Bypass -NoProfile -Command `""irm 'https://get.winhance.net' | iex`""""
-$shortcut.IconLocation = ""C:\Windows\System32\appwiz.cpl,0""
-$shortcut.WorkingDirectory = ""C:\Windows\System32""
-$shortcut.Description = ""Download and install Winhance from GitHub""
-$shortcut.Save()
-$bytes = [System.IO.File]::ReadAllBytes($shortcutPath)
-$bytes[21] = 34
-[System.IO.File]::WriteAllBytes($shortcutPath, $bytes)", RunContext.System) { When = AppsToInstall.None },
-                        new ScriptEffect(@"Set-Content -Path 'C:\ProgramData\Winhance\Unattend\Scripts\Install-Winhance.ps1' -Encoding UTF8 -Value @'
-# Installs Winhance, then starts it with the apps chosen for this PC. Exit 0 once Winhance is installed and started, 1 when that failed.
-$ErrorActionPreference = 'Stop'
-$apps = '{{external-app-ids}}'
-$options = '{{install-options}}'
-$installer = 'C:\ProgramData\Winhance\Unattend\Winhance.Installer.exe'
-$winhance = ""$env:ProgramFiles\Winhance\Winhance.exe""
-$ownInstallers = 'C:\ProgramData\Winhance\Unattend\Apps\Custom'
-try {
-    if (-not (Test-Path $winhance)) {
-        if (-not (Test-Path $installer)) {
-            $ProgressPreference = 'SilentlyContinue'
-            Invoke-WebRequest 'https://github.com/memstechtips/Winhance/releases/latest/download/Winhance.Installer.exe' -OutFile ""$installer.part"" -UseBasicParsing
-            Move-Item ""$installer.part"" $installer -Force
-        }
-        Start-Process $installer '/SILENT /SUPPRESSMSGBOXES /MERGETASKS=""regularinstall\desktopicon,regularinstall\startmenuicon""' -Wait
-        if (-not (Test-Path $winhance)) { exit 1 }
-        Remove-Item $installer -ErrorAction SilentlyContinue
-    }
-    $arguments = @()
-    if ($apps) { $arguments += ""--install-apps $apps"" }
-    if ($options) { $arguments += ""--install-options $options"" }
-    if (Test-Path $ownInstallers) { $arguments += ""--install-folder `""$ownInstallers`"""" }
-    if ($arguments) { Start-Process $winhance ($arguments -join ' ') }
-    Remove-Item 'C:\Users\Default\Desktop\Install Winhance.lnk', ""$env:USERPROFILE\Desktop\Install Winhance.lnk"", $PSCommandPath -ErrorAction SilentlyContinue
-    exit 0
-} catch {
-    exit 1
-}
-'@
-$shortcutPath = ""C:\Users\Default\Desktop\Install Winhance.lnk""
-$WshShell = New-Object -ComObject WScript.Shell
-$shortcut = $WshShell.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = ""C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe""
-$shortcut.Arguments = ""-ExecutionPolicy Bypass -NoProfile -File `""C:\ProgramData\Winhance\Unattend\Scripts\Install-Winhance.ps1`""""
-$shortcut.IconLocation = ""C:\Windows\System32\appwiz.cpl,0""
-$shortcut.WorkingDirectory = ""C:\Windows\System32""
-$shortcut.Description = ""Download and install Winhance from GitHub""
-$shortcut.Save()
-$bytes = [System.IO.File]::ReadAllBytes($shortcutPath)
-$bytes[21] = 34
-[System.IO.File]::WriteAllBytes($shortcutPath, $bytes)", RunContext.System) { When = AppsToInstall.Some },
-                    ],
-                },
-                new()
-                {
-                    Label = LocKey.Setting.AutounattendDesktopShortcut.Option2,
-                    // The sign-in after Setup's restart runs the script, which deletes itself once Winhance is installed
-                    // and started, so a failed install retries at the next sign-in.
-                    Effects =
-                    [
-                        new ScriptEffect(@"Set-Content -Path 'C:\ProgramData\Winhance\Unattend\Scripts\Install-Winhance.ps1' -Encoding UTF8 -Value @'
-# Installs Winhance, then starts it with the apps chosen for this PC. Exit 0 once Winhance is installed and started, 1 when that failed.
-$ErrorActionPreference = 'Stop'
-$apps = '{{external-app-ids}}'
-$options = '{{install-options}}'
-$installer = 'C:\ProgramData\Winhance\Unattend\Winhance.Installer.exe'
-$winhance = ""$env:ProgramFiles\Winhance\Winhance.exe""
-$ownInstallers = 'C:\ProgramData\Winhance\Unattend\Apps\Custom'
-try {
-    if (-not (Test-Path $winhance)) {
-        if (-not (Test-Path $installer)) {
-            $ProgressPreference = 'SilentlyContinue'
-            Invoke-WebRequest 'https://github.com/memstechtips/Winhance/releases/latest/download/Winhance.Installer.exe' -OutFile ""$installer.part"" -UseBasicParsing
-            Move-Item ""$installer.part"" $installer -Force
-        }
-        Start-Process $installer '/SILENT /SUPPRESSMSGBOXES /MERGETASKS=""regularinstall\desktopicon,regularinstall\startmenuicon""' -Wait
-        if (-not (Test-Path $winhance)) { exit 1 }
-        Remove-Item $installer -ErrorAction SilentlyContinue
-    }
-    $arguments = @()
-    if ($apps) { $arguments += ""--install-apps $apps"" }
-    if ($options) { $arguments += ""--install-options $options"" }
-    if (Test-Path $ownInstallers) { $arguments += ""--install-folder `""$ownInstallers`"""" }
-    if ($arguments) { Start-Process $winhance ($arguments -join ' ') }
-    Remove-Item 'C:\Users\Default\Desktop\Install Winhance.lnk', ""$env:USERPROFILE\Desktop\Install Winhance.lnk"", $PSCommandPath -ErrorAction SilentlyContinue
-    exit 0
-} catch {
-    exit 1
-}
-'@", RunContext.System),
-                        new ScriptEffect(@"if (Test-Path 'C:\ProgramData\Winhance\Unattend\Scripts\Install-Winhance.ps1') { Start-ProcessAsUser -CommandLine ""powershell.exe -ExecutionPolicy Bypass -NoProfile -WindowStyle Hidden -File `""C:\ProgramData\Winhance\Unattend\Scripts\Install-Winhance.ps1`"""" | Out-Null }", RunContext.SignInAfterSetup),
-                    ],
-                },
-            ],
-        },
-        new()
-        {
-            Id = "autounattend-delete-installers",
-            Display = new()
-            {
-                Name = LocKey.Setting.AutounattendDeleteInstallers.Name,
-                Description = LocKey.Setting.AutounattendDeleteInstallers.Description,
-                GroupName = LocKey.SettingGroup.General,
-                Icon = MaterialIcons.TrashCanOutline,
-                AddedInVersion = "26.09.28",
-            },
-            // Winhance reads KeepStagedInstallers before it deletes an installer it has run.
-            States =
-            [
-                new() { Label = LocKey.Common.Enabled, Roles = [StateRole.Recommended, StateRole.WindowsDefault] },
-                new()
-                {
-                    Label = LocKey.Common.Disabled,
-                    Effects =
-                    [
-                        new ScriptEffect(@"New-Item -Path 'HKLM:\SOFTWARE\Winhance' -Force | Out-Null
-Set-ItemProperty -Path 'HKLM:\SOFTWARE\Winhance' -Name 'KeepStagedInstallers' -Value 1 -Type DWord", RunContext.System) { When = AppsToInstall.Some },
-                    ],
-                },
-            ],
-            UiParentId = "autounattend-desktop-shortcut",
-            EnabledWhen = new("autounattend-desktop-shortcut",
-                [LocKey.Setting.AutounattendDesktopShortcut.Option1, LocKey.Setting.AutounattendDesktopShortcut.Option2]),
-        },
-        // The External Software row on the page draws these two; WIMUtil acts on them when it generates the file.
-        new()
-        {
-            Id = "autounattend-stage-apps",
-            Display = new()
-            {
-                Name = LocKey.Setting.AutounattendStageApps.Name,
-                Description = LocKey.Setting.AutounattendStageApps.Description,
-                GroupName = LocKey.SettingGroup.General,
-                Icon = MaterialIcons.PackageDown,
-                AddedInVersion = "26.10.06",
-            },
-            Targets = [new AutounattendMedia("stage")],
-            States =
-            [
-                new() { Label = LocKey.Common.Checked, Roles = [StateRole.Recommended, StateRole.WindowsDefault] },
-                new() { Label = LocKey.Common.Unchecked },
-            ],
-        },
-        new()
-        {
-            Id = "autounattend-own-installers",
-            Display = new()
-            {
-                Name = LocKey.Setting.AutounattendOwnInstallers.Name,
-                Description = LocKey.Setting.AutounattendOwnInstallers.Description,
-                GroupName = LocKey.SettingGroup.General,
-                Icon = MaterialIcons.PackageVariantPlus,
-                AddedInVersion = "26.10.06",
-            },
-            List = new(
-                [
-                    new Field("file", FieldKind.File, LocKey.AutounattendOwnInstallers.File,
-                        Filter: new FileFilter(LocKey.AutounattendOwnInstallers.Filter, "*.exe;*.msi")),
-                    new Field("switches", FieldKind.Text, LocKey.AutounattendOwnInstallers.Switches),
-                ],
-                Add: LocKey.AutounattendOwnInstallers.Add,
-                Remove: LocKey.AutounattendOwnInstallers.Remove,
-                CanBeEmpty: true),
-            Targets = [new AutounattendMedia("installers")],
         },
         new()
         {

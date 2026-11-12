@@ -10,6 +10,7 @@ public static class SettingCatalog
     {
         WindowsThemeCustomizationsCatalog.All,
         ExplorerCustomizationsCatalog.All,
+        ContextMenuCustomizationsCatalog.All,
         TaskbarCustomizationsCatalog.All,
         StartMenuCustomizationsCatalog.All,
         TimeRegionLanguageCatalog.All,
@@ -27,6 +28,7 @@ public static class SettingCatalog
         {
             [WindowsThemeCustomizationsCatalog.FeatureId] = WindowsThemeCustomizationsCatalog.All,
             [ExplorerCustomizationsCatalog.FeatureId] = ExplorerCustomizationsCatalog.All,
+            [ContextMenuCustomizationsCatalog.FeatureId] = ContextMenuCustomizationsCatalog.All,
             [TaskbarCustomizationsCatalog.FeatureId] = TaskbarCustomizationsCatalog.All,
             [StartMenuCustomizationsCatalog.FeatureId] = StartMenuCustomizationsCatalog.All,
             [TimeRegionLanguageCatalog.FeatureId] = TimeRegionLanguageCatalog.All,
@@ -45,7 +47,7 @@ public static class SettingCatalog
         .SelectMany(feature => feature.Value.Select(setting => (setting.Id, feature.Key)))
         .ToDictionary(pair => pair.Id, pair => pair.Key);
 
-    // Accepts a canonical id OR a retired -win10 alias (SettingIdAliases.Normalize).
+    // Accepts a canonical id OR a retired one (SettingIdAliases.Normalize).
     public static Setting? Find(string settingId) =>
         ById.TryGetValue(SettingIdAliases.Normalize(settingId), out var s) ? s : null;
 }

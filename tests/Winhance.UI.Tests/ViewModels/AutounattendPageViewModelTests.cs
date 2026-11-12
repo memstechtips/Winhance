@@ -7,7 +7,6 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.TestSupport;
 using Winhance.UI.Features.Autounattend.ViewModels;
 using Winhance.UI.Features.Common.Interfaces;
@@ -46,9 +45,9 @@ public class AutounattendPageViewModelTests
             _registry.Object,
             _scope.Object,
             new Mock<IAppSelectionSource>().Object,
-            new Mock<IWindowsAppsService>().Object,
-            new Mock<IExternalAppsService>().Object,
-            _session);
+            _session,
+            new Mock<ISystemInfoProvider>().Object,
+            new Mock<IBuilderModeEntry>().Object);
     }
 
     private AutounattendPageViewModel CreateSut() => new(
@@ -83,7 +82,7 @@ public class AutounattendPageViewModelTests
     }
 
     [Fact]
-    public void The_page_has_one_section_and_it_is_the_Autounattend_feature()
+    public void OverviewItems_Always_IsOneSectionForTheAutounattendFeature()
     {
         var sut = CreateSut();
 
@@ -94,7 +93,7 @@ public class AutounattendPageViewModelTests
 
     // The breadcrumb's second level shows only on a detail page, so the root is all it ever reads.
     [Fact]
-    public async Task The_page_never_opens_a_detail_page_of_its_own_section()
+    public async Task InitializeAsync_Always_NeverOpensADetailPage()
     {
         var sut = CreateSut();
 
@@ -105,7 +104,7 @@ public class AutounattendPageViewModelTests
     }
 
     [Fact]
-    public void The_header_reads_the_keys_the_page_always_had()
+    public void PageTitle_Always_ReadsTheKeysThePageAlwaysHad()
     {
         var english = JsonSerializer.Deserialize<Dictionary<string, string>>(
             File.ReadAllText(Path.Combine(RepoPaths.LocalizationDir(), "en.json")))!;
@@ -119,7 +118,7 @@ public class AutounattendPageViewModelTests
 
     // The view loads the cards in both of its hosts; a second load from here would race it for the load lock.
     [Fact]
-    public async Task Initializing_the_page_does_not_load_the_cards_and_ends_its_own_loading_state()
+    public async Task InitializeAsync_Always_DoesNotLoadTheCardsAndEndsItsOwnLoadingState()
     {
         var sut = CreateSut();
         sut.IsLoading.Should().BeTrue();
@@ -132,7 +131,7 @@ public class AutounattendPageViewModelTests
     }
 
     [Fact]
-    public void Typing_in_the_search_box_filters_the_Autounattend_cards()
+    public void SearchText_Typed_FiltersTheAutounattendCards()
     {
         var sut = CreateSut();
 
@@ -143,7 +142,7 @@ public class AutounattendPageViewModelTests
 
     // On the other pages a suggestion jumps to a section that is not open; here the one section is always open.
     [Fact]
-    public void The_search_box_suggests_nothing_because_the_cards_it_would_name_are_already_filtered_on_screen()
+    public void SearchSuggestions_Always_AreEmptyBecauseTheCardsAreAlreadyFilteredOnScreen()
     {
         _feature.Settings = [Card("autounattend-privacy", InputType.Selection)];
         var sut = CreateSut();
@@ -154,7 +153,7 @@ public class AutounattendPageViewModelTests
     }
 
     [Fact]
-    public void Leaving_the_page_clears_the_filter_the_WIMUtil_host_would_otherwise_inherit()
+    public void OnNavigatedFrom_AfterSearching_ClearsTheFilterTheWimUtilHostWouldInherit()
     {
         var sut = CreateSut();
         sut.SearchText = "privacy";
@@ -165,7 +164,7 @@ public class AutounattendPageViewModelTests
     }
 
     [Fact]
-    public void A_search_that_hides_every_card_reports_no_results_once_the_feature_has_filtered()
+    public void HasNoSearchResults_SearchHidingEveryCard_IsTrueOnceTheFeatureHasFiltered()
     {
         var card = Card("autounattend-privacy", InputType.Selection);
         card.IsVisible = false;
@@ -183,7 +182,7 @@ public class AutounattendPageViewModelTests
     }
 
     [Fact]
-    public void Quick_actions_skip_a_card_the_page_does_not_show()
+    public void TakesQuickActions_CardThePageDoesNotShow_ReturnsFalse()
     {
         var sut = CreateSut();
 
@@ -195,7 +194,7 @@ public class AutounattendPageViewModelTests
     }
 
     [Fact]
-    public void Quick_actions_take_the_edition_cards_in_a_WIMUtil_session()
+    public void TakesQuickActions_EditionCardInWimUtilSession_ReturnsTrue()
     {
         _session.Editions = [new(1, "Windows 11 Home", "Core")];
         var sut = CreateSut();
@@ -208,7 +207,7 @@ public class AutounattendPageViewModelTests
     [InlineData("autounattend-architecture-x64")]
     [InlineData("autounattend-architecture-arm64")]
     [InlineData("autounattend-architecture-x86")]
-    public void Quick_actions_leave_the_architecture_boxes_as_this_PC_set_them(string id)
+    public void TakesQuickActions_ArchitectureBoxes_ReturnsFalse(string id)
     {
         CreateSut().TakesQuickActions(Card(id, InputType.CheckBox)).Should().BeFalse();
     }

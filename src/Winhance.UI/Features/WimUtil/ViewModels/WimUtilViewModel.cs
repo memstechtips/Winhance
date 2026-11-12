@@ -17,10 +17,10 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
 {
     private readonly ILocalizationService _localizationService;
     private readonly IFileSystemService _fileSystemService;
-    private readonly IOfflineServicingService _offlineServicingService;
+    private readonly WimUtilSession _session;
     private bool _disposed;
 
-    // Steps 2-5 auto-expand once per completed extraction; the flag stops a
+    // Steps 2-4 auto-expand once per completed extraction; the flag stops a
     // later refresh from re-opening steps the user has manually collapsed.
     private bool _autoExpandApplied;
 
@@ -45,8 +45,9 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial WizardStepState Step4State { get; set; }
 
-    [ObservableProperty]
-    public partial WizardStepState Step5State { get; set; }
+    public IReadOnlyList<WizardStepState> Steps { get; private set; } = [];
+
+    public string StepRailName => _localizationService.GetString("WIMUtil_Rail_Name");
 
     public string Title => _localizationService.GetStringOrDefault("WIMUtil_Title", "Windows Installation Media Utility");
 
@@ -54,7 +55,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     public string CheckboxExtractedAlreadyText => _localizationService.GetString("WIMUtil_CheckboxExtractedAlready");
     public string ButtonSelectFolderText => _localizationService.GetString("WIMUtil_ButtonSelectFolder");
     public string ButtonStartExtractionText => _localizationService.GetString("WIMUtil_ButtonStartExtraction");
-    public string OptionalConvertText => _localizationService.GetString("WIMUtil_OptionalConvert");
     public string BothImagesTitle => _localizationService.GetString("WIMUtil_Card_BothImages_Title");
     public string BothImagesDescription => _localizationService.GetString("WIMUtil_Card_BothImages_Description");
     public string ButtonDeleteWimText => _localizationService.GetString("WIMUtil_Button_DeleteWim");
@@ -64,13 +64,15 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     public string ButtonWindows11Text => _localizationService.GetString("WIMUtil_ButtonWindows11");
     public string TooltipDownloadWindows10 => _localizationService.GetString("WIMUtil_Tooltip_DownloadWindows10");
     public string TooltipDownloadWindows11 => _localizationService.GetString("WIMUtil_Tooltip_DownloadWindows11");
-    public string SelectOneOptionText => _localizationService.GetString("WIMUtil_SelectOneOption");
-    public string ButtonGenerateText => _localizationService.GetString("WIMUtil_ButtonGenerate");
     public string GenerateXmlFilesText => _localizationService.GetString("WIMUtil_GenerateXMLFiles");
     public string ButtonSchneegansText => _localizationService.GetString("WIMUtil_ButtonSchneegans");
     public string TooltipSchneegans => _localizationService.GetString("WIMUtil_Tooltip_Schneegans");
     public string ButtonCreateMediaText => _localizationService.GetString(
         Step5.IsUsbDestination ? "WIMUtil_ButtonWriteUsb" : "WIMUtil_ButtonCreateISO");
+
+    public string ShowBuildDetailsText => _localizationService.GetString("WIMUtil_Build_ShowDetails");
+
+    public string DeleteWorkingFolderText => _localizationService.GetString("WIMUtil_Build_DeleteWorkingFolder");
 
     public string DestinationCardTitle => _localizationService.GetString("WIMUtil_Card_Destination_Title");
 
@@ -92,40 +94,57 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
 
     public string BootManagerOutdatedText => _localizationService.GetString("WIMUtil_Msg_BootManagerOutdated");
 
+    public string NeedsEditionText => _localizationService.GetString("WIMUtil_Msg_PickEditionToBuild");
+
     public string ServicingCardTitle => _localizationService.GetString("WIMUtil_Card_Servicing_Title");
 
-    public string ServicingCardDescription
-    {
-        get
-        {
-            var key = IsBuiltIntoImage ? "WIMUtil_Servicing_BuiltIn_Detail" : "WIMUtil_Card_Servicing_Description";
-            return _localizationService.GetString(key);
-        }
-    }
+    public string DuringSetupTitle => _localizationService.GetString("WIMUtil_Servicing_DuringSetup");
+
+    public string DuringSetupDescription => _localizationService.GetString("WIMUtil_Servicing_DuringSetup_Detail");
+
+    public string BuiltIntoImageTitle => _localizationService.GetString("WIMUtil_Servicing_BuiltIn");
+
+    public string BuiltIntoImageDescription => _localizationService.GetString("WIMUtil_Servicing_BuiltIn_Detail");
+
+    public string YourImageHeadingText => _localizationService.GetString("WIMUtil_Heading_YourImage");
 
     public string EditionCardTitle => _localizationService.GetString("WIMUtil_Card_Edition_Title");
 
-    public string EditionCardDescription
-    {
-        get
-        {
-            var key = ImageFormat.IsImageReadyForServicing ? "WIMUtil_Card_Edition_Description_Ready" : "WIMUtil_Card_Edition_Description";
-            return _localizationService.GetString(key);
-        }
-    }
+    public string EditionCardDescription => _localizationService.GetString("WIMUtil_Card_Edition_Description");
 
-    public string PrepareServicingButtonText => _localizationService.GetString("WIMUtil_Card_PrepareServicing_Button");
-
-    public string HostDismWarningText => _localizationService.GetString("WIMUtil_Msg_HostDismOlder");
     public string MountFolderWarningText => _localizationService.GetString("WIMUtil_Msg_MountFolderUnsupported");
 
-    public string ServicingTimeText => _localizationService.GetString("WIMUtil_Info_ServicingTime");
+    // Step 2's answer-file choice.
+    public string AnswerFileChoiceTitle => _localizationService.GetString("WIMUtil_AnswerFile_Title");
+    public string AnswerFileChoiceDescription => _localizationService.GetString("WIMUtil_AnswerFile_Description");
+    public string AnswerFileBuilderText => _localizationService.GetString("WIMUtil_AnswerFile_Builder");
+    public string AnswerFileOwnXmlText => _localizationService.GetString("WIMUtil_AnswerFile_OwnXml");
+    public string AnswerFileBuilderDescription => _localizationService.GetString("WIMUtil_AnswerFile_Builder_Description");
+    public string AnswerFileOwnXmlDescription => _localizationService.GetString("WIMUtil_AnswerFile_OwnXml_Description");
+    public string MediaAnswerFileText => _localizationService.GetString("WIMUtil_AnswerFile_OnMedia");
+    public string DeleteMediaAnswerFileText => _localizationService.GetString("WIMUtil_AnswerFile_DeleteToStartOver");
+    public string ChangeFileText => _localizationService.GetString("WIMUtil_AnswerFile_ChangeFile");
 
-    public bool ShowServicingTimeNote => IsBuiltIntoImage && _offlineServicingService.HasStagedItems(WorkingDirectory);
+    // Step 3's drivers and update, which are ticked now and added when the media is created.
+    public string AddSystemDriversText => _localizationService.GetString("WIMUtil_Drivers_System");
+    public string AddFolderDriversText => _localizationService.GetString("WIMUtil_Drivers_Folder");
+    public string ChooseFolderText => _localizationService.GetString("WIMUtil_Drivers_ChooseFolder");
+    public string RemoveDriversFolderText => _localizationService.GetString("WIMUtil_Drivers_RemoveFolder");
+    public string AddUpdateText => _localizationService.GetString("WIMUtil_Update_Add");
+
+    // Step 4's image format.
+    public string FormatCardTitle => _localizationService.GetString("WIMUtil_Format_Title");
+    public string FormatCardDescription => CurrentFormatText() is { } current
+        ? current + " " + _localizationService.GetString("WIMUtil_Format_Description")
+        : _localizationService.GetString("WIMUtil_Format_Description");
+    public string FormatWimText => _localizationService.GetString("WIMUtil_Format_Wim");
+    public string FormatEsdText => _localizationService.GetString("WIMUtil_Format_Esd");
 
     // Forwarders so existing XAML can keep binding to ViewModel.PropertyName instead of the sub-VMs.
     public string WorkingDirectory => Step1.WorkingDirectory;
     public bool CanStartExtraction => Step1.CanStartExtraction;
+    public bool ShowWorkingDirectorySpaceWarning => Step1.ShowSpaceWarning;
+    public string WorkingDirectorySpaceWarningText => Step1.SpaceWarningText;
     public bool HasExtractedIsoAlready { get => Step1.HasExtractedIsoAlready; set => Step1.HasExtractedIsoAlready = value; }
 
     public WizardActionCard SelectIsoCard => Step1.SelectIsoCard;
@@ -135,15 +154,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     public bool BothFormatsExist => ImageFormat.BothFormatsExist;
     public string WimFileSize => ImageFormat.WimFileSize;
     public string EsdFileSize => ImageFormat.EsdFileSize;
-    public WizardActionCard ConvertImageCard => ImageFormat.ConvertImageCard;
-
-    public ObservableCollection<ServicingChoice> ServicingChoices => ImageFormat.ServicingChoices;
-
-    public ServicingChoice? SelectedServicing
-    {
-        get => ImageFormat.SelectedServicing;
-        set => ImageFormat.SelectedServicing = value;
-    }
 
     public ObservableCollection<ImageEdition> EditionChoices => ImageFormat.EditionChoices;
 
@@ -154,18 +164,81 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     }
 
     public bool IsBuiltIntoImage => ImageFormat.IsBuiltIntoImage;
-    public bool ShowHostDismWarning => ImageFormat.ShowHostDismWarning;
     public bool ShowMountFolderWarning => ImageFormat.ShowMountFolderWarning;
     public bool ShowEditionCard => IsBuiltIntoImage && ShowConversionCard;
-    public bool ShowConvertImageCard => !IsBuiltIntoImage && !BothFormatsExist;
-    public bool ShowOptionalConvertText => ShowConvertImageCard || BothFormatsExist;
-    public bool CanChangeServicing => !IsImageBeingRewritten && !Step5.IsCreatingMedia;
+    public bool IsDuringSetup => !IsBuiltIntoImage;
+    public bool CanChangeServicing => !Step5.IsCreatingMedia;
+    public string CreatingMediaReason => _localizationService.GetString("WIMUtil_Disabled_CreatingMedia");
 
-    public WizardActionCard GenerateWinhanceXmlCard => Step2.GenerateWinhanceXmlCard;
-    public WizardActionCard DownloadXmlCard => Step2.DownloadXmlCard;
-    public WizardActionCard SelectXmlCard => Step2.SelectXmlCard;
+    public void SelectDuringSetup() => SelectServicing(builtIntoImage: false);
+
+    public void SelectBuiltIntoImage() => SelectServicing(builtIntoImage: true);
+
+    private void SelectServicing(bool builtIntoImage)
+    {
+        if (CanChangeServicing)
+            ImageFormat.IsBuiltIntoImage = builtIntoImage;
+    }
+
     public bool IsAutounattendSession => Step2.IsAutounattendSession;
-    public string StartButtonText => Step2.StartButtonText;
+    public bool UsesOwnAnswerFile => Step2.UsesOwnAnswerFile;
+    public string OwnAnswerFileName => Step2.OwnAnswerFileName;
+
+    // Step 3 shows what step 2 chose: the summary of Winhance's own file, or the name of the file the user picked, which
+    // Winhance does not read. Nothing shows when no answer file was chosen.
+    public bool ShowsSummaryCards => Step2.Choice == AnswerFileChoice.Builder;
+    public bool ShowsAnswerFileCard => Step2.Choice != AnswerFileChoice.None;
+    public bool ShowsCleanupCard => IsBuiltIntoImage;
+
+    public string AnswerFileCardTitle => UsesOwnAnswerFile
+        ? OwnAnswerFileName
+        : _localizationService.GetString("WIMUtil_Step3_AnswerFile_Title");
+    public string AnswerFileCardDescription => _localizationService.GetString(
+        UsesOwnAnswerFile ? "WIMUtil_Step3_AnswerFile_OwnFile" : "WIMUtil_Step3_AnswerFile_Description");
+    public string ChangeInAutounattendText
+    {
+        get
+        {
+            var format = _localizationService.GetString("Autounattend_Included_Change");
+            return string.Format(format, _localizationService.GetString("Nav_Autounattend"));
+        }
+    }
+    public string DriversHeadingText => _localizationService.GetString("WIMUtil_Heading_DriversAndUpdates");
+
+    // Built-in mode puts the apps, the settings and the drivers into the image; the answer file and the apps Winhance
+    // installs always wait for setup.
+    public string InImageTagText => _localizationService.GetString("WIMUtil_Tag_InImage");
+    public string DuringSetupTagText => _localizationService.GetString("WIMUtil_Tag_DuringSetup");
+    public string ModeTagText => IsBuiltIntoImage ? InImageTagText : DuringSetupTagText;
+
+    public string CleanupCardTitle => _localizationService.GetString("WIMUtil_Cleanup_Title");
+    public string CleanupCardDescription => _localizationService.GetString("WIMUtil_Cleanup_Description");
+    public string CleanupResetBaseText => _localizationService.GetString("WIMUtil_Cleanup_ResetBase");
+    public string CleanupResetBaseWarning => _localizationService.GetString("WIMUtil_Cleanup_ResetBase_Warning");
+    public string CleanupDownloadedUpdatesText => _localizationService.GetString("WIMUtil_Cleanup_DownloadedUpdates");
+    public string CleanupServicingLogsText => _localizationService.GetString("WIMUtil_Cleanup_ServicingLogs");
+    public string CleanupTempFilesText => _localizationService.GetString("WIMUtil_Cleanup_TempFiles");
+    public string CleanupCrashReportsText => _localizationService.GetString("WIMUtil_Cleanup_CrashReports");
+
+    // All ticked: the cleanup only frees space, and the card shows only when the changes are built in.
+    [ObservableProperty]
+    public partial bool CleanupResetBase { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool CleanupDownloadedUpdates { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool CleanupServicingLogs { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool CleanupTempFiles { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool CleanupCrashReports { get; set; } = true;
+
+    public ImageCleanupOptions CleanupOptions => IsBuiltIntoImage
+        ? new ImageCleanupOptions(CleanupResetBase, CleanupDownloadedUpdates, CleanupServicingLogs, CleanupTempFiles, CleanupCrashReports)
+        : ImageCleanupOptions.None;
 
     public bool AnswerFileBannerOpen => AnswerFileCheck.LastReport is { Findings.Count: > 0 };
 
@@ -186,13 +259,18 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         ? string.Join(Environment.NewLine + Environment.NewLine, AnswerFileReportDialog.Items(report, _localizationService))
         : string.Empty;
 
-    public WizardActionCard ExtractSystemDriversCard => Step3.ExtractSystemDriversCard;
-    public WizardActionCard SelectCustomDriversCard => Step3.SelectCustomDriversCard;
-
-    public WizardActionCard AddWindowsUpdateCard => Step4.AddWindowsUpdateCard;
-
     public bool IsIsoDestination => Step5.IsIsoDestination;
     public bool IsUsbDestination => Step5.IsUsbDestination;
+    public bool IsWimFormat => Step5.IsWimFormat;
+    public bool IsEsdFormat => Step5.IsEsdFormat;
+    public bool CanChooseFormat => Step5.CanChooseFormat;
+
+    // Deleting one of the two image files is offered on step 2 ("Your image").
+    public string? FormatLockedReason(bool canChoose, bool bothExist) => canChoose
+        ? null
+        : bothExist
+            ? string.Format(_localizationService.GetString("WIMUtil_Disabled_FormatBoth"), 2)
+            : _localizationService.GetString("WIMUtil_Disabled_FormatUnknown");
     public WizardActionCard SelectOutputCard => Step5.SelectOutputCard;
     public WizardActionCard SelectUsbCard => Step5.SelectUsbCard;
     public ObservableCollection<RemovableDrive> UsbTargets => Step5.UsbTargets;
@@ -210,6 +288,21 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     }
 
     public ObservableCollection<BootManagerChoice> BootManagerChoices => Step5.BootManagerChoices;
+    public ObservableCollection<WizardActionCard> BuildCards => Step5.BuildCards;
+    public bool HasBuildCards => Step5.HasBuildCards;
+    public bool CanDeleteWorkingFolder => Step5.CanDeleteWorkingFolder;
+
+    public string? DeleteFolderLockedReason(bool canDelete) => canDelete
+        ? null
+        : _localizationService.GetString(WimStep5IsoViewModel.IsWinhanceFolder(WorkingDirectory)
+            ? "WIMUtil_Disabled_IsoInFolder"
+            : "WIMUtil_Disabled_NotWinhanceFolder");
+
+    public bool DeleteWorkingFolderAfterBuild
+    {
+        get => Step5.DeleteWorkingFolderAfterBuild;
+        set => Step5.DeleteWorkingFolderAfterBuild = value;
+    }
 
     public BootManagerChoice? SelectedBootManager
     {
@@ -221,6 +314,8 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     public string BootManagerDescription => Step5.BootManagerDescription;
     public bool IsBootManagerOutdated => Step5.IsBootManagerOutdated;
 
+    public bool NeedsEdition => Step5.NeedsEdition;
+
     public IAsyncRelayCommand SelectWorkingDirectoryCommand => Step1.SelectWorkingDirectoryCommand;
     public IAsyncRelayCommand StartIsoExtractionCommand => Step1.StartIsoExtractionCommand;
     public IAsyncRelayCommand OpenWindows10DownloadCommand => Step1.OpenWindows10DownloadCommand;
@@ -228,13 +323,14 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
 
     public IAsyncRelayCommand DeleteWimCommand => ImageFormat.DeleteWimCommand;
     public IAsyncRelayCommand DeleteEsdCommand => ImageFormat.DeleteEsdCommand;
-    public IAsyncRelayCommand PrepareImageForServicingCommand => ImageFormat.PrepareImageForServicingCommand;
 
-    public IAsyncRelayCommand GenerateWinhanceXmlCommand => Step2.GenerateWinhanceXmlCommand;
-    public IAsyncRelayCommand StartAutounattendSessionCommand => Step2.StartAutounattendSessionCommand;
+    public IAsyncRelayCommand OpenAutounattendCommand => Step2.OpenAutounattendCommand;
     public IAsyncRelayCommand OpenSchneegansXmlGeneratorCommand => Step2.OpenSchneegansXmlGeneratorCommand;
 
     public IAsyncRelayCommand CreateMediaCommand => Step5.CreateMediaCommand;
+    public IAsyncRelayCommand ShowBuildDetailsCommand => Step5.ShowBuildDetailsCommand;
+    public IRelayCommand SelectWimFormatCommand => Step5.SelectWimFormatCommand;
+    public IRelayCommand SelectEsdFormatCommand => Step5.SelectEsdFormatCommand;
     public IRelayCommand SelectIsoDestinationCommand => Step5.SelectIsoDestinationCommand;
     public IAsyncRelayCommand SelectUsbDestinationCommand => Step5.SelectUsbDestinationCommand;
 
@@ -254,7 +350,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         IProcessExecutor processExecutor,
         IFileSystemService fileSystemService,
         IFilePickerService filePickerService,
-        IResourceService resourceService,
         IAnswerFileValidator answerFileValidator,
         IAutounattendReader autounattendReader,
         IApplicationModeService applicationModeService,
@@ -264,50 +359,48 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         ITargetWindowsService targetWindows,
         IWindowsUpdateListService updateListService,
         IWindowsUpdateStager updateStager,
-        IOfflineServicingService offlineServicingService)
+        IOfflineServicingService offlineServicingService,
+        IUserPreferencesService userPreferencesService)
     {
         _localizationService = localizationService;
         _fileSystemService = fileSystemService;
-        _offlineServicingService = offlineServicingService;
+        _session = session;
 
         Step1 = new WimStep1ViewModel(
             isoService, taskProgressService, dialogService,
-            localizationService, fileSystemService, filePickerService, logService,
-            resourceService);
+            localizationService, fileSystemService, filePickerService, logService, userPreferencesService);
 
         ImageFormat = new WimImageFormatViewModel(
-            wimImageService, taskProgressService, dialogService,
-            dispatcherService, localizationService, logService, fileSystemService, autounattendReader, offlineServicingService);
+            wimImageService, dialogService,
+            dispatcherService, localizationService, logService, offlineServicingService);
 
         Step2 = new WimStep2XmlViewModel(
-            saves, wimCustomizationService, selections,
+            wimCustomizationService,
             dialogService, localizationService, fileSystemService, filePickerService, logService,
-            resourceService, answerFileValidator, autounattendReader, applicationModeService, builderModeEntry, dispatcherService,
-            eventBus, AnswerFileCheck, session, wimImageService, targetWindows, taskProgressService);
+            answerFileValidator, autounattendReader, applicationModeService, builderModeEntry, dispatcherService,
+            eventBus, AnswerFileCheck, session, wimImageService, targetWindows);
 
         Step3 = new WimStep3DriversViewModel(
-            wimCustomizationService, taskProgressService, dialogService,
-            localizationService, fileSystemService, filePickerService, logService,
-            resourceService, answerFileValidator, AnswerFileCheck);
+            wimCustomizationService, dialogService,
+            localizationService, fileSystemService, filePickerService, logService);
 
         Step4 = new WimStep4UpdatesViewModel(
-            wimCustomizationService, taskProgressService, dialogService,
-            localizationService, fileSystemService, logService,
-            resourceService, answerFileValidator, AnswerFileCheck,
+            wimCustomizationService, localizationService, logService,
             updateListService, updateStager);
 
         Step5 = new WimStep5IsoViewModel(
             wimCustomizationService, isoService, usbMediaWriter, bootManagerService, taskProgressService, processExecutor,
             dialogService, localizationService, fileSystemService, filePickerService, logService, answerFileValidator, AnswerFileCheck,
-            offlineServicingService);
+            offlineServicingService, saves, selections, session, wimImageService, [Step2, Step3, Step4]);
 
         Step1State = new WizardStepState();
         Step2State = new WizardStepState();
         Step3State = new WizardStepState();
         Step4State = new WizardStepState();
-        Step5State = new WizardStepState();
 
         InitializeStepStates();
+        Steps = [Step1State, Step2State, Step3State, Step4State];
+        SetCurrentStep(1);
 
         _localizationService.LanguageChanged += OnLanguageChanged;
 
@@ -318,8 +411,11 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step4.PropertyChanged += OnSubViewModelPropertyChanged;
         Step5.PropertyChanged += OnSubViewModelPropertyChanged;
         Step5.ImageServiced += OnImageServiced;
+        Step5.ImageFormatChanged += OnImageFormatChanged;
+        Step5.WorkingFilesDeleted += OnWorkingFilesDeleted;
         Step1.MediaReady += OnMediaReady;
         AnswerFileCheck.PropertyChanged += OnAnswerFileCheckChanged;
+        _session.ChangesChanged += OnSessionChangesChanged;
 
         // Propagate Step1's initial WorkingDirectory to sub-VMs.
         // The constructor assignment above fires before subscriptions,
@@ -337,7 +433,15 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     {
         UpdateStepStates();
         RefreshStepExpansion();
+        _ = Step2.JoinSessionAsync();
     }
+
+    // With both files on the media there is no one current format, and step 2 already warns about it.
+    private string? CurrentFormatText() =>
+        ImageFormat is { BothFormatsExist: false, CurrentImageFormat: { FileSizeBytes: > 0 } image }
+            ? _localizationService.GetString("WIMUtil_Format_Current", WimStep5IsoViewModel.FormatName(image.Format),
+                WimImageFormatViewModel.FormatFileSize(image.FileSizeBytes))
+            : null;
 
     [RelayCommand]
     private void NavigateToStep(string? stepParameter)
@@ -347,8 +451,28 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         var state = GetStepState(targetStep);
         if (state is null || !IsStepAvailable(targetStep)) return;
 
-        // Steps toggle independently — collapsing one leaves the others as-is.
+        // Steps toggle independently: collapsing one leaves the others as-is. An opened step takes the rail's
+        // ring, since opening a step low on the page scrolls nothing.
         state.IsExpanded = !state.IsExpanded;
+        if (state.IsExpanded)
+            SetCurrentStep(targetStep);
+    }
+
+    public void SetCurrentStep(int step)
+    {
+        foreach (var state in Steps)
+            state.IsCurrent = state.StepNumber == step;
+    }
+
+    // The rail opens a collapsed step so the jump lands on content; a locked step stays shut.
+    public bool ShowStep(int step)
+    {
+        var state = GetStepState(step);
+        if (state is null || !IsStepAvailable(step)) return false;
+
+        state.IsExpanded = true;
+        SetCurrentStep(step);
+        return true;
     }
 
     private WizardStepState? GetStepState(int step) => step switch
@@ -357,29 +481,27 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         2 => Step2State,
         3 => Step3State,
         4 => Step4State,
-        5 => Step5State,
         _ => null
     };
 
     private bool IsStepAvailable(int step) => step switch
     {
         1 => !IsImageLocked,
-        2 or 3 or 4 or 5 => Step1.IsExtractionComplete && !IsImageBeingRewritten,
+        2 or 3 => Step1.IsExtractionComplete && !IsImageLocked,
+        4 => Step1.IsExtractionComplete,
         _ => false
     };
 
-    private bool IsImageBeingRewritten => ImageFormat.IsConverting || Step2.IsRemovingEditions;
-
-    // Removing editions rewrites install.wim and creating media reads or services it, so Step 1 cannot touch it meanwhile.
-    private bool IsImageLocked => Step2.IsRemovingEditions || Step5.IsCreatingMedia;
+    // Creating media reads, services and trims install.wim, so Step 1 cannot touch it meanwhile.
+    private bool IsImageLocked => Step5.IsCreatingMedia;
 
     private void InitializeStepStates()
     {
         Step1State = new WizardStepState
         {
             StepNumber = 1,
-            Title = _localizationService.GetStringOrDefault("WIMUtil_Step1_Title", "Select Windows ISO"),
-            Icon = "DiscPlayer",
+            Glyph = "\uE958", // CD, in Segoe Fluent Icons
+            HasNextStep = true,
             StatusText = _localizationService.GetString("WIMUtil_Status_NoIsoSelected"),
             IsExpanded = true,
             IsAvailable = true
@@ -388,32 +510,23 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step2State = new WizardStepState
         {
             StepNumber = 2,
-            Title = _localizationService.GetStringOrDefault("WIMUtil_Step2_Title", "Add XML File"),
-            Icon = "FileCode",
+            Icon = FluentIcons.Common.Icon.WrenchScrewdriver,
+            HasNextStep = true,
             StatusText = _localizationService.GetString("WIMUtil_Status_CompleteStep1")
         };
 
         Step3State = new WizardStepState
         {
             StepNumber = 3,
-            Title = _localizationService.GetStringOrDefault("WIMUtil_Step3_Title", "Extract and Add Drivers"),
-            Icon = "Chip",
+            Icon = FluentIcons.Common.Icon.Options,
+            HasNextStep = true,
             StatusText = _localizationService.GetString("WIMUtil_Status_CompleteStep1")
         };
 
         Step4State = new WizardStepState
         {
             StepNumber = 4,
-            Title = _localizationService.GetStringOrDefault("WIMUtil_Step4_Title", "Add Windows Update"),
-            Icon = "ArrowSync",
-            StatusText = _localizationService.GetString("WIMUtil_Status_CompleteStep1")
-        };
-
-        Step5State = new WizardStepState
-        {
-            StepNumber = 5,
-            Title = _localizationService.GetStringOrDefault("WIMUtil_Step5_Title", "Create New ISO"),
-            Icon = "WrenchClock",
+            Icon = FluentIcons.Common.Icon.Rocket,
             StatusText = _localizationService.GetString("WIMUtil_Status_CompleteStep1")
         };
     }
@@ -421,67 +534,49 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
     private void UpdateStepStates()
     {
         var extractionComplete = Step1.IsExtractionComplete;
-        var isConverting = ImageFormat.IsConverting;
-        var imageBusy = IsImageBeingRewritten;
-        var busyStatus = isConverting
-            ? _localizationService.GetString("WIMUtil_Status_WaitForConversion")
-            : _localizationService.GetString("WIMUtil_Status_RemovingEditions");
         var isExtracting = Step1.IsExtracting;
         var driversAddedKey = IsBuiltIntoImage ? "WIMUtil_Status_DriversReadyForImage" : "WIMUtil_Status_DriversAdded";
         var updateAddedKey = IsBuiltIntoImage ? "WIMUtil_Status_UpdateReadyForImage" : "WIMUtil_Status_UpdateAdded";
+        var toUsb = Step5.IsUsbDestination;
+
+        SetStepTitle(Step1State, "WIMUtil_Step1_Title");
+        SetStepTitle(Step2State, "WIMUtil_Step2_Title");
+        SetStepTitle(Step3State, "WIMUtil_Step3_Title");
+        SetStepTitle(Step4State, toUsb ? "WIMUtil_ButtonWriteUsb" : "WIMUtil_Step4_Title");
+        Step4State.Icon = toUsb ? FluentIcons.Common.Icon.UsbStick : FluentIcons.Common.Icon.Rocket;
 
         Step1State.IsAvailable = !IsImageLocked;
-        Step1State.IsComplete = extractionComplete && !imageBusy;
-        Step1State.StatusText = isConverting
-            ? _localizationService.GetString("WIMUtil_Status_Converting")
-            : imageBusy
-                ? busyStatus
-                : extractionComplete
-                    ? _localizationService.GetString("WIMUtil_Status_IsoExtracted")
-                    : isExtracting
-                        ? _localizationService.GetString("WIMUtil_Status_Extracting")
-                        : !string.IsNullOrEmpty(Step1.SelectedIsoPath)
-                            ? _localizationService.GetString("WIMUtil_Status_IsoSelected")
-                            : _localizationService.GetString("WIMUtil_Status_NoIsoSelected");
+        Step1State.IsComplete = extractionComplete;
+        Step1State.StatusText = extractionComplete
+            ? _localizationService.GetString("WIMUtil_Status_IsoExtracted")
+            : isExtracting
+                ? _localizationService.GetString("WIMUtil_Status_Extracting")
+                : !string.IsNullOrEmpty(Step1.SelectedIsoPath)
+                    ? _localizationService.GetString("WIMUtil_Status_IsoSelected")
+                    : _localizationService.GetString("WIMUtil_Status_NoIsoSelected");
 
-        Step2State.IsAvailable = extractionComplete && !imageBusy;
-        Step2State.IsComplete = Step2.IsXmlAdded;
-        Step2State.StatusText = imageBusy
-            ? busyStatus
-            : !extractionComplete
-                ? _localizationService.GetString("WIMUtil_Status_CompleteStep1")
-                : Step2.IsXmlAdded
-                    ? Step2StatusText()
-                    : _localizationService.GetString("WIMUtil_Status_NoXmlAdded");
+        // A tick on steps 2 and 3 means the user chose something there. Create does the work. A locked step shows
+        // none: a Builder answer file or Builder changes are chosen before any ISO is.
+        Step2State.IsAvailable = extractionComplete && !IsImageLocked;
+        Step2State.IsComplete = extractionComplete && Step2.Choice != AnswerFileChoice.None;
+        Step2State.StatusText = !extractionComplete
+            ? _localizationService.GetString("WIMUtil_Status_CompleteStep1")
+            : Step2StatusText();
 
-        Step3State.IsAvailable = extractionComplete && !imageBusy;
-        Step3State.IsComplete = Step3.AreDriversAdded;
-        Step3State.StatusText = imageBusy
-            ? busyStatus
-            : !extractionComplete
-                ? _localizationService.GetString("WIMUtil_Status_CompleteStep1")
-                : Step3.AreDriversAdded
-                    ? _localizationService.GetString(driversAddedKey)
-                    : _localizationService.GetString("WIMUtil_Status_NoDriversAdded");
+        Step3State.IsAvailable = extractionComplete && !IsImageLocked;
+        Step3State.IsComplete = extractionComplete && (Step3.HasDriverChoice || Step4.AddUpdate || HasSelectedChanges);
+        Step3State.StatusText = !extractionComplete
+            ? _localizationService.GetString("WIMUtil_Status_CompleteStep1")
+            : ChangesStatusText(driversAddedKey, updateAddedKey);
 
-        Step4State.IsAvailable = extractionComplete && !imageBusy;
-        Step4State.IsComplete = Step4.IsUpdateAdded;
-        Step4State.StatusText = imageBusy
-            ? busyStatus
-            : !extractionComplete
-                ? _localizationService.GetString("WIMUtil_Status_CompleteStep1")
-                : Step4.IsUpdateAdded
-                    ? _localizationService.GetString(updateAddedKey)
-                    : _localizationService.GetString("WIMUtil_Status_NoUpdateAdded");
-
-        Step5State.IsAvailable = extractionComplete && !imageBusy;
-        Step5State.IsComplete = Step5.IsIsoCreated;
-        Step5State.StatusText = imageBusy
-            ? busyStatus
-            : !extractionComplete
-                ? _localizationService.GetString("WIMUtil_Status_CompleteStep1")
-                : Step5.IsIsoCreated
-                    ? _localizationService.GetString("WIMUtil_Status_IsoCreated")
+        Step4State.IsAvailable = extractionComplete;
+        Step4State.IsComplete = Step5.IsIsoCreated;
+        Step4State.StatusText = !extractionComplete
+            ? _localizationService.GetString("WIMUtil_Status_CompleteStep1")
+            : Step5.IsIsoCreated
+                ? _localizationService.GetString(toUsb ? "WIMUtil_Desc_UsbWriteSuccess" : "WIMUtil_Status_IsoCreated")
+                : toUsb
+                    ? _localizationService.GetString(Step5.SelectedUsbTarget is null ? "WIMUtil_Label_NoUsbSelected" : "WIMUtil_Status_ReadyToWriteUsb")
                     : !string.IsNullOrEmpty(Step5.OutputIsoPath)
                         ? $"{_localizationService.GetString("WIMUtil_Label_Output")}: {_fileSystemService.GetFileName(Step5.OutputIsoPath)}"
                         : _localizationService.GetString("WIMUtil_Status_ReadyToCreateIso");
@@ -490,19 +585,60 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(Step2State));
         OnPropertyChanged(nameof(Step3State));
         OnPropertyChanged(nameof(Step4State));
-        OnPropertyChanged(nameof(Step5State));
     }
 
-    // Steps 3, 4 and 5 re-check the same file, so the header reads the shared verdict rather than
-    // step 2's own wording -- but only when the report is about the copy on the media. A refused
-    // file's report describes something Setup will never see; it belongs to the banner alone.
-    private string Step2StatusText() =>
-        AnswerFileCheck.LastReport is { } report
-        && AnswerFileCheck.Subject == _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml")
-            ? AnswerFileReportDialog.Verdict(report, _localizationService)
-            : Step2.XmlStatus;
+    private void OnSessionChangesChanged(object? sender, EventArgs e) => UpdateStepStates();
 
-    // Once the ISO is extracted, steps 2-5 expand so the user sees every remaining task; step 1 stays as
+    // The counts describe the Winhance answer file, so they only apply while its summary cards show.
+    private bool HasSelectedChanges =>
+        ShowsSummaryCards && _session.Changes is { } changes
+        && (changes.RemovedApps > 0 || changes.InstalledApps > 0 || changes.Settings > 0);
+
+    private string ChangesStatusText(string driversAddedKey, string updateAddedKey)
+    {
+        var added = new List<string>();
+        if (ShowsSummaryCards)
+        {
+            var changes = _session.Changes;
+            AddCount(added, changes.RemovedApps, "Autounattend_Included_WindowsApps_One", "Autounattend_Included_WindowsApps");
+            AddCount(added, changes.InstalledApps, "Autounattend_Included_ExternalApps_One", "Autounattend_Included_ExternalApps");
+            AddCount(added, changes.Settings, "Autounattend_Included_Settings_One", "Autounattend_Included_Settings");
+        }
+        if (Step3.HasDriverChoice)
+            added.Add(_localizationService.GetString(driversAddedKey));
+        if (Step4.AddUpdate)
+            added.Add(_localizationService.GetString(updateAddedKey));
+        return added.Count > 0
+            ? string.Join(", ", added)
+            : _localizationService.GetString("WIMUtil_Status_NoChangesAdded");
+    }
+
+    private void AddCount(List<string> added, int count, string oneKey, string manyKey)
+    {
+        if (count > 0)
+            added.Add(count == 1 ? _localizationService.GetString(oneKey, count) : _localizationService.GetString(manyKey, count));
+    }
+
+    private void SetStepTitle(WizardStepState step, string titleKey)
+    {
+        step.Title = _localizationService.GetString(titleKey);
+        step.AccessibleName = _localizationService.GetString("WIMUtil_Step_Header", step.StepNumber, step.Title);
+    }
+
+    // The header reads the shared verdict on the file step 2 holds rather than step 2's own wording. A refused
+    // file's report describes something Setup will never see; it belongs to the banner alone.
+    private string Step2StatusText() => Step2.Choice switch
+    {
+        AnswerFileChoice.Builder => _localizationService.GetString("WIMUtil_Status_AnswerFileBuilder"),
+        AnswerFileChoice.OwnXml => AnswerFileCheck.LastReport is { } report
+            && (AnswerFileCheck.Subject == Step2.SelectedXmlPath
+                || AnswerFileCheck.Subject == _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml"))
+                ? AnswerFileReportDialog.Verdict(report, _localizationService)
+                : Step2.XmlStatus,
+        _ => _localizationService.GetString("WIMUtil_Status_NoXmlAdded"),
+    };
+
+    // Once the ISO is extracted, steps 2-4 expand so the user sees every remaining task; step 1 stays as
     // is. Applied once per completed extraction; restarting extraction resets it.
     private void RefreshStepExpansion()
     {
@@ -514,7 +650,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
             Step2State.IsExpanded = true;
             Step3State.IsExpanded = true;
             Step4State.IsExpanded = true;
-            Step5State.IsExpanded = true;
         }
         else
         {
@@ -524,7 +659,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
             Step2State.IsExpanded = false;
             Step3State.IsExpanded = false;
             Step4State.IsExpanded = false;
-            Step5State.IsExpanded = false;
         }
     }
 
@@ -560,14 +694,11 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         }
 
         if (sender == Step5 && e.PropertyName == nameof(WimStep5IsoViewModel.IsCreatingMedia))
-            ImageFormat.IsImageLocked = IsImageLocked;
-
-        if (sender == Step2 && e.PropertyName == nameof(WimStep2XmlViewModel.IsRemovingEditions))
         {
             ImageFormat.IsImageLocked = IsImageLocked;
 
-            // The convert card names the image's size, which removing editions changes.
-            if (!Step2.IsRemovingEditions)
+            // The format and sizes shown come from the image, which building the media can change.
+            if (!Step5.IsCreatingMedia)
                 _ = ImageFormat.SafeDetectImageFormatAsync();
         }
 
@@ -584,9 +715,10 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
             {
                 case nameof(WimStep1ViewModel.WorkingDirectory):
                     OnPropertyChanged(nameof(WorkingDirectory));
-                    OnPropertyChanged(nameof(ShowServicingTimeNote));
                     break;
                 case nameof(WimStep1ViewModel.CanStartExtraction): OnPropertyChanged(nameof(CanStartExtraction)); break;
+                case nameof(WimStep1ViewModel.ShowSpaceWarning): OnPropertyChanged(nameof(ShowWorkingDirectorySpaceWarning)); break;
+                case nameof(WimStep1ViewModel.SpaceWarningText): OnPropertyChanged(nameof(WorkingDirectorySpaceWarningText)); break;
                 case nameof(WimStep1ViewModel.HasExtractedIsoAlready): OnPropertyChanged(nameof(HasExtractedIsoAlready)); break;
             }
         }
@@ -596,34 +728,32 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
             {
                 case nameof(WimImageFormatViewModel.CurrentImageFormat):
                     OnPropertyChanged(nameof(EditionChoices));
+                    OnPropertyChanged(nameof(FormatCardDescription));
                     _ = Step4.SetMediaAsync(ImageFormat.CurrentImageFormat);
+                    PushMediaFormat();
                     break;
                 case nameof(WimImageFormatViewModel.ShowConversionCard):
                     OnPropertyChanged(nameof(ShowConversionCard));
                     OnPropertyChanged(nameof(ShowEditionCard));
                     break;
-                case nameof(WimImageFormatViewModel.IsConverting): OnPropertyChanged(nameof(CanChangeServicing)); break;
                 case nameof(WimImageFormatViewModel.BothFormatsExist):
                     OnPropertyChanged(nameof(BothFormatsExist));
-                    OnPropertyChanged(nameof(ShowConvertImageCard));
-                    OnPropertyChanged(nameof(ShowOptionalConvertText));
+                    OnPropertyChanged(nameof(FormatCardDescription));
+                    PushMediaFormat();
                     break;
-                case nameof(WimImageFormatViewModel.SelectedServicing): OnPropertyChanged(nameof(SelectedServicing)); break;
-                case nameof(WimImageFormatViewModel.SelectedEdition): OnPropertyChanged(nameof(SelectedEdition)); break;
-                case nameof(WimImageFormatViewModel.ShowHostDismWarning): OnPropertyChanged(nameof(ShowHostDismWarning)); break;
+                case nameof(WimImageFormatViewModel.SelectedEdition):
+                    PushBuildChoices();
+                    OnPropertyChanged(nameof(SelectedEdition));
+                    break;
                 case nameof(WimImageFormatViewModel.ShowMountFolderWarning): OnPropertyChanged(nameof(ShowMountFolderWarning)); break;
                 case nameof(WimImageFormatViewModel.IsBuiltIntoImage):
                     PushServicingMode();
                     OnPropertyChanged(nameof(IsBuiltIntoImage));
+                    OnPropertyChanged(nameof(IsDuringSetup));
                     OnPropertyChanged(nameof(ShowEditionCard));
-                    OnPropertyChanged(nameof(ShowConvertImageCard));
-                    OnPropertyChanged(nameof(ShowOptionalConvertText));
-                    OnPropertyChanged(nameof(ServicingCardDescription));
-                    OnPropertyChanged(nameof(ShowServicingTimeNote));
-                    break;
-                case nameof(WimImageFormatViewModel.IsImageReadyForServicing):
-                    PushServicingMode();
-                    OnPropertyChanged(nameof(EditionCardDescription));
+                    OnPropertyChanged(nameof(ShowsCleanupCard));
+                    OnPropertyChanged(nameof(ModeTagText));
+                    OnPropertyChanged(nameof(CleanupOptions));
                     break;
                 case nameof(WimImageFormatViewModel.WimFileSize): OnPropertyChanged(nameof(WimFileSize)); break;
                 case nameof(WimImageFormatViewModel.EsdFileSize): OnPropertyChanged(nameof(EsdFileSize)); break;
@@ -633,22 +763,24 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         {
             switch (e.PropertyName)
             {
-                case nameof(WimStep2XmlViewModel.IsAutounattendSession): OnPropertyChanged(nameof(IsAutounattendSession)); break;
-                case nameof(WimStep2XmlViewModel.IsRemovingEditions): OnPropertyChanged(nameof(CanChangeServicing)); break;
-            }
-        }
-        else if (sender == Step3)
-        {
-            switch (e.PropertyName)
-            {
-                case nameof(WimStep3DriversViewModel.AreDriversAdded): OnPropertyChanged(nameof(ShowServicingTimeNote)); break;
-            }
-        }
-        else if (sender == Step4)
-        {
-            switch (e.PropertyName)
-            {
-                case nameof(WimStep4UpdatesViewModel.IsUpdateAdded): OnPropertyChanged(nameof(ShowServicingTimeNote)); break;
+                case nameof(WimStep2XmlViewModel.IsAutounattendSession):
+                    PushBuildChoices();
+                    OnPropertyChanged(nameof(IsAutounattendSession));
+                    break;
+                case nameof(WimStep2XmlViewModel.Choice):
+                    PushBuildChoices();
+                    OnPropertyChanged(nameof(ShowsSummaryCards));
+                    OnPropertyChanged(nameof(ShowsAnswerFileCard));
+                    break;
+                case nameof(WimStep2XmlViewModel.UsesOwnAnswerFile):
+                    OnPropertyChanged(nameof(UsesOwnAnswerFile));
+                    OnPropertyChanged(nameof(AnswerFileCardTitle));
+                    OnPropertyChanged(nameof(AnswerFileCardDescription));
+                    break;
+                case nameof(WimStep2XmlViewModel.OwnAnswerFileName):
+                    OnPropertyChanged(nameof(OwnAnswerFileName));
+                    OnPropertyChanged(nameof(AnswerFileCardTitle));
+                    break;
             }
         }
         else if (sender == Step5)
@@ -661,7 +793,14 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
                 case nameof(WimStep5IsoViewModel.ShowBootManagerChoice): OnPropertyChanged(nameof(ShowBootManagerChoice)); break;
                 case nameof(WimStep5IsoViewModel.BootManagerDescription): OnPropertyChanged(nameof(BootManagerDescription)); break;
                 case nameof(WimStep5IsoViewModel.IsBootManagerOutdated): OnPropertyChanged(nameof(IsBootManagerOutdated)); break;
+                case nameof(WimStep5IsoViewModel.NeedsEdition): OnPropertyChanged(nameof(NeedsEdition)); break;
                 case nameof(WimStep5IsoViewModel.IsCreatingMedia): OnPropertyChanged(nameof(CanChangeServicing)); break;
+                case nameof(WimStep5IsoViewModel.HasBuildCards): OnPropertyChanged(nameof(HasBuildCards)); break;
+                case nameof(WimStep5IsoViewModel.DeleteWorkingFolderAfterBuild): OnPropertyChanged(nameof(DeleteWorkingFolderAfterBuild)); break;
+                case nameof(WimStep5IsoViewModel.CanDeleteWorkingFolder): OnPropertyChanged(nameof(CanDeleteWorkingFolder)); break;
+                case nameof(WimStep5IsoViewModel.IsWimFormat): OnPropertyChanged(nameof(IsWimFormat)); break;
+                case nameof(WimStep5IsoViewModel.IsEsdFormat): OnPropertyChanged(nameof(IsEsdFormat)); break;
+                case nameof(WimStep5IsoViewModel.CanChooseFormat): OnPropertyChanged(nameof(CanChooseFormat)); break;
                 case nameof(WimStep5IsoViewModel.IsUsbDestination):
                     OnPropertyChanged(nameof(IsIsoDestination));
                     OnPropertyChanged(nameof(IsUsbDestination));
@@ -671,24 +810,49 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         }
     }
 
-    // Steps 2-5 read the Step 1 mode; Step 5 also needs to know the image is in a shape it can service.
+    // Steps 2-4 read the mode chosen in step 2; the session carries it to the Unattend page.
     private void PushServicingMode()
     {
         var builtIn = ImageFormat.IsBuiltIntoImage;
-        Step2.IsBuiltIntoImage = builtIn;
+        _session.BuiltIntoImage = builtIn;
         Step3.IsBuiltIntoImage = builtIn;
         Step4.IsBuiltIntoImage = builtIn;
         Step5.IsBuiltIntoImage = builtIn;
-        Step5.IsReadyForServicing = ImageFormat.IsImageReadyForServicing;
+        PushBuildChoices();
     }
 
-    // Servicing tidied what it built in out of the media folder, so Steps 3 and 4 no longer hold it.
+    // Create reads these from step 5, which cannot see the cards and the image the facade holds.
+    private void PushBuildChoices()
+    {
+        Step5.Cleanup = CleanupOptions;
+        Step5.EditionIndex = ImageFormat.SelectedEdition?.Index;
+        Step5.WritesAnswerFile = IsAutounattendSession && Step2.Choice == AnswerFileChoice.Builder;
+    }
+
+    // The output format follows the media's own until the user picks one.
+    private void PushMediaFormat() =>
+        Step5.ShowMediaFormat(ImageFormat.CurrentImageFormat?.Format, ImageFormat.BothFormatsExist);
+
+    partial void OnCleanupResetBaseChanged(bool value) => PushBuildChoices();
+
+    partial void OnCleanupDownloadedUpdatesChanged(bool value) => PushBuildChoices();
+
+    partial void OnCleanupServicingLogsChanged(bool value) => PushBuildChoices();
+
+    partial void OnCleanupTempFilesChanged(bool value) => PushBuildChoices();
+
+    partial void OnCleanupCrashReportsChanged(bool value) => PushBuildChoices();
+
+    // Servicing tidied what it built in out of the media folder, so the drivers and update choices no longer hold it.
     private void OnImageServiced(object? sender, OfflineServicingResult result)
     {
-        Step3.RefreshDriversAdded();
+        Step3.PickUpMedia();
         Step4.ShowUpdateState();
-        OnPropertyChanged(nameof(ShowServicingTimeNote));
     }
+
+    private void OnImageFormatChanged(object? sender, EventArgs e) => _ = ImageFormat.SafeDetectImageFormatAsync();
+
+    private void OnWorkingFilesDeleted(object? sender, EventArgs e) => Step1.ResetAfterWorkingFilesDeleted();
 
     private void OnAnswerFileCheckChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -702,12 +866,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        Step1State.Title = _localizationService.GetStringOrDefault("WIMUtil_Step1_Title", "Select Windows ISO");
-        Step2State.Title = _localizationService.GetStringOrDefault("WIMUtil_Step2_Title", "Add XML File");
-        Step3State.Title = _localizationService.GetStringOrDefault("WIMUtil_Step3_Title", "Extract and Add Drivers");
-        Step4State.Title = _localizationService.GetStringOrDefault("WIMUtil_Step4_Title", "Add Windows Update");
-        Step5State.Title = _localizationService.GetStringOrDefault("WIMUtil_Step5_Title", "Create New ISO");
-        ImageFormat.RefreshLocalizedText();
         UpdateStepStates();
 
         OnPropertyChanged(nameof(Title));
@@ -715,7 +873,6 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(CheckboxExtractedAlreadyText));
         OnPropertyChanged(nameof(ButtonSelectFolderText));
         OnPropertyChanged(nameof(ButtonStartExtractionText));
-        OnPropertyChanged(nameof(OptionalConvertText));
         OnPropertyChanged(nameof(BothImagesTitle));
         OnPropertyChanged(nameof(BothImagesDescription));
         OnPropertyChanged(nameof(ButtonDeleteWimText));
@@ -725,13 +882,27 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ButtonWindows11Text));
         OnPropertyChanged(nameof(TooltipDownloadWindows10));
         OnPropertyChanged(nameof(TooltipDownloadWindows11));
-        OnPropertyChanged(nameof(SelectOneOptionText));
-        OnPropertyChanged(nameof(ButtonGenerateText));
-        OnPropertyChanged(nameof(StartButtonText));
+        OnPropertyChanged(nameof(AnswerFileCardTitle));
+        OnPropertyChanged(nameof(AnswerFileCardDescription));
+        OnPropertyChanged(nameof(ChangeInAutounattendText));
+        OnPropertyChanged(nameof(DriversHeadingText));
+        OnPropertyChanged(nameof(InImageTagText));
+        OnPropertyChanged(nameof(DuringSetupTagText));
+        OnPropertyChanged(nameof(ModeTagText));
+        OnPropertyChanged(nameof(CleanupCardTitle));
+        OnPropertyChanged(nameof(CleanupCardDescription));
+        OnPropertyChanged(nameof(CleanupResetBaseText));
+        OnPropertyChanged(nameof(CleanupResetBaseWarning));
+        OnPropertyChanged(nameof(CleanupDownloadedUpdatesText));
+        OnPropertyChanged(nameof(CleanupServicingLogsText));
+        OnPropertyChanged(nameof(CleanupTempFilesText));
+        OnPropertyChanged(nameof(CleanupCrashReportsText));
         OnPropertyChanged(nameof(GenerateXmlFilesText));
         OnPropertyChanged(nameof(ButtonSchneegansText));
         OnPropertyChanged(nameof(TooltipSchneegans));
         OnPropertyChanged(nameof(ButtonCreateMediaText));
+        OnPropertyChanged(nameof(ShowBuildDetailsText));
+        OnPropertyChanged(nameof(DeleteWorkingFolderText));
         OnPropertyChanged(nameof(DestinationCardTitle));
         OnPropertyChanged(nameof(DestinationCardDescription));
         OnPropertyChanged(nameof(DestinationIsoText));
@@ -743,16 +914,39 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(BootManagerCardTitle));
         OnPropertyChanged(nameof(BootManagerOutdatedText));
         OnPropertyChanged(nameof(ServicingCardTitle));
-        OnPropertyChanged(nameof(ServicingCardDescription));
+        OnPropertyChanged(nameof(StepRailName));
+        OnPropertyChanged(nameof(DuringSetupTitle));
+        OnPropertyChanged(nameof(DuringSetupDescription));
+        OnPropertyChanged(nameof(BuiltIntoImageTitle));
+        OnPropertyChanged(nameof(BuiltIntoImageDescription));
+        OnPropertyChanged(nameof(YourImageHeadingText));
         OnPropertyChanged(nameof(EditionCardTitle));
         OnPropertyChanged(nameof(EditionCardDescription));
-        OnPropertyChanged(nameof(PrepareServicingButtonText));
-        OnPropertyChanged(nameof(HostDismWarningText));
         OnPropertyChanged(nameof(MountFolderWarningText));
-        OnPropertyChanged(nameof(ServicingTimeText));
+        OnPropertyChanged(nameof(NeedsEditionText));
         OnPropertyChanged(nameof(AnswerFileBannerTitle));
         OnPropertyChanged(nameof(AnswerFileBannerSummary));
         OnPropertyChanged(nameof(AnswerFileBannerMessage));
+        OnPropertyChanged(nameof(AnswerFileChoiceTitle));
+        OnPropertyChanged(nameof(AnswerFileChoiceDescription));
+        OnPropertyChanged(nameof(AnswerFileBuilderText));
+        OnPropertyChanged(nameof(AnswerFileOwnXmlText));
+        OnPropertyChanged(nameof(AnswerFileBuilderDescription));
+        OnPropertyChanged(nameof(AnswerFileOwnXmlDescription));
+        OnPropertyChanged(nameof(MediaAnswerFileText));
+        OnPropertyChanged(nameof(DeleteMediaAnswerFileText));
+        OnPropertyChanged(nameof(ChangeFileText));
+        OnPropertyChanged(nameof(AddSystemDriversText));
+        OnPropertyChanged(nameof(AddFolderDriversText));
+        OnPropertyChanged(nameof(ChooseFolderText));
+        OnPropertyChanged(nameof(RemoveDriversFolderText));
+        OnPropertyChanged(nameof(AddUpdateText));
+        OnPropertyChanged(nameof(FormatCardTitle));
+        OnPropertyChanged(nameof(FormatCardDescription));
+        OnPropertyChanged(nameof(FormatWimText));
+        OnPropertyChanged(nameof(FormatEsdText));
+        Step3.RefreshText();
+        Step4.ShowDescription();
     }
 
     public void Dispose()
@@ -769,12 +963,13 @@ public partial class WimUtilViewModel : ObservableObject, IDisposable
         Step4.PropertyChanged -= OnSubViewModelPropertyChanged;
         Step5.PropertyChanged -= OnSubViewModelPropertyChanged;
         Step5.ImageServiced -= OnImageServiced;
+        Step5.ImageFormatChanged -= OnImageFormatChanged;
+        Step5.WorkingFilesDeleted -= OnWorkingFilesDeleted;
         Step1.MediaReady -= OnMediaReady;
         AnswerFileCheck.PropertyChanged -= OnAnswerFileCheckChanged;
+        _session.ChangesChanged -= OnSessionChangesChanged;
 
         (Step2 as IDisposable)?.Dispose();
-        (Step3 as IDisposable)?.Dispose();
-        (Step4 as IDisposable)?.Dispose();
         (ImageFormat as IDisposable)?.Dispose();
         GC.SuppressFinalize(this);
     }

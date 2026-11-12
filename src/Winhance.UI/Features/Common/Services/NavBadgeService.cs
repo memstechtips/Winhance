@@ -6,45 +6,32 @@ using Winhance.UI.Features.SoftwareApps.ViewModels;
 
 namespace Winhance.UI.Features.Common.Services;
 
-public class NavBadgeService : INavBadgeService
+public class NavBadgeService(
+    IConfigReviewModeService modeService,
+    IConfigReviewBadgeService badgeService,
+    WindowsAppsViewModel windowsAppsVm,
+    ExternalAppsViewModel externalAppsVm) : INavBadgeService
 {
-    private readonly IConfigReviewModeService _modeService;
-    private readonly IConfigReviewBadgeService _badgeService;
-    private readonly WindowsAppsViewModel _windowsAppsVm;
-    private readonly ExternalAppsViewModel _externalAppsVm;
-
     private Action? _onChanged;
 
-    public NavBadgeService(
-        IConfigReviewModeService modeService,
-        IConfigReviewBadgeService badgeService,
-        WindowsAppsViewModel windowsAppsVm,
-        ExternalAppsViewModel externalAppsVm)
-    {
-        _modeService = modeService;
-        _badgeService = badgeService;
-        _windowsAppsVm = windowsAppsVm;
-        _externalAppsVm = externalAppsVm;
-    }
-
-    public bool IsSoftwareAppsBadgeSubscribed { get; private set; }
+    private bool _isSoftwareAppsBadgeSubscribed;
 
     public IReadOnlyList<NavBadgeUpdate> ComputeNavBadges()
     {
         var results = new List<NavBadgeUpdate>();
 
-        if (!_modeService.IsInReviewMode)
+        if (!modeService.IsInReviewMode)
             return results;
 
         foreach (var tag in new[] { "SoftwareApps", "Optimize", "Customize" })
         {
-            var count = tag == "SoftwareApps" && IsSoftwareAppsBadgeSubscribed
+            var count = tag == "SoftwareApps" && _isSoftwareAppsBadgeSubscribed
                 ? GetSoftwareAppsSelectedCount()
-                : _badgeService.GetNavBadgeCount(tag);
+                : badgeService.GetNavBadgeCount(tag);
 
             if (count > 0)
             {
-                if (_badgeService.IsSectionFullyReviewed(tag))
+                if (badgeService.IsSectionFullyReviewed(tag))
                     results.Add(new NavBadgeUpdate(tag, -1, "SuccessIcon"));
                 else
                     results.Add(new NavBadgeUpdate(tag, count, "Attention"));
@@ -53,10 +40,10 @@ public class NavBadgeService : INavBadgeService
             {
                 bool sectionInConfig = tag switch
                 {
-                    "SoftwareApps" => _badgeService.IsFeatureInConfig(FeatureIds.WindowsApps)
-                                   || _badgeService.IsFeatureInConfig(FeatureIds.ExternalApps),
-                    "Optimize" => FeatureDefinitions.OptimizeFeatures.Any(f => _badgeService.IsFeatureInConfig(f)),
-                    "Customize" => FeatureDefinitions.CustomizeFeatures.Any(f => _badgeService.IsFeatureInConfig(f)),
+                    "SoftwareApps" => badgeService.IsFeatureInConfig(FeatureIds.WindowsApps)
+                                   || badgeService.IsFeatureInConfig(FeatureIds.ExternalApps),
+                    "Optimize" => FeatureDefinitions.OptimizeFeatures.Any(f => badgeService.IsFeatureInConfig(f)),
+                    "Customize" => FeatureDefinitions.CustomizeFeatures.Any(f => badgeService.IsFeatureInConfig(f)),
                     _ => false
                 };
 
@@ -69,40 +56,40 @@ public class NavBadgeService : INavBadgeService
         return results;
     }
 
-    public int GetSoftwareAppsSelectedCount()
+    private int GetSoftwareAppsSelectedCount()
     {
         int count = 0;
-        if (_windowsAppsVm.Items != null)
-            count += _windowsAppsVm.Items.Count(a => a.IsSelected);
-        if (_externalAppsVm.Items != null)
-            count += _externalAppsVm.Items.Count(a => a.IsSelected);
+        if (windowsAppsVm.Items != null)
+            count += windowsAppsVm.Items.Count(a => a.IsSelected);
+        if (externalAppsVm.Items != null)
+            count += externalAppsVm.Items.Count(a => a.IsSelected);
         return count;
     }
 
     public void SubscribeToSoftwareAppsChanges(Action onChanged)
     {
-        if (IsSoftwareAppsBadgeSubscribed) return;
+        if (_isSoftwareAppsBadgeSubscribed) return;
 
         _onChanged = onChanged;
-        _windowsAppsVm.PropertyChanged += OnSoftwareAppsPropertyChanged;
-        _externalAppsVm.PropertyChanged += OnSoftwareAppsPropertyChanged;
-        IsSoftwareAppsBadgeSubscribed = true;
+        windowsAppsVm.PropertyChanged += OnSoftwareAppsPropertyChanged;
+        externalAppsVm.PropertyChanged += OnSoftwareAppsPropertyChanged;
+        _isSoftwareAppsBadgeSubscribed = true;
     }
 
     public void UnsubscribeFromSoftwareAppsChanges()
     {
-        if (!IsSoftwareAppsBadgeSubscribed) return;
+        if (!_isSoftwareAppsBadgeSubscribed) return;
 
-        _windowsAppsVm.PropertyChanged -= OnSoftwareAppsPropertyChanged;
-        _externalAppsVm.PropertyChanged -= OnSoftwareAppsPropertyChanged;
-        IsSoftwareAppsBadgeSubscribed = false;
+        windowsAppsVm.PropertyChanged -= OnSoftwareAppsPropertyChanged;
+        externalAppsVm.PropertyChanged -= OnSoftwareAppsPropertyChanged;
+        _isSoftwareAppsBadgeSubscribed = false;
         _onChanged = null;
     }
 
     private void OnSoftwareAppsPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if ((e.PropertyName == "HasSelectedItems" || e.PropertyName == "IsSelected")
-            && _modeService.IsInReviewMode)
+            && modeService.IsInReviewMode)
         {
             _onChanged?.Invoke();
         }

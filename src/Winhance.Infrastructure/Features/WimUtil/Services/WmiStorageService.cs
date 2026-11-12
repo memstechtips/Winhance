@@ -46,7 +46,9 @@ internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) 
                     Convert.ToInt64(disk.Get("Size"), CultureInfo.InvariantCulture),
                     DescribeBusType(Convert.ToUInt16(disk.Get("BusType"), CultureInfo.InvariantCulture)),
                     Convert.ToBoolean(disk.Get("IsSystem"), CultureInfo.InvariantCulture),
-                    removable.Contains(number)));
+                    removable.Contains(number),
+                    disk.Get("UniqueId") as string ?? "",
+                    Convert.ToBoolean(disk.Get("IsBoot"), CultureInfo.InvariantCulture)));
             }
         }
 
@@ -89,9 +91,15 @@ internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) 
         return letters;
     }
 
-    public void Clear(int diskNumber)
+    public void Clear(int diskNumber, string uniqueId)
     {
         using var disk = GetDisk(diskNumber);
+        var currentId = disk.Get("UniqueId") as string ?? "";
+        if (!string.Equals(currentId, uniqueId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"Disk {diskNumber} is no longer the drive that was picked, so it was not erased.");
+        }
+
         Invoke(disk, "Clear", new Dictionary<string, object>
         {
             ["RemoveData"] = true,

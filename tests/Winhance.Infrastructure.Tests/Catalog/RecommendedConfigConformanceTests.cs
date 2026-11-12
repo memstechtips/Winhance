@@ -25,7 +25,7 @@ public class RecommendedConfigConformanceTests
     private static readonly WinBuild Build = new(26100);
 
     [Fact]
-    public void Recommended_config_matches_in_app_recommended_states()
+    public void RecommendedConfig_Always_MatchesTheInAppRecommendedStates()
     {
         var config = LoadRecommendedConfig();
 
@@ -192,7 +192,7 @@ public class RecommendedConfigConformanceTests
     }
 
     private static int? ToSystem(int? display, string units)
-        => display.HasValue ? RecommendedSettingsResolver.ConvertDisplayToSystemUnits(display.Value, units) : (int?)null;
+        => display.HasValue ? PowerCfgValues.ToSystem(display.Value, units) : (int?)null;
 
     // Config dictionaries deserialize their object values as JsonElement; normalize to int for comparison.
     private static int? AsInt(object? o) => o switch

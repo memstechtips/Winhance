@@ -3,6 +3,7 @@ using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Catalogs;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
 
@@ -15,6 +16,7 @@ public class ScriptMigrationServiceTests
     private readonly Mock<IUserPreferencesService> _mockPrefs = new();
     private readonly Mock<IInteractiveUserService> _mockInteractiveUser = new();
     private readonly Mock<IFileSystemService> _mockFileSystem = new();
+    private readonly Mock<IBackgroundTaskService> _mockBackgroundTasks = new();
     private readonly ScriptMigrationService _service;
 
     private const string FakeLocalAppData = @"C:\Users\TestUser\AppData\Local";
@@ -35,7 +37,8 @@ public class ScriptMigrationServiceTests
             _mockScheduledTask.Object,
             _mockPrefs.Object,
             _mockInteractiveUser.Object,
-            _mockFileSystem.Object);
+            _mockFileSystem.Object,
+            _mockBackgroundTasks.Object);
     }
 
     [Fact]
@@ -268,5 +271,36 @@ public class ScriptMigrationServiceTests
         _mockLog.Verify(
             x => x.Log(LogLevel.Warning, It.Is<string>(s => s.Contains("Could not delete task BloatRemoval")), null, It.IsAny<string>()),
             Times.Once);
+    }
+
+    [Fact]
+    public void ResolveKeptIds_EdgeScriptWithoutWebView_KeepsOnlyEdge()
+    {
+        ScriptMigrationService.ResolveKeptIds("EdgeRemoval", "# plain edge script").Should().Equal("windows-app-edge");
+    }
+
+    [Fact]
+    public void ResolveKeptIds_OneDrive_KeepsOneDrive()
+    {
+        ScriptMigrationService.ResolveKeptIds("OneDriveRemoval", "").Should().Equal("windows-app-onedrive");
+    }
+
+    [Fact]
+    public void ResolveKeptIds_BloatScript_MapsPackageNamesBackToCatalogIds()
+    {
+        var script = "$packages = @(\n    'Clipchamp.Clipchamp'\n)\n$capabilities = @(\n)\n$optionalFeatures = @(\n)\n";
+
+        ScriptMigrationService.ResolveKeptIds("BloatRemoval", script).Should().Contain(
+            WindowsAppDefinitions.GetWindowsApps().Items.First(i => i.AppxPackageName?.Contains("Clipchamp.Clipchamp") == true).Id);
+    }
+
+    [Fact]
+    public async Task MigrateFromOldPathsAsync_RunsTheBackgroundTaskStartUpCheck()
+    {
+        _mockPrefs.Setup(x => x.GetPreferenceAsync("ScriptMigrationCompleted", false)).ReturnsAsync(true);
+
+        await _service.MigrateFromOldPathsAsync();
+
+        _mockBackgroundTasks.Verify(x => x.InitializeAsync(), Times.Once);
     }
 }

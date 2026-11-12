@@ -132,7 +132,6 @@ public sealed partial class SoftwareAppsPage : Page
                 "Description" => ViewModel.ColumnHeaderDescription,
                 "ItemTypeDescription" => ViewModel.ColumnHeaderType,
                 "IsInstalled" => ViewModel.ColumnHeaderStatus,
-                "CanBeReinstalled" => ViewModel.ColumnHeaderInstallable,
                 "CategoryDisplayName" => ViewModel.ColumnHeaderGroup,
                 "VersionSortKey" => ViewModel.ColumnHeaderVersion,
                 "HasUpdate" => ViewModel.ColumnHeaderUpdate,
@@ -301,13 +300,13 @@ public sealed partial class SoftwareAppsPage : Page
         e.Handled = true;
     }
 
-    // Refresh, Help, View and Install options give up their labels first; Install and Remove keep theirs longest.
+    // Refresh, View and Install options give up their labels first; Install and Remove keep theirs longest.
     private void FitActionBar()
     {
         if (ActionBar.Parent is not FrameworkElement row || row.ActualWidth <= 0)
             return;
 
-        UIElement[] secondary = [RefreshLabel, HelpLabel, ViewMenuLabel, InstallOptionsLabel];
+        UIElement[] secondary = [RefreshLabel, ViewMenuLabel, InstallOptionsLabel];
         UIElement[] primary = [InstallLabel, RemoveLabel, InstallToggleLabel, RemoveToggleLabel];
         FitToWidth.Apply(
             row.ActualWidth,

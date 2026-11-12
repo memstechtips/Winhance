@@ -20,6 +20,12 @@ internal class PowerShellRunner : IPowerShellRunner
     // (~50 chars) and any future arg additions.
     private const int MaxEncodedScriptBytes = 24_000;
 
+    // Decodes stdin as UTF-8 itself, so non-ASCII survives whatever [Console]::InputEncoding is. `exit N` inside the
+    // scriptblock ends the host with that code.
+    internal const string StdinStub =
+        "$m=New-Object IO.MemoryStream;[Console]::OpenStandardInput().CopyTo($m);"
+        + "& ([ScriptBlock]::Create([Text.Encoding]::UTF8.GetString($m.ToArray())))";
+
     private static readonly Regex PercentRegex = new(@"(\d+(?:\.\d+)?)%", RegexOptions.Compiled);
     private readonly IFileSystemService _fileSystemService;
 
@@ -74,6 +80,28 @@ internal class PowerShellRunner : IPowerShellRunner
         {
             throw new InvalidOperationException(
                 $"In-memory PowerShell script failed (exit code {exitCode}):\n{errors}");
+        }
+
+        return output.ToString();
+    }
+
+    public async Task<string> RunScriptFromStdinAsync(
+        string script,
+        IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(script))
+            throw new ArgumentException("Script cannot be null or empty.", nameof(script));
+
+        var encodedStub = Convert.ToBase64String(Encoding.Unicode.GetBytes(StdinStub));
+        var args = $"-ExecutionPolicy Bypass -NoProfile -EncodedCommand {encodedStub}";
+
+        var (output, errors, exitCode) = await LaunchPowerShellAsync(args, progress, ct, script).ConfigureAwait(false);
+
+        if (exitCode != 0 && errors.Length > 0)
+        {
+            throw new InvalidOperationException(
+                $"Stdin PowerShell script failed (exit code {exitCode}):\n{errors}");
         }
 
         return output.ToString();
@@ -141,7 +169,7 @@ internal class PowerShellRunner : IPowerShellRunner
     }
 
     private async Task<(StringBuilder Output, StringBuilder Errors, int ExitCode)> LaunchPowerShellAsync(
-        string arguments, IProgress<TaskProgressDetail>? progress, CancellationToken ct)
+        string arguments, IProgress<TaskProgressDetail>? progress, CancellationToken ct, string? stdin = null)
     {
         var psi = new ProcessStartInfo
         {
@@ -154,6 +182,11 @@ internal class PowerShellRunner : IPowerShellRunner
             StandardOutputEncoding = Encoding.UTF8,
             StandardErrorEncoding = Encoding.UTF8
         };
+        if (stdin != null)
+        {
+            psi.RedirectStandardInput = true;
+            psi.StandardInputEncoding = new UTF8Encoding(false);
+        }
 
         var output = new StringBuilder();
         var errors = new StringBuilder();
@@ -178,6 +211,12 @@ internal class PowerShellRunner : IPowerShellRunner
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
+        if (stdin != null)
+        {
+            await process.StandardInput.WriteAsync(stdin.AsMemory(), ct).ConfigureAwait(false);
+            process.StandardInput.Close();
+        }
+
         using var reg = ct.Register(() =>
         {
             try
@@ -199,19 +238,6 @@ internal class PowerShellRunner : IPowerShellRunner
         return errorOutput.Contains("running scripts is disabled", StringComparison.OrdinalIgnoreCase)
             || errorOutput.Contains("AuthorizationManager check failed", StringComparison.OrdinalIgnoreCase)
             || errorOutput.Contains("is not digitally signed", StringComparison.OrdinalIgnoreCase);
-    }
-
-    public async Task ValidateScriptSyntaxAsync(
-        string scriptContent,
-        CancellationToken ct = default)
-    {
-        const string name = "script";
-
-        var errors = await FindParseErrorsAsync(new Dictionary<string, string> { [name] = scriptContent }, ct).ConfigureAwait(false);
-
-        // The message keeps the PARSE_ERROR marker the syntax gate matches on.
-        if (errors.Count > 0)
-            throw new InvalidOperationException($"PowerShell script failed to parse:\nPARSE_ERROR: {errors[name]}");
     }
 
     public async Task<IReadOnlyDictionary<string, string>> FindParseErrorsAsync(
@@ -280,40 +306,6 @@ exit 0";
                 try { _fileSystemService.DeleteFile(tempFile); }
                 catch { }
             }
-        }
-    }
-
-    public async Task ValidateXmlSyntaxAsync(
-        string xmlContent,
-        CancellationToken ct = default)
-    {
-        var tempFile = _fileSystemService.CombinePath(_fileSystemService.GetTempPath(), $"winhance_validate_{Guid.NewGuid():N}.xml");
-        try
-        {
-            await _fileSystemService.WriteAllTextAsync(tempFile, xmlContent, ct).ConfigureAwait(false);
-
-            var parseScript = @"
-try {
-    $settings = New-Object System.Xml.XmlReaderSettings
-    $settings.DtdProcessing = [System.Xml.DtdProcessing]::Ignore
-    $reader = [System.Xml.XmlReader]::Create('" + PowerShellScriptUtilities.EscapePowerShellString(tempFile) + @"', $settings)
-    while ($reader.Read()) { }
-    $reader.Close()
-    Write-Host 'XML validation passed - document is well-formed'
-    exit 0
-} catch {
-    Write-Host ""XML_ERROR: $($_.Exception.Message)""
-    exit 1
-}";
-
-            var output = await RunScriptAsync(parseScript, ct: ct).ConfigureAwait(false);
-            if (output.Contains("XML_ERROR:", StringComparison.Ordinal))
-                throw new InvalidOperationException($"XML is not well-formed:\n{output}");
-        }
-        finally
-        {
-            try { _fileSystemService.DeleteFile(tempFile); }
-            catch { }
         }
     }
 

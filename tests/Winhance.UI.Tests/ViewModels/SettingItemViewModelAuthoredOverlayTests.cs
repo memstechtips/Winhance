@@ -401,7 +401,7 @@ public class SettingItemViewModelAuthoredOverlayTests
 
         var authoring = CreateSut(Config(setting, InputType.Selection));
         AddBuilderPowerPlanOptions(authoring);
-        authoring.ApplySelectionValue("g-bal");
+        authoring.CommitComboBoxSelection("g-bal");
 
         _authored["rt-power-plan"].Value.Should().Be(new ChoiceValue.Keyed("g-bal", "PowerPlan_Balanced"));
 
@@ -461,7 +461,7 @@ public class SettingItemViewModelAuthoredOverlayTests
 
         var authoring = CreateSut(Config(setting, InputType.Selection));
         authoring.CapturedCustomStateValues = captured;
-        authoring.ApplySelectionValue(ComboBoxConstants.CustomStateIndex);
+        authoring.CommitComboBoxSelection(ComboBoxConstants.CustomStateIndex);
 
         _authored["rt-custom"].Value.Should().BeOfType<ChoiceValue.CustomValues>()
             .Which.Values.Should().Equal(captured);

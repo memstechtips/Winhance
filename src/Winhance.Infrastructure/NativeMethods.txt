@@ -38,6 +38,18 @@ AdjustTokenPrivileges
 GetCurrentProcess
 SE_SYSTEM_ENVIRONMENT_NAME
 
+// Taking ownership of a file in a mounted image, which TrustedInstaller owns (advapi32.dll)
+SE_TAKE_OWNERSHIP_NAME
+
+// Loading a mounted image's registry hives under HKLM (advapi32.dll)
+RegLoadKey
+RegUnLoadKey
+
+// Writing a key the image's hive guards for SYSTEM alone, opened with the restore privilege (advapi32.dll)
+RegCreateKeyEx
+SE_BACKUP_NAME
+SE_RESTORE_NAME
+
 // C:'s volume GUID path, matched against the System Restore client list (kernel32.dll)
 GetVolumeNameForVolumeMountPoint
 
@@ -68,6 +80,7 @@ SetForegroundWindow
 ShowWindow
 IsIconic
 SystemParametersInfo
+ANIMATIONINFO
 SEND_MESSAGE_TIMEOUT_FLAGS
 SHOW_WINDOW_CMD
 SYSTEM_PARAMETERS_INFO_ACTION
@@ -232,6 +245,11 @@ CloseServiceHandle
 SC_MANAGER_CONNECT
 SERVICE_PAUSE_CONTINUE
 SERVICE_CONTROL_PARAMCHANGE
+
+// A service's start type, changed in the Service Control Manager so it holds before the next boot (advapi32.dll)
+ChangeServiceConfig
+SERVICE_CHANGE_CONFIG
+SERVICE_NO_CHANGE
 
 // Whether a downloaded .msu carries a valid Microsoft Authenticode signature, and who signed it (wintrust.dll, crypt32.dll)
 WinVerifyTrust

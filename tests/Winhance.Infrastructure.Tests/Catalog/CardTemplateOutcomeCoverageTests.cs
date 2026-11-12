@@ -47,13 +47,13 @@ public class CardTemplateOutcomeCoverageTests
     };
 
     [Fact]
-    public void Every_card_template_that_shows_a_value_also_reports_an_unplaceable_one()
+    public void CardTemplates_ThatShowAValue_AlsoReportAnUnplaceableOne()
     {
         string xaml = File.ReadAllText(CardTemplatePath());
         var templates = SplitTemplates(xaml);
 
         Assert.True(templates.Count >= 6,
-            $"only {templates.Count} DataTemplates parsed out of SettingsCardItem.xaml - the parser or the "
+            $"only {templates.Count} DataTemplates parsed out of SettingInputTemplates.xaml - the parser or the "
             + "file's shape changed, so this test would pass vacuously.");
 
         var offenders = new List<string>();
@@ -95,7 +95,7 @@ public class CardTemplateOutcomeCoverageTests
 
     // A rename must not leave a silent hole in the gate.
     [Fact]
-    public void Exempt_templates_still_exist()
+    public void ExemptTemplates_Always_StillExist()
     {
         string xaml = File.ReadAllText(CardTemplatePath());
         var names = SplitTemplates(xaml).Select(t => t.Name).ToHashSet(StringComparer.Ordinal);
@@ -126,8 +126,8 @@ public class CardTemplateOutcomeCoverageTests
     }
 
     private static string CardTemplatePath()
-        => Path.Combine(SolutionDir(), "src", "Winhance.UI", "Features", "Common", "Controls",
-            "SettingsCardItem.xaml");
+        => Path.Combine(SolutionDir(), "src", "Winhance.UI", "Features", "Common", "Resources",
+            "SettingInputTemplates.xaml");
 
     // Anchors on the compile-time source path (CatalogCleanInstallConformanceTests precedent) so the file
     // resolves from the repo even when the build output is redirected off the network share.

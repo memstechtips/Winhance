@@ -21,13 +21,13 @@ public class TextBoxShapeTests
     };
 
     [Fact]
-    public void A_rule_derives_a_text_box()
+    public void Control_RuleSetting_DerivesTextBox()
     {
         TextSetting().Control.Should().Be(ControlKind.TextBox);
     }
 
     [Fact]
-    public void A_numeric_range_still_derives_a_slider()
+    public void Control_NumericRange_StillDerivesSlider()
     {
         var setting = TextSetting() with { Numeric = new() { Min = 0, Max = 10 } };
 
@@ -35,13 +35,13 @@ public class TextBoxShapeTests
     }
 
     [Fact]
-    public void A_text_setting_is_answer_file_only()
+    public void IsAnswerFileOnly_TextSetting_IsTrue()
     {
         TextSetting().IsAnswerFileOnly.Should().BeTrue();
     }
 
     [Fact]
-    public void A_seed_read_from_this_PC_keeps_the_setting_answer_file_only()
+    public void IsAnswerFileOnly_SeedReadFromThisPc_StaysTrue()
     {
         var setting = TextSetting() with
         {
@@ -58,7 +58,7 @@ public class TextBoxShapeTests
     }
 
     [Fact]
-    public void A_box_on_the_desktop_slideshow_is_a_live_setting()
+    public void IsAnswerFileOnly_BoxOnDesktopSlideshow_IsFalse()
     {
         var setting = TextSetting() with
         {
@@ -71,7 +71,7 @@ public class TextBoxShapeTests
     }
 
     [Fact]
-    public void A_box_whose_text_only_fills_its_scripts_is_answer_file_only()
+    public void IsAnswerFileOnly_BoxWhoseTextOnlyFillsScripts_IsTrue()
     {
         var setting = TextSetting() with
         {
@@ -83,13 +83,13 @@ public class TextBoxShapeTests
     }
 
     [Fact]
-    public void A_text_setting_is_a_text_box_in_the_config_file()
+    public void InputTypeFor_TextSetting_ReturnsTextBox()
     {
         ConfigFileMapper.InputTypeFor(TextSetting()).Should().Be(InputType.TextBox);
     }
 
     [Fact]
-    public void The_rule_normalizes_before_it_matches()
+    public void Matches_Rule_NormalizesBeforeMatching()
     {
         ThreeCapitals.Normalize("abc ").Should().Be("ABC");
         ThreeCapitals.Matches("abc").Should().BeTrue();
@@ -97,7 +97,7 @@ public class TextBoxShapeTests
     }
 
     [Fact]
-    public void A_text_setting_names_an_error_string_and_no_option_captions()
+    public void TextBox_TextSetting_NamesErrorStringAndNoOptionCaptions()
     {
         var setting = TextSetting();
 
@@ -106,7 +106,7 @@ public class TextBoxShapeTests
     }
 
     [Fact]
-    public void A_box_offers_no_picker_unless_it_asks_for_one()
+    public void Picker_Box_IsNoneUnlessItAsksForOne()
     {
         TextSetting().TextBox!.Picker.Should().Be(PickerKind.None);
         (TextSetting().TextBox! with { Picker = PickerKind.Folder }).Picker.Should().Be(PickerKind.Folder);

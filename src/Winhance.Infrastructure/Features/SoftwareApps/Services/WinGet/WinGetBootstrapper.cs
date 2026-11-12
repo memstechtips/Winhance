@@ -8,96 +8,25 @@ internal class WinGetBootstrapper : IWinGetBootstrapper
 {
     private readonly WinGetComSession _comSession;
     private readonly ILogService _logService;
-    private readonly ILocalizationService _localization;
     private readonly IInteractiveUserService _interactiveUserService;
-    private readonly IPowerShellRunner _powerShellRunner;
     private readonly IFileSystemService _fileSystemService;
-    private readonly ITaskProgressService _taskProgressService;
-    private readonly System.Net.Http.HttpClient _httpClient;
 
     private bool _systemWinGetAvailable;
 
     private const int ComInitTimeoutSeconds = 5;
-
-    public event EventHandler? WinGetInstalled;
 
     public bool IsSystemWinGetAvailable => _systemWinGetAvailable;
 
     public WinGetBootstrapper(
         WinGetComSession comSession,
         ILogService logService,
-        ILocalizationService localization,
         IInteractiveUserService interactiveUserService,
-        IPowerShellRunner powerShellRunner,
-        IFileSystemService fileSystemService,
-        ITaskProgressService taskProgressService,
-        System.Net.Http.HttpClient httpClient)
+        IFileSystemService fileSystemService)
     {
         _comSession = comSession;
         _logService = logService;
-        _localization = localization;
         _interactiveUserService = interactiveUserService;
-        _powerShellRunner = powerShellRunner;
         _fileSystemService = fileSystemService;
-        _taskProgressService = taskProgressService;
-        _httpClient = httpClient;
-    }
-
-    public async Task<bool> InstallWinGetAsync(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            _logService?.LogInformation("Starting AppInstaller installation...");
-
-            var installer = new WinGetInstaller(_powerShellRunner, _httpClient, _logService, _localization, _taskProgressService, _fileSystemService);
-            var (success, message) = await installer.InstallAsync(cancellationToken).ConfigureAwait(false);
-
-            if (!success)
-            {
-                _logService?.LogError($"AppInstaller installation failed: {message}");
-                return false;
-            }
-
-            _logService?.LogInformation("AppInstaller installed, waiting for COM API readiness...");
-
-            for (int i = 0; i < 10; i++)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                await Task.Delay(3000, cancellationToken).ConfigureAwait(false);
-
-                _comSession.ResetFactory();
-                if (await Task.Run(() => _comSession.EnsureComInitialized(), cancellationToken).ConfigureAwait(false))
-                {
-                    _logService?.LogInformation($"COM API ready after {i + 1} attempt(s)");
-                    _systemWinGetAvailable = true;
-                    WinGetInstalled?.Invoke(this, EventArgs.Empty);
-                    return true;
-                }
-
-                _logService?.LogInformation($"COM init attempt {i + 1}/10 failed, retrying...");
-            }
-
-            _logService?.LogWarning("COM API did not become ready after AppInstaller installation");
-            // Still consider it a partial success — system winget may be available
-            _systemWinGetAvailable = WinGetCliRunner.IsSystemWinGetAvailable(_interactiveUserService);
-            if (_systemWinGetAvailable)
-            {
-                WinGetInstalled?.Invoke(this, EventArgs.Empty);
-                return true;
-            }
-
-            return false;
-        }
-        catch (OperationCanceledException)
-        {
-            _logService?.LogWarning("AppInstaller installation was cancelled");
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logService?.LogError($"Error installing AppInstaller: {ex.Message}");
-            return false;
-        }
     }
 
     public async Task<bool> EnsureWinGetReadyAsync(CancellationToken cancellationToken = default)

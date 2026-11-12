@@ -28,7 +28,7 @@ public class SystemTrayDetectorTests
     private static readonly SystemTrayDetector Det = new(TestKeys.Of("Show all"), TestKeys.Of("Hide all"));
 
     [Fact]
-    public void All_promoted_is_show_all()
+    public void Detect_AllPromoted_ReturnsShowAll()
     {
         var ctx = new FakeCtx { SubKeys = new[] { "a", "b" } };
         ctx.Values[$@"{Key}\a\IsPromoted"] = 1;
@@ -37,7 +37,7 @@ public class SystemTrayDetectorTests
     }
 
     [Fact]
-    public void None_promoted_is_hide_all()
+    public void Detect_NonePromoted_ReturnsHideAll()
     {
         var ctx = new FakeCtx { SubKeys = new[] { "a", "b" } };
         ctx.Values[$@"{Key}\a\IsPromoted"] = 0;
@@ -46,7 +46,7 @@ public class SystemTrayDetectorTests
     }
 
     [Fact]
-    public void Mixed_is_custom()
+    public void Detect_MixedPromotion_ReturnsNull()
     {
         var ctx = new FakeCtx { SubKeys = new[] { "a", "b" } };
         ctx.Values[$@"{Key}\a\IsPromoted"] = 1;
@@ -55,13 +55,13 @@ public class SystemTrayDetectorTests
     }
 
     [Fact]
-    public void No_subkeys_is_custom()
+    public void Detect_NoSubkeys_ReturnsNull()
     {
         Assert.Null(Det.Detect(Dummy, new FakeCtx()));
     }
 
     [Fact]
-    public void No_ispromoted_values_is_custom()
+    public void Detect_NoIsPromotedValues_ReturnsNull()
     {
         var ctx = new FakeCtx { SubKeys = new[] { "a" } }; // subkey exists but no IsPromoted value
         Assert.Null(Det.Detect(Dummy, ctx));

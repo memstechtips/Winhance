@@ -7,7 +7,7 @@ namespace Winhance.Core.Tests.Catalog;
 public class LinkTests
 {
     [Fact]
-    public void Requires_link_defaults_to_reverse_cascade_no_force()
+    public void Constructor_RequiresLink_DefaultsToReverseCascadeWithoutForce()
     {
         var l = new Link("other", LinkKind.Requires, TestKeys.Of("On"));
         Assert.True(l.ReverseCascade);
@@ -16,7 +16,7 @@ public class LinkTests
     }
 
     [Fact]
-    public void Auto_enable_style_link_is_enables_no_reverse_force()
+    public void Constructor_EnablesLink_AllowsNoReverseCascadeWithForce()
     {
         var l = new Link("other", LinkKind.Enables, TestKeys.Of("On")) { ReverseCascade = false, Force = true };
         Assert.Equal(LinkKind.Enables, l.Kind);
@@ -25,7 +25,7 @@ public class LinkTests
     }
 
     [Fact]
-    public void Setting_and_state_relationship_fields_default_empty()
+    public void Setting_Default_HasEmptyRelationshipFields()
     {
         var setting = new Setting { Id = "s", Display = new() { Name = TestKeys.Of("s"), Description = TestKeys.Of("s") } };
         Assert.Null(setting.UiParentId);

@@ -41,8 +41,8 @@ public class DriverInstallStepWriterGeneratedFileTests
 
         result.Should().Be(DriverInstallStepResult.Added);
 
-        // The generated file loads scripts at Order 1 and disables adapters at Order 3 in all three
-        // specialize components: the install lands at 5 and the disable moves to 6, gap closed.
+        // The generated file disables adapters at Order 4 in all three specialize components: the install
+        // lands at 5 and the disable moves to 6, gap closed.
         var doc = XDocument.Parse(written!);
         foreach (var architecture in new[] { "x86", "arm64", "amd64" })
         {
@@ -55,7 +55,7 @@ public class DriverInstallStepWriterGeneratedFileTests
                 .ToDictionary(c => c.Element(U + "Order")!.Value, c => c);
 
             commandsByOrder.Keys.Should().BeEquivalentTo("1", "2", "3", "4", "5", "6");
-            commandsByOrder["3"].Element(U + "Description")!.Value.Should().Contain(".NET Framework 3.5");
+            commandsByOrder["2"].Element(U + "Description")!.Value.Should().Contain(".NET Framework 3.5");
             commandsByOrder["5"].Element(U + "Description")!.Value.Should().Be(DriverInstallStepWriter.Marker);
             commandsByOrder["5"].Element(U + "Path")!.Value.Should().Be(DriverInstallStepWriter.InstallCommand);
             commandsByOrder["6"].Element(U + "Path")!.Value.Should().Contain("Disable-NetAdapter");

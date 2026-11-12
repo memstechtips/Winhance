@@ -15,19 +15,28 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
     private readonly IConfigReviewDiffService _configReviewDiffService;
     private readonly IConfigReviewBadgeService _configReviewBadgeService;
     private readonly IConfigurationService _configurationService;
+    private readonly IReviewModeViewModelCoordinator _vmCoordinator;
     private readonly IDispatcherService _dispatcherService;
     private readonly ILocalizationService _localizationService;
     private readonly IDialogService _dialogService;
     private readonly ILogService _logService;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanAcceptAllRemaining))]
     public partial bool IsInReviewMode { get; set; }
 
     [ObservableProperty]
     public partial string ReviewModeStatusText { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanAcceptAllRemaining))]
     public partial bool CanApplyReviewedConfig { get; set; }
+
+    // Names what still blocks Apply; null once nothing does.
+    [ObservableProperty]
+    public partial string? ReviewModeApplyBlockedTooltip { get; set; }
+
+    public bool CanAcceptAllRemaining => IsInReviewMode && !CanApplyReviewedConfig;
 
     [ObservableProperty]
     public partial string? ReviewModeSetAsideDetail { get; set; }
@@ -37,6 +46,9 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
 
     public string ReviewModeApplyButtonText =>
         _localizationService.GetStringOrDefault("Review_Mode_Apply_Button", "Apply Config");
+
+    public string ReviewModeAcceptAllRemainingText =>
+        _localizationService.GetStringOrDefault("Review_Mode_AcceptAllRemaining", "Accept all remaining");
 
     public string ReviewModeCancelButtonText =>
         _localizationService.GetStringOrDefault("Button_Cancel", "Cancel");
@@ -49,6 +61,7 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
         IConfigReviewDiffService configReviewDiffService,
         IConfigReviewBadgeService configReviewBadgeService,
         IConfigurationService configurationService,
+        IReviewModeViewModelCoordinator vmCoordinator,
         IDispatcherService dispatcherService,
         ILocalizationService localizationService,
         IDialogService dialogService,
@@ -58,6 +71,7 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
         _configReviewDiffService = configReviewDiffService;
         _configReviewBadgeService = configReviewBadgeService;
         _configurationService = configurationService;
+        _vmCoordinator = vmCoordinator;
         _dispatcherService = dispatcherService;
         _localizationService = localizationService;
         _dialogService = dialogService;
@@ -89,8 +103,10 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(ReviewModeTitleText));
             OnPropertyChanged(nameof(ReviewModeDescriptionText));
             OnPropertyChanged(nameof(ReviewModeApplyButtonText));
+            OnPropertyChanged(nameof(ReviewModeAcceptAllRemainingText));
             OnPropertyChanged(nameof(ReviewModeCancelButtonText));
             UpdateReviewModeStatus();
+            UpdateCanApplyReviewedConfig();
         }
     }
 
@@ -124,6 +140,7 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
         if (!IsInReviewMode)
         {
             CanApplyReviewedConfig = false;
+            ReviewModeApplyBlockedTooltip = null;
             return;
         }
 
@@ -141,7 +158,33 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
             || !FeatureDefinitions.CustomizeFeatures.Any(f => _configReviewBadgeService.IsFeatureInConfig(f));
 
         CanApplyReviewedConfig = allSettingsReviewed && softwareAppsReviewed && optimizeReviewed && customizeReviewed;
+
+        var open = new List<string>();
+        if (!softwareAppsReviewed)
+        {
+            if (AppListOpen(FeatureIds.WindowsApps, _vmCoordinator.HasSelectedWindowsApps,
+                    _vmCoordinator.IsWindowsAppsInstallAction || _vmCoordinator.IsWindowsAppsRemoveAction))
+                open.Add(Localized("SoftwareApps_Tab_WindowsApps", "Windows Apps & Features"));
+            if (AppListOpen(FeatureIds.ExternalApps, _vmCoordinator.HasSelectedExternalApps,
+                    _vmCoordinator.IsExternalAppsInstallAction || _vmCoordinator.IsExternalAppsRemoveAction))
+                open.Add(Localized("SoftwareApps_Tab_ExternalApps", "External Software"));
+            if (open.Count == 0)
+                open.Add(Localized("Category_SoftwareApps_Title", "Software & Apps"));
+        }
+        if (!optimizeReviewed)
+            open.Add(Localized("Nav_Optimize", "Optimize"));
+        if (!customizeReviewed)
+            open.Add(Localized("Nav_Customize", "Customize"));
+
+        ReviewModeApplyBlockedTooltip = CanApplyReviewedConfig || open.Count == 0
+            ? null
+            : string.Format(Localized("Review_Mode_Apply_Blocked_Tooltip", "Still to review: {0}"), string.Join(", ", open));
     }
+
+    private bool AppListOpen(string featureId, bool anySelected, bool actionChosen) =>
+        _configReviewBadgeService.IsFeatureInConfig(featureId) && anySelected && !actionChosen;
+
+    private string Localized(string key, string fallback) => _localizationService.GetStringOrDefault(key, fallback);
 
     private void UpdateReviewModeStatus()
     {
@@ -195,6 +238,13 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
         {
             _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Failed to apply reviewed config: {ex.Message}");
         }
+    }
+
+    [RelayCommand]
+    private Task AcceptAllRemainingAsync()
+    {
+        _vmCoordinator.AcceptAllRemaining();
+        return Task.CompletedTask;
     }
 
     [RelayCommand]

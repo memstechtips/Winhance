@@ -1,5 +1,7 @@
+using Moq;
 using System.Text;
 using FluentAssertions;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.Infrastructure.Features.Common.Utilities;
@@ -32,7 +34,7 @@ public class EdgeTaskbarPinScriptTests
             .AppendLine($"$pins = Remove-EdgePinEntry ([Convert]::FromBase64String('{Convert.ToBase64String(favorites)}')) ([Convert]::FromBase64String('{Convert.ToBase64String(resolve)}'))")
             .AppendLine("if ($pins) { 'F=' + [Convert]::ToBase64String($pins.Favorites); 'R=' + [Convert]::ToBase64String($pins.Resolve) } else { 'NONE' }");
 
-        return await new PowerShellRunner(new FileSystemService()).RunScriptAsync(run.ToString());
+        return await new PowerShellRunner(new FileSystemService(Mock.Of<ILogService>())).RunScriptAsync(run.ToString());
     }
 
     [Fact]

@@ -45,7 +45,7 @@ public static class TimeRegionLanguageCatalog
                 AddedInVersion = "26.09.05",
                 IsSubjectivePreference = true,
             },
-            Apply = new() { Restart = new RestartProcess("intl") },
+            Apply = new() { Restart = new RestartProcess(RestartProcess.IntlName) },
             Options = new(OptionSource.RegionalFormats),
             Targets = new Target[]
             {
@@ -104,7 +104,7 @@ public static class TimeRegionLanguageCatalog
                 AddedInVersion = "26.09.05",
                 IsSubjectivePreference = true,
             },
-            Apply = new() { Restart = new RestartProcess("intl") },
+            Apply = new() { Restart = new RestartProcess(RestartProcess.IntlName) },
             Options = new(OptionSource.Countries),
             Targets = new Target[]
             {
@@ -193,7 +193,7 @@ public static class TimeRegionLanguageCatalog
                 AddedInVersion = "26.04.10",
                 IsSubjectivePreference = true,
             },
-            Apply = new() { Restart = new RestartProcess("intl") },
+            Apply = new() { Restart = new RestartProcess(RestartProcess.IntlName) },
             // Keyed rather than five fixed states: region-format writes whatever Windows writes for the chosen
             // locale, and five fixed states would leave de-DE (dd.MM.yyyy) or hi-IN (dd-MM-yyyy) reading
             // "Not recognized" right after a successful apply. The labels are the patterns themselves.
@@ -219,7 +219,7 @@ public static class TimeRegionLanguageCatalog
                 AddedInVersion = "26.04.10",
                 IsSubjectivePreference = true,
             },
-            Apply = new() { Restart = new RestartProcess("intl") },
+            Apply = new() { Restart = new RestartProcess(RestartProcess.IntlName) },
             Targets = new Target[]
             {
                 new RegTarget("iFirstDayOfWeek", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "iFirstDayOfWeek", RegistryValueKind.String),
@@ -275,7 +275,7 @@ public static class TimeRegionLanguageCatalog
                 AddedInVersion = "26.04.10",
                 IsSubjectivePreference = true,
             },
-            Apply = new() { Restart = new RestartProcess("intl") },
+            Apply = new() { Restart = new RestartProcess(RestartProcess.IntlName) },
             Targets = new Target[]
             {
                 new RegTarget("sDecimal", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "sDecimal", RegistryValueKind.String),
@@ -316,7 +316,7 @@ public static class TimeRegionLanguageCatalog
                 AddedInVersion = "26.04.10",
                 IsSubjectivePreference = true,
             },
-            Apply = new() { Restart = new RestartProcess("intl") },
+            Apply = new() { Restart = new RestartProcess(RestartProcess.IntlName) },
             Targets = new Target[]
             {
                 new RegTarget("sList", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "sList", RegistryValueKind.String),
@@ -347,7 +347,7 @@ public static class TimeRegionLanguageCatalog
                 AddedInVersion = "26.04.10",
                 IsSubjectivePreference = true,
             },
-            Apply = new() { Restart = new RestartProcess("intl") },
+            Apply = new() { Restart = new RestartProcess(RestartProcess.IntlName) },
             Targets = new Target[]
             {
                 new RegTarget("iMeasure", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "iMeasure", RegistryValueKind.String),
@@ -378,7 +378,7 @@ public static class TimeRegionLanguageCatalog
                 AddedInVersion = "26.04.10",
                 IsSubjectivePreference = true,
             },
-            Apply = new() { Restart = new RestartProcess("intl") },
+            Apply = new() { Restart = new RestartProcess(RestartProcess.IntlName) },
             Targets = new Target[]
             {
                 new RegTarget("sMonDecimalSep", new[] { @"HKEY_CURRENT_USER\Control Panel\International" }, "sMonDecimalSep", RegistryValueKind.String),

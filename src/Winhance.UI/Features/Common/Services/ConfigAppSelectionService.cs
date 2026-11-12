@@ -53,6 +53,26 @@ public class ConfigAppSelectionService : IConfigAppSelectionService
         return (confirmed, saveScripts);
     }
 
+    // For Builder: a Windows app is ticked to be removed, so every one this PC no longer has is ticked; an external
+    // app is ticked to be installed, so every one it has is. An app no package manager offers cannot be installed on
+    // another PC, so it stays unticked.
+    public async Task SelectInstalledStateAsync()
+    {
+        if (!_windowsAppsVM.IsInitialized)
+            await _windowsAppsVM.LoadItemsAsync();
+        if (!_externalAppsVM.IsInitialized)
+            await _externalAppsVM.LoadItemsAsync();
+
+        foreach (var vmItem in _windowsAppsVM.Items)
+            vmItem.IsSelected = !vmItem.IsInstalled;
+
+        foreach (var vmItem in _externalAppsVM.Items)
+            vmItem.IsSelected = vmItem.IsInstalled && !(vmItem.IsOtherInstalled && vmItem.PackageId is null);
+
+        _logService.Log(LogLevel.Info,
+            $"Selected {_windowsAppsVM.Items.Count(i => i.IsSelected)} missing Windows Apps and {_externalAppsVM.Items.Count(i => i.IsSelected)} installed External Apps from this PC");
+    }
+
     public Task ClearWindowsAppsSelectionAsync()
     {
         foreach (var vmItem in _windowsAppsVM.Items)
@@ -82,6 +102,14 @@ public class ConfigAppSelectionService : IConfigAppSelectionService
 
         var selectedCount = _externalAppsVM.Items.Count(i => i.IsSelected);
         _logService.Log(LogLevel.Info, $"Selected {selectedCount} External Apps from config");
+    }
+
+    public Task ClearExternalAppsSelectionAsync()
+    {
+        foreach (var vmItem in _externalAppsVM.Items)
+            vmItem.IsSelected = false;
+
+        return Task.CompletedTask;
     }
 
     public async Task ProcessExternalAppsInstallationAsync(ConfigSection externalAppsSection)

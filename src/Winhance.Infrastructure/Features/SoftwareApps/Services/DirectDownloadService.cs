@@ -9,6 +9,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
@@ -323,42 +324,15 @@ internal class DirectDownloadService : IDirectDownloadService
             using var response = await _httpClient.SendAsync(downloadRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
-            var totalBytes = response.Content.Headers.ContentLength ?? 0;
-            var totalMB = totalBytes / (1024.0 * 1024.0);
-
-            using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-
-            using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
-
-            var buffer = new byte[8192];
-            long totalRead = 0;
-            int bytesRead;
-            int lastProgress = 0;
-
-            while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
-            {
-                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
-                totalRead += bytesRead;
-
-                if (totalBytes > 0)
+            var totalMB = await SaveWithProgressAsync(response, filePath, 10, 70, (percent, downloadedMB, sizeMB) =>
+                progress?.Report(new TaskProgressDetail
                 {
-                    var progressPercent = (int)((totalRead * 60.0 / totalBytes) + 10);
-                    if (progressPercent > lastProgress)
-                    {
-                        lastProgress = progressPercent;
-                        var downloadedMB = totalRead / (1024.0 * 1024.0);
-
-                        progress?.Report(new TaskProgressDetail
-                        {
-                            Progress = progressPercent,
-                            StatusText = _localization.GetString("Progress_Downloading", displayName),
-                            TerminalOutput = $"{downloadedMB:F2} / {totalMB:F2} MB",
-                            IsActive = true,
-                            IsIndeterminate = false
-                        });
-                    }
-                }
-            }
+                    Progress = percent,
+                    StatusText = _localization.GetString("Progress_Downloading", displayName),
+                    TerminalOutput = $"{downloadedMB:F2} / {sizeMB:F2} MB",
+                    IsActive = true,
+                    IsIndeterminate = false
+                }), cancellationToken).ConfigureAwait(false);
 
             _logService?.LogInformation($"Downloaded {fileName} successfully ({totalMB:F2} MB)");
             return filePath;
@@ -373,6 +347,47 @@ internal class DirectDownloadService : IDirectDownloadService
             _logService?.LogError($"Failed to download {displayName} from {url}: {ex.Message}");
             return null;
         }
+    }
+
+    // Streams the response body to disk and maps download progress onto [startPercent, endPercent] of the caller's
+    // task, reporting each new whole percent with the MB done and the MB total. Returns the total size in MB.
+    internal static async Task<double> SaveWithProgressAsync(
+        HttpResponseMessage response,
+        string filePath,
+        int startPercent,
+        int endPercent,
+        Action<int, double, double> report,
+        CancellationToken cancellationToken)
+    {
+        const double BytesPerMB = 1024.0 * 1024.0;
+        var totalBytes = response.Content.Headers.ContentLength ?? 0;
+        var totalMB = totalBytes / BytesPerMB;
+
+        using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+
+        var buffer = new byte[8192];
+        long totalRead = 0;
+        int bytesRead;
+        var lastProgress = 0;
+
+        while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
+            totalRead += bytesRead;
+
+            if (totalBytes > 0)
+            {
+                var percent = (int)((totalRead * (double)(endPercent - startPercent) / totalBytes) + startPercent);
+                if (percent > lastProgress)
+                {
+                    lastProgress = percent;
+                    report(percent, totalRead / BytesPerMB, totalMB);
+                }
+            }
+        }
+
+        return totalMB;
     }
 
     private async Task<bool> InstallDownloadedFileAsync(
@@ -449,14 +464,13 @@ internal class DirectDownloadService : IDirectDownloadService
                     cancellationToken).ConfigureAwait(false);
             }
 
-            // Exit code 0 = success, 3010 = success but reboot required
-            if (exitCode != 0 && exitCode != 3010)
+            if (!InstallerExitCode.IsSuccess(exitCode))
             {
                 _logService?.LogError($"MSI installation failed with exit code {exitCode}. See log: {logPath}");
                 return false;
             }
 
-            if (exitCode == 3010)
+            if (exitCode == InstallerExitCode.RebootRequired)
             {
                 _logService?.LogInformation($"MSI installed successfully (reboot required). Log: {logPath}");
             }

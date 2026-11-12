@@ -110,24 +110,6 @@ public class ScheduledTaskServiceTests
         _mockFileSystem.Verify(f => f.WriteAllText(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
-    [Fact(Skip = "Environment-dependent: hits real Task Scheduler COM (no mockable seam) and has side effects; needs an injectable COM wrapper to run deterministically.")]
-    public async Task RegisterScheduledTaskAsync_ComFailure_ReturnsFailedResult()
-    {
-        var script = new RemovalScript
-        {
-            Name = "TestTask",
-            Content = "# content",
-            TargetScheduledTaskName = "TestTask",
-            ActualScriptPath = @"C:\ProgramData\Winhance\Scripts\TestTask.ps1",
-        };
-
-        _mockFileSystem.Setup(f => f.FileExists(script.ActualScriptPath)).Returns(true);
-
-        var result = await _service.RegisterScheduledTaskAsync(script);
-
-        result.Success.Should().BeFalse();
-    }
-
     [Fact]
     public async Task UnregisterScheduledTaskAsync_ComFailure_ReturnsResult()
     {
@@ -286,7 +268,7 @@ public class ScheduledTaskServiceTests
     }
 
     [Fact]
-    public void The_sign_in_task_runs_elevated_at_the_users_sign_in_and_escapes_its_values()
+    public void SignInTaskXml_Always_RunsElevatedAtSignInAndEscapesItsValues()
     {
         var xml = XDocument.Parse(ScheduledTaskService.SignInTaskXml(@"PC\Tom & Jerry", @"C:\Program Files\Winhance\Winhance.exe", "--tray"));
         XNamespace ns = "http://schemas.microsoft.com/windows/2004/02/mit/task";
@@ -299,7 +281,7 @@ public class ScheduledTaskServiceTests
     }
 
     [Fact]
-    public void A_sign_in_task_belongs_to_the_account_it_names_whether_by_name_or_by_sid()
+    public void IsAccount_NameOrSid_MatchesTheAccountItNamesOnly()
     {
         using var identity = WindowsIdentity.GetCurrent();
         var sid = identity.User!.Value;

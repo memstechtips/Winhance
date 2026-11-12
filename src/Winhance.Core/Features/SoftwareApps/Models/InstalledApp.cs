@@ -49,8 +49,17 @@ public sealed record InstalledApp(string Key, string Name, InstalledAppKind Kind
 }
 
 // UpdatesKnown is false when a package manager this PC has could not be asked, or it has none: the apps are still
-// listed, but an app without an update may only be one nobody was asked about.
-public sealed record InstalledAppsScan(IReadOnlyList<InstalledApp> Apps, bool UpdatesKnown);
+// listed, but an app without an update may only be one nobody was asked about. Status maps each asked-about
+// definition id to whether it is installed.
+public sealed record InstalledAppsScan(IReadOnlyList<InstalledApp> Apps, bool UpdatesKnown, IReadOnlyDictionary<string, bool> Status);
+
+// The two tabs detect installs by different rules: Windows Apps adds capabilities and optional features and trusts AppX
+// by name, External Software cross-checks winget against the uninstall keys.
+public enum StatusRules
+{
+    Windows,
+    External,
+}
 
 // What winget's installed-apps catalog says about one package. SourceName is the remote source winget matched it to
 // (winget, msstore), null when it only knows the local install (ARP\..., MSIX\... ids).
@@ -73,3 +82,9 @@ public sealed record StorePackage(string Name, string FamilyName, string Display
 
     public bool IsSystem { get; init; }
 }
+
+// An installed Store app the Store catalog can be asked about, and what it answered when it has a newer version.
+// Both versions are dotted: InstalledVersion is the bundle version Windows registered, AvailableVersion the catalog's.
+public sealed record StoreCatalogApp(string StoreId, string FamilyName);
+
+public sealed record StoreCatalogUpdate(string InstalledVersion, string AvailableVersion);

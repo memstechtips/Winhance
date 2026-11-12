@@ -207,7 +207,7 @@ internal sealed partial class TechnicalDetailsTable : Panel
             element.Clip = placement.NeedsClip
                 ? new RectangleGeometry
                 {
-                    Rect = new Rect(placement.ClipFromLeft, 0, placement.Width - placement.ClipFromLeft, height),
+                    Rect = new Rect(placement.ClipFromLeft, 0, placement.VisibleWidth, height),
                 }
                 : null;
         }

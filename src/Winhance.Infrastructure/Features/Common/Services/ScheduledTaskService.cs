@@ -205,6 +205,57 @@ internal class ScheduledTaskService(ILogService logService, IFileSystemService f
         }).ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<WinhanceTaskInfo>> GetWinhanceTasksAsync()
+    {
+        return await Task.Run(() =>
+        {
+            var tasks = new List<WinhanceTaskInfo>();
+            using var com = new ComScope();
+            try
+            {
+                object? found = GetWinhanceFolder(com, Connect(com));
+                if (found is null) return (IReadOnlyList<WinhanceTaskInfo>)tasks;
+                dynamic folder = found;
+
+                dynamic collection = com.Keep((object)folder.GetTasks(1));   // TASK_ENUM_HIDDEN
+                foreach (var item in collection)
+                {
+                    dynamic task = com.Keep((object)item);
+                    try
+                    {
+                        dynamic definition = com.Keep((object)task.Definition);
+                        dynamic principal = com.Keep((object)definition.Principal);
+                        dynamic actions = com.Keep((object)definition.Actions);
+                        string command = "";
+                        string arguments = "";
+                        foreach (var actionItem in actions)
+                        {
+                            dynamic action = com.Keep((object)actionItem);
+                            if ((int)action.Type != 0) continue;   // TASK_ACTION_EXEC
+                            command = (string)action.Path;
+                            arguments = (string)(action.Arguments ?? "");
+                            break;
+                        }
+
+                        tasks.Add(new WinhanceTaskInfo(
+                            (string)task.Name, command, arguments, (string)(principal.UserId ?? ""), (bool)task.Enabled,
+                            ReadLastRun((DateTime)task.LastRunTime), (int)task.LastTaskResult));
+                    }
+                    catch (Exception ex)
+                    {
+                        logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"Could not read a Winhance task: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logService.Log(Core.Features.Common.Enums.LogLevel.Warning, $"Failed to list Winhance tasks: {ex.Message}");
+            }
+
+            return (IReadOnlyList<WinhanceTaskInfo>)tasks;
+        }).ConfigureAwait(false);
+    }
+
     public async Task<bool> IsSignInTaskRegisteredForAsync(string taskName, string? userSid)
     {
         return await Task.Run(() =>
@@ -228,6 +279,9 @@ internal class ScheduledTaskService(ILogService logService, IFileSystemService f
             }
         }).ConfigureAwait(false);
     }
+
+    // A task that never ran reports the COM zero date, 1899-12-30.
+    internal static DateTime? ReadLastRun(DateTime value) => value.Year < 2000 ? null : value;
 
     // Accepts both forms an account can be written in: a name and a SID string.
     internal static bool IsAccount(string taskUserId, string? sid)

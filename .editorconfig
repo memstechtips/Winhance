@@ -173,10 +173,8 @@ dotnet_diagnostic.CA1310.severity = none   # StringComparison on every compariso
 # app nobody references as a library; making them internal buys nothing.
 dotnet_diagnostic.CA1401.severity = none
 
-# 116 hits. Identifiers should not contain underscores. Test names here are
-# Method_Scenario_Expectation in service and view-model tests and sentences
-# (Every_setting_id_is_unique) in catalog, shape, gate and behaviour tests, one style
-# per file; localization keys are Setting_{id}_Name. The underscore IS the convention.
+# Identifiers should not contain underscores. Test names are Method_Scenario_Expectation
+# and localization keys are Setting_{id}_Name. The underscore IS the convention.
 dotnet_diagnostic.CA1707.severity = none
 
 # Library naming/design advice with no meaning for an internal app surface.

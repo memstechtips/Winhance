@@ -32,4 +32,5 @@ public record SettingItemViewModelConfig
 }
 
 // Advisory: the warning sits on a detect-only state the user cannot choose, so the banner shows Warning, not Error.
-public sealed record OptionWarning(string Text, bool Advisory);
+// Always: a risk warning, shown whichever option is selected (as a Warning) unless the selected option has its own.
+public sealed record OptionWarning(string Text, bool Advisory, bool Always = false);

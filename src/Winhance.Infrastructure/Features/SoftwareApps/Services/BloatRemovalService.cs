@@ -1,4 +1,5 @@
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Exceptions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -7,6 +8,7 @@ using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.SoftwareApps.Utilities;
+using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
@@ -14,7 +16,8 @@ internal class BloatRemovalService(
     ILogService logService,
     IScheduledTaskService scheduledTaskService,
     IPowerShellRunner powerShellRunner,
-    IFileSystemService fileSystemService) : IBloatRemovalService
+    IFileSystemService fileSystemService,
+    IWindowsRegistryService registry) : IBloatRemovalService
 {
     private const string BloatScriptFileName = BloatRemovalScriptGenerator.ScriptName + ".ps1";
 
@@ -27,14 +30,20 @@ internal class BloatRemovalService(
         {
             var scriptPath = fileSystemService.CombinePath(ScriptPaths.ScriptsDirectory, app.RemovalScriptFileName!);
             var scriptContent = app.RemovalScript!();
+            var viaStdin = KeepRemovedModeStore.Read(registry, fileSystemService) == KeepRemovedMode.Winhance;
 
-            fileSystemService.CreateDirectory(ScriptPaths.ScriptsDirectory);
-            await fileSystemService.WriteAllTextAsync(scriptPath, scriptContent, ct).ConfigureAwait(false);
+            if (!viaStdin)
+            {
+                fileSystemService.CreateDirectory(ScriptPaths.ScriptsDirectory);
+                await fileSystemService.WriteAllTextAsync(scriptPath, scriptContent, ct).ConfigureAwait(false);
+            }
 
             var startTime = DateTime.Now;
             progress?.Report(new TaskProgressDetail
             {
-                TerminalOutput = $"Command: powershell.exe -ExecutionPolicy Bypass -NoProfile -File \"{scriptPath}\""
+                TerminalOutput = viaStdin
+                    ? "Command: powershell.exe -ExecutionPolicy Bypass -NoProfile -EncodedCommand (script on stdin)"
+                    : $"Command: powershell.exe -ExecutionPolicy Bypass -NoProfile -File \"{scriptPath}\""
             });
             progress?.Report(new TaskProgressDetail
             {
@@ -42,8 +51,11 @@ internal class BloatRemovalService(
             });
             progress?.Report(new TaskProgressDetail { TerminalOutput = "---" });
 
-            logService.LogInformation($"Executing dedicated removal script for '{app.Name}' from {scriptPath}...");
-            await powerShellRunner.RunScriptFileAsync(scriptPath, progress: progress, ct: ct).ConfigureAwait(false);
+            logService.LogInformation($"Executing dedicated removal script for '{app.Name}' {(viaStdin ? "in memory" : $"from {scriptPath}")}...");
+            if (viaStdin)
+                await powerShellRunner.RunScriptFromStdinAsync(scriptContent, progress, ct).ConfigureAwait(false);
+            else
+                await powerShellRunner.RunScriptFileAsync(scriptPath, progress: progress, ct: ct).ConfigureAwait(false);
             logService.LogInformation($"Dedicated removal script for '{app.Name}' completed successfully");
 
             var endTime = DateTime.Now;
@@ -119,25 +131,19 @@ internal class BloatRemovalService(
                 return RemovalOutcome.Success;
             }
 
-            fileSystemService.CreateDirectory(ScriptPaths.ScriptsDirectory);
+            var viaStdin = KeepRemovedModeStore.Read(registry, fileSystemService) == KeepRemovedMode.Winhance;
             var scriptPath = fileSystemService.CombinePath(ScriptPaths.ScriptsDirectory, BloatScriptFileName);
 
-            string scriptContent;
-            if (fileSystemService.FileExists(scriptPath))
-            {
-                scriptContent = await MergeWithExistingScript(scriptPath, packages, capabilities, optionalFeatures, specialApps).ConfigureAwait(false);
-            }
-            else
-            {
-                scriptContent = GenerateScriptContent(packages, capabilities, optionalFeatures, specialApps);
-            }
-
-            await fileSystemService.WriteAllTextAsync(scriptPath, scriptContent, ct).ConfigureAwait(false);
+            var scriptContent = viaStdin
+                ? GenerateScriptContent(packages, capabilities, optionalFeatures, specialApps)
+                : await WriteBloatScriptAsync(scriptPath, packages, capabilities, optionalFeatures, specialApps, ct).ConfigureAwait(false);
 
             var startTime = DateTime.Now;
             progress?.Report(new TaskProgressDetail
             {
-                TerminalOutput = $"Command: powershell.exe -ExecutionPolicy Bypass -NoProfile -File \"{scriptPath}\""
+                TerminalOutput = viaStdin
+                    ? "Command: powershell.exe -ExecutionPolicy Bypass -NoProfile -EncodedCommand (script on stdin)"
+                    : $"Command: powershell.exe -ExecutionPolicy Bypass -NoProfile -File \"{scriptPath}\""
             });
             progress?.Report(new TaskProgressDetail
             {
@@ -145,8 +151,11 @@ internal class BloatRemovalService(
             });
             progress?.Report(new TaskProgressDetail { TerminalOutput = "---" });
 
-            logService.LogInformation($"Executing BloatRemoval script from {scriptPath} ({packages.Count} packages, {capabilities.Count} capabilities, {optionalFeatures.Count} features, {specialApps.Count} special)...");
-            await powerShellRunner.RunScriptFileAsync(scriptPath, progress: progress, ct: ct).ConfigureAwait(false);
+            logService.LogInformation($"Executing BloatRemoval script {(viaStdin ? "in memory" : $"from {scriptPath}")} ({packages.Count} packages, {capabilities.Count} capabilities, {optionalFeatures.Count} features, {specialApps.Count} special)...");
+            if (viaStdin)
+                await powerShellRunner.RunScriptFromStdinAsync(scriptContent, progress, ct).ConfigureAwait(false);
+            else
+                await powerShellRunner.RunScriptFileAsync(scriptPath, progress: progress, ct: ct).ConfigureAwait(false);
             logService.LogInformation("BloatRemoval script completed successfully");
 
             var endTime = DateTime.Now;
@@ -204,6 +213,34 @@ internal class BloatRemovalService(
             logService.LogError($"Error executing BloatRemoval script: {ex.Message}", ex);
             return RemovalOutcome.Failed;
         }
+    }
+
+    public async Task WriteRemovalScriptsAsync(List<ItemDefinition> apps, CancellationToken ct = default)
+    {
+        fileSystemService.CreateDirectory(ScriptPaths.ScriptsDirectory);
+        foreach (var app in DedicatedRemovalScripts.OnePerScript(apps))
+        {
+            var path = fileSystemService.CombinePath(ScriptPaths.ScriptsDirectory, app.RemovalScriptFileName!);
+            await fileSystemService.WriteAllTextAsync(path, app.RemovalScript!(), ct).ConfigureAwait(false);
+        }
+
+        var (packages, capabilities, optionalFeatures, specialApps) = CategorizeApps(apps.Where(a => a.RemovalScript == null).ToList());
+        if (packages.Count + capabilities.Count + optionalFeatures.Count + specialApps.Count > 0)
+        {
+            var bloatPath = fileSystemService.CombinePath(ScriptPaths.ScriptsDirectory, BloatScriptFileName);
+            await WriteBloatScriptAsync(bloatPath, packages, capabilities, optionalFeatures, specialApps, ct).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<string> WriteBloatScriptAsync(
+        string scriptPath, List<string> packages, List<string> capabilities, List<string> optionalFeatures, List<string> specialApps, CancellationToken ct)
+    {
+        fileSystemService.CreateDirectory(ScriptPaths.ScriptsDirectory);
+        var content = fileSystemService.FileExists(scriptPath)
+            ? await MergeWithExistingScript(scriptPath, packages, capabilities, optionalFeatures, specialApps).ConfigureAwait(false)
+            : GenerateScriptContent(packages, capabilities, optionalFeatures, specialApps);
+        await fileSystemService.WriteAllTextAsync(scriptPath, content, ct).ConfigureAwait(false);
+        return content;
     }
 
     public async Task PersistRemovalScriptsAsync(List<ItemDefinition> allApps)
@@ -379,9 +416,9 @@ internal class BloatRemovalService(
     {
         var existingContent = await fileSystemService.ReadAllTextAsync(scriptPath).ConfigureAwait(false);
 
-        var existingPackages = ExtractArrayFromScript(existingContent, "packages");
-        var existingCapabilities = ExtractArrayFromScript(existingContent, "capabilities");
-        var existingFeatures = ExtractArrayFromScript(existingContent, "optionalFeatures");
+        var existingPackages = ExtractArrayFromScript(existingContent, BloatRemovalScriptGenerator.PackagesArray);
+        var existingCapabilities = ExtractArrayFromScript(existingContent, BloatRemovalScriptGenerator.CapabilitiesArray);
+        var existingFeatures = ExtractArrayFromScript(existingContent, BloatRemovalScriptGenerator.OptionalFeaturesArray);
         var existingSpecialApps = ExtractArrayFromScript(existingContent, "specialApps");
 
         var mergedPackages = existingPackages.Union(packages).Distinct().ToList();
@@ -409,17 +446,17 @@ internal class BloatRemovalService(
 
     private bool IsScriptEmpty(string content)
     {
-        return ExtractArrayFromScript(content, "packages").Count == 0
-            && ExtractArrayFromScript(content, "capabilities").Count == 0
-            && ExtractArrayFromScript(content, "optionalFeatures").Count == 0
+        return ExtractArrayFromScript(content, BloatRemovalScriptGenerator.PackagesArray).Count == 0
+            && ExtractArrayFromScript(content, BloatRemovalScriptGenerator.CapabilitiesArray).Count == 0
+            && ExtractArrayFromScript(content, BloatRemovalScriptGenerator.OptionalFeaturesArray).Count == 0
             && ExtractArrayFromScript(content, "specialApps").Count == 0;
     }
 
     private string RemoveItemsFromScriptContent(string content, List<string> itemsToRemove)
     {
-        var existingPackages = ExtractArrayFromScript(content, "packages");
-        var existingCapabilities = ExtractArrayFromScript(content, "capabilities");
-        var existingFeatures = ExtractArrayFromScript(content, "optionalFeatures");
+        var existingPackages = ExtractArrayFromScript(content, BloatRemovalScriptGenerator.PackagesArray);
+        var existingCapabilities = ExtractArrayFromScript(content, BloatRemovalScriptGenerator.CapabilitiesArray);
+        var existingFeatures = ExtractArrayFromScript(content, BloatRemovalScriptGenerator.OptionalFeaturesArray);
         var existingSpecialApps = ExtractArrayFromScript(content, "specialApps");
 
         var cleanedPackages = existingPackages.Except(itemsToRemove, StringComparer.OrdinalIgnoreCase).ToList();

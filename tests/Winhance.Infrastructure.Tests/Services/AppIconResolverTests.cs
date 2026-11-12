@@ -150,6 +150,24 @@ public class AppIconResolverTests : IDisposable
     }
 
     [Fact]
+    public async Task ResolveBatchAsync_InstalledAppIdWithColon_WritesAPlainCacheFile()
+    {
+        var def = Def("appx:Microsoft.App1_8wekyb3d8bbwe", appxName: "Microsoft.App1");
+        var fullName = "Microsoft.App1_1.0.0_x64__8wekyb3d8bbwe";
+
+        _mockIconSource.Setup(s => s.GetInstalledPackageMapAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string> { ["Microsoft.App1"] = fullName });
+        _mockIconSource.Setup(s => s.GetLogoStreamAsync(fullName, It.IsAny<Size>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PngBytes("app1"));
+
+        await _resolver.ResolveBatchAsync(new[] { def });
+
+        var expectedPath = Path.Combine(_tempCacheDir, BuildCacheFileName("appx_Microsoft.App1_8wekyb3d8bbwe", fullName));
+        def.IconPath.Should().Be(expectedPath);
+        File.ReadAllText(expectedPath).Should().Be("PNG-app1");
+    }
+
+    [Fact]
     public async Task ResolveBatchAsync_AppxCacheHit_DoesNotCallGetLogoStreamButStampsIconPath()
     {
         var def = Def("windows-app-app1", appxName: "Microsoft.App1");

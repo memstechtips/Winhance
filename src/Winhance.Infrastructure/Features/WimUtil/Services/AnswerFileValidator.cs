@@ -6,6 +6,7 @@ using System.Xml.Linq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.WimUtil.Interfaces;
 using Winhance.Core.Features.WimUtil.Models;
+using Winhance.Infrastructure.Features.Autounattend;
 
 namespace Winhance.Infrastructure.Features.WimUtil.Services;
 
@@ -15,7 +16,7 @@ namespace Winhance.Infrastructure.Features.WimUtil.Services;
 // report gates nothing; it only says how confident the verdict is.
 internal sealed class AnswerFileValidator(IFileSystemService files, IPowerShellRunner powerShell) : IAnswerFileValidator
 {
-    private static readonly XNamespace Unattend = "urn:schemas-microsoft-com:unattend";
+    private static readonly XNamespace Unattend = AutounattendDocument.Unattend;
 
     // Documented in the unattend reference: Path caps at 259, FirstLogonCommands CommandLine at
     // 1024, Order is an integer from 1 through 500. Nothing documents duplicate Orders, so that one

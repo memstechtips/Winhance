@@ -13,6 +13,7 @@ internal class WindowsAppUninstallService(
     ILogService logService,
     IWindowsAppsService windowsAppsService,
     IBloatRemovalService bloatRemovalService,
+    IBackgroundTaskService backgroundTaskService,
     ITaskProgressService taskProgressService,
     IMultiScriptProgressService multiScriptProgressService,
     IChangeHistoryService changeHistory,
@@ -85,6 +86,7 @@ internal class WindowsAppUninstallService(
                 return OperationResult<int>.Failed("No apps provided");
 
             logService.LogInformation($"START: {apps.Count} total apps to process");
+            var installedCount = apps.Count(a => a.IsInstalled);
 
             var scriptApps = DedicatedRemovalScripts.OnePerScript(apps);
             var regularApps = apps.Where(a => a.RemovalScript == null).ToList();
@@ -132,13 +134,13 @@ internal class WindowsAppUninstallService(
 
             if (saveRemovalScripts)
             {
-                logService.LogInformation("Step 4: Persisting removal scripts...");
-                await bloatRemovalService.PersistRemovalScriptsAsync(apps).ConfigureAwait(false);
+                logService.LogInformation("Step 4: Keeping the apps removed...");
+                await KeepRemovedAsync(apps).ConfigureAwait(false);
             }
             else
             {
                 logService.LogInformation("Step 4: Cleaning up all removal artifacts...");
-                await bloatRemovalService.CleanupAllRemovalArtifactsAsync().ConfigureAwait(false);
+                await StopKeepingRemovedAsync(apps).ConfigureAwait(false);
             }
             logService.LogInformation("Step 4 DONE");
 
@@ -148,8 +150,7 @@ internal class WindowsAppUninstallService(
                 return OperationResult<int>.DeferredSuccess(apps.Count, "Items will be removed at next startup");
             }
 
-            logService.Log(LogLevel.Success, $"DONE: Successfully removed {apps.Count} apps");
-            return OperationResult<int>.Succeeded(apps.Count);
+            return Done(apps, installedCount);
         }
         catch (OperationCanceledException)
         {
@@ -171,6 +172,7 @@ internal class WindowsAppUninstallService(
                 return OperationResult<int>.Failed("No apps provided");
 
             logService.LogInformation($"START: {apps.Count} total apps to process");
+            var installedCount = apps.Count(a => a.IsInstalled);
 
             var scriptApps = DedicatedRemovalScripts.OnePerScript(apps);
             var regularApps = apps.Where(a => a.RemovalScript == null).ToList();
@@ -251,13 +253,13 @@ internal class WindowsAppUninstallService(
 
                 if (saveRemovalScripts)
                 {
-                    logService.LogInformation("Persisting removal scripts...");
-                    await bloatRemovalService.PersistRemovalScriptsAsync(apps).ConfigureAwait(false);
+                    logService.LogInformation("Keeping the apps removed...");
+                    await KeepRemovedAsync(apps).ConfigureAwait(false);
                 }
                 else
                 {
                     logService.LogInformation("Cleaning up all removal artifacts...");
-                    await bloatRemovalService.CleanupAllRemovalArtifactsAsync().ConfigureAwait(false);
+                    await StopKeepingRemovedAsync(apps).ConfigureAwait(false);
                 }
 
                 var anyDeferred = results.Any(r => r == RemovalOutcome.DeferredToScheduledTask);
@@ -267,8 +269,7 @@ internal class WindowsAppUninstallService(
                     return OperationResult<int>.DeferredSuccess(apps.Count, "Items will be removed at next startup");
                 }
 
-                logService.Log(LogLevel.Success, $"DONE: Successfully removed {apps.Count} apps");
-                return OperationResult<int>.Succeeded(apps.Count);
+                return Done(apps, installedCount);
             }
             catch (OperationCanceledException)
             {
@@ -315,11 +316,43 @@ internal class WindowsAppUninstallService(
         }
     }
 
+    // Winhance mode only records the apps; Scripts mode also leaves the scripts and their startup tasks.
+    private async Task KeepRemovedAsync(List<ItemDefinition> apps)
+    {
+        var result = await backgroundTaskService.AddKeptAppsAsync(apps.Select(a => a.Id)).ConfigureAwait(false);
+        if (!result.Success)
+            logService.LogWarning($"Could not keep the apps removed: {result.ErrorMessage}");
+
+        if (backgroundTaskService.GetMode() == KeepRemovedMode.Scripts)
+            await bloatRemovalService.PersistRemovalScriptsAsync(apps).ConfigureAwait(false);
+    }
+
+    private async Task StopKeepingRemovedAsync(List<ItemDefinition> apps)
+    {
+        foreach (var app in apps)
+            backgroundTaskService.RemoveKeptApp(app.Id);
+
+        if (backgroundTaskService.GetMode() == KeepRemovedMode.Scripts)
+            await bloatRemovalService.CleanupAllRemovalArtifactsAsync().ConfigureAwait(false);
+    }
+
     // A deferred removal has not happened yet, so only a finished one raises the bar.
     private void RaiseExplorerRestartIfNeeded(IEnumerable<ItemDefinition> removed)
     {
         foreach (var app in removed.Where(a => a.RequiresExplorerRestart))
             pendingRestartService.Register(app.Id);
+    }
+
+    // IsInstalled is the last scan's answer; an app that was never there is skipped by the script, not removed.
+    private OperationResult<int> Done(List<ItemDefinition> apps, int installedCount)
+    {
+        if (installedCount == 0)
+            logService.LogInformation($"DONE: nothing to remove, none of the {apps.Count} apps were installed");
+        else if (installedCount < apps.Count)
+            logService.Log(LogLevel.Success, $"DONE: removed {installedCount} of {apps.Count} apps, the rest were not installed");
+        else
+            logService.Log(LogLevel.Success, $"DONE: removed {installedCount} apps");
+        return OperationResult<int>.Succeeded(apps.Count);
     }
 
     private static List<ItemDefinition> RemovedByScript(ItemDefinition scriptApp, List<ItemDefinition> apps) =>

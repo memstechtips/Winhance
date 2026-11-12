@@ -23,15 +23,9 @@ public partial class CustomizeViewModel : SectionPageViewModel<SectionInfo>
         new("Taskbar", FeatureIds.Taskbar),
         new("StartMenu", FeatureIds.StartMenu),
         new("Explorer", FeatureIds.Explorer),
+        new("ContextMenu", FeatureIds.ContextMenu),
         new("TimeRegionLanguage", FeatureIds.TimeRegionLanguage),
     };
-
-    // Per-feature handles for ReviewModeViewModelCoordinator, which re-applies review state feature by feature.
-    public ISettingsFeatureViewModel ExplorerViewModel { get; }
-    public ISettingsFeatureViewModel StartMenuViewModel { get; }
-    public ISettingsFeatureViewModel TaskbarViewModel { get; }
-    public ISettingsFeatureViewModel WindowsThemeViewModel { get; }
-    public ISettingsFeatureViewModel TimeRegionLanguageViewModel { get; }
 
     public CustomizeViewModel(
         ILogService logService,
@@ -46,11 +40,5 @@ public partial class CustomizeViewModel : SectionPageViewModel<SectionInfo>
                badgeService, reviewModeService, registry, scope, modeService)
     {
         InitializeSectionMappings();
-
-        ExplorerViewModel = GetFeatureByModuleId(FeatureIds.Explorer);
-        StartMenuViewModel = GetFeatureByModuleId(FeatureIds.StartMenu);
-        TaskbarViewModel = GetFeatureByModuleId(FeatureIds.Taskbar);
-        WindowsThemeViewModel = GetFeatureByModuleId(FeatureIds.WindowsTheme);
-        TimeRegionLanguageViewModel = GetFeatureByModuleId(FeatureIds.TimeRegionLanguage);
     }
 }

@@ -523,7 +523,7 @@ public class AppItemViewModelTests
     [Theory]
     [InlineData(null, "Card_Pill_InstabilityWarning_Tooltip")]
     [InlineData("Card_Pill_X3DGameBarWarning_Tooltip", "Card_Pill_X3DGameBarWarning_Tooltip")]
-    public void The_warning_tooltip_is_the_machine_warning_text_when_the_app_has_one(string? machineKey, string shownKey)
+    public void InstabilityWarningTooltip_Always_IsMachineWarningTextWhenAppHasOne(string? machineKey, string shownKey)
     {
         var def = new ItemDefinition
         {
@@ -533,6 +533,22 @@ public class AppItemViewModelTests
         _mockLocalization.Setup(l => l.GetString(shownKey)).Returns("shown");
 
         CreateViewModel(def).InstabilityWarningTooltip.Should().Be("shown");
+    }
+
+    [Theory]
+    [InlineData(null, null, "Card_Pill_InstalledUpToDate_Tooltip")]
+    [InlineData("SomeCapability", null, "Card_Pill_Installed_Tooltip")]
+    [InlineData(null, "SomeFeature", "Card_Pill_Installed_Tooltip")]
+    public void InstalledStatusTooltip_Always_ClaimsUpToDateOnlyForItemsThatCanBeUpdated(
+        string? capability, string? feature, string expectedKey)
+    {
+        var def = new ItemDefinition
+        {
+            Id = "a", Name = "A", Description = "", IsInstalled = true,
+            CapabilityName = capability, OptionalFeatureName = feature,
+        };
+
+        CreateViewModel(def).InstalledStatusTooltip.Should().Be(expectedKey);
     }
 
     [Fact]
@@ -575,19 +591,89 @@ public class AppItemViewModelTests
     }
 
     [Fact]
-    public void ShowNonReinstallableChip_IsTrue_WhenCannotBeReinstalled()
+    public void DescriptionTooltip_AddsTheReinstallStatus_WhenCannotBeReinstalled()
     {
-        var def = new ItemDefinition { Id = "a", Name = "A", Description = "", CanBeReinstalled = false };
+        _mockLocalization.Setup(l => l.GetString("Status_CannotReinstall")).Returns("Cannot reinstall");
+        var def = new ItemDefinition { Id = "a", Name = "A", Description = "Desc", CanBeReinstalled = false };
         var vm = CreateViewModel(def);
-        vm.ShowNonReinstallableChip.Should().BeTrue();
+        vm.DescriptionTooltip.Should().Be("Desc" + Environment.NewLine + "Cannot reinstall");
     }
 
     [Fact]
-    public void ShowNonReinstallableChip_IsFalse_WhenCanBeReinstalled()
+    public void DescriptionTooltip_IsTheDescription_WhenCanBeReinstalled()
+    {
+        var def = new ItemDefinition { Id = "a", Name = "A", Description = "Desc", CanBeReinstalled = true };
+        var vm = CreateViewModel(def);
+        vm.DescriptionTooltip.Should().Be("Desc");
+    }
+
+    [Fact]
+    public void DescriptionTooltip_IsNull_WhenNothingToShow()
     {
         var def = new ItemDefinition { Id = "a", Name = "A", Description = "", CanBeReinstalled = true };
         var vm = CreateViewModel(def);
-        vm.ShowNonReinstallableChip.Should().BeFalse();
+        vm.DescriptionTooltip.Should().BeNull();
+    }
+
+    private AppItemViewModel CreateInstalledWithUpdate(bool hasUpdate)
+    {
+        var def = new ItemDefinition { Id = "a", Name = "A", Description = "", IsInstalled = true };
+        return CreateViewModel(def, new InstalledApp("a", "A", InstalledAppKind.Program)
+        {
+            Version = "1.0",
+            AvailableVersion = hasUpdate ? "2.0" : null,
+            UpdateVia = hasUpdate ? PackageSources.WinGet : PackageSources.None,
+        });
+    }
+
+    private AppItemViewModel CreateViewModel(ItemDefinition definition, InstalledApp installed)
+    {
+        var vm = CreateViewModel(definition);
+        vm.Installed = installed;
+        return vm;
+    }
+
+    [Fact]
+    public void IsInstalledUpToDate_IsTrue_WhenInstalledWithoutUpdate()
+    {
+        var vm = CreateInstalledWithUpdate(hasUpdate: false);
+        vm.IsInstalledUpToDate.Should().BeTrue();
+        vm.HasUpdate.Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsInstalledUpToDate_IsFalse_WhenInstalledWithUpdate()
+    {
+        var vm = CreateInstalledWithUpdate(hasUpdate: true);
+        vm.IsInstalledUpToDate.Should().BeFalse();
+        vm.HasUpdate.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsInstalledUpToDate_IsFalse_WhenNotInstalled()
+    {
+        var vm = CreateViewModel();
+        vm.IsInstalledUpToDate.Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsInstalledUpToDate_Notifies_WhenInstalledOrScanChanges()
+    {
+        var vm = CreateViewModel();
+        var changed = new List<string>();
+        vm.PropertyChanged += (_, e) => changed.Add(e.PropertyName!);
+
+        vm.IsInstalled = true;
+        vm.Installed = new InstalledApp("a", "A", InstalledAppKind.Program) { UpdateVia = PackageSources.WinGet };
+
+        changed.Count(n => n == nameof(vm.IsInstalledUpToDate)).Should().Be(2);
+    }
+
+    [Fact]
+    public void StatusColumnText_ShowsUpdateAvailable_OnlyWhenThereIsAnUpdate()
+    {
+        CreateInstalledWithUpdate(hasUpdate: true).StatusColumnText.Should().Be("Card_Pill_UpdateAvailable");
+        CreateInstalledWithUpdate(hasUpdate: false).StatusColumnText.Should().Be("Status_Installed");
     }
 
     [Fact]

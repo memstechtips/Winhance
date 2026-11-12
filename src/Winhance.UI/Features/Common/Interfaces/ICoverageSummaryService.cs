@@ -7,7 +7,8 @@ public interface ICoverageSummaryService
 {
     // Closes every import. For the user's own file it also lists what the file lacks against this version of
     // Winhance and offers an updated copy; a preset or a backup gets only the applied, set-aside and not-applied report.
-    Task ShowImportSummaryAsync(IReadOnlyList<string> setAside, IReadOnlyList<string> notApplied);
+    // Every import names the applied settings that take effect only after a restart.
+    Task ShowImportSummaryAsync(WinhanceConfigFile applied, string? sourcePath, IReadOnlyList<string> setAside, IReadOnlyList<string> notApplied);
 
     // The settings this version has that a user's profile leaves out, once per version until the user turns it off.
     // True when the user chose to edit the profile in Builder.

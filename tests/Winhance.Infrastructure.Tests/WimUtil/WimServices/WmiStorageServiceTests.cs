@@ -37,6 +37,19 @@ public class WmiStorageServiceTests
     }
 
     [Fact]
+    public void GetDisks_ReadsTheUniqueIdAndTheBootFlag()
+    {
+        var disk = GivenDisk(2);
+        disk["UniqueId"] = "USBSTOR\\DISK&VEN_SANDISK#0401";
+        disk["IsBoot"] = true;
+
+        var drive = CreateSut().GetDisks().Single();
+
+        drive.UniqueId.Should().Be("USBSTOR\\DISK&VEN_SANDISK#0401");
+        drive.IsBoot.Should().BeTrue();
+    }
+
+    [Fact]
     public void GetDisks_UsbHardDrive_HasNoRemovableMedia()
     {
         GivenDisk(3, mediaType: "External hard disk media");
@@ -63,7 +76,7 @@ public class WmiStorageServiceTests
         var survivor = GivenPartition(2, 1);
         survivor.OnInvoke = (method, _) => (method == "DeleteObject" ? 42000u : 0u, new FakeInstance());
 
-        CreateSut().Clear(2);
+        CreateSut().Clear(2, "");
 
         disk.Invocations.Select(i => i.Method).Should().Equal("Clear");
         disk.Invocations[0].Parameters.Should().Contain("RemoveData", true);
@@ -71,11 +84,34 @@ public class WmiStorageServiceTests
     }
 
     [Fact]
+    public void Clear_UniqueIdChanged_ThrowsBeforeWiping()
+    {
+        var disk = GivenDisk(2);
+        disk["UniqueId"] = "stick-b";
+
+        Action act = () => CreateSut().Clear(2, "stick-a");
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*no longer the drive*");
+        disk.Invocations.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Clear_DiskNowReportsNoUniqueIdButThePickedOneHadOne_ThrowsBeforeWiping()
+    {
+        var disk = GivenDisk(2);
+
+        Action act = () => CreateSut().Clear(2, "stick-a");
+
+        act.Should().Throw<InvalidOperationException>();
+        disk.Invocations.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Clear_NoFreeExtentAfterwards_Throws()
     {
         GivenDisk(2, largestFreeExtent: 0);
 
-        Action act = () => CreateSut().Clear(2);
+        Action act = () => CreateSut().Clear(2, "");
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*no free space*");
     }
@@ -219,7 +255,7 @@ public class WmiStorageServiceTests
             ["ExtendedStatus"] = new FakeInstance { ["Message"] = "Access denied." },
         });
 
-        Action act = () => CreateSut().Clear(2);
+        Action act = () => CreateSut().Clear(2, "");
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*Access denied.*40001*");
     }

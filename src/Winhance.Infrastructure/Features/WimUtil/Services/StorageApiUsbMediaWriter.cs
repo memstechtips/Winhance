@@ -42,7 +42,7 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
         foreach (var disk in disks)
         {
             _logService.LogInformation(
-                $"Disk {disk.DiskNumber}: {disk.Model}, {disk.BusType}, system={disk.IsSystemDisk}, removable={disk.HasRemovableMedia}");
+                $"Disk {disk.DiskNumber}: {disk.Model}, {disk.BusType}, system={disk.IsSystemDisk}, boot={disk.IsBoot}, removable={disk.HasRemovableMedia}");
         }
 
         // USB hard drives and SSDs stay off the list unless the user opts in, as Rufus does: they are
@@ -50,6 +50,7 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
         // as fixed media too, which is why the opt-in exists. It relaxes only the removable-media bit.
         return disks
             .Where(disk => !disk.IsSystemDisk
+                        && !disk.IsBoot
                         && (includeUsbHardDrives || disk.HasRemovableMedia)
                         && disk.BusType.Equals(UsbBusType, StringComparison.OrdinalIgnoreCase))
             .OrderBy(disk => disk.DiskNumber)
@@ -133,7 +134,7 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
         {
             // No bcdboot: the media already ships \EFI\BOOT\BOOTX64.EFI and \boot\bcd, and copying
             // them verbatim is what makes the stick boot.
-            _operations.Clear(target.DiskNumber);
+            _operations.Clear(target.DiskNumber, target.UniqueId);
             _operations.EnsureMbr(target.DiskNumber);
             var bootPartition = _operations.CreateBootPartition(target.DiskNumber, UsbWriteLayoutPlanner.BootPartitionBytes);
             var installPartition = _operations.CreateInstallPartition(target.DiskNumber);

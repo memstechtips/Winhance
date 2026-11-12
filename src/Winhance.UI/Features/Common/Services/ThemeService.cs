@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Interfaces;
@@ -66,7 +67,7 @@ public class ThemeService : IThemeService
     {
         try
         {
-            var themeString = _userPreferences.GetPreference<string>("Theme", string.Empty);
+            var themeString = _userPreferences.GetPreference<string>(UserPreferenceKeys.Theme, string.Empty);
 
             if (string.IsNullOrEmpty(themeString))
             {
@@ -127,7 +128,7 @@ public class ThemeService : IThemeService
     {
         try
         {
-            await _userPreferences.SetPreferenceAsync("Theme", theme.ToString());
+            await _userPreferences.SetPreferenceAsync(UserPreferenceKeys.Theme, theme.ToString());
         }
         catch
         {

@@ -11,7 +11,6 @@ internal class IsoService : IIsoService
     private readonly IFileSystemService _fileSystemService;
     private readonly ILogService _logService;
     private readonly ILocalizationService _localization;
-    private readonly IProcessExecutor _processExecutor;
     private readonly IDismProcessRunner _dismProcessRunner;
     private readonly IIsoImageReader _isoImageReader;
     private readonly IIsoImageWriter _isoImageWriter;
@@ -21,7 +20,6 @@ internal class IsoService : IIsoService
         IFileSystemService fileSystemService,
         ILogService logService,
         ILocalizationService localization,
-        IProcessExecutor processExecutor,
         IDismProcessRunner dismProcessRunner,
         IIsoImageReader isoImageReader,
         IIsoImageWriter isoImageWriter,
@@ -30,7 +28,6 @@ internal class IsoService : IIsoService
         _fileSystemService = fileSystemService;
         _logService = logService;
         _localization = localization;
-        _processExecutor = processExecutor;
         _dismProcessRunner = dismProcessRunner;
         _isoImageReader = isoImageReader;
         _isoImageWriter = isoImageWriter;
@@ -95,16 +92,15 @@ internal class IsoService : IIsoService
 
                 try
                 {
-                    var script = $@"
-                        Get-ChildItem -Path '{workingDirectory}' -Recurse -Force | ForEach-Object {{ $_.Attributes = 'Normal' }}
-                        Remove-Item -Path '{workingDirectory}' -Recurse -Force -ErrorAction Stop
-                    ";
-
-                    var removeResult = await _processExecutor.ExecuteAsync(
-                        "powershell.exe",
-                        $"-NoProfile -ExecutionPolicy Bypass -Command \"{script}\"",
-                        cancellationToken).ConfigureAwait(false);
-                    var errorOutput = removeResult.StandardError;
+                    string? errorOutput = null;
+                    try
+                    {
+                        await Task.Run(() => WorkingFolder.Delete(_fileSystemService, workingDirectory), cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    {
+                        errorOutput = ex.Message;
+                    }
 
                     if (_fileSystemService.DirectoryExists(workingDirectory))
                     {

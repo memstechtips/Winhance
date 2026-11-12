@@ -20,7 +20,7 @@ public class CustomStateValueReconstructorTests
 
     // A Custom DNS is portable only as its addresses, under the keys the custom-state apply reads them by.
     [Fact]
-    public void Dns_servers_ride_in_the_readings_under_their_target_keys()
+    public void Build_DnsServers_CarryReadingsUnderTheirTargetKeys()
     {
         var values = CustomStateValueReconstructor.Build(Dns(), new SettingStateResult
         {
@@ -35,7 +35,7 @@ public class CustomStateValueReconstructorTests
     }
 
     [Fact]
-    public void System_tray_carries_the_detected_index()
+    public void Build_SystemTray_CarriesDetectedIndex()
     {
         var setting = new Setting
         {

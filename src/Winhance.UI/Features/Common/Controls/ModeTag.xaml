@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.ModeTag"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    VerticalAlignment="Center"
+    IsTabStop="False">
+
+    <Border x:Name="Pill" Style="{StaticResource BadgeDefaultStyle}" Visibility="Collapsed">
+        <TextBlock
+            x:Name="Label"
+            Style="{StaticResource BadgeTextStyle}"
+            Foreground="{ThemeResource BadgeDefaultForeground}"/>
+    </Border>
+</UserControl>

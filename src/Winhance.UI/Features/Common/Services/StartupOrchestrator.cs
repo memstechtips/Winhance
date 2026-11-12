@@ -1,10 +1,9 @@
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
-using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Services;
-using Winhance.UI.Features.Common.Utilities;
+using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -16,6 +15,7 @@ public class StartupOrchestrator : IStartupOrchestrator
     private readonly IScriptMigrationService _migrationService;
     private readonly IRemovalScriptUpdateService _updateService;
     private readonly INewBadgeService _newBadgeService;
+    private readonly IProfileService _profileService;
     private readonly ILogService _logService;
 
     public StartupOrchestrator(
@@ -25,6 +25,7 @@ public class StartupOrchestrator : IStartupOrchestrator
         IScriptMigrationService migrationService,
         IRemovalScriptUpdateService updateService,
         INewBadgeService newBadgeService,
+        IProfileService profileService,
         ILogService logService)
     {
         _catalogSettingsRegistry = catalogSettingsRegistry;
@@ -33,6 +34,7 @@ public class StartupOrchestrator : IStartupOrchestrator
         _migrationService = migrationService;
         _updateService = updateService;
         _newBadgeService = newBadgeService;
+        _profileService = profileService;
         _logService = logService;
     }
 
@@ -71,9 +73,6 @@ public class StartupOrchestrator : IStartupOrchestrator
             {
                 _logService.LogWarning($"New badge service init failed: {ex.Message}");
             }
-
-            // Pre-cache regedit icon for Technical Details panel
-            RegeditIconProvider.GetIconAsync().FireAndForget(_logService);
         }
         catch (Exception ex)
         {
@@ -119,6 +118,10 @@ public class StartupOrchestrator : IStartupOrchestrator
             StartupLogger.Log($"Phase 2: User backup config FAILED: {ex.Message}");
             _logService.LogWarning($"User backup config failed: {ex.Message}");
         }
+
+        // Every launch, so a user who had Winhance before profiles gets Before Winhance from their first backup.
+        StartupLogger.Log("Phase 2: Ensuring the Before Winhance profile...");
+        await _profileService.EnsureBeforeWinhanceAsync().ConfigureAwait(false);
 
         try
         {

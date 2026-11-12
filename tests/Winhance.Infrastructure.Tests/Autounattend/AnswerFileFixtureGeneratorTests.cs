@@ -21,7 +21,7 @@ public class AnswerFileFixtureGeneratorTests
     public AnswerFileFixtureGeneratorTests(ITestOutputHelper output) => _output = output;
 
     [Fact]
-    public void Regenerate_fixtures_when_the_marker_is_present()
+    public void Regenerate_WhenMarkerPresent_RewritesFixturesAndDeletesMarker()
     {
         var marker = Path.Combine(FixtureDir, "REGENERATE");
         if (!File.Exists(marker))

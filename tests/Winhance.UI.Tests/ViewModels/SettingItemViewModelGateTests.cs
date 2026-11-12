@@ -95,7 +95,7 @@ public class SettingItemViewModelGateTests
         new(ParentId, [TestKeys.Of(stateLabel)]);
 
     [Fact]
-    public async Task A_child_whose_gate_names_another_state_is_not_drawn()
+    public async Task EffectiveIsVisible_WhenGateNamesAnotherParentState_IsFalse()
     {
         var parent = Card(ParentId, states: ParentStates);
         var child = Card("gate-child", WhenParentIs("Slideshow"));
@@ -109,7 +109,7 @@ public class SettingItemViewModelGateTests
     }
 
     [Fact]
-    public async Task A_gated_child_the_review_wants_to_change_is_drawn_while_the_review_runs()
+    public async Task EffectiveIsVisible_WhenReviewWantsToChangeAGatedChild_IsTrueWhileTheReviewRuns()
     {
         var parent = Card(ParentId, states: ParentStates);
         var child = Card("gate-child", WhenParentIs("Slideshow"));
@@ -129,7 +129,7 @@ public class SettingItemViewModelGateTests
     }
 
     [Fact]
-    public async Task Moving_the_parent_onto_the_named_state_draws_it_again()
+    public async Task EffectiveIsVisible_WhenParentMovesOntoTheNamedState_IsTrueAgain()
     {
         var parent = Card(ParentId, states: ParentStates);
         var child = Card("gate-child", WhenParentIs("Slideshow"));
@@ -142,7 +142,7 @@ public class SettingItemViewModelGateTests
     }
 
     [Fact]
-    public async Task A_card_that_declares_no_gate_is_always_drawn()
+    public async Task EffectiveIsVisible_WithNoDeclaredGate_IsTrue()
     {
         var parent = Card(ParentId, states: ParentStates);
         var child = Card("gate-child");
@@ -155,7 +155,7 @@ public class SettingItemViewModelGateTests
     }
 
     [Fact]
-    public async Task The_bottom_corners_follow_the_last_child_that_is_drawn()
+    public async Task IsLastChild_WhenTheLastChildIsGatedOff_FollowsTheLastDrawnChild()
     {
         var parent = Card(ParentId, states: ParentStates);
         var first = Card("gate-first");
@@ -171,7 +171,7 @@ public class SettingItemViewModelGateTests
     }
 
     [Fact]
-    public async Task The_corners_move_back_when_the_hidden_child_returns()
+    public async Task IsLastChild_WhenTheHiddenChildReturns_MovesBackToIt()
     {
         var parent = Card(ParentId, states: ParentStates);
         var first = Card("gate-first");
@@ -186,7 +186,7 @@ public class SettingItemViewModelGateTests
     }
 
     [Fact]
-    public async Task A_parent_with_no_child_left_on_screen_draws_its_own_bottom_corners()
+    public async Task ParentCornerRadius_WhenNoChildIsOnScreen_RoundsTheParentsBottomCorners()
     {
         var parent = Card(ParentId, states: ParentStates);
         var first = Card("gate-first", WhenParentIs("Slideshow"));
@@ -201,7 +201,7 @@ public class SettingItemViewModelGateTests
     }
 
     [Fact]
-    public async Task A_parent_with_a_child_on_screen_leaves_its_bottom_corners_open()
+    public async Task ParentCornerRadius_WhenAChildIsOnScreen_LeavesTheBottomCornersOpen()
     {
         var parent = Card(ParentId, states: ParentStates);
         var first = Card("gate-first", WhenParentIs("Slideshow"));
@@ -217,7 +217,7 @@ public class SettingItemViewModelGateTests
     }
 
     [Fact]
-    public async Task A_feature_whose_only_cards_are_gated_off_has_nothing_to_show()
+    public async Task HasVisibleSettings_WhenOnlyCardsAreGatedOff_IsFalse()
     {
         var parent = Card(ParentId, WhenParentIs("Slideshow"), ParentStates);
         var feature = await FeatureWith(parent);

@@ -9,7 +9,7 @@ using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Features.SoftwareApps.Models;
-using Winhance.UI.Features.SoftwareApps.Views;
+using Winhance.UI.Features.SoftwareApps.Services;
 using Winhance.Core.Features.Common.Constants;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
@@ -22,11 +22,12 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly IConfigReviewModeService _configReviewModeService;
     private readonly IConfigReviewBadgeService _configReviewBadgeService;
-    private readonly IScheduledTaskService _scheduledTaskService;
     private readonly IFileSystemService _fileSystemService;
     private readonly IApplicationModeService _applicationModeService;
-    private readonly ISaveFilePicker _saveFilePicker;
+    private readonly IFilePickerService _filePicker;
+    private readonly AppUpdateMonitor _updateMonitor;
     private bool _isSubscribed;
+    private WinhanceMode _lastMode;
 
     public SoftwareAppsViewModel(
         WindowsAppsViewModel windowsAppsViewModel,
@@ -37,10 +38,10 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         IUserPreferencesService userPreferencesService,
         IConfigReviewModeService configReviewModeService,
         IConfigReviewBadgeService configReviewBadgeService,
-        IScheduledTaskService scheduledTaskService,
         IFileSystemService fileSystemService,
         IApplicationModeService applicationModeService,
-        ISaveFilePicker saveFilePicker)
+        IFilePickerService filePicker,
+        AppUpdateMonitor updateMonitor)
     {
         WindowsAppsViewModel = windowsAppsViewModel;
         ExternalAppsViewModel = externalAppsViewModel;
@@ -50,10 +51,10 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         _userPreferencesService = userPreferencesService;
         _configReviewModeService = configReviewModeService;
         _configReviewBadgeService = configReviewBadgeService;
-        _scheduledTaskService = scheduledTaskService;
         _fileSystemService = fileSystemService;
         _applicationModeService = applicationModeService;
-        _saveFilePicker = saveFilePicker;
+        _filePicker = filePicker;
+        _updateMonitor = updateMonitor;
 
         // SearchText first: the tab-change handlers forward it to the child ViewModels.
         SearchText = string.Empty;
@@ -221,16 +222,17 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public string PackageSearchPlaceholder => _localizationService.GetString("ExternalApps_PackageSearch_Placeholder");
     public string InstallButtonText => _localizationService.GetString("SoftwareApps_Button_InstallSelected");
 
-    // On External Software the Install button also updates, so its label names what it will do with the ticked rows.
+    // On both app tabs the Install button also updates, so its label names what it will do with the ticked rows.
     // Builder and a config review only choose apps to install, whatever this PC has an update for.
     public string PrimaryActionText
     {
         get
         {
-            if (!IsExternalAppsTabSelected || !_applicationModeService.Capabilities().AppliesToSystem)
+            if (!_applicationModeService.Capabilities().AppliesToSystem || !(IsExternalAppsTabSelected || IsWindowsAppsTabSelected))
                 return InstallButtonText;
 
-            var selected = ExternalAppsViewModel.Items.Where(a => a.IsSelected).ToList();
+            var items = IsWindowsAppsTabSelected ? WindowsAppsViewModel.Items : ExternalAppsViewModel.Items;
+            var selected = items.Where(a => a.IsSelected).ToList();
             var updates = selected.Count(a => a.HasUpdate);
             var key = updates == 0 ? "SoftwareApps_Button_InstallSelected"
                 : updates == selected.Count ? "SoftwareApps_Button_UpdateSelected"
@@ -240,7 +242,6 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     }
 
     public string RefreshButtonText => _localizationService.GetString("Button_Refresh");
-    public string HelpButtonText => _localizationService.GetString("Button_Help");
     public string InstallOptionsButtonText => _localizationService.GetString("ExternalApps_InstallOptions_Button");
     public string InstallOptionsMenuText => _localizationService.GetString("ExternalApps_InstallOptions_Menu");
 
@@ -417,7 +418,6 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         OnPropertyChanged(nameof(PrimaryActionText));
         OnPropertyChanged(nameof(RemoveButtonText));
         OnPropertyChanged(nameof(RefreshButtonText));
-        OnPropertyChanged(nameof(HelpButtonText));
         OnPropertyChanged(nameof(InstallOptionsButtonText));
         OnPropertyChanged(nameof(ViewModeTableTooltip));
         OnPropertyChanged(nameof(ViewModeCardTooltip));
@@ -525,6 +525,15 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
     private void OnApplicationModeChanged(object? sender, EventArgs e)
     {
+        // A search typed in one mode would hide the next mode's apps, e.g. the apps a config being reviewed picks.
+        // Builder to Builder is a target switch, not a new mode.
+        var mode = _applicationModeService.CurrentMode;
+        if (mode != WinhanceMode.Builder || _lastMode != WinhanceMode.Builder)
+        {
+            SearchText = string.Empty;
+        }
+        _lastMode = mode;
+
         var capabilities = _applicationModeService.Capabilities();
         ExternalAppsViewModel.AuthorsIntent = capabilities.AuthorsIntent;
 
@@ -621,13 +630,13 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         _localizationService.LanguageChanged += OnLanguageChanged;
         _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
         _applicationModeService.ModeChanged += OnApplicationModeChanged;
+        _lastMode = _applicationModeService.CurrentMode;
 
         ExternalAppsViewModel.AuthorsIntent = _applicationModeService.Capabilities().AuthorsIntent;
         UpdateButtonStates();
     }
 
-    // The cold-start path loads this first so the startup overlay can drop as soon as the fast tab is ready,
-    // without waiting on External Apps icon resolution.
+    // A command-line install or config run awaits this alone: it needs the Windows Apps states before it acts.
     public async Task InitializeWindowsAppsAsync()
     {
         EnsureSubscriptions();
@@ -638,8 +647,6 @@ public partial class SoftwareAppsViewModel : BaseViewModel
         }
     }
 
-    // Cold-start fires this in the background (Helpers.StartupUiCoordinator); until it finishes the tab shows only
-    // its loader (ExternalAppsViewModel.IsContentReady).
     public async Task InitializeExternalAppsAsync()
     {
         EnsureSubscriptions();
@@ -657,8 +664,8 @@ public partial class SoftwareAppsViewModel : BaseViewModel
 
         try
         {
-            await InitializeWindowsAppsAsync();
-            await InitializeExternalAppsAsync();
+            // Each tab has its own loader, and their detection shares one winget fetch, so neither waits for the other.
+            await Task.WhenAll(InitializeWindowsAppsAsync(), InitializeExternalAppsAsync());
             _logService.LogInformation("InitializeAsync completed");
         }
         catch (Exception ex)
@@ -712,39 +719,14 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     [RelayCommand]
     private async Task RefreshInstallationStatusAsync()
     {
-        if (IsWindowsAppsTabSelected)
-        {
-            await WindowsAppsViewModel.RefreshInstallationStatusAsync();
-        }
-        else
-        {
-            await ExternalAppsViewModel.RefreshInstallationStatusAsync();
-        }
-    }
-
-    [RelayCommand]
-    private async Task ShowHelpAsync()
-    {
-        var closeButtonText = _localizationService.GetString("Help_CloseHelp");
-
-        if (IsWindowsAppsTabSelected)
-        {
-            var vm = new RemovalStatusContainerViewModel(_scheduledTaskService, _logService, _fileSystemService);
-            var content = new WindowsAppsHelpContent(_localizationService) { DataContext = vm };
-            _ = vm.RefreshAllStatusesAsync();
-            await _dialogService.ShowCustomContentDialogAsync(
-                _localizationService.GetString("Help_WindowsApps_Title"),
-                content,
-                closeButtonText);
-            vm.Dispose();
-        }
-        else
-        {
-            await _dialogService.ShowCustomContentDialogAsync(
-                _localizationService.GetString("Help_ExternalApps_Title"),
-                new ExternalAppsHelpContent(_localizationService),
-                closeButtonText);
-        }
+        // The tab's recheck drops the cached read and starts a new one, which the monitor's refresh of both tabs shares.
+        var recheck = IsWindowsAppsTabSelected
+            ? WindowsAppsViewModel.RecheckInstallationStatusAsync()
+            : ExternalAppsViewModel.RecheckInstallationStatusAsync();
+        var refresh = (IsWindowsAppsTabSelected ? WindowsAppsViewModel.IsInitialized : ExternalAppsViewModel.IsInitialized)
+            ? _updateMonitor.RefreshAsync()
+            : Task.CompletedTask;
+        await Task.WhenAll(recheck, refresh);
     }
 
     [RelayCommand]
@@ -766,7 +748,7 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     private async Task ExportListAsync()
     {
         var tab = IsWindowsAppsTabSelected ? "WindowsApps" : "ExternalApps";
-        var path = _saveFilePicker.PickSavePath(
+        var path = _filePicker.PickSavePath(
             _localizationService.GetString("SoftwareApps_ExportList_DialogTitle"),
             "CSV Files",
             "*.csv",
@@ -826,8 +808,15 @@ public partial class SoftwareAppsViewModel : BaseViewModel
     public void ShowAppUpdates()
     {
         EnsureSubscriptions();
-        IsExternalAppsTabSelected = true;
-        SetFilter(AppFilter.UpdatesAvailable);
+        if (ExternalAppsViewModel.HasUpdates || !WindowsAppsViewModel.HasUpdates)
+        {
+            IsExternalAppsTabSelected = true;
+            SetFilter(AppFilter.UpdatesAvailable);
+        }
+        else
+        {
+            IsWindowsAppsTabSelected = true;
+        }
     }
 
     protected override void Dispose(bool disposing)

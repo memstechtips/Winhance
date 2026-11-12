@@ -22,7 +22,7 @@ public class ApplyPlanBuilderTests
         new() { Id = "t", Display = new() { Name = TestKeys.Of("t"), Description = TestKeys.Of("t") }, Targets = targets, States = states };
 
     [Fact]
-    public void Writes_concrete_value_to_each_mirror_path()
+    public void Build_ConcreteValue_WritesToEachMirrorPath()
     {
         var setting = Make(
             new[] { Reg("Hide", "HideSCAMeetNow", @"HKCU\A", @"HKLM\B") },
@@ -37,7 +37,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void Lockable_target_unlocks_before_and_locks_after_only_the_protective_value()
+    public void Build_LockableTarget_UnlocksBeforeAndLocksAfterOnlyTheProtectiveValue()
     {
         var setting = Make(
             new Target[] { new RegTarget("Start", SvcPath, "Start", RegistryValueKind.DWord) { LockWhenValue = 4 } },
@@ -55,7 +55,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void Absent_state_emits_a_delete_per_path()
+    public void Build_AbsentState_EmitsADeletePerPath()
     {
         var setting = Make(
             new[] { Reg("Hide", "HideSCAMeetNow", @"HKCU\A", @"HKLM\B") },
@@ -68,7 +68,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void OrAbsent_writes_the_concrete_value()
+    public void Build_OrAbsentValue_WritesTheConcreteValue()
     {
         var setting = Make(
             new[] { Reg("Start", "Start") },
@@ -79,7 +79,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void Exists_state_emits_ensure_key()
+    public void Build_ExistsState_EmitsEnsureKey()
     {
         var setting = Make(
             new[] { Reg("Flag", "Flag") },
@@ -89,7 +89,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void Effects_are_emitted_after_registry_ops()
+    public void Build_StateWithEffects_EmitsEffectsAfterRegistryOps()
     {
         var setting = Make(
             new[] { Reg("Start", "Start") },
@@ -106,7 +106,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void Bit_target_emits_a_bit_set_op_keyed_off_the_payload()
+    public void Build_BitTarget_EmitsABitSetOpKeyedOffThePayload()
     {
         var reg = Reg("Settings", "Settings", @"HKCU\CabinetState") with { ByteIndex = 4, BitMask = 0x20 };
         var setting = Make(
@@ -124,7 +124,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void String_flag_target_emits_a_flag_set_op_keyed_off_the_payload()
+    public void Build_StringFlagTarget_EmitsAFlagSetOpKeyedOffThePayload()
     {
         var reg = Reg("Flags", "Flags", @"HKCU\MouseKeys") with { StringFlagMask = 0x04, StringFlagAbsentBase = 62 };
         var setting = Make(
@@ -142,7 +142,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void List_item_target_emits_a_list_item_op_keyed_off_the_payload()
+    public void Build_ListItemTarget_EmitsAListItemOpKeyedOffThePayload()
     {
         var reg = Reg("Pages", "SettingsPageVisibility", @"HKLM\Explorer") with { ListItem = "home", ListPrefix = "hide:" };
         var setting = Make(
@@ -160,7 +160,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void ByteOnly_target_emits_a_byte_set_op_with_the_payload_byte()
+    public void Build_ByteOnlyTarget_EmitsAByteSetOpWithThePayloadByte()
     {
         var reg = Reg("Settings", "Settings", @"HKCU\StuckRects3") with { ByteIndex = 8, ByteOnly = true };
         var setting = Make(
@@ -177,7 +177,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void Bit_op_is_emitted_per_mirror_path()
+    public void Build_BitTargetWithMirrorPaths_EmitsABitOpPerPath()
     {
         var reg = Reg("Settings", "Settings", @"HKCU\A", @"HKLM\B") with { ByteIndex = 4, BitMask = 0x20 };
         var setting = Make(
@@ -188,7 +188,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void Composite_target_emits_a_sub_key_set_op_from_the_payload()
+    public void Build_CompositeTarget_EmitsASubKeySetOpFromThePayload()
     {
         var reg = Reg("DirectXUserGlobalSettings", "DirectXUserGlobalSettings", @"HKCU\UserGpuPreferences")
             with { CompositeStringKey = "AutoHDREnable" };
@@ -206,7 +206,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void Composite_target_with_absent_payload_emits_a_remove()
+    public void Build_CompositeTargetWithAbsentPayload_EmitsARemove()
     {
         var reg = Reg("Packed", "Packed") with { CompositeStringKey = "SubKey" };
         var setting = Make(
@@ -219,7 +219,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void RegContent_setting_skips_registry_writes_and_emits_only_the_import()
+    public void Build_RegContentSetting_SkipsRegistryWritesAndEmitsOnlyTheImport()
     {
         // A setting that applies via a .reg import has detect-only registry targets - no registry write op.
         var setting = Make(
@@ -247,7 +247,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void Script_effect_rides_alongside_the_registry_write()
+    public void Build_ScriptEffect_RunsAfterTheRegistryWrite()
     {
         // No RegContentEffect -> the registry write is NOT skipped; the script rides along after it.
         var setting = Make(
@@ -265,7 +265,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void Per_network_interface_target_emits_a_per_subkey_write_or_delete()
+    public void Build_PerNetworkInterfaceTarget_EmitsAPerSubkeyWriteOrDelete()
     {
         var reg = Reg("TcpAckFrequency", "TcpAckFrequency", @"HKLM\...\Interfaces") with { PerNetworkInterface = true };
         var setting = Make(
@@ -283,7 +283,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void Per_monitor_target_emits_a_per_subkey_write()
+    public void Build_PerMonitorTarget_EmitsAPerSubkeyWrite()
     {
         var reg = Reg("AutoColorManagementEnabled", "AutoColorManagementEnabled", @"HKLM\...\MonitorDataStore") with { PerMonitor = true };
         var setting = Make(
@@ -297,7 +297,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void Task_state_emits_enable_or_disable()
+    public void Build_TaskState_EmitsEnableOrDisable()
     {
         var setting = Make(
             new[] { (Target)new TaskTarget("Task", @"\MS\Win\Task") },
@@ -309,7 +309,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void Unknown_state_label_throws()
+    public void Build_UnknownStateLabel_Throws()
     {
         var setting = Make(new[] { Reg("K", "V") },
             new SettingState { Label = TestKeys.Of("On"), Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) } });
@@ -317,7 +317,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void Fallback_partial_set_skips_uncovered_targets()
+    public void Build_FallbackWithPartialSet_SkipsUncoveredTargets()
     {
         var setting = Make(
             new[] { Reg("A", "A"), Reg("B", "B") },
@@ -387,7 +387,7 @@ public class ApplyPlanBuilderTests
             o => Assert.IsType<EffectOp>(o));
     }
     [Fact]
-    public void Windows_default_state_writes_its_ResetSet_without_the_reset_flag()
+    public void Build_WindowsDefaultState_WritesItsResetSetWithoutTheResetFlag()
     {
         // Apply Recommended and the per-card quick-set issue a NORMAL apply. When the state they land on is
         // also the Windows default, it must still DELETE the targets its ResetSet covers - otherwise those two
@@ -408,7 +408,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void Build_scoped_windows_default_writes_its_ResetSet_only_on_the_build_it_applies_to()
+    public void Build_BuildScopedWindowsDefault_WritesItsResetSetOnlyOnTheBuildItAppliesTo()
     {
         var setting = Make(
             new[] { Reg("k", "V") },
@@ -439,7 +439,7 @@ public class ApplyPlanBuilderTests
         new SettingState { Label = LocKey.Common.Disabled, Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) } });
 
     [Fact]
-    public void Windows_default_deletes_a_group_policy_path_and_writes_the_windows_own_mirror()
+    public void Build_WindowsDefault_DeletesTheGroupPolicyPathAndWritesWindowsOwnMirror()
     {
         var plan = ApplyPlanBuilder.Build(PolicyMirror(), LocKey.Common.Enabled);
 
@@ -450,7 +450,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void Non_default_state_still_writes_the_group_policy_path()
+    public void Build_NonDefaultState_StillWritesTheGroupPolicyPath()
     {
         var plan = ApplyPlanBuilder.Build(PolicyMirror(), LocKey.Common.Disabled);
 
@@ -459,7 +459,7 @@ public class ApplyPlanBuilderTests
     }
 
     [Fact]
-    public void ResetSet_naming_the_target_overrides_the_group_policy_delete()
+    public void Build_ResetSetNamingTheTarget_OverridesTheGroupPolicyDelete()
     {
         var plan = ApplyPlanBuilder.Build(
             PolicyMirror(new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) }), LocKey.Common.Enabled);

@@ -20,6 +20,7 @@ public abstract class SettingBoundControl : UserControl, INotifyPropertyChanged
         // Safe despite naming overridables in a constructor: these are delegates, not calls, and the observer only
         // invokes them once the Setting property is first set.
         _observer = new SettingObserver(Refresh, RefreshesOn);
+        Loaded += (_, _) => _observer.Resume(Setting);
         Unloaded += (_, _) => _observer.Detach();
     }
 

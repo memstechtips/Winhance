@@ -73,7 +73,7 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
     // Set by the page; each one re-derives the card.
 
     [ObservableProperty]
-    public partial bool AreInfoBadgesVisible { get; set; } = true;
+    public partial bool AreInfoBadgesVisible { get; set; }
 
     [ObservableProperty]
     public partial bool AreNewBadgesVisible { get; set; } = true;

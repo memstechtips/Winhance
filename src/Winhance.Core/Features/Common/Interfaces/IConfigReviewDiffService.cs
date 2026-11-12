@@ -10,6 +10,9 @@ public interface IConfigReviewDiffService
 
     void SetActionApproval(string settingId, bool approved);
 
+    // Accepts every value and action not yet decided; a rejection stands. Returns the settings it touched.
+    IReadOnlyList<string> ApproveAllPending();
+
     IReadOnlyList<ConfigReviewDiff> GetApprovedDiffs();
 
     void RegisterDiff(ConfigReviewDiff diff);

@@ -1,4 +1,3 @@
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
@@ -14,8 +13,6 @@ internal class ExternalAppsService(
     ILogService logService,
     IWinGetPackageInstaller winGetPackageInstaller,
     IWinGetDetectionService winGetDetectionService,
-    IWinGetBootstrapper winGetBootstrapper,
-    IAppStatusDiscoveryService appStatusDiscoveryService,
     IExternalAppUninstallService externalAppUninstallService,
     IDirectDownloadService directDownloadService,
     ITaskProgressService taskProgressService,
@@ -26,16 +23,6 @@ internal class ExternalAppsService(
     IChangeHistoryService changeHistory,
     IInstallOptionsService installOptions) : IExternalAppsService
 {
-    public string DomainName => FeatureIds.ExternalApps;
-
-    public event EventHandler? WinGetReady
-    {
-        add => winGetBootstrapper.WinGetInstalled += value;
-        remove => winGetBootstrapper.WinGetInstalled -= value;
-    }
-
-    public void InvalidateStatusCache() => appStatusDiscoveryService.InvalidateCache();
-
     public Task<IEnumerable<ItemDefinition>> GetAppsAsync()
     {
         return Task.FromResult<IEnumerable<ItemDefinition>>(ExternalAppDefinitions.GetExternalApps().Items);
@@ -142,7 +129,7 @@ internal class ExternalAppsService(
 
                     // The Store installs per user whatever winget is asked.
                     var sourceOptions = src == WinGetSources.MsStore ? InstallOptions.Default
-                        : isPortable ? options with { Scope = InstallScope.Default }
+                        : isPortable ? options with { Scope = options.ScopeForPortable() }
                         : options;
 
                     lastResult = await winGetPackageInstaller.InstallPackageAsync(pkgId, src, item.Name, item.WinGetInstallerOverride, sourceOptions, cancellationToken).ConfigureAwait(false);
@@ -158,7 +145,7 @@ internal class ExternalAppsService(
                     if (lastResult.Success)
                     {
                         if (isPortable)
-                            await CreateStartMenuShortcutForPortableAppAsync(item).ConfigureAwait(false);
+                            await CreateStartMenuShortcutForPortableAppAsync(item, options.ScopeForPortable()).ConfigureAwait(false);
 
                         return OperationResult<bool>.Succeeded(true);
                     }
@@ -258,16 +245,18 @@ internal class ExternalAppsService(
         return lower.Contains("portable") || lower == "zip";
     }
 
-    private async Task CreateStartMenuShortcutForPortableAppAsync(ItemDefinition item)
+    private async Task CreateStartMenuShortcutForPortableAppAsync(ItemDefinition item, InstallScope scope)
     {
         try
         {
-            var installDir = FindPortableAppDirectory(item);
-            if (string.IsNullOrEmpty(installDir))
+            logService.LogInformation($"Creating Start Menu shortcuts for portable {item.Name} (scope {scope})");
+            if (FindPortableAppDirectory(item, scope) is not { } located)
             {
                 logService.LogWarning($"Could not find installation directory for {item.Name}");
                 return;
             }
+
+            var (installDir, forAllUsers) = located;
 
             var exeFiles = fileSystemService.GetFiles(installDir, "*.exe", SearchOption.AllDirectories).ToList();
             if (exeFiles.Count == 0)
@@ -276,8 +265,11 @@ internal class ExternalAppsService(
                 return;
             }
 
+            // The shortcuts go where the files are: the shared Start menu for an everyone install.
             var startMenuFolder = fileSystemService.CombinePath(
-                interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.Programs),
+                forAllUsers
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms)
+                    : interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.Programs),
                 item.Name);
 
             fileSystemService.CreateDirectory(startMenuFolder);
@@ -290,7 +282,7 @@ internal class ExternalAppsService(
                 await CreateShortcutAsync(shortcutPath, exePath, fileSystemService.GetDirectoryName(exePath)!, item.Name).ConfigureAwait(false);
             }
 
-            logService.LogInformation($"Created Start Menu folder with {exeFiles.Count} shortcuts for {item.Name}");
+            logService.LogInformation($"Created Start Menu folder {startMenuFolder} with {exeFiles.Count} shortcuts for {item.Name}");
         }
         catch (Exception ex)
         {
@@ -372,25 +364,35 @@ internal class ExternalAppsService(
         return null;
     }
 
-    private string? FindPortableAppDirectory(ItemDefinition item)
+    // winget lays a portable out under the user's LocalAppData or under Program Files, by scope; the scope asked for is looked at first.
+    private (string Directory, bool ForAllUsers)? FindPortableAppDirectory(ItemDefinition item, InstallScope scope)
     {
-        var searchPaths = new List<string>
+        var userRoots = new List<string>
         {
             fileSystemService.CombinePath(interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Microsoft", "WinGet", "Packages"),
-            @"C:\Program Files\WinGet\Packages",
-            @"C:\Program Files (x86)\WinGet\Packages"
         };
 
         // Under OTS, also search the process user's (admin) AppData since WinGet runs as admin
         if (interactiveUserService.IsOtsElevation)
         {
-            searchPaths.Add(fileSystemService.CombinePath(
+            userRoots.Add(fileSystemService.CombinePath(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Microsoft", "WinGet", "Packages"));
         }
 
-        foreach (var basePath in searchPaths)
+        var machineRoots = new[]
+        {
+            fileSystemService.CombinePath(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "WinGet", "Packages"),
+            fileSystemService.CombinePath(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "WinGet", "Packages"),
+        };
+
+        var searchPaths = (scope == InstallScope.User
+                ? userRoots.Select(root => (root, false)).Concat(machineRoots.Select(root => (root, true)))
+                : machineRoots.Select(root => (root, true)).Concat(userRoots.Select(root => (root, false))))
+            .ToList();
+
+        foreach (var (basePath, forAllUsers) in searchPaths)
         {
             if (!fileSystemService.DirectoryExists(basePath))
                 continue;
@@ -401,7 +403,7 @@ internal class ExternalAppsService(
                 .FirstOrDefault();
 
             if (matchingDir != null)
-                return matchingDir;
+                return (matchingDir, forAllUsers);
         }
 
         return null;
@@ -409,16 +411,7 @@ internal class ExternalAppsService(
 
     private async Task CreateShortcutAsync(string shortcutPath, string targetPath, string workingDir, string description)
     {
-        var script = $@"
-$WshShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut('{PowerShellScriptUtilities.EscapePowerShellString(shortcutPath)}')
-$Shortcut.TargetPath = '{PowerShellScriptUtilities.EscapePowerShellString(targetPath)}'
-$Shortcut.WorkingDirectory = '{PowerShellScriptUtilities.EscapePowerShellString(workingDir)}'
-$Shortcut.Description = '{PowerShellScriptUtilities.EscapePowerShellString(description)}'
-$Shortcut.Save()
-";
-
-        var args = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script.Replace("\"", "\\\"")}\"";
+        var args = PowerShellScriptUtilities.CreateShortcutArguments(shortcutPath, targetPath, workingDir, description);
         var result = await processExecutor.ExecuteAsync("powershell", args, CancellationToken.None).ConfigureAwait(false);
 
         if (result.ExitCode != 0)
@@ -454,28 +447,43 @@ $Shortcut.Save()
         }
     }
 
+    // The signed-in user's Start menu and the shared one, since a portable installed for everyone has its folder there.
     private void RemoveStartMenuShortcutIfExists(string appName)
     {
+        // The name can come from an installed app's DisplayName, so it must name one folder directly under Programs.
+        if (appName != Path.GetFileName(appName)
+            || appName is "" or "." or ".."
+            || appName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        {
+            logService.LogWarning($"Skipped Start Menu cleanup: '{appName}' is not a plain folder name.");
+            return;
+        }
+
         try
         {
-            var startMenuFolder = fileSystemService.CombinePath(
-                interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.Programs),
-                appName);
-
-            if (fileSystemService.DirectoryExists(startMenuFolder))
+            foreach (var programs in new[]
             {
-                fileSystemService.DeleteDirectory(startMenuFolder, true);
-                logService.LogInformation($"Removed Start Menu folder for {appName}");
+                interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.Programs),
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms),
+            })
+            {
+                var startMenuFolder = fileSystemService.CombinePath(programs, appName);
+                if (fileSystemService.DirectoryExists(startMenuFolder))
+                {
+                    if (fileSystemService.GetFileAttributes(startMenuFolder).HasFlag(FileAttributes.ReparsePoint))
+                    {
+                        logService.LogWarning($"Skipped Start Menu folder for {appName}: it is a link, not a folder.");
+                        continue;
+                    }
+
+                    fileSystemService.DeleteDirectory(startMenuFolder, true);
+                    logService.LogInformation($"Removed Start Menu folder for {appName}");
+                }
             }
         }
         catch (Exception ex)
         {
             logService.LogWarning($"Could not remove Start Menu folder for {appName}: {ex.Message}");
         }
-    }
-
-    public async Task<Dictionary<string, bool>> CheckBatchInstalledAsync(IEnumerable<ItemDefinition> definitions)
-    {
-        return await appStatusDiscoveryService.GetExternalAppsInstallationStatusAsync(definitions).ConfigureAwait(false);
     }
 }

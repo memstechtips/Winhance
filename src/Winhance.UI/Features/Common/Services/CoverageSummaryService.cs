@@ -12,7 +12,6 @@ using Winhance.UI.Features.Common.Models;
 namespace Winhance.UI.Features.Common.Services;
 
 public sealed class CoverageSummaryService(
-    IConfigImportState importState,
     IConfigLoadService configLoad,
     ICatalogSettingsRegistry registry,
     IFileSystemService files,
@@ -23,12 +22,15 @@ public sealed class CoverageSummaryService(
     ISettingSnapshotSource snapshot,
     IVersionService version) : ICoverageSummaryService
 {
-    public async Task ShowImportSummaryAsync(IReadOnlyList<string> setAside, IReadOnlyList<string> notApplied)
+    public async Task ShowImportSummaryAsync(WinhanceConfigFile applied, string? sourcePath, IReadOnlyList<string> setAside, IReadOnlyList<string> notApplied)
     {
-        var path = importState.SourcePath;
-        var coverage = path is null ? ConfigCoverage.Empty : await MeasureAsync(path);
+        var coverage = sourcePath is null ? ConfigCoverage.Empty : await MeasureAsync(sourcePath);
+        await registry.InitializeAsync();
+        var needsRestart = NeedsRestart(applied);
 
         var sections = new List<SummarySection>();
+        if (needsRestart.Count > 0)
+            sections.Add(new(loc.GetString("Profiles_RestartNeeded_Dialog"), needsRestart.Select(name => new SummaryRow(SummaryIcon.Status, name)).ToList()));
         if (notApplied.Count > 0)
             sections.Add(new(loc.GetString("Config_Import_NotApplied_Heading"), notApplied.Select(line => new SummaryRow(SummaryIcon.Status, line, Tone: SummaryTone.Error)).ToList()));
         if (setAside.Count > 0)
@@ -41,15 +43,20 @@ public sealed class CoverageSummaryService(
         var asked = await dialogs.AskSummaryAsync(new SummaryRequest
         {
             Title = loc.GetString("Config_Import_Success_Title"),
-            Message = loc.GetString("Config_Import_Success_Message"),
+            Message = needsRestart.Count switch
+            {
+                0 => loc.GetString("Config_Import_Success_Message"),
+                1 => loc.GetString("Config_Import_RestartOne_Message"),
+                _ => loc.GetString("Config_Import_RestartCount_Message", needsRestart.Count),
+            },
             Verdict = coverage.IsComplete ? null : new SummaryVerdict(SummaryTone.Warning, loc.GetString("Config_Import_OutOfDate_Title"), OutOfDateMessage(coverage)),
             Sections = sections,
             CopyText = coverage.Missing.Count > 0 ? CopyText(coverage.Missing) : null,
             ConfirmButtonText = coverage.CanUpdate ? loc.GetString("Config_Import_SaveUpdatedCopy") : string.Empty,
         });
 
-        if (asked.Confirmed && path is not null)
-            await SaveUpdatedCopyAsync(path);
+        if (asked.Confirmed && sourcePath is not null)
+            await SaveUpdatedCopyAsync(sourcePath);
     }
 
     public async Task<bool> ShowProfileReminderAsync(SettingsProfile profile, WinhanceConfigFile config)
@@ -183,6 +190,15 @@ public sealed class CoverageSummaryService(
     // A retired item's name key went with its setting, so the file's own name and id are all there is to show.
     private static SummaryRow RetiredRow(ConfigurationItem item) =>
         new(SummaryIcon.Status, string.IsNullOrEmpty(item.Name) ? item.Id : item.Name, Code: item.Id);
+
+    private IReadOnlyList<string> NeedsRestart(WinhanceConfigFile applied) =>
+        applied.Optimize.Features.Values.Concat(applied.Customize.Features.Values)
+            .SelectMany(section => section.Items)
+            .Select(item => registry.GetById(item.Id))
+            .Where(setting => setting?.Apply.RequiresReboot == true)
+            .Select(setting => NameOf(setting!))
+            .Distinct()
+            .ToList();
 
     private string NameOf(Setting setting) => loc.SettingName(setting);
 

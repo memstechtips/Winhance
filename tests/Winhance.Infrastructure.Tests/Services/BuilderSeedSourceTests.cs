@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Win32;
 using Moq;
@@ -155,7 +156,7 @@ public class BuilderSeedSourceTests
     }
 
     [Fact]
-    public async Task A_role_seed_leaves_a_card_seeded_from_this_PC_alone()
+    public async Task ChoicesForAsync_RoleSeedOnCardSeededFromThisPc_LeavesItAlone()
     {
         Arrange(Architecture());
 
@@ -199,7 +200,17 @@ public class BuilderSeedSourceTests
             ["autounattend-oem-registration-page"] = new ChoiceValue.Toggle(false),
             ["autounattend-network-page"] = new ChoiceValue.Toggle(false),
             ["autounattend-privacy"] = new ChoiceValue.Option(0),
+            ["autounattend-computer-name-unique"] = new ChoiceValue.Toggle(false),
             ["autounattend-netfx3"] = new ChoiceValue.Toggle(true),
+            ["autounattend-netfx3-remove-source"] = new ChoiceValue.Toggle(false),
+            ["autounattend-keep-removed"] = new ChoiceValue.Option(1),
+            ["autounattend-cleanup"] = new ChoiceValue.Toggle(true),
+            ["autounattend-cleanup-old-components"] = new ChoiceValue.CheckBox(true),
+            ["autounattend-cleanup-update-downloads"] = new ChoiceValue.CheckBox(true),
+            ["autounattend-cleanup-servicing-logs"] = new ChoiceValue.CheckBox(true),
+            ["autounattend-cleanup-temp-files"] = new ChoiceValue.CheckBox(true),
+            ["autounattend-cleanup-crash-reports"] = new ChoiceValue.CheckBox(true),
+            ["autounattend-compact"] = new ChoiceValue.Toggle(false),
             ["autounattend-desktop-shortcut"] = new ChoiceValue.Option(1),
             ["autounattend-delete-installers"] = new ChoiceValue.Toggle(true),
             ["autounattend-stage-apps"] = new ChoiceValue.CheckBox(true),
@@ -229,11 +240,53 @@ public class BuilderSeedSourceTests
             ["autounattend-oem-registration-page"] = new ChoiceValue.Toggle(true),
             ["autounattend-network-page"] = new ChoiceValue.Toggle(true),
             ["autounattend-privacy"] = new ChoiceValue.Option(2),
+            ["autounattend-computer-name-unique"] = new ChoiceValue.Toggle(false),
             ["autounattend-netfx3"] = new ChoiceValue.Toggle(false),
+            ["autounattend-netfx3-remove-source"] = new ChoiceValue.Toggle(false),
+            ["autounattend-keep-removed"] = new ChoiceValue.Option(1),
+            ["autounattend-cleanup"] = new ChoiceValue.Toggle(false),
+            ["autounattend-cleanup-old-components"] = new ChoiceValue.CheckBox(false),
+            ["autounattend-cleanup-update-downloads"] = new ChoiceValue.CheckBox(false),
+            ["autounattend-cleanup-servicing-logs"] = new ChoiceValue.CheckBox(false),
+            ["autounattend-cleanup-temp-files"] = new ChoiceValue.CheckBox(false),
+            ["autounattend-cleanup-crash-reports"] = new ChoiceValue.CheckBox(false),
+            ["autounattend-compact"] = new ChoiceValue.Toggle(false),
             ["autounattend-desktop-shortcut"] = new ChoiceValue.Option(0),
             ["autounattend-delete-installers"] = new ChoiceValue.Toggle(true),
             ["autounattend-stage-apps"] = new ChoiceValue.CheckBox(true),
         });
+    }
+
+    private static WinhanceConfigFile EmbeddedConfig(string fileName)
+    {
+        var path = Path.Combine(RepoPaths.SolutionDir(), "src", "Winhance.UI", "Features", "Common", "Resources", "Configs", fileName);
+        return JsonSerializer.Deserialize<WinhanceConfigFile>(File.ReadAllText(path), ConfigFileConstants.JsonOptions)!;
+    }
+
+    // The Builder seed and the import dialog must select the same settings, so each seed is held to the file the
+    // import loads for it. The apps are the same file's, ticked by BuilderModeEntry.
+    [Theory]
+    [InlineData(BuilderSeed.Recommended, 26100, "Winhance_Recommended_Config.winhance")]
+    [InlineData(BuilderSeed.WindowsDefaults, 26100, "Winhance_Default_Config_Windows11_25H2.winhance")]
+    [InlineData(BuilderSeed.WindowsDefaults, 19045, "Winhance_Default_Config_Windows10_22H2.winhance")]
+    public async Task ARoleSeed_ChoosesWhatItsImportFileChooses(BuilderSeed seed, int buildNumber, string fileName)
+    {
+        _version.Setup(v => v.GetWindowsBuildNumber()).Returns(buildNumber);
+        _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>())).Returns(SettingCatalog.ByFeature);
+        var fromSeed = (await Sut().ChoicesForAsync(seed, CatalogScope.CurrentMachine)).ToDictionary(c => c.SettingId, c => c.Value);
+
+        var disagreements = new List<string>();
+        foreach (var item in EmbeddedConfig(fileName).SettingSections().SelectMany(section => section.Items))
+        {
+            var setting = SettingCatalog.Find(item.Id);
+            // A file keeps a slider in display units and the seed in system units; RecommendedConfigConformanceTests converts.
+            if (setting is null || setting.Control == ControlKind.Slider || ConfigFileMapper.DecodeValue(setting, item) is not { } fromFile) continue;
+            if (!fromSeed.TryGetValue(setting.Id, out var chosen)) continue;
+            if (chosen != fromFile)
+                disagreements.Add($"{setting.Id}: seed {chosen}, file {fromFile}");
+        }
+
+        disagreements.Should().BeEmpty();
     }
 
     [Fact]

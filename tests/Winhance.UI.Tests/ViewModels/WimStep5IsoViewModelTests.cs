@@ -3,7 +3,11 @@ using Moq;
 using Winhance.Core.Features.WimUtil.Interfaces;
 using Winhance.Core.Features.WimUtil.Models;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.WimUtil.Models;
 using Winhance.UI.Features.WimUtil.ViewModels;
 using Winhance.UI.Features.Common.Interfaces;
@@ -27,7 +31,12 @@ public class WimStep5IsoViewModelTests
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IAnswerFileValidator> _mockAnswerFileValidator = new();
     private readonly Mock<IOfflineServicingService> _mockOfflineServicingService = new();
+    private readonly Mock<ISelectionSaveService> _mockSaves = new();
+    private readonly Mock<ISelectionSetBuilder> _mockSelections = new();
+    private readonly Mock<IWimImageService> _mockWimImageService = new();
+    private readonly WimUtilSession _session = new();
     private readonly AnswerFileCheckState _checkState = new();
+    private readonly List<IMediaChoice> _choices = [];
 
     private readonly WimStep5IsoViewModel _sut;
 
@@ -60,6 +69,10 @@ public class WimStep5IsoViewModelTests
             .Setup(b => b.PrepareAsync(It.IsAny<string>(), It.IsAny<BootManager>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(BootFileReplacements.None);
 
+        _mockOfflineServicingService
+            .Setup(o => o.PhasesFor(It.IsAny<OfflineBuildRequest>()))
+            .Returns(Array.Empty<ServicingPhase>());
+
         _sut = new WimStep5IsoViewModel(
             _mockWimCustomizationService.Object,
             _mockIsoService.Object,
@@ -74,7 +87,12 @@ public class WimStep5IsoViewModelTests
             _mockLogService.Object,
             _mockAnswerFileValidator.Object,
             _checkState,
-            _mockOfflineServicingService.Object);
+            _mockOfflineServicingService.Object,
+            _mockSaves.Object,
+            _mockSelections.Object,
+            _session,
+            _mockWimImageService.Object,
+            _choices);
         _mockAnswerFileValidator
             .Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AnswerFileReport([]));
@@ -118,7 +136,7 @@ public class WimStep5IsoViewModelTests
     public void SelectIsoOutputLocationCommand_WhenFileSelected_SetsOutputIsoPath()
     {
         _mockFilePickerService
-            .Setup(f => f.PickSaveFile(It.IsAny<string[]>(), It.IsAny<string?>(), It.IsAny<string?>()))
+            .Setup(f => f.PickSavePath(It.IsAny<string>(), "ISO Files", "*.iso", "Winhance_Windows.iso", "iso"))
             .Returns("D:\\Output\\Winhance_Windows.iso");
 
         _sut.SelectIsoOutputLocationCommand.Execute(null);
@@ -130,7 +148,7 @@ public class WimStep5IsoViewModelTests
     public void SelectIsoOutputLocationCommand_WhenCancelled_DoesNotChangeOutputPath()
     {
         _mockFilePickerService
-            .Setup(f => f.PickSaveFile(It.IsAny<string[]>(), It.IsAny<string?>(), It.IsAny<string?>()))
+            .Setup(f => f.PickSavePath(It.IsAny<string>(), "ISO Files", "*.iso", "Winhance_Windows.iso", "iso"))
             .Returns((string?)null);
 
         _sut.SelectIsoOutputLocationCommand.Execute(null);
@@ -142,7 +160,7 @@ public class WimStep5IsoViewModelTests
     public void SelectIsoOutputLocationCommand_WhenFileSelected_ShowsTheFullPathOnTheCard()
     {
         _mockFilePickerService
-            .Setup(f => f.PickSaveFile(It.IsAny<string[]>(), It.IsAny<string?>(), It.IsAny<string?>()))
+            .Setup(f => f.PickSavePath(It.IsAny<string>(), "ISO Files", "*.iso", "Winhance_Windows.iso", "iso"))
             .Returns("D:\\Output\\Winhance_Windows.iso");
 
         _sut.SelectIsoOutputLocationCommand.Execute(null);
@@ -271,7 +289,7 @@ public class WimStep5IsoViewModelTests
 
         await _sut.CreateMediaCommand.ExecuteAsync(null);
 
-        _mockTaskProgressService.Verify(t => t.CompleteTask(), Times.Once);
+        _mockTaskProgressService.Verify(t => t.CompleteTask(), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -582,6 +600,174 @@ public class WimStep5IsoViewModelTests
             .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
     }
 
+    private Mock<IMediaChoice> ArrangeChoice(string titleKey, List<string> order, string? failure = null)
+    {
+        var choice = new Mock<IMediaChoice>();
+        choice.SetupGet(c => c.NeedsApply).Returns(true);
+        choice.SetupGet(c => c.ApplyTitleKey).Returns(titleKey);
+        choice
+            .Setup(c => c.ApplyAsync(It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Callback(() => order.Add(titleKey))
+            .ReturnsAsync(failure);
+        _choices.Add(choice.Object);
+        return choice;
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_AppliesTheChoicesInOrderBeforeServicingAndTheIso()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        ArrangeImageMode();
+        var order = new List<string>();
+        ArrangeChoice("answer", order);
+        ArrangeChoice("drivers", order);
+        ArrangeChoice("update", order);
+        _mockOfflineServicingService
+            .Setup(o => o.ServiceAsync(It.IsAny<OfflineBuildRequest>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<IProgress<ServicingPhaseUpdate>>(), It.IsAny<CancellationToken>()))
+            .Callback(() => order.Add("service"))
+            .ReturnsAsync(new OfflineServicingResult(ServicedItemOutcome.Added, ServicedItemOutcome.Added));
+        _mockIsoService
+            .Setup(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
+                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Callback(() => order.Add("iso"))
+            .ReturnsAsync(true);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        order.Should().Equal("answer", "drivers", "update", "service", "iso");
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_SkipsAChoiceThatNeedsNothing()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        var order = new List<string>();
+        var done = ArrangeChoice("drivers", order);
+        done.SetupGet(c => c.NeedsApply).Returns(false);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        order.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_WhenAChoiceFails_ShowsItAndCreatesNothing()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        var order = new List<string>();
+        ArrangeChoice("drivers", order, failure: "No drivers found");
+        ArrangeChoice("update", order);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowErrorAsync("No drivers found", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        order.Should().Equal("drivers");
+        _mockIsoService.Verify(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _sut.IsIsoCreated.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_WhenAChoiceIsCancelled_CancelsTheTaskAndCreatesNothing()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        var choice = ArrangeChoice("drivers", []);
+        choice
+            .Setup(c => c.ApplyAsync(It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockTaskProgressService.Verify(t => t.CancelTask(), Times.Once);
+        _sut.IsIsoCreated.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_DuringSetupWithEsdChosen_ConvertsRightBeforeTheIso()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        var order = new List<string>();
+        _sut.ShowMediaFormat(ImageFormat.Wim, bothExist: false);
+        _sut.SelectEsdFormatCommand.Execute(null);
+        _mockWimImageService
+            .Setup(w => w.ConvertImageAsync("C:\\WorkDir", ImageFormat.Esd, It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Callback(() => order.Add("convert"))
+            .ReturnsAsync(true);
+        _mockIsoService
+            .Setup(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
+                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Callback(() => order.Add("iso"))
+            .ReturnsAsync(true);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        order.Should().Equal("convert", "iso");
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_ImageModeWithEsdChosen_ExportsInThatFormat()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        ArrangeImageMode();
+        _sut.ShowMediaFormat(ImageFormat.Wim, bothExist: false);
+        _sut.SelectEsdFormatCommand.Execute(null);
+        _mockWimImageService
+            .Setup(w => w.ConvertImageAsync(It.IsAny<string>(), It.IsAny<ImageFormat>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        OfflineBuildRequest? seen = null;
+        _mockOfflineServicingService
+            .Setup(o => o.ServiceAsync(It.IsAny<OfflineBuildRequest>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<IProgress<ServicingPhaseUpdate>>(), It.IsAny<CancellationToken>()))
+            .Callback<OfflineBuildRequest, IProgress<TaskProgressDetail>, IProgress<ServicingPhaseUpdate>, CancellationToken>((r, _, _, _) => seen = r)
+            .ReturnsAsync(new OfflineServicingResult(ServicedItemOutcome.Added, ServicedItemOutcome.Added));
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        seen!.OutputFormat.Should().Be(ImageFormat.Esd);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_ConversionFails_CreatesNoIso()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        _sut.ShowMediaFormat(ImageFormat.Wim, bothExist: false);
+        _sut.SelectEsdFormatCommand.Execute(null);
+        _mockWimImageService
+            .Setup(w => w.ConvertImageAsync(It.IsAny<string>(), It.IsAny<ImageFormat>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockIsoService.Verify(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _sut.IsIsoCreated.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_BothFormatsOnDisk_ConvertsNothing()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        _sut.ShowMediaFormat(ImageFormat.Wim, bothExist: true);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _sut.CanChooseFormat.Should().BeFalse();
+        _mockWimImageService.Verify(w => w.ConvertImageAsync(It.IsAny<string>(), It.IsAny<ImageFormat>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public void ShowMediaFormat_FollowsTheMediaUntilTheUserPicks()
+    {
+        _sut.ShowMediaFormat(ImageFormat.Esd, bothExist: false);
+        _sut.IsEsdFormat.Should().BeTrue();
+        _sut.CanChooseFormat.Should().BeTrue();
+
+        _sut.SelectWimFormatCommand.Execute(null);
+        _sut.ShowMediaFormat(ImageFormat.Esd, bothExist: false);
+
+        _sut.IsWimFormat.Should().BeTrue();
+    }
+
     private static AnswerFileReport OneError() =>
         new([new AnswerFileFinding(AnswerFileRule.CommandTooLong, AnswerFileSeverity.Error, "line 40: settings[specialize]", "300 characters, limit 259")]);
 
@@ -603,6 +789,49 @@ public class WimStep5IsoViewModelTests
             && r.Verdict!.Title == "WIMUtil_AnswerFile_Verdict_WillFail"
             && r.Verdict.Message == "WIMUtil_AnswerFile_Summary"
             && r.Sections.SelectMany(sec => sec.Rows).Any(row => row.Detail == "300 characters, limit 259"))), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_UsbWithFindings_AsksOnceWithTheEraseWarning()
+    {
+        ArrangeIsoRun(OneError());
+        var stick = new RemovableDrive(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false, HasRemovableMedia: true);
+        _mockUsbMediaWriter.Setup(w => w.GetCandidateTargets(It.IsAny<bool>())).Returns([stick]);
+        _mockLocalizationService
+            .Setup(l => l.GetString("WIMUtil_Msg_UsbEraseConfirm"))
+            .Returns("{0} ({1} GB, disk {2}) will be formatted.");
+        SummaryRequest? request = null;
+        _mockDialogService
+            .Setup(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r => r.Title == AnswerFileTitle)))
+            .Callback<SummaryRequest>(r => request = r)
+            .ReturnsAsync(false);
+
+        await _sut.SelectUsbDestinationCommand.ExecuteAsync(null);
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        request!.Message.Should().Contain("SanDisk Ultra").And.Contain("disk 2");
+        request.ConfirmButtonText.Should().Be("WIMUtil_Button_EraseAndWrite");
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        _mockUsbMediaWriter.Verify(w => w.Write(It.IsAny<RemovableDrive>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_ImageMode_PlansTheStepsTheChoicesWillStage()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        ArrangeImageMode();
+        ArrangeChoice("WIMUtil_Build_PrepareDrivers", []).SetupGet(c => c.ServicedIn).Returns(ServicingPhase.Drivers);
+        var requests = new List<OfflineBuildRequest>();
+        _mockOfflineServicingService
+            .Setup(o => o.PhasesFor(It.IsAny<OfflineBuildRequest>()))
+            .Callback<OfflineBuildRequest>(requests.Add)
+            .Returns([ServicingPhase.Mount, ServicingPhase.Drivers]);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        requests.Should().ContainSingle();
+        requests[0].StagesDrivers.Should().BeTrue();
+        requests[0].StagesUpdate.Should().BeFalse();
     }
 
     [Fact]
@@ -790,13 +1019,19 @@ public class WimStep5IsoViewModelTests
             It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    private static readonly ServicingPhase[] StagedPhases = [ServicingPhase.PrepareImage, ServicingPhase.Mount, ServicingPhase.Drivers, ServicingPhase.Save];
+    private static readonly string[] HomeAndPro = ["Windows 11 Home", "Windows 11 Pro"];
+    private static readonly string[] ProOnly = ["Windows 11 Pro"];
+
     private void ArrangeImageMode(bool staged = true)
     {
         _sut.IsBuiltIntoImage = true;
-        _sut.IsReadyForServicing = true;
         _mockOfflineServicingService.Setup(o => o.HasStagedItems("C:\\WorkDir")).Returns(staged);
         _mockOfflineServicingService
-            .Setup(o => o.ServiceAsync("C:\\WorkDir", It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Setup(o => o.PhasesFor(It.IsAny<OfflineBuildRequest>()))
+            .Returns(staged ? StagedPhases : Array.Empty<ServicingPhase>());
+        _mockOfflineServicingService
+            .Setup(o => o.ServiceAsync(It.Is<OfflineBuildRequest>(r => r.WorkingDirectory == "C:\\WorkDir"), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<IProgress<ServicingPhaseUpdate>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new OfflineServicingResult(ServicedItemOutcome.Added, ServicedItemOutcome.Added));
     }
 
@@ -844,22 +1079,7 @@ public class WimStep5IsoViewModelTests
 
         _mockWimCustomizationService.Verify(s => s.EnsureDriverInstallStepAsync("C:\\WorkDir", It.IsAny<CancellationToken>()), Times.Once);
         _mockWimCustomizationService.Verify(s => s.EnsureUpdateInstallStepAsync("C:\\WorkDir", It.IsAny<CancellationToken>()), Times.Once);
-        _mockOfflineServicingService.Verify(o => o.ServiceAsync(It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task CreateMediaCommand_ImageModeNotPrepared_WarnsAndCreatesNothing()
-    {
-        ArrangeIsoRun(new AnswerFileReport([]));
-        ArrangeImageMode();
-        _sut.IsReadyForServicing = false;
-
-        await _sut.CreateMediaCommand.ExecuteAsync(null);
-
-        _mockDialogService.Verify(d => d.ShowWarningAsync("WIMUtil_Msg_ServicingNotPrepared", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
-        _mockIsoService.Verify(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
-            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
-        _mockOfflineServicingService.Verify(o => o.ServiceAsync(It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockOfflineServicingService.Verify(o => o.ServiceAsync(It.IsAny<OfflineBuildRequest>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<IProgress<ServicingPhaseUpdate>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -869,7 +1089,7 @@ public class WimStep5IsoViewModelTests
         ArrangeImageMode();
         var order = new List<string>();
         _mockOfflineServicingService
-            .Setup(o => o.ServiceAsync("C:\\WorkDir", It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Setup(o => o.ServiceAsync(It.Is<OfflineBuildRequest>(r => r.WorkingDirectory == "C:\\WorkDir"), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<IProgress<ServicingPhaseUpdate>>(), It.IsAny<CancellationToken>()))
             .Callback(() => order.Add("service"))
             .ReturnsAsync(new OfflineServicingResult(ServicedItemOutcome.Added, ServicedItemOutcome.NotStaged));
         _mockBootManagerService
@@ -895,7 +1115,7 @@ public class WimStep5IsoViewModelTests
 
         await _sut.CreateMediaCommand.ExecuteAsync(null);
 
-        _mockOfflineServicingService.Verify(o => o.ServiceAsync(It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockOfflineServicingService.Verify(o => o.ServiceAsync(It.IsAny<OfflineBuildRequest>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<IProgress<ServicingPhaseUpdate>>(), It.IsAny<CancellationToken>()), Times.Never);
         _sut.IsIsoCreated.Should().BeTrue();
     }
 
@@ -909,7 +1129,7 @@ public class WimStep5IsoViewModelTests
         ArrangeIsoRun(new AnswerFileReport([]));
         ArrangeImageMode();
         _mockOfflineServicingService
-            .Setup(o => o.ServiceAsync("C:\\WorkDir", It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Setup(o => o.ServiceAsync(It.Is<OfflineBuildRequest>(r => r.WorkingDirectory == "C:\\WorkDir"), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<IProgress<ServicingPhaseUpdate>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new OfflineServicingResult(drivers, update));
 
         await _sut.CreateMediaCommand.ExecuteAsync(null);
@@ -924,7 +1144,7 @@ public class WimStep5IsoViewModelTests
         ArrangeIsoRun(new AnswerFileReport([]));
         ArrangeImageMode();
         _mockOfflineServicingService
-            .Setup(o => o.ServiceAsync("C:\\WorkDir", It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Setup(o => o.ServiceAsync(It.Is<OfflineBuildRequest>(r => r.WorkingDirectory == "C:\\WorkDir"), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<IProgress<ServicingPhaseUpdate>>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new OperationCanceledException());
 
         await _sut.CreateMediaCommand.ExecuteAsync(null);
@@ -946,7 +1166,7 @@ public class WimStep5IsoViewModelTests
         _sut.WorkingDirectory = "C:\\WorkDir";
         ArrangeImageMode();
         _mockOfflineServicingService
-            .Setup(o => o.ServiceAsync("C:\\WorkDir", It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Setup(o => o.ServiceAsync(It.Is<OfflineBuildRequest>(r => r.WorkingDirectory == "C:\\WorkDir"), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<IProgress<ServicingPhaseUpdate>>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InsufficientDiskSpaceException("C:", 12, 3, "servicing"));
 
         await _sut.SelectUsbDestinationCommand.ExecuteAsync(null);
@@ -957,19 +1177,6 @@ public class WimStep5IsoViewModelTests
         _mockUsbMediaWriter.Verify(w => w.Write(It.IsAny<RemovableDrive>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
             It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
         _sut.SelectUsbCard.HasFailed.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task CreateMediaCommand_ImageModeNotPreparedNothingStaged_CreatesTheIso()
-    {
-        ArrangeIsoRun(new AnswerFileReport([]));
-        ArrangeImageMode(staged: false);
-        _sut.IsReadyForServicing = false;
-
-        await _sut.CreateMediaCommand.ExecuteAsync(null);
-
-        _mockDialogService.Verify(d => d.ShowWarningAsync("WIMUtil_Msg_ServicingNotPrepared", It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        _sut.IsIsoCreated.Should().BeTrue();
     }
 
     [Fact]
@@ -1000,5 +1207,583 @@ public class WimStep5IsoViewModelTests
         await _sut.CreateMediaCommand.ExecuteAsync(null);
 
         raised.Should().Be(new OfflineServicingResult(ServicedItemOutcome.Added, ServicedItemOutcome.Added));
+    }
+
+    [Theory]
+    [InlineData(@"D:\Work", WimOutputDestination.Iso, @"D:\Output\win.iso", false)]
+    [InlineData(@"D:\WinhanceWIM", WimOutputDestination.Iso, @"D:\WinhanceWIM\win.iso", false)]
+    [InlineData(@"D:\WinhanceWIM\", WimOutputDestination.Iso, @"D:\Output\win.iso", true)]
+    [InlineData(@"D:\winhancewim", WimOutputDestination.Iso, @"D:\Output\win.iso", true)]
+    [InlineData(@"D:\WinhanceWIM", WimOutputDestination.Usb, @"D:\WinhanceWIM\win.iso", true)]
+    public void CanOfferCleanup_OnlyForOurOwnFolderAndNeverWhenItHoldsTheOutput(
+        string workingDirectory, WimOutputDestination destination, string outputIsoPath, bool expected)
+    {
+        WimStep5IsoViewModel.CanOfferCleanup(workingDirectory, destination, outputIsoPath).Should().Be(expected);
+    }
+
+    private void ArrangeCleanupAfterIso(bool ticked)
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        _sut.WorkingDirectory = "C:\\WinhanceWIM";
+        _sut.DeleteWorkingFolderAfterBuild = ticked;
+        _mockFileSystemService.Setup(f => f.FileExists("C:\\WinhanceWIM\\autounattend.xml")).Returns(true);
+        _mockFileSystemService.Setup(f => f.DirectoryExists("C:\\WinhanceWIM")).Returns(true);
+    }
+
+    private void VerifyOnlyTheOpenFolderPrompt() =>
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Once);
+
+    [Fact]
+    public async Task CreateMediaCommand_IsoDoneAndBoxTicked_DeletesTheWorkingFolderWithoutAsking()
+    {
+        ArrangeCleanupAfterIso(ticked: true);
+        var deleted = false;
+        _sut.WorkingFilesDeleted += (_, _) => deleted = true;
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockFileSystemService.Verify(f => f.DeleteDirectory("C:\\WinhanceWIM", true), Times.Once);
+        deleted.Should().BeTrue();
+        VerifyOnlyTheOpenFolderPrompt();
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_IsoDoneAndBoxNotTicked_KeepsTheWorkingFolder()
+    {
+        ArrangeCleanupAfterIso(ticked: false);
+        var deleted = false;
+        _sut.WorkingFilesDeleted += (_, _) => deleted = true;
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockFileSystemService.Verify(f => f.DeleteDirectory(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+        deleted.Should().BeFalse();
+        VerifyOnlyTheOpenFolderPrompt();
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_WorkingFolderDeleteFails_ShowsAnErrorAndKeepsTheWizardState()
+    {
+        ArrangeCleanupAfterIso(ticked: true);
+        _mockFileSystemService
+            .Setup(f => f.DeleteDirectory("C:\\WinhanceWIM", true))
+            .Throws(new IOException("in use"));
+        var deleted = false;
+        _sut.WorkingFilesDeleted += (_, _) => deleted = true;
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowErrorAsync(
+            It.Is<string>(m => m.Contains("WIMUtil_Msg_CleanupFailed")), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        deleted.Should().BeFalse();
+        _sut.IsIsoCreated.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_IsoFailedAndBoxTicked_KeepsTheWorkingFolder()
+    {
+        ArrangeCleanupAfterIso(ticked: true);
+        _mockIsoService
+            .Setup(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
+                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockFileSystemService.Verify(f => f.DeleteDirectory(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_BoxTickedButTheIsoSitsInsideTheFolder_KeepsTheWorkingFolder()
+    {
+        ArrangeCleanupAfterIso(ticked: true);
+        _sut.OutputIsoPath = "C:\\WinhanceWIM\\win.iso";
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _sut.CanDeleteWorkingFolder.Should().BeFalse();
+        _mockFileSystemService.Verify(f => f.DeleteDirectory(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    private static int OptionOf(string settingId, LocKey label) =>
+        SettingCatalog.Find(settingId)!.States.ToList().FindIndex(state => state.Label == label);
+
+    private static SettingChoice On(string settingId) => new(settingId, new ChoiceValue.Option(OptionOf(settingId, LocKey.Common.Enabled)));
+
+    private static SettingChoice Off(string settingId) => new(settingId, new ChoiceValue.Option(OptionOf(settingId, LocKey.Common.Disabled)));
+
+    private static readonly AppChoice SomeApp = new("test", "Test", null, null, null, null);
+
+    private void ArrangeSet(params SettingChoice[] settings)
+    {
+        _sut.WritesAnswerFile = true;
+        _mockSelections
+            .Setup(s => s.FromBuilderSessionAsync())
+            .ReturnsAsync(new SelectionSet(settings, [SomeApp], []));
+        _mockSaves
+            .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
+            .ReturnsAsync(new SelectionSaveResult("C:\\WorkDir\\autounattend.xml", []));
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_AutounattendSession_WritesTheAnswerFileIntoTheWorkingFolder()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        ArrangeSet();
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockSaves.Verify(s => s.SaveAsync(BuilderTarget.Autounattend, It.IsAny<SelectionSet>(),
+            It.Is<SelectionSaveOptions>(o => o.FixedPath == "C:\\WorkDir\\autounattend.xml" && o.MediaFolder == "C:\\WorkDir" && !o.ReportSuccessInDialog)), Times.Once);
+        _sut.BuildCards.Should().Contain(c => c.Title == "WIMUtil_Build_WriteAnswerFile" && c.IsComplete);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_NoAutounattendSession_WritesNoAnswerFile()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockSaves.Verify(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()), Times.Never);
+        _sut.BuildCards.Should().NotContain(c => c.Title == "WIMUtil_Build_WriteAnswerFile");
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_TheSaveProducesNoFile_CreatesNothing()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        ArrangeSet();
+        _mockSaves
+            .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
+            .ReturnsAsync(new SelectionSaveResult(null, []));
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockIsoService.Verify(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_InstallerDownloadCancelled_StopsTheWholeBuild()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        ArrangeSet();
+        _mockSaves
+            .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
+            .ReturnsAsync(new SelectionSaveResult("C:\\WorkDir\\autounattend.xml", []) { StagingCancelled = true });
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockIsoService.Verify(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockDialogService.Verify(d => d.ShowErrorAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _sut.BuildCards.Should().NotContain(c => c.HasFailed);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_CleanRunWithAnAnswerFile_ShowsNoSummaryDialog()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        ArrangeSet();
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.IsAny<SummaryRequest>()), Times.Never);
+        VerifyOnlyTheOpenFolderPrompt();
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_AnAppDidNotReachTheMedia_AsksOnceBeforeCreating()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        ArrangeSet();
+        _mockSaves
+            .Setup(s => s.SaveAsync(It.IsAny<BuilderTarget>(), It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()))
+            .ReturnsAsync(new SelectionSaveResult("C:\\WorkDir\\autounattend.xml", [new StagedApp("Test", StagingOutcome.DownloadFailed)]));
+        _mockDialogService.Setup(d => d.ShowSummaryAsync(It.IsAny<SummaryRequest>())).ReturnsAsync(false);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.IsAny<SummaryRequest>()), Times.Once);
+        _mockIsoService.Verify(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_ImageMode_BuildsTheRequestFromTheSetAndTheFacadeChoices()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        ArrangeImageMode();
+        ArrangeSet(On("autounattend-netfx3"), On("autounattend-netfx3-remove-source"));
+        var cleanup = new ImageCleanupOptions(ResetBase: true, TempFiles: true);
+        _sut.Cleanup = cleanup;
+        _sut.EditionIndex = 3;
+        OfflineBuildRequest? seen = null;
+        _mockOfflineServicingService
+            .Setup(o => o.ServiceAsync(It.IsAny<OfflineBuildRequest>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<IProgress<ServicingPhaseUpdate>>(), It.IsAny<CancellationToken>()))
+            .Callback<OfflineBuildRequest, IProgress<TaskProgressDetail>?, IProgress<ServicingPhaseUpdate>?, CancellationToken>((r, _, _, _) => seen = r)
+            .ReturnsAsync(new OfflineServicingResult(ServicedItemOutcome.Added, ServicedItemOutcome.Added));
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        seen.Should().NotBeNull();
+        seen!.WorkingDirectory.Should().Be("C:\\WorkDir");
+        seen.EditionIndex.Should().Be(3);
+        seen.EnableDotNet35.Should().BeTrue();
+        seen.RemoveDotNetSource.Should().BeTrue();
+        seen.Cleanup.Should().Be(cleanup);
+        seen.Selections.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_ImageModeWithoutAnAnswerFile_AsksForNoSelectionsAndNoDotNet()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        ArrangeImageMode();
+        OfflineBuildRequest? seen = null;
+        _mockOfflineServicingService
+            .Setup(o => o.ServiceAsync(It.IsAny<OfflineBuildRequest>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<IProgress<ServicingPhaseUpdate>>(), It.IsAny<CancellationToken>()))
+            .Callback<OfflineBuildRequest, IProgress<TaskProgressDetail>?, IProgress<ServicingPhaseUpdate>?, CancellationToken>((r, _, _, _) => seen = r)
+            .ReturnsAsync(new OfflineServicingResult(ServicedItemOutcome.Added, ServicedItemOutcome.Added));
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        seen!.Selections.Should().BeNull();
+        seen.EnableDotNet35.Should().BeFalse();
+        seen.RemoveDotNetSource.Should().BeFalse();
+        _mockSelections.Verify(s => s.FromBuilderSessionAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_ImageMode_ShowsOneCardPerPhaseAndFollowsTheUpdates()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        ArrangeImageMode();
+        var titlesAtStart = new List<string>();
+        _mockOfflineServicingService
+            .Setup(o => o.ServiceAsync(It.IsAny<OfflineBuildRequest>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<IProgress<ServicingPhaseUpdate>>(), It.IsAny<CancellationToken>()))
+            .Callback<OfflineBuildRequest, IProgress<TaskProgressDetail>?, IProgress<ServicingPhaseUpdate>?, CancellationToken>((_, _, phases, _) =>
+            {
+                titlesAtStart.AddRange(_sut.BuildCards.Select(c => c.Title));
+                phases!.Report(new ServicingPhaseUpdate(ServicingPhase.PrepareImage, ServicingPhaseState.Running));
+                phases.Report(new ServicingPhaseUpdate(ServicingPhase.PrepareImage, ServicingPhaseState.Done));
+                phases.Report(new ServicingPhaseUpdate(ServicingPhase.Mount, ServicingPhaseState.Running));
+                phases.Report(new ServicingPhaseUpdate(ServicingPhase.Mount, ServicingPhaseState.Failed));
+                phases.Report(new ServicingPhaseUpdate(ServicingPhase.Drivers, ServicingPhaseState.Skipped));
+            })
+            .ReturnsAsync(new OfflineServicingResult(ServicedItemOutcome.Added, ServicedItemOutcome.Added));
+
+        var previous = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(new InlineContext());
+        try
+        {
+            await _sut.CreateMediaCommand.ExecuteAsync(null);
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previous);
+        }
+
+        titlesAtStart.Should().Equal(
+            "WIMUtil_Progress_PreparingImage", "WIMUtil_Progress_Mounting", "WIMUtil_Progress_AddingDrivers",
+            "WIMUtil_Progress_Saving", "WIMUtil_Status_CreatingIso");
+        var cards = _sut.BuildCards.ToDictionary(c => c.Title);
+        cards["WIMUtil_Progress_PreparingImage"].IsComplete.Should().BeTrue();
+        cards["WIMUtil_Progress_Mounting"].HasFailed.Should().BeTrue();
+        cards["WIMUtil_Progress_AddingDrivers"].Description.Should().Be("WIMUtil_Build_Skipped");
+        cards["WIMUtil_Status_CreatingIso"].IsComplete.Should().BeTrue();
+    }
+
+    private sealed class InlineContext : SynchronizationContext
+    {
+        public override void Post(SendOrPostCallback d, object? state) => d(state);
+    }
+
+    private static int KeepOption(LocKey label) => OptionOf("autounattend-media-editions", label);
+
+    private void ArrangeDuringSetupEditions(int keepOption, ChoiceValue? list, int editionOption)
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        _session.Editions =
+        [
+            new(1, "Windows 11 Home", "Core"),
+            new(2, "Windows 11 Home Single Language", "CoreSingleLanguage"),
+            new(3, "Windows 11 Pro", "Professional"),
+        ];
+        var settings = new List<SettingChoice>
+        {
+            new("autounattend-media-editions", new ChoiceValue.Option(keepOption)),
+            new("autounattend-edition", new ChoiceValue.Option(editionOption)),
+        };
+        if (list is not null)
+            settings.Add(new SettingChoice("autounattend-media-editions-list", list));
+        ArrangeSet([.. settings]);
+        _mockWimImageService
+            .Setup(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EditionRemovalResult(true));
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_DuringSetupKeepTicked_ExportsOnlyTheTickedEditions()
+    {
+        ArrangeDuringSetupEditions(KeepOption(LocKey.Setting.AutounattendMediaEditions.Option2),
+            new ChoiceValue.Keys(["Windows 11 Home", "Windows 11 Pro"]), 4);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockWimImageService.Verify(w => w.KeepEditionsAsync("C:\\WorkDir",
+            It.Is<IReadOnlyCollection<string>>(kept => kept.SequenceEqual(HomeAndPro)),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
+        _sut.BuildCards.Should().Contain(c => c.Title == "WIMUtil_Progress_Exporting" && c.IsComplete);
+        _mockOfflineServicingService.Verify(o => o.ServiceAsync(It.IsAny<OfflineBuildRequest>(), It.IsAny<IProgress<TaskProgressDetail>>(),
+            It.IsAny<IProgress<ServicingPhaseUpdate>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_DuringSetupKeepOnlyTheChosen_ExportsTheEditionTheEditionCardNames()
+    {
+        ArrangeDuringSetupEditions(KeepOption(LocKey.Setting.AutounattendMediaEditions.Option1), null, 4);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockWimImageService.Verify(w => w.KeepEditionsAsync("C:\\WorkDir",
+            It.Is<IReadOnlyCollection<string>>(kept => kept.SequenceEqual(ProOnly)),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_DuringSetupKeepTickedWithNothingTicked_ExportsNothing()
+    {
+        ArrangeDuringSetupEditions(KeepOption(LocKey.Setting.AutounattendMediaEditions.Option2), new ChoiceValue.Keys([]), 4);
+        _mockDialogService.Setup(d => d.ShowSummaryAsync(It.IsAny<SummaryRequest>())).ReturnsAsync(true);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockWimImageService.Verify(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_DuringSetupRemovingTheChosenEdition_WarnsOnceThenStillExports()
+    {
+        ArrangeDuringSetupEditions(KeepOption(LocKey.Setting.AutounattendMediaEditions.Option2),
+            new ChoiceValue.Keys(["Windows 11 Home"]), 4);
+        _mockDialogService.Setup(d => d.ShowSummaryAsync(It.IsAny<SummaryRequest>())).ReturnsAsync(true);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Sections.SelectMany(section => section.Rows).Any(row => row.Title == "WIMUtil_Generate_Plan_ChosenEditionRemoved"))), Times.Once);
+        _mockWimImageService.Verify(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_DuringSetupExportFails_MarksTheCardFailedAndStillCreatesTheIso()
+    {
+        ArrangeDuringSetupEditions(KeepOption(LocKey.Setting.AutounattendMediaEditions.Option1), null, 4);
+        _mockWimImageService
+            .Setup(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EditionRemovalResult(false));
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _sut.BuildCards.Should().Contain(c => c.Title == "WIMUtil_Progress_Exporting" && c.HasFailed);
+        _sut.IsIsoCreated.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_DuringSetupEditionRemovalReportsFailure_FailsTheExportCardAndStillWritesTheAnswerFile()
+    {
+        ArrangeDuringSetupEditions(KeepOption(LocKey.Setting.AutounattendMediaEditions.Option1), null, 4);
+        _mockWimImageService
+            .Setup(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EditionRemovalResult(false));
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _sut.BuildCards.Should().Contain(c => c.Title == "WIMUtil_Progress_Exporting" && c.HasFailed
+            && c.Description == "WIMUtil_Msg_RemoveEditionsFailed");
+        _mockSaves.Verify(s => s.SaveAsync(BuilderTarget.Autounattend, It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()), Times.Once);
+        _sut.IsIsoCreated.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_DuringSetupEditionRemovalThrows_FailsTheExportCardAndStillWritesTheAnswerFile()
+    {
+        ArrangeDuringSetupEditions(KeepOption(LocKey.Setting.AutounattendMediaEditions.Option1), null, 4);
+        _mockWimImageService
+            .Setup(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new IOException("locked"));
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _sut.BuildCards.Should().Contain(c => c.Title == "WIMUtil_Progress_Exporting" && c.HasFailed
+            && c.Description == "WIMUtil_Msg_RemoveEditionsFailed");
+        _mockSaves.Verify(s => s.SaveAsync(BuilderTarget.Autounattend, It.IsAny<SelectionSet>(), It.IsAny<SelectionSaveOptions>()), Times.Once);
+        _sut.IsIsoCreated.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_DuringSetupEditionRemovalCancelled_CancelsTheTaskAndCreatesNothing()
+    {
+        ArrangeDuringSetupEditions(KeepOption(LocKey.Setting.AutounattendMediaEditions.Option1), null, 4);
+        _mockWimImageService
+            .Setup(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockTaskProgressService.Verify(t => t.CancelTask(), Times.Once);
+        _mockIsoService.Verify(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _sut.IsIsoCreated.Should().BeFalse();
+        _sut.BuildCards.Should().NotContain(c => c.HasFailed);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_DuringSetupOldImageLeftBehind_NamesTheFileOnTheExportCard()
+    {
+        ArrangeDuringSetupEditions(KeepOption(LocKey.Setting.AutounattendMediaEditions.Option1), null, 4);
+        _mockWimImageService
+            .Setup(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EditionRemovalResult(true, "C:\\WorkDir\\sources\\install.old.wim"));
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockLocalizationService.Verify(l => l.GetString("WIMUtil_Generate_Summary_OldImageLeft",
+            It.Is<object[]>(args => args.Length == 1 && (string)args[0] == "C:\\WorkDir\\sources\\install.old.wim")), Times.Once);
+        _sut.BuildCards.Should().Contain(c => c.Title == "WIMUtil_Progress_Exporting" && c.IsComplete
+            && c.Description == "WIMUtil_Generate_Summary_OldImageLeft");
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_DuringSetupRemoveSourceWithoutDotNet_DeletesTheSourceFolder()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        ArrangeSet(Off("autounattend-netfx3"), On("autounattend-netfx3-remove-source"));
+        _mockFileSystemService.Setup(f => f.DirectoryExists("C:\\WorkDir\\sources\\sxs")).Returns(true);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockFileSystemService.Verify(f => f.DeleteDirectory("C:\\WorkDir\\sources\\sxs", true), Times.Once);
+        _sut.BuildCards.Should().Contain(c => c.Title == "WIMUtil_Progress_RemovingDotNetSource" && c.IsComplete);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_DuringSetupRemoveSourceWhileDotNetIsOn_KeepsTheSourceFolder()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        ArrangeSet(On("autounattend-netfx3"), On("autounattend-netfx3-remove-source"));
+        _mockFileSystemService.Setup(f => f.DirectoryExists("C:\\WorkDir\\sources\\sxs")).Returns(true);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockFileSystemService.Verify(f => f.DeleteDirectory("C:\\WorkDir\\sources\\sxs", It.IsAny<bool>()), Times.Never);
+    }
+
+    // 4 is the Pro the image holds; 0 is "Ask me during setup", which names no edition.
+    [Theory]
+    [InlineData(1, true, true)]
+    [InlineData(4, true, false)]
+    [InlineData(0, true, false)]
+    [InlineData(1, false, false)]
+    public async Task CreateMediaCommand_SingleEditionImage_WarnsOnlyWhenTheChosenEditionIsNotTheOneHeld(
+        int chosenOption, bool builtIntoImage, bool warns)
+    {
+        ArrangeDuringSetupEditions(KeepOption(LocKey.Setting.AutounattendMediaEditions.Option0), null, chosenOption);
+        _session.Editions = [new(1, "Windows 11 Pro", "Professional")];
+        if (builtIntoImage)
+            ArrangeImageMode();
+        _mockDialogService.Setup(d => d.ShowSummaryAsync(It.IsAny<SummaryRequest>())).ReturnsAsync(true);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Sections.SelectMany(section => section.Rows).Any(row => row.Title == "WIMUtil_Generate_Plan_ChosenNotOnMedia"))),
+            warns ? Times.Once() : Times.Never());
+    }
+
+    // Servicing exports the edition at EditionIndex, so the warning compares against that one, not the whole list.
+    [Fact]
+    public async Task CreateMediaCommand_ImageModeWithSeveralEditions_WarnsWhenTheChosenOneIsNotTheEditionKept()
+    {
+        ArrangeDuringSetupEditions(KeepOption(LocKey.Setting.AutounattendMediaEditions.Option0), null, 1);
+        ArrangeImageMode();
+        _sut.EditionIndex = 3;
+        _mockDialogService.Setup(d => d.ShowSummaryAsync(It.IsAny<SummaryRequest>())).ReturnsAsync(true);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Sections.SelectMany(section => section.Rows).Any(row => row.Title == "WIMUtil_Generate_Plan_ChosenNotOnMedia"))), Times.Once);
+        _mockLocalizationService.Verify(l => l.GetString("WIMUtil_Generate_Plan_ChosenNotOnMedia_Detail",
+            It.Is<object[]>(args => args.Length == 1 && (string)args[0] == "Windows 11 Pro")), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_ImageModeWithSeveralEditions_StaysQuietWhenTheChosenOneIsTheEditionKept()
+    {
+        ArrangeDuringSetupEditions(KeepOption(LocKey.Setting.AutounattendMediaEditions.Option0), null, 4);
+        ArrangeImageMode();
+        _sut.EditionIndex = 3;
+        _mockDialogService.Setup(d => d.ShowSummaryAsync(It.IsAny<SummaryRequest>())).ReturnsAsync(true);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r =>
+            r.Sections.SelectMany(section => section.Rows).Any(row => row.Title == "WIMUtil_Generate_Plan_ChosenNotOnMedia"))), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_ImageModeServiced_RefreshesTheSessionEditionsFromTheImage()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        ArrangeImageMode();
+        _session.Editions =
+        [
+            new(1, "Windows 11 Home", "Core"),
+            new(2, "Windows 11 Pro", "Professional"),
+        ];
+        _sut.EditionIndex = 2;
+        _mockWimImageService
+            .Setup(w => w.DetectImageFormatAsync("C:\\WorkDir"))
+            .ReturnsAsync(new ImageFormatInfo { Format = ImageFormat.Wim, Editions = [new(1, "Windows 11 Pro", "Professional")] });
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _session.Editions.Should().Equal(new ImageEdition(1, "Windows 11 Pro", "Professional"));
+    }
+
+    [Theory]
+    [InlineData(true, null, 2, false)]
+    [InlineData(true, null, 1, true)]
+    [InlineData(true, 2, 2, true)]
+    [InlineData(false, null, 2, true)]
+    public void CreateMediaCommand_CanExecute_NeedsAnEditionToKeepForAMultiEditionImageBuiltIn(
+        bool builtIntoImage, int? editionIndex, int editionCount, bool canCreate)
+    {
+        _session.Editions = [.. Enumerable.Range(1, editionCount).Select(i => new ImageEdition(i, "Edition " + i, "Core"))];
+        _sut.IsBuiltIntoImage = builtIntoImage;
+        _sut.EditionIndex = editionIndex;
+
+        _sut.CreateMediaCommand.CanExecute(null).Should().Be(canCreate);
+    }
+
+    [Fact]
+    public async Task ShowBuildDetailsCommand_OpensTheTaskLog()
+    {
+        _mockTaskProgressService.Setup(t => t.GetTerminalOutputLines()).Returns(["line"]);
+
+        await _sut.ShowBuildDetailsCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowTaskOutputDialogAsync("Dialog_TerminalOutput_Title", It.IsAny<IReadOnlyList<string>>()), Times.Once);
     }
 }

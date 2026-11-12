@@ -72,6 +72,28 @@ public static partial class ExternalAppDefinitions
                     },
                     new ItemDefinition
                     {
+                        Id = "external-app-dotnet-runtime-9",
+                        Name = "Microsoft .NET Runtime 9.0",
+                        Description = ".NET Runtime 9.0 for running applications",
+                        RegistryDisplayName = "Microsoft .NET Runtime - 9.0.{version} ({arch})",
+                        GroupName = "Runtimes & Dependencies",
+                        WinGetPackageId = ["Microsoft.DotNet.Runtime.9"],
+                        ChocoPackageId = "dotnet-9.0-runtime",
+                        WebsiteUrl = "https://dotnet.microsoft.com/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-dotnet-runtime-10",
+                        Name = "Microsoft .NET Runtime 10.0",
+                        Description = ".NET Runtime 10.0 LTS for running applications",
+                        RegistryDisplayName = "Microsoft .NET Runtime - 10.0.{version} ({arch})",
+                        GroupName = "Runtimes & Dependencies",
+                        WinGetPackageId = ["Microsoft.DotNet.Runtime.10"],
+                        ChocoPackageId = "dotnet-10.0-runtime",
+                        WebsiteUrl = "https://dotnet.microsoft.com/",
+                    },
+                    new ItemDefinition
+                    {
                         Id = "external-app-dotnet-framework",
                         Name = ".NET Framework 4.8.1",
                         Description = ".NET Framework Developer Pack",

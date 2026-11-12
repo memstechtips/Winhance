@@ -3,6 +3,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.WimUtil.Interfaces;
 using Winhance.Core.Features.WimUtil.Models;
+using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.WimUtil.Services;
 
@@ -14,7 +15,9 @@ internal sealed class OfflineServicingService(
     IDriverInstallStepWriter driverStep,
     IUpdateInstallStepWriter updateStep,
     IWindowsUpdateStager updateStager,
-    IDismImageInfoReader images) : IOfflineServicingService
+    IWimImageService wimImages,
+    IOfflineAppRemover appRemover,
+    IOfflineSettingsApplier settingsApplier) : IOfflineServicingService
 {
     // Outside the working directory, so writing the ISO or USB never picks the mounted image up.
     internal static string MountDirFor(string workingDirectory, IFileSystemService files)
@@ -53,21 +56,47 @@ internal sealed class OfflineServicingService(
         }
     }
 
+    public IReadOnlyList<ServicingPhase> PhasesFor(OfflineBuildRequest request)
+    {
+        var work = Inspect(request.WorkingDirectory);
+        return PlanFor(request, work with
+        {
+            HasDrivers = work.HasDrivers || request.StagesDrivers,
+            HasUpdate = work.HasUpdate || request.StagesUpdate,
+        });
+    }
+
     public async Task<OfflineServicingResult> ServiceAsync(
-        string workingDirectory,
+        OfflineBuildRequest request,
         IProgress<TaskProgressDetail>? progress,
+        IProgress<ServicingPhaseUpdate>? phaseUpdates,
         CancellationToken cancellationToken)
     {
-        var wim = files.CombinePath(workingDirectory, "sources", "install.wim");
-        if (!files.FileExists(wim))
+        var workingDirectory = request.WorkingDirectory;
+        if (!files.FileExists(files.CombinePath(workingDirectory, "sources", "install.wim"))
+            && !files.FileExists(files.CombinePath(workingDirectory, "sources", "install.esd")))
         {
             throw new InvalidOperationException(localization.GetString("WIMUtil_Msg_ServicingNeedsWim"));
         }
 
-        var hasDrivers = DriverStaging.IsStaged(files, workingDirectory);
-        var target = UpdateStaging.TargetOf(files, workingDirectory);
-        string[] updates = target is null ? [] : UpdateStaging.PackagesOf(files, workingDirectory);
-        if (!hasDrivers && updates.Length == 0)
+        var work = Inspect(workingDirectory);
+        var phases = new PhaseTracker(PlanFor(request, work), phaseUpdates);
+        var result = await BuildAsync(request, work, phases, progress, cancellationToken).ConfigureAwait(false);
+        RemoveDotNetSource(request, phases, progress);
+        return result with { Phases = phases.Snapshot() };
+    }
+
+    private async Task<OfflineServicingResult> BuildAsync(
+        OfflineBuildRequest request,
+        StagedWork work,
+        PhaseTracker phases,
+        IProgress<TaskProgressDetail>? progress,
+        CancellationToken cancellationToken)
+    {
+        var workingDirectory = request.WorkingDirectory;
+        var wim = files.CombinePath(workingDirectory, "sources", "install.wim");
+        var hasUpdate = work.Updates.Length > 0;
+        if (!NeedsMount(request, work))
         {
             return new OfflineServicingResult(ServicedItemOutcome.NotStaged, ServicedItemOutcome.NotStaged);
         }
@@ -75,16 +104,27 @@ internal sealed class OfflineServicingService(
         if (!CanMountFor(workingDirectory))
         {
             log.LogWarning($"{workingDirectory} is not on a local NTFS drive, so the image cannot be mounted beside it; everything installs during setup");
-            return await FallBackToSetupAsync(workingDirectory, hasDrivers, updates.Length > 0).ConfigureAwait(false);
+            return await FallBackToSetupAsync(workingDirectory, work.HasDrivers, hasUpdate, phases).ConfigureAwait(false);
         }
 
-        if (!await HoldsOneImageAsync(wim).ConfigureAwait(false))
+        try
         {
-            return await FallBackToSetupAsync(workingDirectory, hasDrivers, updates.Length > 0).ConfigureAwait(false);
+            if (!await PrepareImageAsync(request, phases, progress, cancellationToken).ConfigureAwait(false))
+            {
+                return await FallBackToSetupAsync(workingDirectory, work.HasDrivers, hasUpdate, phases).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            log.LogWarning($"Could not prepare the image, everything installs during setup: {ex.Message}");
+            phases.Set(ServicingPhase.PrepareImage, ServicingPhaseState.Failed);
+            return await FallBackToSetupAsync(workingDirectory, work.HasDrivers, hasUpdate, phases).ConfigureAwait(false);
         }
 
         var mountDir = MountDirFor(workingDirectory, files);
-        var requiredBytes = (long)(files.GetFileSize(wim) * 2.5) + updates.Sum(f => files.GetFileSize(f)) * 2;
+
+        // The final export writes a second copy of the image beside the first, hence the extra wim size.
+        var requiredBytes = (long)(files.GetFileSize(wim) * 3.5) + work.Updates.Sum(f => files.GetFileSize(f)) * 2;
         try
         {
             await dism.CheckDiskSpaceAsync(mountDir, requiredBytes, "Offline servicing").ConfigureAwait(false);
@@ -92,11 +132,15 @@ internal sealed class OfflineServicingService(
         catch (InsufficientDiskSpaceException ex)
         {
             log.LogWarning($"No room to mount the image, everything installs during setup: {ex.Message}");
-            return await FallBackToSetupAsync(workingDirectory, hasDrivers, updates.Length > 0).ConfigureAwait(false);
+            return await FallBackToSetupAsync(workingDirectory, work.HasDrivers, hasUpdate, phases).ConfigureAwait(false);
         }
 
-        var drivers = hasDrivers ? ServicedItemOutcome.FellBackToSetup : ServicedItemOutcome.NotStaged;
-        var update = updates.Length > 0 ? ServicedItemOutcome.FellBackToSetup : ServicedItemOutcome.NotStaged;
+        var drivers = work.HasDrivers ? ServicedItemOutcome.FellBackToSetup : ServicedItemOutcome.NotStaged;
+        var update = hasUpdate ? ServicedItemOutcome.FellBackToSetup : ServicedItemOutcome.NotStaged;
+        var appsRemoved = false;
+        var appsApplied = 0;
+        var settingsOk = false;
+        var settingsApplied = 0;
         try
         {
             // A mount left by a crashed run blocks a new one on the same folder. With no folder there is no mount, and DISM would log exit 50 as a failure.
@@ -109,61 +153,96 @@ internal sealed class OfflineServicingService(
             if (files.DirectoryExists(mountDir))
             {
                 log.LogWarning($"{mountDir} still holds files after the cleanup, so the image cannot be mounted there");
-                return await FallBackToSetupAsync(workingDirectory, hasDrivers, updates.Length > 0).ConfigureAwait(false);
+                return await FallBackToSetupAsync(workingDirectory, work.HasDrivers, hasUpdate, phases).ConfigureAwait(false);
             }
 
-            files.CreateDirectory(mountDir);
+            if (!files.CreatePrivateDirectory(mountDir))
+            {
+                log.LogWarning($"{mountDir} could not be made private to administrators, so the image cannot be mounted there");
+                return await FallBackToSetupAsync(workingDirectory, work.HasDrivers, hasUpdate, phases).ConfigureAwait(false);
+            }
 
             // Files copied off ISO media are read-only, and a read-write mount refuses a read-only image.
             files.SetFileAttributes(wim, FileAttributes.Normal);
 
+            phases.Set(ServicingPhase.Mount, ServicingPhaseState.Running);
             Report(progress, "WIMUtil_Progress_Mounting");
             if (await RunDismAsync($"/Mount-Image /ImageFile:\"{wim}\" /Index:1 /MountDir:\"{mountDir}\"", progress, cancellationToken).ConfigureAwait(false) != 0)
             {
-                return await DiscardAsync(workingDirectory, mountDir, hasDrivers, updates.Length > 0).ConfigureAwait(false);
+                phases.Set(ServicingPhase.Mount, ServicingPhaseState.Failed);
+                return await DiscardAsync(workingDirectory, mountDir, work.HasDrivers, hasUpdate, phases).ConfigureAwait(false);
+            }
+            phases.Set(ServicingPhase.Mount, ServicingPhaseState.Done);
+
+            if (hasUpdate)
+            {
+                phases.Set(ServicingPhase.Update, ServicingPhaseState.Running);
+                Report(progress, "WIMUtil_Progress_AddingUpdate");
+                var exit = await RunDismAsync($"/Image:\"{mountDir}\" /Add-Package /PackagePath:\"{work.Target}\"", progress, cancellationToken).ConfigureAwait(false);
+
+                // One commit must not carry half a package, so a failed update takes everything else back out with it.
+                if (!InstallerExitCode.IsSuccess(exit))
+                {
+                    phases.Set(ServicingPhase.Update, ServicingPhaseState.Failed);
+                    return await DiscardAsync(workingDirectory, mountDir, work.HasDrivers, true, phases).ConfigureAwait(false);
+                }
+                update = ServicedItemOutcome.Added;
+                phases.Set(ServicingPhase.Update, ServicingPhaseState.Done);
             }
 
-            if (hasDrivers)
+            if (work.HasDrivers)
             {
+                phases.Set(ServicingPhase.Drivers, ServicingPhaseState.Running);
                 Report(progress, "WIMUtil_Progress_AddingDrivers");
                 var oem = DriverStaging.FolderOf(files, workingDirectory);
                 var exit = await RunDismAsync($"/Image:\"{mountDir}\" /Add-Driver /Driver:\"{oem}\" /Recurse", progress, cancellationToken).ConfigureAwait(false);
-                drivers = exit == 0 ? ServicedItemOutcome.Added : ServicedItemOutcome.FellBackToSetup;
+                var added = InstallerExitCode.IsSuccess(exit);
+                drivers = added ? ServicedItemOutcome.Added : ServicedItemOutcome.FellBackToSetup;
+                phases.Set(ServicingPhase.Drivers, added ? ServicingPhaseState.Done : ServicingPhaseState.Failed);
             }
 
-            if (updates.Length > 0)
+            // A failed app or settings step leaves the answer file to do the same work during setup, so the build goes on.
+            if (HasApps(request))
             {
-                Report(progress, "WIMUtil_Progress_AddingUpdate");
-                var exit = await RunDismAsync($"/Image:\"{mountDir}\" /Add-Package /PackagePath:\"{target}\"", progress, cancellationToken).ConfigureAwait(false);
-
-                // One commit must not carry half a package, so a failed update takes the drivers back out with it.
-                if (exit is not (0 or 3010))
-                {
-                    return await DiscardAsync(workingDirectory, mountDir, hasDrivers, true).ConfigureAwait(false);
-                }
-                update = ServicedItemOutcome.Added;
+                phases.Set(ServicingPhase.RemoveApps, ServicingPhaseState.Running);
+                Report(progress, "WIMUtil_Progress_RemovingApps");
+                (appsRemoved, appsApplied) = await RunStepAsync("Removing apps", () => appRemover.RemoveAsync(mountDir, request.Selections!, progress, cancellationToken)).ConfigureAwait(false);
+                phases.Set(ServicingPhase.RemoveApps, appsRemoved ? ServicingPhaseState.Done : ServicingPhaseState.Failed);
             }
 
-            if (drivers != ServicedItemOutcome.Added && update != ServicedItemOutcome.Added)
+            if (HasSettings(request))
             {
-                return await DiscardAsync(workingDirectory, mountDir, hasDrivers, false).ConfigureAwait(false);
+                phases.Set(ServicingPhase.ApplySettings, ServicingPhaseState.Running);
+                Report(progress, "WIMUtil_Progress_ApplyingSettings");
+                (settingsOk, settingsApplied) = await RunStepAsync("Applying settings", () => settingsApplier.ApplyAsync(mountDir, request.Selections!, progress, cancellationToken)).ConfigureAwait(false);
+                phases.Set(ServicingPhase.ApplySettings, settingsOk ? ServicingPhaseState.Done : ServicingPhaseState.Failed);
             }
 
-            Report(progress, "WIMUtil_Progress_CleaningUp");
-            var cleanup = await RunDismAsync($"/Image:\"{mountDir}\" /Cleanup-Image /StartComponentCleanup", progress, cancellationToken).ConfigureAwait(false);
-            if (cleanup != 0)
+            var changed = drivers == ServicedItemOutcome.Added || update == ServicedItemOutcome.Added
+                || appsApplied > 0 || settingsApplied > 0 || request.Cleanup.Any || request.EnableDotNet35;
+            if (!changed)
             {
-                log.LogWarning($"Component cleanup exited with {cleanup}; the image is saved without it");
+                return await DiscardAsync(workingDirectory, mountDir, work.HasDrivers, false, phases).ConfigureAwait(false);
             }
 
+            await CleanUpAsync(request, mountDir, phases, progress, cancellationToken).ConfigureAwait(false);
+
+            if (request.EnableDotNet35)
+            {
+                await EnableDotNetAsync(request, mountDir, phases, progress, cancellationToken).ConfigureAwait(false);
+            }
+
+            phases.Set(ServicingPhase.Save, ServicingPhaseState.Running);
             Report(progress, "WIMUtil_Progress_Saving");
 
             // Cancelling kills dism.exe, and a commit killed halfway leaves install.wim half-written.
             cancellationToken.ThrowIfCancellationRequested();
             if (await RunDismAsync($"/Unmount-Image /MountDir:\"{mountDir}\" /Commit", progress, CancellationToken.None).ConfigureAwait(false) != 0)
             {
-                return await DiscardAsync(workingDirectory, mountDir, hasDrivers, updates.Length > 0).ConfigureAwait(false);
+                phases.Set(ServicingPhase.Save, ServicingPhaseState.Failed);
+                return await DiscardAsync(workingDirectory, mountDir, work.HasDrivers, hasUpdate, phases).ConfigureAwait(false);
             }
+            phases.Set(ServicingPhase.Save, ServicingPhaseState.Done);
         }
         catch (OperationCanceledException)
         {
@@ -173,23 +252,334 @@ internal sealed class OfflineServicingService(
         catch (Exception ex)
         {
             log.LogError($"Offline servicing failed: {ex.Message}", ex);
-            return await DiscardAsync(workingDirectory, mountDir, hasDrivers, updates.Length > 0).ConfigureAwait(false);
+            return await DiscardAsync(workingDirectory, mountDir, work.HasDrivers, hasUpdate, phases).ConfigureAwait(false);
         }
 
         DeleteIfEmpty(mountDir);
+
+        // The image is committed by now, so a cancel here still has to bring the answer file in line with it.
+        try
+        {
+            await ExportImageAsync(workingDirectory, request.OutputFormat, phases, progress, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            await TidyAsync(workingDirectory, drivers, update).ConfigureAwait(false);
+            throw;
+        }
+
         await TidyAsync(workingDirectory, drivers, update).ConfigureAwait(false);
-        log.LogInformation($"Serviced {wim}: drivers {drivers}, update {update}");
+        log.LogInformation($"Serviced {wim}: drivers {drivers}, update {update}, apps removed {appsRemoved}, settings applied {settingsOk}");
         return new OfflineServicingResult(drivers, update);
     }
 
-    private async Task<OfflineServicingResult> DiscardAsync(string workingDirectory, string mountDir, bool hasDrivers, bool hasUpdate)
+    private StagedWork Inspect(string workingDirectory)
     {
-        await UnmountDiscardingAsync(mountDir).ConfigureAwait(false);
-        return await FallBackToSetupAsync(workingDirectory, hasDrivers, hasUpdate).ConfigureAwait(false);
+        var target = UpdateStaging.TargetOf(files, workingDirectory);
+        return new StagedWork(
+            DriverStaging.IsStaged(files, workingDirectory),
+            target,
+            target is null ? [] : UpdateStaging.PackagesOf(files, workingDirectory));
     }
 
-    private async Task<OfflineServicingResult> FallBackToSetupAsync(string workingDirectory, bool hasDrivers, bool hasUpdate)
+    private static bool HasApps(OfflineBuildRequest request) => request.Selections?.WindowsApps.Count > 0;
+
+    private static bool HasSettings(OfflineBuildRequest request) => request.Selections?.Settings.Count > 0;
+
+    private static bool NeedsMount(OfflineBuildRequest request, StagedWork work) =>
+        work.HasDrivers || work.HasUpdate || HasApps(request) || HasSettings(request)
+        || request.EnableDotNet35 || request.Cleanup.Any;
+
+    private List<ServicingPhase> PlanFor(OfflineBuildRequest request, StagedWork work)
     {
+        var plan = new List<ServicingPhase>();
+        if (NeedsMount(request, work))
+        {
+            // A multi-edition WIM is only known to need this once it is read, which the build does on its own.
+            if (request.EditionIndex is not null || files.FileExists(files.CombinePath(request.WorkingDirectory, "sources", "install.esd")))
+            {
+                plan.Add(ServicingPhase.PrepareImage);
+            }
+            plan.Add(ServicingPhase.Mount);
+            if (work.HasUpdate)
+            {
+                plan.Add(ServicingPhase.Update);
+            }
+            if (work.HasDrivers)
+            {
+                plan.Add(ServicingPhase.Drivers);
+            }
+            if (HasApps(request))
+            {
+                plan.Add(ServicingPhase.RemoveApps);
+            }
+            if (HasSettings(request))
+            {
+                plan.Add(ServicingPhase.ApplySettings);
+            }
+            plan.Add(ServicingPhase.Cleanup);
+            if (request.EnableDotNet35)
+            {
+                plan.Add(ServicingPhase.DotNet);
+            }
+            plan.Add(ServicingPhase.Save);
+            plan.Add(ServicingPhase.Export);
+        }
+        if (request.RemoveDotNetSource)
+        {
+            plan.Add(ServicingPhase.RemoveDotNetSource);
+        }
+        return plan;
+    }
+
+    // Mounting takes a WIM with one edition. Which edition of several to keep is the request's call, so without an
+    // index a multi-edition image stays as it is and its items install during setup.
+    private async Task<bool> PrepareImageAsync(
+        OfflineBuildRequest request,
+        PhaseTracker phases,
+        IProgress<TaskProgressDetail>? progress,
+        CancellationToken cancellationToken)
+    {
+        var workingDirectory = request.WorkingDirectory;
+        ImageFormatInfo? info;
+        try
+        {
+            info = await wimImages.DetectImageFormatAsync(workingDirectory).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            log.LogWarning($"Could not read the image in {workingDirectory}, so everything installs during setup: {ex.Message}");
+            info = null;
+        }
+
+        if (info is null)
+        {
+            phases.Set(ServicingPhase.PrepareImage, ServicingPhaseState.Failed);
+            return false;
+        }
+
+        if (info.Format == ImageFormat.Wim && info.Editions.Count == 1)
+        {
+            phases.Set(ServicingPhase.PrepareImage, ServicingPhaseState.Skipped);
+            return true;
+        }
+
+        var keep = request.EditionIndex is { } index
+            ? info.Editions.FirstOrDefault(e => e.Index == index)
+            : info.Editions.Count == 1 ? info.Editions[0] : null;
+        if (keep is null)
+        {
+            log.LogWarning($"{info.FilePath} holds {info.Editions.Count} images and none was chosen to keep; everything installs during setup");
+            phases.Set(ServicingPhase.PrepareImage, ServicingPhaseState.Failed);
+            return false;
+        }
+
+        phases.Set(ServicingPhase.PrepareImage, ServicingPhaseState.Running);
+        Report(progress, "WIMUtil_Progress_PreparingImage");
+        var result = await wimImages.KeepEditionAsWimAsync(workingDirectory, keep.Name, progress, cancellationToken).ConfigureAwait(false);
+        if (!result.Removed)
+        {
+            phases.Set(ServicingPhase.PrepareImage, ServicingPhaseState.Failed);
+            return false;
+        }
+
+        if (result.LeftoverImage is { } leftover)
+        {
+            log.LogWarning($"{leftover} could not be deleted after the export and would go onto the media");
+        }
+        phases.Set(ServicingPhase.PrepareImage, ServicingPhaseState.Done);
+        return true;
+    }
+
+    private async Task<(bool Succeeded, int Applied)> RunStepAsync(string what, Func<Task<OfflineStepOutcome>> step)
+    {
+        try
+        {
+            var outcome = await step().ConfigureAwait(false);
+            if (!outcome.Succeeded)
+            {
+                log.LogWarning($"{what} did not finish; left for setup: {string.Join(", ", outcome.Failed)}");
+            }
+            return (outcome.Succeeded, outcome.Applied);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            log.LogError($"{what} failed: {ex.Message}", ex);
+            return (false, 0);
+        }
+    }
+
+    private async Task CleanUpAsync(
+        OfflineBuildRequest request,
+        string mountDir,
+        PhaseTracker phases,
+        IProgress<TaskProgressDetail>? progress,
+        CancellationToken cancellationToken)
+    {
+        phases.Set(ServicingPhase.Cleanup, ServicingPhaseState.Running);
+        Report(progress, "WIMUtil_Progress_CleaningUp");
+        var resetBase = request.Cleanup.ResetBase ? " /ResetBase" : string.Empty;
+        var cleanup = await RunDismAsync($"/Image:\"{mountDir}\" /Cleanup-Image /StartComponentCleanup{resetBase}", progress, cancellationToken).ConfigureAwait(false);
+        if (cleanup != 0)
+        {
+            log.LogWarning($"Component cleanup exited with {cleanup}; the image is saved without it");
+        }
+
+        var options = request.Cleanup;
+        if (options.DownloadedUpdates)
+        {
+            ClearFolder(files.CombinePath(mountDir, "Windows", "SoftwareDistribution", "Download"));
+        }
+        if (options.ServicingLogs)
+        {
+            ClearFolder(files.CombinePath(mountDir, "Windows", "Logs", "CBS"), "*.cab");
+            ClearFolder(files.CombinePath(mountDir, "Windows", "Logs", "DISM"));
+        }
+        if (options.TempFiles)
+        {
+            ClearFolder(files.CombinePath(mountDir, "Windows", "Temp"));
+        }
+        if (options.CrashReports)
+        {
+            var reports = files.CombinePath(mountDir, "ProgramData", "Microsoft", "Windows", "WER");
+            ClearFolder(files.CombinePath(reports, "ReportArchive"));
+            ClearFolder(files.CombinePath(reports, "ReportQueue"));
+        }
+
+        phases.Set(ServicingPhase.Cleanup, cleanup == 0 ? ServicingPhaseState.Done : ServicingPhaseState.Failed);
+    }
+
+    // The image is only mounted, so a file Windows or the servicing stack still holds can refuse; each one is logged and skipped.
+    private void ClearFolder(string folder, string pattern = "*")
+    {
+        if (!files.DirectoryExists(folder))
+        {
+            return;
+        }
+
+        foreach (var file in files.GetFiles(folder, pattern))
+        {
+            DeleteQuietly(file, () =>
+            {
+                files.SetFileAttributes(file, FileAttributes.Normal);
+                files.DeleteFile(file);
+            });
+        }
+
+        if (pattern == "*")
+        {
+            foreach (var subfolder in files.GetDirectories(folder))
+            {
+                DeleteQuietly(subfolder, () => WorkingFolder.Delete(files, subfolder));
+            }
+        }
+    }
+
+    private void DeleteQuietly(string path, Action delete)
+    {
+        try
+        {
+            delete();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            log.LogWarning($"Could not delete {path} from the image: {ex.Message}");
+        }
+    }
+
+    private async Task EnableDotNetAsync(
+        OfflineBuildRequest request,
+        string mountDir,
+        PhaseTracker phases,
+        IProgress<TaskProgressDetail>? progress,
+        CancellationToken cancellationToken)
+    {
+        var sxs = files.CombinePath(request.WorkingDirectory, "sources", "sxs");
+        if (!files.DirectoryExists(sxs))
+        {
+            log.LogWarning($"{sxs} is missing, so .NET Framework 3.5 is not built into the image");
+            phases.Set(ServicingPhase.DotNet, ServicingPhaseState.Skipped);
+            return;
+        }
+
+        phases.Set(ServicingPhase.DotNet, ServicingPhaseState.Running);
+        Report(progress, "WIMUtil_Progress_EnablingDotNet");
+
+        // /LimitAccess keeps DISM off Windows Update, so the media's own sxs folder is the only source.
+        var exit = await RunDismAsync($"/Image:\"{mountDir}\" /Enable-Feature /FeatureName:NetFx3 /All /LimitAccess /Source:\"{sxs}\"", progress, cancellationToken).ConfigureAwait(false);
+        phases.Set(ServicingPhase.DotNet, InstallerExitCode.IsSuccess(exit) ? ServicingPhaseState.Done : ServicingPhaseState.Failed);
+    }
+
+    private async Task ExportImageAsync(
+        string workingDirectory,
+        ImageFormat outputFormat,
+        PhaseTracker phases,
+        IProgress<TaskProgressDetail>? progress,
+        CancellationToken cancellationToken)
+    {
+        phases.Set(ServicingPhase.Export, ServicingPhaseState.Running);
+        Report(progress, "WIMUtil_Progress_Exporting");
+        try
+        {
+            var result = await wimImages.RewriteAsync(workingDirectory, outputFormat, progress, cancellationToken).ConfigureAwait(false);
+            if (result.LeftoverImage is { } leftover)
+            {
+                log.LogWarning($"{leftover} could not be deleted after the export and would go onto the media");
+            }
+            phases.Set(ServicingPhase.Export, result.Removed ? ServicingPhaseState.Done : ServicingPhaseState.Failed);
+        }
+        catch (InsufficientDiskSpaceException ex)
+        {
+            log.LogWarning($"No room to export the image, so it keeps the space servicing left behind: {ex.Message}");
+            phases.Set(ServicingPhase.Export, ServicingPhaseState.Failed);
+        }
+    }
+
+    // The sources\sxs folder is the only place .NET 3.5 can come from, so it stays unless the image already has it.
+    private void RemoveDotNetSource(OfflineBuildRequest request, PhaseTracker phases, IProgress<TaskProgressDetail>? progress)
+    {
+        if (!request.RemoveDotNetSource)
+        {
+            return;
+        }
+
+        if (request.EnableDotNet35 && phases.StateOf(ServicingPhase.DotNet) != ServicingPhaseState.Done)
+        {
+            log.LogWarning(".NET Framework 3.5 is not in the image, so the sxs folder stays for setup");
+            phases.Set(ServicingPhase.RemoveDotNetSource, ServicingPhaseState.Skipped);
+            return;
+        }
+
+        var sxs = files.CombinePath(request.WorkingDirectory, "sources", "sxs");
+        if (!files.DirectoryExists(sxs))
+        {
+            phases.Set(ServicingPhase.RemoveDotNetSource, ServicingPhaseState.Skipped);
+            return;
+        }
+
+        phases.Set(ServicingPhase.RemoveDotNetSource, ServicingPhaseState.Running);
+        Report(progress, "WIMUtil_Progress_RemovingDotNetSource");
+        try
+        {
+            WorkingFolder.Delete(files, sxs);
+            phases.Set(ServicingPhase.RemoveDotNetSource, ServicingPhaseState.Done);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            log.LogWarning($"Could not delete {sxs}: {ex.Message}");
+            phases.Set(ServicingPhase.RemoveDotNetSource, ServicingPhaseState.Failed);
+        }
+    }
+
+    private async Task<OfflineServicingResult> DiscardAsync(string workingDirectory, string mountDir, bool hasDrivers, bool hasUpdate, PhaseTracker phases)
+    {
+        await UnmountDiscardingAsync(mountDir).ConfigureAwait(false);
+        return await FallBackToSetupAsync(workingDirectory, hasDrivers, hasUpdate, phases).ConfigureAwait(false);
+    }
+
+    private async Task<OfflineServicingResult> FallBackToSetupAsync(string workingDirectory, bool hasDrivers, bool hasUpdate, PhaseTracker phases)
+    {
+        phases.Abandon();
         var result = new OfflineServicingResult(
             hasDrivers ? ServicedItemOutcome.FellBackToSetup : ServicedItemOutcome.NotStaged,
             hasUpdate ? ServicedItemOutcome.FellBackToSetup : ServicedItemOutcome.NotStaged);
@@ -221,7 +611,7 @@ internal sealed class OfflineServicingService(
             if (drivers == ServicedItemOutcome.Added)
             {
                 await driverStep.RemoveAsync(workingDirectory, CancellationToken.None).ConfigureAwait(false);
-                DeleteStagedDrivers(workingDirectory);
+                WorkingFolder.Delete(files, DriverStaging.FolderOf(files, workingDirectory));
             }
             else if (drivers == ServicedItemOutcome.FellBackToSetup)
             {
@@ -254,37 +644,6 @@ internal sealed class OfflineServicingService(
         {
             PruneEmptyOemFolders(workingDirectory);
         }
-    }
-
-    // A copied driver file keeps its source's read-only bit, and a recursive delete refuses a read-only file.
-    private void DeleteStagedDrivers(string workingDirectory)
-    {
-        var folder = DriverStaging.FolderOf(files, workingDirectory);
-        foreach (var file in files.GetFiles(folder, "*", SearchOption.AllDirectories))
-        {
-            files.SetFileAttributes(file, FileAttributes.Normal);
-        }
-        files.DeleteDirectory(folder, true);
-    }
-
-    // /Index:1 is the only edition serviced, so an image whose other editions the UI missed would ship them without
-    // the drivers and update while their setup-time steps are removed.
-    private async Task<bool> HoldsOneImageAsync(string wim)
-    {
-        try
-        {
-            var count = (await Task.Run(() => images.GetImageInfo(wim)).ConfigureAwait(false)).Count;
-            if (count == 1)
-            {
-                return true;
-            }
-            log.LogWarning($"{wim} holds {count} images, and servicing handles only a single-image file; everything installs during setup");
-        }
-        catch (Exception ex)
-        {
-            log.LogWarning($"Could not count the images in {wim}, so everything installs during setup: {ex.Message}");
-        }
-        return false;
     }
 
     // Deepest first, and only the empty ones: staged apps and the installer share $OEM$\$1\ProgramData\Winhance\Unattend.
@@ -335,4 +694,49 @@ internal sealed class OfflineServicingService(
 
     private void Report(IProgress<TaskProgressDetail>? progress, string key) =>
         progress?.Report(new TaskProgressDetail { StatusText = localization.GetString(key) });
+
+    private sealed record StagedWork(bool HasDrivers, string? Target, string[] Updates)
+    {
+        public bool HasUpdate { get; init; } = Updates.Length > 0;
+    }
+
+    private sealed class PhaseTracker(IReadOnlyList<ServicingPhase> planned, IProgress<ServicingPhaseUpdate>? sink)
+    {
+        private readonly Dictionary<ServicingPhase, ServicingPhaseState> _states = planned.ToDictionary(p => p, _ => ServicingPhaseState.Pending);
+
+        public ServicingPhaseState? StateOf(ServicingPhase phase) => _states.TryGetValue(phase, out var state) ? state : null;
+
+        // A phase the plan did not list is not shown, so a step the build takes on its own never adds a card.
+        public void Set(ServicingPhase phase, ServicingPhaseState state)
+        {
+            if (!_states.ContainsKey(phase))
+            {
+                return;
+            }
+            _states[phase] = state;
+            sink?.Report(new ServicingPhaseUpdate(phase, state));
+        }
+
+        // A discarded mount undoes every phase inside it; only the one that was running counts as the failure.
+        // Removing the .NET source and cutting the image down to one edition touch the media, not the mount, so
+        // they keep their own state.
+        public void Abandon()
+        {
+            foreach (var phase in planned.Where(p => p is not (ServicingPhase.RemoveDotNetSource or ServicingPhase.PrepareImage)))
+            {
+                var state = _states[phase];
+                if (state == ServicingPhaseState.Running)
+                {
+                    Set(phase, ServicingPhaseState.Failed);
+                }
+                else if (state is ServicingPhaseState.Pending or ServicingPhaseState.Done)
+                {
+                    Set(phase, ServicingPhaseState.Skipped);
+                }
+            }
+        }
+
+        public IReadOnlyList<ServicingPhaseUpdate> Snapshot() =>
+            planned.Select(p => new ServicingPhaseUpdate(p, _states[p])).ToList();
+    }
 }

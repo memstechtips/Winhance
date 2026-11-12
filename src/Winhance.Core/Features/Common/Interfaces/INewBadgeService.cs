@@ -9,6 +9,6 @@ public interface INewBadgeService
 
     bool IsSettingNew(string? addedInVersion, string settingId);
 
-    // Auto-reset to true when Initialize detects an effective upgrade.
+    // Set to true when Initialize detects an effective upgrade, back to false on the following launch.
     bool ShowNewBadges { get; set; }
 }

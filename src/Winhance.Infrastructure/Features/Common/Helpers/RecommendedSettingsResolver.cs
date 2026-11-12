@@ -1,5 +1,4 @@
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Helpers;
 
@@ -11,29 +10,10 @@ internal static class RecommendedSettingsResolver
         return setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Units ?? string.Empty;
     }
 
-    // Each State is a ComboBox option in order, its Set["Power"] holding that option's PowerCfgValue. Mirrors
-    // SettingViewModelFactory.FindStateIndexForPowerCfgValue.
-    internal static int? FindOptionIndexForPowerCfgValue(Setting setting, int? targetValue)
-    {
-        if (!targetValue.HasValue) return null;
-        var powerKey = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Key;
-        if (powerKey is null) return null;
-        var states = setting.States;
-        for (int i = 0; i < states.Count; i++)
-        {
-            if (states[i].Set.TryGetValue(powerKey, out var stateValue)
-                && stateValue.Matches(targetValue.Value, present: true))
-                return i;
-        }
-        return null;
-    }
-
     // Returns the index of the first State carrying an UNCONDITIONAL Recommended role. Scoped to Selection -
     // returns null for Toggle/Slider/Action/PowerPlan. A powercfg Selection's roles are CONTEXT-scoped
-    // (AC/DC), so the unconditional HasRole(Recommended) does not match them. A merged Selection now exists
-    // (theme-mode-windows merges the per-OS theme defaults into one build-gated Selection), but its build-scoped
-    // role is the WindowsDefault, not the Recommended, so this Recommended lookup stays correct build-unaware; the
-    // OS-divergent WindowsDefault is resolved via the build-aware GetDefaultIndex below.
+    // (AC/DC), so the unconditional HasRole(Recommended) does not match them. Build-scoped roles (theme-mode-windows)
+    // are WindowsDefault only, so this lookup can stay build-unaware; GetDefaultIndex below is the build-aware one.
     internal static int? GetRecommendedIndex(Setting setting)
     {
         if (setting.Control != ControlKind.Selection) return null;
@@ -53,27 +33,6 @@ internal static class RecommendedSettingsResolver
             if (setting.States[i].HasRole(RoleKind.WindowsDefault, build)) return i;
         return null;
     }
-
-    // Inverse of UnitConversionHelper.ConvertToSystemUnits.
-    internal static int ConvertSystemToDisplayUnits(int systemValue, string? units)
-    {
-        return units?.ToLowerInvariant() switch
-        {
-            "minutes" => systemValue / 60,
-            "hours" => systemValue / 3600,
-            // 1:1 — see UnitConversionHelper for the rationale.
-            "milliseconds" => systemValue,
-            _ => systemValue
-        };
-    }
-
-    // Inverse of ConvertSystemToDisplayUnits: back to raw powercfg system units.
-    internal static int ConvertDisplayToSystemUnits(int displayValue, string? units) => units?.ToLowerInvariant() switch
-    {
-        "minutes" => displayValue * 60,
-        "hours" => displayValue * 3600,
-        _ => displayValue,
-    };
 
     // Deliberately no OS-compatibility helper here: the catalog registry gates OS membership via
     // CatalogMembershipFilter.IsAvailable, and a by-id consumer that still needs the check reads
@@ -99,7 +58,7 @@ internal static class RecommendedSettingsResolver
     }
 
     // As HasRecommendedValue but the WindowsDefault role / Numeric.WindowsDefault. The toggle part uses the
-    // build-aware TwoState.GetDefault, so the merged (-win10) toggles - whose Windows default is
+    // build-aware TwoState.GetDefault, so the merged This PC folder toggles - whose Windows default is
     // OS-divergent and build-scoped - agree on either OS with zero divergence.
     internal static bool HasDefaultValue(Setting setting, WinBuild build)
     {
@@ -113,7 +72,7 @@ internal static class RecommendedSettingsResolver
 
     // Builds the powercfg apply value. For a powercfg Selection, the recommended/default option is the state
     // carrying a context-scoped role (Recommended / WindowsDefault, AC / DC); that index equals
-    // FindOptionIndexForPowerCfgValue for the per-mode value. For a NumericRange, the Numeric.Recommended /
+    // PowerCfgValues.OptionIndex for the per-mode value. For a NumericRange, the Numeric.Recommended /
     // Numeric.WindowsDefault ContextValues are already in DISPLAY units, so they are handed over directly.
     internal static object? BuildPowerCfgApplyValue(Setting setting, bool useRecommended)
     {
@@ -220,7 +179,7 @@ internal static class RecommendedSettingsResolver
             // it - e.g. power-harddisk-timeout is a Minutes slider over a Seconds powercfg value, so display
             // 10 -> system 600.
             var display = ContextValueFor(numeric.Recommended, context);
-            return display.HasValue ? ConvertDisplayToSystemUnits(display.Value, numeric.Units) : (int?)null;
+            return display.HasValue ? PowerCfgValues.ToSystem(display.Value, numeric.Units) : (int?)null;
         }
         return null;
     }

@@ -50,6 +50,30 @@ public class WinGetDetectionServiceTests
     }
 
     [Fact]
+    public void ReconnectIfRequested_AfterInvalidate_ResetsTheSessionOnce()
+    {
+        _comSession.ComInitTimedOut = true;
+        _sut.InvalidateInstalledPackages();
+
+        _sut.ReconnectIfRequested();
+        _comSession.ComInitTimedOut.Should().BeFalse();
+
+        _comSession.ComInitTimedOut = true;
+        _sut.ReconnectIfRequested();
+        _comSession.ComInitTimedOut.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ReconnectIfRequested_WithoutInvalidate_KeepsTheSession()
+    {
+        _comSession.ComInitTimedOut = true;
+
+        _sut.ReconnectIfRequested();
+
+        _comSession.ComInitTimedOut.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task GetOrWalkInstalledAsync_AfterInvalidate_WalksAgain()
     {
         await _sut.GetOrWalkInstalledAsync(_ => Walk(), CancellationToken.None);

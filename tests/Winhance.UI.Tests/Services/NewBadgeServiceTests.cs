@@ -39,21 +39,20 @@ public class NewBadgeServiceTests
 
     private NewBadgeService CreateSut() => new NewBadgeService(_prefs.Object, _log.Object);
 
-    // Branch A: no stored HighestSeenAddedInVersion (first-ever install OR
-    // returning user whose prefs predate the badge system — same treatment).
+    // Branch A: no usable stored state (fresh install, or prefs that predate the badge system).
 
     [Fact]
-    public void NoStoredHighest_AllTaggedSettingsAreNew_AndSeedsHighestOnExit()
+    public void FreshInstall_ShowsNoNewBadges_AndSeedsHighestAndBaseline()
     {
         var sut = CreateSut();
 
         sut.Initialize(new[] { "26.04.10", "26.03.01", (string?)null, "" });
 
-        sut.IsSettingNew("26.04.10", "s1").Should().BeTrue();
-        sut.IsSettingNew("26.03.01", "s2").Should().BeTrue();
+        sut.IsSettingNew("26.04.10", "s1").Should().BeFalse();
+        sut.IsSettingNew("26.03.01", "s2").Should().BeFalse();
 
-        // Highest is seeded from the registry so the next run hits Branch B/C
         _store[UserPreferenceKeys.HighestSeenAddedInVersion].Should().Be("26.4.10");
+        _store["NewBadgeBaseline"].Should().Be("26.4.10");
     }
 
     [Fact]
@@ -76,41 +75,38 @@ public class NewBadgeServiceTests
         sut.Initialize(Array.Empty<string?>());
 
         _store.ContainsKey(UserPreferenceKeys.HighestSeenAddedInVersion).Should().BeFalse();
-        sut.IsSettingNew("26.04.10", "s1").Should().BeTrue(); // baseline 0.0.0
+        sut.IsSettingNew("26.04.10", "s1").Should().BeFalse();
     }
 
     [Fact]
-    public void HalfPopulatedState_MissingNewBadgeBaseline_RecoversToAllTaggedNew()
+    public void HalfPopulatedState_MissingNewBadgeBaseline_RecoversToNoBadges()
     {
-        // Real-world scenario: HighestSeen was written by an older build that didn't
-        // also write NewBadgeBaseline. Without recovery, Branch C would read an empty
-        // NewBadgeBaseline and fall back to HighestSeen as the baseline, hiding every
-        // badge forever. Branch A should catch this and reset cleanly.
+        // HighestSeen written by an older build without NewBadgeBaseline: Branch A reseeds both.
         _store[UserPreferenceKeys.HighestSeenAddedInVersion] = "26.04.21";
 
         var sut = CreateSut();
         sut.Initialize(Versions0421And0417And0301);
 
-        sut.IsSettingNew("26.04.21", "s1").Should().BeTrue();
-        sut.IsSettingNew("26.04.17", "s2").Should().BeTrue();
-        sut.IsSettingNew("26.03.01", "s3").Should().BeTrue();
+        sut.IsSettingNew("26.04.21", "s1").Should().BeFalse();
+        sut.IsSettingNew("26.04.17", "s2").Should().BeFalse();
+        sut.IsSettingNew("26.03.01", "s3").Should().BeFalse();
 
-        _store["NewBadgeBaseline"].Should().Be("0.0.0");
+        _store["NewBadgeBaseline"].Should().Be("26.4.21");
         _store[UserPreferenceKeys.HighestSeenAddedInVersion].Should().Be("26.4.21");
     }
 
     [Fact]
-    public void HalfPopulatedState_MissingHighestSeen_RecoversToAllTaggedNew()
+    public void HalfPopulatedState_MissingHighestSeen_RecoversToNoBadges()
     {
         _store["NewBadgeBaseline"] = "26.04.17";
 
         var sut = CreateSut();
         sut.Initialize(Versions0421And0417);
 
-        sut.IsSettingNew("26.04.21", "s1").Should().BeTrue();
-        sut.IsSettingNew("26.04.17", "s2").Should().BeTrue();
+        sut.IsSettingNew("26.04.21", "s1").Should().BeFalse();
+        sut.IsSettingNew("26.04.17", "s2").Should().BeFalse();
 
-        _store["NewBadgeBaseline"].Should().Be("0.0.0");
+        _store["NewBadgeBaseline"].Should().Be("26.4.21");
         _store[UserPreferenceKeys.HighestSeenAddedInVersion].Should().Be("26.4.21");
     }
 
@@ -133,6 +129,56 @@ public class NewBadgeServiceTests
         _store[UserPreferenceKeys.HighestSeenAddedInVersion].Should().Be("26.4.20");
 
         sut.ShowNewBadges.Should().BeTrue();
+    }
+
+    [Fact]
+    public void UpgradeFirstRun_ShowsBadges_SecondRunHides()
+    {
+        _store[UserPreferenceKeys.HighestSeenAddedInVersion] = "26.03.01";
+        _store["NewBadgeBaseline"] = "26.03.01";
+        _store[UserPreferenceKeys.ShowNewBadges] = "False";
+
+        var first = CreateSut();
+        first.Initialize(Versions0301And0420);
+        first.ShowNewBadges.Should().BeTrue();
+        first.IsSettingNew("26.04.20", "s1").Should().BeTrue();
+
+        var second = CreateSut();
+        second.Initialize(Versions0301And0420);
+        second.ShowNewBadges.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ManualReEnable_AfterAutoHide_PersistsAcrossRuns()
+    {
+        _store[UserPreferenceKeys.HighestSeenAddedInVersion] = "26.03.01";
+        _store["NewBadgeBaseline"] = "26.03.01";
+
+        CreateSut().Initialize(Versions0301And0420);
+        var second = CreateSut();
+        second.Initialize(Versions0301And0420);
+        second.ShowNewBadges = true;
+
+        var third = CreateSut();
+        third.Initialize(Versions0301And0420);
+        third.ShowNewBadges.Should().BeTrue();
+    }
+
+    [Fact]
+    public void NextUpgrade_ShowsBadgesAgain()
+    {
+        _store[UserPreferenceKeys.HighestSeenAddedInVersion] = "26.03.01";
+        _store["NewBadgeBaseline"] = "26.03.01";
+
+        CreateSut().Initialize(Versions0301And0420);
+        CreateSut().Initialize(Versions0301And0420);
+
+        var upgraded = CreateSut();
+        upgraded.Initialize(["26.03.01", "26.04.20", "26.05.01"]);
+
+        upgraded.ShowNewBadges.Should().BeTrue();
+        upgraded.IsSettingNew("26.05.01", "s1").Should().BeTrue();
+        upgraded.IsSettingNew("26.04.20", "s2").Should().BeFalse();
     }
 
     // Branch C: no upgrade since last run.

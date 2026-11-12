@@ -28,7 +28,7 @@ public class StateDetectionEngineTests
         new() { Label = label, Set = set ?? new Dictionary<string, StateValue>(), IsFallback = true };
 
     [Fact]
-    public void Detect_returns_the_single_matching_state()
+    public void Detect_OneMatchingState_ReturnsThatState()
     {
         var states = new[]
         {
@@ -41,7 +41,7 @@ public class StateDetectionEngineTests
     }
 
     [Fact]
-    public void Detect_requires_ALL_targets_in_a_state_to_match()
+    public void Detect_StateWithAnUnmatchedTarget_DoesNotMatch()
     {
         var states = new[]
         {
@@ -56,7 +56,7 @@ public class StateDetectionEngineTests
     }
 
     [Fact]
-    public void Detect_treats_absent_key_via_OrAbsent_as_a_match()
+    public void Detect_AbsentKeyWithOrAbsent_Matches()
     {
         var states = new[]
         {
@@ -71,7 +71,7 @@ public class StateDetectionEngineTests
     }
 
     [Fact]
-    public void Detect_returns_null_Custom_when_no_state_matches()
+    public void Detect_NoStateMatches_ReturnsNullForCustom()
     {
         var states = new[]
         {
@@ -83,7 +83,7 @@ public class StateDetectionEngineTests
     }
 
     [Fact]
-    public void Detect_resolves_to_fallback_state_when_nothing_else_matches()
+    public void Detect_NothingElseMatches_ResolvesToFallbackState()
     {
         var states = new[]
         {
@@ -97,7 +97,7 @@ public class StateDetectionEngineTests
     [Theory]
     [InlineData(2, false)]
     [InlineData(0x18, true)]
-    public void Match_flags_a_fallback_that_answered_for_readings_it_does_not_describe(int prio, bool catchAll)
+    public void Match_FallbackAnsweringForUndescribedReadings_FlagsIt(int prio, bool catchAll)
     {
         var states = new[]
         {
@@ -108,7 +108,7 @@ public class StateDetectionEngineTests
     }
 
     [Fact]
-    public void Detect_returns_first_state_when_multiple_match()
+    public void Detect_MultipleStatesMatch_ReturnsTheFirst()
     {
         var states = new[]
         {

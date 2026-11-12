@@ -20,7 +20,8 @@ internal class AppInstallationService(
     ITaskProgressService taskProgressService,
     IFileSystemService fileSystemService,
     IChangeHistoryService changeHistory,
-    IStagedAppInstaller stagedAppInstaller) : IAppInstallationService
+    IStagedAppInstaller stagedAppInstaller,
+    IBackgroundTaskService backgroundTaskService) : IAppInstallationService
 {
     // Enabling a feature or capability is handed to a PowerShell window Winhance does not watch, so
     // every servicing path reports this rather than an install it cannot vouch for.
@@ -34,6 +35,7 @@ internal class AppInstallationService(
             {
                 await bloatRemovalService.RemoveItemsFromScriptAsync(new List<ItemDefinition> { app }).ConfigureAwait(false);
                 await CleanupDedicatedRemovalArtifactsAsync(app).ConfigureAwait(false);
+                backgroundTaskService.RemoveKeptApp(app.Id);
             }
             return await InstallSingleAppAsync(app, progress).ConfigureAwait(false);
         }
@@ -111,9 +113,9 @@ internal class AppInstallationService(
             cancellationToken.ThrowIfCancellationRequested();
 
             await bloatRemovalService.RemoveItemsFromScriptAsync(batch).ConfigureAwait(false);
-
             foreach (var app in batch)
             {
+                backgroundTaskService.RemoveKeptApp(app.Id);
                 await CleanupDedicatedRemovalArtifactsAsync(app).ConfigureAwait(false);
             }
 
@@ -273,10 +275,10 @@ internal class AppInstallationService(
         {
             logService.LogInformation("Cleaning up OpenWebSearch installation...");
 
-            await scheduledTaskService.UnregisterScheduledTaskAsync("OpenWebSearchRepair").ConfigureAwait(false);
+            await scheduledTaskService.UnregisterScheduledTaskAsync(ScriptPaths.OpenWebSearchTaskName).ConfigureAwait(false);
             logService.LogInformation("Removed OpenWebSearchRepair scheduled task");
 
-            var openWebSearchDir = @"C:\ProgramData\Winhance\OpenWebSearch";
+            var openWebSearchDir = ScriptPaths.OpenWebSearchDirectoryLiteral;
             if (fileSystemService.DirectoryExists(openWebSearchDir))
             {
                 fileSystemService.DeleteDirectory(openWebSearchDir, recursive: true);

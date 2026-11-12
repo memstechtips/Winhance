@@ -21,13 +21,13 @@ public class ListShapeTests
     };
 
     [Fact]
-    public void A_field_list_derives_a_table_card()
+    public void Control_FieldList_DerivesListControl()
     {
         ListSetting().Control.Should().Be(ControlKind.List);
     }
 
     [Fact]
-    public void A_text_rule_beside_the_table_wins_the_derivation()
+    public void Control_TextRuleBesideList_DerivesTextBox()
     {
         var setting = ListSetting() with { TextBox = new(NameRule) };
 
@@ -35,19 +35,19 @@ public class ListShapeTests
     }
 
     [Fact]
-    public void A_list_setting_is_answer_file_only()
+    public void IsAnswerFileOnly_ListSetting_IsTrue()
     {
         ListSetting().IsAnswerFileOnly.Should().BeTrue();
     }
 
     [Fact]
-    public void A_list_setting_is_a_table_in_the_config_file()
+    public void InputTypeFor_ListSetting_ReturnsList()
     {
         ConfigFileMapper.InputTypeFor(ListSetting()).Should().Be(InputType.List);
     }
 
     [Fact]
-    public void A_list_setting_names_its_fields_and_no_option_captions()
+    public void List_ListSetting_NamesItsFieldsAndNoOptionCaptions()
     {
         var setting = ListSetting();
 
@@ -57,14 +57,14 @@ public class ListShapeTests
 
     // The row template draws each kind, so a new one without a template would be a blank row.
     [Fact]
-    public void A_field_declares_which_control_draws_it()
+    public void FieldKind_Always_NamesTheControlThatDrawsIt()
     {
         Enum.GetValues<FieldKind>().Should().Equal(
             FieldKind.Text, FieldKind.Password, FieldKind.Selection, FieldKind.CheckBox, FieldKind.File);
     }
 
     [Fact]
-    public void The_accounts_table_names_its_fields_and_where_the_sign_in_may_sit()
+    public void AccountsList_Always_NamesItsFieldsAndWhereSignInMaySit()
     {
         var fields = SettingCatalog.Find("autounattend-accounts")!.List!.Fields;
 

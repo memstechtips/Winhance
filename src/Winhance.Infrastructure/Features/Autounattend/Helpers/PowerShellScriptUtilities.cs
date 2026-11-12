@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Microsoft.Win32;
+using Winhance.Core.Features.Common.Helpers;
 
 namespace Winhance.Infrastructure.Features.Autounattend.Helpers;
 
@@ -11,22 +12,20 @@ internal static class PowerShellScriptUtilities
         return name.Replace("-", "_");
     }
 
-    // PowerShell ends a string on the typographic quotes as well as the ASCII one (language spec 2.3.5.2), and the
-    // locale files are full of them. Each is doubled as itself.
-    public static string? EscapePowerShellString(string? input)
+    public static string? EscapePowerShellString(string? input) => PowerShellQuoting.Escape(input);
+
+    // The arguments for one powershell.exe run that writes a .lnk through WScript.Shell.
+    public static string CreateShortcutArguments(string shortcutPath, string targetPath, string workingDir, string description)
     {
-        if (string.IsNullOrEmpty(input))
-            return input;
-
-        var escaped = new StringBuilder(input.Length);
-        foreach (char c in input)
-        {
-            escaped.Append(c);
-            if (c is '\'' or '\u2018' or '\u2019' or '\u201A' or '\u201B')
-                escaped.Append(c);
-        }
-
-        return escaped.ToString();
+        var script = $@"
+$WshShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WshShell.CreateShortcut('{EscapePowerShellString(shortcutPath)}')
+$Shortcut.TargetPath = '{EscapePowerShellString(targetPath)}'
+$Shortcut.WorkingDirectory = '{EscapePowerShellString(workingDir)}'
+$Shortcut.Description = '{EscapePowerShellString(description)}'
+$Shortcut.Save()
+";
+        return $"-NoProfile -ExecutionPolicy Bypass -Command \"{script.Replace("\"", "\\\"")}\"";
     }
 
     public static string EscapeForDoubleQuotedString(string? input)

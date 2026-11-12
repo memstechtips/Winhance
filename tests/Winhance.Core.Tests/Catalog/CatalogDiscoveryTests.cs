@@ -42,7 +42,7 @@ public class CatalogDiscoveryTests
         new(key, TestPaths, valueName, RegistryValueKind.DWord);
 
     [Fact]
-    public void Resolves_state_from_registry_reads()
+    public void Detect_RegistryReads_ResolvesTheMatchingState()
     {
         var setting = new Setting
         {
@@ -59,7 +59,7 @@ public class CatalogDiscoveryTests
     }
 
     [Fact]
-    public void Absent_read_resolves_via_or_absent_state()
+    public void Detect_AbsentRead_ResolvesViaTheOrAbsentState()
     {
         var setting = new Setting
         {
@@ -75,7 +75,7 @@ public class CatalogDiscoveryTests
     }
 
     [Fact]
-    public void No_match_is_custom_null()
+    public void Detect_NoStateMatches_ReturnsNullLabel()
     {
         var setting = new Setting
         {
@@ -90,7 +90,7 @@ public class CatalogDiscoveryTests
     }
 
     [Fact]
-    public void Resolves_scheduled_task_state_from_context()
+    public void Detect_ScheduledTask_ResolvesStateFromContext()
     {
         var setting = new Setting
         {
@@ -111,7 +111,7 @@ public class CatalogDiscoveryTests
     }
 
     [Fact]
-    public void Custom_detector_takes_over()
+    public void Detect_SettingWithCustomDetector_UsesTheDetector()
     {
         var setting = new Setting
         {

@@ -8,6 +8,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Core.Features.Optimize.Interfaces;
 using Winhance.Infrastructure.Features.Common.Catalog;
+using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.Infrastructure.Features.Optimize.Services;
 using Xunit;
 
@@ -25,13 +26,16 @@ public class WindowsStateWriterTests
     private readonly Mock<IPowerPlanActivationService> _activation = new();
     private readonly Mock<IWindowsThemeService> _theme = new();
     private readonly Mock<IDnsSettingsService> _dns = new();
+    private readonly Mock<ISystemParametersService> _systemParameters = new();
+    private readonly Mock<IServiceStartControl> _services = new();
     private readonly Mock<ILogService> _log = new();
     private readonly WindowsStateWriter _sut;
 
     public WindowsStateWriterTests()
     {
         _sut = new WindowsStateWriter(
-            _reg.Object, _tasks.Object, _powerCfg.Object, _activation.Object, _theme.Object, _dns.Object, _log.Object);
+            _reg.Object, _tasks.Object, _powerCfg.Object, _activation.Object, _theme.Object, _dns.Object,
+            _systemParameters.Object, _services.Object, _log.Object);
     }
 
     private static RegTarget Reg(string? valueName = ValueName, RegistryValueKind kind = RegistryValueKind.DWord) =>
@@ -104,6 +108,47 @@ public class WindowsStateWriterTests
 
         _reg.Verify(r => r.CreateKey(Path), Times.Once);
         _reg.Verify(r => r.SetValue(Path, ValueName, 1, RegistryValueKind.DWord), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(4)]
+    [InlineData(3)]
+    [InlineData(2)]
+    public void WriteRegistry_ServiceStart_AlsoTellsTheServiceManager(int start)
+    {
+        const string servicePath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SysMain";
+        var target = new RegTarget("Start", new[] { servicePath }, "Start", RegistryValueKind.DWord);
+        _reg.Setup(r => r.CreateKey(servicePath)).Returns(true);
+        _reg.Setup(r => r.SetValue(servicePath, "Start", start, RegistryValueKind.DWord)).Returns(true);
+
+        _sut.WriteRegistry(target, servicePath, start).Should().BeTrue();
+
+        _services.Verify(s => s.Apply("SysMain", start), Times.Once);
+    }
+
+    [Fact]
+    public void WriteRegistry_StartValueOutsideServices_LeavesTheServiceManagerAlone()
+    {
+        var target = new RegTarget("Start", new[] { Path }, "Start", RegistryValueKind.DWord);
+        _reg.Setup(r => r.CreateKey(Path)).Returns(true);
+        _reg.Setup(r => r.SetValue(Path, "Start", 4, RegistryValueKind.DWord)).Returns(true);
+
+        _sut.WriteRegistry(target, Path, 4).Should().BeTrue();
+
+        _services.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public void WriteRegistry_ServiceStart_WhenTheWriteFails_LeavesTheServiceManagerAlone()
+    {
+        const string servicePath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SysMain";
+        var target = new RegTarget("Start", new[] { servicePath }, "Start", RegistryValueKind.DWord);
+        _reg.Setup(r => r.CreateKey(servicePath)).Returns(true);
+        _reg.Setup(r => r.SetValue(servicePath, "Start", 4, RegistryValueKind.DWord)).Returns(false);
+
+        _sut.WriteRegistry(target, servicePath, 4).Should().BeFalse();
+
+        _services.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -381,6 +426,36 @@ public class WindowsStateWriterTests
         _sut.RunEffect(new PowerPlanEffect(guid.ToString())).Should().BeTrue();
 
         _activation.Verify(a => a.EnsureActivatedAsync(guid.ToString(), It.IsAny<string?>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RunEffect_SystemParameter_SetsTheLiveValue(bool on)
+    {
+        _systemParameters.Setup(p => p.SetLive(SystemParameter.DropShadow, on)).Returns(true);
+
+        _sut.RunEffect(new SystemParameterEffect(SystemParameter.DropShadow, on)).Should().BeTrue();
+
+        _systemParameters.Verify(p => p.SetLive(SystemParameter.DropShadow, on), Times.Once);
+    }
+
+    [Fact]
+    public void RunEffect_SystemParameter_WhenWindowsRefuses_StillSucceeds_BecauseTheRegistryHoldsIt()
+    {
+        _systemParameters.Setup(p => p.SetLive(SystemParameter.MenuAnimation, false)).Returns(false);
+
+        _sut.RunEffect(new SystemParameterEffect(SystemParameter.MenuAnimation, false)).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SysMain", "SysMain")]
+    [InlineData(@"hkey_local_machine\system\currentcontrolset\services\DiagTrack", "DiagTrack")]
+    [InlineData(@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SysMain\Parameters", null)]
+    [InlineData(@"HKEY_LOCAL_MACHINE\SOFTWARE\Winhance", null)]
+    public void ServiceNameOf_MatchesOnlyAServiceKeyItself(string path, string? expected)
+    {
+        ServiceStartControl.ServiceNameOf(path).Should().Be(expected);
     }
 
     [Fact]

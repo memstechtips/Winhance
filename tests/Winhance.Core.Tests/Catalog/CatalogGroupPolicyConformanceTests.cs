@@ -9,7 +9,7 @@ public class CatalogGroupPolicyConformanceTests
     private static readonly WinBuild[] Builds = [new(19045), new(26200)];
 
     [Fact]
-    public void Windows_default_apply_never_writes_a_group_policy_path()
+    public void Build_WindowsDefaultApply_NeverWritesAGroupPolicyPath()
     {
         var failures = new List<string>();
         int checkedPolicyStates = 0;
@@ -40,7 +40,7 @@ public class CatalogGroupPolicyConformanceTests
     }
 
     [Fact]
-    public void Policy_only_target_windows_default_accepts_the_value_absent()
+    public void Matches_PolicyOnlyTargetWindowsDefault_AcceptsTheValueAbsent()
     {
         var failures = new List<string>();
         int checkedTargets = 0;
@@ -69,7 +69,7 @@ public class CatalogGroupPolicyConformanceTests
     }
 
     [Fact]
-    public void Group_policy_targets_have_a_policy_path()
+    public void IsGroupPolicy_Target_HasAPolicyPath()
     {
         var failures = NoPolicyPathTargets().ToList();
 

@@ -243,20 +243,29 @@ internal class WimImageService : IWimImageService
         IReadOnlyCollection<string> editionNames,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default) =>
-        RewriteKeepingAsync(workingDirectory, editionNames, null, progress, cancellationToken);
+        RewriteKeepingAsync(workingDirectory, editionNames, null, false, progress, cancellationToken);
 
     public Task<EditionRemovalResult> KeepEditionAsWimAsync(
         string workingDirectory,
         string editionName,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default) =>
-        RewriteKeepingAsync(workingDirectory, [editionName], ImageFormat.Wim, progress, cancellationToken);
+        RewriteKeepingAsync(workingDirectory, [editionName], ImageFormat.Wim, false, progress, cancellationToken);
 
-    // A null targetFormat keeps the image in the format it is in.
+    public Task<EditionRemovalResult> RewriteAsync(
+        string workingDirectory,
+        ImageFormat targetFormat,
+        IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken cancellationToken = default) =>
+        RewriteKeepingAsync(workingDirectory, null, targetFormat, true, progress, cancellationToken);
+
+    // A null targetFormat keeps the image in the format it is in, and null editionNames keeps every edition. A forced
+    // rewrite exports even when nothing is removed.
     private async Task<EditionRemovalResult> RewriteKeepingAsync(
         string workingDirectory,
-        IReadOnlyCollection<string> editionNames,
+        IReadOnlyCollection<string>? editionNames,
         ImageFormat? targetFormat,
+        bool force,
         IProgress<TaskProgressDetail>? progress,
         CancellationToken cancellationToken)
     {
@@ -271,7 +280,7 @@ internal class WimImageService : IWimImageService
                 return EditionRemovalResult.Failed;
             }
 
-            var kept = currentInfo.Editions.Where(e => editionNames.Contains(e.Name)).ToList();
+            var kept = currentInfo.Editions.Where(e => editionNames?.Contains(e.Name) ?? true).ToList();
             if (kept.Count == 0)
             {
                 _logService.LogError("No edition was chosen to keep");
@@ -279,7 +288,7 @@ internal class WimImageService : IWimImageService
             }
 
             var format = targetFormat ?? currentInfo.Format;
-            if (kept.Count == currentInfo.Editions.Count && format == currentInfo.Format)
+            if (!force && kept.Count == currentInfo.Editions.Count && format == currentInfo.Format)
             {
                 _logService.LogInformation("Every edition is kept, nothing to remove");
                 return new EditionRemovalResult(true);

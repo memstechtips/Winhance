@@ -10,7 +10,6 @@ using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.Common.TechnicalDetails;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
-using Winhance.UI.Features.Common.Utilities;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Winhance.Core.Features.Common.Extensions;
 
@@ -192,13 +191,13 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                 // -1 (Custom) on no match is unreachable (0 orphan / 0 duplicate powercfg option values).
                 if (viewModel.SupportsSeparateACDC
                     && setting is { States.Count: > 0 }
-                    && setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault() is { } powerTarget)
+                    && setting.Targets.OfType<PowerCfgTarget>().Any())
                 {
                     viewModel.AcValue = currentState.AcValue is int acInt
-                        ? FindStateIndexForPowerCfgValue(setting, powerTarget.Key, acInt) ?? ComboBoxConstants.CustomStateIndex
+                        ? PowerCfgValues.OptionIndex(setting, acInt) ?? ComboBoxConstants.CustomStateIndex
                         : 0;
                     viewModel.DcValue = currentState.DcValue is int dcInt
-                        ? FindStateIndexForPowerCfgValue(setting, powerTarget.Key, dcInt) ?? ComboBoxConstants.CustomStateIndex
+                        ? PowerCfgValues.OptionIndex(setting, dcInt) ?? ComboBoxConstants.CustomStateIndex
                         : 0;
                 }
             }
@@ -238,7 +237,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     private static int ConvertFromSystemUnits(int systemValue, Setting setting)
     {
         var displayUnits = setting.Numeric?.Units;
-        return UnitConversionHelper.ConvertFromSystemUnits(systemValue, displayUnits);
+        return PowerCfgValues.ToDisplay(systemValue, displayUnits);
     }
 
     // The list contains ONLY real, choosable options. An unresolved selection (CurrentValue == -1) is shown by the
@@ -317,25 +316,11 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             return null;
 
         return setting.States
-            .Select(state => state.Warning is { } warning
-                ? new OptionWarning(Localized(warning), state.IsDetectOnly)
+            .Select(state => state.Warning is { } warning ? new OptionWarning(Localized(warning), state.IsDetectOnly)
+                : state.RiskWarning is { } risk ? new OptionWarning(Localized(risk), Advisory: true, Always: true)
                 : null)
             .ToList();
     }
 
     private string Localized(LocKey key) => _localizationService.GetStringOrDefault(key.Value, key.Value);
-
-    // Maps a raw powercfg value (the AC or DC reading) to the State index whose Set[powerKey] accepts it, for
-    // a separate-AC/DC powercfg selection. Returns null when no option matches (treated as Custom).
-    private static int? FindStateIndexForPowerCfgValue(Setting setting, string powerKey, int rawValue)
-    {
-        var states = setting.States;
-        for (int i = 0; i < states.Count; i++)
-        {
-            if (states[i].Set.TryGetValue(powerKey, out var stateValue)
-                && stateValue.Matches(rawValue, present: true))
-                return i;
-        }
-        return null;
-    }
 }

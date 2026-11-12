@@ -16,7 +16,7 @@ public class AppUpdateSettingKeyTests
     }
 
     [Fact]
-    public void Every_update_check_frequency_and_action_has_its_label()
+    public void EnglishKeys_EveryUpdateCheckFrequencyAndAction_HasItsLabel()
     {
         var keys = EnglishKeys();
 

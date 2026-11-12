@@ -4,7 +4,7 @@ namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface IConfigLoadService
 {
-    Task<WinhanceConfigFile?> LoadAndValidateConfigurationFromFileAsync();
+    Task<string?> PickConfigurationFileAsync();
     Task<WinhanceConfigFile?> LoadAndValidateConfigurationAsync(string filePath);
     Task<WinhanceConfigFile?> LoadRecommendedConfigurationAsync();
     Task<WinhanceConfigFile?> LoadWindowsDefaultsConfigurationAsync();

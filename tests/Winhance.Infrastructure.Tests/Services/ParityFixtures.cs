@@ -1,6 +1,5 @@
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Models;
 using Winhance.TestSupport;
 
 using Winhance.Core.Features.Common.Localization;

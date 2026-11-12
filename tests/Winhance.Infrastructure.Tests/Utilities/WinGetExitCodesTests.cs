@@ -71,6 +71,16 @@ public class WinGetExitCodesTests
         WinGetExitCodes.MapExitCode(exitCode).Should().Be(expected);
     }
 
+    // Raw values from winget-cli's AppInstallerErrors.h; the theory above names the constants, so a mistyped one
+    // would pass it. 0x8A15001B is MSSTORE_BLOCKED_BY_POLICY.
+    [Theory]
+    [InlineData(unchecked((int)0x8A150010), InstallFailureReason.NoApplicableInstallers)]
+    [InlineData(unchecked((int)0x8A15001B), InstallFailureReason.Other)]
+    public void MapExitCode_RawHResult_ReturnsItsReason(int exitCode, InstallFailureReason expected)
+    {
+        WinGetExitCodes.MapExitCode(exitCode).Should().Be(expected);
+    }
+
     [Fact]
     public void MapExitCode_UnknownCode_ReturnsOther()
     {

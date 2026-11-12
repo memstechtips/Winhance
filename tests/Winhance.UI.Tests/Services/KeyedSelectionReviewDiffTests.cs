@@ -67,7 +67,7 @@ public class KeyedSelectionReviewDiffTests : IDisposable
     }
 
     [Fact]
-    public async Task A_config_naming_another_key_is_a_diff_labelled_by_both_sides_own_wording()
+    public async Task GetDiffForSetting_ConfigNamingAnotherKey_IsADiffLabelledByBothSidesOwnWording()
     {
         var diff = await EagerDiffFor(
             FakeOptionProvider.SettingFor(),
@@ -80,7 +80,7 @@ public class KeyedSelectionReviewDiffTests : IDisposable
     }
 
     [Fact]
-    public async Task A_config_naming_the_key_the_machine_is_already_on_is_not_a_diff()
+    public async Task GetDiffForSetting_ConfigNamingTheMachinesKey_IsNotADiff()
     {
         var diff = await EagerDiffFor(
             FakeOptionProvider.SettingFor(),
@@ -91,7 +91,7 @@ public class KeyedSelectionReviewDiffTests : IDisposable
     }
 
     [Fact]
-    public async Task A_key_this_machine_does_not_offer_is_still_named_by_the_label_the_file_saved()
+    public async Task GetDiffForSetting_KeyTheMachineDoesNotOffer_IsNamedByTheLabelTheFileSaved()
     {
         var diff = await EagerDiffFor(
             FakeOptionProvider.SettingFor(),
@@ -104,7 +104,7 @@ public class KeyedSelectionReviewDiffTests : IDisposable
     }
 
     [Fact]
-    public async Task A_file_with_no_label_falls_back_to_naming_the_key()
+    public async Task GetDiffForSetting_FileWithNoLabel_FallsBackToNamingTheKey()
     {
         var diff = await EagerDiffFor(
             FakeOptionProvider.SettingFor(),
@@ -118,7 +118,7 @@ public class KeyedSelectionReviewDiffTests : IDisposable
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task A_carried_file_is_a_diff_only_when_its_bytes_differ_from_what_the_machine_is_on(bool sameBytes)
+    public async Task GetDiffForSetting_CarriedFile_IsADiffOnlyWhenItsBytesDiffer(bool sameBytes)
     {
         _fileStore.Setup(s => s.IsSameFileAsync("beta", "AQID")).ReturnsAsync(sameBytes);
 
@@ -139,7 +139,7 @@ public class KeyedSelectionReviewDiffTests : IDisposable
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    public async Task An_unread_machine_key_is_still_named_rather_than_left_blank(string? machineKey)
+    public async Task GetDiffForSetting_UnreadMachineKey_IsStillNamedRatherThanBlank(string? machineKey)
     {
         // A source that cannot read a selection still reports Success, so the item is not filtered out of the review.
         _localizationService.PresentKey("ConfigReview_UnknownValue", "Not known");

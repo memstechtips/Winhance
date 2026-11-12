@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.WimUtil.Controls.WizardStep"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
+    xmlns:commonControls="using:Winhance.UI.Features.Common.Controls"
+    xmlns:local="using:Winhance.UI.Features.WimUtil.Controls"
+    x:DefaultBindMode="OneWay">
+
+    <StackPanel>
+        <!-- A disabled control shows no tooltip, so the reason sits on a wrapper. -->
+        <Grid Background="Transparent" ToolTipService.ToolTip="{x:Bind local:WizardStep.LockedReason(State.IsAvailable, State.StatusText)}">
+            <commonControls:ClickableSettingsCard
+                Invoked="OnHeaderInvoked"
+                IsTabStop="True"
+                IsEnabled="{x:Bind State.IsAvailable}"
+                AutomationProperties.Name="{x:Bind State.AccessibleName}"
+                AutomationProperties.HelpText="{x:Bind State.StatusText}"
+                MinHeight="72"
+                CornerRadius="{x:Bind local:WizardStep.HeaderCornerRadius(State.IsExpanded)}">
+                <commonControls:ClickableSettingsCard.Resources>
+                    <x:Double x:Key="SettingsCardActionIconMaxSize">0</x:Double>
+                    <Thickness x:Key="SettingsCardActionIconMargin">0</Thickness>
+                </commonControls:ClickableSettingsCard.Resources>
+
+                <commonControls:ClickableSettingsCard.Header>
+                    <Grid ColumnSpacing="12"
+                          Opacity="{x:Bind local:WizardStep.AvailableOpacity(State.IsAvailable)}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <fluentIcons:FluentIcon Icon="{x:Bind State.Icon}"
+                                                IconVariant="Regular"
+                                                FontSize="36"
+                                                VerticalAlignment="Center"
+                                                Visibility="{x:Bind State.UsesFluentIcon}"/>
+                        <FontIcon Glyph="{x:Bind State.Glyph}"
+                                  FontSize="36"
+                                  VerticalAlignment="Center"
+                                  Visibility="{x:Bind State.HasGlyph}"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Bind State.AccessibleName}"
+                                       Style="{StaticResource SubtitleTextBlockStyle}"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{x:Bind State.StatusText}"
+                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Grid>
+                </commonControls:ClickableSettingsCard.Header>
+
+                <Grid Width="20" Height="20">
+                    <fluentIcons:FluentIcon Icon="LockClosed" IconVariant="Color" FontSize="16"
+                                            Visibility="{x:Bind State.IsLocked}"/>
+                    <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"
+                                            FontSize="{StaticResource StatusIconFontSize}"
+                                            Visibility="{x:Bind local:WizardStep.CompleteVisibility(State.IsComplete, State.IsLocked)}"/>
+                    <Grid Visibility="{x:Bind local:WizardStep.ChevronVisibility(State.IsComplete, State.IsLocked)}">
+                        <FontIcon Glyph="&#xE70E;" FontSize="{StaticResource CardExpanderChevronFontSize}"
+                                  Visibility="{x:Bind State.IsExpanded}"
+                                  Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                        <FontIcon Glyph="&#xE70D;" FontSize="{StaticResource CardExpanderChevronFontSize}"
+                                  Visibility="{x:Bind State.IsExpanded, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
+                                  Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                    </Grid>
+                </Grid>
+            </commonControls:ClickableSettingsCard>
+        </Grid>
+
+        <Border Visibility="{x:Bind State.IsExpanded}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1,0,1,1"
+                CornerRadius="0,0,4,4"
+                Padding="60,16,16,16">
+            <ContentControl Content="{x:Bind Body}"
+                            IsEnabled="{x:Bind State.IsAvailable}"
+                            IsTabStop="False"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"/>
+        </Border>
+    </StackPanel>
+</UserControl>

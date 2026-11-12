@@ -25,10 +25,6 @@ public abstract class WindowsPackageManagerFactory
 
     public CreateCompositePackageCatalogOptions CreateCreateCompositePackageCatalogOptions() => CreateInstance<CreateCompositePackageCatalogOptions>();
 
-    public InstallOptions CreateInstallOptions() => CreateInstance<InstallOptions>();
-
-    public UninstallOptions CreateUninstallOptions() => CreateInstance<UninstallOptions>();
-
     public PackageMatchFilter CreatePackageMatchFilter() => CreateInstance<PackageMatchFilter>();
 
     private T CreateInstance<T>()

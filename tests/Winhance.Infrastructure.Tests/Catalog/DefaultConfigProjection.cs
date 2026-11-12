@@ -23,6 +23,7 @@ internal static class DefaultConfigProjection
 
     internal static readonly string[] CustomizeFeatures =
     {
+        ContextMenuCustomizationsCatalog.FeatureId,
         ExplorerCustomizationsCatalog.FeatureId,
         StartMenuCustomizationsCatalog.FeatureId,
         TaskbarCustomizationsCatalog.FeatureId,
@@ -126,7 +127,7 @@ internal static class DefaultConfigProjection
                     return null;
                 string units = RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting);
                 int ToSystem(object? display) =>
-                    RecommendedSettingsResolver.ConvertDisplayToSystemUnits(Convert.ToInt32(display), units);
+                    PowerCfgValues.ToSystem(Convert.ToInt32(display), units);
 
                 if (power is IReadOnlyDictionary<string, object?> values)
                 {

@@ -124,14 +124,6 @@ public class PowerOptimizationsViewModelTests
     }
 
     [Fact]
-    public void IsExpanded_DefaultsToTrue()
-    {
-        var vm = CreateViewModel();
-
-        vm.IsExpanded.Should().BeTrue();
-    }
-
-    [Fact]
     public void SearchText_DefaultsToEmptyString()
     {
         var vm = CreateViewModel();
@@ -145,22 +137,6 @@ public class PowerOptimizationsViewModelTests
         var vm = CreateViewModel();
 
         vm.SettingsCount.Should().Be(0);
-    }
-
-    [Fact]
-    public void LoadSettingsCommand_IsNotNull()
-    {
-        var vm = CreateViewModel();
-
-        vm.LoadSettingsCommand.Should().NotBeNull();
-    }
-
-    [Fact]
-    public void ToggleExpandCommand_IsNotNull()
-    {
-        var vm = CreateViewModel();
-
-        vm.ToggleExpandCommand.Should().NotBeNull();
     }
 
     [Fact]

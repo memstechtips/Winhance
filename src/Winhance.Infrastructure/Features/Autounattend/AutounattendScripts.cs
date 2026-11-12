@@ -1,4 +1,5 @@
 using System.Reflection;
+using Winhance.Core.Features.Autounattend;
 
 namespace Winhance.Infrastructure.Features.Autounattend;
 
@@ -12,9 +13,13 @@ internal static class AutounattendScripts
 
     private const string ExtractScriptResource = "Winhance.Infrastructure.Resources.Autounattend.ExtractScript.ps1";
 
+    private const string SetComputerNameResource = "Winhance.Infrastructure.Resources.Autounattend.SetComputerName.ps1";
+
     private const string DesktopBackgroundResource = "Winhance.Infrastructure.Resources.Native.DesktopBackgroundInterop.cs";
 
     private static readonly Lazy<string> ExtractScriptBody = new(() => Read(ExtractScriptResource));
+
+    private static readonly Lazy<string> SetComputerNameBody = new(() => Read(SetComputerNameResource));
 
     // The C# the app compiles for IDesktopWallpaper, shipped as text so Add-Type compiles the same source
     // on the new PC. One implementation, two compilers.
@@ -23,6 +28,11 @@ internal static class AutounattendScripts
     public static string ExtractScript => ExtractScriptBody.Value;
 
     public static string DesktopBackgroundInterop => DesktopBackgroundBody.Value;
+
+    // The prefix keeps only letters, digits and dashes, so it sits safely inside the script's quotes.
+    public static string SetComputerName(string? typedName) => SetComputerNameBody.Value
+        .Replace("{{prefix}}", UniqueComputerName.Prefix(typedName), StringComparison.Ordinal)
+        .Replace("{{placeholder-serials}}", string.Join(", ", UniqueComputerName.PlaceholderSerials.Select(s => $"'{s}'")), StringComparison.Ordinal);
 
     private static string Read(string resource)
     {

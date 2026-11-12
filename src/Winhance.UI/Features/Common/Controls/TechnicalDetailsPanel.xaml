@@ -6,6 +6,7 @@
     xmlns:controls="using:Winhance.UI.Features.Common.Controls"
     xmlns:utilities="using:Winhance.UI.Features.Common.Utilities"
     xmlns:ctk="using:CommunityToolkit.WinUI.Controls"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
     xmlns:td="using:Winhance.Core.Features.Common.TechnicalDetails"
     HorizontalAlignment="Stretch"
     HorizontalContentAlignment="Stretch">
@@ -27,9 +28,9 @@
                     Background="Transparent"
                     BorderThickness="0">
                 <Grid ColumnDefinitions="Auto,*,Auto">
-                    <FontIcon Grid.Column="0" Glyph="&#xE946;"
-                              FontSize="{StaticResource TechnicalDetailsIconFontSize}" Margin="0,0,6,0"
-                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <fluentIcons:FluentIcon Grid.Column="0" Icon="Code" IconVariant="Regular"
+                                            FontSize="{StaticResource TechnicalDetailsIconFontSize}" Margin="0,0,6,0"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                     <TextBlock Grid.Column="1" Text="{x:Bind HeaderLabel, Mode=OneWay}" FontSize="11"
                                VerticalAlignment="Center"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
@@ -45,8 +46,9 @@
             </Button>
         </Border>
 
-        <!-- Expanded content -->
-        <Border Visibility="{x:Bind IsExpanded, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+        <!-- Built only while expanded: a collapsed table still costs its full cell tree on every card. -->
+        <Border x:Name="ExpandedContent"
+                x:Load="{x:Bind IsExpanded, Mode=OneWay}"
                 Background="{ThemeResource InfoBarInformationalSeverityBackgroundBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1,0,1,1"

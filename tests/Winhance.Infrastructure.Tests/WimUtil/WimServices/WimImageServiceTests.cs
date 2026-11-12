@@ -314,6 +314,33 @@ public class WimImageServiceTests
     }
 
     [Fact]
+    public async Task RewriteAsync_ExportsEveryEditionEvenThoughNothingIsRemoved()
+    {
+        var disk = SimulateDisk(Wim);
+
+        var result = await _service.RewriteAsync(@"C:\work", ImageFormat.Wim);
+
+        result.Should().Be(new EditionRemovalResult(true));
+        VerifyExported(1, 2, 3);
+        disk.Should().BeEquivalentTo([Wim]);
+        _mockFileSystem.Verify(fs => fs.MoveFile(KeepWim, Wim), Times.Once);
+    }
+
+    [Fact]
+    public async Task RewriteAsync_EsdTarget_ExportsWithRecoveryCompression()
+    {
+        var disk = SimulateDisk(Wim);
+
+        var result = await _service.RewriteAsync(@"C:\work", ImageFormat.Esd);
+
+        result.Should().Be(new EditionRemovalResult(true));
+        disk.Should().Contain(@"C:\work\sources\install.esd");
+        _mockDismRunner.Verify(r => r.RunProcessWithProgressAsync("dism.exe",
+            It.Is<string>(a => a.Contains("/Compress:recovery")),
+            It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
+    }
+
+    [Fact]
     public async Task KeepEditionsAsync_DismFailure_DeletesThePartialFileAndKeepsTheOriginal()
     {
         var disk = SimulateDisk(Wim);

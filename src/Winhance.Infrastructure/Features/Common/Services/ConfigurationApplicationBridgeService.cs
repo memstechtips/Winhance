@@ -3,7 +3,6 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
-using Winhance.Infrastructure.Features.Common.Helpers;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -42,11 +41,9 @@ internal class ConfigurationApplicationBridgeService : IConfigurationApplication
 
         _logService.Log(LogLevel.Info, $"Applying {section.Items.Count} settings from {sectionName} section");
 
-        // If this section carries individual PowerCfg-backed items alongside the power-plan
-        // selection, mark the import as the source of truth for power values. The apply funnel
-        // (SettingApplicationService) reads this flag and skips the recommended re-apply after a
-        // power-plan activation, which would otherwise duplicate (and race with) these individual
-        // items in the same wave. Only set true here; the import orchestrators reset it (other
+        // Individual powercfg items in the file make the import the source of truth for power values, so the
+        // power-plan activation skips its recommended re-apply, which would race these items in the same wave.
+        // The flag lives on the import's Begin() scope and ends with it, so this only ever sets it (other
         // sections run in parallel).
         if (section.Items.Any(i =>
                 !string.IsNullOrEmpty(i.Id) &&
@@ -164,20 +161,11 @@ internal class ConfigurationApplicationBridgeService : IConfigurationApplication
             ? value
             : ConfigFileMapper.DecodeValue(setting, item);
 
-    // The file holds powercfg values in SYSTEM units; the apply funnel expects DISPLAY units (it converts back),
-    // so convert here exactly as the quick-set path does. Non-powercfg sliders pass through unchanged.
-    private static object? ResolveNumericRangeValue(Setting setting, ConfigurationItem item)
+    // Handed over in the file's system units; a round trip through display units would round 90 seconds to a minute.
+    private static ChoiceValue? ResolveNumericRangeValue(Setting setting, ConfigurationItem item)
     {
-        bool isPowerCfg = setting.Targets.OfType<PowerCfgTarget>().Any();
-        string? displayUnits = isPowerCfg ? RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting) : null;
-        int Display(int system) => displayUnits is null ? system : RecommendedSettingsResolver.ConvertSystemToDisplayUnits(system, displayUnits);
-
-        return ConfigFileMapper.DecodeValue(setting, item) switch
-        {
-            ChoiceValue.AcDcNumber n => new Dictionary<string, object?> { ["ACValue"] = Display(n.Ac), ["DCValue"] = Display(n.Dc) },
-            ChoiceValue.Number n => Display(n.Value),
-            _ => null,
-        };
+        var value = ConfigFileMapper.DecodeValue(setting, item);
+        return value is ChoiceValue.AcDcNumber or ChoiceValue.Number ? value : null;
     }
 
     private enum ApplyStatus

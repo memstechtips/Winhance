@@ -25,7 +25,7 @@ public class ChoiceValueTests
         new(new Dictionary<string, string> { ["name"] = name, ["password"] = password, ["group"] = "0" });
 
     [Fact]
-    public void Two_tables_with_equal_rows_are_equal()
+    public void Equals_TablesWithEqualRows_AreEqual()
     {
         var one = new ChoiceValue.List([Row("a1"), Row("a2")]);
         var two = new ChoiceValue.List([Row("a1"), Row("a2")]);
@@ -35,7 +35,7 @@ public class ChoiceValueTests
     }
 
     [Fact]
-    public void Two_tables_differ_when_a_field_differs()
+    public void Equals_TablesWithADifferentField_AreNotEqual()
     {
         var one = new ChoiceValue.List([Row("a1")]);
         var two = new ChoiceValue.List([Row("a1", password: "other")]);
@@ -44,7 +44,7 @@ public class ChoiceValueTests
     }
 
     [Fact]
-    public void A_rows_fields_are_compared_by_key_not_by_order()
+    public void Equals_RowFieldsInAnotherOrder_AreEqual()
     {
         var one = new ChoiceValue.ListRow(new Dictionary<string, string> { ["name"] = "a1", ["group"] = "0" });
         var two = new ChoiceValue.ListRow(new Dictionary<string, string> { ["group"] = "0", ["name"] = "a1" });
@@ -54,7 +54,7 @@ public class ChoiceValueTests
     }
 
     [Fact]
-    public void A_row_that_carries_an_extra_field_is_a_different_row()
+    public void Equals_RowWithAnExtraField_IsADifferentRow()
     {
         var one = new ChoiceValue.ListRow(new Dictionary<string, string> { ["name"] = "a1" });
         var two = new ChoiceValue.ListRow(new Dictionary<string, string> { ["name"] = "a1", ["group"] = "0" });
@@ -64,7 +64,7 @@ public class ChoiceValueTests
 
     // The card compares a read-back with what it wrote; left out of equality, a tick would look like no change.
     [Fact]
-    public void Two_tables_differ_when_only_one_saves_the_passwords()
+    public void Equals_OnlyOneTableSavesPasswords_AreNotEqual()
     {
         var one = new ChoiceValue.List([Row("a1")], SavePasswords: true);
         var two = new ChoiceValue.List([Row("a1")]);
@@ -73,7 +73,7 @@ public class ChoiceValueTests
     }
 
     [Fact]
-    public void Two_tables_that_both_save_the_passwords_are_equal()
+    public void Equals_BothTablesSavePasswords_AreEqual()
     {
         var one = new ChoiceValue.List([Row("a1")], SavePasswords: true);
         var two = new ChoiceValue.List([Row("a1")], SavePasswords: true);

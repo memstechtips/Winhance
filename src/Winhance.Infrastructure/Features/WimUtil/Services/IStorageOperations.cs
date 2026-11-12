@@ -13,7 +13,8 @@ internal interface IStorageOperations
     // writer reads them first to catch a working folder that lives on the target.
     IReadOnlyList<char> GetDriveLetters(int diskNumber);
 
-    void Clear(int diskNumber);
+    // Refuses before wiping when the disk now at this number carries a different UniqueId than the one picked.
+    void Clear(int diskNumber, string uniqueId);
 
     void EnsureMbr(int diskNumber);
 

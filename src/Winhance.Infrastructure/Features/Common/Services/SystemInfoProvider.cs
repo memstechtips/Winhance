@@ -1,12 +1,12 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Security.Principal;
 using Microsoft.Win32;
 using Windows.Win32;
 using Windows.Win32.System.SystemInformation;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
@@ -69,6 +69,35 @@ internal class SystemInfoProvider : ISystemInfoProvider
             Tpm = CollectTpm(),
             DomainJoined = domainJoined
         };
+    }
+
+    public string? BiosSerialNumber()
+    {
+        try
+        {
+            return Rows(null, "Win32_BIOS", "SerialNumber").Select(row => row.GetValueOrDefault("SerialNumber") as string).FirstOrDefault();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    // The same pick as the answer file's rename script: the lowest-indexed physical adapter that has an address.
+    public string? NetworkCardAddress()
+    {
+        try
+        {
+            return Rows(null, "Win32_NetworkAdapter", "PhysicalAdapter", "MACAddress", "Index")
+                .Where(row => row.GetValueOrDefault("PhysicalAdapter") is true && row.GetValueOrDefault("MACAddress") is string)
+                .OrderBy(row => Convert.ToInt64(row.GetValueOrDefault("Index") ?? 0L))
+                .Select(row => (string)row["MACAddress"]!)
+                .FirstOrDefault();
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static string CollectAppVersion()
@@ -360,11 +389,7 @@ internal class SystemInfoProvider : ISystemInfoProvider
     {
         try
         {
-            using var identity = WindowsIdentity.GetCurrent();
-            var principal = new WindowsPrincipal(identity);
-            bool isAdmin = principal.IsInRole(WindowsBuiltInRole.Administrator);
-
-            if (!isAdmin)
+            if (!FolderLock.IsElevated())
                 return "Standard";
 
             return _interactiveUserService.IsOtsElevation ? "Admin (OTS)" : "Admin";

@@ -17,19 +17,12 @@ public class ScriptBuilderTests
     private static readonly string[] TestAppPackages = ["Microsoft.TestApp", "Microsoft.TestApp.Sub1", "Microsoft.TestApp.Sub2"];
 
     private readonly Mock<ILogService> _logService = new();
-    private readonly Mock<IPowerShellRunner> _powerShellRunner = new();
     private readonly WinhancementsScriptBuilder _builder;
 
     public ScriptBuilderTests()
     {
-        // PowerShell validation is a no-op in tests
-        _powerShellRunner
-            .Setup(p => p.ValidateScriptSyntaxAsync(It.IsAny<string>(), default))
-            .Returns(Task.CompletedTask);
-
         _builder = new WinhancementsScriptBuilder(
             _logService.Object,
-            _powerShellRunner.Object,
             new Mock<IWindowsVersionService>().Object,
             new Mock<ILocalizationService>().Object,
             OptionProviderFixtures.Registry());
@@ -67,6 +60,17 @@ public class ScriptBuilderTests
 
         script.Should().Contain("Clipchamp.Clipchamp");
         script.Should().Contain("Get-AppxPackage");
+    }
+
+    [Fact]
+    public async Task Build_Script_LocksTheWinhanceFolderInTheSystemPass()
+    {
+        var script = await _builder.BuildAsync(FullSet(), FullCatalog());
+
+        script.Should().Contain(@"$winhanceRoot = 'C:\ProgramData\Winhance'");
+        script.Should().Contain("icacls $winhanceRoot /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX'");
+        script.Should().Contain(@"icacls ""$winhanceRoot\*"" /inheritance:e /t /c");
+        script.IndexOf("if (-not $UserCustomizations)", StringComparison.Ordinal).Should().BeLessThan(script.IndexOf("/inheritance:r", StringComparison.Ordinal));
     }
 
     [Fact]

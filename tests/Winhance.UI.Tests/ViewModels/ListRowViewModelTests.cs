@@ -32,7 +32,7 @@ public class ListRowViewModelTests
         new(Fields, key => key.Value, "Remove", values, _changed.Add, _removed.Add);
 
     [Fact]
-    public void A_new_row_starts_on_the_catalog_defaults()
+    public void Constructor_NewRow_StartsOnTheCatalogDefaults()
     {
         var row = Row();
 
@@ -42,7 +42,7 @@ public class ListRowViewModelTests
     }
 
     [Fact]
-    public void Every_caption_comes_from_the_field_the_catalog_declared()
+    public void FieldFor_EveryCaption_ComesFromTheFieldTheCatalogDeclared()
     {
         var row = Row();
 
@@ -54,7 +54,7 @@ public class ListRowViewModelTests
     }
 
     [Fact]
-    public void A_value_the_rule_refuses_is_shown_and_flagged()
+    public void Text_ValueTheRuleRefuses_IsShownAndFlagged()
     {
         var row = Row();
 
@@ -66,7 +66,7 @@ public class ListRowViewModelTests
     }
 
     [Fact]
-    public void A_field_whose_condition_is_unmet_is_disabled_and_refuses_the_tick()
+    public void IsEnabled_FieldWhoseConditionIsUnmet_IsDisabledAndRefusesTheTick()
     {
         var row = Row();
         row.FieldFor("group")!.OptionIndex = 1;
@@ -78,7 +78,7 @@ public class ListRowViewModelTests
     }
 
     [Fact]
-    public void Moving_the_named_field_away_drops_a_tick_already_taken()
+    public void OptionIndex_MovingTheNamedFieldAway_DropsATickAlreadyTaken()
     {
         var row = Row();
         row.FieldFor("sign-in")!.Checked = true;
@@ -90,7 +90,7 @@ public class ListRowViewModelTests
     }
 
     [Fact]
-    public void The_row_reports_every_field_by_its_catalog_key()
+    public void ToRow_EveryField_IsReportedByItsCatalogKey()
     {
         var row = Row();
         row.FieldFor("name")!.Text = "Marco";
@@ -110,7 +110,7 @@ public class ListRowViewModelTests
     }
 
     [Fact]
-    public void A_password_is_reported_exactly_as_typed()
+    public void ToRow_Password_IsReportedExactlyAsTyped()
     {
         var row = Row();
         row.FieldFor("name")!.Text = " Marco ";
@@ -123,7 +123,7 @@ public class ListRowViewModelTests
     }
 
     [Fact]
-    public void A_row_built_from_a_record_comes_back_holding_it()
+    public void Constructor_RowBuiltFromARecord_ComesBackHoldingIt()
     {
         var row = Row(new ChoiceValue.ListRow(new Dictionary<string, string>
         {
@@ -140,7 +140,7 @@ public class ListRowViewModelTests
     }
 
     [Fact]
-    public void An_out_of_range_index_is_what_a_rebuilding_dropdown_pushes_and_is_refused()
+    public void OptionIndex_OutOfRange_IsRefused()
     {
         var row = Row();
 
@@ -150,7 +150,7 @@ public class ListRowViewModelTests
     }
 
     [Fact]
-    public void Every_edit_reports_the_whole_row_back_to_the_card()
+    public void Text_EveryEdit_ReportsTheWholeRowBackToTheCard()
     {
         var row = Row();
 
@@ -162,7 +162,7 @@ public class ListRowViewModelTests
     }
 
     [Fact]
-    public void Remove_hands_the_row_back_rather_than_removing_itself()
+    public void Remove_Row_HandsItBackRatherThanRemovingItself()
     {
         var row = Row();
 

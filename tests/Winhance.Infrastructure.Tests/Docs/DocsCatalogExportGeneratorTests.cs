@@ -16,7 +16,7 @@ public class DocsCatalogExportGeneratorTests
     public DocsCatalogExportGeneratorTests(ITestOutputHelper output) => _output = output;
 
     [Fact]
-    public void Generate_docs_catalog_export()
+    public void Generate_Always_WritesDocsCatalogExport()
     {
         var solutionDir = RepoPaths.SolutionDir();
         var version = DocsCatalogExport.ReadCsprojVersion(solutionDir);

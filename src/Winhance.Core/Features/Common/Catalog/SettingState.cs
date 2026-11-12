@@ -8,7 +8,12 @@ public sealed record SettingState
     public required LocKey Label { get; init; }
 
     public LocKey? Tooltip { get; init; }
+    // Shown when this state is chosen: an outcome note that only makes sense once it is.
     public LocKey? Warning { get; init; }
+
+    // Shown on the card whatever is selected, because the harm lands the moment this state is chosen. The text
+    // names the state it is about.
+    public LocKey? RiskWarning { get; init; }
     public IReadOnlyList<StateRole> Roles { get; init; } = System.Array.Empty<StateRole>();
     public IReadOnlyDictionary<string, StateValue> Set { get; init; } =
         new Dictionary<string, StateValue>();

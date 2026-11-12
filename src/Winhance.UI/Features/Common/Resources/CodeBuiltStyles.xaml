@@ -51,6 +51,22 @@
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 
+    <!-- The support heart's red, the same on every theme. -->
+    <Color x:Key="SupportHeartColor">#FFE74C3C</Color>
+    <SolidColorBrush x:Key="SupportHeartBrush" Color="{StaticResource SupportHeartColor}"/>
+
+    <Style x:Key="CodeBuilt.HeartIcon" TargetType="fluentIcons:FluentIcon">
+        <Setter Property="Foreground" Value="{StaticResource SupportHeartBrush}"/>
+    </Style>
+
+    <Style x:Key="CodeBuilt.HeartWash" TargetType="Border">
+        <Setter Property="Background">
+            <Setter.Value>
+                <SolidColorBrush Color="{StaticResource SupportHeartColor}" Opacity="0.15"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="CodeBuilt.SecondaryText" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}"/>
     </Style>
@@ -73,10 +89,6 @@
 
     <Style x:Key="CodeBuilt.SecondaryIcon" TargetType="fluentIcons:FluentIcon">
         <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}"/>
-    </Style>
-
-    <Style x:Key="CodeBuilt.DisabledPathIcon" TargetType="PathIcon">
-        <Setter Property="Foreground" Value="{ThemeResource TextFillColorDisabledBrush}"/>
     </Style>
 
     <Style x:Key="CodeBuilt.SuccessIcon" TargetType="fluentIcons:FluentIcon">

@@ -1,7 +1,9 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Autounattend;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
@@ -123,6 +125,21 @@ public class SelectionSetBuilderTests
         set.Settings.Should().Equal(
             new SettingChoice("t", new ChoiceValue.Toggle(false)),
             new SettingChoice("s", new ChoiceValue.Option(2)));
+    }
+
+    [Theory]
+    [InlineData(BuilderTarget.Autounattend, true)]
+    [InlineData(BuilderTarget.Config, false)]
+    public async Task FromBuilderSession_InstallsWinhanceForTheAnswerFilesApps(BuilderTarget target, bool installs)
+    {
+        _mode.Setup(m => m.CurrentBuilderTarget).Returns(target);
+        _mode.Setup(m => m.GetBuilderEdits())
+            .Returns(new List<SettingChoice> { new(WinhanceOnNewPc.SettingId, new ChoiceValue.Option(1)) });
+        _apps.Setup(a => a.CheckedExternalAppsAsync()).ReturnsAsync(new List<AppChoice> { External("firefox") });
+
+        var set = await CreateSut().FromBuilderSessionAsync();
+
+        (set.StateOf(WinhanceOnNewPc.SettingId)!.Label == WinhanceOnNewPc.InstallsAutomatically).Should().Be(installs);
     }
 
     // Clean Start Menu and Clean Taskbar. An Action has no value to capture off this PC and none to leave out,

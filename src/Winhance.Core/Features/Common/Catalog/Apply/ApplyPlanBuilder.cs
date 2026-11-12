@@ -223,12 +223,17 @@ public static class ApplyPlanBuilder
     }
 
     public static IReadOnlyList<ApplyOp> BuildPowerCfgNumeric(Setting setting, IReadOnlyList<ContextValue> values)
+        => BuildPowerCfgSystemValues(setting, values
+            .Select(cv => new ContextValue(cv.Context, PowerCfgValues.ToSystem(cv.Value, setting.Numeric?.Units)))
+            .ToList());
+
+    public static IReadOnlyList<ApplyOp> BuildPowerCfgSystemValues(Setting setting, IReadOnlyList<ContextValue> values)
     {
         var ops = new List<ApplyOp>();
         var pc = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault();
         if (pc is null) return ops;
         foreach (var cv in values)
-            ops.Add(new PowerCfgSetOp(pc, cv.Context, ConvertToSystem(cv.Value, setting.Numeric?.Units)));
+            ops.Add(new PowerCfgSetOp(pc, cv.Context, cv.Value));
         return ops;
     }
 
@@ -248,11 +253,4 @@ public static class ApplyPlanBuilder
         if (OptionValue(dcIndex) is { } dcValue) ops.Add(new PowerCfgSetOp(pc, PowerContext.DC, dcValue));
         return ops;
     }
-
-    private static int ConvertToSystem(int displayValue, string? units) => units?.ToLowerInvariant() switch
-    {
-        "minutes" => displayValue * 60,
-        "hours" => displayValue * 3600,
-        _ => displayValue,   // milliseconds, percent, default 1:1
-    };
 }

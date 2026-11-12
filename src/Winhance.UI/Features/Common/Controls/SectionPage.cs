@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -14,6 +15,7 @@ using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Pages;
+using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
@@ -68,12 +70,13 @@ public abstract class SectionPage : Page
     private ILocalizationService? _localizationService;
     private IBulkSettingsActionService? _bulkSettingsActionService;
     private IApplicationModeService? _applicationModeService;
+    private IDialogService? _dialogService;
 
     private ISubscriptionToken? _settingsRefreshedSubscription;
     private ISubscriptionToken? _settingLinkSubscription;
 
     private bool _isTechnicalDetailsVisible;
-    private bool _isInfoBadgesVisible = true;
+    private bool _isInfoBadgesVisible;
     private bool _isNewBadgesVisible = true;
     private bool _showOnlyChanges;
     private SettingStateFilter _stateFilter;
@@ -144,6 +147,7 @@ public abstract class SectionPage : Page
         _localizationService = App.Services.GetService<ILocalizationService>();
         _bulkSettingsActionService = App.Services.GetService<IBulkSettingsActionService>();
         _applicationModeService = App.Services.GetService<IApplicationModeService>();
+        _dialogService = App.Services.GetService<IDialogService>();
         if (_applicationModeService != null)
         {
             _applicationModeService.ModeChanged += OnApplicationModeChanged;
@@ -157,7 +161,10 @@ public abstract class SectionPage : Page
             LogStartup("OnNavigatedTo starting...");
             base.OnNavigatedTo(e);
 
-            // Re-subscribe in case OnNavigatedFrom unsubscribed (page is cached)
+            // Re-subscribe in case OnNavigatedFrom unsubscribed (page is cached). The view models are singletons, so a
+            // subscription left behind keeps an uncached page and its whole visual tree alive after it is gone.
+            PageViewModel.PropertyChanged -= OnPageViewModelPropertyChanged;
+            PageViewModel.PropertyChanged += OnPageViewModelPropertyChanged;
             if (_configReviewService != null)
             {
                 _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
@@ -221,6 +228,7 @@ public abstract class SectionPage : Page
         _settingsRefreshedSubscription = null;
         _settingLinkSubscription?.Dispose();
         _settingLinkSubscription = null;
+        PageViewModel.PropertyChanged -= OnPageViewModelPropertyChanged;
         PageViewModel.OnNavigatedFrom();
     }
 
@@ -387,7 +395,7 @@ public abstract class SectionPage : Page
             _isTechnicalDetailsVisible = await _userPreferencesService.GetPreferenceAsync(
                 UserPreferenceKeys.ShowTechnicalDetails, false);
             _isInfoBadgesVisible = await _userPreferencesService.GetPreferenceAsync(
-                UserPreferenceKeys.ShowInfoBadges, true);
+                UserPreferenceKeys.ShowInfoBadges, false);
             _isNewBadgesVisible = await _userPreferencesService.GetPreferenceAsync(
                 UserPreferenceKeys.ShowNewBadges, true);
             if (!IsAnswerFilePage)
@@ -460,6 +468,19 @@ public abstract class SectionPage : Page
         await SavePreferenceAsync(UserPreferenceKeys.SettingsStateFilter, _stateFilter.ToString());
     }
 
+    // The filter button and the empty-list link clear the filter through the ViewModel.
+    private async void OnPageViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(ISectionPageViewModel.StateFilter) || PageViewModel.StateFilter == _stateFilter)
+            return;
+
+        _stateFilter = PageViewModel.StateFilter;
+        foreach (var (item, filter) in _stateFilterItems)
+            item.IsChecked = filter == _stateFilter;
+        ApplyViewFilter();
+        await SavePreferenceAsync(UserPreferenceKeys.SettingsStateFilter, _stateFilter.ToString());
+    }
+
     protected void ViewShowOnlyChanges_Click(object sender, RoutedEventArgs e)
     {
         _showOnlyChanges = _chrome.ShowOnlyChangesToggle.IsChecked;
@@ -486,14 +507,11 @@ public abstract class SectionPage : Page
     }
 
     // The open section's settings when one is open, otherwise every section's.
-    private IEnumerable<SettingItemViewModel> SettingsInScope()
-    {
-        var items = PageViewModel.IsInDetailPage
-            ? PageViewModel.OverviewItems.Where(i => i.SectionKey == PageViewModel.CurrentSectionKey)
-            : PageViewModel.OverviewItems;
+    private IEnumerable<SectionOverviewItemViewModel> SectionsInScope() => PageViewModel.IsInDetailPage
+        ? PageViewModel.OverviewItems.Where(i => i.SectionKey == PageViewModel.CurrentSectionKey)
+        : PageViewModel.OverviewItems;
 
-        return items.SelectMany(i => i.Feature.Settings);
-    }
+    private IEnumerable<SettingItemViewModel> SettingsInScope() => SectionsInScope().SelectMany(i => i.Feature.Settings);
 
     // The try/catch is not optional here: async void means an escaped exception is unobserved and
     // takes the process down. Every path below ends at ContentDialog.ShowAsync(), which throws when a
@@ -547,6 +565,53 @@ public abstract class SectionPage : Page
         return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }
 
+    // Lists every setting that will change under its section, with its value now and after.
+    private async Task<bool> ConfirmChangesAsync(IReadOnlyList<SettingItemViewModel> settings, bool recommended)
+    {
+        if (_dialogService == null) return false;
+
+        var changing = settings.ToHashSet();
+        var groups = new List<SummaryTableGroup>();
+        foreach (var section in SectionsInScope())
+        {
+            var rows = section.Feature.Settings
+                .Where(changing.Contains)
+                .Select(s =>
+                {
+                    var (now, after) = s.QuickSetChange(recommended);
+                    IReadOnlyList<string> row = [s.Name, now, after];
+                    return row;
+                })
+                .ToList();
+            if (rows.Count > 0)
+                groups.Add(new SummaryTableGroup(section.Feature.DisplayName, rows));
+        }
+
+        return await _dialogService.ShowSummaryAsync(new SummaryRequest
+        {
+            Title = recommended
+                ? Localized("QuickActions_ApplyRecommended", "Apply Recommended Settings")
+                : Localized("QuickActions_ResetDefaults", "Reset to Windows Defaults"),
+            Message = string.Format(
+                settings.Count == 1
+                    ? Localized("QuickActions_ConfirmMessage_One", "This will change {0} setting on this page. Continue?")
+                    : Localized("QuickActions_ConfirmMessage", "This will change {0} settings on this page. Continue?"),
+                settings.Count),
+            Table = new SummaryTable(
+                [
+                    Localized("QuickActions_Column_Setting", "Setting"),
+                    Localized("QuickActions_Column_Now", "Now"),
+                    Localized("QuickActions_Column_After", "After"),
+                ],
+                groups),
+            ConfirmButtonText = string.Format(
+                settings.Count == 1
+                    ? Localized("QuickActions_ApplyChanges_One", "Apply {0} change")
+                    : Localized("QuickActions_ApplyChanges", "Apply {0} changes"),
+                settings.Count),
+        });
+    }
+
     // UI only: each setting routes through the same guarded pipeline as the per-card quick-set buttons, which in
     // Builder mode records an edit instead of applying.
     private async Task ExecuteBuilderBulkActionAsync(BulkActionType actionType)
@@ -555,12 +620,7 @@ public abstract class SectionPage : Page
         var settings = SettingsInScope()
             .Where(s => PageViewModel.TakesQuickActions(s) && s.WouldQuickSetChange(recommended))
             .ToList();
-        if (settings.Count == 0) return;
-
-        if (!await ConfirmAsync(string.Format(
-                Localized("QuickActions_ConfirmMessage", "This will change {0} settings on this page. Continue?"),
-                settings.Count)))
-            return;
+        if (settings.Count == 0 || !await ConfirmChangesAsync(settings, recommended)) return;
 
         foreach (var setting in settings)
         {
@@ -576,21 +636,15 @@ public abstract class SectionPage : Page
     {
         if (_bulkSettingsActionService == null) return;
 
-        // Cards already at the target are left out, so the count is what changes. The service then drops any
+        // Cards already at the target are left out, so the list is what changes. The service then drops any
         // the PC cannot take (another Windows version shown with the version filter off, other hardware).
         bool recommended = actionType == BulkActionType.ApplyRecommended;
-        var settingIds = SettingsInScope()
-            .Where(s => s.WouldQuickSetChange(recommended))
-            .Select(s => s.SettingId)
-            .ToList();
+        var candidates = SettingsInScope().Where(s => s.WouldQuickSetChange(recommended)).ToList();
+        var settingIds = candidates.Select(s => s.SettingId).ToList();
 
-        var count = await _bulkSettingsActionService.GetAffectedCountAsync(settingIds, actionType);
-        if (count == 0) return;
-
-        if (!await ConfirmAsync(string.Format(
-                Localized("QuickActions_ConfirmMessage", "This will change {0} settings on this page. Continue?"),
-                count)))
-            return;
+        var affected = (await _bulkSettingsActionService.GetAffectedSettingIdsAsync(settingIds, actionType)).ToHashSet();
+        var settings = candidates.Where(s => affected.Contains(s.SettingId)).ToList();
+        if (settings.Count == 0 || !await ConfirmChangesAsync(settings, recommended)) return;
 
         if (actionType == BulkActionType.ApplyRecommended)
             await _bulkSettingsActionService.ApplyRecommendedAsync(settingIds);
@@ -707,13 +761,12 @@ public abstract class SectionPage : Page
 
     protected void ExcludeAll_Click(object sender, RoutedEventArgs e) => SetIncludedInScope(false);
 
+    // The section's own box writes the session over the catalog, so a section nobody has opened is covered too.
     private void SetIncludedInScope(bool included)
     {
-        // Feature.Settings is the flat list, children included, so each gets IsIncluded directly; IncludeState
-        // would cascade over children this loop already reaches.
-        foreach (var setting in SettingsInScope())
+        foreach (var section in SectionsInScope())
         {
-            setting.IsIncluded = included;
+            section.IncludeState = included;
         }
     }
 }

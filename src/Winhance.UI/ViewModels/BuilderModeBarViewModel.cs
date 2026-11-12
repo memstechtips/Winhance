@@ -169,7 +169,7 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
             return;
         }
 
-        await _hardwareFilter.SetAsync(!show);
+        _hardwareFilter.Set(!show);
     }
 
     public async Task SetTargetWindowsAsync(int? build)
@@ -183,7 +183,7 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
             return;
         }
 
-        await _targetWindows.SetAsync(build);
+        _targetWindows.Set(build);
     }
 
     private string NameOf(int? build) => build switch

@@ -376,36 +376,6 @@ public static class NotificationOptimizationsCatalog
         },
         new()
         {
-            Id = "notifications-app-location-request",
-            Display = new()
-            {
-                Name = LocKey.Setting.NotificationsAppLocationRequest.Name,
-                Description = LocKey.Setting.NotificationsAppLocationRequest.Description,
-                GroupName = LocKey.SettingGroup.PrivacyNotifications,
-                Icon = MaterialIcons.MapMarker,
-            },
-            Targets = new Target[]
-            {
-                new RegTarget("ShowGlobalPrompts", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location" }, "ShowGlobalPrompts", RegistryValueKind.DWord),
-            },
-            States = new[]
-            {
-                new SettingState
-                {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["ShowGlobalPrompts"] = Of(1).OrAbsent() },
-                },
-                new SettingState
-                {
-                    Label = LocKey.Common.Disabled,
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["ShowGlobalPrompts"] = Of(0) },
-                },
-            },
-        },
-        new()
-        {
             Id = "notifications-clock-change",
             Display = new()
             {
@@ -432,6 +402,36 @@ public static class NotificationOptimizationsCatalog
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["DstNotification"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "notifications-app-location-request",
+            Display = new()
+            {
+                Name = LocKey.Setting.NotificationsAppLocationRequest.Name,
+                Description = LocKey.Setting.NotificationsAppLocationRequest.Description,
+                GroupName = LocKey.SettingGroup.PrivacyNotifications,
+                Icon = MaterialIcons.MapMarker,
+            },
+            Targets = new Target[]
+            {
+                new RegTarget("ShowGlobalPrompts", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location" }, "ShowGlobalPrompts", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.Recommended, StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["ShowGlobalPrompts"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["ShowGlobalPrompts"] = Of(0) },
                 },
             },
         },

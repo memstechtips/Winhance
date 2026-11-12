@@ -7,6 +7,9 @@ public interface IWindowsRegistryService
     bool SetValue(string keyPath, string valueName, object value, RegistryValueKind kind);
     object? GetValue(string keyPath, string valueName);
 
+    // A REG_EXPAND_SZ as stored, %SystemRoot% and all, so a value read and written back keeps its variables.
+    string? GetUnexpandedString(string keyPath, string valueName);
+
     // Diagnostic only - reports a value stored under a type its catalog target cannot read.
     RegistryValueKind? GetValueKind(string keyPath, string valueName);
     bool DeleteKey(string keyPath);
@@ -15,6 +18,7 @@ public interface IWindowsRegistryService
     bool KeyExists(string keyPath);
     bool ValueExists(string keyPath, string valueName);
     string[] GetSubKeyNames(string keyPath);
+    string[] GetValueNames(string keyPath);
 
     // Apply primitives for the catalog IStateWriter (WindowsStateWriter).
 

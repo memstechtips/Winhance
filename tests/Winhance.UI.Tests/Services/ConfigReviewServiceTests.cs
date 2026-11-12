@@ -787,6 +787,46 @@ public class ConfigReviewServiceTests : IDisposable
     }
 
     [Fact]
+    public void ApproveAllPending_AcceptsWhatIsUndecided_AndKeepsRejections()
+    {
+        var service = CreateService();
+        foreach (var id in new[] { "pending", "rejected", "approved" })
+            service.RegisterDiff(new ConfigReviewDiff { SettingId = id, FeatureModuleId = "Privacy" });
+        service.RegisterDiff(new ConfigReviewDiff { SettingId = "action", FeatureModuleId = "Privacy", IsActionSetting = true });
+        service.SetSettingApproval("rejected", false);
+        service.SetSettingApproval("approved", true);
+        service.SetSettingApproval("action", false);
+
+        var touched = service.ApproveAllPending();
+
+        touched.Should().BeEquivalentTo("pending", "action");
+        service.GetDiffForSetting("pending")!.IsApproved.Should().BeTrue();
+        service.GetDiffForSetting("rejected")!.IsApproved.Should().BeFalse();
+        var action = service.GetDiffForSetting("action")!;
+        action.IsApproved.Should().BeFalse();
+        action.IsActionReviewed.Should().BeTrue();
+        action.IsActionApproved.Should().BeTrue();
+        service.ReviewedChanges.Should().Be(service.TotalChanges);
+    }
+
+    [Fact]
+    public void ApproveAllPending_RaisesTheCountEventsOnce_AndNothingWhenAllIsDecided()
+    {
+        var service = CreateService();
+        service.RegisterDiff(new ConfigReviewDiff { SettingId = "a", FeatureModuleId = "Privacy" });
+        service.RegisterDiff(new ConfigReviewDiff { SettingId = "b", FeatureModuleId = "Privacy" });
+        int counts = 0, badges = 0;
+        service.ApprovalCountChanged += (_, _) => counts++;
+        service.BadgeStateChanged += (_, _) => badges++;
+
+        service.ApproveAllPending();
+        service.ApproveAllPending().Should().BeEmpty();
+
+        counts.Should().Be(1);
+        badges.Should().Be(1);
+    }
+
+    [Fact]
     public void RegisterDiff_AddsDiff()
     {
         var service = CreateService();
@@ -2097,6 +2137,41 @@ public class ConfigReviewServiceTests : IDisposable
         service.GetDiffForSetting(mergedId)!.ConfigItem.Should().BeSameAs(item);
     }
 
+    [Theory]
+    [InlineData("explorer-customization-context-menu", "context-menu-classic")]
+    [InlineData("explorer-take-ownership", "context-menu-take-ownership")]
+    [InlineData("explorer-context-menu-sfc", "context-menu-sfc")]
+    [InlineData("explorer-context-menu-compress-to", "context-menu-compress-to")]
+    public async Task EnterReviewModeAsync_AnOldExplorerContextMenuId_IsReviewedOnTheContextMenuPage(
+        string releasedId, string settingId)
+    {
+        _mockSettingStateProvider
+            .Setup(d => d.GetStatesAsync(It.IsAny<IReadOnlyList<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>
+            {
+                [settingId] = new SettingStateResult { Success = true, IsEnabled = false }
+            });
+        // Winhance 26.06.12 saves these under the Explorer group.
+        var item = ToggleItem(releasedId, on: true);
+        var config = new WinhanceConfigFile
+        {
+            Customize = new FeatureGroupSection
+            {
+                IsIncluded = true,
+                Features = new Dictionary<string, ConfigSection> { [FeatureIds.Explorer] = Included(item) }
+            }
+        };
+
+        var service = CreateService(await ShippedCatalogOnWindows11Async());
+        await service.EnterReviewModeAsync(config);
+
+        service.GetFeatureDiffCount(FeatureIds.ContextMenu).Should().Be(1);
+        service.GetFeatureDiffCount(FeatureIds.Explorer).Should().Be(0);
+        service.IsFeatureInConfig(FeatureIds.ContextMenu).Should().BeTrue();
+        service.GetDiffForSetting(settingId)!.FeatureModuleId.Should().Be(FeatureIds.ContextMenu);
+        service.GetDiffForSetting(settingId)!.ConfigItem.Should().BeSameAs(item);
+    }
+
     [Fact]
     public async Task EnterReviewModeAsync_AnIdTheCatalogDoesNotKnow_IsSkippedWithoutDisturbingItsNeighbours()
     {
@@ -2300,7 +2375,7 @@ public class ConfigReviewServiceTests : IDisposable
     }
 
     [Fact]
-    public void An_answer_file_setting_cannot_be_excluded()
+    public void SetIncluded_AnswerFileSetting_CannotBeExcluded()
     {
         var service = CreateService();
         service.EnterBuilderMode(BuilderTarget.Autounattend);
@@ -2312,7 +2387,7 @@ public class ConfigReviewServiceTests : IDisposable
     }
 
     [Fact]
-    public void A_setting_nobody_touched_is_in_the_file()
+    public void IsIncluded_UntouchedSetting_IsTrue()
     {
         var service = CreateService();
         service.EnterBuilderMode(BuilderTarget.Config);
@@ -2321,7 +2396,7 @@ public class ConfigReviewServiceTests : IDisposable
     }
 
     [Fact]
-    public void Excluding_a_setting_takes_it_out_and_marks_the_session_dirty()
+    public void SetIncluded_False_TakesSettingOutAndMarksSessionDirty()
     {
         var service = CreateService();
         service.EnterBuilderMode(BuilderTarget.Config);
@@ -2334,7 +2409,7 @@ public class ConfigReviewServiceTests : IDisposable
     }
 
     [Fact]
-    public void Including_a_setting_that_was_never_excluded_leaves_the_session_clean()
+    public void SetIncluded_SettingNeverExcluded_LeavesSessionClean()
     {
         // Every card writes its own state back on a rebuild, so an equal write arrives constantly.
         var service = CreateService();
@@ -2346,7 +2421,7 @@ public class ConfigReviewServiceTests : IDisposable
     }
 
     [Fact]
-    public void Leaving_Builder_puts_every_excluded_setting_back()
+    public void EnterNormalMode_AfterBuilder_PutsEveryExcludedSettingBack()
     {
         var service = CreateService();
         service.EnterBuilderMode(BuilderTarget.Config);
@@ -2359,7 +2434,7 @@ public class ConfigReviewServiceTests : IDisposable
     }
 
     [Fact]
-    public void A_second_Builder_session_starts_with_nothing_excluded()
+    public void EnterBuilderMode_SecondSession_StartsWithNothingExcluded()
     {
         var service = CreateService();
         service.EnterBuilderMode(BuilderTarget.Config);
@@ -2372,7 +2447,7 @@ public class ConfigReviewServiceTests : IDisposable
     }
 
     [Fact]
-    public void Outside_an_authoring_mode_an_exclusion_is_ignored()
+    public void SetIncluded_OutsideAuthoringMode_IgnoresTheExclusion()
     {
         var service = CreateService();
 

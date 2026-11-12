@@ -134,6 +134,28 @@ public class DispatcherService : IDispatcherService
         return tcs.Task;
     }
 
+    public IDebounceTimer CreateDebounceTimer(TimeSpan interval, Action tick)
+    {
+        EnsureInitialized();
+
+        var timer = _dispatcherQueue!.CreateTimer();
+        timer.Interval = interval;
+        timer.IsRepeating = false;
+        timer.Tick += (_, _) => tick();
+        return new DebounceTimer(timer);
+    }
+
+    private sealed class DebounceTimer(DispatcherQueueTimer timer) : IDebounceTimer
+    {
+        public void Restart()
+        {
+            timer.Stop();
+            timer.Start();
+        }
+
+        public void Stop() => timer.Stop();
+    }
+
     private void EnsureInitialized()
     {
         if (_dispatcherQueue == null)

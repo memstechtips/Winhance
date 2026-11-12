@@ -37,6 +37,20 @@ public class UsbTargetSelectionTests
     }
 
     [Fact]
+    public void GetCandidateTargets_BootDisk_IsLeftOut()
+    {
+        _operations.Setup(o => o.GetDisks()).Returns(new[]
+        {
+            new RemovableDrive(1, "Windows To Go stick", 61_530_439_680L, "USB", IsSystemDisk: false, HasRemovableMedia: true, IsBoot: true),
+            Stick,
+        });
+
+        var targets = BuildWriter().GetCandidateTargets(includeUsbHardDrives: false);
+
+        targets.Should().ContainSingle().Which.DiskNumber.Should().Be(2);
+    }
+
+    [Fact]
     public void GetCandidateTargets_SystemDiskOnUsb_IsRefused()
     {
         _operations.Setup(o => o.GetDisks()).Returns(new[]
@@ -117,7 +131,7 @@ public class UsbTargetSelectionTests
 
         BuildWriter().Write(hardDrive, @"C:\work", BootFileReplacements.None, null, CancellationToken.None);
 
-        _operations.Verify(o => o.Clear(3), Times.Once);
+        _operations.Verify(o => o.Clear(3, ""), Times.Once);
     }
 
     [Fact]
@@ -132,7 +146,7 @@ public class UsbTargetSelectionTests
         Action act = () => BuildWriter().Write(systemDisk, @"C:\work", BootFileReplacements.None, null, CancellationToken.None);
 
         act.Should().Throw<InvalidOperationException>();
-        _operations.Verify(o => o.Clear(It.IsAny<int>()), Times.Never);
+        _operations.Verify(o => o.Clear(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -143,7 +157,30 @@ public class UsbTargetSelectionTests
         Action act = () => BuildWriter().Write(Stick, @"C:\work", BootFileReplacements.None, null, CancellationToken.None);
 
         act.Should().Throw<InvalidOperationException>();
-        _operations.Verify(o => o.Clear(It.IsAny<int>()), Times.Never);
+        _operations.Verify(o => o.Clear(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void Write_SameModelDifferentUniqueId_Refuses()
+    {
+        GivenStick(Stick with { UniqueId = "usb-b" }, (@"sources\install.wim", 3_000_000_000L));
+
+        Action act = () => BuildWriter().Write(Stick with { UniqueId = "usb-a" }, @"C:\work", BootFileReplacements.None, null, CancellationToken.None);
+
+        act.Should().Throw<InvalidOperationException>();
+        _operations.Verify(o => o.Clear(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void Write_ValidTarget_ClearsWithTheUniqueIdItPicked()
+    {
+        var stick = Stick with { UniqueId = "usb-a" };
+        GivenStick(stick, (@"sources\install.wim", 3_000_000_000L));
+        GivenPartitions();
+
+        BuildWriter().Write(stick, @"C:\work", BootFileReplacements.None, null, CancellationToken.None);
+
+        _operations.Verify(o => o.Clear(2, "usb-a"), Times.Once);
     }
 
     [Fact]
@@ -155,7 +192,7 @@ public class UsbTargetSelectionTests
         Action act = () => BuildWriter().Write(stick, @"C:\work", BootFileReplacements.None, null, CancellationToken.None);
 
         act.Should().Throw<InvalidOperationException>();
-        _operations.Verify(o => o.Clear(It.IsAny<int>()), Times.Never);
+        _operations.Verify(o => o.Clear(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -166,7 +203,7 @@ public class UsbTargetSelectionTests
         Action act = () => BuildWriter().Write(Stick, @"C:\work", BootFileReplacements.None, null, CancellationToken.None);
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*boot.wim*");
-        _operations.Verify(o => o.Clear(It.IsAny<int>()), Times.Never);
+        _operations.Verify(o => o.Clear(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -175,7 +212,7 @@ public class UsbTargetSelectionTests
         GivenStick(Stick, (@"sources\install.wim", 7_578_075_168L));
         GivenPartitions();
         var order = new List<string>();
-        _operations.Setup(o => o.Clear(2)).Callback(() => order.Add("Clear"));
+        _operations.Setup(o => o.Clear(2, "")).Callback(() => order.Add("Clear"));
         _operations.Setup(o => o.EnsureMbr(2)).Callback(() => order.Add("EnsureMbr"));
         _operations.Setup(o => o.CreateBootPartition(2, UsbWriteLayoutPlanner.BootPartitionBytes)).Returns(1).Callback(() => order.Add("CreateBoot"));
         _operations.Setup(o => o.CreateInstallPartition(2)).Returns(2).Callback(() => order.Add("CreateInstall"));
@@ -251,7 +288,7 @@ public class UsbTargetSelectionTests
         Action act = () => BuildWriter().Write(Stick, @"F:\work", BootFileReplacements.None, null, CancellationToken.None);
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*SanDisk Ultra*");
-        _operations.Verify(o => o.Clear(It.IsAny<int>()), Times.Never);
+        _operations.Verify(o => o.Clear(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -267,14 +304,14 @@ public class UsbTargetSelectionTests
         erased.Target.Should().Be(Stick);
         erased.WasCancelled.Should().BeFalse();
         erased.Message.Should().Contain("not ready");
-        _operations.Verify(o => o.Clear(2), Times.Once);
+        _operations.Verify(o => o.Clear(2, ""), Times.Once);
     }
 
     [Fact]
     public void Write_EraseItselfFails_ReportsTheDriveAsErased()
     {
         GivenStick(Stick, (@"sources\install.wim", 3_000_000_000L));
-        _operations.Setup(o => o.Clear(2))
+        _operations.Setup(o => o.Clear(2, ""))
                    .Throws(new InvalidOperationException("Disk 2 still reports no free space after the wipe."));
 
         Action act = () => BuildWriter().Write(Stick, @"C:\work", BootFileReplacements.None, null, CancellationToken.None);

@@ -1,9 +1,9 @@
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.WimUtil.Models;
@@ -34,6 +34,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     private readonly WimUtilSession _wimUtilSession;
     private readonly IInstallOptionsService _installOptions;
     private readonly ICoverageSummaryService _coverageSummary;
+    private string? _reviewSourcePath;
 
     public ConfigReviewOrchestrationService(
         ILogService logService,
@@ -117,8 +118,8 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             // read as applicable and apply to nothing. Reset BEFORE the reload, because the reload reads the
             // scope synchronously before its first await - and the FilterStateChangedEvent refresh that a later
             // reset would raise no-ops while that first load still holds the loading semaphore.
-            _hardwareFilter.ResetAsync().FireAndForget(_logService);
-            _targetWindows.ResetAsync().FireAndForget(_logService);
+            _hardwareFilter.Reset();
+            _targetWindows.Reset();
             _wimUtilSession.Reset();
             _eventBus.Publish(new AuthoringModeExitedEvent());
             _logService.Log(LogLevel.Info, "Published AuthoringModeExitedEvent to reload settings from system state");
@@ -157,8 +158,9 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     }
 
 
-    public async Task EnterReviewModeAsync(WinhanceConfigFile config, bool isWindowsDefaults = false)
+    public async Task EnterReviewModeAsync(WinhanceConfigFile config, bool isWindowsDefaults, string? sourcePath)
     {
+        _reviewSourcePath = sourcePath;
         try
         {
             var setAside = _configLoadService.DetectIncompatibleSettings(config);
@@ -193,6 +195,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error entering review mode: {ex.Message}");
+            _reviewSourcePath = null;
             _configReviewModeService.ExitReviewMode();
             _installOptions.EndSession();
             _dialogService.ShowMessage(_localizationService.GetString("Config_Review_EnterError", ex.Message), _localizationService.GetString("Dialog_Error"));
@@ -256,24 +259,11 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 ProcessWindowsAppsInstallation = hasWindowsApps && windowsAppsInstall,
                 ProcessExternalAppsInstallation = hasExternalApps && externalAppsInstall,
                 ProcessExternalAppsRemoval = hasExternalApps && externalAppsRemove,
-                ApplyCleanTaskbar = approvedSettingIds.Contains("taskbar-clean"),
-                ApplyCleanStartMenu = approvedSettingIds.Contains("start-menu-clean-10") || approvedSettingIds.Contains("start-menu-clean-11"),
+                ApplyCleanTaskbar = approvedSettingIds.Contains(SettingIds.CleanTaskbar),
+                ApplyCleanStartMenu = approvedSettingIds.Contains(SettingIds.CleanStartMenu10) || approvedSettingIds.Contains(SettingIds.CleanStartMenu11),
             };
 
-            var actionOnlySubsections = new HashSet<string>();
-            if (importOptions.ApplyCleanTaskbar && !selectedSections.Contains($"Customize_{FeatureIds.Taskbar}"))
-            {
-                if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
-                selectedSections.Add($"Customize_{FeatureIds.Taskbar}");
-                actionOnlySubsections.Add($"Customize_{FeatureIds.Taskbar}");
-            }
-            if (importOptions.ApplyCleanStartMenu && !selectedSections.Contains($"Customize_{FeatureIds.StartMenu}"))
-            {
-                if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
-                selectedSections.Add($"Customize_{FeatureIds.StartMenu}");
-                actionOnlySubsections.Add($"Customize_{FeatureIds.StartMenu}");
-            }
-            importOptions = importOptions with { ActionOnlySubsections = actionOnlySubsections };
+            importOptions = ConfigApplicationExecutionService.WithCleanActionSections(importOptions, selectedSections);
 
             if (selectedSections.Count == 0)
             {
@@ -309,8 +299,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             var overlayStatus = _localizationService.GetStringOrDefault("Config_Import_Status_Applying", "Sit back, relax and watch while Winhance enhances Windows with your desired settings...");
             _overlayService.ShowOverlay(overlayStatus);
 
-            _configImportState.IsActive = true;
-            _configImportState.ImportSuppliesPowerValues = false;
+            var importScope = _configImportState.Begin();
             var changeBatch = _changeHistoryService.BeginBatch(BuildImportBatchHeader());
             IReadOnlyList<string> notApplied;
 
@@ -333,16 +322,17 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             finally
             {
                 notApplied = _configImportState.TakeNotApplied();
-                _configImportState.IsActive = false;
-                _configImportState.ImportSuppliesPowerValues = false;
+                importScope.Dispose();
                 changeBatch.Dispose();
                 _overlayService.HideOverlay();
             }
 
             _configReviewModeService.ExitReviewMode();
+            var sourcePath = _reviewSourcePath;
+            _reviewSourcePath = null;
 
             // Review mode already showed what was set aside when it opened.
-            await _coverageSummary.ShowImportSummaryAsync([], notApplied);
+            await _coverageSummary.ShowImportSummaryAsync(filteredConfig, sourcePath, [], notApplied);
 
             // Process External Apps AFTER success dialog dismissal (needs UI thread)
             // Use captured user selections instead of config section to honor user's review choices
@@ -356,6 +346,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         {
             _logService.Log(LogLevel.Error, $"Error in ApplyReviewedConfigAsync: {ex.Message}");
             _overlayService.HideOverlay();
+            _reviewSourcePath = null;
             _configReviewModeService.ExitReviewMode();
             _dialogService.ShowMessage(_localizationService.GetString("Config_Apply_Error", ex.Message), _localizationService.GetString("Dialog_Error"));
         }
@@ -368,6 +359,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
 
     public async Task CancelReviewModeAsync()
     {
+        _reviewSourcePath = null;
         if (!_configReviewModeService.IsInReviewMode) return;
 
         // Preserve app selections on cancel — only exit review mode.

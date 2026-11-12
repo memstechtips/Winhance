@@ -15,8 +15,6 @@ public interface ISettingsFeatureViewModel : INotifyPropertyChanged, IDisposable
 
     bool HasVisibleSettings { get; }
 
-    bool IsExpanded { get; set; }
-
     bool IsLoading { get; }
 
     int SettingsCount { get; }

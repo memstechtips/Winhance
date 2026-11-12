@@ -25,6 +25,9 @@ public sealed record SelectionSaveOptions
 public sealed record SelectionSaveResult(string? Path, IReadOnlyList<StagedApp> Apps)
 {
     public static SelectionSaveResult Nothing { get; } = new(null, []);
+
+    // The file was written but the user cancelled the installer downloads, so a caller running a longer job stops it.
+    public bool StagingCancelled { get; init; }
 }
 
 public interface ISelectionSaveService

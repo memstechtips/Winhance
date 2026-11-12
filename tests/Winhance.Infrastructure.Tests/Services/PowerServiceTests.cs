@@ -97,17 +97,6 @@ public class PowerServiceTests
     }
 
     [Fact]
-    public async Task TryApplySpecialSettingAsync_IsADeadStub_AlwaysReturnsFalse()
-    {
-        // PowerService is not an apply handler (power-plan apply runs through the catalog engine); the interface
-        // method remains only because PowerService is still a discovery handler, and it handles nothing.
-
-        var result = await _sut.TryApplySpecialSettingAsync("power-plan-selection", 0);
-
-        result.Should().BeFalse();
-    }
-
-    [Fact]
     public async Task CleanupCorruptWinhancePlanAsync_CorruptWinhancePlanActive_DeletesGhostAndSwitchesToBalanced()
     {
         // Ghost Winhance plan: the Winhance GUID with the wrong name

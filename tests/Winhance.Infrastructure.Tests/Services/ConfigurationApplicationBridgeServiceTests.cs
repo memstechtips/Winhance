@@ -603,11 +603,8 @@ public class ConfigurationApplicationBridgeServiceTests
     }
 
     [Fact]
-    public async Task ApplyConfigurationSectionAsync_PowerCfgNumericRange_ConvertsSystemUnitsToDisplay()
+    public async Task ApplyConfigurationSectionAsync_PowerCfgNumericRange_PassesSystemUnitsUnrounded()
     {
-        // Config stores AC/DC values in SYSTEM units (seconds). The PowerCfgApplier
-        // converts display->system itself, so the bridge must hand it DISPLAY units.
-        // 600 seconds with "Minutes" display units => 10 minutes.
         var setting = CreatePowerCfgNumericRangeSetting("power-harddisk-timeout", units: "Minutes");
         SetupRegistryWithSettings(setting);
 
@@ -619,7 +616,7 @@ public class ConfigurationApplicationBridgeServiceTests
             InputType = InputType.NumericRange,
             PowerSettings = new Dictionary<string, object>
             {
-                ["ACValue"] = 300,
+                ["ACValue"] = 90,
                 ["DCValue"] = 600,
             },
         };
@@ -639,9 +636,7 @@ public class ConfigurationApplicationBridgeServiceTests
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
                 r.SettingId == "power-harddisk-timeout" &&
-                r.Value is Dictionary<string, object?> &&
-                Convert.ToInt32(((Dictionary<string, object?>)r.Value!)["ACValue"]) == 5 &&
-                Convert.ToInt32(((Dictionary<string, object?>)r.Value!)["DCValue"]) == 10)),
+                Equals(r.Value, new ChoiceValue.AcDcNumber(90, 600)))),
             Times.Once);
     }
 
@@ -678,8 +673,7 @@ public class ConfigurationApplicationBridgeServiceTests
         _mockSettingApp.Verify(
             x => x.ApplySettingAsync(It.Is<ApplySettingRequest>(r =>
                 r.SettingId == "plain-numeric" &&
-                r.Value != null &&
-                Convert.ToInt32(r.Value) == 600)),
+                Equals(r.Value, new ChoiceValue.Number(600)))),
             Times.Once);
     }
 
@@ -718,6 +712,7 @@ public class ConfigurationApplicationBridgeServiceTests
             .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
+        using var import = _importState.Begin();
         await _service.ApplyConfigurationSectionAsync(section, "Power");
 
         _importState.ImportSuppliesPowerValues.Should().BeTrue();
@@ -743,6 +738,7 @@ public class ConfigurationApplicationBridgeServiceTests
             .Setup(x => x.ApplySettingAsync(It.IsAny<ApplySettingRequest>()))
             .ReturnsAsync(OperationResult.Succeeded());
 
+        using var import = _importState.Begin();
         await _service.ApplyConfigurationSectionAsync(section, "TestSection");
 
         _importState.ImportSuppliesPowerValues.Should().BeFalse();

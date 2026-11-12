@@ -64,6 +64,13 @@ public class EnabledWhenConformanceTests
         ["autounattend-delete-installers"] = ("autounattend-desktop-shortcut",
             new[] { "Setting_autounattend-desktop-shortcut_Option_1", "Setting_autounattend-desktop-shortcut_Option_2" }),
 
+        // Each box is a folder the one-time task clears, and there is no task while the cleanup is off.
+        ["autounattend-cleanup-old-components"] = ("autounattend-cleanup", new[] { "Common_Enabled" }),
+        ["autounattend-cleanup-update-downloads"] = ("autounattend-cleanup", new[] { "Common_Enabled" }),
+        ["autounattend-cleanup-servicing-logs"] = ("autounattend-cleanup", new[] { "Common_Enabled" }),
+        ["autounattend-cleanup-temp-files"] = ("autounattend-cleanup", new[] { "Common_Enabled" }),
+        ["autounattend-cleanup-crash-reports"] = ("autounattend-cleanup", new[] { "Common_Enabled" }),
+
         // The three boxes describe a layout, and there is no layout while Setup is the one asking.
         ["autounattend-disk-number"] =
             ("autounattend-disk", new[] { "Setting_autounattend-disk_Option_1", "Setting_autounattend-disk_Option_2" }),
@@ -122,10 +129,35 @@ public class EnabledWhenConformanceTests
 
         // Which editions stay on the media matters whatever edition Setup is told to install.
         "autounattend-media-editions",
+
+        // The name card is a text box with no state to gate on; a typed name becomes the unique name's prefix.
+        "autounattend-computer-name-unique",
+
+        // Dropping the .NET files from the media is a size choice either way; the only case where setup still
+        // needs them depends on the WIM Util mode, which the page gates, not the catalog.
+        "autounattend-netfx3-remove-source",
+
+        // Turning a context-menu entry on turns its menu on, so an entry is never greyed behind its menu.
+        "context-menu-repair-windows",
+        "context-menu-sfc",
+        "context-menu-dism",
+        "context-menu-chkdsk",
+        "context-menu-restore-point",
+        "context-menu-disk-cleanup",
+        "context-menu-optimize-drives",
+        "context-menu-memory-diagnostic",
+        "context-menu-icon-cache",
+        "context-menu-restart-explorer",
+        "context-menu-restart-into",
+        "context-menu-network",
+        "context-menu-end-frozen-apps",
+        "context-menu-store-reset",
+        "context-menu-reliability-monitor",
+        "context-menu-battery-report",
     };
 
     [Fact]
-    public void Exactly_the_verified_gates_are_declared()
+    public void EnabledWhen_Catalog_IsDeclaredOnExactlyTheVerifiedGates()
     {
         var declared = SettingCatalog.All
             .Where(s => s.EnabledWhen is not null)
@@ -137,7 +169,7 @@ public class EnabledWhenConformanceTests
 
     [Theory]
     [MemberData(nameof(GateCases))]
-    public void Each_declared_gate_names_its_target_and_the_states_it_is_usable_in(
+    public void EnabledWhen_DeclaredGate_NamesItsTargetAndUsableStates(
         string childId, string targetId, string[] states)
     {
         var gate = S(childId).EnabledWhen;
@@ -149,7 +181,7 @@ public class EnabledWhenConformanceTests
 
     [Theory]
     [MemberData(nameof(GateCases))]
-    public void Each_declared_gate_names_states_the_target_really_has(
+    public void EnabledWhen_DeclaredGate_NamesStatesTheTargetHas(
         string childId, string targetId, string[] states)
     {
         // The whole point of keying on the label: a key the target does not carry is a gate that can never
@@ -164,7 +196,7 @@ public class EnabledWhenConformanceTests
 
     [Theory]
     [MemberData(nameof(UngatedCases))]
-    public void A_nested_setting_that_declares_no_gate_stays_ungated(string childId)
+    public void EnabledWhen_NestedSettingWithoutGate_StaysUngated(string childId)
     {
         var setting = S(childId);
 
@@ -176,7 +208,7 @@ public class EnabledWhenConformanceTests
         DeliberatelyUngated.Select(id => new object[] { id });
 
     [Fact]
-    public void Exactly_the_verified_visibility_gates_are_declared()
+    public void VisibleWhen_Catalog_IsDeclaredOnExactlyTheVerifiedGates()
     {
         var declared = SettingCatalog.All
             .Where(s => s.VisibleWhen is not null)
@@ -188,7 +220,7 @@ public class EnabledWhenConformanceTests
 
     [Theory]
     [MemberData(nameof(HiddenCases))]
-    public void Each_declared_visibility_gate_names_its_target_and_the_states_it_is_drawn_in(
+    public void VisibleWhen_DeclaredGate_NamesItsTargetAndDrawnStates(
         string childId, string targetId, string[] states)
     {
         var gate = S(childId).VisibleWhen;
@@ -206,7 +238,7 @@ public class EnabledWhenConformanceTests
         Hidden.Select(kv => new object[] { kv.Key, kv.Value.Target, kv.Value.States });
 
     [Fact]
-    public void Every_nested_setting_is_accounted_for_as_gated_or_deliberately_ungated()
+    public void UiParentId_NestedSetting_IsGatedOrDeliberatelyUngated()
     {
         // Non-vacuity for the three lists above: a NEW child of an existing parent has to be a decision,
         // not a default. Whichever way it is authored, it belongs in one of the lists.
@@ -220,7 +252,7 @@ public class EnabledWhenConformanceTests
     }
 
     [Fact]
-    public void No_gate_names_a_setting_that_is_not_the_one_it_is_nested_under()
+    public void EnabledWhen_Gate_NamesOnlyTheSettingsOwnUiParent()
     {
         // Not a rule of the model - EnabledWhen may name any setting, and Link deliberately does point
         // at non-parents. It is a statement about TODAY'S catalog: every gate we could verify happens to
@@ -232,7 +264,7 @@ public class EnabledWhenConformanceTests
     }
 
     [Fact]
-    public void No_gate_names_a_separate_AC_DC_selection()
+    public void EnabledWhen_Gate_NeverNamesASeparateAcDcSelection()
     {
         // A gate reads its target's CurrentStateLabel, and a Separate PowerCfg selection does not have
         // one: its live readings sit in the AC and DC indices, and its SelectedValue never resolves to a
@@ -243,7 +275,7 @@ public class EnabledWhenConformanceTests
             var target = S(s.EnabledWhen!.OtherId);
 
             target.Targets.OfType<PowerCfgTarget>()
-                .Any(t => t.Mode == Winhance.Core.Features.Common.Models.PowerModeSupport.Separate)
+                .Any(t => t.Mode == PowerModeSupport.Separate)
                 .Should().BeFalse($"'{s.Id}' gates on '{target.Id}'");
         }
     }

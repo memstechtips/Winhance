@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
@@ -338,6 +339,40 @@ public class SettingItemViewModelTests
     }
 
     [Fact]
+    public void UpdateStateFromEvent_NumberChoiceInSeconds_ShowsMinutes()
+    {
+        var config = _defaultConfig with
+        {
+            Setting = AlwaysNumericSetting("power-timeout", 0, 120, "Minutes"),
+            SettingId = "power-timeout",
+            InputType = InputType.NumericRange
+        };
+        var sut = CreateSut(config);
+
+        sut.UpdateStateFromEvent(true, new ChoiceValue.Number(1200));
+
+        sut.NumericValue.Should().Be(20);
+    }
+
+    [Fact]
+    public void UpdateStateFromEvent_AcDcNumberChoiceInSeconds_ShowsMinutes()
+    {
+        var config = _defaultConfig with
+        {
+            Setting = PowerCfgSeparateNumericSetting("acdc-numeric", null, null, null, null, units: "Minutes"),
+            SettingId = "acdc-numeric",
+            InputType = InputType.NumericRange
+        };
+        var sut = CreateSut(config);
+        sut.HasBattery = true;
+
+        sut.UpdateStateFromEvent(true, new ChoiceValue.AcDcNumber(1200, 600));
+
+        sut.AcNumericValue.Should().Be(20);
+        sut.DcNumericValue.Should().Be(10);
+    }
+
+    [Fact]
     public void UpdateStateFromSystemState_ToggleType_UpdatesIsSelected()
     {
         var sut = CreateSut();
@@ -370,6 +405,23 @@ public class SettingItemViewModelTests
         sut.UpdateStateFromSystemState(state);
 
         sut.SelectedValue.Should().Be("ValueB");
+    }
+
+    [Fact]
+    public void UpdateStateFromSystemState_SelectionType_RecomputesOptionWarningBanner()
+    {
+        var config = _defaultConfig with
+        {
+            InputType = InputType.Selection,
+            OptionWarnings = new OptionWarning?[] { null, new("Spotlight note", true) },
+        };
+        var sut = CreateSut(config);
+
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, CurrentValue = 1 });
+        sut.StatusBannerMessage.Should().Be("Spotlight note");
+
+        sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, CurrentValue = 0 });
+        sut.StatusBannerMessage.Should().BeNull();
     }
 
     [Fact]
@@ -806,20 +858,20 @@ public class SettingItemViewModelTests
         && Equals(values["primary"], primary) && Equals(values["secondary"], secondary);
 
     [Fact]
-    public void Locked_fields_show_the_selected_presets_servers()
+    public void FieldRows_LockedFields_ShowTheSelectedPresetsServers()
         => Texts(LockedFieldsSut(1)).Should().Equal("1.1.1.1", "1.0.0.1");
 
     [Fact]
-    public void Each_row_holds_one_server()
+    public void FieldRows_Always_HoldOneServerPerRow()
         => LockedFieldsSut(1).FieldRows.Select(r => r.Fields.Count).Should().Equal(2, 1);
 
     // Windows 10 has no DNS over HTTPS, so its box is left out there.
     [Fact]
-    public void A_box_for_a_later_Windows_is_left_out()
+    public void FieldRows_WindowsWithoutDnsOverHttps_LeavesOutTheEncryptionBox()
         => LockedFieldsSut(1, build: 19045).FieldRows.Select(r => r.Fields.Count).Should().Equal(1, 1);
 
     [Fact]
-    public void A_custom_reading_shows_the_machines_own_servers()
+    public void RecordKnownState_CustomReading_ShowsTheMachinesOwnServers()
     {
         var sut = LockedFieldsSut(0);
 
@@ -836,7 +888,7 @@ public class SettingItemViewModelTests
 
     // Typed servers are a choice the card offers: named, with no fault icon or banner.
     [Fact]
-    public void Typed_servers_read_as_custom_rather_than_unrecognized()
+    public void Outcome_TypedServers_ReadAsCustomRatherThanUnrecognized()
     {
         var sut = LockedFieldsSut(0);
 
@@ -850,7 +902,7 @@ public class SettingItemViewModelTests
 
     // The preset names only the servers, so the encryption shown comes from the machine while it has that preset.
     [Fact]
-    public void An_encrypted_preset_shows_the_machines_encryption()
+    public void RecordKnownState_EncryptedPreset_ShowsTheMachinesEncryption()
     {
         var sut = LockedFieldsSut(0);
 
@@ -865,7 +917,7 @@ public class SettingItemViewModelTests
     }
 
     [Fact]
-    public async Task The_pencil_opens_the_fields_without_the_advanced_warning()
+    public async Task UnlockCommand_Pencil_OpensTheFieldsWithoutTheAdvancedWarning()
     {
         var sut = LockedFieldsSut(1);
 
@@ -877,7 +929,7 @@ public class SettingItemViewModelTests
     }
 
     [Fact]
-    public async Task Typed_servers_apply_as_custom_values()
+    public async Task ApplyFieldsCommand_TypedServers_ApplyAsCustomValues()
     {
         var sut = LockedFieldsSut(0);
         await sut.UnlockCommand.ExecuteAsync(null);
@@ -892,7 +944,7 @@ public class SettingItemViewModelTests
     }
 
     [Fact]
-    public async Task Typed_servers_stay_in_the_fields_after_apply_over_a_live_reading()
+    public async Task ApplyFieldsCommand_TypedServersOverALiveReading_StayInTheFieldsAfterApply()
     {
         var sut = LockedFieldsSut(1);
         sut.RecordKnownState(new SettingStateResult
@@ -910,7 +962,7 @@ public class SettingItemViewModelTests
     }
 
     [Fact]
-    public async Task A_presets_servers_typed_out_apply_the_preset()
+    public async Task ApplyFieldsCommand_PresetServersTypedOut_AppliesThePreset()
     {
         var sut = LockedFieldsSut(0);
         await sut.UnlockCommand.ExecuteAsync(null);
@@ -924,7 +976,7 @@ public class SettingItemViewModelTests
 
     // An index carries no encryption, so a preset with encryption on applies as the full set of values.
     [Fact]
-    public async Task An_encrypted_preset_applies_as_custom_values()
+    public async Task ApplyFieldsCommand_EncryptedPreset_AppliesAsCustomValues()
     {
         var sut = LockedFieldsSut(1);
         await sut.UnlockCommand.ExecuteAsync(null);
@@ -940,7 +992,7 @@ public class SettingItemViewModelTests
 
     // The card is already on the preset, and the preset's index is the write that removes the encryption.
     [Fact]
-    public async Task Turning_encryption_off_on_the_machines_preset_writes_the_preset()
+    public async Task ApplyFieldsCommand_EncryptionTurnedOffOnTheMachinesPreset_WritesThePreset()
     {
         var sut = LockedFieldsSut(1);
         sut.RecordKnownState(new SettingStateResult { Success = true, Readings = EncryptedCloudflare });
@@ -955,7 +1007,7 @@ public class SettingItemViewModelTests
     }
 
     [Fact]
-    public async Task A_rejected_preset_write_leaves_the_machines_values_in_the_fields()
+    public async Task ApplyFieldsCommand_RejectedPresetWrite_LeavesTheMachinesValuesInTheFields()
     {
         var sut = LockedFieldsSut(1);
         sut.RecordKnownState(new SettingStateResult { Success = true, Readings = EncryptedCloudflare });
@@ -972,7 +1024,7 @@ public class SettingItemViewModelTests
     }
 
     [Fact]
-    public async Task Clearing_an_ipv6_server_on_the_machines_preset_writes_the_preset()
+    public async Task ApplyFieldsCommand_IPv6ServerClearedOnTheMachinesPreset_WritesThePreset()
     {
         var sut = LockedFieldsSut(1, setting: FieldsSettingWithIPv6());
         sut.RecordKnownState(new SettingStateResult
@@ -990,7 +1042,7 @@ public class SettingItemViewModelTests
     }
 
     [Fact]
-    public async Task Picking_a_preset_fills_its_servers_and_empties_the_rest()
+    public async Task FillFieldsFromPreset_Preset_FillsItsServersAndEmptiesTheRest()
     {
         var sut = LockedFieldsSut(0);
         await sut.UnlockCommand.ExecuteAsync(null);
@@ -1003,7 +1055,7 @@ public class SettingItemViewModelTests
     }
 
     [Fact]
-    public async Task Picking_Automatic_empties_every_box()
+    public async Task FillFieldsFromPreset_Automatic_EmptiesEveryBox()
     {
         var sut = LockedFieldsSut(1);
         await sut.UnlockCommand.ExecuteAsync(null);
@@ -1016,7 +1068,7 @@ public class SettingItemViewModelTests
     }
 
     [Fact]
-    public async Task Cancel_puts_back_what_the_card_showed()
+    public async Task CancelFieldsCommand_Always_PutsBackWhatTheCardShowed()
     {
         var sut = LockedFieldsSut(1);
         await sut.UnlockCommand.ExecuteAsync(null);
@@ -1034,7 +1086,7 @@ public class SettingItemViewModelTests
     [InlineData("10.0.0", "", false)]
     [InlineData("", "", true)]
     [InlineData("10.0.0.1", "", true)]
-    public async Task Apply_needs_valid_servers_and_a_preferred_one_first(string preferred, string alternate, bool canApply)
+    public async Task CanApplyFields_PreferredAndAlternate_NeedsValidServersAndAPreferredOneFirst(string preferred, string alternate, bool canApply)
     {
         var sut = LockedFieldsSut(1);
         await sut.UnlockCommand.ExecuteAsync(null);
@@ -1050,7 +1102,7 @@ public class SettingItemViewModelTests
     [InlineData("", "10.0.0.2", true)]
     [InlineData("10.0.0", "", false)]
     [InlineData("10.0.0.1", "10.0.0.2", false)]
-    public async Task A_refusal_no_box_explains_shows_under_the_fields(string preferred, string alternate, bool shown)
+    public async Task ShowFieldsError_PreferredAndAlternate_ShowsRefusalNoBoxExplains(string preferred, string alternate, bool shown)
     {
         var sut = LockedFieldsSut(1);
         sut.ShowFieldsError.Should().BeFalse();
@@ -1205,6 +1257,61 @@ public class SettingItemViewModelTests
 
         sut.WouldQuickSetChange(recommended: true).Should().BeFalse();
         sut.WouldQuickSetChange(recommended: false).Should().BeTrue();
+    }
+
+    [Fact]
+    public void QuickSetChange_Toggle_ShowsCurrentAndTargetState()
+    {
+        var sut = CreateSut(ToggleConfig(ToggleSetting("toggle-qs", recommendedEnabled: false, defaultEnabled: true)));
+        sut.IsSelected = true;
+
+        sut.QuickSetChange(recommended: true).Should().Be(("On", "Off"));
+        sut.QuickSetChange(recommended: false).Should().Be(("On", "On"));
+    }
+
+    [Fact]
+    public void QuickSetChange_Selection_UsesOptionLabels()
+    {
+        var sut = CreateSut(SelectionConfig(SelectionSetting("sel-qs", new[] { ("Fast", false, true), ("Quiet", true, false) })));
+        sut.ComboBoxOptions.Clear();
+        sut.ComboBoxOptions.Add(new ComboBoxDisplayOption("Fast", 0));
+        sut.ComboBoxOptions.Add(new ComboBoxDisplayOption("Quiet", 1));
+        sut.SelectedValue = 0;
+
+        sut.QuickSetChange(recommended: true).Should().Be(("Fast", "Quiet"));
+    }
+
+    [Fact]
+    public void QuickSetChange_SeparateNumericWithBattery_KeepsModeWithoutTarget()
+    {
+        var sut = CreateSut(NumericConfig(PowerCfgSeparateNumericSetting("acdc-qs", recAc: 50, recDc: null, defAc: null, defDc: null)));
+        sut.HasBattery = true;
+        sut.AcNumericValue = 10;
+        sut.DcNumericValue = 20;
+
+        var (now, after) = sut.QuickSetChange(recommended: true);
+
+        now.Should().Be($"{sut.PluggedInText}: 10, {sut.OnBatteryText}: 20");
+        after.Should().Be($"{sut.PluggedInText}: 50, {sut.OnBatteryText}: 20");
+    }
+
+    [Fact]
+    public void QuickSetChange_SeparateNumericWithoutBattery_ShowsPluggedInValueOnly()
+    {
+        var sut = CreateSut(NumericConfig(PowerCfgSeparateNumericSetting("acdc-qs-desk", recAc: 50, recDc: 25, defAc: null, defDc: null)));
+        sut.HasBattery = false;
+        sut.AcNumericValue = 10;
+
+        sut.QuickSetChange(recommended: true).Should().Be(("10", "50"));
+    }
+
+    [Fact]
+    public void QuickSetChange_CustomState_NowShowsTheOverlayText()
+    {
+        var sut = CreateSut(ToggleConfig(ToggleSetting("toggle-qs-custom", recommendedEnabled: true, defaultEnabled: true)));
+        sut.Outcome = SettingDetectionOutcome.Custom;
+
+        sut.QuickSetChange(recommended: true).Now.Should().Be(sut.CustomStateText);
     }
 
     [Fact]

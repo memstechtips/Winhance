@@ -12,7 +12,7 @@ namespace Winhance.Infrastructure.Tests.Style;
 public class PublicSurfaceTests
 {
     [Fact]
-    public void Only_the_DI_entry_point_is_public()
+    public void ExportedTypes_Always_AreOnlyTheDiEntryPoint()
     {
         var exported = typeof(InfrastructureServicesExtensions).Assembly
             .GetExportedTypes()

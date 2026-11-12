@@ -5,9 +5,9 @@ public interface IHardwareFilterService
 {
     bool IsFilterEnabled { get; }
 
-    Task SetAsync(bool enabled);
+    void Set(bool enabled);
 
-    Task ResetAsync();
+    void Reset();
 
     event EventHandler<bool>? FilterStateChanged;
 }

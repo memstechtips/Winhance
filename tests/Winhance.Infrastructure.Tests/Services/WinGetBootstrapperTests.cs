@@ -11,11 +11,8 @@ namespace Winhance.Infrastructure.Tests.Services;
 public class WinGetBootstrapperTests
 {
     private readonly Mock<ILogService> _mockLogService = new();
-    private readonly Mock<ILocalizationService> _mockLocalization = new();
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
-    private readonly Mock<IPowerShellRunner> _mockPowerShellRunner = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
-    private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
     private readonly WinGetComSession _comSession;
     private readonly WinGetBootstrapper _sut;
 
@@ -26,12 +23,8 @@ public class WinGetBootstrapperTests
         _sut = new WinGetBootstrapper(
             _comSession,
             _mockLogService.Object,
-            _mockLocalization.Object,
             _mockInteractiveUserService.Object,
-            _mockPowerShellRunner.Object,
-            _mockFileSystemService.Object,
-            _mockTaskProgressService.Object,
-            new System.Net.Http.HttpClient());
+            _mockFileSystemService.Object);
     }
 
     [Fact]
@@ -100,42 +93,6 @@ public class WinGetBootstrapperTests
         _mockLogService.Verify(
             l => l.LogInformation(It.Is<string>(s => s.Contains("System winget available:")), It.IsAny<string>()),
             Times.Once);
-    }
-
-    [Fact]
-    public async Task InstallWinGetAsync_LogsStartMessage()
-    {
-        // The InstallAsync inside will likely fail since we're in a test env,
-        // but we can verify it logs the start message.
-        _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
-
-        var result = await _sut.InstallWinGetAsync();
-
-        _mockLogService.Verify(
-            l => l.LogInformation(It.Is<string>(s => s.Contains("Starting AppInstaller installation")), It.IsAny<string>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task InstallWinGetAsync_WhenCancelled_ReturnsFalse()
-    {
-        using var cts = new CancellationTokenSource();
-        cts.Cancel();
-
-        // The method catches OperationCanceledException internally
-        var result = await _sut.InstallWinGetAsync(cts.Token);
-
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public void WinGetInstalled_EventCanBeSubscribed()
-    {
-        var eventRaised = false;
-        _sut.WinGetInstalled += (sender, args) => eventRaised = true;
-
-        // Just verifying event subscription doesn't throw
-        eventRaised.Should().BeFalse();
     }
 
     [Fact]

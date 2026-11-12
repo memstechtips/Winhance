@@ -1,17 +1,17 @@
 using System.Text;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Selections;
-using Winhance.Core.Features.SoftwareApps.Catalogs;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.SoftwareApps.Utilities;
+using Winhance.Infrastructure.Features.Common.Utilities;
+using static Winhance.Infrastructure.Features.Autounattend.ScriptSections.EmbeddedScriptSection;
 
 namespace Winhance.Infrastructure.Features.Autounattend.ScriptSections;
 
 internal class AppRemovalScriptSection
 {
-    private static readonly List<ItemDefinition> DedicatedScriptItems = WindowsAppDefinitions.GetWindowsApps().Items
-        .Where(a => a.RemovalScript != null)
-        .ToList();
+    internal const string AfterUpdateName = "WinhanceRemoveAppsAfterUpdate";
 
     public void AppendScriptsDirectorySetup(StringBuilder sb, string indent = "")
     {
@@ -25,89 +25,89 @@ internal class AppRemovalScriptSection
         sb.AppendLine();
     }
 
-    public async Task AppendBloatRemovalScriptAsync(StringBuilder sb, IReadOnlyList<AppChoice> selectedApps, string indent = "")
+    public async Task AppendBloatRemovalScriptAsync(StringBuilder sb, IReadOnlyList<AppChoice> selectedApps, string indent = "", AppRemovalMode mode = AppRemovalMode.Scripts)
     {
-        var regularApps = new List<string>();
-        var capabilities = new List<string>();
-        var optionalFeatures = new List<string>();
-        var specialApps = new List<string>();
-        var dedicatedItems = new List<ItemDefinition>();
-
-        foreach (var app in selectedApps)
-        {
-            if (DedicatedScriptItems.FirstOrDefault(d => d.Id == app.Id) is { } dedicated)
-            {
-                dedicatedItems.Add(dedicated);
-                continue;
-            }
-
-            if (!string.IsNullOrEmpty(app.CapabilityName))
-            {
-                capabilities.Add(app.CapabilityName);
-            }
-            else if (!string.IsNullOrEmpty(app.OptionalFeatureName))
-            {
-                optionalFeatures.Add(app.OptionalFeatureName);
-            }
-            else if (app.AppxPackageName?.Length > 0)
-            {
-                regularApps.AddRange(app.AppxPackageName);
-
-                if (app.AppxPackageName.Any(name => name.Contains("OneNote", StringComparison.OrdinalIgnoreCase)) &&
-                    !specialApps.Contains("OneNote"))
-                {
-                    specialApps.Add("OneNote");
-                }
-            }
-        }
-
-        var dedicatedScripts = DedicatedRemovalScripts.OnePerScript(dedicatedItems)
-            .OrderBy(d => DedicatedScriptItems.FindIndex(x => x.RemovalScriptName == d.RemovalScriptName))
-            .ToList();
+        var plan = AppRemovalPlan.For(selectedApps);
+        var hasBloatWork = plan.Packages.Count > 0 || plan.Capabilities.Count > 0 || plan.Features.Count > 0 || plan.SpecialApps.Count > 0;
 
         sb.AppendLine($"{indent}# ============================================================================");
         sb.AppendLine($"{indent}# WINDOWS APPS REMOVAL");
         sb.AppendLine($"{indent}# ============================================================================");
         sb.AppendLine();
 
-        if (regularApps.Count > 0 || capabilities.Count > 0 || optionalFeatures.Count > 0 || specialApps.Count > 0)
+        if (hasBloatWork)
         {
-            AppendEmbeddedScript(sb, BloatRemovalScriptGenerator.ScriptName, VariableNameOf(BloatRemovalScriptGenerator.ScriptName),
-                GenerateBloatRemovalScriptContent(regularApps, capabilities, optionalFeatures, specialApps), indent);
+            AppendEmbeddedScript(sb, BloatRemovalScriptGenerator.ScriptName, GenerateBloatRemovalScriptContent(plan), indent);
         }
 
-        foreach (var item in dedicatedScripts)
+        foreach (var item in plan.Dedicated)
         {
             var name = item.RemovalScriptName!;
-            AppendEmbeddedScript(sb, name, VariableNameOf(name), item.RemovalScript!(), indent);
+            AppendEmbeddedScript(sb, name, item.RemovalScript!(), indent);
         }
 
         sb.AppendLine();
-        sb.AppendLine($"{indent}# Execute removal scripts and register scheduled tasks");
+        sb.AppendLine(mode == AppRemovalMode.Scripts
+            ? $"{indent}# Execute removal scripts and register scheduled tasks"
+            : $"{indent}# Execute removal scripts");
         sb.AppendLine($"{indent}$scriptsToExecute = @()");
+        var scriptNames = new List<string>();
 
-        if (regularApps.Count > 0 || capabilities.Count > 0 || optionalFeatures.Count > 0 || specialApps.Count > 0)
+        if (hasBloatWork)
         {
-            sb.AppendLine($"{indent}$scriptsToExecute += @{{Path = \"$scriptsDir\\{BloatRemovalScriptGenerator.ScriptName}.ps1\"; Name = \"{BloatRemovalScriptGenerator.ScriptName}\"; TriggerType = \"Logon\"}}");
+            // The image build removes packages, capabilities and features; a registry-uninstall app such as OneNote
+            // only goes on the installed system.
+            var bloatAfterImage = plan.SpecialApps.Count > 0 ? "; AfterImage = $true" : "";
+            scriptNames.Add(BloatRemovalScriptGenerator.ScriptName);
+            sb.AppendLine($"{indent}$scriptsToExecute += @{{Path = \"$scriptsDir\\{BloatRemovalScriptGenerator.ScriptName}.ps1\"; Name = \"{BloatRemovalScriptGenerator.ScriptName}\"; TriggerType = \"Logon\"{bloatAfterImage}}}");
         }
 
-        foreach (var item in dedicatedScripts)
+        foreach (var item in plan.Dedicated)
         {
             var name = item.RemovalScriptName!;
             var trigger = item.RemovalScriptRunsAtStartup ? "Startup" : "Logon";
-            sb.AppendLine($"{indent}$scriptsToExecute += @{{Path = \"$scriptsDir\\{name}.ps1\"; Name = \"{name}\"; TriggerType = \"{trigger}\"}}");
+            // The image build deletes Edge's files only, and OneDrive's installed-system cleanup (its setup, scheduled
+            // tasks, shell folders) has no offline form; both scripts still run after the image.
+            var afterImage = name is EdgeRemovalScript.ScriptName or OneDriveRemovalScript.ScriptName ? "; AfterImage = $true" : "";
+            scriptNames.Add(name);
+            sb.AppendLine($"{indent}$scriptsToExecute += @{{Path = \"$scriptsDir\\{name}.ps1\"; Name = \"{name}\"; TriggerType = \"{trigger}\"{afterImage}}}");
         }
 
         sb.AppendLine();
+        sb.AppendLine($"{indent}$appsRemovedInImage = Test-Path '{ScriptPaths.UnattendAppsRemovedMarker}'");
+        sb.AppendLine($"{indent}if ($appsRemovedInImage) {{");
+        sb.AppendLine($"{indent}    Write-Log \"Windows apps were already removed in the image, running only the clean-up the image could not do\" \"INFO\"");
+        sb.AppendLine($"{indent}}}");
+        sb.AppendLine();
         sb.AppendLine($"{indent}foreach ($script in $scriptsToExecute) {{");
         sb.AppendLine($"{indent}    if (Test-Path $script.Path) {{");
-        sb.AppendLine($"{indent}        Write-Log \"Executing $($script.Name) script...\" \"INFO\"");
-        sb.AppendLine($"{indent}        try {{");
-        sb.AppendLine($"{indent}            Start-Process powershell.exe -ArgumentList \"-ExecutionPolicy Bypass -NoProfile -File `\"$($script.Path)`\"\" -Wait -NoNewWindow");
-        sb.AppendLine($"{indent}            Write-Log \"$($script.Name) execution completed\" \"SUCCESS\"");
-        sb.AppendLine($"{indent}        }} catch {{");
-        sb.AppendLine($"{indent}            Write-Log \"$($script.Name) execution failed: $($_.Exception.Message)\" \"WARNING\"");
+        sb.AppendLine($"{indent}        if (-not $appsRemovedInImage -or $script.AfterImage) {{");
+        sb.AppendLine($"{indent}            Write-Log \"Executing $($script.Name) script...\" \"INFO\"");
+        sb.AppendLine($"{indent}            try {{");
+        sb.AppendLine($"{indent}                Start-Process powershell.exe -ArgumentList \"-ExecutionPolicy Bypass -NoProfile -File `\"$($script.Path)`\"\" -Wait -NoNewWindow");
+        sb.AppendLine($"{indent}                Write-Log \"$($script.Name) execution completed\" \"SUCCESS\"");
+        sb.AppendLine($"{indent}            }} catch {{");
+        sb.AppendLine($"{indent}                Write-Log \"$($script.Name) execution failed: $($_.Exception.Message)\" \"WARNING\"");
+        sb.AppendLine($"{indent}            }}");
         sb.AppendLine($"{indent}        }}");
+
+        if (mode == AppRemovalMode.Scripts)
+            AppendTaskRegistration(sb, indent);
+
+        sb.AppendLine($"{indent}    }}");
+        sb.AppendLine($"{indent}}}");
+        sb.AppendLine();
+
+        if (mode == AppRemovalMode.Once)
+            AppendRemoveOnceCleanup(sb, scriptNames, indent);
+        else if (mode == AppRemovalMode.Winhance)
+            AppendKeptList(sb, selectedApps, indent);
+
+        sb.AppendLine($"{indent}Write-Log \"Windows Apps removal configuration completed\" \"SUCCESS\"");
+    }
+
+    private static void AppendTaskRegistration(StringBuilder sb, string indent)
+    {
         sb.AppendLine();
         sb.AppendLine($"{indent}        # Register scheduled task");
         sb.AppendLine($"{indent}        Write-Log \"Registering scheduled task for $($script.Name)...\" \"INFO\"");
@@ -128,35 +128,68 @@ internal class AppRemovalScriptSection
         sb.AppendLine($"{indent}        }} catch {{");
         sb.AppendLine($"{indent}            Write-Log \"Failed to register task $($script.Name): $($_.Exception.Message)\" \"ERROR\"");
         sb.AppendLine($"{indent}        }}");
-        sb.AppendLine($"{indent}    }}");
-        sb.AppendLine($"{indent}}}");
-        sb.AppendLine();
-        sb.AppendLine($"{indent}Write-Log \"Windows Apps removal configuration completed\" \"SUCCESS\"");
     }
 
-    private void AppendEmbeddedScript(StringBuilder sb, string scriptName, string varPrefix, string scriptContent, string indent)
+    // The apps stay removed on their own if no update is waiting; otherwise one startup task removes them again once
+    // the update has installed, and deletes itself and the scripts when it is done.
+    private void AppendRemoveOnceCleanup(StringBuilder sb, IReadOnlyList<string> scriptNames, string indent)
     {
-        sb.AppendLine($"{indent}# Create {scriptName}.ps1 script");
-        sb.AppendLine($"{indent}${varPrefix}Content = @'");
-        sb.Append(scriptContent);
-        sb.AppendLine("'@");
-        sb.AppendLine();
-        sb.AppendLine($"{indent}${varPrefix}Path = Join-Path $scriptsDir \"{scriptName}.ps1\"");
-        sb.AppendLine($"{indent}try {{");
-        sb.AppendLine($"{indent}    ${varPrefix}Content | Out-File -FilePath ${varPrefix}Path -Encoding UTF8 -Force");
-        sb.AppendLine($"{indent}    Write-Log \"Created: {scriptName}.ps1\" \"SUCCESS\"");
-        sb.AppendLine($"{indent}}} catch {{");
-        sb.AppendLine($"{indent}    Write-Log \"Failed to create {scriptName}.ps1: $($_.Exception.Message)\" \"ERROR\"");
+        var scriptPaths = string.Join(", ", scriptNames.Select(name => $"'{ScriptPaths.ScriptsDirectoryLiteral}\\{name}.ps1'"));
+
+        sb.AppendLine($"{indent}if (Test-Path '{ScriptPaths.UnattendUpdatesDirectory}') {{");
+        sb.AppendLine($"{indent}    Write-Log \"A Windows update is staged, registering a one-time task to remove the apps again after it installs\" \"INFO\"");
+        AppendEmbeddedScript(sb, AfterUpdateName, AfterUpdateScriptContent(scriptPaths), indent + "    ");
+        AppendRegisterStartupTask(sb, AfterUpdateName, indent + "    ");
+        sb.AppendLine($"{indent}}} else {{");
+        AppendDeleteScripts(sb, indent + "    ");
         sb.AppendLine($"{indent}}}");
         sb.AppendLine();
     }
 
-    private static string VariableNameOf(string scriptName) => char.ToLowerInvariant(scriptName[0]) + scriptName[1..];
-
-    private string GenerateBloatRemovalScriptContent(List<string> packages, List<string> capabilities, List<string> optionalFeatures, List<string> specialApps)
+    private static void AppendKeptList(StringBuilder sb, IReadOnlyList<AppChoice> selectedApps, string indent)
     {
-        var includeXboxFix = GameBarRemoval.Includes(packages);
+        var ids = string.Join(", ", selectedApps.Select(app => app.Id).Distinct().Select(id => $"'{id}'"));
 
-        return BloatRemovalScriptGenerator.GenerateScript(packages, capabilities, optionalFeatures, specialApps, includeXboxFix);
+        sb.AppendLine($"{indent}# Winhance keeps these removed");
+        sb.AppendLine($"{indent}$keptKey = 'Registry::{KeepRemovedModeStore.Key}'");
+        sb.AppendLine($"{indent}New-Item -Path $keptKey -Force | Out-Null");
+        sb.AppendLine($"{indent}Set-ItemProperty -Path $keptKey -Name '{KeepRemovedModeStore.ModeValue}' -Value '{KeepRemovedMode.Winhance}' -Type String");
+        sb.AppendLine($"{indent}Set-ItemProperty -Path $keptKey -Name '{KeepRemovedModeStore.EnabledValue}' -Value 1 -Type DWord");
+        sb.AppendLine($"{indent}foreach ($appId in @({ids})) {{");
+        sb.AppendLine($"{indent}    Set-ItemProperty -Path $keptKey -Name $appId -Value (Get-Date).ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture) -Type String");
+        sb.AppendLine($"{indent}}}");
+        sb.AppendLine($"{indent}Write-Log \"Recorded the removed apps for Winhance to keep removed\" \"SUCCESS\"");
+        AppendDeleteScripts(sb, indent);
+        sb.AppendLine();
+    }
+
+    private static void AppendDeleteScripts(StringBuilder sb, string indent)
+    {
+        sb.AppendLine($"{indent}foreach ($script in $scriptsToExecute) {{");
+        sb.AppendLine($"{indent}    Remove-Item -Path $script.Path -Force -ErrorAction SilentlyContinue");
+        sb.AppendLine($"{indent}}}");
+        sb.AppendLine($"{indent}Write-Log \"Removal scripts deleted\" \"INFO\"");
+    }
+
+    private static string AfterUpdateScriptContent(string scriptPaths) =>
+        $$"""
+        # Removes the Windows apps again once the staged Windows update has installed, then deletes its own task and the scripts.
+        # The cleanup task waits for this one so two servicing operations never overlap; it is started last.
+        if (Test-Path '{{ScriptPaths.UnattendUpdatesDirectory}}') { exit 0 }
+        $scripts = @({{scriptPaths}})
+        foreach ($path in $scripts) {
+            Start-Process powershell.exe -ArgumentList "-ExecutionPolicy Bypass -NoProfile -File `"$path`"" -Wait -NoNewWindow
+        }
+        Unregister-ScheduledTask -TaskName '{{AfterUpdateName}}' -TaskPath '\Winhance\' -Confirm:$false -ErrorAction SilentlyContinue
+        Remove-Item -Path ($scripts + $PSCommandPath) -Force -ErrorAction SilentlyContinue
+        Start-ScheduledTask -TaskPath '\Winhance\' -TaskName '{{CleanupScriptSection.TaskName}}' -ErrorAction SilentlyContinue
+
+        """.ReplaceLineEndings("\n");
+
+    private static string GenerateBloatRemovalScriptContent(AppRemovalPlan plan)
+    {
+        var includeXboxFix = GameBarRemoval.Includes(plan.Packages);
+
+        return BloatRemovalScriptGenerator.GenerateScript([.. plan.Packages], [.. plan.Capabilities], [.. plan.Features], [.. plan.SpecialApps], includeXboxFix);
     }
 }

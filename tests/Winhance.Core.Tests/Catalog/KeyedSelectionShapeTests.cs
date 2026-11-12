@@ -10,26 +10,26 @@ namespace Winhance.Core.Tests.Catalog;
 public class KeyedSelectionShapeTests
 {
     [Fact]
-    public void An_option_list_derives_the_keyed_selection_kind()
+    public void Control_OptionList_DerivesKeyedSelection()
     {
         FakeOptionProvider.SettingFor().Control.Should().Be(ControlKind.KeyedSelection);
     }
 
     [Fact]
-    public void The_power_plan_derives_the_keyed_selection_kind()
+    public void Control_PowerPlanSetting_DerivesKeyedSelection()
     {
         // It has no states, so without its option list it would derive an Action button.
         SettingCatalog.Find("power-plan-selection")!.Control.Should().Be(ControlKind.KeyedSelection);
     }
 
     [Fact]
-    public void A_keyed_selection_is_a_selection_input_in_the_config_file()
+    public void InputTypeFor_KeyedSelection_ReturnsSelection()
     {
         ConfigFileMapper.InputTypeFor(FakeOptionProvider.SettingFor()).Should().Be(InputType.Selection);
     }
 
     [Fact]
-    public void The_fake_provider_offers_three_options_and_reports_the_registry_selection()
+    public void Options_FakeProvider_OffersThreeOptionsAndCurrentKeyReadsRegistry()
     {
         var setting = FakeOptionProvider.SettingFor();
         var context = new FakeDetectionContext()
@@ -41,7 +41,7 @@ public class KeyedSelectionShapeTests
     }
 
     [Fact]
-    public void The_fake_setting_writes_the_key_over_its_target()
+    public void SetFor_OfferedKey_WritesKeyOverItsTarget()
     {
         var set = KeyedOptions.SetFor(FakeOptionProvider.SettingFor(), "gamma", new FakeOptionProvider());
 
@@ -50,13 +50,13 @@ public class KeyedSelectionShapeTests
     }
 
     [Fact]
-    public void The_fake_setting_writes_nothing_for_a_key_the_provider_does_not_offer()
+    public void SetFor_KeyProviderDoesNotOffer_ReturnsNull()
     {
         KeyedOptions.SetFor(FakeOptionProvider.SettingFor(), "delta", new FakeOptionProvider()).Should().BeNull();
     }
 
     [Fact]
-    public void A_keyed_choice_carries_the_key_and_the_label_it_was_saved_under()
+    public void Keyed_Always_CarriesKeyAndSavedLabel()
     {
         var choice = new ChoiceValue.Keyed("beta", "Beta zone");
 

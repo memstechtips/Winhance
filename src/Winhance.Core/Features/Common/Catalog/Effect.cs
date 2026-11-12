@@ -28,6 +28,10 @@ public sealed record RegContentEffect(string Content) : Effect;
 // Activates the scheme, importing a predefined one that is not installed.
 public sealed record PowerPlanEffect(string Guid) : Effect;
 
+// Sets the live value Windows holds in memory; the state's registry write is what persists it and what detection reads.
+// The answer file has nothing to apply live, so it emits nothing for this.
+public sealed record SystemParameterEffect(SystemParameter Parameter, bool On) : Effect;
+
 public sealed record RegistryWriteEffect(string Path, string ValueName, RegistryValueKind Kind, object Value) : Effect
 {
     public bool IsGroupPolicy { get; init; }

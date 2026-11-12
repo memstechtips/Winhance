@@ -36,8 +36,7 @@ public class OptimizeViewModelTests
 
     private IEnumerable<ISettingsFeatureViewModel> CreateFeatureViewModels()
     {
-        // Create one mock per required FeatureId so InitializeSectionMappings
-        // and GetFeatureByModuleId succeed.
+        // One mock per required FeatureId so InitializeSectionMappings succeeds.
         var moduleIds = new[]
         {
             FeatureIds.Privacy,
@@ -152,108 +151,6 @@ public class OptimizeViewModelTests
     {
         OptimizeViewModel.Sections
             .Should().Contain(s => s.Key == "Sound" && s.ModuleId == FeatureIds.Sound);
-    }
-
-    [Fact]
-    public void SoundViewModel_IsAssignedFromFeatureViewModels()
-    {
-        var vm = new OptimizeViewModel(
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            CreateFeatureViewModels(),
-            _mockBadgeService.Object,
-            _mockReviewModeService.Object,
-            _mockRegistry.Object,
-            _mockScope.Object,
-            _mockModeService.Object);
-
-        vm.SoundViewModel.Should().NotBeNull();
-        vm.SoundViewModel.ModuleId.Should().Be(FeatureIds.Sound);
-    }
-
-    [Fact]
-    public void UpdateViewModel_IsAssignedFromFeatureViewModels()
-    {
-        var vm = new OptimizeViewModel(
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            CreateFeatureViewModels(),
-            _mockBadgeService.Object,
-            _mockReviewModeService.Object,
-            _mockRegistry.Object,
-            _mockScope.Object,
-            _mockModeService.Object);
-
-        vm.UpdateViewModel.Should().NotBeNull();
-        vm.UpdateViewModel.ModuleId.Should().Be(FeatureIds.Update);
-    }
-
-    [Fact]
-    public void NotificationViewModel_IsAssignedFromFeatureViewModels()
-    {
-        var vm = new OptimizeViewModel(
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            CreateFeatureViewModels(),
-            _mockBadgeService.Object,
-            _mockReviewModeService.Object,
-            _mockRegistry.Object,
-            _mockScope.Object,
-            _mockModeService.Object);
-
-        vm.NotificationViewModel.Should().NotBeNull();
-        vm.NotificationViewModel.ModuleId.Should().Be(FeatureIds.Notifications);
-    }
-
-    [Fact]
-    public void PrivacyViewModel_IsAssignedFromFeatureViewModels()
-    {
-        var vm = new OptimizeViewModel(
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            CreateFeatureViewModels(),
-            _mockBadgeService.Object,
-            _mockReviewModeService.Object,
-            _mockRegistry.Object,
-            _mockScope.Object,
-            _mockModeService.Object);
-
-        vm.PrivacyViewModel.Should().NotBeNull();
-        vm.PrivacyViewModel.ModuleId.Should().Be(FeatureIds.Privacy);
-    }
-
-    [Fact]
-    public void PowerViewModel_IsAssignedFromFeatureViewModels()
-    {
-        var vm = new OptimizeViewModel(
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            CreateFeatureViewModels(),
-            _mockBadgeService.Object,
-            _mockReviewModeService.Object,
-            _mockRegistry.Object,
-            _mockScope.Object,
-            _mockModeService.Object);
-
-        vm.PowerViewModel.Should().NotBeNull();
-        vm.PowerViewModel.ModuleId.Should().Be(FeatureIds.Power);
-    }
-
-    [Fact]
-    public void GamingViewModel_IsAssignedFromFeatureViewModels()
-    {
-        var vm = new OptimizeViewModel(
-            _mockLogService.Object,
-            _mockLocalizationService.Object,
-            CreateFeatureViewModels(),
-            _mockBadgeService.Object,
-            _mockReviewModeService.Object,
-            _mockRegistry.Object,
-            _mockScope.Object,
-            _mockModeService.Object);
-
-        vm.GamingViewModel.Should().NotBeNull();
-        vm.GamingViewModel.ModuleId.Should().Be(FeatureIds.GamingPerformance);
     }
 
     [Fact]

@@ -22,4 +22,26 @@ public class AppListCsvTests
     {
         AppListCsv.Build(OneColumn, [value]).Should().Be("Name\r\n" + expected + "\r\n");
     }
+
+    [Theory]
+    [InlineData("=1+1", "'=1+1")]
+    [InlineData("+SUM(A1)", "'+SUM(A1)")]
+    [InlineData("-2", "'-2")]
+    [InlineData("@cmd", "'@cmd")]
+    [InlineData("\tTabbed", "'\tTabbed")]
+    [InlineData("=HYPERLINK(\"http://x\",\"y\")", "\"'=HYPERLINK(\"\"http://x\"\",\"\"y\"\")\"")]
+    [InlineData("\rReturn", "\"'\rReturn\"")]
+    public void Build_NeutralisesValuesASpreadsheetWouldRunAsAFormula(string value, string expected)
+    {
+        AppListCsv.Build(OneColumn, [value]).Should().Be("Name\r\n" + expected + "\r\n");
+    }
+
+    [Theory]
+    [InlineData("7-Zip")]
+    [InlineData("a=b")]
+    [InlineData("")]
+    public void Build_LeavesValuesThatOnlyContainFormulaCharactersLaterAlone(string value)
+    {
+        AppListCsv.Build(OneColumn, [value]).Should().Be("Name\r\n" + value + "\r\n");
+    }
 }

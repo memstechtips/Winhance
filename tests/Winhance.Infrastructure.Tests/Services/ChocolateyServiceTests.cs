@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Models;
@@ -15,6 +16,8 @@ public class ChocolateyServiceTests
     private readonly Mock<ILocalizationService> _mockLocalization = new();
     private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
     private readonly Mock<IFileSystemService> _mockFileSystem = new();
+    private readonly Mock<IUserPreferencesService> _mockPrefs = new();
+    private readonly Mock<IDialogService> _mockDialog = new();
     private readonly ChocolateyService _sut;
 
     public ChocolateyServiceTests()
@@ -38,7 +41,9 @@ public class ChocolateyServiceTests
             _mockProgress.Object,
             _mockLocalization.Object,
             _mockProcessExecutor.Object,
-            _mockFileSystem.Object);
+            _mockFileSystem.Object,
+            _mockPrefs.Object,
+            _mockDialog.Object);
     }
 
     [Fact]
@@ -62,7 +67,9 @@ public class ChocolateyServiceTests
             _mockProgress.Object,
             _mockLocalization.Object,
             _mockProcessExecutor.Object,
-            _mockFileSystem.Object);
+            _mockFileSystem.Object,
+            _mockPrefs.Object,
+            _mockDialog.Object);
 
         var result = await sut.IsChocolateyInstalledAsync();
 
@@ -90,7 +97,9 @@ public class ChocolateyServiceTests
             _mockProgress.Object,
             _mockLocalization.Object,
             _mockProcessExecutor.Object,
-            _mockFileSystem.Object);
+            _mockFileSystem.Object,
+            _mockPrefs.Object,
+            _mockDialog.Object);
 
         var result = await sut.InstallChocolateyAsync();
 
@@ -158,7 +167,9 @@ public class ChocolateyServiceTests
             _mockProgress.Object,
             _mockLocalization.Object,
             _mockProcessExecutor.Object,
-            _mockFileSystem.Object);
+            _mockFileSystem.Object,
+            _mockPrefs.Object,
+            _mockDialog.Object);
 
         var result = await sut.InstallPackageAsync("notepadplusplus", "Notepad++", InstallOptions.Default, CancellationToken.None);
 
@@ -185,7 +196,9 @@ public class ChocolateyServiceTests
             _mockProgress.Object,
             _mockLocalization.Object,
             _mockProcessExecutor.Object,
-            _mockFileSystem.Object);
+            _mockFileSystem.Object,
+            _mockPrefs.Object,
+            _mockDialog.Object);
 
         var act = () => sut.InstallPackageAsync("pkg", null, InstallOptions.Default, CancellationToken.None);
 
@@ -214,7 +227,9 @@ public class ChocolateyServiceTests
             _mockProgress.Object,
             _mockLocalization.Object,
             _mockProcessExecutor.Object,
-            _mockFileSystem.Object);
+            _mockFileSystem.Object,
+            _mockPrefs.Object,
+            _mockDialog.Object);
 
         var act = () => sut.InstallPackageAsync("pkg", null, InstallOptions.Default, cancelled.Token);
 
@@ -222,10 +237,100 @@ public class ChocolateyServiceTests
     }
 
     [Fact]
+    public async Task InstallPackageAsync_ChecksumFailureWithSavedPreference_RetriesWithFlagWithoutAsking()
+    {
+        SetupChecksumFailureThenSuccess();
+        _mockPrefs.Setup(p => p.GetPreferenceAsync(UserPreferenceKeys.ChocolateyIgnoreChecksums, false)).ReturnsAsync(true);
+
+        var result = await _sut.InstallPackageAsync("vlc", "VLC", InstallOptions.Default, CancellationToken.None);
+
+        result.Should().BeTrue();
+        VerifyInstallRuns(withFlag: true, Times.Once());
+        _mockDialog.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task InstallPackageAsync_ChecksumFailureConfirmedWithCheckbox_RetriesAndSavesPreference()
+    {
+        SetupChecksumFailureThenSuccess();
+        _mockDialog
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true, CheckboxChecked = true });
+
+        var result = await _sut.InstallPackageAsync("vlc", "VLC", InstallOptions.Default, CancellationToken.None);
+
+        result.Should().BeTrue();
+        VerifyInstallRuns(withFlag: true, Times.Once());
+        _mockPrefs.Verify(p => p.SetPreferenceAsync(UserPreferenceKeys.ChocolateyIgnoreChecksums, true), Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallPackageAsync_ChecksumFailureConfirmedWithoutCheckbox_RetriesWithoutSavingPreference()
+    {
+        SetupChecksumFailureThenSuccess();
+        _mockDialog
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+
+        var result = await _sut.InstallPackageAsync("vlc", "VLC", InstallOptions.Default, CancellationToken.None);
+
+        result.Should().BeTrue();
+        _mockPrefs.Verify(p => p.SetPreferenceAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task InstallPackageAsync_ChecksumFailureDeclined_DoesNotRetry()
+    {
+        SetupChecksumFailureThenSuccess();
+        _mockDialog
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false, CheckboxChecked = true });
+
+        var result = await _sut.InstallPackageAsync("vlc", "VLC", InstallOptions.Default, CancellationToken.None);
+
+        result.Should().BeFalse();
+        VerifyInstallRuns(withFlag: true, Times.Never());
+        _mockPrefs.Verify(p => p.SetPreferenceAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task InstallPackageAsync_ChecksumFailureWithNoDialogService_DoesNotRetry()
+    {
+        SetupChecksumFailureThenSuccess();
+        var sut = new ChocolateyService(
+            _mockLog.Object,
+            _mockProgress.Object,
+            _mockLocalization.Object,
+            _mockProcessExecutor.Object,
+            _mockFileSystem.Object,
+            _mockPrefs.Object);
+
+        var result = await sut.InstallPackageAsync("vlc", "VLC", InstallOptions.Default, CancellationToken.None);
+
+        result.Should().BeFalse();
+        VerifyInstallRuns(withFlag: true, Times.Never());
+    }
+
+    [Fact]
+    public async Task InstallPackageAsync_NonChecksumFailure_DoesNotAskOrRetry()
+    {
+        _mockFileSystem.Setup(f => f.FileExists(ChocoPath)).Returns(true);
+        _mockProcessExecutor
+            .Setup(p => p.ExecuteWithStreamingAsync(ChocoPath, It.IsAny<string>(), It.IsAny<Action<string>?>(), It.IsAny<Action<string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessExecutionResult { ExitCode = 1, StandardError = "Unable to resolve dependency" });
+
+        var result = await _sut.InstallPackageAsync("vlc", "VLC", InstallOptions.Default, CancellationToken.None);
+
+        result.Should().BeFalse();
+        _mockDialog.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        VerifyInstallRuns(withFlag: false, Times.Once());
+    }
+
+    [Fact]
     public void InstallArguments_DefaultOptions_AddNoOptionFlags()
     {
         ChocolateyService.InstallArguments("vlc", InstallOptions.Default)
-            .Should().Be("install vlc -y --no-progress --ignore-checksums");
+            .Should().Be("install vlc -y --no-progress");
     }
 
     [Fact]
@@ -281,7 +386,9 @@ public class ChocolateyServiceTests
             _mockProgress.Object,
             _mockLocalization.Object,
             _mockProcessExecutor.Object,
-            _mockFileSystem.Object);
+            _mockFileSystem.Object,
+            _mockPrefs.Object,
+            _mockDialog.Object);
 
         var result = await sut.UninstallPackageAsync("notepadplusplus", "Notepad++");
 
@@ -318,7 +425,9 @@ public class ChocolateyServiceTests
             _mockProgress.Object,
             _mockLocalization.Object,
             _mockProcessExecutor.Object,
-            _mockFileSystem.Object);
+            _mockFileSystem.Object,
+            _mockPrefs.Object,
+            _mockDialog.Object);
 
         var result = await sut.GetInstalledPackageIdsAsync();
 
@@ -350,7 +459,9 @@ public class ChocolateyServiceTests
             _mockProgress.Object,
             _mockLocalization.Object,
             _mockProcessExecutor.Object,
-            _mockFileSystem.Object);
+            _mockFileSystem.Object,
+            _mockPrefs.Object,
+            _mockDialog.Object);
 
         var result = await sut.GetInstalledPackageIdsAsync();
 
@@ -360,7 +471,7 @@ public class ChocolateyServiceTests
     }
 
     [Fact]
-    public void Search_reads_one_id_per_line_and_drops_duplicates()
+    public void ParseIds_RepeatedAndJunkLines_ReturnsEachIdOnce()
     {
         ChocolateyService.ParseIds("vlc|3.0.21\r\nvlc.portable|3.0.21\r\nVLC|3.0.20\r\n\r\nnot a package line\r\n")
             .Should().Equal("vlc", "vlc.portable");
@@ -390,7 +501,7 @@ public class ChocolateyServiceTests
     }
 
     [Fact]
-    public void Outdated_reads_the_newer_version_and_skips_pinned_packages()
+    public void ParseOutdated_PinnedAndNoiseLines_ReturnsNewerVersionsOfUnpinnedPackages()
     {
         var outdated = ChocolateyService.ParseOutdated(
             "vlc|3.0.20|3.0.21|false\r\ngit|2.44.0|2.46.0|true\r\nChocolatey detected noise\r\n7zip|23.1|24.9|false\r\n");
@@ -400,10 +511,41 @@ public class ChocolateyServiceTests
         outdated["7zip"].Should().Be("24.9");
     }
 
+    [Fact]
+    public void ParseOutdated_FeedVersionNotNewer_IsSkipped()
+    {
+        var outdated = ChocolateyService.ParseOutdated("vlc|3.0.21|3.0.20|false\r\nchrome|130.0.1|130.0.1|false\r\ngit|2.44.0|2.46.0|false\r\n");
+
+        outdated.Keys.Should().Equal("git");
+    }
+
     [Theory]
     [InlineData("notepad++", "notepad++")]
     [InlineData("vlc\" & del C:\\", "vlc  del C")]
     [InlineData("  7-zip  ", "7-zip")]
-    public void The_search_term_keeps_only_characters_a_package_name_can_hold(string query, string expected) =>
+    public void SearchTerm_UnsafeCharacters_KeepsOnlyThoseAPackageNameCanHold(string query, string expected) =>
         ChocolateyService.SearchTerm(query).Should().Be(expected);
+
+    private const string ChocoPath = @"C:\ProgramData\chocolatey\bin\choco.exe";
+
+    // The first run (no flag) prints a checksum error and fails; a run with the flag succeeds.
+    private void SetupChecksumFailureThenSuccess()
+    {
+        _mockFileSystem.Setup(f => f.FileExists(ChocoPath)).Returns(true);
+        _mockProcessExecutor
+            .Setup(p => p.ExecuteWithStreamingAsync(ChocoPath, It.Is<string>(a => !a.Contains("--ignore-checksums")), It.IsAny<Action<string>?>(), It.IsAny<Action<string>?>(), It.IsAny<CancellationToken>()))
+            .Returns((string _, string _, Action<string>? onOutput, Action<string>? _, CancellationToken _) =>
+            {
+                onOutput?.Invoke("ERROR: Checksum for 'vlc.exe' did not meet 'abc' for checksum type 'sha256'.");
+                return Task.FromResult(new ProcessExecutionResult { ExitCode = 1 });
+            });
+        _mockProcessExecutor
+            .Setup(p => p.ExecuteWithStreamingAsync(ChocoPath, It.Is<string>(a => a.Contains("--ignore-checksums")), It.IsAny<Action<string>?>(), It.IsAny<Action<string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessExecutionResult { ExitCode = 0 });
+    }
+
+    private void VerifyInstallRuns(bool withFlag, Times times) =>
+        _mockProcessExecutor.Verify(
+            p => p.ExecuteWithStreamingAsync(ChocoPath, It.Is<string>(a => a.Contains("--ignore-checksums") == withFlag), It.IsAny<Action<string>?>(), It.IsAny<Action<string>?>(), It.IsAny<CancellationToken>()),
+            times);
 }

@@ -33,7 +33,7 @@ public class CatalogTargetTypeConformanceTests
     };
 
     [Fact]
-    public void Declared_registry_types_match_what_clean_installs_actually_store()
+    public void RegTarget_DeclaredValueKinds_MatchWhatCleanInstallsStore()
     {
         var declared = new Dictionary<(string SettingId, string TargetKey), RegTarget>();
         foreach (var setting in SettingCatalog.All)

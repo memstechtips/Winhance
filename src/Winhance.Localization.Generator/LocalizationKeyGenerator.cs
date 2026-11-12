@@ -21,7 +21,7 @@ public sealed class LocalizationKeyGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor DuplicateIdentifier = new(
         id: "WINLOC001",
         title: "Two localization keys map to one identifier",
-        messageFormat: "Keys '{0}' and '{1}' both map to LocKey.{2}; using '{0}'. Remove the other from all 29 files.",
+        messageFormat: "Keys '{0}' and '{1}' both map to LocKey.{2}; using '{0}'. Remove the other from every locale file.",
         category: "Localization",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);

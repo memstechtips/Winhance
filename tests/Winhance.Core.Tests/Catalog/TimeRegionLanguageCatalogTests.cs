@@ -21,7 +21,7 @@ public class TimeRegionLanguageCatalogTests
     ];
 
     [Fact]
-    public void The_keyed_settings_are_in_the_live_catalog_under_their_own_feature()
+    public void ByFeature_KeyedSettings_AreInTheLiveCatalogUnderTheirOwnFeature()
     {
         foreach (var id in KeyedIds)
         {
@@ -31,7 +31,7 @@ public class TimeRegionLanguageCatalogTests
     }
 
     [Fact]
-    public void Each_one_derives_as_a_keyed_selection()
+    public void Control_EachKeyedSetting_DerivesAsKeyedSelection()
     {
         foreach (var id in KeyedIds)
         {
@@ -45,7 +45,7 @@ public class TimeRegionLanguageCatalogTests
     }
 
     [Fact]
-    public void Every_written_target_takes_the_value_its_setting_names_from_the_chosen_key()
+    public void Targets_EveryWrittenTarget_TakesTheValueItsSettingNamesFromTheChosenKey()
     {
         // The service computes each value by From alone: a target with the wrong From writes a real but wrong
         // value and the apply still reports Succeeded.
@@ -120,7 +120,7 @@ public class TimeRegionLanguageCatalogTests
     }
 
     [Fact]
-    public void Every_target_is_a_registry_target_the_engine_can_write_or_an_answer_file_element()
+    public void Targets_EveryKeyedSetting_IsARegistryTargetOrAnAnswerFileElement()
     {
         foreach (var id in KeyedIds)
         {
@@ -133,7 +133,7 @@ public class TimeRegionLanguageCatalogTests
     // The card stays a live one: its option list is read off this PC, so it must not fall into the answer-file-only
     // bucket that skips detection and apply, and the target it reads must stay ReadOnly so the plain write is skipped.
     [Fact]
-    public void The_display_language_reads_this_PC_and_applies_through_a_reg_file()
+    public void Targets_DisplayLanguage_ReadsThisPcAndAppliesThroughARegFile()
     {
         var setting = SettingCatalog.ById["region-display-language"];
 
@@ -147,7 +147,7 @@ public class TimeRegionLanguageCatalogTests
     }
 
     [Fact]
-    public void The_page_names_the_feature_the_way_the_sidebar_does()
+    public void FeatureId_Always_MatchesTheSidebarName()
     {
         FeatureIds.TimeRegionLanguage.Should().Be("TimeRegionLanguage");
         TimeRegionLanguageCatalog.FeatureId.Should().Be(FeatureIds.TimeRegionLanguage);
@@ -156,7 +156,7 @@ public class TimeRegionLanguageCatalogTests
     }
 
     [Fact]
-    public void Applying_a_format_and_a_locale_carries_a_restart_or_a_reboot_notice()
+    public void Apply_FormatAndLocale_CarriesRestartOrRebootNotice()
     {
         SettingCatalog.ById["region-format"].Apply.Restart.Should().Be(new RestartProcess("intl"));
         SettingCatalog.ById["region-home-location"].Apply.Restart.Should().Be(new RestartProcess("intl"));
@@ -166,7 +166,7 @@ public class TimeRegionLanguageCatalogTests
     }
 
     [Fact]
-    public void The_page_draws_its_four_groups_in_the_order_the_spec_lays_out()
+    public void All_Always_DrawsFourGroupsInTheSpecOrder()
     {
         TimeRegionLanguageCatalog.All.Select(s => s.Display.GroupName).Distinct()
             .Should().Equal(
@@ -177,7 +177,7 @@ public class TimeRegionLanguageCatalogTests
     }
 
     [Fact]
-    public void The_six_format_settings_moved_across_with_their_ids_and_their_states_intact()
+    public void ByFeature_SixFormatSettings_MovedWithTheirIdsAndStatesIntact()
     {
         var moved = new[]
         {
@@ -212,7 +212,7 @@ public class TimeRegionLanguageCatalogTests
     }
 
     [Fact]
-    public void The_formats_group_is_applied_after_the_regional_format_that_sets_it()
+    public void ByFeature_FormatsGroup_AppliesAfterTheRegionalFormat()
     {
         var ids = SettingCatalog.ByFeature[FeatureIds.TimeRegionLanguage].Select(s => s.Id).ToList();
 

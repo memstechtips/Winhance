@@ -33,7 +33,7 @@ public class DnsSettingsServiceTests
     }
 
     [Fact]
-    public void Each_family_is_written_as_one_list_then_the_dns_client_rereads()
+    public void SetDns_BothFamilies_WritesEachFamilyAsOneListThenRereads()
     {
         _sut.SetDns([new DnsServer("1.1.1.1"), new DnsServer("1.0.0.1"), new DnsServer("2606:4700:4700::1111")]).Should().BeTrue();
 
@@ -44,7 +44,7 @@ public class DnsSettingsServiceTests
 
     // The servers are in the registry and take effect on the next reconnect.
     [Fact]
-    public void A_write_the_dns_client_does_not_reread_still_succeeds()
+    public void SetDns_ClientDoesNotReread_StillSucceeds()
     {
         _adapters.Setup(a => a.NudgeDnsClient()).Returns(false);
 
@@ -54,7 +54,7 @@ public class DnsSettingsServiceTests
     }
 
     [Fact]
-    public void A_refused_registry_write_fails()
+    public void SetDns_RefusedRegistryWrite_ReturnsFalse()
     {
         _reg.Setup(r => r.SetValue(AdapterKey, "NameServer", It.IsAny<object>(), RegistryValueKind.String)).Returns(false);
 
@@ -62,7 +62,7 @@ public class DnsSettingsServiceTests
     }
 
     [Fact]
-    public void Automatic_dns_leaves_an_adapter_with_a_manual_ip_alone()
+    public void SetDns_AutomaticOnAdapterWithManualIp_LeavesItAlone()
     {
         _reg.Setup(r => r.GetValue(AdapterKey, "EnableDHCP")).Returns(0);
 
@@ -72,7 +72,7 @@ public class DnsSettingsServiceTests
     }
 
     [Fact]
-    public void Automatic_dns_clears_an_adapter_that_gets_its_address_automatically()
+    public void SetDns_AutomaticOnDhcpAdapter_ClearsIt()
     {
         _reg.Setup(r => r.GetValue(AdapterKey, "EnableDHCP")).Returns(1);
 
@@ -82,7 +82,7 @@ public class DnsSettingsServiceTests
     }
 
     [Fact]
-    public void Chosen_servers_are_written_to_an_adapter_with_a_manual_ip()
+    public void SetDns_ChosenServersOnAdapterWithManualIp_WritesThem()
     {
         _reg.Setup(r => r.GetValue(AdapterKey, "EnableDHCP")).Returns(0);
 
@@ -92,7 +92,7 @@ public class DnsSettingsServiceTests
     }
 
     [Fact]
-    public void An_adapter_with_no_tcpip_key_is_skipped()
+    public void SetDns_AdapterWithNoTcpipKey_SkipsIt()
     {
         _reg.Setup(r => r.KeyExists(AdapterKey)).Returns(false);
 
@@ -103,7 +103,7 @@ public class DnsSettingsServiceTests
 
     // Deliberate: a preset is the whole DNS dialog, so its IPv4 pair empties the IPv6 list and removes all encryption.
     [Fact]
-    public void A_presets_servers_clear_ipv6_and_encryption()
+    public void SetDns_PresetServers_ClearIpv6AndEncryption()
     {
         _sut.SetDns([new DnsServer("9.9.9.9"), new DnsServer("149.112.112.112")]);
 
@@ -114,7 +114,7 @@ public class DnsSettingsServiceTests
     }
 
     [Fact]
-    public void Automatic_writes_empty_lists_and_clears_encryption()
+    public void SetDns_Automatic_WritesEmptyListsAndClearsEncryption()
     {
         _sut.SetDns([]).Should().BeTrue();
 
@@ -127,7 +127,7 @@ public class DnsSettingsServiceTests
 
     // What Settings writes for an automatic entry: its flags and the built-in template, copied.
     [Fact]
-    public void Automatic_encryption_copies_the_built_in_template()
+    public void SetDns_AutomaticEncryption_CopiesTheBuiltInTemplate()
     {
         _sut.SetDns([new DnsServer("1.1.1.1", DohMode.Automatic)]);
 
@@ -136,7 +136,7 @@ public class DnsSettingsServiceTests
     }
 
     [Fact]
-    public void A_manual_template_and_fallback_go_under_the_servers_own_family()
+    public void SetDns_ManualTemplateAndFallback_GoUnderTheServersOwnFamily()
     {
         _sut.SetDns([new DnsServer("2001:db8::1", DohMode.Manual, "https://dns.example/q", Fallback: true)]);
 
@@ -145,7 +145,7 @@ public class DnsSettingsServiceTests
     }
 
     [Fact]
-    public void An_unencrypted_server_gets_no_key()
+    public void SetDns_UnencryptedServer_CreatesNoKey()
     {
         _sut.SetDns([new DnsServer("1.1.1.1")]);
 
@@ -153,7 +153,7 @@ public class DnsSettingsServiceTests
     }
 
     [Fact]
-    public void Reading_returns_each_family_in_order_with_its_encryption()
+    public void Read_BothFamilies_ReturnsEachInOrderWithItsEncryption()
     {
         _reg.Setup(r => r.GetValue(AdapterKey, "NameServer")).Returns("9.9.9.9 5.6.7.8");
         _reg.Setup(r => r.GetValue(AdapterKey6, "NameServer")).Returns("2620:fe::fe");
@@ -169,7 +169,7 @@ public class DnsSettingsServiceTests
     }
 
     [Fact]
-    public void Reading_skips_an_address_of_the_wrong_family()
+    public void Read_AddressOfTheWrongFamily_IsSkipped()
     {
         _reg.Setup(r => r.GetValue(AdapterKey, "NameServer")).Returns("fe80::1,1.1.1.1");
 

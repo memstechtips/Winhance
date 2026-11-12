@@ -26,9 +26,14 @@ internal sealed class SystemTrayIcon(ILogService logService) : ISystemTrayIcon
     private SUBCLASSPROC? _subclassProc;
     private HICON _smallIcon;
     private HICON _largeIcon;
+    private readonly Dictionary<TrayBadge, HICON> _badgeIcons = [];
+    private TrayBadge _badge;
+    private TrayMenuTheme _menuTheme;
     private string _tooltip = string.Empty;
     private IReadOnlyList<TrayMenuItem> _menu = [];
     private bool _isVisible;
+    // Wanted but not necessarily shown: Explorer may not be running yet at sign-in, or may be restarting.
+    private bool _wanted;
 
     public event EventHandler? Invoked;
 
@@ -36,7 +41,7 @@ internal sealed class SystemTrayIcon(ILogService logService) : ISystemTrayIcon
 
     public event EventHandler<int>? MenuItemInvoked;
 
-    public void Attach(nint windowHandle)
+    public unsafe void Attach(nint windowHandle)
     {
         if (!_hwnd.IsNull)
             return;
@@ -45,6 +50,9 @@ internal sealed class SystemTrayIcon(ILogService logService) : ISystemTrayIcon
         _subclassProc = WindowProc;
         if (!PInvoke.SetWindowSubclass(_hwnd, _subclassProc, IconId, 0))
             logService.LogWarning($"Could not subclass the main window for the tray icon (error {Marshal.GetLastWin32Error()})");
+        // Winhance runs elevated, so UIPI drops Explorer's TaskbarCreated broadcast unless it is allowed through.
+        if (!PInvoke.ChangeWindowMessageFilterEx(_hwnd, _taskbarCreatedMessage, WINDOW_MESSAGE_FILTER_ACTION.MSGFLT_ALLOW, (CHANGEFILTERSTRUCT*)null))
+            logService.LogWarning($"Could not allow the TaskbarCreated message through (error {Marshal.GetLastWin32Error()})");
         LoadIcons();
     }
 
@@ -54,9 +62,10 @@ internal sealed class SystemTrayIcon(ILogService logService) : ISystemTrayIcon
             return;
 
         _tooltip = tooltip;
+        _wanted = true;
         var data = NewData(NOTIFY_ICON_DATA_FLAGS.NIF_MESSAGE | NOTIFY_ICON_DATA_FLAGS.NIF_ICON | NOTIFY_ICON_DATA_FLAGS.NIF_TIP);
         data.uCallbackMessage = CallbackMessage;
-        data.hIcon = _smallIcon;
+        data.hIcon = IconFor(_badge);
         data.szTip = Fit(tooltip, 128).AsSpan();
         if (_isVisible)
         {
@@ -80,6 +89,7 @@ internal sealed class SystemTrayIcon(ILogService logService) : ISystemTrayIcon
 
     public void Hide()
     {
+        _wanted = false;
         if (!_isVisible)
             return;
 
@@ -89,6 +99,16 @@ internal sealed class SystemTrayIcon(ILogService logService) : ISystemTrayIcon
     }
 
     public void SetMenu(IReadOnlyList<TrayMenuItem> items) => _menu = items;
+
+    public void SetBadge(TrayBadge badge, string tooltip)
+    {
+        _badge = badge;
+        _tooltip = tooltip;
+        if (_isVisible)
+            Show(tooltip);
+    }
+
+    public void SetMenuTheme(TrayMenuTheme theme) => _menuTheme = theme;
 
     public void ShowNotification(string title, string message)
     {
@@ -114,6 +134,12 @@ internal sealed class SystemTrayIcon(ILogService logService) : ISystemTrayIcon
             PInvoke.DestroyIcon(_smallIcon);
         if (!_largeIcon.IsNull)
             PInvoke.DestroyIcon(_largeIcon);
+        foreach (var icon in _badgeIcons.Values)
+        {
+            if (!icon.IsNull)
+                PInvoke.DestroyIcon(icon);
+        }
+        _badgeIcons.Clear();
         _smallIcon = default;
         _largeIcon = default;
     }
@@ -130,6 +156,33 @@ internal sealed class SystemTrayIcon(ILogService logService) : ISystemTrayIcon
         uFlags = flags,
     };
 
+    internal static string? BadgeIconFile(TrayBadge badge) => badge switch
+    {
+        TrayBadge.AppUpdates => "tray-updates.ico",
+        TrayBadge.WinhanceUpdate => "tray-winhance-update.ico",
+        TrayBadge.Attention => "tray-attention.ico",
+        _ => null,
+    };
+
+    // The plain rocket when the badge has none or its file is missing.
+    private unsafe HICON IconFor(TrayBadge badge)
+    {
+        if (BadgeIconFile(badge) is not { } file)
+            return _smallIcon;
+        if (_badgeIcons.TryGetValue(badge, out var cached))
+            return cached.IsNull ? _smallIcon : cached;
+
+        HICON small = default;
+        var path = Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcons", file);
+        fixed (char* p = path)
+        {
+            if (PInvoke.ExtractIconEx(p, 0, null, &small, 1) == 0)
+                logService.LogWarning($"No tray icon at {path}");
+        }
+        _badgeIcons[badge] = small;
+        return small.IsNull ? _smallIcon : small;
+    }
+
     private unsafe void LoadIcons()
     {
         var exePath = Environment.ProcessPath;
@@ -145,6 +198,32 @@ internal sealed class SystemTrayIcon(ILogService logService) : ISystemTrayIcon
         }
         _largeIcon = large;
         _smallIcon = small;
+    }
+
+    // SetPreferredAppMode takes AllowDark 1, ForceDark 2 or ForceLight 3. System follows the Windows app mode.
+    internal static int PreferredAppMode(TrayMenuTheme theme) => theme switch
+    {
+        TrayMenuTheme.Dark => 2,
+        TrayMenuTheme.Light => 3,
+        _ => 1,
+    };
+
+    // uxtheme.dll exports SetPreferredAppMode (ordinal 135) and FlushMenuThemes (136) by ordinal only, the way PowerToys
+    // ZoomIt calls them. A Windows build without them keeps the system menu.
+    private unsafe void ApplyMenuTheme()
+    {
+        using var uxtheme = PInvoke.LoadLibrary("uxtheme.dll");
+        if (uxtheme.IsInvalid)
+            return;
+
+        var module = new HMODULE(uxtheme.DangerousGetHandle());
+        var setMode = PInvoke.GetProcAddress(module, new PCSTR((byte*)135));
+        var flush = PInvoke.GetProcAddress(module, new PCSTR((byte*)136));
+        if ((void*)setMode.Value == null || (void*)flush.Value == null)
+            return;
+
+        ((delegate* unmanaged<int, int>)(void*)setMode.Value)(PreferredAppMode(_menuTheme));
+        ((delegate* unmanaged<void>)(void*)flush.Value)();
     }
 
     private LRESULT WindowProc(HWND hwnd, uint message, WPARAM wParam, LPARAM lParam, nuint subclassId, nuint refData)
@@ -168,7 +247,7 @@ internal sealed class SystemTrayIcon(ILogService logService) : ISystemTrayIcon
             return new LRESULT(0);
         }
 
-        if (message == _taskbarCreatedMessage && _isVisible)
+        if (message == _taskbarCreatedMessage && _wanted)
         {
             _isVisible = false;
             Show(_tooltip);
@@ -182,6 +261,7 @@ internal sealed class SystemTrayIcon(ILogService logService) : ISystemTrayIcon
         if (_menu.Count == 0)
             return;
 
+        ApplyMenuTheme();
         var menu = PInvoke.CreatePopupMenu();
         try
         {
@@ -228,10 +308,13 @@ internal sealed class SystemTrayIcon(ILogService logService) : ISystemTrayIcon
             if (!item.Enabled)
                 flags |= MENU_ITEM_FLAGS.MF_GRAYED;
 
-            fixed (char* text = item.Text)
+            fixed (char* text = MenuText(item.Text))
             {
                 PInvoke.AppendMenu(menu, flags, id, text);
             }
         }
     }
+
+    // A single & marks the next letter as the menu's access key, so a profile named "R&D" would lose it.
+    internal static string MenuText(string text) => text.Replace("&", "&&");
 }

@@ -5,6 +5,7 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Helpers;
+using Winhance.UI.Helpers;
 
 namespace Winhance.UI.Features.Common.ViewModels;
 
@@ -110,12 +111,11 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         _localizationService.GetStringOrDefault("Menu_CloseWinhance", "Close Winhance");
 
     [RelayCommand]
-    private async Task OpenDocsAsync()
+    private async Task OpenDocsAsync(string? pageTag)
     {
         try
         {
-            await Windows.System.Launcher.LaunchUriAsync(
-                new Uri("https://winhance.net/docs/index.html"));
+            await Windows.System.Launcher.LaunchUriAsync(HelpLinks.DocsFor(pageTag));
         }
         catch (Exception ex)
         {
@@ -128,8 +128,7 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
     {
         try
         {
-            await Windows.System.Launcher.LaunchUriAsync(
-                new Uri("https://github.com/memstechtips/Winhance/issues"));
+            await Windows.System.Launcher.LaunchUriAsync(HelpLinks.BugReport);
         }
         catch (Exception ex)
         {

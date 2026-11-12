@@ -89,9 +89,7 @@ internal sealed class CatalogSettingsRegistry : ICatalogSettingsRegistry
     public Setting? GetById(string settingId, CatalogScope scope = default)
     {
         EnsureInitialized();
-        return SettingCatalog.ById.TryGetValue(SettingIdAliases.Normalize(settingId), out var s) && IsMember(s, scope)
-            ? s
-            : null;
+        return SettingCatalog.Find(settingId) is { } s && IsMember(s, scope) ? s : null;
     }
 
     public string? GetFeatureIdForSetting(string settingId)

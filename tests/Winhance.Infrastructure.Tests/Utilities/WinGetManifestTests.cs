@@ -158,15 +158,73 @@ public class WinGetManifestTests
     }
 
     [Theory]
-    [InlineData("msi", true)]
-    [InlineData("WIX", true)]
-    [InlineData("exe", true)]
-    [InlineData("msix", false)]
-    [InlineData("zip", false)]
-    [InlineData("portable", false)]
-    public void IsRunnable_ByInstallerType(string installerType, bool runnable)
+    [InlineData("msi", null, 0, true)]
+    [InlineData("WIX", null, 0, true)]
+    [InlineData("exe", null, 0, true)]
+    [InlineData("msix", null, 0, true)]
+    [InlineData("portable", null, 0, true)]
+    [InlineData("zip", "portable", 2, true)]
+    [InlineData("zip", "inno", 1, true)]
+    [InlineData("zip", "portable", 0, false)]
+    [InlineData("zip", "msix", 1, false)]
+    [InlineData("zip", "font", 3, false)]
+    [InlineData("zip", null, 0, false)]
+    [InlineData("font", null, 0, false)]
+    public void InstallsWithoutWinGet_ByInstallerType(string installerType, string? nestedType, int nestedFiles, bool installs)
     {
-        WinGetManifest.IsRunnable(installerType).Should().Be(runnable);
+        var yaml = $"InstallerType: {installerType}\n"
+            + (nestedType == null ? string.Empty : $"NestedInstallerType: {nestedType}\n")
+            + (nestedFiles == 0 ? string.Empty : "NestedInstallerFiles:\n")
+            + string.Concat(Enumerable.Range(1, nestedFiles).Select(i => $"- RelativeFilePath: app\\file{i}.exe\n"));
+
+        WinGetManifest.TryRead(yaml)!.InstallsWithoutWinGet.Should().Be(installs);
+    }
+
+    [Fact]
+    public void TryRead_PortableZip_ReadsTheNestedFilesAndTheUninstallEntry()
+    {
+        var manifest = WinGetManifest.TryRead("""
+            PackageIdentifier: Example.Tool
+            PackageVersion: 2.1.0
+            PackageName: Tool
+            Publisher: Example
+            PackageUrl: https://example.com/tool
+            Installers:
+            - InstallerType: zip
+              NestedInstallerType: portable
+              NestedInstallerFiles:
+              - RelativeFilePath: tool\tool.exe
+                PortableCommandAlias: tool
+              - RelativeFilePath: tool\helper.exe
+              AppsAndFeaturesEntries:
+              - DisplayName: Example Tool
+            """)!;
+
+        manifest.IsPortable.Should().BeTrue();
+        manifest.NestedInstallerFiles.Should().Equal(
+            new NestedInstallerFile(@"tool\tool.exe", "tool"),
+            new NestedInstallerFile(@"tool\helper.exe", null));
+        manifest.PackageIdentifier.Should().Be("Example.Tool");
+        manifest.DisplayName.Should().Be("Example Tool");
+        manifest.DisplayVersion.Should().Be("2.1.0");
+        manifest.Publisher.Should().Be("Example");
+        manifest.PackageUrl.Should().Be("https://example.com/tool");
+    }
+
+    [Fact]
+    public void CommandFor_ZipHoldingAnInnoInstaller_UsesTheNestedTypesDefaults()
+    {
+        const string nested = @"C:\ProgramData\Winhance\Unattend\Apps\app\x64\extracted\setup.exe";
+
+        var manifest = WinGetManifest.TryRead("""
+            Installers:
+            - InstallerType: zip
+              NestedInstallerType: inno
+              NestedInstallerFiles:
+              - RelativeFilePath: setup.exe
+            """)!;
+
+        manifest.CommandFor(nested).Should().Be((nested, "/SP- /VERYSILENT /SUPPRESSMSGBOXES /NORESTART"));
     }
 
     [Theory]

@@ -11,11 +11,6 @@
     <!-- Detection-outcome glyph: setting cards, the toggle knob, and the feature banner. -->
     <x:Double x:Key="OutcomeIconFontSize">16</x:Double>
 
-    <!-- Icons inside the Recommended/Default/Custom/Preference pills. The margin nudges the glyph
-         onto the label's cap height; a horizontal StackPanel has no baseline alignment. -->
-    <x:Double x:Key="BadgePillIconFontSize">12</x:Double>
-    <Thickness x:Key="BadgePillIconMargin">0,1,0,0</Thickness>
-
     <!-- Breadcrumb chevron between the page name and the open section. -->
     <x:Double x:Key="BreadcrumbSeparatorFontSize">12</x:Double>
 
@@ -24,8 +19,7 @@
     <x:Double x:Key="TechnicalDetailsChevronFontSize">9</x:Double>
     <x:Double x:Key="CardExpanderChevronFontSize">16</x:Double>
 
-    <!-- WimUtil: collapsible section headers and their pass/fail status glyph. -->
-    <x:Double x:Key="SectionChevronFontSize">12</x:Double>
+    <!-- WimUtil: pass/fail status glyph on its step and action cards. -->
     <x:Double x:Key="StatusIconFontSize">20</x:Double>
 
     <!-- App chrome. -->

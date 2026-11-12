@@ -73,7 +73,7 @@ public class PendingRestartViewModelTests
     public void CanRestart_DuringConfigImport_IsFalse()
     {
         _mockPending.Setup(p => p.IsPending).Returns(true);
-        _mockImportState.Setup(i => i.IsActive).Returns(true);
+        _mockImportState.Setup(i => i.IsAnyImportRunning).Returns(true);
         var vm = Create();
 
         vm.Refresh();
@@ -151,6 +151,22 @@ public class PendingRestartViewModelTests
         _mockTaskProgress.Setup(t => t.IsTaskRunning).Returns(false);
         _mockTaskProgress.Raise(t => t.ProgressUpdated += null, _mockTaskProgress.Object, new TaskProgressDetail());
 
+        vm.CanRestart.Should().BeTrue();
+    }
+
+    [Fact]
+    public void CanRestart_FollowsAnImportStartingAndEndingElsewhere()
+    {
+        _mockPending.Setup(p => p.IsPending).Returns(true);
+        var vm = Create();
+        vm.CanRestart.Should().BeTrue();
+
+        _mockImportState.Setup(i => i.IsAnyImportRunning).Returns(true);
+        _mockImportState.Raise(i => i.AnyImportRunningChanged += null, EventArgs.Empty);
+        vm.CanRestart.Should().BeFalse("the quiet apply has no overlay to cover the button");
+
+        _mockImportState.Setup(i => i.IsAnyImportRunning).Returns(false);
+        _mockImportState.Raise(i => i.AnyImportRunningChanged += null, EventArgs.Empty);
         vm.CanRestart.Should().BeTrue();
     }
 
