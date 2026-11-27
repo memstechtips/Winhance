@@ -1,4 +1,3 @@
-// File: tests/Winhance.Infrastructure.Tests/Services/SpecialSettingHandlerRegistryTests.cs
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
@@ -13,7 +12,7 @@ public class SpecialSettingHandlerRegistryTests
     public void TryGet_RegisteredId_ReturnsHandler()
     {
         var handler = new Mock<ISpecialSettingHandler>().Object;
-        var sut = new SpecialSettingHandlerRegistry(new Dictionary<string, ISpecialSettingHandler>
+        var sut = new SpecialSettingHandlerRegistry(() => new Dictionary<string, ISpecialSettingHandler>
         {
             ["power-plan-selection"] = handler
         });
@@ -24,7 +23,7 @@ public class SpecialSettingHandlerRegistryTests
     [Fact]
     public void TryGet_UnregisteredId_ReturnsNull()
     {
-        var sut = new SpecialSettingHandlerRegistry(new Dictionary<string, ISpecialSettingHandler>());
+        var sut = new SpecialSettingHandlerRegistry(() => new Dictionary<string, ISpecialSettingHandler>());
 
         sut.TryGet("nope").Should().BeNull();
     }
@@ -34,7 +33,7 @@ public class SpecialSettingHandlerRegistryTests
     {
         var power = new Mock<ISpecialSettingHandler>().Object;
         var update = new Mock<ISpecialSettingHandler>().Object;
-        var sut = new SpecialSettingHandlerRegistry(new Dictionary<string, ISpecialSettingHandler>
+        var sut = new SpecialSettingHandlerRegistry(() => new Dictionary<string, ISpecialSettingHandler>
         {
             ["power-plan-selection"] = power,
             ["updates-policy-mode"] = update,

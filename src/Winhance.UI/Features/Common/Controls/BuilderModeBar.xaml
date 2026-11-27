@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.BuilderModeBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:fluentIcons="using:FluentIcons.WinUI">
+
+    <Grid x:Name="BarGrid"
+          Background="{ThemeResource AccentFillColorDefaultBrush}"
+          Padding="16,10,16,10">
+        <Grid.Resources>
+            <ResourceDictionary Source="ms-appx:///Features/Common/Resources/AccentBarResources.xaml"/>
+        </Grid.Resources>
+        <!-- Rows 1 and 2 take the description and target choices when the window is too narrow (ModeBarLayout.Fit). -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>  <!-- Icon -->
+            <ColumnDefinition Width="Auto"/>  <!-- Title -->
+            <ColumnDefinition Width="*"/>     <!-- Description (flex: expands to available width, wraps only when needed) -->
+            <ColumnDefinition Width="Auto"/>  <!-- spacer (collapses; description now takes the flex space) -->
+            <ColumnDefinition Width="Auto"/>  <!-- Target radios -->
+            <ColumnDefinition Width="Auto"/>  <!-- Save -->
+            <ColumnDefinition Width="Auto"/>  <!-- Cancel -->
+        </Grid.ColumnDefinitions>
+
+        <Image Grid.Column="0"
+               Width="24" Height="24"
+               VerticalAlignment="Center"
+               Margin="{StaticResource BarIconMargin}">
+            <Image.Source>
+                <BitmapImage UriSource="ms-appx:///Assets/ModeIcons/winhance-document-build.png" DecodePixelWidth="24" DecodePixelType="Logical"/>
+            </Image.Source>
+        </Image>
+
+        <TextBlock Grid.Column="1"
+                   Text="{x:Bind ViewModel.BuilderModeTitleText, Mode=OneWay}"
+                   Style="{StaticResource EmphasisLabelTextStyle}"
+                   Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                   VerticalAlignment="Center"
+                   Margin="{StaticResource ColumnGapMargin}"/>
+
+        <TextBlock Grid.Column="2"
+                   x:Name="BuilderModeDescriptionText"
+                   Text="{x:Bind ViewModel.BuilderModeDescriptionText, Mode=OneWay}"
+                   FontSize="{StaticResource CaptionTextBlockFontSize}"
+                   Foreground="{ThemeResource TextOnAccentFillColorSecondaryBrush}"
+                   VerticalAlignment="Center"
+                   Opacity="0.85"
+                   TextWrapping="Wrap"
+                   Margin="0,0,16,0"/>
+
+        <!-- Wraps once ModeBarLayout gives it a row of its own and even that row is too narrow. -->
+        <controls:WrapPanel Grid.Column="4"
+                            x:Name="BuilderTargetPanel"
+                            HorizontalSpacing="{StaticResource ControlGroupSpacing}"
+                            VerticalSpacing="{StaticResource ControlGroupSpacing}"
+                            VerticalAlignment="Center"
+                            Margin="{StaticResource ColumnGapMargin}">
+            <RadioButton x:Name="BuilderConfigRadio"
+                         GroupName="BuilderTarget"
+                         Content="{x:Bind ViewModel.BuilderConfigTargetText, Mode=OneWay}"
+                         IsChecked="{x:Bind ViewModel.IsConfigTarget, Mode=OneWay}"
+                         Checked="BuilderConfigRadio_Checked"/>
+            <RadioButton x:Name="BuilderAutounattendRadio"
+                         GroupName="BuilderTarget"
+                         Content="{x:Bind ViewModel.BuilderAutounattendTargetText, Mode=OneWay}"
+                         IsChecked="{x:Bind ViewModel.IsAutounattendTarget, Mode=OneWay}"
+                         Checked="BuilderAutounattendRadio_Checked"/>
+            <DropDownButton x:Name="BuilderTargetWindowsButton"
+                            ToolTipService.ToolTip="{x:Bind ViewModel.TargetWindowsTooltip, Mode=OneWay}"
+                            AutomationProperties.Name="{x:Bind ViewModel.TargetWindowsTooltip, Mode=OneWay}"
+                            VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="{StaticResource IconLabelSpacing}">
+                    <Viewbox Width="14" Height="14">
+                        <fluentIcons:FluentIcon Icon="Filter" IconVariant="Regular"/>
+                    </Viewbox>
+                    <TextBlock Text="{x:Bind ViewModel.TargetWindowsText, Mode=OneWay}"/>
+                </StackPanel>
+                <DropDownButton.Flyout>
+                    <MenuFlyout Placement="Bottom" Opening="BuilderTargetWindowsFlyout_Opening"/>
+                </DropDownButton.Flyout>
+            </DropDownButton>
+            <CheckBox x:Name="BuilderOtherHardwareCheck"
+                      Content="{x:Bind ViewModel.ShowOtherHardwareText, Mode=OneWay}"
+                      IsChecked="{x:Bind ViewModel.ShowOtherHardware, Mode=OneWay}"
+                      ToolTipService.ToolTip="{x:Bind ViewModel.ShowOtherHardwareTooltip, Mode=OneWay}"
+                      Checked="BuilderOtherHardwareCheck_Changed"
+                      Unchecked="BuilderOtherHardwareCheck_Changed"
+                      VerticalAlignment="Center"
+                      MinWidth="0"/>
+        </controls:WrapPanel>
+
+        <!-- MinWidth: the label changes with the target ("Save" / "Save autounattend.xml") and this
+             column is Auto, so without it the button resizes and every control to its left shifts. -->
+        <DropDownButton Grid.Column="5"
+                        x:Name="BuilderSaveMenuButton"
+                        x:Load="{x:Bind ViewModel.IsConfigTarget, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind ViewModel.BuilderSaveButtonText, Mode=OneWay}"
+                        VerticalAlignment="Center"
+                        MinWidth="200"
+                        HorizontalContentAlignment="Center"
+                        Margin="{StaticResource ModeBarActionMargin}">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource IconLabelSpacing}">
+                <fluentIcons:FluentIcon Icon="DocumentSave" IconVariant="Regular" FontSize="{StaticResource ButtonIconFontSize}"/>
+                <TextBlock Text="{x:Bind ViewModel.BuilderSaveButtonText, Mode=OneWay}"/>
+            </StackPanel>
+            <DropDownButton.Flyout>
+                <MenuFlyout Placement="Bottom">
+                    <MenuFlyoutItem x:Name="BuilderSaveAsConfigItem"
+                                    Text="{x:Bind ViewModel.SaveAsConfigText, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.SaveAsConfigCommand}"/>
+                    <MenuFlyoutItem x:Name="BuilderSaveAsProfileItem"
+                                    Text="{x:Bind ViewModel.SaveAsProfileText, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.SaveAsProfileCommand}"/>
+                </MenuFlyout>
+            </DropDownButton.Flyout>
+        </DropDownButton>
+        <Button Grid.Column="5"
+                x:Name="BuilderSaveButton"
+                x:Load="{x:Bind ViewModel.IsAutounattendTarget, Mode=OneWay}"
+                AutomationProperties.Name="{x:Bind ViewModel.BuilderSaveButtonText, Mode=OneWay}"
+                Click="BuilderSaveButton_Click"
+                VerticalAlignment="Center"
+                MinWidth="200"
+                HorizontalContentAlignment="Center"
+                Margin="{StaticResource ModeBarActionMargin}">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource IconLabelSpacing}">
+                <fluentIcons:FluentIcon Icon="DocumentSave" IconVariant="Regular" FontSize="{StaticResource ButtonIconFontSize}"/>
+                <TextBlock Text="{x:Bind ViewModel.BuilderSaveButtonText, Mode=OneWay}"/>
+            </StackPanel>
+        </Button>
+
+        <Button Grid.Column="6"
+                x:Name="BuilderCancelButton"
+                AutomationProperties.Name="{x:Bind ViewModel.BuilderCancelButtonText, Mode=OneWay}"
+                Click="BuilderCancelButton_Click"
+                VerticalAlignment="Center"
+                Margin="{StaticResource InlineLeadingMargin}">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource IconLabelSpacing}">
+                <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular" FontSize="{StaticResource ButtonIconFontSize}"/>
+                <TextBlock Text="{x:Bind ViewModel.BuilderCancelButtonText, Mode=OneWay}"/>
+            </StackPanel>
+        </Button>
+    </Grid>
+</UserControl>

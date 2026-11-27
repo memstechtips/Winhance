@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.SplashSponsors"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Opacity="0">
+    <UserControl.OpacityTransition>
+        <ScalarTransition Duration="0:0:0.25"/>
+    </UserControl.OpacityTransition>
+
+    <!-- Stretches to the branding row's width, so the divider lines up with it; the pills stay centred and grow
+         outwards as sponsors are added. -->
+    <StackPanel Spacing="{StaticResource GroupStackSpacing}">
+        <TextBlock x:Name="SponsorsHeading"
+                   HorizontalAlignment="Center"
+                   FontSize="13"
+                   Opacity="0.6"/>
+        <Border Height="1" Background="{ThemeResource SurfaceStrokeColorDefaultBrush}"/>
+        <StackPanel x:Name="SponsorPills"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Spacing="10"/>
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lightweight styling for buttons, check boxes and radio buttons that sit on an accent-filled bar (the Builder and
+     Review mode bars). The stock state brushes assume a card background, so on the accent fill a checked box vanishes
+     and dark-theme hover text turns white. Merge into the bar's own Resources, never the app's: the keys are the
+     controls' own, so they restyle every control below where they are merged. -->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="ButtonBackground" Color="#40FFFFFF"/>
+            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#59FFFFFF"/>
+            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#26FFFFFF"/>
+            <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#1AFFFFFF"/>
+            <SolidColorBrush x:Key="ButtonForeground" Color="#FF000000"/>
+            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#FF000000"/>
+            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#CC000000"/>
+            <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#80000000"/>
+            <SolidColorBrush x:Key="ButtonBorderBrush" Color="Transparent"/>
+            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent"/>
+            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent"/>
+            <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="Transparent"/>
+            <SolidColorBrush x:Key="DropDownButtonForegroundSecondary" Color="#FF000000"/>
+            <SolidColorBrush x:Key="DropDownButtonForegroundSecondaryPointerOver" Color="#FF000000"/>
+            <SolidColorBrush x:Key="DropDownButtonForegroundSecondaryPressed" Color="#CC000000"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundUnchecked" Color="#FF000000"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundUncheckedPointerOver" Color="#FF000000"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundUncheckedPressed" Color="#FF000000"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundUncheckedDisabled" Color="#80000000"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundChecked" Color="#FF000000"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundCheckedPointerOver" Color="#FF000000"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundCheckedPressed" Color="#FF000000"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundCheckedDisabled" Color="#80000000"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundIndeterminate" Color="#FF000000"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundIndeterminatePointerOver" Color="#FF000000"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundIndeterminatePressed" Color="#FF000000"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundIndeterminateDisabled" Color="#80000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUnchecked" Color="#FF000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedPointerOver" Color="#FF000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedPressed" Color="#CC000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedDisabled" Color="#80000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUnchecked" Color="Transparent"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUncheckedPointerOver" Color="#26FFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUncheckedPressed" Color="#40FFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUncheckedDisabled" Color="Transparent"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeChecked" Color="#FF000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPointerOver" Color="#CC000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPressed" Color="#99000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedDisabled" Color="#80000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="#FF000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" Color="#CC000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPressed" Color="#99000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedDisabled" Color="#80000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="{ThemeResource SystemAccentColorLight2}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" Color="{ThemeResource SystemAccentColorLight2}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="{ThemeResource SystemAccentColorLight2}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedDisabled" Color="{ThemeResource SystemAccentColorLight2}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeIndeterminate" Color="#FF000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeIndeterminatePointerOver" Color="#CC000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeIndeterminatePressed" Color="#99000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeIndeterminateDisabled" Color="#80000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillIndeterminate" Color="#FF000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillIndeterminatePointerOver" Color="#CC000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillIndeterminatePressed" Color="#99000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillIndeterminateDisabled" Color="#80000000"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminate" Color="{ThemeResource SystemAccentColorLight2}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminatePointerOver" Color="{ThemeResource SystemAccentColorLight2}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminatePressed" Color="{ThemeResource SystemAccentColorLight2}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminateDisabled" Color="{ThemeResource SystemAccentColorLight2}"/>
+            <SolidColorBrush x:Key="RadioButtonForeground" Color="#FF000000"/>
+            <SolidColorBrush x:Key="RadioButtonForegroundPointerOver" Color="#FF000000"/>
+            <SolidColorBrush x:Key="RadioButtonForegroundPressed" Color="#FF000000"/>
+            <SolidColorBrush x:Key="RadioButtonForegroundDisabled" Color="#80000000"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseStroke" Color="#FF000000"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseStrokePointerOver" Color="#FF000000"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseStrokePressed" Color="#CC000000"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseStrokeDisabled" Color="#80000000"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseFill" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseFillPointerOver" Color="#26FFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseFillPressed" Color="#40FFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseFillDisabled" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStroke" Color="#FF000000"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStrokePointerOver" Color="#CC000000"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStrokePressed" Color="#99000000"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStrokeDisabled" Color="#80000000"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFill" Color="#FF000000"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFillPointerOver" Color="#CC000000"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFillPressed" Color="#99000000"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFillDisabled" Color="#80000000"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphFill" Color="{ThemeResource SystemAccentColorLight2}"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphFillPointerOver" Color="{ThemeResource SystemAccentColorLight2}"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphFillPressed" Color="{ThemeResource SystemAccentColorLight2}"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphFillDisabled" Color="{ThemeResource SystemAccentColorLight2}"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStroke" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokePointerOver" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokePressed" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokeDisabled" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokeChecked" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokeCheckedPointerOver" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokeCheckedPressed" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokeCheckedDisabled" Color="Transparent"/>
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="ButtonBackground" Color="#40FFFFFF"/>
+            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#59FFFFFF"/>
+            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#26FFFFFF"/>
+            <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#1AFFFFFF"/>
+            <SolidColorBrush x:Key="ButtonForeground" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#CCFFFFFF"/>
+            <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#80FFFFFF"/>
+            <SolidColorBrush x:Key="ButtonBorderBrush" Color="Transparent"/>
+            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent"/>
+            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent"/>
+            <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="Transparent"/>
+            <SolidColorBrush x:Key="DropDownButtonForegroundSecondary" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="DropDownButtonForegroundSecondaryPointerOver" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="DropDownButtonForegroundSecondaryPressed" Color="#CCFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundUnchecked" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundUncheckedPointerOver" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundUncheckedPressed" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundUncheckedDisabled" Color="#80FFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundChecked" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundCheckedPointerOver" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundCheckedPressed" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundCheckedDisabled" Color="#80FFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundIndeterminate" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundIndeterminatePointerOver" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundIndeterminatePressed" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundIndeterminateDisabled" Color="#80FFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUnchecked" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedPointerOver" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedPressed" Color="#CCFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedDisabled" Color="#80FFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUnchecked" Color="Transparent"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUncheckedPointerOver" Color="#26FFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUncheckedPressed" Color="#40FFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUncheckedDisabled" Color="Transparent"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeChecked" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPointerOver" Color="#CCFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPressed" Color="#99FFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedDisabled" Color="#80FFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" Color="#CCFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPressed" Color="#99FFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedDisabled" Color="#80FFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="{ThemeResource SystemAccentColorDark1}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" Color="{ThemeResource SystemAccentColorDark1}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="{ThemeResource SystemAccentColorDark1}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedDisabled" Color="{ThemeResource SystemAccentColorDark1}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeIndeterminate" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeIndeterminatePointerOver" Color="#CCFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeIndeterminatePressed" Color="#99FFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeIndeterminateDisabled" Color="#80FFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillIndeterminate" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillIndeterminatePointerOver" Color="#CCFFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillIndeterminatePressed" Color="#99FFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillIndeterminateDisabled" Color="#80FFFFFF"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminate" Color="{ThemeResource SystemAccentColorDark1}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminatePointerOver" Color="{ThemeResource SystemAccentColorDark1}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminatePressed" Color="{ThemeResource SystemAccentColorDark1}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminateDisabled" Color="{ThemeResource SystemAccentColorDark1}"/>
+            <SolidColorBrush x:Key="RadioButtonForeground" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonForegroundPointerOver" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonForegroundPressed" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonForegroundDisabled" Color="#80FFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseStroke" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseStrokePointerOver" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseStrokePressed" Color="#CCFFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseStrokeDisabled" Color="#80FFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseFill" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseFillPointerOver" Color="#26FFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseFillPressed" Color="#40FFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseFillDisabled" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStroke" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStrokePointerOver" Color="#CCFFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStrokePressed" Color="#99FFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStrokeDisabled" Color="#80FFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFill" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFillPointerOver" Color="#CCFFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFillPressed" Color="#99FFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFillDisabled" Color="#80FFFFFF"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphFill" Color="{ThemeResource SystemAccentColorDark1}"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphFillPointerOver" Color="{ThemeResource SystemAccentColorDark1}"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphFillPressed" Color="{ThemeResource SystemAccentColorDark1}"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphFillDisabled" Color="{ThemeResource SystemAccentColorDark1}"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStroke" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokePointerOver" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokePressed" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokeDisabled" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokeChecked" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokeCheckedPointerOver" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokeCheckedPressed" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokeCheckedDisabled" Color="Transparent"/>
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="HighContrast">
+            <SolidColorBrush x:Key="ButtonBackground" Color="{ThemeResource SystemColorButtonFaceColor}"/>
+            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="{ThemeResource SystemColorButtonFaceColor}"/>
+            <SolidColorBrush x:Key="ButtonForeground" Color="{ThemeResource SystemColorButtonTextColor}"/>
+            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{ThemeResource SystemColorHighlightColor}"/>
+            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{ThemeResource SystemColorHighlightColor}"/>
+            <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="{ThemeResource SystemColorGrayTextColor}"/>
+            <SolidColorBrush x:Key="ButtonBorderBrush" Color="{ThemeResource SystemColorButtonTextColor}"/>
+            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="{ThemeResource SystemColorGrayTextColor}"/>
+            <SolidColorBrush x:Key="DropDownButtonForegroundSecondary" Color="{ThemeResource SystemColorButtonTextColor}"/>
+            <SolidColorBrush x:Key="DropDownButtonForegroundSecondaryPointerOver" Color="{ThemeResource SystemColorHighlightColor}"/>
+            <SolidColorBrush x:Key="DropDownButtonForegroundSecondaryPressed" Color="{ThemeResource SystemColorHighlightColor}"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundUnchecked" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundUncheckedPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundUncheckedPressed" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundUncheckedDisabled" Color="{ThemeResource SystemColorGrayTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundChecked" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundCheckedPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundCheckedPressed" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundCheckedDisabled" Color="{ThemeResource SystemColorGrayTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundIndeterminate" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundIndeterminatePointerOver" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundIndeterminatePressed" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxForegroundIndeterminateDisabled" Color="{ThemeResource SystemColorGrayTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUnchecked" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedPressed" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedDisabled" Color="{ThemeResource SystemColorGrayTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUnchecked" Color="Transparent"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUncheckedPointerOver" Color="Transparent"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUncheckedPressed" Color="Transparent"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUncheckedDisabled" Color="Transparent"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeChecked" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPressed" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedDisabled" Color="{ThemeResource SystemColorGrayTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPressed" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedDisabled" Color="{ThemeResource SystemColorGrayTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="{ThemeResource SystemColorHighlightColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" Color="{ThemeResource SystemColorHighlightColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="{ThemeResource SystemColorHighlightColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedDisabled" Color="{ThemeResource SystemColorHighlightColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeIndeterminate" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeIndeterminatePointerOver" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeIndeterminatePressed" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeIndeterminateDisabled" Color="{ThemeResource SystemColorGrayTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillIndeterminate" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillIndeterminatePointerOver" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillIndeterminatePressed" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillIndeterminateDisabled" Color="{ThemeResource SystemColorGrayTextColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminate" Color="{ThemeResource SystemColorHighlightColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminatePointerOver" Color="{ThemeResource SystemColorHighlightColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminatePressed" Color="{ThemeResource SystemColorHighlightColor}"/>
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminateDisabled" Color="{ThemeResource SystemColorHighlightColor}"/>
+            <SolidColorBrush x:Key="RadioButtonForeground" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="RadioButtonForegroundPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="RadioButtonForegroundPressed" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="RadioButtonForegroundDisabled" Color="{ThemeResource SystemColorGrayTextColor}"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseStroke" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseStrokePointerOver" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseStrokePressed" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseStrokeDisabled" Color="{ThemeResource SystemColorGrayTextColor}"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseFill" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseFillPointerOver" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseFillPressed" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseFillDisabled" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStroke" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStrokePointerOver" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStrokePressed" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStrokeDisabled" Color="{ThemeResource SystemColorGrayTextColor}"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFill" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFillPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFillPressed" Color="{ThemeResource SystemColorHighlightTextColor}"/>
+            <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFillDisabled" Color="{ThemeResource SystemColorGrayTextColor}"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphFill" Color="{ThemeResource SystemColorHighlightColor}"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphFillPointerOver" Color="{ThemeResource SystemColorHighlightColor}"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphFillPressed" Color="{ThemeResource SystemColorHighlightColor}"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphFillDisabled" Color="{ThemeResource SystemColorHighlightColor}"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStroke" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokePointerOver" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokePressed" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokeDisabled" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokeChecked" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokeCheckedPointerOver" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokeCheckedPressed" Color="Transparent"/>
+            <SolidColorBrush x:Key="RadioButtonCheckGlyphStrokeCheckedDisabled" Color="Transparent"/>
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

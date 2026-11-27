@@ -1,27 +1,47 @@
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface IDialogService
 {
-    void ShowMessage(string message, string title = "");
+    bool IsDialogOpen { get; }
 
-    Task ShowInformationAsync(string message, string title = "Information", string buttonText = "OK");
+    // An empty title or button text means the implementation supplies the localized default
+    // (Information / Warning / Error, OK, Close) - never pass English literals here.
+    Task ShowInformationAsync(string message, string title = "", string buttonText = "");
 
-    Task ShowWarningAsync(string message, string title = "Warning", string buttonText = "OK");
+    Task ShowWarningAsync(string message, string title = "", string buttonText = "");
 
-    Task ShowErrorAsync(string message, string title = "Error", string buttonText = "OK");
+    Task ShowErrorAsync(string message, string title = "", string buttonText = "");
 
-    Task<(bool SupportClicked, bool DontShowAgain)> ShowSponsorsDialogAsync(SponsorsDialogMode mode);
+    // A Yes opens the store page from inside the dialog.
+    Task ShowSponsorsDialogAsync(SponsorsDialogMode mode);
 
-    Task<(ImportOption? Option, ImportOptions Options)> ShowConfigImportOptionsDialogAsync();
+    // The exit ask in a small window of its own, for an exit with no Winhance window on screen.
+    Task ShowExitSupportWindowAsync();
+
+    // HideExplanation: the user ticked "don't show again" under the notes' explanation.
+    Task<(ImportOption? Option, ImportOptions Options, bool HideExplanation)> ShowConfigImportOptionsDialogAsync(ModeEntryNotes notes);
+
+    Task<(BuilderSeed? Seed, bool HideExplanation)> ShowBuilderSeedDialogAsync(ModeEntryNotes notes);
+
+    // Null when cancelled. appName null = the defaults dialog (no follow-defaults switch).
+    Task<InstallOptionsChoice?> ShowInstallOptionsDialogAsync(string? appName, InstallOptionsChoice current);
 
     Task<ConfirmationResponse> ShowConfirmationAsync(ConfirmationRequest confirmationRequest);
 
+    // True only when the request asks a question and the user confirmed it.
+    Task<bool> ShowSummaryAsync(SummaryRequest request);
+
+    Task<ConfirmationResponse> AskSummaryAsync(SummaryRequest request);
+
+    // The trimmed text, or null when cancelled.
+    Task<string?> AskTextAsync(TextInputRequest request);
+
     Task ShowTaskOutputDialogAsync(string title, IReadOnlyList<string> logMessages);
 
-    Task ShowCustomContentDialogAsync(string title, object content, string closeButtonText = "Close");
+    Task ShowGroupPolicyDialogAsync();
 }

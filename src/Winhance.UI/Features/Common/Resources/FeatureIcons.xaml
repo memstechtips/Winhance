@@ -3,120 +3,32 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!--
-    Centralized Feature Icon Definitions
+    <!-- Each key names a FluentIcons.Common.Icon member. -->
 
-    Two types of icons are defined here:
-    1. Glyph icons (x:String) - For Segoe MDL2/Fluent font icons, used with FontIcon
-    2. Path icons (x:String) - For Material Design icons, used with PathIcon
+    <x:String x:Key="SoftwareAppsIconSymbol">Apps</x:String>
+    <x:String x:Key="OptimizeIconSymbol">Gauge</x:String>
+    <x:String x:Key="CustomizeIconSymbol">DesignIdeas</x:String>
 
-    References:
-    - Segoe MDL2: https://learn.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font
-    - Material Design Icons: https://pictogrammers.com/library/mdi/
-    -->
+    <!-- Has to match the glyph the Unattend nav button draws -->
+    <x:String x:Key="AutounattendIconSymbol">TextBulletListSquareSparkle</x:String>
 
-    <!-- ==================== Optimize Section Icons ==================== -->
-    <x:String x:Key="PrivacyIconPath">M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z</x:String>
-    <x:String x:Key="PowerIconPath">M16.56,5.44L15.11,6.89C16.84,7.94 18,9.83 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12C6,9.83 7.16,7.94 8.88,6.88L7.44,5.44C5.36,6.88 4,9.28 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12C20,9.28 18.64,6.88 16.56,5.44M13,3H11V13H13</x:String>
-    <x:String x:Key="GamingIconPath">M7.97,16L5,19C4.67,19.3 4.23,19.5 3.75,19.5A1.75,1.75 0 0,1 2,17.75V17.5L3,10.12C3.21,7.81 5.14,6 7.5,6H16.5C18.86,6 20.79,7.81 21,10.12L22,17.5V17.75A1.75,1.75 0 0,1 20.25,19.5C19.77,19.5 19.33,19.3 19,19L16.03,16H7.97M7,8V10H5V11H7V13H8V11H10V10H8V8H7M16.5,8A0.75,0.75 0 0,0 15.75,8.75A0.75,0.75 0 0,0 16.5,9.5A0.75,0.75 0 0,0 17.25,8.75A0.75,0.75 0 0,0 16.5,8M14.75,9.75A0.75,0.75 0 0,0 14,10.5A0.75,0.75 0 0,0 14.75,11.25A0.75,0.75 0 0,0 15.5,10.5A0.75,0.75 0 0,0 14.75,9.75M18.25,9.75A0.75,0.75 0 0,0 17.5,10.5A0.75,0.75 0 0,0 18.25,11.25A0.75,0.75 0 0,0 19,10.5A0.75,0.75 0 0,0 18.25,9.75M16.5,11.5A0.75,0.75 0 0,0 15.75,12.25A0.75,0.75 0 0,0 16.5,13A0.75,0.75 0 0,0 17.25,12.25A0.75,0.75 0 0,0 16.5,11.5Z</x:String>
-    <x:String x:Key="NotificationIconPath">M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.1 14,4.19 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M14,21A2,2 0 0,1 12,23A2,2 0 0,1 10,21M19.75,3.19L18.33,4.61C20.04,6.3 21,8.6 21,11H23C23,8.07 21.84,5.25 19.75,3.19M1,11H3C3,8.6 3.96,6.3 5.67,4.61L4.25,3.19C2.16,5.25 1,8.07 1,11Z</x:String>
+    <!-- Optimize Section Icons -->
+    <x:String x:Key="PrivacyIconSymbol">LockClosed</x:String>
+    <x:String x:Key="PowerIconSymbol">Power</x:String>
+    <x:String x:Key="GamingIconSymbol">Games</x:String>
+    <x:String x:Key="NotificationIconSymbol">AlertOn</x:String>
     <x:String x:Key="UpdateIconSymbol">ArrowSync</x:String>
     <x:String x:Key="SoundIconSymbol">Speaker2</x:String>
 
+    <!-- Customize Section Icons -->
+    <x:String x:Key="WindowsThemeIconSymbol">PaintBrush</x:String>
+    <x:String x:Key="TaskbarIconSymbol">PanelBottom</x:String>
+    <x:String x:Key="StartMenuIconSymbol">TableSimple</x:String>
+    <x:String x:Key="TimeRegionLanguageIconSymbol">GlobeSearch</x:String>
+    <x:String x:Key="ContextMenuIconSymbol">CursorClick</x:String>
+    <x:String x:Key="ExplorerIconSymbol">Folder</x:String>
 
-    <!-- ==================== Customize Section Icons (Material Design - Path Data) ==================== -->
-    <!-- Icons for Customize page feature sections - matching WPF project's Material Design icons -->
-
-    <!-- Brush - Used for Windows Theme -->
-    <x:String x:Key="WindowsThemeIconPath">M20.71,4.63L19.37,3.29C19,2.9 18.35,2.9 17.96,3.29L9,12.25L11.75,15L20.71,6.04C21.1,5.65 21.1,5 20.71,4.63M7,14A3,3 0 0,0 4,17C4,18.31 2.84,19 2,19C2.92,20.22 4.5,21 6,21A4,4 0 0,0 10,17A3,3 0 0,0 7,14Z</x:String>
-
-    <!-- DockBottom - Used for Taskbar -->
-    <x:String x:Key="TaskbarIconPath">M20,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6A2,2 0 0,0 20,4M20,18H4V14H20V18Z</x:String>
-
-    <!-- FileTableBoxOutline - Used for Start Menu -->
-    <x:String x:Key="StartMenuIconPath">M19 3H5C3.89 3 3 3.89 3 5V19C3 20.11 3.89 21 5 21H19C20.11 21 21 20.11 21 19V5C21 3.89 20.11 3 19 3M19 19H5V5H19V19M9 18H6V16H9V18M13 18H10V16H13V18M9 15H6V13H9V15M13 15H10V13H13V15M9 12H6V10H9V12M13 12H10V10H13V12Z</x:String>
-
-    <!-- Folder - Used for Explorer -->
-    <x:String x:Key="ExplorerIconPath">M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z</x:String>
-
-    <!-- Legacy Segoe MDL2 glyphs (kept for backward compatibility) -->
-    <x:String x:Key="ExplorerIconGlyph">&#xEC50;</x:String>
-    <x:String x:Key="StartMenuIconGlyph">&#xE737;</x:String>
-    <x:String x:Key="TaskbarIconGlyph">&#xE700;</x:String>
-    <x:String x:Key="WindowsThemeIconGlyph">&#xE790;</x:String>
-
-    <!-- ==================== Software & Apps Icons ==================== -->
-    <!-- Icons for SoftwareApps page -->
-    <!-- PackageDown - Used for External Apps tab -->
-    <x:String x:Key="ExternalAppsIconPath">M5.12,5L5.93,4H17.93L18.87,5M12,17.5L6.5,12H10V10H14V12H17.5L12,17.5M20.54,5.23L19.15,3.55C18.88,3.21 18.47,3 18,3H6C5.53,3 5.12,3.21 4.84,3.55L3.46,5.23C3.17,5.57 3,6 3,6.5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V6.5C21,6 20.83,5.57 20.54,5.23Z</x:String>
-
-    <!-- ==================== Badge Icons ==================== -->
-    <!-- Icons used on SettingsCard InfoBadges AND on Quick Actions menu items.
-         Keeping them centralized here ensures the badge icon and the matching
-         Quick Actions icon stay in sync. -->
-
-    <!-- Microsoft Windows logo (4-pane grid, 22x22 viewbox) - Used for Reset to Defaults
-         Quick Actions menu item, where the icon renders at a larger size and the 2px gaps
-         survive scaling. NOT used on the small InfoBadge pill - see BadgeDefaultIconPath. -->
-    <x:String x:Key="WindowsLogoIconPath">M0,0 H10 V10 H0 Z M12,0 H22 V10 H12 Z M0,12 H10 V22 H0 Z M12,12 H22 V22 H12 Z</x:String>
-
-    <!-- Microsoft Windows logo redrawn at the pill-icon size (11x11 viewbox, 5x5 panes,
-         1px gap). At this scale the 22x22 original gets anti-aliased into a solid blob,
-         so we need pixel-aligned geometry. Used for the InfoBadge Default pill. -->
-    <x:String x:Key="BadgeDefaultIconPath">M0,0 H5 V5 H0 Z M6,0 H11 V5 H6 Z M0,6 H5 V11 H0 Z M6,6 H11 V11 H6 Z</x:String>
-
-    <!-- FluentIcons symbol name - Used for Recommended badge + Apply Recommended menu item -->
-    <x:String x:Key="BadgeRecommendedIconSymbol">StarCheckmark</x:String>
-
-    <!-- FluentIcons symbol name - Used for Custom badge (no Quick Actions counterpart) -->
-    <x:String x:Key="BadgeCustomIconSymbol">PersonWrench</x:String>
-
-    <!-- BookInformationVariant MDI - Used for View Dropdown > InfoBadges -->
-    <x:String x:Key="BookInformationVariantIconPath">M18 2H12V9L9.5 7.5L7 9V2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V4C20 2.89 19.1 2 18 2M17.68 18.41C17.57 18.5 16.47 19.25 16.05 19.5C15.63 19.79 14 20.72 14.26 18.92C14.89 15.28 16.11 13.12 14.65 14.06C14.27 14.29 14.05 14.43 13.91 14.5C13.78 14.61 13.79 14.6 13.68 14.41S13.53 14.23 13.67 14.13C13.67 14.13 15.9 12.34 16.72 12.28C17.5 12.21 17.31 13.17 17.24 13.61C16.78 15.46 15.94 18.15 16.07 18.54C16.18 18.93 17 18.31 17.44 18C17.44 18 17.5 17.93 17.61 18.05C17.72 18.22 17.83 18.3 17.68 18.41M16.97 11.06C16.4 11.06 15.94 10.6 15.94 10.03C15.94 9.46 16.4 9 16.97 9C17.54 9 18 9.46 18 10.03C18 10.6 17.54 11.06 16.97 11.06Z</x:String>
-
-    <!-- NewBox MDI - Used for View Dropdown > NEW Badges -->
-    <x:String x:Key="NewBoxIconPath">M20,4C21.11,4 22,4.89 22,6V18C22,19.11 21.11,20 20,20H4C2.89,20 2,19.11 2,18V6C2,4.89 2.89,4 4,4H20M8.5,15V9H7.25V12.5L4.75,9H3.5V15H4.75V11.5L7.3,15H8.5M13.5,10.26V9H9.5V15H13.5V13.75H11V12.64H13.5V11.38H11V10.26H13.5M20.5,14V9H19.25V13.5H18.13V10H16.88V13.5H15.75V9H14.5V14A1,1 0 0,0 15.5,15H19.5A1,1 0 0,0 20.5,14Z</x:String>
-
-    <!-- ==================== Power Plan Icons (Material Design - Path Data) ==================== -->
-    <!-- DeleteForever - Used for power plan deletion -->
-    <x:String x:Key="DeleteForeverIconPath">M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19M8.46,11.88L9.87,10.47L12,12.59L14.12,10.47L15.53,11.88L13.41,14L15.53,16.12L14.12,17.53L12,15.41L9.88,17.53L8.47,16.12L10.59,14L8.46,11.88M15.5,4L14.5,3H9.5L8.5,4H5V6H19V4H15.5Z</x:String>
-
-    <!-- ==================== Advanced Tools Section Icons ==================== -->
-    <!-- DiscPlayer - Used for WIM Utility -->
-    <x:String x:Key="WimUtilIconPath">M12,14C10.89,14 10,13.1 10,12C10,10.89 10.89,10 12,10C13.1,10 14,10.89 14,12A2,2 0 0,1 12,14M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z</x:String>
-    <!-- FileXmlBox - Used for Autounattend XML Generator -->
-    <x:String x:Key="AutounattendXmlIconPath">M13 9H18.5L13 3.5V9M6 2H14L20 8V20A2 2 0 0 1 18 22H6A2 2 0 0 1 4 20V4A2 2 0 0 1 6 2M6.12 15.5L9.86 19.24L11.28 17.83L8.95 15.5L11.28 13.17L9.86 11.76L6.12 15.5M17.28 15.5L13.54 11.76L12.12 13.17L14.45 15.5L12.12 17.83L13.54 19.24L17.28 15.5Z</x:String>
-    <!-- FileDownload - Used for XML in WIMUtil Steps -->
-    <x:String x:Key="FileDownloadIconPath">M14,2H6C4.89,2 4,2.89 4,4V20C4,21.11 4.89,22 6,22H18C19.11,22 20,21.11 20,20V8L14,2M12,19L8,15H10.5V12H13.5V15H16L12,19M13,9V3.5L18.5,9H13Z</x:String>
-    <!-- MemoryArrowDown - Used for Drivers in WIMUtil Steps -->
-    <x:String x:Key="MemoryArrowDownIconPath">M19 19V15H17V19H15L18 22L21 19H19M12.1 19H11V21H9V19H7C5.9 19 5 18.1 5 17V15H3V13H5V11H3V9H5V7C5 5.9 5.9 5 7 5H9V3H11V5H13V3H15V5H17C18.1 5 19 5.9 19 7V9H21V11H19V12.1C18.7 12 18.3 12 18 12S17.3 12 17 12.1V7H7V17H12.1C12 17.3 12 17.7 12 18S12 18.7 12.1 19M9 15H12.8C13.3 14.1 14.1 13.3 15 12.8V9H9V15M11 11H13V13H11V11Z</x:String>
-    <!-- WrenchClock - Used for ISO Creation in WIMUtil Steps -->
-    <x:String x:Key="WrenchClockIconPath">M10 6.2C10 4.3 8.8 2.6 7 2V5.7H4V2C2.2 2.6 1 4.3 1 6.2C1 8.1 2.2 9.8 4 10.4V21.4C4 21.8 4.2 22 4.5 22H6.5C6.8 22 7 21.8 7 21.5V10.5C8.8 9.9 10 8.2 10 6.2M16 8C16 8 15.9 8 16 8C12.1 8.1 9 11.2 9 15C9 18.9 12.1 22 16 22S23 18.9 23 15 19.9 8 16 8M16 20C13.2 20 11 17.8 11 15S13.2 10 16 10 21 12.2 21 15 18.8 20 16 20M15 11V16L18.6 18.2L19.4 17L16.5 15.3V11H15Z</x:String>
-    <!-- ToolBox - Used for Windows ADK in WIMUtil Steps -->
-    <x:String x:Key="ToolBoxIconPath">M18 16H16V15H8V16H6V15H2V20H22V15H18V16M20 8H17V6C17 4.9 16.1 4 15 4H9C7.9 4 7 4.9 7 6V8H4C2.9 8 2 8.9 2 10V14H6V12H8V14H16V12H18V14H22V10C22 8.9 21.1 8 20 8M15 8H9V6H15V8Z</x:String>
-
-    <!-- ==================== Technical Details Icons (Material Design - Path Data) ==================== -->
-    <!-- Information - Used when Technical Details is ON -->
-    <x:String x:Key="InformationIconPath">M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z</x:String>
-    <!-- InformationOff - Used when Technical Details is OFF -->
-    <x:String x:Key="InformationOffIconPath">M22.1 21.5L2.4 1.7L1.1 3L4.1 6C2.8 7.6 2 9.7 2 12C2 17.5 6.5 22 12 22C14.3 22 16.4 21.2 18 19.9L20.8 22.7L22.1 21.5M13 17H11V12.9L13 14.9V17M11 7.8L6.7 3.5C8.3 2.6 10.1 2 12 2C17.5 2 22 6.5 22 12C22 13.9 21.4 15.7 20.5 17.3L12.2 9H13V7H11V7.8Z</x:String>
-
-    <!-- ==================== Filter Icons (Material Design - Path Data) ==================== -->
-    <!-- Filter with checkmark - Used when Windows version filter is ON -->
-    <x:String x:Key="FilterCheckIconPath">M12 12V19.88C12.04 20.18 11.94 20.5 11.71 20.71C11.32 21.1 10.69 21.1 10.3 20.71L8.29 18.7C8.06 18.47 7.96 18.16 8 17.87V12H7.97L2.21 4.62C1.87 4.19 1.95 3.56 2.38 3.22C2.57 3.08 2.78 3 3 3H17C17.22 3 17.43 3.08 17.62 3.22C18.05 3.56 18.13 4.19 17.79 4.62L12.03 12H12M17.75 21L15 18L16.16 16.84L17.75 18.43L21.34 14.84L22.5 16.25L17.75 21</x:String>
-
-    <!-- Filter with strikethrough - Used when Windows version filter is OFF -->
-    <x:String x:Key="FilterOffIconPath">M2.39 1.73L1.11 3L9.5 11.37L9.97 12H10V17.87C9.96 18.16 10.06 18.47 10.29 18.7L12.3 20.71C12.69 21.1 13.32 21.1 13.71 20.71C13.94 20.5 14.04 20.18 14 19.88V15.89L20.84 22.73L22.11 21.46L14 13.35L9.41 8.76L4.15 3.5L2.39 1.73M6.21 3L14.54 11.34L19.79 4.62C20.13 4.19 20.05 3.56 19.62 3.22C19.43 3.08 19.22 3 19 3H6.21Z</x:String>
-
-    <!-- CogTransfer MDI - Used for View Dropdown > Show Only Changes (review mode filter) -->
-    <x:String x:Key="CogTransferIconPath">M14 18V16L10 19.5L14 23V21H17V18H14M22 15.5L18 12V14H15V17H18V19L22 15.5M21.66 8.73L19.66 5.27C19.54 5.05 19.28 4.96 19.05 5.05L16.56 6.05C16.05 5.64 15.5 5.31 14.87 5.05L14.5 2.42C14.46 2.18 14.25 2 14 2H10C9.75 2 9.54 2.18 9.5 2.42L9.13 5.07C8.5 5.33 7.96 5.66 7.44 6.07L5 5.05C4.77 4.96 4.5 5.05 4.39 5.27L2.39 8.73C2.26 8.94 2.31 9.22 2.5 9.37L4.57 11C4.53 11.33 4.5 11.67 4.5 12C4.5 12.33 4.53 12.67 4.57 13L2.46 14.63C2.26 14.78 2.21 15.06 2.34 15.27L4.34 18.73C4.45 19 4.74 19.11 5 19L5 19L7.5 18C7.74 18.19 8 18.37 8.26 18.53L11.77 15.53C9.84 15.4 8.38 13.73 8.5 11.8C8.65 9.87 10.32 8.41 12.25 8.55C13.69 8.64 14.92 9.62 15.35 11H19.43L21.54 9.37C21.73 9.22 21.78 8.94 21.66 8.73Z</x:String>
-
-    <!-- ==================== Help Dialog Removal Status Icons (Material Design - Path Data) ==================== -->
-    <!-- DeleteSweep - Used for Bloat Removal status -->
-    <x:String x:Key="DeleteSweepIconPath">M15,16H19V18H15V16M15,8H22V10H15V8M15,12H21V14H15V12M3,18A2,2 0 0,0 5,20H11A2,2 0 0,0 13,18V8H3V18M14,5H11L10,4H6L5,5H2V7H14V5Z</x:String>
-    <!-- Microsoft Edge - Used for Edge Removal status -->
-    <x:String x:Key="MicrosoftEdgeIconPath">M10.86 15.37C10.17 14.6 9.7 13.68 9.55 12.65C9.25 13.11 9 13.61 8.82 14.15C7.9 16.9 9.5 20.33 12.22 21.33C14.56 22.11 17.19 20.72 18.92 19.2C19.18 18.85 21.23 17.04 20.21 16.84C17.19 18.39 13.19 17.95 10.86 15.37M11.46 9.56C12.5 9.55 11.5 9.13 11.07 8.81C10.03 8.24 8.81 7.96 7.63 7.96C3.78 8 .995 10.41 2.3 14.4C3.24 18.28 6.61 21.4 10.59 21.9C8.54 20.61 7.3 18.19 7.3 15.78C7.38 13.25 8.94 10.28 11.46 9.56M2.78 8.24C5.82 6 10.66 6.18 13.28 9C14.3 10.11 15 12 14.07 13.37C12.33 15.25 17.15 15.5 18.18 15.22C21.92 14.5 22.91 10.15 21.13 7.15C19.43 3.75 15.66 1.97 11.96 2C7.9 1.93 4.25 4.5 2.78 8.24Z</x:String>
-    <!-- Microsoft OneDrive - Used for OneDrive Removal status -->
-    <x:String x:Key="MicrosoftOneDriveIconPath">M19.35,10.04C18.67,6.59 15.64,4 12,4C9.11,4 6.6,5.64 5.35,8.04C2.34,8.36 0,10.91 0,14A6,6 0 0,0 6,20H19A5,5 0 0,0 24,15C24,12.36 21.95,10.22 19.35,10.04Z</x:String>
+    <!-- Software & Apps Icons. The External Apps tab draws the same glyph. -->
+    <x:String x:Key="ExternalAppsIconSymbol">ArrowDownload</x:String>
 
 </ResourceDictionary>

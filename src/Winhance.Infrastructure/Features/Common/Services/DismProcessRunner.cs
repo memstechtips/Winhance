@@ -1,17 +1,13 @@
-using System;
 using System.Globalization;
-using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Exceptions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class DismProcessRunner : IDismProcessRunner
+internal class DismProcessRunner : IDismProcessRunner
 {
     private readonly IProcessExecutor _processExecutor;
     private readonly ILogService _logService;
@@ -48,10 +44,14 @@ public class DismProcessRunner : IDismProcessRunner
                 var match = ProgressRegex.Match(line);
                 if (match.Success && double.TryParse(match.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var pct))
                 {
+                    // Every percent update arrives as its own line, and a 20-minute conversion
+                    // prints hundreds of them; the flag is what lets the terminal redraw one bar
+                    // instead of stacking them.
                     progress?.Report(new TaskProgressDetail
                     {
                         TerminalOutput = line,
-                        Progress = pct
+                        Progress = pct,
+                        IsProgressIndicator = true
                     });
                 }
                 else
@@ -65,6 +65,8 @@ public class DismProcessRunner : IDismProcessRunner
                 progress?.Report(new TaskProgressDetail { TerminalOutput = line });
             },
             ct: cancellationToken).ConfigureAwait(false);
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         var combinedOutput = stdoutBuilder.ToString();
         if (stderrBuilder.Length > 0)

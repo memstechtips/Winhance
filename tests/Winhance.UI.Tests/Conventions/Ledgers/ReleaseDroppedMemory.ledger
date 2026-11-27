@@ -1,0 +1,5 @@
+src/Winhance.UI/Features/Common/Controls/SectionPage.cs	1	drop-point
+src/Winhance.UI/Features/SoftwareApps/SoftwareAppsPage.xaml.cs	3	drop-point
+src/Winhance.UI/MainWindow.xaml.cs	2	drop-point
+src/Winhance.UI/MainWindow.xaml.cs	1	navigation-hook
+src/Winhance.UI/Features/Common/Controls/SectionPage.cs	1	navigation-hook

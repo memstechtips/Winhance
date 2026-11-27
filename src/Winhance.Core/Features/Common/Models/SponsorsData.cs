@@ -1,11 +1,7 @@
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace Winhance.Core.Features.Common.Models;
 
-/// <summary>
-/// Represents a single sponsor entry from the sponsors JSON document.
-/// </summary>
 public sealed record SponsorEntry
 {
     [JsonPropertyName("id")]
@@ -23,9 +19,6 @@ public sealed record SponsorEntry
     [JsonPropertyName("country")]
     public string? Country { get; init; }
 
-    [JsonPropertyName("contact")]
-    public string? Contact { get; init; }
-
     [JsonPropertyName("url")]
     public string? Url { get; init; }
 
@@ -35,16 +28,16 @@ public sealed record SponsorEntry
     [JsonPropertyName("since")]
     public string? Since { get; init; }
 
-    [JsonPropertyName("example")]
-    public bool Example { get; init; }
+    [JsonPropertyName("slogan")]
+    public string? Slogan { get; init; }
 
     [JsonPropertyName("until")]
     public string? Until { get; init; }
+
+    [JsonPropertyName("ends")]
+    public string? Ends { get; init; }
 }
 
-/// <summary>
-/// Represents a community supporter entry from the sponsors JSON document.
-/// </summary>
 public sealed record SupporterEntry
 {
     [JsonPropertyName("name")]
@@ -52,11 +45,14 @@ public sealed record SupporterEntry
 
     [JsonPropertyName("since")]
     public string? Since { get; init; }
+
+    [JsonPropertyName("monthly")]
+    public bool Monthly { get; init; }
+
+    [JsonPropertyName("months")]
+    public int Months { get; init; }
 }
 
-/// <summary>
-/// Top-level sponsors JSON document.
-/// </summary>
 public sealed record SponsorsDocument
 {
     [JsonPropertyName("updated")]

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<local:SettingBoundControl
+    x:Class="Winhance.UI.Features.Common.Controls.SettingToggleSwitch"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
+    xmlns:local="using:Winhance.UI.Features.Common.Controls">
+
+    <!--
+    A settings-card toggle: its Quick-Set pair, the ToggleSwitch, and its detection-outcome overlay.
+
+    Unlike the dropdown and the numeric box, this overlay is INTERACTIVE - a Button styled to look like a
+    neutral toggle track - because a toggle has only two positions and neither of them is honest when the
+    setting is unresolved. So instead of marking the control, it replaces it: clicking opens the
+    Enabled / Disabled / Cancel dialog. That is also why this control is not built from
+    SettingOutcomeOverlay, which is a passive marker.
+
+    Its own control for cohesion, not symmetry: the knob's hover animation needs a named icon, and x:Name
+    is not reachable inside a DataTemplate.
+    -->
+    <StackPanel Orientation="Horizontal" Spacing="{StaticResource QuickSetSpacing}" VerticalAlignment="Center">
+        <local:SettingQuickSetButtons
+            Setting="{x:Bind Setting, Mode=OneWay}"
+            Mode="Single"
+            Kind="TwoState"/>
+
+        <Grid VerticalAlignment="Center">
+            <!-- The real ToggleSwitch is ALWAYS measured, in every state - it is what gives this column
+                 its width, so the Quick-Set buttons land in the same place on an unresolved row as on a
+                 normal one. While unresolved it stays in layout but goes invisible (Opacity 0) and drops
+                 out of hit-testing, the tab order and the automation tree, so the overlay above it is the
+                 only thing a pointer, the keyboard or Narrator reaches. -->
+            <ToggleSwitch
+                IsOn="{x:Bind Setting.IsSelected, Mode=OneWay}"
+                Toggled="OnToggled"
+                OnContent="{x:Bind Setting.OnText, Mode=OneWay}"
+                OffContent="{x:Bind Setting.OffText, Mode=OneWay}"
+                AutomationProperties.Name="{x:Bind Setting.Name, Mode=OneWay}"
+                Opacity="{x:Bind Setting.TwoStateOpacityFor(Setting.Outcome), Mode=OneWay}"
+                IsHitTestVisible="{x:Bind Setting.TwoStateInteractiveFor(Setting.Outcome), Mode=OneWay}"
+                IsTabStop="{x:Bind Setting.TwoStateInteractiveFor(Setting.Outcome), Mode=OneWay}"
+                AutomationProperties.AccessibilityView="{x:Bind Setting.TwoStateAccessibilityViewFor(Setting.Outcome), Mode=OneWay}"/>
+
+            <!-- Track-only stand-in, 2px larger than the stock 40x20 track, with the outcome's colour icon
+                 as the knob and its matching short glyph ("?" / "!" / "x") in the On/Off-content slot.
+                 Button chrome is cleared so it reads as a toggle control, not a pressable button; it
+                 carries no size of its own and stretches over the invisible ToggleSwitch, so its footprint
+                 IS the toggle's. Deliberately NOT a third selectable position (no accent colour).
+                 Undetermined renders but does nothing - the view model's IsActionable gate stops a click
+                 writing blind over a value we could not read. -->
+            <Button
+                x:Name="Overlay"
+                x:Load="{x:Bind local:SettingBoundControl.HasOverlay(Setting, Setting.Outcome), Mode=OneWay}"
+                Click="OnOverlayClicked"
+                PointerEntered="OnOverlayPointerEntered"
+                PointerExited="OnOverlayPointerExited"
+                PointerCanceled="OnOverlayPointerExited"
+                PointerCaptureLost="OnOverlayPointerExited"
+                Background="Transparent"
+                BorderThickness="0"
+                Padding="0"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Right"
+                VerticalAlignment="Stretch"
+                VerticalContentAlignment="Center"
+                ToolTipService.ToolTip="{x:Bind Setting.OverlayTooltipFor(Setting.Outcome, x:True), Mode=OneWay}"
+                AutomationProperties.Name="{x:Bind Setting.OverlayStateTextFor(Setting.Outcome), Mode=OneWay}">
+                <Button.Resources>
+                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent"/>
+                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent"/>
+                    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent"/>
+                    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent"/>
+                </Button.Resources>
+                <!-- Same order as the real toggles in this app: label LEFT, track flush at the card's
+                     right edge. -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{x:Bind Setting.OverlayShortLabelFor(Setting.Outcome), Mode=OneWay}" Margin="{StaticResource ColumnGapMargin}"
+                               VerticalAlignment="Center"/>
+                    <Border Width="42" Height="22" CornerRadius="11"
+                            Background="{ThemeResource ControlFillColorDisabledBrush}"
+                            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                            BorderThickness="1">
+                        <fluentIcons:FluentIcon x:Name="KnobIcon"
+                                                Icon="{x:Bind Setting.OverlayIconFor(Setting.Outcome), Mode=OneWay}" IconVariant="Color"
+                                                FontSize="{StaticResource OutcomeIconFontSize}"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                RenderTransformOrigin="0.5,0.5">
+                            <fluentIcons:FluentIcon.RenderTransform>
+                                <CompositeTransform/>
+                            </fluentIcons:FluentIcon.RenderTransform>
+                        </fluentIcons:FluentIcon>
+                    </Border>
+                </StackPanel>
+            </Button>
+        </Grid>
+    </StackPanel>
+</local:SettingBoundControl>

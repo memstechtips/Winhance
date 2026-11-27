@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System;
-using System.Collections.Generic;
 using Microsoft.Management.Deployment;
 
 namespace WindowsPackageManager.Interop;
@@ -44,28 +42,6 @@ internal static class ClassesDefinition
             },
         },
 
-        [typeof(InstallOptions)] = new()
-        {
-            ProjectedClassType = typeof(InstallOptions),
-            InterfaceType = typeof(IInstallOptions),
-            Clsids = new Dictionary<ClsidContext, Guid>()
-            {
-                [ClsidContext.Prod] = new Guid("1095F097-EB96-453B-B4E6-1613637F3B14"),
-                [ClsidContext.Dev] = new Guid("44FE0580-62F7-44D4-9E91-AA9614AB3E86"),
-            },
-        },
-
-        [typeof(UninstallOptions)] = new()
-        {
-            ProjectedClassType = typeof(UninstallOptions),
-            InterfaceType = typeof(IUninstallOptions),
-            Clsids = new Dictionary<ClsidContext, Guid>()
-            {
-                [ClsidContext.Prod] = new Guid("E1D9A11E-9F85-4D87-9C17-2B93143ADB8D"),
-                [ClsidContext.Dev] = new Guid("AA2A5C04-1AD9-46C4-B74F-6B334AD7EB8C"),
-            },
-        },
-
         [typeof(PackageMatchFilter)] = new()
         {
             ProjectedClassType = typeof(PackageMatchFilter),
@@ -78,36 +54,18 @@ internal static class ClassesDefinition
         },
     };
 
-    /// <summary>
-    /// Get CLSID based on the provided context for the specified type
-    /// </summary>
-    /// <typeparam name="T">Projected class type</typeparam>
-    /// <param name="context">Context</param>
-    /// <returns>CLSID for the provided context and type, or throw an exception if not found.</returns>
-    /// <exception cref="InvalidOperationException">Throws an exception if type is not a project class.</exception>
     public static Guid GetClsid<T>(ClsidContext context)
     {
         ValidateType<T>();
         return Classes[typeof(T)].GetClsid(context);
     }
 
-    /// <summary>
-    /// Get IID corresponding to the COM object
-    /// </summary>
-    /// <typeparam name="T">Projected class type</typeparam>
-    /// <returns>IID or throw an exception if not found.</returns>
-    /// <exception cref="InvalidOperationException">Throws an exception if type is not a project class.</exception>
     public static Guid GetIid<T>()
     {
         ValidateType<T>();
         return Classes[typeof(T)].GetIid();
     }
 
-    /// <summary>
-    /// Validate that the provided type is defined.
-    /// </summary>
-    /// <param name="type">Projected class type</param>
-    /// <exception cref="InvalidOperationException">Throws an exception if type is not a project class.</exception>
     private static void ValidateType<TType>()
     {
         if (!Classes.ContainsKey(typeof(TType)))

@@ -6,25 +6,21 @@ using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Helpers;
+using Winhance.Core.Features.Common.Extensions;
+using static Winhance.UI.Features.Common.Helpers.CodeBuiltStyle;
 
 namespace Winhance.UI.Features.Common.Dialogs;
 
-/// <summary>
-/// Encapsulates the UI-building logic for the config import options dialog.
-/// Extracted from <see cref="Services.DialogService.ShowConfigImportOptionsDialogAsync"/>
-/// to keep DialogService focused on dialog lifecycle management.
-/// </summary>
 internal class ConfigImportDialogBuilder
 {
     private readonly ILocalizationService _localization;
+    private readonly ModeEntrySections _sections;
 
-    // Selection state
     private ImportOption? _selectedOption;
     private Button? _selectedCardButton;
     private Border? _selectedBgBorder;
     private Border? _selectedAccentBorder;
 
-    // Controls needed for ExtractResult
     private ContentDialog _dialog = null!;
     private CheckBox _skipReviewCheckbox = null!;
     private RadioButton _winAppsInstallRadio = null!;
@@ -33,19 +29,16 @@ internal class ConfigImportDialogBuilder
     private RadioButton _extAppsInstallRadio = null!;
     private RadioButton _extAppsUninstallRadio = null!;
     private RadioButton _extAppsSelectOnlyRadio = null!;
-    private CheckBox _themeWallpaperCheckbox = null!;
     private CheckBox _cleanTaskbarCheckbox = null!;
     private CheckBox _cleanStartMenuCheckbox = null!;
 
-    public ConfigImportDialogBuilder(ILocalizationService localization)
+    public ConfigImportDialogBuilder(ILocalizationService localization, ModeEntryNotes notes)
     {
         _localization = localization;
+        _sections = new ModeEntrySections(localization, notes);
     }
 
-    /// <summary>
-    /// Builds the ContentDialog with all UI elements. The caller is responsible for
-    /// calling ConfigureDialog and ShowAsync.
-    /// </summary>
+    // The caller is responsible for ConfigureDialog and ShowAsync.
     public ContentDialog Build(XamlRoot xamlRoot)
     {
         bool isDark = (xamlRoot.Content as FrameworkElement)?.ActualTheme == ElementTheme.Dark;
@@ -60,20 +53,22 @@ internal class ConfigImportDialogBuilder
             MinWidth = 500
         };
 
-        // Card 1: Import own config - FolderOpen icon
         var ownIcon = new FluentIcons.WinUI.FluentIcon { Icon = FluentIcons.Common.Icon.FolderOpen, IconVariant = FluentIcons.Common.IconVariant.Regular, FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
         var ownCard = CreateOptionCard(ownIcon,
             "Dialog_ImportConfig_Option_Own_Title",
             "Dialog_ImportConfig_Option_Own_Description",
             ImportOption.ImportOwn, isDark);
 
-        // Card 2: Import recommended config - Winhance logo
         var logoUri = isDark
             ? "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png"
             : "ms-appx:///Assets/AppIcons/winhance-rocket-black-transparent-bg.png";
         var recIcon = new Image
         {
-            Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new System.Uri(logoUri)),
+            Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new System.Uri(logoUri))
+            {
+                DecodePixelWidth = 24,
+                DecodePixelType = Microsoft.UI.Xaml.Media.Imaging.DecodePixelType.Logical,
+            },
             Width = 24,
             Height = 24,
             VerticalAlignment = VerticalAlignment.Center
@@ -83,21 +78,19 @@ internal class ConfigImportDialogBuilder
             "Dialog_ImportConfig_Option_Recommended_Description",
             ImportOption.ImportRecommended, isDark);
 
-        // Card 3: Import backup config - History icon
         var backupIcon = new FluentIcons.WinUI.FluentIcon { Icon = FluentIcons.Common.Icon.History, IconVariant = FluentIcons.Common.IconVariant.Regular, FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
         var backupCard = CreateOptionCard(backupIcon,
             "Dialog_ImportConfig_Option_Backup_Title",
             "Dialog_ImportConfig_Option_Backup_Description",
             ImportOption.ImportBackup, isDark);
 
-        // Card 4: Import Windows defaults - Refresh icon
         var defaultsIcon = new FluentIcons.WinUI.FluentIcon { Icon = FluentIcons.Common.Icon.ArrowReset, IconVariant = FluentIcons.Common.IconVariant.Regular, FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
         var defaultsCard = CreateOptionCard(defaultsIcon,
             "Dialog_ImportConfig_Option_Defaults_Title",
             "Dialog_ImportConfig_Option_Defaults_Description",
             ImportOption.ImportWindowsDefaults, isDark, isLast: true);
 
-        var skipReviewText = _localization.GetString("Review_Mode_Skip_Checkbox") ?? "Skip review and apply immediately";
+        var skipReviewText = _localization.GetStringOrDefault("Review_Mode_Skip_Checkbox", "Skip review and apply immediately");
         _skipReviewCheckbox = new CheckBox
         {
             Content = skipReviewText,
@@ -105,32 +98,35 @@ internal class ConfigImportDialogBuilder
             Margin = new Thickness(0, 12, 0, 0)
         };
 
-        var (optionsPanel, importControls) = BuildImportOptionsGrid(skipReviewText);
+        var (optionsPanel, importControls) = BuildImportOptionsGrid();
         _winAppsInstallRadio = importControls.WinAppsInstall;
         _winAppsUninstallRadio = importControls.WinAppsUninstall;
         _winAppsSelectOnlyRadio = importControls.WinAppsSelectOnly;
         _extAppsInstallRadio = importControls.ExtAppsInstall;
         _extAppsUninstallRadio = importControls.ExtAppsUninstall;
         _extAppsSelectOnlyRadio = importControls.ExtAppsSelectOnly;
-        _themeWallpaperCheckbox = importControls.ThemeWallpaper;
         _cleanTaskbarCheckbox = importControls.CleanTaskbar;
         _cleanStartMenuCheckbox = importControls.CleanStartMenu;
 
-        // Enable/disable options panel based on skip review checkbox
         _skipReviewCheckbox.Checked += (_, _) =>
         {
             optionsPanel.Opacity = 1.0;
             SetImportControlsEnabled(true);
-            DialogAccessibilityHelper.AnnounceToNarrator(_skipReviewCheckbox, $"{skipReviewText}: {_localization.GetString("Accessibility_Checked") ?? "Checked"}");
+            DialogAccessibilityHelper.AnnounceToNarrator(_skipReviewCheckbox, $"{skipReviewText}: {_localization.GetStringOrDefault("Common_Checked", "Checked")}");
         };
         _skipReviewCheckbox.Unchecked += (_, _) =>
         {
             optionsPanel.Opacity = 0.4;
             SetImportControlsEnabled(false);
-            DialogAccessibilityHelper.AnnounceToNarrator(_skipReviewCheckbox, $"{skipReviewText}: {_localization.GetString("Accessibility_Unchecked") ?? "Unchecked"}");
+            DialogAccessibilityHelper.AnnounceToNarrator(_skipReviewCheckbox, $"{skipReviewText}: {_localization.GetStringOrDefault("Common_Unchecked", "Unchecked")}");
         };
 
         var contentPanel = new StackPanel { Spacing = 0, Margin = new Thickness(0, 0, 14, 0) };
+        if (_sections.Build() is { } sections)
+        {
+            sections.Margin = new Thickness(0, 0, 0, 12);
+            contentPanel.Children.Add(sections);
+        }
         contentPanel.Children.Add(new TextBlock
         {
             Text = _localization.GetString("Dialog_ImportOptions_Message"),
@@ -155,15 +151,12 @@ internal class ConfigImportDialogBuilder
         return _dialog;
     }
 
-    /// <summary>
-    /// Extracts the result from the dialog after it has been shown.
-    /// Must be called after the dialog's ShowAsync returns.
-    /// </summary>
-    public (ImportOption? Option, ImportOptions Options) ExtractResult(ContentDialogResult dialogResult)
+    // Must be called after ShowAsync returns.
+    public (ImportOption? Option, ImportOptions Options, bool HideExplanation) ExtractResult(ContentDialogResult dialogResult)
     {
         if (dialogResult != ContentDialogResult.Primary)
         {
-            _selectedOption = null; // Cancel was clicked, discard any selection
+            _selectedOption = null;
         }
 
         bool skipReview = _skipReviewCheckbox.IsChecked == true;
@@ -175,11 +168,10 @@ internal class ConfigImportDialogBuilder
             // Select Only: neither Install nor Uninstall flag is set -- apps get pre-selected only
             ProcessExternalAppsInstallation = skipReview && _extAppsInstallRadio.IsChecked == true,
             ProcessExternalAppsRemoval = skipReview && _extAppsUninstallRadio.IsChecked == true,
-            ApplyThemeWallpaper = skipReview && _themeWallpaperCheckbox.IsChecked == true,
             ApplyCleanTaskbar = skipReview && _cleanTaskbarCheckbox.IsChecked == true,
             ApplyCleanStartMenu = skipReview && _cleanStartMenuCheckbox.IsChecked == true,
         };
-        return (_selectedOption, importOptions);
+        return (_selectedOption, importOptions, _selectedOption is not null && _sections.HideExplanation);
     }
 
     private void SetImportControlsEnabled(bool enabled)
@@ -190,7 +182,6 @@ internal class ConfigImportDialogBuilder
         _extAppsInstallRadio.IsEnabled = enabled;
         _extAppsUninstallRadio.IsEnabled = enabled;
         _extAppsSelectOnlyRadio.IsEnabled = enabled;
-        _themeWallpaperCheckbox.IsEnabled = enabled;
         _cleanTaskbarCheckbox.IsEnabled = enabled;
         _cleanStartMenuCheckbox.IsEnabled = enabled;
     }
@@ -219,19 +210,17 @@ internal class ConfigImportDialogBuilder
         contentPanel2.Children.Add(icon);
         contentPanel2.Children.Add(textPanel);
 
-        // Layer 0: Background fill with subtle border
         var bgBorder = new Border
         {
-            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            Style = Named("CodeBuilt.OptionFillRest"),
             BorderBrush = new SolidColorBrush(isDark ? Microsoft.UI.Colors.White : Microsoft.UI.Colors.Black),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4)
         };
 
-        // Layer 1: Accent border
         var accentBorder = new Border
         {
-            BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            Style = Named("CodeBuilt.OptionFrameRest"),
             BorderThickness = new Thickness(2),
             CornerRadius = new CornerRadius(4)
         };
@@ -261,18 +250,15 @@ internal class ConfigImportDialogBuilder
 
         cardButton.Click += (_, _) =>
         {
-            // Re-click same card: no-op
             if (_selectedCardButton == cardButton) return;
 
-            // Deselect previous card
             if (_selectedBgBorder != null)
-                _selectedBgBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+                _selectedBgBorder.Style = Named("CodeBuilt.OptionFillRest");
             if (_selectedAccentBorder != null)
-                _selectedAccentBorder.BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+                _selectedAccentBorder.Style = Named("CodeBuilt.OptionFrameRest");
 
-            // Select this card
-            bgBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorTertiaryBrush"];
-            accentBorder.BorderBrush = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
+            bgBorder.Style = Named("CodeBuilt.OptionFillSelected");
+            accentBorder.Style = Named("CodeBuilt.OptionFrameSelected");
 
             _selectedCardButton = cardButton;
             _selectedBgBorder = bgBorder;
@@ -280,43 +266,39 @@ internal class ConfigImportDialogBuilder
             _selectedOption = option;
             _dialog.IsPrimaryButtonEnabled = true;
 
-            // Announce the selection to Narrator
             DialogAccessibilityHelper.AnnounceToNarrator(
                 cardButton,
-                $"{_localization.GetString("Accessibility_Selected") ?? "Selected"}: {titleText}",
+                $"{_localization.GetStringOrDefault("Accessibility_Selected", "Selected")}: {titleText}",
                 "ConfigOptionSelected");
         };
 
         cardButton.PointerEntered += (_, _) =>
         {
             if (_selectedCardButton != cardButton)
-                bgBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorSecondaryBrush"];
+                bgBorder.Style = Named("CodeBuilt.OptionFillHover");
         };
 
         cardButton.PointerExited += (_, _) =>
         {
             if (_selectedCardButton != cardButton)
-                bgBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+                bgBorder.Style = Named("CodeBuilt.OptionFillRest");
         };
 
-        // Show hover-like state on keyboard focus
         cardButton.GotFocus += (_, _) =>
         {
             if (_selectedCardButton != cardButton)
-                bgBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorSecondaryBrush"];
+                bgBorder.Style = Named("CodeBuilt.OptionFillHover");
         };
         cardButton.LostFocus += (_, _) =>
         {
             if (_selectedCardButton != cardButton)
-                bgBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+                bgBorder.Style = Named("CodeBuilt.OptionFillRest");
         };
 
         return cardButton;
     }
 
-    /// <summary>
-    /// Record to hold references to import option controls for result extraction.
-    /// </summary>
+
     private record ImportOptionControls(
         RadioButton WinAppsInstall,
         RadioButton WinAppsUninstall,
@@ -324,11 +306,10 @@ internal class ConfigImportDialogBuilder
         RadioButton ExtAppsInstall,
         RadioButton ExtAppsUninstall,
         RadioButton ExtAppsSelectOnly,
-        CheckBox ThemeWallpaper,
         CheckBox CleanTaskbar,
         CheckBox CleanStartMenu);
 
-    private (StackPanel Panel, ImportOptionControls Controls) BuildImportOptionsGrid(string skipReviewText)
+    private (StackPanel Panel, ImportOptionControls Controls) BuildImportOptionsGrid()
     {
         // Use a Grid so label and radio columns align across both rows
         var appsGrid = new Grid
@@ -344,13 +325,12 @@ internal class ConfigImportDialogBuilder
         appsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         appsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        var winAppsText = _localization.GetString("Config_Import_Options_WindowsApps") ?? "Windows Apps";
-        var extAppsText = _localization.GetString("Config_Import_Options_ExternalApps") ?? "External Apps";
-        var installText = _localization.GetString("Config_Import_Options_Install") ?? "Install";
-        var uninstallText = _localization.GetString("Config_Import_Options_Uninstall") ?? "Uninstall";
-        var selectOnlyText = _localization.GetString("Config_Import_Options_SelectOnly") ?? "Select Only";
+        var winAppsText = _localization.GetStringOrDefault("Config_Import_Options_WindowsApps", "Windows Apps:");
+        var extAppsText = _localization.GetStringOrDefault("Config_Import_Options_ExternalApps", "External Apps:");
+        var installText = _localization.GetStringOrDefault("Config_Import_Options_Install", "Install");
+        var uninstallText = _localization.GetStringOrDefault("Config_Import_Options_Uninstall", "Uninstall");
+        var selectOnlyText = _localization.GetStringOrDefault("Config_Import_Options_SelectOnly", "Select Only");
 
-        // Row 0: Windows Apps
         var winAppsLabel = new TextBlock
         {
             Text = winAppsText,
@@ -365,7 +345,6 @@ internal class ConfigImportDialogBuilder
         var winAppsUninstallRadio = CreateRadioButton(uninstallText, "WindowsApps", true, winAppsText, uninstallText, 0, 2);
         var winAppsSelectOnlyRadio = CreateRadioButton(selectOnlyText, "WindowsApps", false, winAppsText, selectOnlyText, 0, 3);
 
-        // Row 1: External Apps
         var extAppsLabel = new TextBlock
         {
             Text = extAppsText,
@@ -389,17 +368,12 @@ internal class ConfigImportDialogBuilder
         appsGrid.Children.Add(extAppsUninstallRadio);
         appsGrid.Children.Add(extAppsSelectOnlyRadio);
 
-        // Customize action checkboxes
-        var themeWallpaperCheckbox = CreateAccessibleCheckBox(
-            _localization.GetString("Config_Import_Options_ThemeWallpaper") ?? "Apply default wallpaper for theme",
+        var cleanTaskbarCheckbox = CreateAccessibleCheckBox(
+            _localization.GetStringOrDefault("Config_Import_Options_CleanTaskbar", "Clean Taskbar"),
             isChecked: true, margin: new Thickness(0, 2, 0, 0));
 
-        var cleanTaskbarCheckbox = CreateAccessibleCheckBox(
-            _localization.GetString("Config_Import_Options_CleanTaskbar") ?? "Clean Taskbar",
-            isChecked: true);
-
         var cleanStartMenuCheckbox = CreateAccessibleCheckBox(
-            _localization.GetString("Config_Import_Options_CleanStartMenu") ?? "Clean Start Menu",
+            _localization.GetStringOrDefault("Config_Import_Options_CleanStartMenu", "Clean Start Menu"),
             isChecked: true);
 
         var optionsPanel = new StackPanel
@@ -408,14 +382,13 @@ internal class ConfigImportDialogBuilder
             Opacity = 0.4
         };
         optionsPanel.Children.Add(appsGrid);
-        optionsPanel.Children.Add(themeWallpaperCheckbox);
         optionsPanel.Children.Add(cleanTaskbarCheckbox);
         optionsPanel.Children.Add(cleanStartMenuCheckbox);
 
         var controls = new ImportOptionControls(
             winAppsInstallRadio, winAppsUninstallRadio, winAppsSelectOnlyRadio,
             extAppsInstallRadio, extAppsUninstallRadio, extAppsSelectOnlyRadio,
-            themeWallpaperCheckbox, cleanTaskbarCheckbox, cleanStartMenuCheckbox);
+            cleanTaskbarCheckbox, cleanStartMenuCheckbox);
 
         return (optionsPanel, controls);
     }
@@ -454,10 +427,10 @@ internal class ConfigImportDialogBuilder
 
         checkBox.Checked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
             checkBox,
-            $"{text}: {_localization.GetString("Accessibility_Checked") ?? "Checked"}");
+            $"{text}: {_localization.GetStringOrDefault("Common_Checked", "Checked")}");
         checkBox.Unchecked += (_, _) => DialogAccessibilityHelper.AnnounceToNarrator(
             checkBox,
-            $"{text}: {_localization.GetString("Accessibility_Unchecked") ?? "Unchecked"}");
+            $"{text}: {_localization.GetStringOrDefault("Common_Unchecked", "Unchecked")}");
 
         return checkBox;
     }

@@ -1,127 +1,123 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
+
 namespace Winhance.Infrastructure.Features.Optimize.Services;
 
-public class UpdateService(
+internal class UpdateService(
     ILogService logService,
-    IWindowsRegistryService registryService,
     IProcessExecutor processExecutor,
     IPowerShellRunner powerShellRunner,
-    IFileSystemService fileSystemService) : ISpecialSettingHandler
+    IFileSystemService fileSystemService,
+    IStateWriter stateWriter,
+    IAsyncEffectRunner asyncEffectRunner) : ISpecialSettingHandler
 {
-    public async Task<bool> TryApplySpecialSettingAsync(SettingDefinition setting, object value, bool additionalContext = false, ISettingApplicationService? settingApplicationService = null)
+    public async Task<bool> TryApplySpecialSettingAsync(string settingId, object value, ISettingApplicationService? settingApplicationService = null)
     {
-        if (setting.Id == SettingIds.UpdatesPolicyMode && value is int index)
+        if (settingId == "updates-policy-mode" && value is int index)
         {
-            await ApplyUpdatesPolicyModeAsync(setting, index, settingApplicationService).ConfigureAwait(false);
+            await ApplyUpdatesPolicyModeAsync(index, settingApplicationService).ConfigureAwait(false);
             return true;
         }
         return false;
     }
 
-    public async Task<Dictionary<string, Dictionary<string, object?>>> DiscoverSpecialSettingsAsync(IEnumerable<SettingDefinition> settings)
-    {
-        var results = new Dictionary<string, Dictionary<string, object?>>();
-
-        var updatesSetting = settings.FirstOrDefault(s => s.Id == SettingIds.UpdatesPolicyMode);
-        if (updatesSetting != null)
-        {
-            var currentIndex = await GetCurrentUpdatePolicyIndexAsync().ConfigureAwait(false);
-            results[SettingIds.UpdatesPolicyMode] = new Dictionary<string, object?> { ["CurrentPolicyIndex"] = currentIndex };
-        }
-
-        return results;
-    }
-
-    public async Task ApplyUpdatesPolicyModeAsync(SettingDefinition setting, object value, ISettingApplicationService? settingApplicationService = null)
+    public async Task ApplyUpdatesPolicyModeAsync(object value, ISettingApplicationService? settingApplicationService = null)
     {
         if (value is not int selectionIndex)
             throw new ArgumentException("Expected integer selection index");
 
-        logService.Log(LogLevel.Info, $"[UpdateService] Applying updates-policy-mode with index: {selectionIndex}");
+        logService.Log(LogLevel.Info, $"Applying updates-policy-mode with index: {selectionIndex}");
 
         switch (selectionIndex)
         {
             case 0:
-                await ApplyNormalModeAsync(setting).ConfigureAwait(false);
+                await ApplyNormalModeAsync().ConfigureAwait(false);
                 break;
             case 1:
-                await ApplySecurityOnlyModeAsync(setting).ConfigureAwait(false);
+                await ApplySecurityOnlyModeAsync().ConfigureAwait(false);
                 break;
             case 2:
-                await ApplyPausedModeAsync(setting, settingApplicationService).ConfigureAwait(false);
+                await ApplyPausedModeAsync(settingApplicationService).ConfigureAwait(false);
                 break;
             case 3:
-                await ApplyDisabledModeAsync(setting, settingApplicationService).ConfigureAwait(false);
+                await ApplyDisabledModeAsync(settingApplicationService).ConfigureAwait(false);
+                break;
+            case 4:
+                await ApplyNotifyOnlyModeAsync().ConfigureAwait(false);
                 break;
             default:
                 throw new ArgumentException($"Invalid selection index: {selectionIndex}");
         }
 
-        logService.Log(LogLevel.Info, $"[UpdateService] Successfully applied updates-policy-mode index {selectionIndex}");
+        logService.Log(LogLevel.Info, $"Successfully applied updates-policy-mode index {selectionIndex}");
     }
 
-    private async Task ApplyNormalModeAsync(SettingDefinition setting)
+    private async Task ApplyNormalModeAsync()
     {
         await RestoreCriticalDllsAsync().ConfigureAwait(false);
         await EnableUpdateServicesAsync().ConfigureAwait(false);
         await EnableUpdateTasksAsync().ConfigureAwait(false);
-        ApplyRegistrySettingsForIndex(setting, 0);
+        await ApplyRegistrySettingsForIndexAsync(0).ConfigureAwait(false);
     }
 
-    private async Task ApplySecurityOnlyModeAsync(SettingDefinition setting)
+    private async Task ApplySecurityOnlyModeAsync()
     {
         await RestoreCriticalDllsAsync().ConfigureAwait(false);
         await EnableUpdateServicesAsync().ConfigureAwait(false);
-        ApplyRegistrySettingsForIndex(setting, 1);
+        await EnableUpdateTasksAsync().ConfigureAwait(false);
+        await ApplyRegistrySettingsForIndexAsync(1).ConfigureAwait(false);
+    }
+
+    private async Task ApplyNotifyOnlyModeAsync()
+    {
+        await RestoreCriticalDllsAsync().ConfigureAwait(false);
+        await EnableUpdateServicesAsync().ConfigureAwait(false);
+        await EnableUpdateTasksAsync().ConfigureAwait(false);
+        await ApplyRegistrySettingsForIndexAsync(4).ConfigureAwait(false);
     }
 
     // Based on work by Aetherinox: https://github.com/Aetherinox/pause-windows-updates/blob/main/windows-updates-pause.reg
-    private async Task ApplyPausedModeAsync(SettingDefinition setting, ISettingApplicationService? settingApplicationService)
+    private async Task ApplyPausedModeAsync(ISettingApplicationService? settingApplicationService)
     {
-        logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before pausing updates");
+        logService.Log(LogLevel.Info, "Applying recommended settings before pausing updates");
         try
         {
             if (settingApplicationService == null)
                 throw new InvalidOperationException("settingApplicationService is required for applying recommended settings");
-            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync(setting.Id).ConfigureAwait(false);
+            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync("updates-policy-mode").ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Warning, $"[UpdateService] Failed to apply some recommended settings: {ex.Message}");
+            logService.Log(LogLevel.Warning, $"Failed to apply some recommended settings: {ex.Message}");
         }
 
         await RestoreCriticalDllsAsync().ConfigureAwait(false);
         await SetUpdateServicesManualAsync().ConfigureAwait(false);
-        ApplyRegistrySettingsForIndex(setting, 2);
+        await EnableUpdateTasksAsync().ConfigureAwait(false);
+        await ApplyRegistrySettingsForIndexAsync(2).ConfigureAwait(false);
     }
 
     // Based on work by Chris Titus: https://github.com/ChrisTitusTech/winutil/blob/main/functions/public/Invoke-WPFUpdatesdisable.ps1
-    private async Task ApplyDisabledModeAsync(SettingDefinition setting, ISettingApplicationService? settingApplicationService)
+    private async Task ApplyDisabledModeAsync(ISettingApplicationService? settingApplicationService)
     {
-        logService.Log(LogLevel.Info, "[UpdateService] Applying recommended settings before disabling updates");
+        logService.Log(LogLevel.Info, "Applying recommended settings before disabling updates");
         try
         {
             if (settingApplicationService == null)
                 throw new InvalidOperationException("settingApplicationService is required for applying recommended settings");
-            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync(setting.Id).ConfigureAwait(false);
+            await settingApplicationService.ApplyRecommendedSettingsForFeatureAsync("updates-policy-mode").ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Warning, $"[UpdateService] Failed to apply some recommended settings: {ex.Message}");
+            logService.Log(LogLevel.Warning, $"Failed to apply some recommended settings: {ex.Message}");
         }
 
         await DisableUpdateServicesAsync().ConfigureAwait(false);
         await DisableUpdateTasksAsync().ConfigureAwait(false);
         await RenameCriticalDllsAsync().ConfigureAwait(false);
         await CleanupUpdateFilesAsync().ConfigureAwait(false);
-        ApplyRegistrySettingsForIndex(setting, 3);
+        await ApplyRegistrySettingsForIndexAsync(3).ConfigureAwait(false);
     }
 
     private async Task<(bool Success, string Output, string Error)> RunCommandAsync(string command)
@@ -342,97 +338,23 @@ public class UpdateService(
         }
     }
 
-    private void ApplyRegistrySettingsForIndex(SettingDefinition setting, int index)
+    private async Task ApplyRegistrySettingsForIndexAsync(int index)
     {
-        var options = setting.ComboBox?.Options;
-        if (options == null || index < 0 || index >= options.Count)
-            return;
-
-        var valueMapping = options[index].ValueMappings;
-        if (valueMapping == null)
-            return;
-
-        foreach (var registrySetting in setting.RegistrySettings)
+        // The updates-policy-mode Setting's States are authored one-per-option in option order, so States[index] is
+        // the chosen mode; its Set encodes that mode's per-option registry writes.
+        var catalogSetting = SettingCatalog.Find("updates-policy-mode");
+        if (catalogSetting == null || index < 0 || index >= catalogSetting.States.Count)
         {
-            try
-            {
-                if (valueMapping.TryGetValue(registrySetting.ValueName!, out var value))
-                {
-                    if (value == null)
-                    {
-                        registryService.ApplySetting(registrySetting, false);
-                    }
-                    else
-                    {
-                        registryService.ApplySetting(registrySetting, true, value);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logService.Log(LogLevel.Warning, $"Failed to apply registry setting {registrySetting.ValueName}: {ex.Message}");
-            }
-        }
-    }
-
-    public async Task<int> GetCurrentUpdatePolicyIndexAsync()
-    {
-        if (AreCriticalDllsRenamed())
-            return 3;
-
-        if (IsUpdatesPaused())
-            return 2;
-
-        var deferFeature = registryService.GetValue(
-            @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
-            "DeferFeatureUpdates");
-
-        if (deferFeature is int defer && defer == 1)
-            return 1;
-
-        return 0;
-    }
-
-    private bool AreCriticalDllsRenamed()
-    {
-        var dlls = new[] { "WaaSMedicSvc.dll", "wuaueng.dll" };
-
-        foreach (var dll in dlls)
-        {
-            var dllPath = $@"C:\Windows\System32\{dll}";
-            var backupPath = $@"C:\Windows\System32\{fileSystemService.GetFileNameWithoutExtension(dll)}_BAK.dll";
-
-            if (fileSystemService.FileExists(backupPath) && !fileSystemService.FileExists(dllPath))
-                return true;
+            logService.Log(LogLevel.Warning,
+                $"updates-policy-mode missing from the catalog or index {index} out of range - registry block skipped");
+            return;
         }
 
-        return false;
-    }
-
-    private bool IsUpdatesPaused()
-    {
-        var pauseStart = registryService.GetValue(
-            @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
-            "PauseUpdatesStartTime");
-
-        var pauseExpiry = registryService.GetValue(
-            @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
-            "PauseUpdatesExpiryTime");
-
-        if (pauseStart != null || pauseExpiry != null)
-            return true;
-
-        var pausedQuality = registryService.GetValue(
-            @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
-            "PausedQualityDate");
-
-        var pausedFeature = registryService.GetValue(
-            @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings",
-            "PausedFeatureDate");
-
-        if (pausedQuality != null || pausedFeature != null)
-            return true;
-
-        return false;
+        var plan = ApplyPlan.From(ApplyPlanBuilder.Build(catalogSetting, catalogSetting.States[index].Label));
+        var result = ApplyExecutor.Execute(plan, stateWriter);
+        var failures = result.Failures.Concat(await asyncEffectRunner.RunAllAsync(plan.AsyncEffects).ConfigureAwait(false)).ToList();
+        if (failures.Count > 0)
+            logService.Log(LogLevel.Warning,
+                $"{failures.Count}/{plan.Total} update-policy apply op(s) failed: {string.Join("; ", failures)}");
     }
 }

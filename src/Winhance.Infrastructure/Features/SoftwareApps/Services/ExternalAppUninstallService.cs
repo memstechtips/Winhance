@@ -1,10 +1,4 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Win32;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Enums;
@@ -13,19 +7,24 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class ExternalAppUninstallService(
+internal class ExternalAppUninstallService(
     IWinGetPackageInstaller winGetPackageInstaller,
     IChocolateyService chocolateyService,
     ILogService logService,
-    IInteractiveUserService interactiveUserService,
+    IWindowsRegistryService registry,
     ITaskProgressService taskProgressService,
-    IProcessExecutor processExecutor) : IExternalAppUninstallService
+    IProcessExecutor processExecutor,
+    IStagedAppInstaller stagedAppInstaller,
+    ILocalizationService localization) : IExternalAppUninstallService
 {
     public async Task<OperationResult<bool>> UninstallAsync(
         ItemDefinition item,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        if (await stagedAppInstaller.UninstallPortableAsync(item, cancellationToken).ConfigureAwait(false) is { } portable)
+            return portable;
+
         var method = await DetermineUninstallMethodAsync(item).ConfigureAwait(false);
 
         return method switch
@@ -55,8 +54,7 @@ public class ExternalAppUninstallService(
                 return UninstallMethod.AppX;
 
             case DetectionSource.Registry:
-                var (regFound, _) = await GetUninstallStringAsync(item).ConfigureAwait(false);
-                if (regFound)
+                if ((await GetUninstallStringsAsync(item).ConfigureAwait(false)).Count > 0)
                     return UninstallMethod.Registry;
                 break;
 
@@ -64,8 +62,13 @@ public class ExternalAppUninstallService(
                 return UninstallMethod.FileSystem;
         }
 
-        // Default: prefer WinGet if available, then Registry
-        if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Any()))
+        // winget runs a registered exe UninstallString as written and takes no switch for it, so Chromium's setup.exe
+        // asks to confirm once per installed scope and then opens the vendor's page. The registry path adds the switch.
+        var uninstallStrings = await GetUninstallStringsAsync(item).ConfigureAwait(false);
+        if (uninstallStrings.Any(IsChromiumUninstallString))
+            return UninstallMethod.Registry;
+
+        if (!string.IsNullOrEmpty(item.MsStoreId) || (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0))
             return UninstallMethod.WinGet;
 
         if (!string.IsNullOrEmpty(item.ChocoPackageId))
@@ -75,11 +78,7 @@ public class ExternalAppUninstallService(
                 return UninstallMethod.Chocolatey;
         }
 
-        var (found, _2) = await GetUninstallStringAsync(item).ConfigureAwait(false);
-        if (found)
-            return UninstallMethod.Registry;
-
-        return UninstallMethod.None;
+        return uninstallStrings.Count > 0 ? UninstallMethod.Registry : UninstallMethod.None;
     }
 
     private async Task<OperationResult<bool>> UninstallViaWinGetAsync(ItemDefinition item, CancellationToken cancellationToken)
@@ -89,15 +88,15 @@ public class ExternalAppUninstallService(
             string? packageId;
             string? source;
 
-            if (item.WinGetPackageId != null && item.WinGetPackageId.Any())
+            if (item.WinGetPackageId != null && item.WinGetPackageId.Length > 0)
             {
                 packageId = item.WinGetPackageId[0];
-                source = "winget";
+                source = WinGetSources.WinGet;
             }
             else if (!string.IsNullOrEmpty(item.MsStoreId))
             {
                 packageId = item.MsStoreId;
-                source = "msstore";
+                source = WinGetSources.MsStore;
             }
             else
             {
@@ -108,7 +107,7 @@ public class ExternalAppUninstallService(
             if (string.IsNullOrEmpty(packageId))
             {
                 logService.LogWarning($"No WinGet package ID for {item.Name}, falling back to registry");
-                taskProgressService.UpdateProgress(0, $"No WinGet package ID for {item.Name}, trying registry fallback...");
+                ReportStatus(localization.GetString("Progress_Uninstall_TryingRegistry", item.Name));
                 return await UninstallViaRegistryAsync(item, cancellationToken).ConfigureAwait(false);
             }
 
@@ -116,7 +115,6 @@ public class ExternalAppUninstallService(
 
             if (!success)
             {
-                // Fallback: try Chocolatey if available, then AppX, then registry.
                 // AppX defends against detection mis-classification: if the item carries
                 // an AppxPackageName but DetectedVia routed to WinGet (e.g. a Store-UI
                 // install that winget surfaces as MSIX\... and fails to uninstall by ID),
@@ -124,7 +122,7 @@ public class ExternalAppUninstallService(
                 if (!string.IsNullOrEmpty(item.ChocoPackageId))
                 {
                     logService.LogWarning($"WinGet uninstall failed for {item.Name}, attempting Chocolatey fallback");
-                    taskProgressService.UpdateProgress(0, $"WinGet uninstall failed for {item.Name}, trying Chocolatey...");
+                    ReportStatus(localization.GetString("Progress_Uninstall_TryingChocolatey", item.Name));
                     var chocoResult = await UninstallViaChocolateyAsync(item, cancellationToken).ConfigureAwait(false);
                     if (chocoResult.Success)
                         return chocoResult;
@@ -133,14 +131,14 @@ public class ExternalAppUninstallService(
                 if (item.AppxPackageName?.Length > 0)
                 {
                     logService.LogWarning($"WinGet uninstall failed for {item.Name}, attempting AppX fallback");
-                    taskProgressService.UpdateProgress(0, $"Trying AppX fallback for {item.Name}...");
+                    ReportStatus(localization.GetString("Progress_Uninstall_TryingAppX", item.Name));
                     var appxResult = await UninstallViaAppxAsync(item, cancellationToken).ConfigureAwait(false);
                     if (appxResult.Success)
                         return appxResult;
                 }
 
                 logService.LogWarning($"Uninstall failed for {item.Name}, attempting registry fallback");
-                taskProgressService.UpdateProgress(0, $"Trying registry fallback for {item.Name}...");
+                ReportStatus(localization.GetString("Progress_Uninstall_TryingRegistry", item.Name));
                 return await UninstallViaRegistryAsync(item, cancellationToken).ConfigureAwait(false);
             }
 
@@ -176,7 +174,7 @@ public class ExternalAppUninstallService(
             if (!success)
             {
                 logService.LogWarning($"Chocolatey uninstall failed for {item.Name}, attempting registry fallback");
-                taskProgressService.UpdateProgress(0, $"Chocolatey uninstall failed for {item.Name}, trying registry fallback...");
+                ReportStatus(localization.GetString("Progress_Uninstall_TryingRegistry", item.Name));
                 return await UninstallViaRegistryAsync(item, cancellationToken).ConfigureAwait(false);
             }
 
@@ -197,22 +195,34 @@ public class ExternalAppUninstallService(
     {
         try
         {
-            var (found, uninstallString) = await GetUninstallStringAsync(item).ConfigureAwait(false);
+            var uninstallStrings = await GetUninstallStringsAsync(item).ConfigureAwait(false);
 
-            if (!found || string.IsNullOrWhiteSpace(uninstallString))
+            if (uninstallStrings.Count == 0)
             {
                 logService.LogError($"No uninstall string found for {item.Name}");
-                return OperationResult<bool>.Failed($"Cannot uninstall {item.Name}: No uninstall method found");
+                var notFound = localization.GetString("Progress_Uninstall_NotFound", item.Name);
+                ReportStatus(notFound);
+                return OperationResult<bool>.Failed(notFound);
             }
 
-            logService.LogInformation($"Uninstalling {item.Name} via registry: {uninstallString}");
+            var ranWinGet = false;
+            foreach (var uninstallString in uninstallStrings)
+            {
+                logService.LogInformation($"Uninstalling {item.Name} via registry: {uninstallString}");
+                var (fileName, arguments) = ParseUninstallString(uninstallString);
+                await processExecutor.ShellExecuteAsync(fileName, arguments, waitForExit: true, cancellationToken).ConfigureAwait(false);
+                ranWinGet |= string.Equals(Path.GetFileNameWithoutExtension(fileName), "winget", StringComparison.OrdinalIgnoreCase);
+            }
 
-            var (fileName, arguments) = ParseUninstallString(uninstallString);
-
-            await processExecutor.ShellExecuteAsync(fileName, arguments, waitForExit: true, cancellationToken).ConfigureAwait(false);
+            // winget exits 0 for a package it cannot remove, so its entry still being there is the failure signal.
+            if (ranWinGet && (await GetUninstallStringsAsync(item).ConfigureAwait(false)).Count > 0)
+            {
+                logService.LogError($"winget left {item.Name} installed");
+                return OperationResult<bool>.Failed($"Uninstall failed: {item.Name} is still installed");
+            }
 
             logService.LogInformation($"Uninstall process for {item.Name} completed successfully");
-            taskProgressService.UpdateProgress(100, $"Uninstall process for {item.Name} completed successfully");
+            taskProgressService.UpdateProgress(100, localization.GetString("Progress_UninstalledSuccess", item.Name));
 
             await CleanupStaleChocoRecordAsync(item, cancellationToken).ConfigureAwait(false);
             return OperationResult<bool>.Succeeded(true);
@@ -251,6 +261,10 @@ public class ExternalAppUninstallService(
             logService.LogWarning($"Chocolatey ghost-record cleanup for {item.Name} errored: {ex.Message}");
         }
     }
+
+    // A fallback is the next attempt, not a failure: a 0 % report would leave the bar showing the run failed.
+    private void ReportStatus(string text) =>
+        taskProgressService.UpdateDetailedProgress(new TaskProgressDetail { StatusText = text });
 
     // AppX uninstall for External Apps. Uses the WinRT PackageManager API directly
     // (in-process, not via a saved PowerShell script). Persistent-removal scripts
@@ -322,7 +336,7 @@ public class ExternalAppUninstallService(
             }
 
             logService.LogInformation($"AppX uninstall for {item.Name} completed ({removed} package(s) removed)");
-            taskProgressService.UpdateProgress(100, $"Uninstall of {item.Name} completed successfully");
+            taskProgressService.UpdateProgress(100, localization.GetString("Progress_UninstalledSuccess", item.Name));
 
             await CleanupStaleChocoRecordAsync(item, cancellationToken).ConfigureAwait(false);
             return OperationResult<bool>.Succeeded(true);
@@ -369,7 +383,7 @@ public class ExternalAppUninstallService(
             if (deletedCount > 0)
             {
                 logService.LogInformation($"FileSystem uninstall for {item.Name} completed ({deletedCount} path(s) removed)");
-                taskProgressService.UpdateProgress(100, $"Uninstall of {item.Name} completed successfully");
+                taskProgressService.UpdateProgress(100, localization.GetString("Progress_UninstalledSuccess", item.Name));
                 return Task.FromResult(OperationResult<bool>.Succeeded(true));
             }
 
@@ -387,100 +401,57 @@ public class ExternalAppUninstallService(
         }
     }
 
-    private async Task<(bool Found, string UninstallString)> GetUninstallStringAsync(ItemDefinition item)
+    // The first matching key that has a command, plus the same key in the other roots: an app installed per machine
+    // and per user has one under HKLM and one under HKCU, and leaving either keeps it installed. Other keys that only
+    // match the name stay out, so "Contoso" never removes "Contoso Beta".
+    private async Task<IReadOnlyList<string>> GetUninstallStringsAsync(ItemDefinition item)
     {
-        return await Task.Run(() =>
+        return await Task.Run<IReadOnlyList<string>>(() =>
         {
-            // OTS: redirect HKCU to HKU\{interactive user SID} so we read
-            // the standard user's uninstall keys, not the admin's.
-            var hkcuUninstallPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
-            RegistryKey hkcuHive;
-            string hkcuPath;
+            var matches = UninstallRegistryReader.ReadAll(registry)
+                .Where(entry => MatchesUninstallKey(item, entry) && !string.IsNullOrWhiteSpace(entry.UninstallString))
+                .ToList();
+            if (matches.Count == 0)
+                return [];
 
-            if (interactiveUserService.IsOtsElevation && interactiveUserService.InteractiveUserSid != null)
-            {
-                hkcuHive = Registry.Users;
-                hkcuPath = $@"{interactiveUserService.InteractiveUserSid}\{hkcuUninstallPath}";
-            }
-            else
-            {
-                hkcuHive = Registry.CurrentUser;
-                hkcuPath = hkcuUninstallPath;
-            }
-
-            var registryPaths = new[]
-            {
-                (Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
-                (Registry.LocalMachine, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
-                (hkcuHive, hkcuPath)
-            };
-
-            foreach (var (hive, path) in registryPaths)
-            {
-                try
-                {
-                    using var key = hive.OpenSubKey(path);
-                    if (key == null) continue;
-
-                    foreach (var subKeyName in key.GetSubKeyNames())
-                    {
-                        try
-                        {
-                            using var subKey = key.OpenSubKey(subKeyName);
-                            if (subKey == null) continue;
-
-                            var regDisplayName = subKey.GetValue("DisplayName")?.ToString();
-
-                            // Prefer explicit definition patterns when provided (e.g. AutoHotkey v1's
-                            // "AutoHotkey 1.{version}"), since item.Name ("AutoHotkey v1") won't
-                            // fuzzy-match the actual registry DisplayName ("AutoHotkey 1.1.37.02").
-                            bool matched = false;
-
-                            if (!string.IsNullOrEmpty(item.RegistrySubKeyName)
-                                && AppStatusDiscoveryService.MatchesPattern(subKeyName, item.RegistrySubKeyName!))
-                            {
-                                matched = true;
-                            }
-
-                            if (!matched
-                                && !string.IsNullOrEmpty(item.RegistryDisplayName)
-                                && !string.IsNullOrEmpty(regDisplayName)
-                                && AppStatusDiscoveryService.MatchesPattern(regDisplayName!, item.RegistryDisplayName!))
-                            {
-                                matched = true;
-                            }
-
-                            // Only fall back to fuzzy name matching when the definition didn't
-                            // pin down a precise registry pattern. Apps that set RegistryDisplayName
-                            // or RegistrySubKeyName (e.g. XnView, Steam) do so to AVOID collateral
-                            // hits like "XnView MP" — fuzzy fallback would re-introduce that bug.
-                            if (!matched
-                                && string.IsNullOrEmpty(item.RegistryDisplayName)
-                                && string.IsNullOrEmpty(item.RegistrySubKeyName)
-                                && !string.IsNullOrEmpty(regDisplayName)
-                                && IsFuzzyMatch(item.Name, regDisplayName!))
-                            {
-                                matched = true;
-                            }
-
-                            if (matched)
-                            {
-                                var uninstallString = subKey.GetValue("UninstallString")?.ToString();
-                                if (!string.IsNullOrEmpty(uninstallString))
-                                {
-                                    logService.LogInformation($"Found uninstall string for {item.Name}: {uninstallString}");
-                                    return (true, uninstallString);
-                                }
-                            }
-                        }
-                        catch (Exception ex) { logService.LogDebug($"Failed to read registry subkey '{subKeyName}': {ex.Message}"); }
-                    }
-                }
-                catch (Exception ex) { logService.LogDebug($"Failed to open registry key for uninstall lookup: {ex.Message}"); }
-            }
-
-            return (false, string.Empty);
+            var first = matches[0];
+            var uninstallStrings = matches
+                .Where(entry => string.Equals(entry.KeyName, first.KeyName, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(entry.DisplayName, first.DisplayName, StringComparison.OrdinalIgnoreCase))
+                .Select(entry => entry.UninstallString)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            logService.LogInformation($"Found uninstall string for {item.Name}: {string.Join(" | ", uninstallStrings)}");
+            return uninstallStrings;
         }).ConfigureAwait(false);
+    }
+
+    private bool MatchesUninstallKey(ItemDefinition item, UninstallEntry entry)
+    {
+        // Prefer explicit definition patterns when provided (e.g. AutoHotkey v1's
+        // "AutoHotkey 1.{version}"), since item.Name ("AutoHotkey v1") won't
+        // fuzzy-match the actual registry DisplayName ("AutoHotkey 1.1.37.02").
+        if (!string.IsNullOrEmpty(item.RegistrySubKeyName)
+            && InstalledStatus.MatchesPattern(entry.KeyName, item.RegistrySubKeyName))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrEmpty(item.RegistryDisplayName)
+            && entry.DisplayName.Length > 0
+            && InstalledStatus.MatchesPattern(entry.DisplayName, item.RegistryDisplayName))
+        {
+            return true;
+        }
+
+        // Only fall back to fuzzy name matching when the definition didn't
+        // pin down a precise registry pattern. Apps that set RegistryDisplayName
+        // or RegistrySubKeyName (e.g. XnView, Steam) do so to AVOID collateral
+        // hits like "XnView MP" - fuzzy fallback would re-introduce that bug.
+        return string.IsNullOrEmpty(item.RegistryDisplayName)
+            && string.IsNullOrEmpty(item.RegistrySubKeyName)
+            && entry.DisplayName.Length > 0
+            && IsFuzzyMatch(item.Name, entry.DisplayName);
     }
 
     private bool IsFuzzyMatch(string searchName, string registryName)
@@ -516,40 +487,41 @@ public class ExternalAppUninstallService(
 
     private (string FileName, string Arguments) ParseUninstallString(string uninstallString)
     {
-        if (string.IsNullOrWhiteSpace(uninstallString))
+        var (fileName, arguments) = SplitCommand(uninstallString);
+        arguments = AppendSilentFlags(fileName, arguments);
+        logService.LogInformation($"Parsed command - FileName: {fileName}, Arguments: {arguments}");
+        return (fileName, arguments);
+    }
+
+    private static (string FileName, string Arguments) SplitCommand(string command)
+    {
+        if (string.IsNullOrWhiteSpace(command))
             return (string.Empty, string.Empty);
 
-        uninstallString = uninstallString.Trim();
+        command = command.Trim();
 
-        if (uninstallString.StartsWith("\""))
+        if (command.StartsWith('"'))
         {
-            var endQuoteIndex = uninstallString.IndexOf("\"", 1);
+            var endQuoteIndex = command.IndexOf('"', 1);
             if (endQuoteIndex > 0)
-            {
-                var fileName = uninstallString.Substring(1, endQuoteIndex - 1);
-                var arguments = uninstallString.Length > endQuoteIndex + 1
-                    ? uninstallString.Substring(endQuoteIndex + 1).Trim()
-                    : string.Empty;
-
-                arguments = AppendSilentFlags(fileName, arguments);
-                logService.LogInformation($"Parsed command - FileName: {fileName}, Arguments: {arguments}");
-                return (fileName, arguments);
-            }
+                return (command.Substring(1, endQuoteIndex - 1), command.Substring(endQuoteIndex + 1).Trim());
         }
 
-        var spaceIndex = uninstallString.IndexOf(' ');
-        if (spaceIndex > 0)
-        {
-            var fileName = uninstallString.Substring(0, spaceIndex);
-            var arguments = uninstallString.Substring(spaceIndex + 1).Trim();
-            arguments = AppendSilentFlags(fileName, arguments);
-            logService.LogInformation($"Parsed command - FileName: {fileName}, Arguments: {arguments}");
-            return (fileName, arguments);
-        }
+        var spaceIndex = command.IndexOf(' ');
+        return spaceIndex > 0
+            ? (command.Substring(0, spaceIndex), command.Substring(spaceIndex + 1).Trim())
+            : (command, string.Empty);
+    }
 
-        var finalArgs = AppendSilentFlags(uninstallString, string.Empty);
-        logService.LogInformation($"Parsed command - FileName: {uninstallString}, Arguments: {finalArgs}");
-        return (uninstallString, finalArgs);
+    // Squirrel's Update.exe also takes --uninstall, and is already silent with its own -s.
+    private static bool IsChromiumSetup(string fileName, string arguments) =>
+        string.Equals(Path.GetFileName(fileName), "setup.exe", StringComparison.OrdinalIgnoreCase)
+        && arguments.Contains("--uninstall", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsChromiumUninstallString(string uninstallString)
+    {
+        var (fileName, arguments) = SplitCommand(uninstallString);
+        return IsChromiumSetup(fileName, arguments);
     }
 
     private string AppendSilentFlags(string fileName, string existingArgs)
@@ -564,6 +536,12 @@ public class ExternalAppUninstallService(
                 return $"{existingArgs} /quiet /norestart".Trim();
 
             return existingArgs;
+        }
+        // Chromium's setup.exe ignores /VERYSILENT, asks the user to confirm and opens the vendor's page afterwards.
+        else if (IsChromiumSetup(fileName, existingArgs))
+        {
+            if (!existingArgs.Contains("--force-uninstall", StringComparison.OrdinalIgnoreCase))
+                return $"{existingArgs} --force-uninstall";
         }
         else if (lower.Contains("unins") || lower.Contains("setup"))
         {

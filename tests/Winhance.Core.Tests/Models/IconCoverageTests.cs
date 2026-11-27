@@ -1,32 +1,20 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
 using FluentAssertions;
+using Winhance.Core.Features.SoftwareApps.Catalogs;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Xunit;
 
 namespace Winhance.Core.Tests.Models;
 
-/// <summary>
-/// Invariant: every catalog item that should have a hosted icon in the
-/// memstechtips/package-icons repo actually has one. Guards against adding a new
-/// app / capability / optional-feature without hosting its icon - the repo is the
-/// only icon source for external apps, and the not-installed fallback for Windows
-/// apps.
-///
-/// Checked against a committed snapshot of package-icons/manifest.json
-/// (Assets/package-icons-manifest.json, copied to the test output) because tests
-/// cannot hit the network. Refresh that snapshot whenever package-icons changes -
-/// its manifest is the source of truth.
-/// </summary>
+// The repo is the only icon source for external apps and the not-installed fallback for Windows apps; checked
+// against a committed snapshot of package-icons/manifest.json (tests cannot hit the network) - refresh it
+// whenever package-icons changes.
 public class IconCoverageTests
 {
     // Defs that deliberately have NO hosted icon and fall back to a colored Fluent
     // glyph in-app. Keep in sync with package-icons (design spec 2026-06-05, the
     // "Colored Fluent fallback" cases): OpenSSH x2, Hyper-V Platform/Tools, .NET 3.5,
-    // and the AI / Copilot Windows components.
+    // the AI / Copilot Windows components, and Widgets (its package ships only placeholder art).
     private static readonly HashSet<string> IntentionallyNoHostedIcon = new(StringComparer.Ordinal)
     {
         "capability-openssh-client",
@@ -41,6 +29,7 @@ public class IconCoverageTests
         "windows-app-writing-assistant",
         "windows-app-ai-workloads",
         "windows-app-copilot-plus-pc",
+        "windows-app-widgets",
     };
 
     private static HashSet<string> LoadManifestIconKeys()

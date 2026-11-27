@@ -1,8 +1,16 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.WimUtil.Interfaces;
+using Winhance.Core.Features.Autounattend.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Customize.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Infrastructure.Extensions.DI;
+using Winhance.Infrastructure.Features.Customize.Services;
+using Winhance.Infrastructure.Features.Optimize.Services;
 using Xunit;
 
 namespace Winhance.IntegrationTests.DI;
@@ -27,52 +35,67 @@ public class InfrastructureContainerSmokeTests
     [InlineData(typeof(IInteractiveUserService))]
     [InlineData(typeof(IProcessExecutor))]
     [InlineData(typeof(IUserPreferencesService))]
-    [InlineData(typeof(ICompatibleSettingsRegistry))]
-    [InlineData(typeof(IWindowsCompatibilityFilter))]
-    [InlineData(typeof(IHardwareCompatibilityFilter))]
     [InlineData(typeof(IHardwareDetectionService))]
     [InlineData(typeof(IPowerSettingsQueryService))]
-    [InlineData(typeof(IPowerSettingsValidationService))]
     [InlineData(typeof(IComboBoxResolver))]
-    [InlineData(typeof(IComboBoxSetupService))]
-    [InlineData(typeof(ISystemSettingsDiscoveryService))]
     [InlineData(typeof(ISettingApplicationService))]
     [InlineData(typeof(IConfigImportState))]
-    [InlineData(typeof(IDependencyManager))]
     [InlineData(typeof(IInitializationService))]
-    [InlineData(typeof(IGlobalSettingsRegistry))]
-    [InlineData(typeof(IGlobalSettingsPreloader))]
     [InlineData(typeof(IScheduledTaskService))]
+    [InlineData(typeof(IScheduledTaskStateService))]
     [InlineData(typeof(IVersionService))]
     [InlineData(typeof(ISponsorsService))]
-    [InlineData(typeof(ITooltipDataService))]
     [InlineData(typeof(IConfigurationApplicationBridgeService))]
     [InlineData(typeof(IConfigMigrationService))]
     [InlineData(typeof(IPolicyCleanupService))]
     [InlineData(typeof(IChangeHistoryService))]
+    [InlineData(typeof(ISystemDetectionContextFactory))]
+    [InlineData(typeof(ICatalogDetectionService))]
+    [InlineData(typeof(IStateWriter))]
+    [InlineData(typeof(IRegImportService))]
+    [InlineData(typeof(ISpecialSettingHandlerRegistry))]
+    [InlineData(typeof(IWinhancementsScriptBuilder))]
+    [InlineData(typeof(IAnswerFileValidator))]
+    [InlineData(typeof(ISettingSnapshotSource))]
+    [InlineData(typeof(IConfigFileWriter))]
+    [InlineData(typeof(IAutounattendWriter))]
+    [InlineData(typeof(IAutounattendReader))]
+    [InlineData(typeof(IBuilderSeedSource))]
+    [InlineData(typeof(IWindowsThemeService))]
+    [InlineData(typeof(IFileStore))]
+    [InlineData(typeof(IOptionProviderRegistry))]
+    [InlineData(typeof(TimeRegionLanguageService))]
     public void Resolve_CoreInfrastructureServices_AllNonNull(Type serviceType)
     {
-        // Arrange
         using var provider = BuildProvider();
 
-        // Act
         var service = provider.GetService(serviceType);
 
-        // Assert
         service.Should().NotBeNull($"service {serviceType.Name} should be resolvable from the DI container");
+    }
+
+    // The registry resolves its providers on first lookup, so a provider graph that reaches back to it fails here.
+    [Fact]
+    public void Resolve_OptionProviderRegistry_FindsTheRegisteredProviderForEveryOptionList()
+    {
+        using var provider = BuildProvider();
+        var registry = provider.GetRequiredService<IOptionProviderRegistry>();
+
+        foreach (var source in Enum.GetValues<OptionSource>())
+            registry.For(source).Sources.Should().Contain(source);
+        registry.For(OptionSource.PowerPlans).Should().BeSameAs(provider.GetRequiredService<PowerService>());
+        registry.For(OptionSource.TimeZones).Should().BeSameAs(provider.GetRequiredService<TimeRegionLanguageService>());
+        registry.For(OptionSource.Pictures).Should().BeSameAs(provider.GetRequiredService<IWindowsThemeService>());
     }
 
     [Fact]
     public void Resolve_TaskProgressService_SharedInstance()
     {
-        // Arrange
         using var provider = BuildProvider();
 
-        // Act
         var taskProgress = provider.GetService<ITaskProgressService>();
         var multiScript = provider.GetService<IMultiScriptProgressService>();
 
-        // Assert
         taskProgress.Should().NotBeNull();
         multiScript.Should().NotBeNull();
         taskProgress.Should().BeSameAs(multiScript,
@@ -82,10 +105,8 @@ public class InfrastructureContainerSmokeTests
     [Fact]
     public void Resolve_FactoryRegistrations_Succeed()
     {
-        // Arrange
         using var provider = BuildProvider();
 
-        // Act & Assert — these are registered via factory lambdas
         var taskProgress = provider.GetService<ITaskProgressService>();
         taskProgress.Should().NotBeNull("ITaskProgressService (factory registration) should resolve");
     }
@@ -93,16 +114,13 @@ public class InfrastructureContainerSmokeTests
     [Fact]
     public void Resolve_AllSingletons_ReturnSameInstance()
     {
-        // Arrange
         using var provider = BuildProvider();
 
-        // Act
         var log1 = provider.GetService<ILogService>();
         var log2 = provider.GetService<ILogService>();
         var registry1 = provider.GetService<IWindowsRegistryService>();
         var registry2 = provider.GetService<IWindowsRegistryService>();
 
-        // Assert
         log1.Should().BeSameAs(log2, "singleton ILogService should return same instance");
         registry1.Should().BeSameAs(registry2, "singleton IWindowsRegistryService should return same instance");
     }
@@ -110,17 +128,17 @@ public class InfrastructureContainerSmokeTests
     [Fact]
     public void Container_BuildsSuccessfully()
     {
-        // Arrange
         var services = new ServiceCollection();
         services.AddInfrastructureServices();
 
-        // Act & Assert — building the provider should succeed
-        // Note: ValidateOnBuild is not used here because some services have
-        // cross-layer dependencies (e.g., dispatcher registries need domain
-        // services registered by the UI layer). We verify individual resolution instead.
+        // The one contract the host must supply: WindowsAppsService needs a human's answer mid-install, and
+        // only the UI has one. Everything else must resolve from Infrastructure alone.
+        services.AddSingleton(Mock.Of<IInstallConsent>());
+
         var action = () => services.BuildServiceProvider(new ServiceProviderOptions
         {
             ValidateScopes = true,
+            ValidateOnBuild = true,
         });
 
         action.Should().NotThrow("the DI container should build successfully");

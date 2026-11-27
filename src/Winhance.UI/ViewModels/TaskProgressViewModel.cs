@@ -3,29 +3,35 @@ using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.ViewModels;
 
-/// <summary>
-/// Child ViewModel for task progress display in the main window.
-/// Manages progress bar state, queue info, and multi-script slots.
-/// </summary>
 public partial class TaskProgressViewModel : ObservableObject, IDisposable
 {
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(CancelButtonLabel), nameof(CloseButtonLabel), nameof(CancellingLabel),
+    ];
+
     private bool _disposed;
     private readonly ITaskProgressService _taskProgressService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
-    private readonly ILogService _logService;
 
     [ObservableProperty]
     public partial bool IsLoading { get; set; }
 
+    // Set only once a failed task has ended and left output to read, so the bar can offer Close instead of Cancel.
     [ObservableProperty]
     public partial bool IsTaskFailed { get; set; }
 
-    private CancellationTokenSource? _hideDelayCts;
+    // Cancel was clicked; the task ends when its current step returns, which can take seconds.
+    [ObservableProperty]
+    public partial bool IsCancelling { get; set; }
+
+    private IDebounceTimer? _hideTimer;
 
     [ObservableProperty]
     public partial string AppName { get; set; }
@@ -45,30 +51,27 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial int ActiveScriptCount { get; set; }
 
-    /// <summary>
-    /// Event raised when a multi-script progress update is received.
-    /// Parameters: (slotIndex, detail).
-    /// </summary>
     public event Action<int, TaskProgressDetail>? ScriptProgressReceived;
 
     public string CancelButtonLabel =>
-        _localizationService.GetString("Button_Cancel") ?? "Cancel";
+        _localizationService.GetStringOrDefault("Button_Cancel", "Cancel");
 
     public string CloseButtonLabel =>
-        _localizationService.GetString("Button_Close") ?? "Close";
+        _localizationService.GetStringOrDefault("Button_Close", "Close");
+
+    public string CancellingLabel =>
+        _localizationService.GetStringOrDefault("Progress_Cancelling", "Cancelling...");
 
     public TaskProgressViewModel(
         ITaskProgressService taskProgressService,
         IDispatcherService dispatcherService,
         IDialogService dialogService,
-        ILocalizationService localizationService,
-        ILogService logService)
+        ILocalizationService localizationService)
     {
         _taskProgressService = taskProgressService;
         _dispatcherService = dispatcherService;
         _dialogService = dialogService;
         _localizationService = localizationService;
-        _logService = logService;
 
         AppName = string.Empty;
         LastTerminalLine = string.Empty;
@@ -85,18 +88,29 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
         _disposed = true;
         _taskProgressService.ProgressUpdated -= OnProgressUpdated;
         _localizationService.LanguageChanged -= OnLanguageChanged;
-        _hideDelayCts?.Cancel();
-        _hideDelayCts?.Dispose();
+        _hideTimer?.Stop();
+        _hideTimer = null;
+        GC.SuppressFinalize(this);
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        OnPropertyChanged(nameof(CancelButtonLabel));
-        OnPropertyChanged(nameof(CloseButtonLabel));
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
+
+        if (IsTaskFailed)
+            LastTerminalLine = _localizationService.GetString("Progress_ClickToSeeDetails");
     }
 
     [RelayCommand]
-    private void Cancel() => _taskProgressService.CancelCurrentTask();
+    private void Cancel()
+    {
+        if (!_taskProgressService.IsTaskRunning)
+            return;
+
+        _taskProgressService.CancelCurrentTask();
+        IsCancelling = true;
+    }
 
     [RelayCommand]
     private void CloseFailedTask()
@@ -112,7 +126,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
         var title = _localizationService.GetString("Dialog_TerminalOutput_Title");
         await _dialogService.ShowTaskOutputDialogAsync(title, terminalLines);
 
-        // After the dialog is closed, dismiss the progress control if the task is no longer running
         if (!_taskProgressService.IsTaskRunning)
         {
             IsTaskFailed = false;
@@ -126,7 +139,6 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
         {
             if (detail.ScriptSlotCount > 0)
             {
-                // Multi-script mode: update slot count and raise per-slot event
                 ActiveScriptCount = detail.ScriptSlotCount;
                 ScriptProgressReceived?.Invoke(detail.ScriptSlotIndex, detail);
             }
@@ -142,49 +154,44 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
 
                 if (isNowRunning)
                 {
-                    // Cancel any pending hide-delay from a previous task
-                    _hideDelayCts?.Cancel();
-                    _hideDelayCts = null;
+                    _hideTimer?.Stop();
                     IsTaskFailed = false;
+                    if (!wasRunning)
+                        IsCancelling = false;
 
                     IsLoading = true;
                     if (!string.IsNullOrEmpty(detail.StatusText))
                         AppName = detail.StatusText;
                     LastTerminalLine = detail.TerminalOutput ?? string.Empty;
-
-                    // Track failure: progress == 0 with a status text means an error was reported
-                    if (detail.Progress.HasValue && detail.Progress.Value == 0 && !string.IsNullOrEmpty(detail.StatusText))
-                        IsTaskFailed = true;
                 }
-                else if (wasRunning)
+                else if (wasRunning && !IsTaskFailed)
                 {
-                    // Task just stopped running -- handle completion
-                    var wasCancelled = _taskProgressService.CurrentTaskCancellationSource
+                    var wasCancelled = IsCancelling || _taskProgressService.CurrentTaskCancellationSource
                         ?.IsCancellationRequested == true;
+                    // FailTask and CancelTask end a task at progress 0, CompleteTask at 100.
+                    var failed = detail.Progress == 0;
+                    IsCancelling = false;
 
                     if (wasCancelled)
                     {
-                        // Cancelled by user: hide the control immediately
-                        IsTaskFailed = false;
                         IsLoading = false;
                     }
-                    else if (IsTaskFailed)
+                    else if (failed && _taskProgressService.GetTerminalOutputLines().Count > 0)
                     {
-                        // Failed: keep the control visible with "click to see details"
-                        IsLoading = true;
+                        // The task has ended; the bar stays only to lead to the output it left.
+                        IsTaskFailed = true;
                         LastTerminalLine = _localizationService.GetString("Progress_ClickToSeeDetails");
                     }
                     else
                     {
-                        // Success: show the completion state briefly, then hide after 2 seconds
                         if (!string.IsNullOrEmpty(detail.StatusText))
                             AppName = detail.StatusText;
                         LastTerminalLine = detail.TerminalOutput ?? string.Empty;
-                        _ = ScheduleHideProgressAsync();
+                        _hideTimer ??= _dispatcherService.CreateDebounceTimer(TimeSpan.FromMilliseconds(2000), HideIfIdle);
+                        _hideTimer.Restart();
                     }
                 }
 
-                // Queue display
                 if (detail.QueueTotal > 1)
                 {
                     IsQueueVisible = true;
@@ -203,27 +210,9 @@ public partial class TaskProgressViewModel : ObservableObject, IDisposable
         });
     }
 
-    /// <summary>
-    /// Hides the TaskProgressControl after a 2-second delay, unless a new task starts.
-    /// </summary>
-    private async Task ScheduleHideProgressAsync()
+    private void HideIfIdle()
     {
-        _hideDelayCts?.Cancel();
-        var cts = new CancellationTokenSource();
-        _hideDelayCts = cts;
-
-        try
-        {
-            await Task.Delay(2000, cts.Token).ConfigureAwait(false);
-            _dispatcherService.RunOnUIThread(() =>
-            {
-                if (!_taskProgressService.IsTaskRunning)
-                    IsLoading = false;
-            });
-        }
-        catch (OperationCanceledException)
-        {
-            // A new task started before the delay expired -- do nothing
-        }
+        if (!_taskProgressService.IsTaskRunning)
+            IsLoading = false;
     }
 }

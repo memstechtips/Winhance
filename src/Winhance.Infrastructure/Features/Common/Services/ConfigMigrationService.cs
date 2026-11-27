@@ -1,20 +1,28 @@
-using System;
-using System.Collections.Generic;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Migrates legacy configuration items to their current format.
-/// Each migration is registered by setting ID and transforms a ConfigurationItem in-place.
-/// </summary>
-public class ConfigMigrationService : IConfigMigrationService
+internal class ConfigMigrationService : IConfigMigrationService
 {
     private readonly ILogService _logService;
 
     private readonly Dictionary<string, Action<ConfigurationItem>> _migrations;
+
+    // Taken from the card itself so the two cannot drift; the order IS the old index order.
+    private static readonly IReadOnlyList<string> ShortDateKeys =
+        SettingCatalog.Find("region-short-date")?.Options?.Keys ?? [];
+
+    // The three "DoH" DNS options became their plain servers, each encrypted with the template Windows knows for it.
+    private static readonly Dictionary<int, (string Preferred, string Alternate)> DnsDohOptions = new()
+    {
+        [7] = ("1.1.1.1", "1.0.0.1"),
+        [8] = ("8.8.8.8", "8.8.4.4"),
+        [9] = ("9.9.9.9", "149.112.112.112"),
+    };
 
     public ConfigMigrationService(ILogService logService)
     {
@@ -26,17 +34,21 @@ public class ConfigMigrationService : IConfigMigrationService
             ["explorer-customization-shortcut-suffix"] = MigrateToggleToSelection,
             ["explorer-customization-shortcut-arrow"] = MigrateToggleToSelection,
             ["gaming-background-apps"] = MigrateBackgroundApps,
+            ["gaming-explorer-alt-tab-filter"] = MigrateAltTabFilter,
+            ["updates-notification-level"] = MigrateUpdateNotificationLevel,
+            ["region-short-date"] = MigrateShortDateToKey,
+            ["gaming-dns-server"] = MigrateDnsDohOption,
         };
     }
 
-    /// <summary>
-    /// Applies all registered migrations to items in the given configuration file.
-    /// </summary>
-    public void MigrateConfig(UnifiedConfigurationFile config)
+    public void MigrateConfig(WinhanceConfigFile config)
     {
         if (config == null) return;
 
-        // Walk Customize features
+        DropGaps(config);
+        RenameRetiredFeatures(config.Customize);
+        RenameRetiredFeatures(config.Optimize);
+
         if (config.Customize?.Features != null)
         {
             foreach (var kvp in config.Customize.Features)
@@ -45,7 +57,6 @@ public class ConfigMigrationService : IConfigMigrationService
             }
         }
 
-        // Walk Optimize features
         if (config.Optimize?.Features != null)
         {
             foreach (var kvp in config.Optimize.Features)
@@ -54,20 +65,65 @@ public class ConfigMigrationService : IConfigMigrationService
             }
         }
 
-        // Walk WindowsApps
         MigrateSection(config.WindowsApps, "WindowsApps");
 
-        // Walk ExternalApps
         MigrateSection(config.ExternalApps, "ExternalApps");
+    }
+
+    // A hand-edited file can say "Optimize": null, a feature: null or "Items": null, each replacing the empty default,
+    // and an item can be null or have no id. Every reader walks the migrated file, so the gaps go here once.
+    private static void DropGaps(WinhanceConfigFile config)
+    {
+        config.WindowsApps = DropGaps(config.WindowsApps);
+        config.ExternalApps = DropGaps(config.ExternalApps);
+        foreach (var group in new[] { config.Customize ??= new(), config.Optimize ??= new(), config.Autounattend ??= new() })
+        {
+            group.Features = (group.Features ?? new Dictionary<string, ConfigSection>())
+                .Where(feature => feature.Value is not null)
+                .ToDictionary(feature => feature.Key, feature => DropGaps(feature.Value), StringComparer.Ordinal);
+        }
+    }
+
+    private static ConfigSection DropGaps(ConfigSection? section)
+    {
+        section ??= new ConfigSection();
+        section.Items = section.Items?.Where(item => !string.IsNullOrEmpty(item?.Id)).ToList() ?? [];
+        return section;
+    }
+
+    // A feature id is a dictionary KEY, so unlike a setting id it cannot be normalized in place; the group gets a
+    // rebuilt dictionary. Runs before the id-keyed migrations so every downstream consumer sees the current id.
+    private static void RenameRetiredFeatures(FeatureGroupSection? group)
+    {
+        if (group?.Features is not { Count: > 0 } features) return;
+        if (features.Keys.All(id => FeatureIdAliases.Normalize(id) == id)) return;
+
+        var renamed = new Dictionary<string, ConfigSection>(features.Count, StringComparer.Ordinal);
+        foreach (var (id, section) in features)
+            renamed[FeatureIdAliases.Normalize(id)] = section;
+        group.Features = renamed;
     }
 
     private void MigrateSection(ConfigSection? section, string sectionName)
     {
         if (section?.Items == null) return;
 
+        if (section.Items.Any(IsInvalidAltTabChoice))
+        {
+            section.Items = section.Items.Where(item => !IsInvalidAltTabChoice(item)).ToList();
+            _logService.Log(LogLevel.Warning, "Skipped an Alt+Tab entry without a valid saved choice");
+        }
+
         foreach (var item in section.Items)
         {
-            if (item?.Id != null && _migrations.TryGetValue(item.Id, out var migration))
+            if (item?.Id == null) continue;
+
+            // Normalize a retired config id (SettingIdAliases) to its canonical catalog id BEFORE any id-keyed
+            // migration runs, so every downstream consumer (build-gating, apply, export round-trip) sees the
+            // canonical id.
+            item.Id = SettingIdAliases.Normalize(item.Id);
+
+            if (_migrations.TryGetValue(item.Id, out var migration))
             {
                 try
                 {
@@ -83,11 +139,61 @@ public class ConfigMigrationService : IConfigMigrationService
         }
     }
 
-    /// <summary>
-    /// Migrates a Toggle-based setting to Selection format.
-    /// Old format: InputType=Toggle, IsSelected=true (action applied) or false (default).
-    /// New format: InputType=Selection, SelectedIndex=0 (default/first option), 1 (action applied/second option).
-    /// </summary>
+    private static bool IsInvalidAltTabChoice(ConfigurationItem item) =>
+        item is { Id: "gaming-explorer-alt-tab-filter" } && item.InputType switch
+        {
+            InputType.Toggle => item.IsSelected is null,
+            InputType.Selection => item.CustomStateValues is { Count: > 0 } custom
+                ? !custom.ContainsKey("MultiTaskingAltTabFilter")
+                : item.SelectedIndex is not (>= 0 and <= 3),
+            _ => true,
+        };
+
+    private static void MigrateAltTabFilter(ConfigurationItem item)
+    {
+        if (item.InputType != InputType.Toggle || item.IsSelected is not { } windowsOnly)
+            return;
+
+        item.CustomStateValues = null;
+        item.PowerSettings = null;
+        item.SelectedIndex = windowsOnly ? 3 : 0;
+        item.InputType = InputType.Selection;
+        item.IsSelected = null;
+    }
+
+    private void MigrateDnsDohOption(ConfigurationItem item)
+    {
+        if (item.SelectedIndex is not { } index || !DnsDohOptions.TryGetValue(index, out var servers))
+            return;
+
+        item.SelectedIndex = null;
+        item.CustomStateValues = new Dictionary<string, object>
+        {
+            ["primary"] = servers.Preferred,
+            ["primaryDoh"] = ((int)DohMode.Automatic).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["secondary"] = servers.Alternate,
+            ["secondaryDoh"] = ((int)DohMode.Automatic).ToString(System.Globalization.CultureInfo.InvariantCulture),
+        };
+        _logService.Log(LogLevel.Info, $"Migrated config item '{item.Id}' from DoH option {index} to its servers, encrypted");
+    }
+
+    // The card was five fixed states and is now keyed on the pattern itself, because region-format writes
+    // patterns the five never covered. An older file carries the index those five had.
+    private void MigrateShortDateToKey(ConfigurationItem item)
+    {
+        if (item.SelectedKey is { Length: > 0 }) return;
+        if (item.SelectedIndex is not { } index || index < 0 || index >= ShortDateKeys.Count) return;
+
+        item.SelectedKey = ShortDateKeys[index];
+        item.SelectedKeyLabel = ShortDateKeys[index];
+        item.SelectedIndex = null;
+
+        _logService.Log(
+            LogLevel.Info,
+            $"Migrated config item '{item.Id}' from Selection index {index} to key '{item.SelectedKey}'");
+    }
+
+    // Old: Toggle IsSelected true (applied) / false (default). New: Selection index 0 (default), 1 (applied).
     private void MigrateToggleToSelection(ConfigurationItem item)
     {
         if (item.InputType != InputType.Toggle)
@@ -95,11 +201,11 @@ public class ConfigMigrationService : IConfigMigrationService
 
         if (item.IsSelected == true)
         {
-            item.SelectedIndex = 1; // The "action" option (e.g., "Remove")
+            item.SelectedIndex = 1;
         }
         else
         {
-            item.SelectedIndex = 0; // The "default" option (e.g., "Keep"/"Show")
+            item.SelectedIndex = 0;
         }
 
         item.InputType = InputType.Selection;
@@ -110,13 +216,27 @@ public class ConfigMigrationService : IConfigMigrationService
             $"Migrated config item '{item.Id}' from Toggle to Selection (SelectedIndex={item.SelectedIndex})");
     }
 
-    /// <summary>
-    /// Migrates the old Toggle-based "gaming-background-apps" setting to the new Selection-based format.
-    /// Old format: InputType=Toggle, IsSelected=false (intended to block background apps) or true (allow).
-    /// New format: InputType=Selection, SelectedIndex=0 (User in Control), 1 (Force Allow), 2 (Force Deny).
-    /// Note: The old toggle had a bug where DisabledValue was 0 (User in Control) instead of 2 (Force Deny).
-    /// We map IsSelected=false to Force Deny (index 2) since that was the user's intent.
-    /// </summary>
+    // Both toggle positions map to index 0 ("Show all update notifications"), on purpose: IsSelected=false is
+    // what an untouched setting exported as, and IsSelected=true meant "I want update notifications", which IS
+    // index 0. Nobody had working suppression to preserve - the old state wrote SetUpdateNotificationLevel=2, which
+    // the ADMX gives no meaning; applying index 0 also clears that stale value.
+    private void MigrateUpdateNotificationLevel(ConfigurationItem item)
+    {
+        if (item.InputType != InputType.Toggle)
+            return; // Already migrated or not a toggle
+
+        item.SelectedIndex = 0;
+        item.InputType = InputType.Selection;
+        item.IsSelected = null;
+
+        _logService.Log(
+            LogLevel.Info,
+            $"Migrated config item '{item.Id}' from Toggle to Selection (SelectedIndex=0)");
+    }
+
+    // Old: Toggle IsSelected false (block background apps) / true (allow). New: index 0 User in Control, 1 Force
+    // Allow, 2 Force Deny. The old toggle's DisabledValue was 0 (User in Control) by mistake; IsSelected=false maps
+    // to Force Deny (2), which was the user's intent.
     private void MigrateBackgroundApps(ConfigurationItem item)
     {
         if (item.InputType != InputType.Toggle)
@@ -124,11 +244,11 @@ public class ConfigMigrationService : IConfigMigrationService
 
         if (item.IsSelected == false)
         {
-            item.SelectedIndex = 2; // Force Deny — what the user intended
+            item.SelectedIndex = 2;
         }
         else
         {
-            item.SelectedIndex = 0; // User in Control (default)
+            item.SelectedIndex = 0;
         }
 
         item.InputType = InputType.Selection;
@@ -139,11 +259,7 @@ public class ConfigMigrationService : IConfigMigrationService
             $"Migrated config item '{item.Id}' from Toggle to Selection (SelectedIndex={item.SelectedIndex})");
     }
 
-    /// <summary>
-    /// Migrates the old Toggle-based "taskbar-transparent" setting to the new Selection-based format.
-    /// Old format: InputType=Toggle, IsSelected=true (transparent) or false (Windows default).
-    /// New format: InputType=Selection, SelectedIndex=0 (Windows default), 1 (Transparent), 2 (Opaque).
-    /// </summary>
+    // Old: Toggle IsSelected true (transparent) / false (default). New: index 0 Windows default, 1 Transparent, 2 Opaque.
     private void MigrateTaskbarTransparent(ConfigurationItem item)
     {
         if (item.InputType != InputType.Toggle)
@@ -151,11 +267,11 @@ public class ConfigMigrationService : IConfigMigrationService
 
         if (item.IsSelected == true)
         {
-            item.SelectedIndex = 1; // Transparent
+            item.SelectedIndex = 1;
         }
         else
         {
-            item.SelectedIndex = 0; // Windows default
+            item.SelectedIndex = 0;
         }
 
         item.InputType = InputType.Selection;

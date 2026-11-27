@@ -1,5 +1,10 @@
+using System.Text.Json;
 using FluentAssertions;
+using Moq;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
+using Winhance.TestSupport;
 using Xunit;
 using static Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities.WinGetProgressParser;
 
@@ -7,9 +12,47 @@ namespace Winhance.Infrastructure.Tests.Utilities;
 
 public class WinGetProgressParserTests
 {
-    // ──────────────────────────────────────────────
-    //  TranslateLine
-    // ──────────────────────────────────────────────
+    private static readonly ILocalizationService Localization = KeyEchoingLocalization();
+
+    // Echoes the key and its arguments, so a test sees which string the parser asked for.
+    private static ILocalizationService KeyEchoingLocalization()
+    {
+        var localization = new Mock<ILocalizationService>();
+        localization.Setup(l => l.GetString(It.IsAny<string>())).Returns<string>(key => $"<{key}>");
+        localization.Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Returns<string, object[]>((key, args) => $"<{key}:{string.Join("|", args)}>");
+        return localization.Object;
+    }
+
+    private static string? TranslateLine(string? line) => WinGetProgressParser.TranslateLine(line, Localization);
+
+    // The map's values are keys the parser builds from winget's output, which the static key gate cannot see.
+    [Fact]
+    public void ResourceKeyMap_EveryKeyItMapsTo_IsInEnglish()
+    {
+        using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoPaths.LocalizationDir(), "en.json")));
+        var english = doc.RootElement.EnumerateObject().Select(p => p.Name).ToHashSet();
+
+        WinGetProgressParser.ResourceKeyMap.Values
+            .Where(key => key.Length > 0 && !english.Contains(key))
+            .Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("UninstallFlowStartingPackageUninstall", "<Progress_WinGetLine_Uninstalling>")]
+    [InlineData("UninstallFlowUninstallSuccess", "<Progress_WinGetLine_UninstallSuccess>")]
+    [InlineData("NoInstalledPackageFound", "<Progress_WinGetLine_NoInstalledPackage>")]
+    public void TranslateLine_UninstallResourceKeys_ReadAsLocalizedText(string key, string expected)
+    {
+        TranslateLine(key).Should().Be(expected);
+    }
+
+    [Fact]
+    public void ParseLine_UninstallFlowKeys_DrivePhases()
+    {
+        WinGetProgressParser.ParseLine("UninstallFlowStartingPackageUninstall")!.Phase.Should().Be(WinGetPhase.Uninstalling);
+        WinGetProgressParser.ParseLine("UninstallFlowUninstallSuccess").Should().Be(new WinGetProgressInfo(WinGetPhase.Complete, 100));
+    }
 
     [Theory]
     [InlineData(null)]
@@ -18,7 +61,7 @@ public class WinGetProgressParserTests
     [InlineData("\t")]
     public void TranslateLine_NullOrWhitespace_ReturnsNull(string? input)
     {
-        WinGetProgressParser.TranslateLine(input).Should().BeNull();
+        TranslateLine(input).Should().BeNull();
     }
 
     [Theory]
@@ -27,49 +70,49 @@ public class WinGetProgressParserTests
     [InlineData("PackageDependencies")]
     public void TranslateLine_SuppressedResourceKeys_ReturnsNull(string key)
     {
-        WinGetProgressParser.TranslateLine(key).Should().BeNull();
+        TranslateLine(key).Should().BeNull();
     }
 
     [Theory]
-    [InlineData("PackageRequiresDependencies", "Installing dependencies...")]
-    [InlineData("InstallerHashVerified", "Hash verified")]
-    [InlineData("ExtractingArchive", "Extracting archive...")]
-    [InlineData("ExtractArchiveSucceeded", "Archive extracted")]
-    [InlineData("InstallFlowStartingPackageInstall", "Installing...")]
-    [InlineData("InstallFlowInstallSuccess", "Installation successful")]
-    [InlineData("SourceOpenFailedSuggestion", "WinGet source unavailable")]
-    [InlineData("UnexpectedErrorExecutingCommand", "Unexpected error")]
-    [InlineData("InstallingDependencies", "Installing dependencies...")]
+    [InlineData("PackageRequiresDependencies", "<Progress_WinGetLine_InstallingDependencies>")]
+    [InlineData("InstallerHashVerified", "<Progress_WinGetLine_HashVerified>")]
+    [InlineData("ExtractingArchive", "<Progress_WinGetLine_ExtractingArchive>")]
+    [InlineData("ExtractArchiveSucceeded", "<Progress_WinGetLine_ArchiveExtracted>")]
+    [InlineData("InstallFlowStartingPackageInstall", "<Progress_WinGetLine_Installing>")]
+    [InlineData("InstallFlowInstallSuccess", "<Progress_WinGetLine_InstallSuccess>")]
+    [InlineData("SourceOpenFailedSuggestion", "<Progress_WinGetLine_SourceUnavailable>")]
+    [InlineData("UnexpectedErrorExecutingCommand", "<Progress_WinGetLine_UnexpectedError>")]
+    [InlineData("InstallingDependencies", "<Progress_WinGetLine_InstallingDependencies>")]
     public void TranslateLine_MappedResourceKeys_ReturnsTranslation(string key, string expected)
     {
-        WinGetProgressParser.TranslateLine(key).Should().Be(expected);
+        TranslateLine(key).Should().Be(expected);
     }
 
     [Fact]
     public void TranslateLine_ResourceKeyLookup_IsCaseInsensitive()
     {
-        WinGetProgressParser.TranslateLine("installerhashverified").Should().Be("Hash verified");
-        WinGetProgressParser.TranslateLine("INSTALLERHASHVERIFIED").Should().Be("Hash verified");
+        TranslateLine("installerhashverified").Should().Be("<Progress_WinGetLine_HashVerified>");
+        TranslateLine("INSTALLERHASHVERIFIED").Should().Be("<Progress_WinGetLine_HashVerified>");
     }
 
     [Fact]
     public void TranslateLine_StepPrefix_PreservedWithTranslation()
     {
-        var result = WinGetProgressParser.TranslateLine("(1/2) PackageRequiresDependencies");
-        result.Should().Be("[1/2] Installing dependencies...");
+        var result = TranslateLine("(1/2) PackageRequiresDependencies");
+        result.Should().Be("[1/2] <Progress_WinGetLine_InstallingDependencies>");
     }
 
     [Fact]
     public void TranslateLine_StepPrefix_SuppressedResourceKey_ReturnsNull()
     {
-        var result = WinGetProgressParser.TranslateLine("(1/3) InstallationDisclaimer1");
+        var result = TranslateLine("(1/3) InstallationDisclaimer1");
         result.Should().BeNull();
     }
 
     [Fact]
     public void TranslateLine_StepPrefix_PlainText_PreservedWithBrackets()
     {
-        var result = WinGetProgressParser.TranslateLine("(2/3) Some normal text");
+        var result = TranslateLine("(2/3) Some normal text");
         result.Should().Be("[2/3] Some normal text");
     }
 
@@ -77,40 +120,39 @@ public class WinGetProgressParserTests
     public void TranslateLine_DownloadUrl_ShowsFilenameOnly()
     {
         var line = "Downloading https://example.com/packages/installer-v1.2.3.exe";
-        var result = WinGetProgressParser.TranslateLine(line);
-        result.Should().Be("Downloading installer-v1.2.3.exe...");
+        var result = TranslateLine(line);
+        result.Should().Be("<Progress_Downloading:installer-v1.2.3.exe>");
     }
 
     [Fact]
     public void TranslateLine_DownloadUrl_NoFilename_ReturnsFallback()
     {
-        // A URL with no path segment filename falls through to generic message
         var line = "Downloading https://example.com/";
-        var result = WinGetProgressParser.TranslateLine(line);
-        result.Should().Be("Downloading...");
+        var result = TranslateLine(line);
+        result.Should().Be("<Progress_WinGetLine_Downloading>");
     }
 
     [Fact]
     public void TranslateLine_ReportIdentityFound_TranslatedToFriendlyFormat()
     {
         var line = "ReportIdentityFound Google Chrome [Google.Chrome] ShowVersion 120.0.1";
-        var result = WinGetProgressParser.TranslateLine(line);
-        result.Should().Be("Found: Google Chrome v120.0.1");
+        var result = TranslateLine(line);
+        result.Should().Be("<Progress_WinGetLine_Found:Google Chrome|120.0.1>");
     }
 
     [Fact]
     public void TranslateLine_HexErrorCode_Preserved()
     {
         var line = "0x8a15000f : Something went wrong";
-        var result = WinGetProgressParser.TranslateLine(line);
-        result.Should().Be("Error: Something went wrong");
+        var result = TranslateLine(line);
+        result.Should().Be("<Progress_WinGetLine_Error:Something went wrong>");
     }
 
     [Fact]
     public void TranslateLine_NormalText_PassedThrough()
     {
         var line = "Some random winget output text";
-        var result = WinGetProgressParser.TranslateLine(line);
+        var result = TranslateLine(line);
         result.Should().Be("Some random winget output text");
     }
 
@@ -118,7 +160,7 @@ public class WinGetProgressParserTests
     public void TranslateLine_LeadingWhitespace_IsTrimmed()
     {
         var line = "   Some random winget output text   ";
-        var result = WinGetProgressParser.TranslateLine(line);
+        var result = TranslateLine(line);
         result.Should().Be("Some random winget output text");
     }
 
@@ -128,13 +170,9 @@ public class WinGetProgressParserTests
         // Lines starting with "  - " get trimmed before the StartsWith check,
         // so they fall through to "return trimmed" (the trimmed value).
         var line = "  - Microsoft.VCRedist.2015+.x64";
-        var result = WinGetProgressParser.TranslateLine(line);
+        var result = TranslateLine(line);
         result.Should().Be("- Microsoft.VCRedist.2015+.x64");
     }
-
-    // ──────────────────────────────────────────────
-    //  ParseLine
-    // ──────────────────────────────────────────────
 
     [Theory]
     [InlineData(null)]
@@ -367,17 +405,11 @@ public class WinGetProgressParserTests
     [Fact]
     public void ParseLine_PercentWithoutPhaseContext_DefaultsToDownloading()
     {
-        // A line with a percentage but no "download" or "install" keyword
-        // defaults to Downloading phase
         var result = WinGetProgressParser.ParseLine("Progress: 45%");
         result.Should().NotBeNull();
         result!.Phase.Should().Be(WinGetPhase.Downloading);
         result.Percent.Should().Be(45);
     }
-
-    // ──────────────────────────────────────────────
-    //  WinGetProgressInfo record
-    // ──────────────────────────────────────────────
 
     [Fact]
     public void WinGetProgressInfo_RecordEquality_WorksCorrectly()
@@ -393,5 +425,35 @@ public class WinGetProgressParserTests
         var a = new WinGetProgressInfo(WinGetPhase.Downloading, 50);
         var b = new WinGetProgressInfo(WinGetPhase.Installing, 50);
         a.Should().NotBe(b);
+    }
+
+    [Fact]
+    public void Forward_Line_ShowsTheTranslationAsARedrawingProgressLine()
+    {
+        var progress = new Mock<ITaskProgressService>();
+        TaskProgressDetail? shown = null;
+        progress.Setup(p => p.UpdateDetailedProgress(It.IsAny<TaskProgressDetail>()))
+                .Callback<TaskProgressDetail>(detail => shown = detail);
+
+        WinGetProgressParser.Forward("InstallFlowInstallSuccess", progress.Object, Localization, null);
+
+        shown.Should().NotBeNull();
+        shown!.TerminalOutput.Should().Be("<Progress_WinGetLine_InstallSuccess>");
+        shown.IsProgressIndicator.Should().BeTrue();
+    }
+
+    // A progress line is decoration; whatever goes wrong showing it must not end the install.
+    [Fact]
+    public void Forward_ProgressServiceThrows_LogsAWarningInsteadOfThrowing()
+    {
+        var progress = new Mock<ITaskProgressService>();
+        progress.Setup(p => p.UpdateDetailedProgress(It.IsAny<TaskProgressDetail>()))
+                .Throws(new InvalidOperationException("dispatcher gone"));
+        var log = new Mock<ILogService>();
+
+        Action act = () => WinGetProgressParser.Forward("50%", progress.Object, Localization, log.Object);
+
+        act.Should().NotThrow();
+        log.Verify(l => l.LogWarning(It.Is<string>(m => m.Contains("dispatcher gone")), It.IsAny<string>()), Times.Once);
     }
 }

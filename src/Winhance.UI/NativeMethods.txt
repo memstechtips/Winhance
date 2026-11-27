@@ -2,17 +2,79 @@
 SetForegroundWindow
 ShowWindow
 IsIconic
-FindWindow
-GetWindowThreadProcessId
 AllowSetForegroundWindow
 
-// File dialogs (WinRT pickers fail with admin elevation)
+// Window sizing: AppWindow sizes in screen pixels, the layout in effective pixels
+GetDpiForWindow
+
+// The notification-area icon and its menu, on a subclassed main window (shell32.dll, comctl32.dll, user32.dll).
+// NIN_BALLOONUSERCLICK arrives as the callback's lParam when the user clicks the notification.
+Shell_NotifyIcon
+NOTIFYICONDATAW
+NOTIFY_ICON_MESSAGE
+NOTIFY_ICON_DATA_FLAGS
+NOTIFY_ICON_INFOTIP_FLAGS
+NIN_BALLOONUSERCLICK
+RegisterWindowMessage
+SetWindowSubclass
+RemoveWindowSubclass
+DefSubclassProc
+ExtractIconEx
+DestroyIcon
+CreatePopupMenu
+AppendMenu
+TrackPopupMenuEx
+DestroyMenu
+GetCursorPos
+MENU_ITEM_FLAGS
+TRACK_POPUP_MENU_FLAGS
+WM_APP
+NOTIFYICON_VERSION_4
+NIN_SELECT
+WM_CONTEXTMENU
+WM_NULL
+PostMessage
+// The elevated window must let Explorer's lower-integrity TaskbarCreated broadcast through UIPI.
+ChangeWindowMessageFilterEx
+WINDOW_MESSAGE_FILTER_ACTION
+
+// The tray host: a hidden window and its message loop, with no XAML.
+CreateWindowEx
+DestroyWindow
+GetMessage
+TranslateMessage
+DispatchMessage
+PostQuitMessage
+SetTimer
+KillTimer
+SetProcessWorkingSetSize
+GetCurrentProcess
+WM_TIMER
+WM_CLOSE
+
+// The menu theme is set through uxtheme.dll exports that exist by ordinal only.
+LoadLibrary
+GetProcAddress
+
+// COM file dialogs: the WinRT pickers fail when the app runs elevated.
+FileOpenDialog
+FileSaveDialog
 IFileDialog
-IFileOpenDialog
-IFileSaveDialog
 IShellItem
-IShellItemArray
-COMDLG_FILTERSPEC
 SHCreateItemFromParsingName
-SIGDN
+COMDLG_FILTERSPEC
 FILEOPENDIALOGOPTIONS
+SIGDN
+
+// --diag's native memory breakdown: committed regions, process heaps, and each adapter's video memory for the process
+VirtualQuery
+GetProcessHeaps
+HeapSummary
+CreateDXGIFactory1
+IDXGIFactory1
+IDXGIAdapter3
+
+// Hands the heaps' cached free blocks back to Windows after Software & Apps drops its view
+HeapSetInformation
+HEAP_OPTIMIZE_RESOURCES_INFORMATION
+HEAP_OPTIMIZE_RESOURCES_CURRENT_VERSION

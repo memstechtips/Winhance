@@ -9,7 +9,7 @@ namespace Winhance.IntegrationTests.Localization;
 public class LocalizationJsonValidityTests
 {
     private static readonly string LocalizationFolder =
-        Path.Combine(TestContext.SolutionDir, "src", "Winhance.UI", "Features", "Common", "Localization");
+        Path.Combine(TestContext.SolutionDir, "src", "Winhance.Core", "Features", "Common", "Localization");
 
     public static IEnumerable<object[]> AllJsonFiles()
     {
@@ -122,6 +122,31 @@ public class LocalizationJsonValidityTests
 
         offenders.Should().BeEmpty(
             because: $"{fileName} must not contain escaped ASCII double quotes (\\\") inside string values — use single quotes (') or typographic curly quotes (\u201C \u201D \u201E) directly instead.");
+    }
+
+    [Theory]
+    [MemberData(nameof(AllJsonFiles))]
+    public void ConfigImportEntry_ShouldMatchChooserAndStayDistinctFromReviewBanner(string fileName)
+    {
+        using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(LocalizationFolder, fileName)));
+        var strings = doc.RootElement;
+        var entry = strings.GetProperty("Mode_ConfigReview").GetString();
+        var chooser = strings.GetProperty("Dialog_ImportConfig_Title").GetString();
+        var tooltip = strings.GetProperty("Mode_ConfigReview_Tooltip").GetString();
+        var reviewBanner = strings.GetProperty("Review_Mode_Title").GetString();
+
+        Assert.Equal(entry, chooser);
+        Assert.NotEqual(entry, reviewBanner);
+        Assert.StartsWith(entry!, tooltip, StringComparison.Ordinal);
+        if (fileName == "en.json")
+        {
+            Assert.Equal("Config Import", entry);
+            Assert.Equal("Config Review Mode", reviewBanner);
+        }
+        else
+        {
+            Assert.NotEqual("Config Import", entry);
+        }
     }
 
     private static HashSet<string> GetKeys(string filePath)

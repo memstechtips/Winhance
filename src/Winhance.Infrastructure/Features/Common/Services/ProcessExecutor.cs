@@ -1,17 +1,11 @@
-using System;
 using System.Diagnostics;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Default implementation of <see cref="IProcessExecutor"/> that wraps <see cref="System.Diagnostics.Process"/>.
-/// </summary>
-public class ProcessExecutor : IProcessExecutor
+internal class ProcessExecutor : IProcessExecutor
 {
     public async Task<ProcessExecutionResult> ExecuteAsync(
         string fileName,
@@ -75,7 +69,7 @@ public class ProcessExecutor : IProcessExecutor
 
         using var registration = ct.Register(() =>
         {
-            try { process.Kill(); } catch { /* best-effort kill on cancellation */ }
+            try { process.Kill(entireProcessTree: true); } catch { }
         });
 
         var readOutput = Task.Run(async () =>
@@ -97,7 +91,10 @@ public class ProcessExecutor : IProcessExecutor
         }, CancellationToken.None);
 
         await Task.WhenAll(readOutput, readError).ConfigureAwait(false);
-        await process.WaitForExitAsync(ct).ConfigureAwait(false);
+        // Both streams at EOF means the process is gone (the kill registration guarantees that on
+        // cancellation). Waiting with the token would throw and lose the exit code and the output
+        // collected so far; callers observe their own token to classify a kill as cancellation.
+        await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
 
         return new ProcessExecutionResult
         {
@@ -105,27 +102,6 @@ public class ProcessExecutor : IProcessExecutor
             StandardOutput = stdout.ToString(),
             StandardError = stderr.ToString()
         };
-    }
-
-    public void KillProcessesByName(string processName)
-    {
-        var processes = Process.GetProcessesByName(processName);
-        foreach (var process in processes)
-        {
-            try
-            {
-                process.Kill();
-                process.WaitForExit(5000);
-            }
-            catch
-            {
-                // Best-effort kill — process may have already exited
-            }
-            finally
-            {
-                process.Dispose();
-            }
-        }
     }
 
     public async Task<int?> ShellExecuteAsync(

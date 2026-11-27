@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.ReviewModeBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fluentIcons="using:FluentIcons.WinUI">
+
+    <Grid x:Name="BarGrid"
+          Background="{ThemeResource AccentFillColorDefaultBrush}"
+          Padding="16,10,16,10">
+        <Grid.Resources>
+            <ResourceDictionary Source="ms-appx:///Features/Common/Resources/AccentBarResources.xaml"/>
+        </Grid.Resources>
+        <!-- Rows 1 and 2 take the description and status when the window is too narrow (ModeBarLayout.Fit). -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>  <!-- Icon -->
+            <ColumnDefinition Width="Auto"/>  <!-- Title -->
+            <ColumnDefinition Width="*"/>     <!-- Description (flex: expands to available width, wraps only when needed) -->
+            <ColumnDefinition Width="Auto"/>  <!-- Status text -->
+            <ColumnDefinition Width="Auto"/>  <!-- Accept all remaining button -->
+            <ColumnDefinition Width="Auto"/>  <!-- Apply button -->
+            <ColumnDefinition Width="Auto"/>  <!-- Cancel button -->
+        </Grid.ColumnDefinitions>
+
+        <Image Grid.Column="0"
+               Width="24" Height="24"
+               VerticalAlignment="Center"
+               Margin="{StaticResource BarIconMargin}">
+            <Image.Source>
+                <BitmapImage UriSource="ms-appx:///Assets/ModeIcons/winhance-document-search.png" DecodePixelWidth="24" DecodePixelType="Logical"/>
+            </Image.Source>
+        </Image>
+
+        <TextBlock Grid.Column="1"
+                   x:Name="ReviewModeTitleText"
+                   Text="{x:Bind ViewModel.ReviewModeTitleText, Mode=OneWay}"
+                   Style="{StaticResource EmphasisLabelTextStyle}"
+                   Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                   VerticalAlignment="Center"
+                   Margin="{StaticResource ColumnGapMargin}"/>
+
+        <TextBlock Grid.Column="2"
+                   x:Name="ReviewModeDescriptionText"
+                   Text="{x:Bind ViewModel.ReviewModeDescriptionText, Mode=OneWay}"
+                   FontSize="{StaticResource CaptionTextBlockFontSize}"
+                   Foreground="{ThemeResource TextOnAccentFillColorSecondaryBrush}"
+                   VerticalAlignment="Center"
+                   Opacity="0.85"
+                   TextWrapping="Wrap"
+                   Margin="0,0,16,0"/>
+
+        <TextBlock Grid.Column="3"
+                   x:Name="ReviewModeStatusText"
+                   Text="{x:Bind ViewModel.ReviewModeStatusText, Mode=OneWay}"
+                   ToolTipService.ToolTip="{x:Bind ViewModel.ReviewModeSetAsideDetail, Mode=OneWay}"
+                   FontSize="{StaticResource CaptionTextBlockFontSize}"
+                   Foreground="{ThemeResource TextOnAccentFillColorSecondaryBrush}"
+                   VerticalAlignment="Center"
+                   Opacity="0.9"/>
+
+        <Button Grid.Column="4"
+                x:Name="ReviewModeAcceptAllRemainingButton"
+                Click="ReviewModeAcceptAllRemainingButton_Click"
+                x:Load="{x:Bind ViewModel.CanAcceptAllRemaining, Mode=OneWay}"
+                AutomationProperties.Name="{x:Bind ViewModel.ReviewModeAcceptAllRemainingText, Mode=OneWay}"
+                VerticalAlignment="Center"
+                Margin="8,0,4,0">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource IconLabelSpacing}">
+                <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Regular" FontSize="{StaticResource ButtonIconFontSize}"/>
+                <TextBlock Text="{x:Bind ViewModel.ReviewModeAcceptAllRemainingText, Mode=OneWay}"/>
+            </StackPanel>
+        </Button>
+
+        <!-- A disabled control shows no tooltip, so the reason sits on a wrapper. -->
+        <Grid Grid.Column="5"
+              Background="Transparent"
+              VerticalAlignment="Center"
+              Margin="{StaticResource ModeBarActionMargin}"
+              ToolTipService.ToolTip="{x:Bind ViewModel.ReviewModeApplyBlockedTooltip, Mode=OneWay}">
+            <Button x:Name="ReviewModeApplyButton"
+                    Click="ReviewModeApplyButton_Click"
+                    IsEnabled="{x:Bind ViewModel.CanApplyReviewedConfig, Mode=OneWay}"
+                    AutomationProperties.Name="{x:Bind ViewModel.ReviewModeApplyButtonText, Mode=OneWay}"
+                    AutomationProperties.HelpText="{x:Bind ViewModel.ReviewModeApplyBlockedTooltip, Mode=OneWay}">
+                <StackPanel Orientation="Horizontal" Spacing="{StaticResource IconLabelSpacing}">
+                    <fluentIcons:FluentIcon Icon="Checkmark" IconVariant="Regular" FontSize="{StaticResource ButtonIconFontSize}"/>
+                    <TextBlock x:Name="ReviewModeApplyButtonText"
+                               Text="{x:Bind ViewModel.ReviewModeApplyButtonText, Mode=OneWay}"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <Button Grid.Column="6"
+                x:Name="ReviewModeCancelButton"
+                Click="ReviewModeCancelButton_Click"
+                AutomationProperties.Name="{x:Bind ViewModel.ReviewModeCancelButtonText, Mode=OneWay}"
+                ToolTipService.ToolTip="{x:Bind ViewModel.ReviewModeCancelButtonText, Mode=OneWay}"
+                VerticalAlignment="Center"
+                Margin="{StaticResource InlineLeadingMargin}">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource IconLabelSpacing}">
+                <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular" FontSize="{StaticResource ButtonIconFontSize}"/>
+                <TextBlock x:Name="ReviewModeCancelButtonText"
+                           Text="{x:Bind ViewModel.ReviewModeCancelButtonText, Mode=OneWay}"/>
+            </StackPanel>
+        </Button>
+    </Grid>
+</UserControl>

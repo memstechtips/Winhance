@@ -2,164 +2,274 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Customize.Interfaces;
+using Winhance.Core.Features.Optimize.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Infrastructure.Features.Common.Catalog;
 using Winhance.Infrastructure.Features.Common.Events;
-using Winhance.Infrastructure.Features.Common.EventHandlers;
 using Winhance.Infrastructure.Features.Common.Services;
+using Winhance.Infrastructure.Features.Customize.Services;
+using Winhance.Infrastructure.Features.Optimize.Services;
+using Winhance.Infrastructure.Features.SoftwareApps.Services;
+using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 
 namespace Winhance.Infrastructure.Extensions.DI;
 
-/// <summary>
-/// Extension methods for registering infrastructure services.
-/// </summary>
 public static class InfrastructureServicesExtensions
 {
-    /// <summary>
-    /// Registers infrastructure services for the Winhance application.
-    /// </summary>
-    /// <param name="services">The service collection to configure</param>
-    /// <returns>The service collection for method chaining</returns>
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
-        // Core Infrastructure Services (Singleton - Cross-cutting concerns)
         services.AddSingleton<IConfigImportState, ConfigImportState>();
         services.AddSingleton<IProcessExecutor, ProcessExecutor>();
         services.AddSingleton<ILogService, Winhance.Core.Features.Common.Services.LogService>();
         services.AddSingleton<IInteractiveUserService, InteractiveUserService>();
         services.AddSingleton<ISystemInfoProvider, SystemInfoProvider>();
         services.AddSingleton<IWindowsRegistryService, WindowsRegistryService>();
-        // Dependency Manager
-        services.AddSingleton<IDependencyManager, Winhance.Core.Features.Common.Services.DependencyManager>();
 
-        // Windows Services
         services.AddSingleton<IWindowsVersionService, WindowsVersionService>();
         services.AddSingleton<IWindowsUIManagementService, WindowsUIManagementService>();
 
-        // User Preferences Service
         services.AddSingleton<IUserPreferencesService, UserPreferencesService>();
 
-        // New Badge Service (tracks which settings are new in current release)
         services.AddSingleton<INewBadgeService, NewBadgeService>();
+        services.AddSingleton<ISupportAskSchedule, SupportAskSchedule>();
 
-        // Localization Service
         services.AddSingleton<ILocalizationService, LocalizationService>();
 
-        // Event Bus (Singleton - Message routing)
         services.AddSingleton<IEventBus, EventBus>();
 
-        // Initialization Service
         services.AddSingleton<IInitializationService, Winhance.Core.Features.Common.Services.InitializationService>();
 
-        // Settings Registry
-        services.AddSingleton<IGlobalSettingsRegistry, Winhance.Core.Features.Common.Services.GlobalSettingsRegistry>();
-
-        // Global Settings Preloader (registers bypassed settings in the global registry)
-        services.AddSingleton<IGlobalSettingsPreloader, GlobalSettingsPreloader>();
-
-        // File System Service
         services.AddSingleton<IFileSystemService, FileSystemService>();
+        services.AddSingleton<IPortableDataCopy, Winhance.Infrastructure.Features.Common.Utilities.PortableDataCopy>();
 
-        // Power Scheme Operations (P/Invoke wrapper for plan-level power operations)
         services.AddSingleton<IPowerSchemeOperations, PowerSchemeOperations>();
 
-        // Explorer Window Manager (open/focus folders in Explorer)
+        // Power-plan activation orchestration (six leaf deps, no PowerService/IStateWriter reference so it
+        // is DI-cycle-safe). Consumed by WindowsStateWriter.ActivatePowerPlan.
+        services.AddSingleton<IPowerPlanActivationService, PowerPlanActivationService>();
+
         services.AddSingleton<IExplorerWindowManager, ExplorerWindowManager>();
 
-        // User-facing change receipt (ChangeHistory.txt)
         services.AddSingleton<IChangeHistoryService, ChangeHistoryService>();
 
-        // System Parameters (wraps User32 SystemParametersInfo P/Invoke)
         services.AddSingleton<ISystemParametersService, SystemParametersService>();
+        services.AddSingleton<IServiceStartControl, ServiceStartControl>();
 
-        // PowerShell Runner
         services.AddSingleton<IPowerShellRunner, Winhance.Infrastructure.Features.Common.Utilities.PowerShellRunner>();
 
-        // Driver Categorizer
-        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IDriverCategorizer,
-            Winhance.Infrastructure.Features.AdvancedTools.Helpers.DriverCategorizer>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IDriverCategorizer,
+            Winhance.Infrastructure.Features.WimUtil.Helpers.DriverCategorizer>();
 
-        // Settings Discovery and Application
-        // SystemSettingsDiscoveryService depends on ISpecialDiscoveryRegistry.
-        // The UI composition root re-registers that registry (in AddSettingServices)
-        // with the real handler set (PowerService, UpdateService); because that runs
-        // after AddInfrastructureServices, the richer registration wins in the app.
-        // TryAdd here provides an empty default so the infrastructure container is
-        // self-contained when composed on its own (e.g. integration smoke tests).
-        services.TryAddSingleton<ISpecialDiscoveryRegistry>(_ =>
-            new SpecialDiscoveryRegistry([]));
-        // SettingApplicationService also depends on the ISpecialSettingHandlerRegistry
-        // dispatcher registry, re-registered by the UI composition root with the real
-        // handler set. Same TryAdd-default rationale as ISpecialDiscoveryRegistry above.
-        services.TryAddSingleton<ISpecialSettingHandlerRegistry>(_ =>
-            new SpecialSettingHandlerRegistry(new Dictionary<string, ISpecialSettingHandler>()));
-        services.AddSingleton<ISystemSettingsDiscoveryService, SystemSettingsDiscoveryService>();
+        // power-plan-selection is NOT registered as an apply handler, so the apply funnel falls through to the
+        // catalog engine (ApplyRequestResolver -> PowerPlanEffect -> WindowsStateWriter.ActivatePowerPlan ->
+        // IPowerPlanActivationService.EnsureActivatedAsync).
+        services.AddSingleton<ISpecialSettingHandlerRegistry>(sp =>
+            new SpecialSettingHandlerRegistry(() => new Dictionary<string, ISpecialSettingHandler>
+            {
+                ["updates-policy-mode"]  = sp.GetRequiredService<UpdateService>(),
+            }));
+        services.AddSingleton<IOptionProviderRegistry>(sp =>
+            new OptionProviderRegistry(() => sp.GetServices<IOptionProvider>()));
+        // Pending Explorer restart state (observed by the bottom bar; cleared by ExplorerRestartService)
+        services.AddSingleton<IPendingRestartService, PendingRestartService>();
+
+        // The single owner of restarting Explorer (single-flight, elevation-safe relaunch)
+        services.AddSingleton<IExplorerRestartService, ExplorerRestartService>();
+
         services.AddSingleton<IProcessRestartManager, ProcessRestartManager>();
         services.AddSingleton<IPowerCfgApplier, PowerCfgApplier>();
-        services.AddSingleton<ISettingDependencyResolver, SettingDependencyResolver>();
         services.AddSingleton<IRecommendedSettingsApplier, RecommendedSettingsApplier>();
         services.AddSingleton<IBulkSettingsActionService, BulkSettingsActionService>();
-        services.AddSingleton<ISettingOperationExecutor, SettingOperationExecutor>();
         services.AddSingleton<ISettingApplicationService, SettingApplicationService>();
 
-        // ComboBox Services
-        services.AddSingleton<IComboBoxSetupService, ComboBoxSetupService>();
-        services.AddSingleton<IComboBoxResolver, ComboBoxResolver>();
-        services.AddSingleton<IPowerPlanComboBoxService, PowerPlanComboBoxService>();
+        // Catalog detection context: a factory, because each detection batch needs a fresh
+        // context to hold its own pre-fetched async reads.
+        services.AddSingleton<ISystemDetectionContextFactory, SystemDetectionContextFactory>();
+        services.AddSingleton<ICatalogDetectionService, CatalogDetectionService>();
+        services.AddSingleton<ICatalogSettingStateProvider, CatalogSettingStateProvider>();
+        services.AddSingleton<IRegImportService, RegImportService>();
+        services.AddSingleton<INetworkAdapters, NetworkAdapters>();
+        services.AddSingleton<IDnsSettingsService, DnsSettingsService>();
+        services.AddSingleton<IStateWriter, WindowsStateWriter>();
+        services.AddSingleton<IAsyncEffectRunner, WindowsAsyncEffectRunner>();
 
-        // Settings Compatibility
-        services.AddSingleton<ICompatibleSettingsRegistry, CompatibleSettingsRegistry>();
-        services.AddSingleton<IWindowsCompatibilityFilter, WindowsCompatibilityFilter>();
-        services.AddSingleton<IHardwareCompatibilityFilter, HardwareCompatibilityFilter>();
+        services.AddSingleton<IComboBoxResolver, ComboBoxResolver>();
+
         services.AddSingleton<IHardwareDetectionService, HardwareDetectionService>();
 
-        // Script Services
         services.AddSingleton<IPowerSettingsQueryService, PowerSettingsQueryService>();
-        services.AddSingleton<IPowerSettingsValidationService, PowerSettingsValidationService>();
+        services.AddSingleton<ICatalogPowerExistenceFilter, CatalogPowerExistenceFilter>();
+        services.AddSingleton<ICatalogSettingsRegistry, CatalogSettingsRegistry>();
 
-        // System Services
-        services.AddSingleton<IScheduledTaskService, ScheduledTaskService>();
+        // One COM adapter, two contracts: Winhance's own tasks, and the state of tasks Windows owns.
+        services.AddSingleton<ScheduledTaskService>();
+        services.AddSingleton<IScheduledTaskService>(sp => sp.GetRequiredService<ScheduledTaskService>());
+        services.AddSingleton<IScheduledTaskStateService>(sp => sp.GetRequiredService<ScheduledTaskService>());
+        services.AddSingleton<ISystemRestorePointWriter, NativeSystemRestorePointWriter>();
         services.AddSingleton<ISystemBackupService, SystemBackupService>();
         services.AddSingleton<ISystemRestoreService, SystemRestoreService>();
         services.AddSingleton<IVersionService, VersionService>();
         services.AddSingleton<ISponsorsService, SponsorsService>();
 
-        // Script Services
+        services.AddSingleton<IBackgroundTaskService, BackgroundTaskService>();
         services.AddSingleton<IScriptMigrationService, ScriptMigrationService>();
         services.AddSingleton<IRemovalScriptUpdateService, RemovalScriptUpdateService>();
 
-        // Task Progress Service
         services.AddSingleton<TaskProgressService>();
         services.AddSingleton<ITaskProgressService>(sp => sp.GetRequiredService<TaskProgressService>());
         services.AddSingleton<IMultiScriptProgressService>(sp => sp.GetRequiredService<TaskProgressService>());
 
-        // Tooltip Services
-        services.AddSingleton<ITooltipDataService, TooltipDataService>();
-        services.AddSingleton<TooltipRefreshEventHandler>();
-
-        // Configuration Application Bridge (for config import/export)
         services.AddSingleton<IConfigurationApplicationBridgeService, ConfigurationApplicationBridgeService>();
+        services.AddSingleton<ISettingSnapshotSource, SettingSnapshotSource>();
+        services.AddSingleton<IConfigFileWriter, ConfigFileWriter>();
+        services.AddSingleton<IFileStore, FileStore>();
+        services.AddSingleton<IAutounattendWriter, Winhance.Infrastructure.Features.Autounattend.Services.AutounattendWriter>();
+        services.AddSingleton<IAutounattendReader, Winhance.Infrastructure.Features.Autounattend.Services.AutounattendReader>();
+        services.AddSingleton<IBuilderSeedSource, BuilderSeedSource>();
 
-        // Policy Cleanup Service (for Windows Defaults import)
         services.AddSingleton<IPolicyCleanupService, PolicyCleanupService>();
 
-        // Configuration Migration (for backward-compatible config imports)
         services.AddSingleton<IConfigMigrationService, ConfigMigrationService>();
 
-        // Advanced Tools Services — DISM Process Runner (shared utility)
         services.AddSingleton<IDismProcessRunner, DismProcessRunner>();
 
-        // Advanced Tools Services — WIM/ISO decomposed services
-        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IWimImageService,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.WimImageService>();
-        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IOscdimgToolManager,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.OscdimgToolManager>();
-        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IIsoService,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.IsoService>();
-        services.AddSingleton<Winhance.Core.Features.AdvancedTools.Interfaces.IWimCustomizationService,
-            Winhance.Infrastructure.Features.AdvancedTools.Services.WimCustomizationService>();
-        services.AddSingleton<Winhance.Infrastructure.Features.AdvancedTools.Services.AutounattendScriptBuilder>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IDismImageInfoReader,
+            Winhance.Infrastructure.Features.WimUtil.Services.DismImageInfoReader>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IWimImageService,
+            Winhance.Infrastructure.Features.WimUtil.Services.WimImageService>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IVirtualDiskNative,
+            Winhance.Infrastructure.Features.WimUtil.Services.VirtualDiskNative>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IIsoImageReader,
+            Winhance.Infrastructure.Features.WimUtil.Services.VirtualDiskIsoImageReader>();
+        services.AddSingleton<Func<Winhance.Infrastructure.Features.WimUtil.Services.IFileSystemImageWrapper>>(
+            _ => () => new Winhance.Infrastructure.Features.WimUtil.Services.Imapi2FileSystemImage());
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IIsoImageWriter,
+            Winhance.Infrastructure.Features.WimUtil.Services.Imapi2IsoImageWriter>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IFileCopyNative,
+            Winhance.Infrastructure.Features.WimUtil.Services.FileCopyNative>();
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IMediaCopier,
+            Winhance.Infrastructure.Features.WimUtil.Services.MediaCopier>();
+        services.AddSingleton<Winhance.Infrastructure.Features.Common.Services.IWmiApi,
+            Winhance.Infrastructure.Features.Common.Services.WmiManagementApi>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IStorageOperations,
+            Winhance.Infrastructure.Features.WimUtil.Services.WmiStorageService>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IUsbMediaWriter,
+            Winhance.Infrastructure.Features.WimUtil.Services.StorageApiUsbMediaWriter>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IIsoService,
+            Winhance.Infrastructure.Features.WimUtil.Services.IsoService>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IWimFileExtractor,
+            Winhance.Infrastructure.Features.WimUtil.Services.WimgApiFileExtractor>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.ISecureBootDatabase,
+            Winhance.Infrastructure.Features.WimUtil.Services.FirmwareSecureBootDatabase>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IBootManagerService,
+            Winhance.Infrastructure.Features.WimUtil.Services.BootManagerService>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IDriverInstallStepWriter,
+            Winhance.Infrastructure.Features.WimUtil.Services.DriverInstallStepWriter>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IUpdateInstallStepWriter,
+            Winhance.Infrastructure.Features.WimUtil.Services.UpdateInstallStepWriter>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IAuthenticodeVerifier,
+            Winhance.Infrastructure.Features.WimUtil.Services.AuthenticodeVerifier>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IWindowsUpdateListService,
+            Winhance.Infrastructure.Features.WimUtil.Services.WindowsUpdateListService>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IWindowsUpdateStager,
+            Winhance.Infrastructure.Features.WimUtil.Services.WindowsUpdateStager>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IAnswerFileValidator,
+            Winhance.Infrastructure.Features.WimUtil.Services.AnswerFileValidator>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IWimCustomizationService,
+            Winhance.Infrastructure.Features.WimUtil.Services.WimCustomizationService>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IOfflineServicingService,
+            Winhance.Infrastructure.Features.WimUtil.Services.OfflineServicingService>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IRegistryHiveNative,
+            Winhance.Infrastructure.Features.WimUtil.Services.RegistryHiveNative>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IOfflineHiveLoader,
+            Winhance.Infrastructure.Features.WimUtil.Services.OfflineHiveLoader>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IOfflineAppRemover,
+            Winhance.Infrastructure.Features.WimUtil.Services.OfflineAppRemover>();
+        services.AddSingleton<Winhance.Infrastructure.Features.WimUtil.Services.IOfflineSettingsApplier,
+            Winhance.Infrastructure.Features.WimUtil.Services.OfflineSettingsApplier>();
+        services.AddSingleton<Winhance.Core.Features.WimUtil.Interfaces.IAppStagingService,
+            Winhance.Infrastructure.Features.WimUtil.Services.AppStagingService>();
+        services.AddSingleton<Winhance.Core.Features.Autounattend.Interfaces.IWinhancementsScriptBuilder,
+            Winhance.Infrastructure.Features.Autounattend.Services.WinhancementsScriptBuilder>();
+        services.AddSingleton<Winhance.Infrastructure.Features.Autounattend.Services.VolumeLabelService>();
+        services.AddSingleton<IOptionProvider>(sp =>
+            sp.GetRequiredService<Winhance.Infrastructure.Features.Autounattend.Services.VolumeLabelService>());
 
-        // Http Client
         services.TryAddSingleton<System.Net.Http.HttpClient>();
+
+        return services
+            .AddCustomizationServices()
+            .AddOptimizationServices()
+            .AddSoftwareAppServices();
+    }
+
+    private static IServiceCollection AddCustomizationServices(this IServiceCollection services)
+    {
+        services.AddSingleton<WindowsThemeService>();
+        services.AddSingleton<IWindowsThemeService>(sp => sp.GetRequiredService<WindowsThemeService>());
+        services.AddSingleton<IOptionProvider>(sp => sp.GetRequiredService<WindowsThemeService>());
+        services.AddSingleton<IDesktopSlideshow, DesktopSlideshow>();
+
+        services.AddSingleton<TimeRegionLanguageService>();
+        services.AddSingleton<IOptionProvider>(sp => sp.GetRequiredService<TimeRegionLanguageService>());
+
+        return services;
+    }
+
+    private static IServiceCollection AddOptimizationServices(this IServiceCollection services)
+    {
+        services.AddSingleton<PowerService>();
+        services.AddSingleton<IPowerService>(sp => sp.GetRequiredService<PowerService>());
+        services.AddSingleton<IOptionProvider>(sp => sp.GetRequiredService<PowerService>());
+
+        services.AddSingleton<UpdateService>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddSoftwareAppServices(this IServiceCollection services)
+    {
+        services.AddSingleton<IWindowsAppsService, WindowsAppsService>();
+        services.AddSingleton<IExternalAppsService, ExternalAppsService>();
+        services.AddSingleton<IInstallOptionsService, InstallOptionsService>();
+        services.AddSingleton<IAppInstallationService, AppInstallationService>();
+        services.AddSingleton<IWindowsAppUninstallService, WindowsAppUninstallService>();
+
+        services.AddSingleton<IAppxPackageSource, AppxPackageSource>();
+        services.AddSingleton<IDismComponentReader, DismComponentReader>();
+
+        services.AddSingleton<IAppxIconSource, AppxIconSource>();
+
+        services.AddSingleton<IRepoIconSource, RepoIconSource>();
+        services.AddSingleton<IIconManifestService, IconManifestService>();
+
+        services.AddSingleton<IAppIconResolver, AppIconResolver>();
+
+        services.AddSingleton<WinGetComSession>();
+        services.AddSingleton<IWinGetBootstrapper, WinGetBootstrapper>();
+        services.AddSingleton<IWinGetDetectionService, WinGetDetectionService>();
+        services.AddSingleton<IWinGetPackageInstaller, WinGetPackageInstaller>();
+
+        services.AddSingleton<IChocolateyService, ChocolateyService>();
+
+        services.AddSingleton<IExternalAppUninstallService, ExternalAppUninstallService>();
+        services.AddSingleton<IInstalledAppsService, InstalledAppsService>();
+        services.AddSingleton<IStoreCatalogService>(sp => new StoreCatalogService(
+            new System.Net.Http.HttpClient(new System.Net.Http.HttpClientHandler
+            { AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate }),
+            sp.GetRequiredService<IWindowsRegistryService>(),
+            sp.GetRequiredService<ILogService>()));
+
+        services.AddSingleton<IDirectDownloadService, DirectDownloadService>();
+        services.AddSingleton<IStagedAppInstaller, StagedAppInstaller>();
+
+        services.AddSingleton<ILegacyCapabilityService, LegacyCapabilityService>();
+        services.AddSingleton<IOptionalFeatureService, OptionalFeatureService>();
+        services.AddSingleton<IServicingSession, ServicingSession>();
+
+        services.AddSingleton<IBloatRemovalService, BloatRemovalService>();
 
         return services;
     }

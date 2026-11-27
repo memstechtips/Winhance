@@ -1,0 +1,458 @@
+{
+  "schemaVersion": 1,
+  "themes": {
+    "light": {
+      "LockedSettingIconBrush": "#FFA500"
+    },
+    "dark": {
+      "LockedSettingIconBrush": "#FFA500"
+    }
+  },
+  "aliases": {
+    "light": {
+      "BadgeRecommendedBackground": "SystemFillColorSuccessBackgroundBrush",
+      "BadgeRecommendedBorder": "ControlStrokeColorDefaultBrush",
+      "BadgeRecommendedForeground": "SystemFillColorSuccessBrush",
+      "BadgeDefaultBackground": "SystemFillColorNeutralBackgroundBrush",
+      "BadgeDefaultBorder": "ControlStrokeColorDefaultBrush",
+      "BadgeDefaultForeground": "SystemFillColorNeutralBrush",
+      "BadgeCustomBackground": "SystemFillColorCautionBackgroundBrush",
+      "BadgeCustomBorder": "ControlStrokeColorDefaultBrush",
+      "BadgeCustomForeground": "SystemFillColorCautionBrush",
+      "BadgePreferenceBackground": "SystemFillColorAttentionBackgroundBrush",
+      "BadgePreferenceBorder": "ControlStrokeColorDefaultBrush",
+      "BadgePreferenceForeground": "SystemFillColorAttentionBrush",
+      "BadgeDangerBackground": "SystemFillColorCriticalBackgroundBrush",
+      "BadgeDangerBorder": "ControlStrokeColorDefaultBrush",
+      "BadgeDangerForeground": "SystemFillColorCriticalBrush",
+      "TechDetail.Table.StrokeBrush": "CardStrokeColorDefaultBrush"
+    },
+    "dark": {
+      "BadgeRecommendedBackground": "SystemFillColorSuccessBackgroundBrush",
+      "BadgeRecommendedBorder": "ControlStrokeColorDefaultBrush",
+      "BadgeRecommendedForeground": "SystemFillColorSuccessBrush",
+      "BadgeDefaultBackground": "SystemFillColorNeutralBackgroundBrush",
+      "BadgeDefaultBorder": "ControlStrokeColorDefaultBrush",
+      "BadgeDefaultForeground": "SystemFillColorNeutralBrush",
+      "BadgeCustomBackground": "SystemFillColorCautionBackgroundBrush",
+      "BadgeCustomBorder": "ControlStrokeColorDefaultBrush",
+      "BadgeCustomForeground": "SystemFillColorCautionBrush",
+      "BadgePreferenceBackground": "SystemFillColorAttentionBackgroundBrush",
+      "BadgePreferenceBorder": "ControlStrokeColorDefaultBrush",
+      "BadgePreferenceForeground": "SystemFillColorAttentionBrush",
+      "BadgeDangerBackground": "SystemFillColorCriticalBackgroundBrush",
+      "BadgeDangerBorder": "ControlStrokeColorDefaultBrush",
+      "BadgeDangerForeground": "SystemFillColorCriticalBrush",
+      "TechDetail.Table.StrokeBrush": "ControlStrokeColorDefaultBrush"
+    }
+  },
+  "sizes": {
+    "OutcomeIconFontSize": "16",
+    "BreadcrumbSeparatorFontSize": "12",
+    "TechnicalDetailsIconFontSize": "12",
+    "TechnicalDetailsChevronFontSize": "9",
+    "CardExpanderChevronFontSize": "16",
+    "StatusIconFontSize": "20",
+    "StatusChipIconFontSize": "18",
+    "StepRailIconFontSize": "18",
+    "ButtonIconFontSize": "14",
+    "CaptionIconFontSize": "12",
+    "CardIconFontSize": "16",
+    "NavIconFontSize": "20",
+    "TitleBarIconFontSize": "20",
+    "TitleBarNavIconFontSize": "16",
+    "SupportHeartFontSize": "22",
+    "ActionBarIconFontSize": "18"
+  },
+  "styles": {
+    "BadgePillBase": {
+      "target": "Border",
+      "basedOn": null,
+      "setters": {
+        "MinHeight": "20",
+        "CornerRadius": "10",
+        "Padding": "7,0,9,0",
+        "VerticalAlignment": "Center",
+        "BorderThickness": "1"
+      }
+    },
+    "BadgeRecommendedStyle": {
+      "target": "Border",
+      "basedOn": "BadgePillBase",
+      "setters": {
+        "Background": "{ThemeResource BadgeRecommendedBackground}",
+        "BorderBrush": "{ThemeResource BadgeRecommendedBorder}"
+      }
+    },
+    "BadgeDefaultStyle": {
+      "target": "Border",
+      "basedOn": "BadgePillBase",
+      "setters": {
+        "Background": "{ThemeResource BadgeDefaultBackground}",
+        "BorderBrush": "{ThemeResource BadgeDefaultBorder}"
+      }
+    },
+    "BadgePreferenceStyle": {
+      "target": "Border",
+      "basedOn": "BadgePillBase",
+      "setters": {
+        "Background": "{ThemeResource BadgePreferenceBackground}",
+        "BorderBrush": "{ThemeResource BadgePreferenceBorder}"
+      }
+    },
+    "BadgeInstalledStyle": {
+      "target": "Border",
+      "basedOn": "BadgePillBase",
+      "setters": {
+        "Background": "{ThemeResource BadgeRecommendedBackground}",
+        "BorderBrush": "{ThemeResource BadgeRecommendedBorder}"
+      }
+    },
+    "BadgeNonReinstallableStyle": {
+      "target": "Border",
+      "basedOn": "BadgePillBase",
+      "setters": {
+        "Background": "{ThemeResource BadgeDangerBackground}",
+        "BorderBrush": "{ThemeResource BadgeDangerBorder}"
+      }
+    },
+    "BadgeWarningStyle": {
+      "target": "Border",
+      "basedOn": "BadgePillBase",
+      "setters": {
+        "Background": "{ThemeResource BadgeCustomBackground}",
+        "BorderBrush": "{ThemeResource BadgeCustomBorder}"
+      }
+    },
+    "NewBadgeBorderStyle": {
+      "target": "Border",
+      "basedOn": null,
+      "setters": {
+        "Padding": "5,1",
+        "CornerRadius": "{StaticResource ControlCornerRadius}",
+        "Background": "{ThemeResource AccentFillColorDefaultBrush}",
+        "VerticalAlignment": "Center"
+      }
+    },
+    "NewBadgeTextStyle": {
+      "target": "TextBlock",
+      "basedOn": null,
+      "setters": {
+        "Foreground": "{ThemeResource TextOnAccentFillColorPrimaryBrush}",
+        "FontSize": "10",
+        "FontWeight": "SemiBold"
+      }
+    },
+    "BadgeTextStyle": {
+      "target": "TextBlock",
+      "basedOn": null,
+      "setters": {
+        "FontSize": "11",
+        "FontWeight": "SemiBold",
+        "VerticalAlignment": "Center",
+        "Margin": "0,0,0,2"
+      }
+    },
+    "BadgeRecommendedIcon": {
+      "target": "fluentIcons:FluentIcon",
+      "basedOn": null,
+      "setters": {
+        "Icon": "Star",
+        "FontSize": "{StaticResource CaptionIconFontSize}",
+        "VerticalAlignment": "Center",
+        "Foreground": "{ThemeResource BadgeRecommendedForeground}"
+      }
+    },
+    "BadgeDefaultIcon": {
+      "target": "fluentIcons:FluentIcon",
+      "basedOn": null,
+      "setters": {
+        "Icon": "Apps",
+        "FontSize": "{StaticResource CaptionIconFontSize}",
+        "VerticalAlignment": "Center",
+        "Foreground": "{ThemeResource BadgeDefaultForeground}"
+      }
+    },
+    "BadgePreferenceIcon": {
+      "target": "fluentIcons:FluentIcon",
+      "basedOn": null,
+      "setters": {
+        "Icon": "Person",
+        "FontSize": "{StaticResource CaptionIconFontSize}",
+        "VerticalAlignment": "Center",
+        "Foreground": "{ThemeResource BadgePreferenceForeground}"
+      }
+    },
+    "TechDetail.Table.BadgeRecommendedText": {
+      "target": "TextBlock",
+      "basedOn": "BadgeTextStyle",
+      "setters": {
+        "Foreground": "{ThemeResource BadgeRecommendedForeground}"
+      }
+    },
+    "TechDetail.Table.BadgeDefaultText": {
+      "target": "TextBlock",
+      "basedOn": "BadgeTextStyle",
+      "setters": {
+        "Foreground": "{ThemeResource BadgeDefaultForeground}"
+      }
+    },
+    "QuickSetButtonBase": {
+      "target": "Button",
+      "basedOn": null,
+      "setters": {
+        "Background": "Transparent",
+        "BorderThickness": "0",
+        "Padding": "4",
+        "Width": "28",
+        "Height": "28",
+        "MinWidth": "28",
+        "VerticalAlignment": "Center",
+        "HorizontalAlignment": "Center",
+        "CornerRadius": "{ThemeResource ControlCornerRadius}"
+      }
+    },
+    "QuickSetRecommendedButtonStyle": {
+      "target": "Button",
+      "basedOn": "QuickSetButtonBase",
+      "setters": {
+        "Foreground": "{ThemeResource BadgeRecommendedForeground}"
+      }
+    },
+    "QuickSetDefaultButtonStyle": {
+      "target": "Button",
+      "basedOn": "QuickSetButtonBase",
+      "setters": {
+        "Foreground": "{ThemeResource BadgeDefaultForeground}"
+      }
+    },
+    "TechDetail.CodeBlock.PowerShell": {
+      "target": "Border",
+      "basedOn": null,
+      "setters": {
+        "Background": "#FF0D1117",
+        "BorderBrush": "#FF58A6FF",
+        "BorderThickness": "3,0,0,0",
+        "Padding": "10,8",
+        "CornerRadius": "2"
+      }
+    },
+    "TechDetail.CodeBlock.RegContent": {
+      "target": "Border",
+      "basedOn": null,
+      "setters": {
+        "Background": "#FF2D1B2D",
+        "BorderBrush": "#FFF0C674",
+        "BorderThickness": "3,0,0,0",
+        "Padding": "10,8",
+        "CornerRadius": "2"
+      }
+    },
+    "TechDetail.CodeText": {
+      "target": "TextBlock",
+      "basedOn": null,
+      "setters": {
+        "FontFamily": "Consolas,Cascadia Code,Courier New",
+        "FontSize": "12",
+        "Foreground": "#FFDDDDDD",
+        "IsTextSelectionEnabled": "True",
+        "TextWrapping": "Wrap"
+      }
+    },
+    "TechDetail.Table.HeaderBand": {
+      "target": "Border",
+      "basedOn": null,
+      "setters": {
+        "Background": "{ThemeResource SubtleFillColorSecondaryBrush}",
+        "BorderBrush": "{ThemeResource TechDetail.Table.StrokeBrush}",
+        "MinHeight": "32",
+        "Padding": "12,4"
+      }
+    },
+    "TechDetail.Table.HeaderCell": {
+      "target": "Border",
+      "basedOn": null,
+      "setters": {
+        "Background": "{ThemeResource SubtleFillColorSecondaryBrush}",
+        "BorderBrush": "{ThemeResource TechDetail.Table.StrokeBrush}",
+        "MinHeight": "32",
+        "Padding": "12,4"
+      }
+    },
+    "TechDetail.Table.GroupLabel": {
+      "target": "TextBlock",
+      "basedOn": null,
+      "setters": {
+        "FontSize": "12",
+        "FontWeight": "SemiBold",
+        "VerticalAlignment": "Center"
+      }
+    },
+    "TechDetail.Table.GroupDescription": {
+      "target": "TextBlock",
+      "basedOn": null,
+      "setters": {
+        "FontSize": "11",
+        "TextWrapping": "Wrap",
+        "VerticalAlignment": "Center",
+        "Foreground": "{ThemeResource TextFillColorSecondaryBrush}"
+      }
+    },
+    "TechDetail.Table.GroupPath": {
+      "target": "TextBlock",
+      "basedOn": null,
+      "setters": {
+        "FontFamily": "Consolas",
+        "FontSize": "11",
+        "VerticalAlignment": "Center",
+        "IsTextSelectionEnabled": "True",
+        "Foreground": "{ThemeResource TextFillColorSecondaryBrush}"
+      }
+    },
+    "TechDetail.Table.RegeditButton": {
+      "target": "Button",
+      "basedOn": null,
+      "setters": {
+        "Background": "Transparent",
+        "BorderThickness": "0",
+        "Padding": "4,0",
+        "MinWidth": "0",
+        "VerticalAlignment": "Center",
+        "CornerRadius": "{ThemeResource ControlCornerRadius}"
+      }
+    },
+    "TechDetail.Table.HeaderText": {
+      "target": "TextBlock",
+      "basedOn": null,
+      "setters": {
+        "FontFamily": "Consolas",
+        "FontSize": "12",
+        "FontWeight": "SemiBold",
+        "IsTextSelectionEnabled": "True"
+      }
+    },
+    "TechDetail.Table.HeaderType": {
+      "target": "TextBlock",
+      "basedOn": null,
+      "setters": {
+        "FontFamily": "Consolas",
+        "FontSize": "11",
+        "VerticalAlignment": "Center",
+        "Foreground": "{ThemeResource TextFillColorSecondaryBrush}"
+      }
+    },
+    "TechDetail.Table.HeaderCaption": {
+      "target": "TextBlock",
+      "basedOn": null,
+      "setters": {
+        "FontSize": "11",
+        "FontWeight": "SemiBold",
+        "VerticalAlignment": "Center",
+        "Foreground": "{ThemeResource TextFillColorTertiaryBrush}"
+      }
+    },
+    "TechDetail.Table.Cell": {
+      "target": "Border",
+      "basedOn": null,
+      "setters": {
+        "BorderBrush": "{ThemeResource TechDetail.Table.StrokeBrush}",
+        "MinHeight": "40",
+        "Padding": "12,0"
+      }
+    },
+    "TechDetail.Table.LinkRow": {
+      "target": "Border",
+      "basedOn": null,
+      "setters": {
+        "BorderBrush": "{ThemeResource TechDetail.Table.StrokeBrush}",
+        "Padding": "12,8"
+      }
+    },
+    "TechDetail.Table.CodeSeparator": {
+      "target": "Border",
+      "basedOn": null,
+      "setters": {
+        "BorderBrush": "{ThemeResource TechDetail.Table.StrokeBrush}",
+        "BorderThickness": "0,1,0,0"
+      }
+    },
+    "TechDetail.Table.OptionLabel": {
+      "target": "TextBlock",
+      "basedOn": null,
+      "setters": {
+        "FontFamily": "Consolas",
+        "FontSize": "12",
+        "FontWeight": "SemiBold",
+        "VerticalAlignment": "Center",
+        "IsTextSelectionEnabled": "True"
+      }
+    },
+    "TechDetail.Table.Value": {
+      "target": "TextBlock",
+      "basedOn": null,
+      "setters": {
+        "FontFamily": "Consolas",
+        "FontSize": "12",
+        "VerticalAlignment": "Center",
+        "IsTextSelectionEnabled": "True"
+      }
+    },
+    "TechDetail.Table.ValueCurrent": {
+      "target": "TextBlock",
+      "basedOn": "TechDetail.Table.Value",
+      "setters": {
+        "FontWeight": "SemiBold"
+      }
+    },
+    "TechDetail.Table.ReadingLabel": {
+      "target": "TextBlock",
+      "basedOn": null,
+      "setters": {
+        "FontSize": "12",
+        "TextWrapping": "Wrap",
+        "VerticalAlignment": "Center",
+        "Foreground": "{ThemeResource TextFillColorSecondaryBrush}"
+      }
+    },
+    "TechDetail.ChipText": {
+      "target": "TextBlock",
+      "basedOn": null,
+      "setters": {
+        "FontSize": "10",
+        "Foreground": "{ThemeResource TextFillColorSecondaryBrush}"
+      }
+    },
+    "TechDetail.ChipLink": {
+      "target": "HyperlinkButton",
+      "basedOn": null,
+      "setters": {
+        "Padding": "0",
+        "MinWidth": "0",
+        "MinHeight": "0",
+        "Background": "Transparent",
+        "BorderThickness": "0",
+        "VerticalAlignment": "Center"
+      }
+    },
+    "TechDetail.ChipLinkText": {
+      "target": "TextBlock",
+      "basedOn": "TechDetail.ChipText",
+      "setters": {
+        "Foreground": "{ThemeResource AccentTextFillColorPrimaryBrush}",
+        "TextDecorations": "Underline"
+      }
+    },
+    "TechDetail.Chip": {
+      "target": "Border",
+      "basedOn": null,
+      "setters": {
+        "Background": "{ThemeResource SubtleFillColorSecondaryBrush}",
+        "BorderBrush": "{ThemeResource CardStrokeColorDefaultBrush}",
+        "BorderThickness": "1",
+        "CornerRadius": "10",
+        "Padding": "8,2",
+        "Margin": "0"
+      }
+    }
+  }
+}

@@ -1,31 +1,51 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
+using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Settings.ViewModels;
 
 namespace Winhance.UI.Features.Settings;
 
-/// <summary>
-/// Settings page for application configuration.
-/// </summary>
 public sealed partial class SettingsPage : Page
 {
-    /// <summary>
-    /// Gets the ViewModel for this page.
-    /// </summary>
     public SettingsViewModel ViewModel { get; }
 
-    /// <summary>
-    /// Creates a new instance of the SettingsPage.
-    /// </summary>
     public SettingsPage()
     {
-        // Resolve ViewModel from DI container
         ViewModel = App.Services.GetRequiredService<SettingsViewModel>();
 
         this.InitializeComponent();
 
-        // Settings page is lightweight - no need for caching
-        this.NavigationCacheMode = NavigationCacheMode.Disabled;
+        ScrollMemory.Keep(nameof(SettingsPage), PageScrollViewer);
+
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (App.MainWindow is { } window)
+            window.Activated += OnWindowActivated;
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (App.MainWindow is { } window)
+            window.Activated -= OnWindowActivated;
+        ViewModel.Dispose();
+    }
+
+    protected override void OnNavigatedTo(NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+        ViewModel.RecheckTaskSafety();
+    }
+
+    // A user can break the folder lock while Settings stays open, so the note is re-read each time they come back.
+    private void OnWindowActivated(object sender, WindowActivatedEventArgs args)
+    {
+        if (args.WindowActivationState != WindowActivationState.Deactivated)
+            ViewModel.RecheckTaskSafety();
     }
 }

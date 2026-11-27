@@ -1,23 +1,32 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics;
 using System.ServiceProcess;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Customize.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class ProcessRestartManager(
+internal class ProcessRestartManager(
     IWindowsUIManagementService uiManagementService,
     IConfigImportState configImportState,
+    IPendingRestartService pendingRestartService,
+    IExplorerRestartService explorerRestartService,
+    IWindowsThemeService windowsThemeService,
     ILogService logService) : IProcessRestartManager
 {
+    // Past this a broadcast becomes a WARNING in the user's own log: a silent two-second stall is what started this.
+    private const int SlowBroadcastMs = 500;
+
     private int _suppressCount;
 
-    /// <inheritdoc />
+    // AsyncLocal, so only the apply that opened the scope (and the follow-ons it awaits) feeds the batch.
+    private readonly AsyncLocal<BroadcastBatch?> _batch = new();
+
+    // Test seam: production never reads it (the broadcast is fire-and-forget and observes its own failures), but the
+    // suite needs a deterministic point to await instead of racing the thread pool.
+    internal Task LastBroadcastTask { get; private set; } = Task.CompletedTask;
+
     public IDisposable SuppressRestarts()
     {
         Interlocked.Increment(ref _suppressCount);
@@ -37,101 +46,286 @@ public class ProcessRestartManager(
         }
     }
 
-    public async Task HandleProcessAndServiceRestartsAsync(SettingDefinition setting)
+    public IDisposable CoalesceBroadcasts()
     {
+        var batch = new BroadcastBatch(this, _batch.Value);
+        _batch.Value = batch;
+        return batch;
+    }
+
+    // A nested scope hands its notices to the outer one, so only the outermost scope broadcasts.
+    private sealed class BroadcastBatch(ProcessRestartManager owner, BroadcastBatch? previous) : IDisposable
+    {
+        private readonly List<string> _settingIds = new();
+        private WindowsChange _notices;
+        private int _disposed;
+
+        public void Add(WindowsChange notices, IEnumerable<string> settingIds)
+        {
+            lock (_settingIds)
+            {
+                _notices |= notices;
+                _settingIds.AddRange(settingIds);
+            }
+        }
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) == 1)
+                return;
+            owner._batch.Value = previous;
+
+            lock (_settingIds)
+            {
+                if (_settingIds.Count == 0)
+                    return;
+                if (previous is not null)
+                    previous.Add(_notices, _settingIds);
+                else
+                    owner.DispatchBroadcast(_notices, string.Join("', '", _settingIds));
+            }
+        }
+    }
+
+    public Task HandleProcessAndServiceRestartsAsync(Setting setting)
+    {
+        var (processes, services) = CollectRestartTargets(new[] { setting });
+
+        if (setting.Apply.NotifyWindows.HasFlag(WindowsChange.NumLock))
+            uiManagementService.MatchNumLockToSavedValue();
+
+        // Which broadcast this setting deserves is DECLARED BY THE SETTING (ApplyBehavior.NotifyWindows),
+        // next to its confirmation gate and its restart - not inferred from the registry paths it writes.
+        return HandleRestartsAsync(processes.FirstOrDefault(), services.FirstOrDefault(), setting.Id,
+            setting.Apply.NotifyWindows & ~WindowsChange.NumLock);
+    }
+
+    // Explorer is deliberately NOT restarted here. Killing the shell per setting means a user toggling
+    // several Explorer tweaks in a row triggers several kills within seconds - overlapping restart
+    // cycles, plus winlogon's AutoRestartShell giving up after repeated shell deaths, could leave them
+    // with no shell at all. Instead we broadcast (so anything that CAN take effect live does) and
+    // register the setting; the user restarts once, when they choose, from the pending-restart bar.
+    private Task HandleRestartsAsync(string? restartProcess, string? restartService, string settingId,
+        WindowsChange notices)
+    {
+        bool isExplorer = RestartProcess.NamesExplorer(restartProcess);
+
+        // Two INDEPENDENT reasons to tell Windows something changed:
+        //   NotifyWindows - the setting DECLARES a notice (the theme settings; no restart needed), and
+        //   isExplorer    - a restart-carrying setting gets the generic notice so anything that CAN take
+        //                   effect live does so before the user gets round to restarting.
+        // Gating the broadcast on isExplorer alone is what silently stopped the theme applying the moment
+        // its (unnecessary) Explorer restart was removed: the notice was reachable only via the restart.
+        if (isExplorer || (notices & (WindowsChange.Appearance | WindowsChange.Desktop)) != 0)
+            notices |= WindowsChange.Settings;
+
+        if (notices != WindowsChange.None)
+        {
+            // The broadcast kills nothing, so it runs even under a suppress scope or during an import -
+            // it is what makes live-updatable settings apply immediately.
+            //
+            // It is NOT free, though, and believing it was is what hid a two-second stall with nothing
+            // in the log: the theme half sends WM_SETTINGCHANGE("ImmersiveColorSet") synchronously, and
+            // SendMessageTimeout charges its timeout PER TOP-LEVEL WINDOW. Two things fix that here. A
+            // setting only gets the theme half if it can actually change the theme, and the whole
+            // broadcast runs OFF the caller's thread - which for an interactive apply is the UI thread.
+            // Backgrounding is safe at THIS call site specifically: nothing reads a result, nothing is
+            // killed afterwards so there is no ordering hazard, and the HGlobal the theme send allocates
+            // lives and dies entirely inside the call.
+
+            if (_batch.Value is { } batch)
+                batch.Add(notices, new[] { settingId });
+            else
+                DispatchBroadcast(notices, settingId);
+        }
+
+        // Only a restart-carrying setting raises the pending bar. A setting that merely declares a
+        // notice has already taken effect and must not ask the user to restart anything.
+        if (isExplorer)
+        {
+            pendingRestartService.Register(settingId);
+            return Task.CompletedTask;
+        }
+
         if (_suppressCount > 0)
         {
-            if (!string.IsNullOrEmpty(setting.RestartProcess))
-                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping process restart for '{setting.RestartProcess}' (restarts suppressed - parent will restart)");
-            if (!string.IsNullOrEmpty(setting.RestartService))
-                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping service restart for '{setting.RestartService}' (restarts suppressed - parent will restart)");
-            return;
+            if (!string.IsNullOrEmpty(restartProcess))
+                logService.Log(LogLevel.Debug, $"Skipping process restart for '{restartProcess}' (restarts suppressed - parent will restart)");
+            if (!string.IsNullOrEmpty(restartService))
+                logService.Log(LogLevel.Debug, $"Skipping service restart for '{restartService}' (restarts suppressed - parent will restart)");
+            return Task.CompletedTask;
         }
 
         if (configImportState.IsActive)
         {
-            // For Explorer, fire the theme/settings broadcasts immediately so user sees
-            // visual feedback during import — but defer the Explorer kill until end-of-import.
-            if (!string.IsNullOrEmpty(setting.RestartProcess)
-                && setting.RestartProcess.Equals("explorer", StringComparison.OrdinalIgnoreCase))
-            {
-                await uiManagementService.RefreshWindowsGUI(killExplorer: false).ConfigureAwait(false);
-                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Broadcast Explorer-refresh for '{setting.Id}' (kill deferred — config import mode)");
-            }
-            else if (!string.IsNullOrEmpty(setting.RestartProcess))
-            {
-                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping process restart for '{setting.RestartProcess}' (config import mode - will restart at end)");
-            }
+            if (!string.IsNullOrEmpty(restartProcess))
+                logService.Log(LogLevel.Debug, $"Skipping process restart for '{restartProcess}' (config import mode - will restart at end)");
+            if (!string.IsNullOrEmpty(restartService))
+                logService.Log(LogLevel.Debug, $"Skipping service restart for '{restartService}' (config import mode - will restart at end)");
+            return Task.CompletedTask;
+        }
 
-            if (!string.IsNullOrEmpty(setting.RestartService))
-                logService.Log(LogLevel.Debug, $"[ProcessRestartManager] Skipping service restart for '{setting.RestartService}' (config import mode - will restart at end)");
+        if (!string.IsNullOrEmpty(restartProcess))
+            RestartProcessByName(restartProcess, settingId);
+
+        if (!string.IsNullOrEmpty(restartService))
+            RestartServiceByName(restartService, settingId);
+
+        return Task.CompletedTask;
+    }
+
+    private void DispatchBroadcast(WindowsChange notices, string settingId)
+    {
+        LogBroadcastDispatch(notices, settingId);
+        LastBroadcastTask = Task.Run(() => RunBroadcast(notices, settingId));
+    }
+
+    // Which set of messages went out, so the split is visible in the field rather than only in the source.
+    private static string BroadcastVariant(WindowsChange notices) =>
+        ((notices.HasFlag(WindowsChange.Appearance) ? "theme+" : string.Empty)
+        + (notices.HasFlag(WindowsChange.Desktop) ? "desktop+" : string.Empty)
+        + (notices.HasFlag(WindowsChange.Accessibility) ? "accessibility+" : string.Empty)
+        + (notices.HasFlag(WindowsChange.Settings) ? "generic" : string.Empty)).TrimEnd('+');
+
+    private static string BroadcastScope(string? settingId) =>
+        string.IsNullOrEmpty(settingId) ? "(coalesced)" : $"for '{settingId}'";
+
+    // Separate from RunBroadcast so the per-apply path can log on the caller's thread while the send runs on the pool.
+    private void LogBroadcastDispatch(WindowsChange notices, string? settingId) =>
+        logService.Log(LogLevel.Debug,
+            $"Broadcasting shell refresh ({BroadcastVariant(notices)}) {BroadcastScope(settingId)}");
+
+    // TIMES the broadcast, which can take seconds and would otherwise show in the user's log as an unexplained gap.
+    // Normal runs stay Debug; at or past SlowBroadcastMs it is promoted to a Warning. Catches EVERYTHING: on the per-apply path
+    // this runs on a background task nobody awaits, so an escaping exception would vanish into the thread pool.
+    private void RunBroadcast(WindowsChange notices, string? settingId)
+    {
+        string variant = BroadcastVariant(notices);
+        string scope = BroadcastScope(settingId);
+
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            if (notices.HasFlag(WindowsChange.Appearance))
+                explorerRestartService.BroadcastThemeRefresh();
+
+            if (notices.HasFlag(WindowsChange.Accessibility))
+                uiManagementService.BroadcastAccessibilitySettingChange();
+
+            if (notices.HasFlag(WindowsChange.Settings))
+                explorerRestartService.BroadcastShellRefresh();
+
+            // Runs last so a shell refresh cannot undo it.
+            if (notices.HasFlag(WindowsChange.Desktop))
+                windowsThemeService.RefreshDesktop();
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            logService.Log(LogLevel.Error,
+                $"Shell broadcast ({variant}) {scope} failed after {stopwatch.ElapsedMilliseconds}ms",
+                ex);
             return;
         }
 
-        if (!string.IsNullOrEmpty(setting.RestartProcess))
-            await RestartProcessByNameAsync(setting.RestartProcess, setting.Id).ConfigureAwait(false);
-
-        if (!string.IsNullOrEmpty(setting.RestartService))
-            RestartServiceByName(setting.RestartService, setting.Id);
+        stopwatch.Stop();
+        long elapsedMs = stopwatch.ElapsedMilliseconds;
+        bool slow = elapsedMs >= SlowBroadcastMs;
+        logService.Log(
+            slow ? LogLevel.Warning : LogLevel.Debug,
+            slow
+                ? $"Shell broadcast ({variant}) {scope} took {elapsedMs}ms - other top-level windows are slow to process it"
+                : $"Shell broadcast ({variant}) {scope} took {elapsedMs}ms");
     }
 
-    public async Task FlushCoalescedRestartsAsync(IEnumerable<SettingDefinition> appliedSettings)
+    public Task FlushCoalescedRestartsAsync(IEnumerable<Setting> appliedSettings)
     {
-        if (appliedSettings == null) return;
+        if (appliedSettings == null) return Task.CompletedTask;
 
-        var processes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var services = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var settings = appliedSettings.Where(s => s != null).ToList();
+        var (processes, services) = CollectRestartTargets(settings);
 
-        foreach (var s in appliedSettings)
+        // Explorer never restarts as part of a bulk apply either - the whole point of deferring is that
+        // the USER decides when the shell goes down. Register every Explorer-carrying setting and drop
+        // the target from the flush set. Skipping this would quietly reintroduce the kill through every
+        // bulk path (apply-recommended, reset-section).
+        if (processes.Remove(RestartProcess.ExplorerName))
         {
-            if (!string.IsNullOrEmpty(s.RestartProcess)) processes.Add(s.RestartProcess);
-            if (!string.IsNullOrEmpty(s.RestartService)) services.Add(s.RestartService);
+            // ONE broadcast for the whole batch, and it carries the theme set only when at least one of
+            // the applied settings could actually change the theme. Synchronous here on purpose: FlushSets
+            // below kills processes, so unlike the per-apply path this one has an ordering relationship
+            // with what follows it.
+            var notices = WindowsChange.Settings;
+            foreach (var setting in settings)
+                notices |= setting.Apply.NotifyWindows & (WindowsChange.Appearance | WindowsChange.Desktop);
+            LogBroadcastDispatch(notices, settingId: null);
+            RunBroadcast(notices, settingId: null);
+            foreach (var setting in settings.Where(s => RestartTarget.IsExplorer(s.Apply.Restart)))
+                pendingRestartService.Register(setting.Id);
         }
 
+        FlushSets(processes, services);
+        return Task.CompletedTask;
+    }
+
+    // Reads process / service restarts from ApplyBehavior.Restart (a single RestartTarget) - no setting
+    // sets both.
+    internal static (HashSet<string> Processes, HashSet<string> Services) CollectRestartTargets(
+        IEnumerable<Setting> settings)
+    {
+        var processes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var services = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (settings != null)
+            foreach (var s in settings)
+            {
+                switch (s.Apply.Restart)
+                {
+                    case RestartProcess rp when !string.IsNullOrEmpty(rp.Name): processes.Add(rp.Name); break;
+                    case RestartService rs when !string.IsNullOrEmpty(rs.Name): services.Add(rs.Name); break;
+                }
+            }
+        return (processes, services);
+    }
+
+    private void FlushSets(HashSet<string> processes, HashSet<string> services)
+    {
         if (processes.Count == 0 && services.Count == 0) return;
 
         logService.Log(LogLevel.Info,
-            $"[ProcessRestartManager] Flushing coalesced restarts: {processes.Count} process(es), {services.Count} service(s)");
+            $"Flushing coalesced restarts: {processes.Count} process(es), {services.Count} service(s)");
 
         foreach (var process in processes)
-            await RestartProcessByNameAsync(process, settingIdForLog: null).ConfigureAwait(false);
+            RestartProcessByName(process, settingIdForLog: null);
 
         foreach (var service in services)
             RestartServiceByName(service, settingIdForLog: null);
     }
 
-    private async Task RestartProcessByNameAsync(string processName, string? settingIdForLog)
+    // Explorer never reaches here - both entry points intercept it before this point and register it as
+    // pending instead. Only intl (a broadcast) and genuine process kills remain.
+    private void RestartProcessByName(string processName, string? settingIdForLog)
     {
-        if (processName.Equals("explorer", StringComparison.OrdinalIgnoreCase))
-        {
-            var label = settingIdForLog is null
-                ? "[ProcessRestartManager] Refreshing Windows UI (coalesced)"
-                : $"[ProcessRestartManager] Refreshing Windows UI for setting '{settingIdForLog}'";
-            logService.Log(LogLevel.Info, label);
-            await uiManagementService.RefreshWindowsGUI(killExplorer: true).ConfigureAwait(false);
-            return;
-        }
-        else if (processName.Equals("intl", StringComparison.OrdinalIgnoreCase))
+        if (processName.Equals(RestartProcess.IntlName, StringComparison.OrdinalIgnoreCase))
         {
             logService.Log(LogLevel.Info,
                 settingIdForLog != null
-                    ? $"[ProcessRestartManager] Broadcasting regional setting change for '{settingIdForLog}'"
-                    : "[ProcessRestartManager] Broadcasting regional setting change (coalesced)");
+                    ? $"Broadcasting regional setting change for '{settingIdForLog}'"
+                    : "Broadcasting regional setting change (coalesced)");
             uiManagementService.BroadcastRegionalSettingChange();
         }
         else
         {
             logService.Log(LogLevel.Info,
                 settingIdForLog != null
-                    ? $"[ProcessRestartManager] Restarting process '{processName}' for setting '{settingIdForLog}'"
-                    : $"[ProcessRestartManager] Restarting process '{processName}' (coalesced)");
+                    ? $"Restarting process '{processName}' for setting '{settingIdForLog}'"
+                    : $"Restarting process '{processName}' (coalesced)");
             try
             {
                 uiManagementService.KillProcess(processName);
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Warning, $"[ProcessRestartManager] Failed to restart process '{processName}': {ex.Message}");
+                logService.Log(LogLevel.Warning, $"Failed to restart process '{processName}': {ex.Message}");
             }
         }
     }
@@ -140,11 +334,11 @@ public class ProcessRestartManager(
     {
         logService.Log(LogLevel.Info,
             settingIdForLog != null
-                ? $"[ProcessRestartManager] Restarting service '{serviceName}' for setting '{settingIdForLog}'"
-                : $"[ProcessRestartManager] Restarting service '{serviceName}' (coalesced)");
+                ? $"Restarting service '{serviceName}' for setting '{settingIdForLog}'"
+                : $"Restarting service '{serviceName}' (coalesced)");
         try
         {
-            if (serviceName.Contains("*"))
+            if (serviceName.Contains('*'))
             {
                 var pattern = serviceName.Replace("*", "");
                 var allServices = ServiceController.GetServices();
@@ -166,7 +360,7 @@ public class ProcessRestartManager(
                         }
                         catch (Exception svcEx)
                         {
-                            logService.Log(LogLevel.Warning, $"[ProcessRestartManager] Failed to restart service '{svc.ServiceName}': {svcEx.Message}");
+                            logService.Log(LogLevel.Warning, $"Failed to restart service '{svc.ServiceName}': {svcEx.Message}");
                         }
                     }
                 }
@@ -189,7 +383,7 @@ public class ProcessRestartManager(
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Warning, $"[ProcessRestartManager] Failed to restart service '{serviceName}': {ex.Message}");
+            logService.Log(LogLevel.Warning, $"Failed to restart service '{serviceName}': {ex.Message}");
         }
     }
 }

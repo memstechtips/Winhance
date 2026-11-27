@@ -1,9 +1,8 @@
-using System;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -36,7 +35,6 @@ public class StartupNotificationService : IStartupNotificationService
     {
         try
         {
-            // Check if we've already offered
             var alreadyOffered = _prefsService.GetPreference(
                 UserPreferenceKeys.InitialRestorePointOffered, false);
             if (alreadyOffered)
@@ -46,7 +44,6 @@ public class StartupNotificationService : IStartupNotificationService
             await _prefsService.SetPreferenceAsync(
                 UserPreferenceKeys.InitialRestorePointOffered, true);
 
-            // Build the consent dialog message
             var message = _localizationService.GetString("Startup_Backup_Intro") + "\n\n"
                 + _localizationService.GetString("Startup_Backup_ConfigCreated") + "\n\n"
                 + _localizationService.GetString("Startup_Backup_RestoreOffer") + "\n\n"
@@ -66,7 +63,7 @@ public class StartupNotificationService : IStartupNotificationService
 
                 // Use TaskProgressService so the main window progress bar shows status
                 var cts = _taskProgressService.StartTask(
-                    _localizationService.GetString("Progress_CreatingRestorePoint") ?? "Creating system restore point...",
+                    _localizationService.GetStringOrDefault("Progress_CreatingRestorePoint", "Creating system restore point..."),
                     isIndeterminate: true);
                 var progress = _taskProgressService.CreateDetailedProgress();
 
@@ -75,10 +72,9 @@ public class StartupNotificationService : IStartupNotificationService
                     var result = await _backupService.CreateRestorePointAsync(
                         progress: progress, cancellationToken: cts.Token);
 
-                    _taskProgressService.CompleteTask();
-
                     if (result.Success && result.RestorePointCreated)
                     {
+                        _taskProgressService.CompleteTask();
                         var successMsg = _localizationService.GetString("Startup_Backup_RestoreCreatedSuccess");
                         await _dialogService.ShowInformationAsync(
                             successMsg,
@@ -86,16 +82,19 @@ public class StartupNotificationService : IStartupNotificationService
                     }
                     else
                     {
-                        var failMsg = _localizationService.GetString("Startup_Backup_RestoreCreatedFail")
-                            + (result.ErrorMessage != null ? $"\n\n{result.ErrorMessage}" : "");
-                        await _dialogService.ShowWarningAsync(
-                            failMsg,
+                        _taskProgressService.FailTask();
+                        await _dialogService.ShowRestorePointFailureAsync(_localizationService, _backupService, result,
+                            _localizationService.GetString("Startup_Backup_RestoreCreatedFail"),
                             _localizationService.GetString("Startup_Backup_Title_Fail"));
                     }
                 }
+                catch (OperationCanceledException)
+                {
+                    _taskProgressService.CancelTask();
+                }
                 catch
                 {
-                    _taskProgressService.CompleteTask();
+                    _taskProgressService.FailTask();
                     throw;
                 }
             }

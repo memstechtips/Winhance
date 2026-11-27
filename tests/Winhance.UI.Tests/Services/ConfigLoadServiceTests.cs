@@ -1,8 +1,11 @@
+using System.Text.Json;
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.TestSupport;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
@@ -15,7 +18,7 @@ public class ConfigLoadServiceTests
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IWindowsVersionService> _mockWindowsVersionService = new();
-    private readonly Mock<ICompatibleSettingsRegistry> _mockCompatibleSettingsRegistry = new();
+    private readonly Mock<ICatalogSettingsRegistry> _mockRegistry = new();
     private readonly Mock<IConfigMigrationService> _mockConfigMigrationService = new();
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
@@ -29,7 +32,7 @@ public class ConfigLoadServiceTests
             _mockDialogService.Object,
             _mockLocalizationService.Object,
             _mockWindowsVersionService.Object,
-            _mockCompatibleSettingsRegistry.Object,
+            _mockRegistry.Object,
             _mockConfigMigrationService.Object,
             _mockInteractiveUserService.Object,
             _mockFileSystemService.Object,
@@ -37,15 +40,26 @@ public class ConfigLoadServiceTests
             _mockConfigImportState.Object);
     }
 
-    // -------------------------------------------------------
-    // DetectIncompatibleSettings
-    // -------------------------------------------------------
+    public ConfigLoadServiceTests()
+    {
+        _mockRegistry
+            .Setup(r => r.GetById(It.IsAny<string>(), It.IsAny<CatalogScope>()))
+            .Returns((string id, CatalogScope _) => SettingCatalog.Find(id));
+        _mockLocalizationService.Setup(l => l.GetString("Feature_Privacy_Name")).Returns("Privacy");
+        _mockLocalizationService.Setup(l => l.GetString("Feature_StartMenu_Name")).Returns("Start");
+        _mockLocalizationService.MirrorTryGetString();
+    }
+
+    private void HiddenOnThisMachine(string settingId) =>
+        _mockRegistry
+            .Setup(r => r.GetById(settingId, CatalogScope.CurrentMachine))
+            .Returns((Setting?)null);
 
     [Fact]
     public void DetectIncompatibleSettings_WithEmptyConfig_ReturnsEmptyList()
     {
         var service = CreateService();
-        var config = new UnifiedConfigurationFile();
+        var config = new WinhanceConfigFile();
 
         var result = service.DetectIncompatibleSettings(config);
 
@@ -53,34 +67,21 @@ public class ConfigLoadServiceTests
     }
 
     [Fact]
-    public void DetectIncompatibleSettings_WithWindows10OnlySetting_OnWindows11_ReturnsIncompatible()
+    public void DetectIncompatibleSettings_NamesASettingThisMachineDoesNotShow_WithItsFeature()
     {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22621);
+        HiddenOnThisMachine("privacy-timeline-suggestions");
 
-        var settingDef = new SettingDefinition
-        {
-            Id = "win10-setting",
-            Name = "Win10 Setting",
-            Description = "Only for Win10",
-            IsWindows10Only = true
-        };
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(new[] { settingDef });
-
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
                 Features = new Dictionary<string, ConfigSection>
                 {
-                    ["TestFeature"] = new ConfigSection
+                    ["Privacy"] = new ConfigSection
                     {
                         Items = new List<ConfigurationItem>
                         {
-                            new ConfigurationItem { Id = "win10-setting", Name = "Win10 Setting" }
+                            new ConfigurationItem { Id = "privacy-timeline-suggestions", Name = "Timeline Suggestions" }
                         }
                     }
                 }
@@ -90,39 +91,27 @@ public class ConfigLoadServiceTests
         var service = CreateService();
         var result = service.DetectIncompatibleSettings(config);
 
+        // The service localizes the catalog's key, and with an unstubbed mock the fallback is the key itself.
         result.Should().ContainSingle()
-            .Which.Should().Be("Win10 Setting (TestFeature)");
+            .Which.Should().Be("Setting_privacy-timeline-suggestions_Name (Privacy)");
     }
 
     [Fact]
-    public void DetectIncompatibleSettings_WithWindows11OnlySetting_OnWindows10_ReturnsIncompatible()
+    public void DetectIncompatibleSettings_NamesTheSettingsFeature_NotTheFileKey()
     {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(false);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(19045);
+        HiddenOnThisMachine("start-recommended-section");
 
-        var settingDef = new SettingDefinition
-        {
-            Id = "win11-setting",
-            Name = "Win11 Setting",
-            Description = "Only for Win11",
-            IsWindows11Only = true
-        };
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(new[] { settingDef });
-
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
                 Features = new Dictionary<string, ConfigSection>
                 {
-                    ["TestFeature"] = new ConfigSection
+                    ["Explorer"] = new ConfigSection
                     {
                         Items = new List<ConfigurationItem>
                         {
-                            new ConfigurationItem { Id = "win11-setting", Name = "Win11 Setting" }
+                            new ConfigurationItem { Id = "start-recommended-section", Name = "Recommended section" }
                         }
                     }
                 }
@@ -133,168 +122,24 @@ public class ConfigLoadServiceTests
         var result = service.DetectIncompatibleSettings(config);
 
         result.Should().ContainSingle()
-            .Which.Should().Be("Win11 Setting (TestFeature)");
+            .Which.Should().Be("Setting_start-recommended-section_Name (Start)");
     }
 
     [Fact]
-    public void DetectIncompatibleSettings_WithMinimumBuildNumber_BelowThreshold_ReturnsIncompatible()
+    public void DetectIncompatibleSettings_ASettingThisMachineShows_IsCompatible()
     {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22000);
 
-        var settingDef = new SettingDefinition
-        {
-            Id = "new-build-setting",
-            Name = "New Build Setting",
-            Description = "Requires newer build",
-            MinimumBuildNumber = 22621
-        };
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(new[] { settingDef });
-
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
                 Features = new Dictionary<string, ConfigSection>
                 {
-                    ["TestFeature"] = new ConfigSection
+                    ["Gaming"] = new ConfigSection
                     {
                         Items = new List<ConfigurationItem>
                         {
-                            new ConfigurationItem { Id = "new-build-setting", Name = "New Build Setting" }
-                        }
-                    }
-                }
-            }
-        };
-
-        var service = CreateService();
-        var result = service.DetectIncompatibleSettings(config);
-
-        result.Should().ContainSingle();
-    }
-
-    [Fact]
-    public void DetectIncompatibleSettings_WithMaximumBuildNumber_AboveThreshold_ReturnsIncompatible()
-    {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(30000);
-
-        var settingDef = new SettingDefinition
-        {
-            Id = "old-build-setting",
-            Name = "Old Build Setting",
-            Description = "For older builds only",
-            MaximumBuildNumber = 22621
-        };
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(new[] { settingDef });
-
-        var config = new UnifiedConfigurationFile
-        {
-            Optimize = new FeatureGroupSection
-            {
-                Features = new Dictionary<string, ConfigSection>
-                {
-                    ["TestFeature"] = new ConfigSection
-                    {
-                        Items = new List<ConfigurationItem>
-                        {
-                            new ConfigurationItem { Id = "old-build-setting", Name = "Old Build Setting" }
-                        }
-                    }
-                }
-            }
-        };
-
-        var service = CreateService();
-        var result = service.DetectIncompatibleSettings(config);
-
-        result.Should().ContainSingle();
-    }
-
-    [Fact]
-    public void DetectIncompatibleSettings_WithSupportedBuildRanges_OutOfRange_ReturnsIncompatible()
-    {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(25000);
-
-        var settingDef = new SettingDefinition
-        {
-            Id = "range-setting",
-            Name = "Range Setting",
-            Description = "Has build ranges",
-            SupportedBuildRanges = new List<(int MinBuild, int MaxBuild)>
-            {
-                (22000, 22621),
-                (26000, 30000)
-            }
-        };
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(new[] { settingDef });
-
-        var config = new UnifiedConfigurationFile
-        {
-            Optimize = new FeatureGroupSection
-            {
-                Features = new Dictionary<string, ConfigSection>
-                {
-                    ["TestFeature"] = new ConfigSection
-                    {
-                        Items = new List<ConfigurationItem>
-                        {
-                            new ConfigurationItem { Id = "range-setting", Name = "Range Setting" }
-                        }
-                    }
-                }
-            }
-        };
-
-        var service = CreateService();
-        var result = service.DetectIncompatibleSettings(config);
-
-        result.Should().ContainSingle();
-    }
-
-    [Fact]
-    public void DetectIncompatibleSettings_WithSupportedBuildRanges_InRange_ReturnsEmpty()
-    {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22500);
-
-        var settingDef = new SettingDefinition
-        {
-            Id = "range-setting",
-            Name = "Range Setting",
-            Description = "Has build ranges",
-            SupportedBuildRanges = new List<(int MinBuild, int MaxBuild)>
-            {
-                (22000, 22621)
-            }
-        };
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(new[] { settingDef });
-
-        var config = new UnifiedConfigurationFile
-        {
-            Optimize = new FeatureGroupSection
-            {
-                Features = new Dictionary<string, ConfigSection>
-                {
-                    ["TestFeature"] = new ConfigSection
-                    {
-                        Items = new List<ConfigurationItem>
-                        {
-                            new ConfigurationItem { Id = "range-setting", Name = "Range Setting" }
+                            new ConfigurationItem { Id = "gaming-game-mode", Name = "Game Mode" }
                         }
                     }
                 }
@@ -308,23 +153,11 @@ public class ConfigLoadServiceTests
     }
 
     [Fact]
-    public void DetectIncompatibleSettings_WithCompatibleSetting_ReturnsEmpty()
+    public void DetectIncompatibleSettings_UnknownId_IsSkippedWithoutAskingTheRegistry()
     {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22621);
+        // An id with no catalog peer is not a setting - it is neither flagged incompatible nor gated.
 
-        var settingDef = new SettingDefinition
-        {
-            Id = "compatible-setting",
-            Name = "Compatible Setting",
-            Description = "Works everywhere"
-        };
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(new[] { settingDef });
-
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -334,7 +167,7 @@ public class ConfigLoadServiceTests
                     {
                         Items = new List<ConfigurationItem>
                         {
-                            new ConfigurationItem { Id = "compatible-setting", Name = "Compatible Setting" }
+                            new ConfigurationItem { Id = "totally-unknown-id", Name = "Unknown" }
                         }
                     }
                 }
@@ -345,15 +178,14 @@ public class ConfigLoadServiceTests
         var result = service.DetectIncompatibleSettings(config);
 
         result.Should().BeEmpty();
+        _mockRegistry.Verify(r => r.GetById(It.IsAny<string>(), It.IsAny<CatalogScope>()), Times.Never);
     }
 
     [Fact]
     public void DetectIncompatibleSettings_WithNullFeatures_SkipsSection()
     {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22621);
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection { Features = new Dictionary<string, ConfigSection>() },
             Customize = new FeatureGroupSection { Features = new Dictionary<string, ConfigSection>() }
@@ -365,36 +197,12 @@ public class ConfigLoadServiceTests
         result.Should().BeEmpty();
     }
 
-    // -------------------------------------------------------
-    // FilterConfigForCurrentSystem
-    // -------------------------------------------------------
-
     [Fact]
-    public void FilterConfigForCurrentSystem_RemovesIncompatibleSettings()
+    public void FilterConfigForCurrentSystem_DropsWhatThisMachineDoesNotShow_KeepsTheRest()
     {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22621);
+        HiddenOnThisMachine("privacy-timeline-suggestions");
 
-        var compatibleDef = new SettingDefinition
-        {
-            Id = "compatible",
-            Name = "Compatible",
-            Description = "Works"
-        };
-
-        var incompatibleDef = new SettingDefinition
-        {
-            Id = "incompatible",
-            Name = "Incompatible",
-            Description = "Win10 only",
-            IsWindows10Only = true
-        };
-
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(new[] { compatibleDef, incompatibleDef });
-
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Version = "2.0",
             Optimize = new FeatureGroupSection
@@ -407,8 +215,8 @@ public class ConfigLoadServiceTests
                         IsIncluded = true,
                         Items = new List<ConfigurationItem>
                         {
-                            new ConfigurationItem { Id = "compatible", Name = "Compatible" },
-                            new ConfigurationItem { Id = "incompatible", Name = "Incompatible" }
+                            new ConfigurationItem { Id = "gaming-game-mode", Name = "Game Mode" },
+                            new ConfigurationItem { Id = "privacy-timeline-suggestions", Name = "Timeline Suggestions" }
                         }
                     }
                 }
@@ -420,20 +228,14 @@ public class ConfigLoadServiceTests
 
         result.Version.Should().Be("2.0");
         result.Optimize.Features["TestFeature"].Items.Should().ContainSingle()
-            .Which.Id.Should().Be("compatible");
+            .Which.Id.Should().Be("gaming-game-mode");
     }
 
     [Fact]
-    public void FilterConfigForCurrentSystem_KeepsSettingsNotInRegistry()
+    public void FilterConfigForCurrentSystem_KeepsUnknownIds()
     {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22621);
 
-        _mockCompatibleSettingsRegistry
-            .Setup(r => r.GetBypassedSettings("TestFeature"))
-            .Returns(Enumerable.Empty<SettingDefinition>());
-
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -460,10 +262,8 @@ public class ConfigLoadServiceTests
     [Fact]
     public void FilterConfigForCurrentSystem_PreservesWindowsAppsAndExternalApps()
     {
-        _mockWindowsVersionService.Setup(w => w.IsWindows11()).Returns(true);
-        _mockWindowsVersionService.Setup(w => w.GetWindowsBuildNumber()).Returns(22621);
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             WindowsApps = new ConfigSection
             {
@@ -490,10 +290,6 @@ public class ConfigLoadServiceTests
         result.ExternalApps.Items.Should().ContainSingle();
     }
 
-    // -------------------------------------------------------
-    // LoadUserBackupConfigurationAsync
-    // -------------------------------------------------------
-
     [Fact]
     public async Task LoadUserBackupConfigurationAsync_WhenDirectoryDoesNotExist_ShowsMessageAndReturnsNull()
     {
@@ -502,7 +298,7 @@ public class ConfigLoadServiceTests
             .Returns(@"C:\Users\Test\AppData\Local");
 
         _mockFileSystemService
-            .Setup(fs => fs.CombinePath(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(fs => fs.CombinePath(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(@"C:\Users\Test\AppData\Local\Winhance\Backup");
 
         _mockFileSystemService
@@ -513,7 +309,7 @@ public class ConfigLoadServiceTests
         var result = await service.LoadUserBackupConfigurationAsync();
 
         result.Should().BeNull();
-        _mockDialogService.Verify(d => d.ShowMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _mockDialogService.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -524,7 +320,7 @@ public class ConfigLoadServiceTests
             .Returns(@"C:\Users\Test\AppData\Local");
 
         _mockFileSystemService
-            .Setup(fs => fs.CombinePath(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(fs => fs.CombinePath(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(@"C:\Users\Test\AppData\Local\Winhance\Backup");
 
         _mockFileSystemService
@@ -539,24 +335,278 @@ public class ConfigLoadServiceTests
         var result = await service.LoadUserBackupConfigurationAsync();
 
         result.Should().BeNull();
-        _mockDialogService.Verify(d => d.ShowMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _mockDialogService.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
-    // -------------------------------------------------------
-    // LoadAndValidateConfigurationFromFileAsync
-    // -------------------------------------------------------
+    private const string ConfigPath = @"C:\Configs\mine.winhance";
+
+    private void FileHolds(string json) =>
+        _mockFileSystemService.Setup(f => f.ReadAllBytesAsync(ConfigPath, It.IsAny<CancellationToken>())).ReturnsAsync(System.Text.Encoding.UTF8.GetBytes(json));
+
+    private static string Json(WinhanceConfigFile config) => JsonSerializer.Serialize(config, ConfigFileConstants.JsonOptions);
 
     [Fact]
-    public async Task LoadAndValidateConfigurationFromFileAsync_WhenNoMainWindow_ReturnsNull()
+    public async Task ReadConfigurationAsync_MigratesTheFile()
+    {
+        FileHolds(Json(new WinhanceConfigFile()));
+
+        var result = await CreateService().ReadConfigurationAsync(ConfigPath);
+
+        result.Should().NotBeNull();
+        _mockConfigMigrationService.Verify(m => m.MigrateConfig(result!), Times.Once);
+    }
+
+    [Fact]
+    public async Task ReadConfigurationAsync_UnsupportedVersion_ReturnsNullWithoutADialog()
+    {
+        FileHolds(Json(new WinhanceConfigFile { Version = "3.0" }));
+
+        var result = await CreateService().ReadConfigurationAsync(ConfigPath);
+
+        result.Should().BeNull();
+        _mockDialogService.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ReadEmbeddedConfigurationAsync_MigratesThePreset()
+    {
+        var result = await CreateService().ReadEmbeddedConfigurationAsync(windowsDefaults: false);
+
+        result.Should().NotBeNull();
+        _mockConfigMigrationService.Verify(m => m.MigrateConfig(result!), Times.Once);
+    }
+
+    [Fact]
+    public async Task LoadAndValidateConfigurationAsync_AcceptedFile_RecordsItsName()
+    {
+        _mockConfigImportState.SetupAllProperties();
+        FileHolds(Json(new WinhanceConfigFile()));
+
+        var result = await CreateService().LoadAndValidateConfigurationAsync(ConfigPath);
+
+        result.Should().NotBeNull();
+        _mockConfigImportState.Object.SourceName.Should().Be("mine.winhance");
+        _mockConfigMigrationService.Verify(m => m.MigrateConfig(result!), Times.Once);
+    }
+
+    [Fact]
+    public async Task LoadAndValidateConfigurationAsync_UnsupportedVersion_KeepsThePreviousSourceName()
+    {
+        _mockConfigImportState.SetupAllProperties();
+        _mockConfigImportState.Object.SourceName = "previous.winhance";
+        FileHolds(Json(new WinhanceConfigFile { Version = "3.0" }));
+
+        var result = await CreateService().LoadAndValidateConfigurationAsync(ConfigPath);
+
+        result.Should().BeNull();
+        _mockConfigImportState.Object.SourceName.Should().Be("previous.winhance");
+        _mockDialogService.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("{ not json")]
+    public async Task LoadAndValidateConfigurationAsync_UnreadableFile_KeepsThePreviousSourceName_AndShowsAnError(string json)
+    {
+        _mockConfigImportState.SetupAllProperties();
+        _mockConfigImportState.Object.SourceName = "previous.winhance";
+        FileHolds(json);
+
+        var result = await CreateService().LoadAndValidateConfigurationAsync(ConfigPath);
+
+        result.Should().BeNull();
+        _mockConfigImportState.Object.SourceName.Should().Be("previous.winhance");
+        _mockDialogService.Verify(d => d.ShowErrorAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task LoadAndValidateConfigurationAsync_NotJson_SaysItIsNotAConfigAndLogsTheParserText()
+    {
+        _mockLocalizationService.Setup(l => l.GetString("Config_Load_NotAConfig")).Returns("not a config");
+        FileHolds("{ this is not json }");
+
+        var result = await CreateService().LoadAndValidateConfigurationAsync(ConfigPath);
+
+        result.Should().BeNull();
+        _mockDialogService.Verify(d => d.ShowErrorAsync("not a config", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _mockLogService.Verify(l => l.Log(
+            It.IsAny<Core.Features.Common.Enums.LogLevel>(), It.Is<string>(m => m.Contains("invalid start of a property name")),
+            It.IsAny<Exception?>(), It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task LoadRecommendedConfigurationAsync_MigratesThePreset()
+    {
+        var result = await CreateService().LoadRecommendedConfigurationAsync();
+
+        result.Should().NotBeNull();
+        _mockConfigMigrationService.Verify(m => m.MigrateConfig(result!), Times.Once);
+    }
+
+    [Fact]
+    public async Task PickConfigurationFileAsync_WhenNoMainWindow_ReturnsNull()
     {
         _mockMainWindowProvider
             .Setup(p => p.MainWindow)
             .Returns((Microsoft.UI.Xaml.Window?)null);
 
         var service = CreateService();
-        var result = await service.LoadAndValidateConfigurationFromFileAsync();
+        var result = await service.PickConfigurationFileAsync();
 
         result.Should().BeNull();
         _mockDialogService.Verify(d => d.ShowErrorAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+    }
+
+    // A hand-edited file can hold a null feature, a null item list or no group at all.
+    private static WinhanceConfigFile WithNullSections() => new()
+    {
+        Optimize = new FeatureGroupSection
+        {
+            Features = new Dictionary<string, ConfigSection>
+            {
+                ["Privacy"] = null!,
+                ["Gaming"] = new ConfigSection { Items = null! },
+            },
+        },
+        Customize = null!,
+    };
+
+    [Fact]
+    public void FilterConfigForCurrentSystem_DropsNullSections_InsteadOfThrowing()
+    {
+        var result = CreateService().FilterConfigForCurrentSystem(WithNullSections());
+
+        result.Optimize.Features.Keys.Should().Equal("Gaming");
+        result.Optimize.Features["Gaming"].Items.Should().BeEmpty();
+        result.Customize.Features.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void DetectIncompatibleSettings_NullSections_FindNothing()
+    {
+        CreateService().DetectIncompatibleSettings(WithNullSections()).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void DetectIncompatibleSettings_WithANullItem_SkipsItAndStillJudgesTheItemsBesideIt()
+    {
+        HiddenOnThisMachine("privacy-timeline-suggestions");
+        var config = new WinhanceConfigFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection { Items = [null!, new ConfigurationItem { Id = "privacy-timeline-suggestions" }] },
+                },
+            },
+        };
+        var service = CreateService();
+
+        service.DetectIncompatibleSettings(config).Should().ContainSingle();
+        service.FilterConfigForCurrentSystem(config).Optimize.Features["Privacy"].Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void DetectIncompatibleSettings_WithARetiredId_JudgesItBySettingItNowNames()
+    {
+        HiddenOnThisMachine("region-short-date");
+        var config = new WinhanceConfigFile
+        {
+            Customize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Explorer"] = new ConfigSection { Items = [new ConfigurationItem { Id = "explorer-customization-short-date" }] },
+                },
+            },
+        };
+        var service = CreateService();
+
+        service.DetectIncompatibleSettings(config).Should().ContainSingle()
+            .Which.Should().StartWith(SettingCatalog.Find("region-short-date")!.Display.Name.Value);
+        service.FilterConfigForCurrentSystem(config).Customize.Features["Explorer"].Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ParseConfiguration_MigratesTheBytes()
+    {
+        var result = CreateService().ParseConfiguration(System.Text.Encoding.UTF8.GetBytes(Json(new WinhanceConfigFile())), ConfigPath);
+
+        result.Should().NotBeNull();
+        _mockConfigMigrationService.Verify(m => m.MigrateConfig(result!), Times.Once);
+    }
+
+    [Fact]
+    public void ParseConfiguration_SkipsAUtf8ByteOrderMark()
+    {
+        byte[] bytes = [.. System.Text.Encoding.UTF8.GetPreamble(), .. System.Text.Encoding.UTF8.GetBytes(Json(new WinhanceConfigFile()))];
+
+        CreateService().ParseConfiguration(bytes, ConfigPath).Should().NotBeNull();
+    }
+
+    [Fact]
+    public void ParseConfiguration_OfAProfileWithAWallpaper_AllocatesLittleBeyondTheCarriedString()
+    {
+        var wallpaper = new CarriedFileItem { Destination = @"C:\Windows\Web\Wallpaper\Winhance\big.jpg", Base64 = new string('A', 3_000_000) };
+        var config = new WinhanceConfigFile
+        {
+            Customize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Windows Theme"] = new ConfigSection { Items = [new ConfigurationItem { Id = "theme-wallpaper-picture", File = wallpaper }] },
+                },
+            },
+        };
+        var bytes = System.Text.Encoding.UTF8.GetBytes(Json(config));
+        var service = CreateService();
+        service.ParseConfiguration(bytes, ConfigPath);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var result = service.ParseConfiguration(bytes, ConfigPath);
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        result!.Customize.Features["Windows Theme"].Items[0].File!.Base64.Should().HaveLength(3_000_000);
+        allocated.Should().BeLessThan(bytes.Length * 2L + 1_000_000);
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("{ not json")]
+    public void ParseConfiguration_UnreadableBytes_ReturnNull(string json)
+    {
+        CreateService().ParseConfiguration(System.Text.Encoding.UTF8.GetBytes(json), ConfigPath).Should().BeNull();
+    }
+
+    [Fact]
+    public void ParseConfiguration_UnsupportedVersion_ReturnsNullWithoutADialog()
+    {
+        var result = CreateService().ParseConfiguration(System.Text.Encoding.UTF8.GetBytes(Json(new WinhanceConfigFile { Version = "3.0" })), ConfigPath);
+
+        result.Should().BeNull();
+        _mockDialogService.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task LoadUserBackupConfigurationAsync_UnsupportedVersion_IsRejectedWithADialog()
+    {
+        _mockConfigImportState.SetupAllProperties();
+        _mockConfigImportState.Object.SourceName = "previous.winhance";
+        _mockInteractiveUserService
+            .Setup(s => s.GetInteractiveUserFolderPath(It.IsAny<Environment.SpecialFolder>()))
+            .Returns(@"C:\Users\Test\AppData\Local");
+        _mockFileSystemService
+            .Setup(fs => fs.CombinePath(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(@"C:\Users\Test\AppData\Local\Winhance\Backup");
+        _mockFileSystemService.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
+        _mockFileSystemService.Setup(fs => fs.GetFiles(It.IsAny<string>(), It.IsAny<string>())).Returns([ConfigPath]);
+        FileHolds(Json(new WinhanceConfigFile { Version = "3.0" }));
+
+        var result = await CreateService().LoadUserBackupConfigurationAsync();
+
+        result.Should().BeNull();
+        _mockConfigImportState.Object.SourceName.Should().Be("previous.winhance");
+        _mockDialogService.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 }

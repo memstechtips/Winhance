@@ -1,0 +1,190 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Localization;
+using Winhance.Core.Features.Common.Selections;
+
+namespace Winhance.UI.Features.Common.ViewModels;
+
+// A DataTemplate can x:Bind only to its own data type, so every caption a field draws is localized onto the field.
+public sealed partial class ListFieldViewModel(
+    Field definition,
+    string label,
+    string? tooltip,
+    IReadOnlyList<string> options,
+    string error,
+    string? value,
+    Action<ListFieldViewModel> changed) : ObservableObject
+{
+    private readonly Field _field = definition;
+    private readonly Action<ListFieldViewModel> _changed = changed;
+
+    private bool _checked = definition.Kind == FieldKind.CheckBox && bool.TryParse(value, out var ticked) && ticked;
+
+    private int _optionIndex = definition.Kind == FieldKind.Selection
+        && int.TryParse(value, out var index) && index >= 0 && index < options.Count ? index : 0;
+
+    public string Key => _field.Key;
+
+    public FieldKind Kind => _field.Kind;
+
+    public bool MultiLine => _field.MultiLine;
+
+    public bool OneRowOnly => _field.OneRowOnly;
+
+    internal FieldCondition? OnlyWhen => _field.OnlyWhen;
+
+    public string Label { get; } = label;
+
+    public string? Tooltip { get; } = tooltip;
+
+    public IReadOnlyList<string> Options { get; } = options;
+
+    public string Error { get; } = error;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasError))]
+    public partial string Text { get; set; } =
+        definition.Kind is FieldKind.CheckBox or FieldKind.Selection ? string.Empty : value ?? string.Empty;
+
+    partial void OnTextChanged(string value) => _changed(this);
+
+    public bool HasError => _field.Rule is { } rule && HasText && !rule.Matches(Text);
+
+    internal bool HasText => _field.Rule is { } rule
+        ? rule.Normalize(Text).Length > 0
+        : Text.Trim().Length > 0;
+
+    public bool Checked
+    {
+        get => _checked;
+        set
+        {
+            // A disabled field refuses the tick, and raises anyway so the two-way bound checkbox snaps back off.
+            if (value && !IsEnabled)
+            {
+                OnPropertyChanged();
+                return;
+            }
+
+            if (SetProperty(ref _checked, value))
+                _changed(this);
+        }
+    }
+
+    // Out of range is what a rebuilding ComboBox pushes; raising makes it read the index back.
+    public int OptionIndex
+    {
+        get => _optionIndex;
+        set
+        {
+            if (value < 0 || value >= Options.Count)
+            {
+                OnPropertyChanged();
+                return;
+            }
+
+            if (SetProperty(ref _optionIndex, value))
+                _changed(this);
+        }
+    }
+
+    [ObservableProperty]
+    public partial bool IsEnabled { get; internal set; } = true;
+
+    // A password is recorded as typed: a space at either end is part of what the user will type at the sign-in screen.
+    // What a field the user never touched holds: no text, the first option, no tick.
+    internal bool IsEmpty => _field.Kind switch
+    {
+        FieldKind.Selection => _optionIndex == 0,
+        FieldKind.CheckBox => !_checked,
+        _ => !HasText,
+    };
+
+    internal string Value => _field.Kind switch
+    {
+        FieldKind.Selection => _optionIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        FieldKind.CheckBox => _checked ? "true" : "false",
+        FieldKind.Password => Text,
+        _ => _field.Rule is { } rule ? rule.Normalize(Text) : Text.Trim(),
+    };
+
+    // No callback: the caller is the row, already inside a change, or the card, already inside a write.
+    internal void ClearTick()
+    {
+        if (_checked)
+            SetProperty(ref _checked, false, nameof(Checked));
+    }
+}
+
+public sealed partial class ListRowViewModel : ObservableObject
+{
+    private readonly Action<ListRowViewModel> _changed;
+    private readonly Action<ListRowViewModel> _remove;
+
+    public ListRowViewModel(
+        IReadOnlyList<Field> fields,
+        Func<LocKey, string> localize,
+        string removeLabel,
+        ChoiceValue.ListRow? values,
+        Action<ListRowViewModel> changed,
+        Action<ListRowViewModel> remove)
+    {
+        _changed = changed;
+        _remove = remove;
+        RemoveLabel = removeLabel;
+        Fields = fields
+            .Select(field => new ListFieldViewModel(
+                field,
+                localize(field.Label),
+                field.Tooltip is { } tooltip ? localize(tooltip) : null,
+                field.Options is { } options ? options.Select(localize).ToList() : [],
+                field.Rule is { } rule ? localize(rule.Message) : string.Empty,
+                ValueFor(values, field),
+                OnFieldChanged))
+            .ToList();
+
+        ApplyConditions();
+    }
+
+    public IReadOnlyList<ListFieldViewModel> Fields { get; }
+
+    public string RemoveLabel { get; }
+
+    [ObservableProperty]
+    public partial bool CanRemove { get; internal set; } = true;
+
+    public void Remove() => _remove(this);
+
+    public ListFieldViewModel? FieldFor(string key) =>
+        Fields.FirstOrDefault(field => string.Equals(field.Key, key, StringComparison.Ordinal));
+
+    internal bool IsFilled =>
+        Fields.FirstOrDefault(f => f.Kind is FieldKind.Text or FieldKind.File) is not { } first || first.HasText;
+
+    internal ChoiceValue.ListRow ToRow() =>
+        new(Fields.ToDictionary(field => field.Key, field => field.Value, StringComparer.Ordinal));
+
+    private static string? ValueFor(ChoiceValue.ListRow? values, Field field) =>
+        values is not null && values.Values.TryGetValue(field.Key, out var value) ? value : field.Default;
+
+    private void OnFieldChanged(ListFieldViewModel field)
+    {
+        ApplyConditions();
+        _changed(this);
+    }
+
+    // An unmet field loses its tick: the file should never carry a choice the row no longer shows.
+    private void ApplyConditions()
+    {
+        foreach (var field in Fields)
+        {
+            if (field.OnlyWhen is not { } condition)
+                continue;
+
+            bool met = FieldFor(condition.FieldKey) is { } other && condition.OptionIndexes.Contains(other.OptionIndex);
+            field.IsEnabled = met;
+            if (!met)
+                field.ClearTick();
+        }
+    }
+}

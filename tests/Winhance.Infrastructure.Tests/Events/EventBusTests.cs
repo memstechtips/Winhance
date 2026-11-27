@@ -20,13 +20,6 @@ public class EventBusTests
     }
 
     [Fact]
-    public void Constructor_NullLogService_ThrowsArgumentNull()
-    {
-        var action = () => new EventBus(null!);
-        action.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public void Publish_NullEvent_ThrowsArgumentNull()
     {
         var action = () => _eventBus.Publish<SettingAppliedEvent>(null!);
@@ -146,7 +139,7 @@ public class EventBusTests
     {
         var token = _eventBus.Subscribe<SettingAppliedEvent>(_ => { });
 
-        token.EventType.Should().Be(typeof(SettingAppliedEvent));
+        token.EventType.Should().Be<SettingAppliedEvent>();
         token.SubscriptionId.Should().NotBeEmpty();
     }
 
@@ -163,24 +156,29 @@ public class EventBusTests
         _mockLog.Verify(l => l.Log(
             LogLevel.Error,
             It.Is<string>(s => s.Contains("test error")),
-            null), Times.Once);
+            null, It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
     public void SubscribeAsync_PublishInvokesAsyncHandler()
     {
-        var received = false;
+        // Signalled, not slept on. A fixed delay plus a plain bool fails
+        // intermittently under the full suite while always passing in isolation: the handler
+        // finishes on a thread-pool continuation that a loaded pool does not reliably schedule
+        // inside a fixed delay, and a Thread.Sleep is not a memory barrier either. The wait below
+        // returns the moment the handler is done and only times out if it genuinely never ran.
+        using var handled = new ManualResetEventSlim(false);
+
         _eventBus.SubscribeAsync<SettingAppliedEvent>(async e =>
         {
             await Task.Delay(1);
-            received = true;
+            handled.Set();
         });
 
         _eventBus.Publish(new SettingAppliedEvent("id", true));
 
-        // Give async handler time to complete
-        Thread.Sleep(100);
-        received.Should().BeTrue();
+        handled.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue(
+            because: "a publish must run the async handler through to completion");
     }
 
     [Fact]
@@ -188,7 +186,7 @@ public class EventBusTests
     {
         var token = _eventBus.SubscribeAsync<ReviewModeExitedEvent>(async _ => await Task.CompletedTask);
 
-        token.EventType.Should().Be(typeof(ReviewModeExitedEvent));
+        token.EventType.Should().Be<ReviewModeExitedEvent>();
     }
 
     [Fact]

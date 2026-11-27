@@ -1,17 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Helpers;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class BulkSettingsActionService(
-    ICompatibleSettingsRegistry settingsRegistry,
+internal class BulkSettingsActionService(
+    ICatalogSettingsRegistry settingsRegistry,
     IWindowsVersionService versionService,
     ISettingApplicationService settingApplicationService,
     IProcessRestartManager processRestartManager,
@@ -25,7 +21,7 @@ public class BulkSettingsActionService(
         IProgress<TaskProgressDetail>? progress = null)
     {
         using var changeBatch = changeHistory.BeginBatch(localizationService.GetString("QuickActions_ApplyRecommended"));
-        var settings = await ResolveSettingsAsync(settingIds).ConfigureAwait(false);
+        var settings = ResolveSettings(settingIds);
         var applied = await recommendedSettingsApplier
             .ApplyRecommendedToSettingsAsync(settings, settingApplicationService, progress).ConfigureAwait(false);
         await processRestartManager.FlushCoalescedRestartsAsync(applied).ConfigureAwait(false);
@@ -38,102 +34,107 @@ public class BulkSettingsActionService(
         IProgress<TaskProgressDetail>? progress = null)
     {
         using var changeBatch = changeHistory.BeginBatch(localizationService.GetString("QuickActions_ResetDefaults"));
-        var settings = await ResolveSettingsAsync(settingIds).ConfigureAwait(false);
+        var settings = ResolveSettings(settingIds);
+        var currentBuild = new WinBuild(versionService.GetWindowsBuildNumber(), versionService.GetWindowsBuildRevision());
         int applied = 0;
         int total = settings.Count;
-        var appliedForRestart = new List<SettingDefinition>(total);
+        var appliedForRestart = new List<Setting>(total);
 
         using (processRestartManager.SuppressRestarts())
         {
-        for (int i = 0; i < total; i++)
-        {
-            var setting = settings[i];
-            try
+            for (int i = 0; i < total; i++)
             {
-                progress?.Report(new TaskProgressDetail
+                var setting = settings[i];
+                try
                 {
-                    Progress = (double)i / total * 100,
-                    StatusText = $"Resetting to default: {setting.Name}",
-                    QueueCurrent = i + 1,
-                    QueueTotal = total,
-                    IsActive = true
-                });
+                    progress?.Report(new TaskProgressDetail
+                    {
+                        Progress = (double)i / total * 100,
+                        StatusText = $"Resetting to default: {setting.Display.Name}",
+                        QueueCurrent = i + 1,
+                        QueueTotal = total,
+                        IsActive = true
+                    });
 
-                if (setting.InputType == InputType.Toggle)
-                {
-                    var toggleState = SettingDefinitionToggleState.GetDefaultToggleState(setting);
-                    if (toggleState is not bool enableValue)
+                    if (TwoState.Is(setting.Control))
                     {
-                        logService.Log(LogLevel.Debug, $"[BulkSettings] Skipping '{setting.Id}' - no default toggle state");
-                        continue;
-                    }
+                        // The build-aware reset engine (ApplyRequestResolver) resolves the per-OS default from its
+                        // WindowsDefault-roled state, and the bulk loop only gates on whether a default EXISTS on this
+                        // build. GetDefault is build-aware.
+                        if (TwoState.GetDefault(setting, currentBuild) is not bool enableValue)
+                        {
+                            logService.Log(LogLevel.Debug, $"Skipping '{setting.Id}' - no default two-state value");
+                            continue;
+                        }
 
-                    // Mirror per-card HandleToggleAsync: pass only SettingId + Enable + ResetToDefault.
-                    // The apply pipeline derives the registry write from EnabledValue/DisabledValue.
-                    await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
-                    {
-                        SettingId = setting.Id,
-                        Enable = enableValue,
-                        ResetToDefault = true,
-                        SkipValuePrerequisites = true
-                    }).ConfigureAwait(false);
-                }
-                else if (setting.InputType == InputType.Selection)
-                {
-                    var powerCfgValue = RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: false);
-                    if (powerCfgValue != null)
-                    {
+                        // The build-aware apply pipeline derives the per-OS registry write from the WindowsDefault state.
                         await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                         {
                             SettingId = setting.Id,
-                            Enable = true,
-                            Value = powerCfgValue,
+                            Enable = enableValue,
                             ResetToDefault = true,
                             SkipValuePrerequisites = true
                         }).ConfigureAwait(false);
                     }
-                    else
+                    else if (setting.Control == ControlKind.Selection)
                     {
-                        var defaultIndex = RecommendedSettingsResolver.GetDefaultIndex(setting);
-                        if (defaultIndex is int idx)
+                        var powerCfgValue = RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: false);
+                        if (powerCfgValue != null)
                         {
                             await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                             {
                                 SettingId = setting.Id,
                                 Enable = true,
-                                Value = idx,
+                                Value = powerCfgValue,
                                 ResetToDefault = true,
                                 SkipValuePrerequisites = true
                             }).ConfigureAwait(false);
                         }
-                        // No else: catalog validator guarantees every registry-backed Selection has
-                        // exactly one IsDefault option.
+                        else
+                        {
+                            var defaultIndex = RecommendedSettingsResolver.GetDefaultIndex(setting, currentBuild);
+                            if (defaultIndex is int idx)
+                            {
+                                await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                                {
+                                    SettingId = setting.Id,
+                                    Enable = true,
+                                    Value = idx,
+                                    ResetToDefault = true,
+                                    SkipValuePrerequisites = true
+                                }).ConfigureAwait(false);
+                            }
+                            // No else: catalog validator guarantees every registry-backed Selection has
+                            // exactly one IsDefault option.
+                        }
                     }
-                }
-                else
-                {
-                    var valueToApply = RecommendedSettingsResolver.GetDefaultValueForSetting(setting)
-                        ?? RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: false);
-                    await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                    else if (setting.Control == ControlKind.Slider)
                     {
-                        SettingId = setting.Id,
-                        Enable = valueToApply != null,
-                        Value = valueToApply,
-                        ResetToDefault = true,
-                        SkipValuePrerequisites = true
-                    }).ConfigureAwait(false);
-                }
+                        // Slider (NumericRange) reset. Population here is powercfg NumericRange only, so it uses
+                        // BuildPowerCfgApplyValue. GATED to Slider so power-plan-selection - whose DERIVED Control is
+                        // KeyedSelection (Options) - is NOT reset here (no static default), and is likewise
+                        // left out of the affected list (HasDefaultValue is false for it).
+                        var valueToApply = RecommendedSettingsResolver.BuildPowerCfgApplyValue(setting, useRecommended: false);
+                        await settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                        {
+                            SettingId = setting.Id,
+                            Enable = valueToApply != null,
+                            Value = valueToApply,
+                            ResetToDefault = true,
+                            SkipValuePrerequisites = true
+                        }).ConfigureAwait(false);
+                    }
 
-                applied++;
-                appliedForRestart.Add(setting);
-                logService.Log(LogLevel.Debug, $"[BulkSettings] Reset to default for '{setting.Id}'");
-            }
-            catch (Exception ex)
-            {
-                logService.Log(LogLevel.Warning, $"[BulkSettings] Failed to reset default for '{setting.Id}': {ex.Message}");
+                    applied++;
+                    appliedForRestart.Add(setting);
+                    logService.Log(LogLevel.Debug, $"Reset to default for '{setting.Id}'");
+                }
+                catch (Exception ex)
+                {
+                    logService.Log(LogLevel.Warning, $"Failed to reset default for '{setting.Id}': {ex.Message}");
+                }
             }
         }
-        } // end SuppressRestarts scope
 
         await processRestartManager.FlushCoalescedRestartsAsync(appliedForRestart).ConfigureAwait(false);
 
@@ -148,70 +149,74 @@ public class BulkSettingsActionService(
         return applied;
     }
 
-    public async Task<int> GetAffectedCountAsync(
+    public Task<IReadOnlyList<string>> GetAffectedSettingIdsAsync(
         IEnumerable<string> settingIds,
         BulkActionType actionType)
     {
-        var settings = await ResolveSettingsAsync(settingIds).ConfigureAwait(false);
-        int count = 0;
+        var settings = ResolveSettings(settingIds);
+        var currentBuild = new WinBuild(versionService.GetWindowsBuildNumber(), versionService.GetWindowsBuildRevision());
+        var affected = new List<string>(settings.Count);
 
         foreach (var setting in settings)
         {
             try
             {
-                // Counter must agree with the apply path. HasRecommendedValue / HasDefaultValue
-                // route through SettingDefinitionToggleState so the count never reports a
-                // setting that the loop above would silently skip.
+                // Must agree with the apply path. HasRecommendedValue / HasDefaultValue resolve the toggle
+                // contribution from the catalog (build-aware), the same source the reset/recommended loops use,
+                // so the list never names a setting the loop would skip.
                 bool wouldChange = actionType switch
                 {
-                    BulkActionType.ApplyRecommended => RecommendedSettingsResolver.HasRecommendedValue(setting),
-                    BulkActionType.ResetToDefaults => RecommendedSettingsResolver.HasDefaultValue(setting),
+                    BulkActionType.ApplyRecommended => RecommendedSettingsResolver.HasRecommendedValue(setting, currentBuild),
+                    BulkActionType.ResetToDefaults => RecommendedSettingsResolver.HasDefaultValue(setting, currentBuild),
                     _ => false
                 };
 
                 if (wouldChange)
                 {
-                    count++;
+                    affected.Add(setting.Id);
                 }
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Debug, $"[BulkSettings] Error checking affected state for '{setting.Id}': {ex.Message}");
+                logService.Log(LogLevel.Debug, $"Error checking affected state for '{setting.Id}': {ex.Message}");
             }
         }
 
-        return count;
+        return Task.FromResult<IReadOnlyList<string>>(affected);
     }
 
-    private Task<List<SettingDefinition>> ResolveSettingsAsync(IEnumerable<string> settingIds)
+    private List<Setting> ResolveSettings(IEnumerable<string> settingIds)
     {
-        var osInfo = RecommendedSettingsResolver.BuildOSInfo(versionService);
-
-        var result = new List<SettingDefinition>();
+        var result = new List<Setting>();
         var idSet = settingIds.ToHashSet();
 
         foreach (var settingId in idSet)
         {
             try
             {
+                // The catalog registry is current-OS scoped (OS build + hardware + existence) and
+                // alias-normalizes the id, so an OS-incompatible setting returns null here.
                 var setting = settingsRegistry.GetById(settingId);
                 if (setting == null)
                 {
-                    logService.Log(LogLevel.Warning, $"[BulkSettings] Setting '{settingId}' not found in registry");
+                    logService.Log(LogLevel.Warning, $"Setting '{settingId}' not found in registry");
                     continue;
                 }
 
-                if (RecommendedSettingsResolver.IsCompatibleWithCurrentOS(setting, osInfo))
+                // A one-shot Action has no default or recommended state, so the bulk ops and the affected list skip it.
+                if (setting.Control is ControlKind.Action)
                 {
-                    result.Add(setting);
+                    continue;
                 }
+
+                result.Add(setting);
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Warning, $"[BulkSettings] Failed to resolve setting '{settingId}': {ex.Message}");
+                logService.Log(LogLevel.Warning, $"Failed to resolve setting '{settingId}': {ex.Message}");
             }
         }
 
-        return Task.FromResult(result);
+        return result;
     }
 }

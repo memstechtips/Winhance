@@ -1,3 +1,5 @@
+using System.Security.AccessControl;
+using System.Security.Principal;
 using FluentAssertions;
 using Microsoft.Win32;
 using Moq;
@@ -33,14 +35,11 @@ public class WindowsRegistryServiceTests : IDisposable
     [Fact]
     public void SetValue_DWord_ReadBackMatches()
     {
-        // Arrange
         var path = TestPath("DWordTest");
 
-        // Act
         var result = _service.SetValue(path, "TestDWord", 42, RegistryValueKind.DWord);
         var readBack = _service.GetValue(path, "TestDWord");
 
-        // Assert
         result.Should().BeTrue();
         readBack.Should().Be(42);
     }
@@ -48,15 +47,12 @@ public class WindowsRegistryServiceTests : IDisposable
     [Fact]
     public void SetValue_String_ReadBackMatches()
     {
-        // Arrange
         var path = TestPath("StringTest");
         var testValue = "Hello, Winhance Integration Tests!";
 
-        // Act
         var result = _service.SetValue(path, "TestString", testValue, RegistryValueKind.String);
         var readBack = _service.GetValue(path, "TestString");
 
-        // Assert
         result.Should().BeTrue();
         readBack.Should().Be(testValue);
     }
@@ -64,15 +60,12 @@ public class WindowsRegistryServiceTests : IDisposable
     [Fact]
     public void SetValue_Binary_ReadBackMatches()
     {
-        // Arrange
         var path = TestPath("BinaryTest");
         var testValue = new byte[] { 0x01, 0x02, 0x03, 0xFF };
 
-        // Act
         var result = _service.SetValue(path, "TestBinary", testValue, RegistryValueKind.Binary);
         var readBack = _service.GetValue(path, "TestBinary");
 
-        // Assert
         result.Should().BeTrue();
         readBack.Should().BeOfType<byte[]>();
         ((byte[])readBack!).Should().BeEquivalentTo(testValue);
@@ -81,18 +74,15 @@ public class WindowsRegistryServiceTests : IDisposable
     [Fact]
     public void KeyExists_AfterCreate_ReturnsTrue()
     {
-        // Arrange
         var path = TestPath("KeyExistsTest");
         _service.SetValue(path, "Marker", 1, RegistryValueKind.DWord);
 
-        // Act & Assert
         _service.KeyExists(path).Should().BeTrue();
     }
 
     [Fact]
     public void KeyExists_NonExistent_ReturnsFalse()
     {
-        // Act & Assert
         _service.KeyExists(TestPath("NonExistentKey_" + Guid.NewGuid().ToString("N")))
             .Should().BeFalse();
     }
@@ -100,32 +90,75 @@ public class WindowsRegistryServiceTests : IDisposable
     [Fact]
     public void DeleteValue_RemovesValue()
     {
-        // Arrange
         var path = TestPath("DeleteValueTest");
         _service.SetValue(path, "ToDelete", "gone", RegistryValueKind.String);
         _service.ValueExists(path, "ToDelete").Should().BeTrue();
 
-        // Act
         var result = _service.DeleteValue(path, "ToDelete");
 
-        // Assert
         result.Should().BeTrue();
         _service.ValueExists(path, "ToDelete").Should().BeFalse();
     }
 
     [Fact]
+    public void DeleteValue_WhenValueIsAbsent_ReturnsTrue()
+    {
+        var path = TestPath("DeleteAbsentValueTest");
+        _service.SetValue(path, "Other", 1, RegistryValueKind.DWord);
+
+        _service.DeleteValue(path, "NeverWritten").Should().BeTrue();
+    }
+
+    [Fact]
+    public void DeleteValue_WhenKeyIsAbsent_ReturnsTrue()
+    {
+        _service.DeleteValue(TestPath("MissingKey_" + Guid.NewGuid().ToString("N")), "Anything")
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public void DeleteKey_WhenKeyIsAbsent_ReturnsTrue()
+    {
+        _service.DeleteKey(TestPath("MissingKey_" + Guid.NewGuid().ToString("N"))).Should().BeTrue();
+    }
+
+    [Fact]
+    public void DeleteValue_WhenWindowsRefusesTheWrite_ReturnsFalse()
+    {
+        var path = TestPath("DeniedDeleteTest");
+        _service.SetValue(path, "Kept", 1, RegistryValueKind.DWord);
+        var denySetValue = new RegistryAccessRule(
+            WindowsIdentity.GetCurrent().User!, RegistryRights.SetValue, AccessControlType.Deny);
+        using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(
+            $@"{_testKeyRoot}\DeniedDeleteTest",
+            RegistryKeyPermissionCheck.ReadWriteSubTree,
+            RegistryRights.ReadPermissions | RegistryRights.ChangePermissions)!;
+        var security = key.GetAccessControl();
+        security.AddAccessRule(denySetValue);
+        key.SetAccessControl(security);
+
+        try
+        {
+            _service.DeleteValue(path, "Kept").Should().BeFalse();
+            _service.ValueExists(path, "Kept").Should().BeTrue();
+        }
+        finally
+        {
+            security.RemoveAccessRule(denySetValue);
+            key.SetAccessControl(security);
+        }
+    }
+
+    [Fact]
     public void DeleteKey_RemovesSubKeyTree()
     {
-        // Arrange
         var parentPath = TestPath("DeleteKeyTest");
         var childPath = TestPath(@"DeleteKeyTest\Child");
         _service.SetValue(childPath, "Val", 1, RegistryValueKind.DWord);
         _service.KeyExists(parentPath).Should().BeTrue();
 
-        // Act
         var result = _service.DeleteKey(parentPath);
 
-        // Assert
         result.Should().BeTrue();
         _service.KeyExists(parentPath).Should().BeFalse();
         _service.KeyExists(childPath).Should().BeFalse();
@@ -134,16 +167,13 @@ public class WindowsRegistryServiceTests : IDisposable
     [Fact]
     public void GetSubKeyNames_ReturnsCreatedKeys()
     {
-        // Arrange
         var basePath = TestPath("SubKeyTest");
         _service.SetValue(TestPath(@"SubKeyTest\Alpha"), "x", 1, RegistryValueKind.DWord);
         _service.SetValue(TestPath(@"SubKeyTest\Beta"), "x", 1, RegistryValueKind.DWord);
         _service.SetValue(TestPath(@"SubKeyTest\Gamma"), "x", 1, RegistryValueKind.DWord);
 
-        // Act
         var subKeys = _service.GetSubKeyNames(basePath);
 
-        // Assert
         subKeys.Should().Contain("Alpha");
         subKeys.Should().Contain("Beta");
         subKeys.Should().Contain("Gamma");
@@ -151,37 +181,11 @@ public class WindowsRegistryServiceTests : IDisposable
     }
 
     [Fact]
-    public void GetBatchValues_ReturnsAllQueried()
-    {
-        // Arrange
-        var path = TestPath("BatchTest");
-        _service.SetValue(path, "A", 1, RegistryValueKind.DWord);
-        _service.SetValue(path, "B", "hello", RegistryValueKind.String);
-        _service.SetValue(path, "C", 99, RegistryValueKind.DWord);
-
-        var queries = new (string keyPath, string? valueName)[]
-        {
-            (path, "A"),
-            (path, "B"),
-            (path, "C"),
-        };
-
-        // Act
-        var results = _service.GetBatchValues(queries);
-
-        // Assert
-        results.Should().HaveCount(3);
-        results.Values.Should().AllSatisfy(v => v.Should().NotBeNull());
-    }
-
-    [Fact]
     public void ValueExists_AfterSet_ReturnsTrue()
     {
-        // Arrange
         var path = TestPath("ValueExistsTest");
         _service.SetValue(path, "Exists", "yes", RegistryValueKind.String);
 
-        // Act & Assert
         _service.ValueExists(path, "Exists").Should().BeTrue();
         _service.ValueExists(path, "DoesNotExist").Should().BeFalse();
     }
@@ -198,7 +202,6 @@ public class WindowsRegistryServiceTests : IDisposable
             // Best effort cleanup
         }
 
-        // Also clean up parent "WinhanceIntegrationTests" if empty
         try
         {
             using var parent = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(
@@ -213,5 +216,6 @@ public class WindowsRegistryServiceTests : IDisposable
         {
             // Best effort cleanup
         }
+        GC.SuppressFinalize(this);
     }
 }

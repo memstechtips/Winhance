@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.ViewModels;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.ViewModels;
 
@@ -24,6 +25,8 @@ public class MoreMenuViewModelTests
         _mockLocalization
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+
+        _mockLocalization.MirrorTryGetString();
     }
 
     private MoreMenuViewModel CreateViewModel()
@@ -39,10 +42,6 @@ public class MoreMenuViewModelTests
             _mockProcessExecutor.Object,
             _mockDialogService.Object);
     }
-
-    // -------------------------------------------------------
-    // Constructor / Initialization
-    // -------------------------------------------------------
 
     [Fact]
     public void Constructor_InitializesVersionInfo_WithVersionFromService()
@@ -85,10 +84,6 @@ public class MoreMenuViewModelTests
         changedProperties.Should().Contain(nameof(vm.MenuWinhanceScripts));
         changedProperties.Should().Contain(nameof(vm.MenuCloseWinhance));
     }
-
-    // -------------------------------------------------------
-    // Localized string properties
-    // -------------------------------------------------------
 
     [Fact]
     public void MenuDocumentation_ReturnsLocalizedString()
@@ -210,10 +205,6 @@ public class MoreMenuViewModelTests
         vm.MenuChangeHistory.Should().Be("Change History");
     }
 
-    // -------------------------------------------------------
-    // OpenLogsCommand
-    // -------------------------------------------------------
-
     [Fact]
     public async Task OpenLogsCommand_WhenDirectoryDoesNotExist_CreatesItAndOpens()
     {
@@ -259,7 +250,7 @@ public class MoreMenuViewModelTests
     }
 
     [Fact]
-    public async Task OpenLogsCommand_WhenExceptionThrown_LogsError()
+    public async Task OpenLogsCommand_WhenExceptionThrown_LogsAndShowsTheError()
     {
         _mockFileSystemService
             .Setup(fs => fs.DirectoryExists(It.IsAny<string>()))
@@ -267,17 +258,14 @@ public class MoreMenuViewModelTests
 
         var vm = CreateViewModel();
 
-        // Should not throw
         await vm.OpenLogsCommand.ExecuteAsync(null);
 
         _mockLogService.Verify(
-            l => l.LogError(It.Is<string>(s => s.Contains("disk error")), It.IsAny<Exception>()),
+            l => l.LogError(It.Is<string>(s => s.Contains("disk error")), It.IsAny<Exception>(), It.IsAny<string>()),
             Times.Once);
+        _mockDialogService.Verify(
+            d => d.ShowErrorAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
-
-    // -------------------------------------------------------
-    // OpenChangeHistoryCommand
-    // -------------------------------------------------------
 
     [Fact]
     public async Task OpenChangeHistoryAsync_OpensFileViaShellExecute()
@@ -303,13 +291,9 @@ public class MoreMenuViewModelTests
         await vm.OpenChangeHistoryCommand.ExecuteAsync(null);
 
         _mockLogService.Verify(
-            l => l.LogError(It.Is<string>(s => s.Contains("file error")), It.IsAny<Exception>()),
+            l => l.LogError(It.Is<string>(s => s.Contains("file error")), It.IsAny<Exception>(), It.IsAny<string>()),
             Times.Once);
     }
-
-    // -------------------------------------------------------
-    // OpenScriptsCommand
-    // -------------------------------------------------------
 
     [Fact]
     public async Task OpenScriptsCommand_WhenDirectoryDoesNotExist_CreatesItAndOpens()
@@ -352,10 +336,6 @@ public class MoreMenuViewModelTests
             Times.Never);
     }
 
-    // -------------------------------------------------------
-    // CloseApplicationCommand
-    // -------------------------------------------------------
-
     [Fact]
     public async Task CloseApplicationCommand_CallsCheckOperationsAndClose()
     {
@@ -368,7 +348,7 @@ public class MoreMenuViewModelTests
         await vm.CloseApplicationCommand.ExecuteAsync(null);
 
         _mockLogService.Verify(
-            l => l.LogInformation(It.Is<string>(s => s.Contains("application close"))),
+            l => l.LogInformation(It.Is<string>(s => s.Contains("application close")), It.IsAny<string>()),
             Times.Once);
         _mockCloseService.Verify(
             c => c.CheckOperationsAndCloseAsync(),
@@ -387,13 +367,9 @@ public class MoreMenuViewModelTests
         await vm.CloseApplicationCommand.ExecuteAsync(null);
 
         _mockLogService.Verify(
-            l => l.LogError(It.Is<string>(s => s.Contains("cannot close")), It.IsAny<Exception>()),
+            l => l.LogError(It.Is<string>(s => s.Contains("cannot close")), It.IsAny<Exception>(), It.IsAny<string>()),
             Times.Once);
     }
-
-    // -------------------------------------------------------
-    // VersionInfo property
-    // -------------------------------------------------------
 
     [Fact]
     public void VersionInfo_Set_RaisesPropertyChanged()
@@ -411,10 +387,6 @@ public class MoreMenuViewModelTests
         raised.Should().BeTrue();
         vm.VersionInfo.Should().Be("Winhance v99.0.0");
     }
-
-    // -------------------------------------------------------
-    // IDisposable
-    // -------------------------------------------------------
 
     [Fact]
     public void Dispose_UnsubscribesFromLanguageChanged()

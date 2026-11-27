@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
@@ -14,6 +15,7 @@ public class ReviewModeBarViewModelTests : IDisposable
     private readonly Mock<IConfigReviewDiffService> _mockConfigReviewDiffService = new();
     private readonly Mock<IConfigReviewBadgeService> _mockConfigReviewBadgeService = new();
     private readonly Mock<IConfigurationService> _mockConfigurationService = new();
+    private readonly Mock<IReviewModeViewModelCoordinator> _mockVmCoordinator = new();
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
@@ -21,9 +23,10 @@ public class ReviewModeBarViewModelTests : IDisposable
 
     private readonly ReviewModeBarViewModel _sut;
 
+    private static readonly string[] SetAsideNames = ["Timeline Suggestions (Privacy)", "Lid close action (Power)"];
+
     public ReviewModeBarViewModelTests()
     {
-        // Set up dispatcher to execute actions synchronously
         _mockDispatcherService
             .Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(a => a());
@@ -41,6 +44,7 @@ public class ReviewModeBarViewModelTests : IDisposable
             _mockConfigReviewDiffService.Object,
             _mockConfigReviewBadgeService.Object,
             _mockConfigurationService.Object,
+            _mockVmCoordinator.Object,
             _mockDispatcherService.Object,
             _mockLocalizationService.Object,
             _mockDialogService.Object,
@@ -50,9 +54,8 @@ public class ReviewModeBarViewModelTests : IDisposable
     public void Dispose()
     {
         _sut.Dispose();
+        GC.SuppressFinalize(this);
     }
-
-    // ── Constructor ──
 
     [Fact]
     public void Constructor_InitializesDefaultProperties()
@@ -61,8 +64,6 @@ public class ReviewModeBarViewModelTests : IDisposable
         _sut.ReviewModeStatusText.Should().BeEmpty();
         _sut.CanApplyReviewedConfig.Should().BeFalse();
     }
-
-    // ── Localized Strings with Fallbacks ──
 
     [Fact]
     public void ReviewModeTitleText_ReturnsFallbackWhenLocalizationReturnsNull()
@@ -85,10 +86,8 @@ public class ReviewModeBarViewModelTests : IDisposable
     [Fact]
     public void ReviewModeDescriptionText_ReturnsFallbackWhenLocalizationReturnsNull()
     {
-        _sut.ReviewModeDescriptionText.Should().Contain("Review the changes below");
+        _sut.ReviewModeDescriptionText.Should().Contain("Check what this config will change");
     }
-
-    // ── Review Mode Changed Event ──
 
     [Fact]
     public void ReviewModeChanged_EnterReviewMode_UpdatesIsInReviewMode()
@@ -105,14 +104,12 @@ public class ReviewModeBarViewModelTests : IDisposable
     [Fact]
     public void ReviewModeChanged_ExitReviewMode_UpdatesIsInReviewMode()
     {
-        // First enter review mode
         _mockConfigReviewModeService
             .Setup(s => s.IsInReviewMode)
             .Returns(true);
         _mockConfigReviewModeService.Raise(s => s.ReviewModeChanged += null, this, EventArgs.Empty);
         _sut.IsInReviewMode.Should().BeTrue();
 
-        // Now exit
         _mockConfigReviewModeService
             .Setup(s => s.IsInReviewMode)
             .Returns(false);
@@ -132,8 +129,6 @@ public class ReviewModeBarViewModelTests : IDisposable
 
         _sut.ReviewModeStatusText.Should().BeEmpty();
     }
-
-    // ── Status Text ──
 
     [Fact]
     public void StatusText_WhenInReviewModeWithChanges_ShowsReviewedCount()
@@ -156,6 +151,34 @@ public class ReviewModeBarViewModelTests : IDisposable
         _sut.ReviewModeStatusText.Should().Contain("2");
         _sut.ReviewModeStatusText.Should().Contain("5");
         _sut.ReviewModeStatusText.Should().Contain("1");
+    }
+
+    [Fact]
+    public void StatusText_WhenSettingsWereSetAside_SaysHowManyAndListsThemInTheDetail()
+    {
+        _mockConfigReviewModeService.Setup(s => s.IsInReviewMode).Returns(true);
+        _mockConfigReviewModeService.Setup(s => s.SetAside).Returns(SetAsideNames);
+        _mockConfigReviewDiffService.Setup(d => d.TotalChanges).Returns(5);
+        _mockConfigReviewDiffService.Setup(d => d.ReviewedChanges).Returns(2);
+        _mockConfigReviewDiffService.Setup(d => d.ApprovedChanges).Returns(1);
+
+        _mockConfigReviewModeService.Raise(s => s.ReviewModeChanged += null, this, EventArgs.Empty);
+
+        _sut.ReviewModeStatusText.Should().StartWith("2 of 5 reviewed (1 will be applied)");
+        _sut.ReviewModeStatusText.Should().EndWith("2 settings in this file are not on this PC and were set aside.");
+        _sut.ReviewModeSetAsideDetail.Should().Be("Timeline Suggestions (Privacy)\nLid close action (Power)");
+    }
+
+    [Fact]
+    public void StatusText_WhenNothingWasSetAside_CarriesNoDetail()
+    {
+        _mockConfigReviewModeService.Setup(s => s.IsInReviewMode).Returns(true);
+        _mockConfigReviewDiffService.Setup(d => d.TotalChanges).Returns(5);
+
+        _mockConfigReviewModeService.Raise(s => s.ReviewModeChanged += null, this, EventArgs.Empty);
+
+        _sut.ReviewModeStatusText.Should().NotContain("set aside");
+        _sut.ReviewModeSetAsideDetail.Should().BeNull();
     }
 
     [Fact]
@@ -194,18 +217,14 @@ public class ReviewModeBarViewModelTests : IDisposable
         _sut.ReviewModeStatusText.Should().Contain("No configuration items");
     }
 
-    // ── Approval Count Changed Event ──
-
     [Fact]
     public void ApprovalCountChanged_UpdatesStatusTextAndCanApply()
     {
-        // Enter review mode first
         _mockConfigReviewModeService
             .Setup(s => s.IsInReviewMode)
             .Returns(true);
         _mockConfigReviewModeService.Raise(s => s.ReviewModeChanged += null, this, EventArgs.Empty);
 
-        // Update diff counts
         _mockConfigReviewDiffService
             .Setup(d => d.TotalChanges)
             .Returns(3);
@@ -216,7 +235,6 @@ public class ReviewModeBarViewModelTests : IDisposable
             .Setup(d => d.ApprovedChanges)
             .Returns(2);
 
-        // Mock badge service for full review
         _mockConfigReviewBadgeService
             .Setup(b => b.IsSoftwareAppsReviewed)
             .Returns(true);
@@ -232,8 +250,6 @@ public class ReviewModeBarViewModelTests : IDisposable
         _sut.ReviewModeStatusText.Should().Contain("3");
     }
 
-    // ── CanApplyReviewedConfig ──
-
     [Fact]
     public void CanApplyReviewedConfig_NotInReviewMode_ReturnsFalse()
     {
@@ -242,6 +258,67 @@ public class ReviewModeBarViewModelTests : IDisposable
         _mockConfigReviewDiffService.Raise(d => d.ApprovalCountChanged += null, this, EventArgs.Empty);
 
         _sut.CanApplyReviewedConfig.Should().BeFalse();
+    }
+
+    private void EnterReviewWithOpenSections(params string[] featuresInConfig)
+    {
+        foreach (var feature in featuresInConfig)
+            _mockConfigReviewBadgeService.Setup(b => b.IsFeatureInConfig(feature)).Returns(true);
+        _mockConfigReviewModeService.Setup(s => s.IsInReviewMode).Returns(true);
+        _mockConfigReviewModeService.Raise(s => s.ReviewModeChanged += null, this, EventArgs.Empty);
+    }
+
+    [Fact]
+    public void ApplyBlockedTooltip_NamesEverySectionStillOpen()
+    {
+        _mockVmCoordinator.Setup(c => c.HasSelectedWindowsApps).Returns(true);
+
+        EnterReviewWithOpenSections(FeatureIds.WindowsApps, FeatureIds.ExternalApps, FeatureIds.Privacy, FeatureIds.Taskbar);
+
+        _sut.CanApplyReviewedConfig.Should().BeFalse();
+        _sut.ReviewModeApplyBlockedTooltip.Should().Be("Still to review: Windows Apps & Features, Optimize, Customize");
+        _sut.CanAcceptAllRemaining.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ApplyBlockedTooltip_LeavesOutAnAppListWithAnActionChosen()
+    {
+        _mockVmCoordinator.Setup(c => c.HasSelectedWindowsApps).Returns(true);
+        _mockVmCoordinator.Setup(c => c.IsWindowsAppsRemoveAction).Returns(true);
+        _mockVmCoordinator.Setup(c => c.HasSelectedExternalApps).Returns(true);
+
+        EnterReviewWithOpenSections(FeatureIds.WindowsApps, FeatureIds.ExternalApps);
+
+        _sut.ReviewModeApplyBlockedTooltip.Should().Be("Still to review: External Software");
+    }
+
+    [Fact]
+    public void ApplyBlockedTooltip_IsGone_OnceApplyIsAllowed()
+    {
+        EnterReviewWithOpenSections(FeatureIds.Privacy);
+        _sut.ReviewModeApplyBlockedTooltip.Should().NotBeNull();
+
+        _mockConfigReviewBadgeService.Setup(b => b.IsSectionFullyReviewed("Optimize")).Returns(true);
+        _mockConfigReviewBadgeService.Raise(b => b.BadgeStateChanged += null, this, EventArgs.Empty);
+
+        _sut.CanApplyReviewedConfig.Should().BeTrue();
+        _sut.ReviewModeApplyBlockedTooltip.Should().BeNull();
+        _sut.CanAcceptAllRemaining.Should().BeFalse();
+    }
+
+    [Fact]
+    public void AcceptAllRemaining_IsHidden_OutsideReview()
+    {
+        _sut.CanAcceptAllRemaining.Should().BeFalse();
+        _sut.ReviewModeApplyBlockedTooltip.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task AcceptAllRemainingCommand_AcceptsThroughTheCoordinator()
+    {
+        await _sut.AcceptAllRemainingCommand.ExecuteAsync(null);
+
+        _mockVmCoordinator.Verify(c => c.AcceptAllRemaining(), Times.Once);
     }
 
     [Fact]
@@ -331,8 +408,6 @@ public class ReviewModeBarViewModelTests : IDisposable
         _sut.CanApplyReviewedConfig.Should().BeTrue();
     }
 
-    // ── ApplyReviewedConfigCommand ──
-
     [Fact]
     public async Task ApplyReviewedConfigCommand_DelegatesToConfigurationService()
     {
@@ -346,7 +421,7 @@ public class ReviewModeBarViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task ApplyReviewedConfigCommand_ServiceThrows_DoesNotRethrow()
+    public async Task ApplyReviewedConfigCommand_ServiceThrows_ShowsTheErrorWithoutRethrowing()
     {
         _mockConfigurationService
             .Setup(c => c.ApplyReviewedConfigAsync())
@@ -355,27 +430,32 @@ public class ReviewModeBarViewModelTests : IDisposable
         var act = async () => await _sut.ApplyReviewedConfigCommand.ExecuteAsync(null);
 
         await act.Should().NotThrowAsync();
+        _mockDialogService.Verify(d => d.ShowErrorAsync(It.Is<string>(m => m.Contains("Apply failed")), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
-    // ── CancelReviewModeCommand ──
-
     [Fact]
-    public async Task CancelReviewModeCommand_UserConfirms_CallsCancelReviewMode()
+    public async Task CancelReviewModeCommand_Leave_CallsCancelReviewMode()
     {
+        ConfirmationRequest? shown = null;
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .Callback<ConfirmationRequest>(request => shown = request)
             .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+        _mockLocalizationService.Setup(l => l.GetString("Button_Leave")).Returns("Leave");
+        _mockLocalizationService.Setup(l => l.GetString("Button_Stay")).Returns("Stay");
         _mockConfigurationService
             .Setup(c => c.CancelReviewModeAsync())
             .Returns(Task.CompletedTask);
 
         await _sut.CancelReviewModeCommand.ExecuteAsync(null);
 
+        shown!.ConfirmButtonText.Should().Be("Leave");
+        shown.CancelButtonText.Should().Be("Stay");
         _mockConfigurationService.Verify(c => c.CancelReviewModeAsync(), Times.Once);
     }
 
     [Fact]
-    public async Task CancelReviewModeCommand_UserDeclines_DoesNotCallCancelReviewMode()
+    public async Task CancelReviewModeCommand_Stay_DoesNotCallCancelReviewMode()
     {
         _mockDialogService
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
@@ -385,8 +465,6 @@ public class ReviewModeBarViewModelTests : IDisposable
 
         _mockConfigurationService.Verify(c => c.CancelReviewModeAsync(), Times.Never);
     }
-
-    // ── Badge State Changed Event ──
 
     [Fact]
     public void BadgeStateChanged_UpdatesCanApplyReviewedConfig()
@@ -413,8 +491,6 @@ public class ReviewModeBarViewModelTests : IDisposable
 
         _sut.CanApplyReviewedConfig.Should().BeTrue();
     }
-
-    // ── Language Change ──
 
     [Fact]
     public void LanguageChanged_WhenInReviewMode_NotifiesLocalizedProperties()
@@ -445,8 +521,6 @@ public class ReviewModeBarViewModelTests : IDisposable
         changedProperties.Should().NotContain(nameof(_sut.ReviewModeTitleText));
     }
 
-    // ── IDisposable ──
-
     [Fact]
     public void Dispose_UnsubscribesFromEvents()
     {
@@ -455,6 +529,7 @@ public class ReviewModeBarViewModelTests : IDisposable
             _mockConfigReviewDiffService.Object,
             _mockConfigReviewBadgeService.Object,
             _mockConfigurationService.Object,
+            _mockVmCoordinator.Object,
             _mockDispatcherService.Object,
             _mockLocalizationService.Object,
             _mockDialogService.Object,
@@ -462,7 +537,6 @@ public class ReviewModeBarViewModelTests : IDisposable
 
         sut.Dispose();
 
-        // After dispose, raising review mode changed should not update IsInReviewMode
         _mockConfigReviewModeService
             .Setup(s => s.IsInReviewMode)
             .Returns(true);
@@ -479,6 +553,7 @@ public class ReviewModeBarViewModelTests : IDisposable
             _mockConfigReviewDiffService.Object,
             _mockConfigReviewBadgeService.Object,
             _mockConfigurationService.Object,
+            _mockVmCoordinator.Object,
             _mockDispatcherService.Object,
             _mockLocalizationService.Object,
             _mockDialogService.Object,

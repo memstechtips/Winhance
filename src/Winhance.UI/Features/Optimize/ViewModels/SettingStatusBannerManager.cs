@@ -1,20 +1,18 @@
-using System.Collections.Generic;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
-/// <summary>
-/// Computes status banner messages for setting items (compatibility warnings,
-/// option warnings, cross-group info, restart required).
-/// </summary>
 internal sealed class SettingStatusBannerManager
 {
     private readonly ILocalizationService _localizationService;
 
-    internal readonly record struct BannerState(string? Message, InfoBarSeverity Severity)
+    // A non-null DetectionOutcome marks a detection-outcome banner, so the VM gives it that outcome's colour icon;
+    // every other banner keeps InfoBar's native severity icon.
+    internal readonly record struct BannerState(
+        string? Message, InfoBarSeverity Severity, SettingDetectionOutcome? DetectionOutcome = null)
     {
         public static BannerState Clear => new(null, InfoBarSeverity.Informational);
     }
@@ -24,97 +22,73 @@ internal sealed class SettingStatusBannerManager
         _localizationService = localizationService;
     }
 
-    /// <summary>
-    /// Gets the compatibility banner from the setting definition, if present.
-    /// </summary>
-    public BannerState? GetCompatibilityBanner(SettingDefinition? definition)
-    {
-        if (definition?.VersionCompatibilityMessage is { } messageText)
-        {
-            return new BannerState(messageText, InfoBarSeverity.Warning);
-        }
-        return null;
-    }
-
-    /// <summary>
-    /// Computes the appropriate banner for a value change.
-    /// Returns null when the banner should not be changed (keep existing state).
-    /// </summary>
+    // BannerState.Clear when there is nothing to show; null leaves an existing compatibility banner untouched
+    // (value is not an int index).
     public BannerState? ComputeBannerForValue(
-        SettingDefinition? definition, object? value, string? crossGroupInfoMessage)
+        object? value, IReadOnlyList<string>? optionWarnings, string? crossGroupInfoMessage, int optionCount, string? compatibilityMessage,
+        InfoBarSeverity compatibilitySeverity = InfoBarSeverity.Warning)
     {
-        if (definition == null || value is not int selectedIndex)
+        if (value is not int selectedIndex)
         {
-            // Keep existing compatibility banner if present, otherwise clear
-            if (definition?.VersionCompatibilityMessage == null)
-            {
+            if (string.IsNullOrEmpty(compatibilityMessage))
                 return BannerState.Clear;
-            }
-            return null; // Don't change (keep existing compatibility banner)
+            return null;
         }
 
-        // Check for option-specific warnings (e.g., update policy security warnings)
-        if (definition.ComboBox?.Options is { } warningOptions
-            && selectedIndex >= 0 && selectedIndex < warningOptions.Count
-            && warningOptions[selectedIndex].Warning is { } warning)
-        {
-            return new BannerState(warning, InfoBarSeverity.Error);
-        }
+        // A warning stands before the choice is made, so it shows for every selection, the custom state included.
+        if (optionWarnings is { Count: > 0 })
+            return new BannerState(string.Join("\n", optionWarnings), InfoBarSeverity.Warning);
 
-        // Check for cross-group child settings info (promotional banner)
-        if (definition.CrossGroupChildSettings != null)
-        {
-            return ComputeCrossGroupBanner(definition, selectedIndex, crossGroupInfoMessage);
-        }
+        // Cross-group child settings info (promotional banner). The precomputed message already includes the header.
+        if (!string.IsNullOrEmpty(crossGroupInfoMessage))
+            return ComputeCrossGroupBanner(selectedIndex, crossGroupInfoMessage, optionCount);
 
-        // No option-specific warning - check for compatibility message
-        if (definition.VersionCompatibilityMessage is { } compatText)
-        {
-            return new BannerState(compatText, InfoBarSeverity.Warning);
-        }
+        if (!string.IsNullOrEmpty(compatibilityMessage))
+            return new BannerState(compatibilityMessage, compatibilitySeverity);
 
         return BannerState.Clear;
     }
 
-    /// <summary>
-    /// Gets a restart-required banner if the setting requires restart and has been changed.
-    /// Returns null if no banner should be shown.
-    /// </summary>
-    public BannerState? GetRestartBanner(SettingDefinition? definition, bool hasChangedThisSession)
+    public BannerState? GetRestartBanner(bool requiresRestart, bool hasChangedThisSession)
     {
         if (!hasChangedThisSession) return null;
-        if (definition?.RequiresRestart != true) return null;
+        if (!requiresRestart) return null;
 
         return new BannerState(
             _localizationService.GetString("Common_RestartRequired"),
             InfoBarSeverity.Warning);
     }
 
-    private BannerState ComputeCrossGroupBanner(
-        SettingDefinition definition, int selectedIndex, string? crossGroupInfoMessage)
+    // Custom -> Informational (not a fault; the user can simply choose); Malformed -> Warning (a real but
+    // self-repairing fault); Undetermined -> Error (WE failed to read it; the message points at the log rather than
+    // pretending to offer a remedy). Severity deliberately matches the overlay icon colour so the two never contradict.
+    public BannerState GetDetectionOutcomeBanner(SettingDetectionOutcome outcome, bool isTwoState)
     {
-        var options = definition.ComboBox?.Options;
+        var (prefix, severity) = outcome switch
+        {
+            SettingDetectionOutcome.Malformed => ("Common_MalformedBanner_", InfoBarSeverity.Warning),
+            SettingDetectionOutcome.Undetermined => ("Common_UndeterminedBanner_", InfoBarSeverity.Error),
+            _ => ("Common_CustomBanner_", InfoBarSeverity.Informational),
+        };
 
-        if (options == null || options.Count == 0)
+        return new BannerState(
+            _localizationService.GetString(prefix + (isTwoState ? "Toggle" : "Selection")),
+            severity,
+            DetectionOutcome: outcome);
+    }
+
+    private BannerState ComputeCrossGroupBanner(int selectedIndex, string crossGroupInfoMessage, int optionCount)
+    {
+        if (optionCount == 0)
             return BannerState.Clear;
 
-        // Check if "Custom" option is selected (last index or special custom state index)
-        var customOptionIndex = options.Count - 1;
+        var customOptionIndex = optionCount - 1;
         bool isCustomState = selectedIndex == customOptionIndex ||
             selectedIndex == ComboBoxConstants.CustomStateIndex;
 
         if (!isCustomState)
             return BannerState.Clear;
 
-        // Use the pre-built message if available (built during initialization with full grouping)
-        if (!string.IsNullOrEmpty(crossGroupInfoMessage))
-            return new BannerState(crossGroupInfoMessage, InfoBarSeverity.Warning);
-
-        // Fallback: just show the header if pre-built message not available
-        var header = _localizationService.GetString("Setting_CrossGroupWarning_Header");
-        if (!string.IsNullOrEmpty(header))
-            return new BannerState(header, InfoBarSeverity.Warning);
-
-        return BannerState.Clear;
+        return new BannerState(crossGroupInfoMessage, InfoBarSeverity.Warning);
     }
 }

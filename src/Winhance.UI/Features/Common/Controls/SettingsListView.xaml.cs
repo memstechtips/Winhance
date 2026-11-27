@@ -1,4 +1,5 @@
-using System.Linq;
+using System.Windows.Input;
+using CommunityToolkit.WinUI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -6,9 +7,11 @@ using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Optimize.ViewModels;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Controls;
 
@@ -35,6 +38,41 @@ public sealed partial class SettingsListView : UserControl
             typeof(SettingsListView),
             new PropertyMetadata(false));
 
+    public static readonly DependencyProperty NoResultsTextProperty =
+        DependencyProperty.Register(
+            nameof(NoResultsText),
+            typeof(string),
+            typeof(SettingsListView),
+            new PropertyMetadata(string.Empty));
+
+    public static readonly DependencyProperty IsShowAllVisibleProperty =
+        DependencyProperty.Register(
+            nameof(IsShowAllVisible),
+            typeof(bool),
+            typeof(SettingsListView),
+            new PropertyMetadata(false));
+
+    public static readonly DependencyProperty ShowAllTextProperty =
+        DependencyProperty.Register(
+            nameof(ShowAllText),
+            typeof(string),
+            typeof(SettingsListView),
+            new PropertyMetadata(string.Empty));
+
+    public static readonly DependencyProperty ShowAllCommandProperty =
+        DependencyProperty.Register(
+            nameof(ShowAllCommand),
+            typeof(ICommand),
+            typeof(SettingsListView),
+            new PropertyMetadata(null));
+
+    public static readonly DependencyProperty HeaderProperty =
+        DependencyProperty.Register(
+            nameof(Header),
+            typeof(object),
+            typeof(SettingsListView),
+            new PropertyMetadata(null));
+
     public ICollectionView? GroupedSettingsSource
     {
         get => (ICollectionView?)GetValue(GroupedSettingsSourceProperty);
@@ -47,7 +85,13 @@ public sealed partial class SettingsListView : UserControl
         set => SetValue(IsLoadingProperty, value);
     }
 
-    public bool IsNotLoading => !IsLoading;
+    // The ListView builds its item containers over several frames after it turns visible, and on a long page
+    // those frames are blank. The loader stays up over the hidden list until the first item has its content.
+    private bool _revealing;
+
+    private ICollectionView? _pendingSource;
+    private int _framesBeforeSource;
+    private TaskCompletionSource? _shown;
 
     public bool HasNoSearchResults
     {
@@ -55,29 +99,119 @@ public sealed partial class SettingsListView : UserControl
         set => SetValue(HasNoSearchResultsProperty, value);
     }
 
+    public string NoResultsText
+    {
+        get => (string)GetValue(NoResultsTextProperty);
+        set => SetValue(NoResultsTextProperty, value);
+    }
+
+    public bool IsShowAllVisible
+    {
+        get => (bool)GetValue(IsShowAllVisibleProperty);
+        set => SetValue(IsShowAllVisibleProperty, value);
+    }
+
+    public string ShowAllText
+    {
+        get => (string)GetValue(ShowAllTextProperty);
+        set => SetValue(ShowAllTextProperty, value);
+    }
+
+    public ICommand? ShowAllCommand
+    {
+        get => (ICommand?)GetValue(ShowAllCommandProperty);
+        set => SetValue(ShowAllCommandProperty, value);
+    }
+
+    // Inside this control's scroller: a page that wraps its own scroller around the list gets two fighting over the wheel.
+    public object? Header
+    {
+        get => GetValue(HeaderProperty);
+        set => SetValue(HeaderProperty, value);
+    }
+
     public SettingsListView()
     {
         this.InitializeComponent();
         SettingsListViewControl.LosingFocus += ListView_LosingFocus;
+        NoResultsText = App.Services.GetRequiredService<ILocalizationService>().GetString("Common_Search_NoResults");
 
-        // Wire PageUp/PageDown fast-scroll and Home/End jump on the outer ScrollView.
-        // Listening on the UserControl root lets us see the key even after the inner
-        // ListView marks it handled during focus traversal (issue #581).
-        PageScrollHelper.Attach(this, ContentScrollView);
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
-    /// <summary>
-    /// Intercepts Tab focus leaving the ListView and redirects it to the next/previous
-    /// setting control within the list. The ListView's built-in TabFocusNavigation=Once
-    /// forces Tab to exit after one stop — this handler overrides that behavior.
-    /// </summary>
+    // Set by a host on an uncached page, so a return visit opens where the user left the list.
+    public string? ScrollMemoryKey { get; set; }
+
+    private bool _scrollerSetUp;
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (!_scrollerSetUp)
+            SetUpScroller();
+
+        if (SettingsListViewControl.ItemsSource is null && _framesBeforeSource == 0 && GroupedSettingsSource is { } source)
+            DeferSource(source);
+    }
+
+    // A list collapsed behind the loader may have no template yet, so this also runs when the list turns visible.
+    private void SetUpScroller()
+    {
+        SettingsListViewControl.ApplyTemplate();
+        if (SettingsListViewControl.FindDescendant<ScrollViewer>() is not { } scroller)
+            return;
+        _scrollerSetUp = true;
+
+        // Listening on the UserControl root lets us see the key even after the
+        // ListView marks it handled during focus traversal (issue #581).
+        PageScrollHelper.Attach(this, scroller);
+        if (ScrollMemoryKey is { } key)
+            ScrollMemory.Track(key, SettingsListViewControl, scroller);
+    }
+
+    // The cards' x:Bind trackers stay subscribed to the long-lived setting view models until their containers are
+    // cleared, and a page dropped from its frame never clears them, so each visit would leave one more list listening.
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (_framesBeforeSource > 0)
+        {
+            CompositionTarget.Rendering -= OnRenderingBeforeSource;
+            _framesBeforeSource = 0;
+        }
+        SettingsListViewControl.LayoutUpdated -= ListView_LayoutUpdated;
+        SettingsListViewControl.ItemsSource = null;
+        _revealing = false;
+        ShowLoadingState();
+        _shown?.TrySetResult();
+        _shown = null;
+    }
+
+    // Done once the cards are on screen or there is nothing to show, so a host can keep its whole page hidden until then.
+    public Task WhenShownAsync()
+    {
+        if (!IsLoaded || IsShown)
+            return Task.CompletedTask;
+        _shown ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        return _shown.Task;
+    }
+
+    private bool IsShown => !IsLoading && !_revealing && _framesBeforeSource == 0;
+
+    private void CompleteShownIfDone()
+    {
+        if (_shown is not { } shown || !IsShown)
+            return;
+        _shown = null;
+        shown.SetResult();
+    }
+
+    // The ListView's TabFocusNavigation=Once forces Tab to exit after one stop; this redirects it to the
+    // next/previous setting control inside the list.
     private void ListView_LosingFocus(object sender, LosingFocusEventArgs e)
     {
         if (e.InputDevice != FocusInputDeviceKind.Keyboard) return;
 
-        // Determine the navigation direction:
-        // Direction=Next → Tab forward, Direction=Previous → Shift+Tab backward,
-        // Direction=None with New=null → ListView couldn't find next item (treat as forward)
+        // Direction=None with New=null means the ListView couldn't find a next item - treat as forward.
         bool isForward;
         if (e.Direction == FocusNavigationDirection.Next)
             isForward = true;
@@ -88,7 +222,6 @@ public sealed partial class SettingsListView : UserControl
         else
             return; // Arrow key navigation or other — don't intercept
 
-        // Find which ListViewItem the currently focused element is inside
         var oldElement = e.OldFocusedElement as DependencyObject;
         if (oldElement == null) return;
 
@@ -98,7 +231,6 @@ public sealed partial class SettingsListView : UserControl
 
         if (current is not ListViewItem currentItem) return;
 
-        // If focus is moving within the same ListViewItem, don't intercept
         if (e.NewFocusedElement is DependencyObject newElement)
         {
             DependencyObject? newParent = newElement;
@@ -110,7 +242,6 @@ public sealed partial class SettingsListView : UserControl
         var currentIndex = SettingsListViewControl.IndexFromContainer(currentItem);
         if (currentIndex < 0) return;
 
-        // Search for the next/previous item that has a focusable control
         var itemCount = SettingsListViewControl.Items.Count;
         var step = isForward ? 1 : -1;
 
@@ -141,9 +272,6 @@ public sealed partial class SettingsListView : UserControl
         // At the boundary (first or last item) — let focus leave the list naturally
     }
 
-    /// <summary>
-    /// Handles Ctrl+D to toggle Technical Details for the currently focused setting.
-    /// </summary>
     private void TechnicalDetailsAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
@@ -151,35 +279,30 @@ public sealed partial class SettingsListView : UserControl
         var focused = FocusManager.GetFocusedElement(XamlRoot) as DependencyObject;
         if (focused == null) return;
 
-        // Walk up to find the ListViewItem containing the focused element
         DependencyObject? current = focused;
         while (current != null && current is not ListViewItem)
             current = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetParent(current);
 
         if (current is not ListViewItem listViewItem) return;
 
-        // Get the SettingItemViewModel from the item's data context
         var dataItem = SettingsListViewControl.ItemFromContainer(listViewItem);
         if (dataItem is not SettingItemViewModel vm) return;
 
-        // Only toggle if the setting has technical details and they're globally visible
         if (!vm.ShowTechnicalDetailsBar) return;
 
         vm.ToggleTechnicalDetails();
 
-        // Announce the new state and details content to Narrator
-        var localizationService = App.Services.GetService<ILocalizationService>();
+        var localizationService = App.Services.GetRequiredService<ILocalizationService>();
         var stateText = vm.IsTechnicalDetailsExpanded
-            ? localizationService?.GetString("TechnicalDetails_On") ?? "Technical Details: On"
-            : localizationService?.GetString("TechnicalDetails_Off") ?? "Technical Details: Off";
+            ? localizationService.GetStringOrDefault("TechnicalDetails_On", "Technical Details: On")
+            : localizationService.GetStringOrDefault("TechnicalDetails_Off", "Technical Details: Off");
 
         var announcement = $"{vm.Name}: {stateText}";
 
-        // When expanding, append the technical details content so Narrator reads it
-        if (vm.IsTechnicalDetailsExpanded && vm.TechnicalDetailSections.Count > 0)
+        if (vm.IsTechnicalDetailsExpanded && vm.TechnicalDetailMatrix is not null)
         {
             var details = string.Join(". ",
-                vm.TechnicalDetailSections.SelectMany(s => s.Rows).Select(d => d.AccessibleSummary));
+                [vm.TechnicalDetailMatrix.AccessibleSummary]);
             announcement = $"{announcement}. {details}";
         }
 
@@ -199,17 +322,109 @@ public sealed partial class SettingsListView : UserControl
     private static void OnGroupedSettingsSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is SettingsListView control)
-        {
-            control.SettingsListViewControl.ItemsSource = e.NewValue as ICollectionView;
-            control.ScheduleFocusFirstSetting();
-        }
+            control.DeferSource(e.NewValue as ICollectionView);
+    }
+
+    // Handed over at once, the old page stays frozen on screen while the first screenful of cards is built (and
+    // every card, where the list sits inside a scrolling page). Held back until the page has drawn with the loader,
+    // the page appears at once.
+    private void DeferSource(ICollectionView? source)
+    {
+        bool waiting = _framesBeforeSource > 0;
+        _pendingSource = source;
+        _framesBeforeSource = 2;
+        _revealing = source is { Count: > 0 };
+        ShowLoadingState();
+
+        if (!waiting)
+            CompositionTarget.Rendering += OnRenderingBeforeSource;
+    }
+
+    // Rendering fires before a frame is drawn, so the second one means the frame with the loader is on screen.
+    private void OnRenderingBeforeSource(object? sender, object e)
+    {
+        if (--_framesBeforeSource > 0)
+            return;
+
+        CompositionTarget.Rendering -= OnRenderingBeforeSource;
+        SettingsListViewControl.ItemsSource = _pendingSource;
+        SettingsListViewControl.LayoutUpdated -= ListView_LayoutUpdated;
+        if (_revealing)
+            SettingsListViewControl.LayoutUpdated += ListView_LayoutUpdated;
+        ScheduleFocusFirstSetting();
+        CompleteShownIfDone();
     }
 
     private static void OnIsLoadingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is SettingsListView control)
         {
-            control.Bindings.Update();
+            // A source still waiting for its frame keeps its own reveal; handing it over hooks the layout check.
+            if (control._framesBeforeSource > 0)
+            {
+                control.ShowLoadingState();
+                return;
+            }
+
+            control._revealing = e.OldValue is true && e.NewValue is false && control.SettingsListViewControl.Items.Count > 0;
+            control.ShowLoadingState();
+            control.SettingsListViewControl.LayoutUpdated -= control.ListView_LayoutUpdated;
+            if (control._revealing)
+                control.SettingsListViewControl.LayoutUpdated += control.ListView_LayoutUpdated;
+        }
+    }
+
+    private void ShowLoadingState()
+    {
+        LoadingRocket.IsActive = IsLoading || _revealing;
+        SettingsListViewControl.Visibility = IsLoading ? Visibility.Collapsed : Visibility.Visible;
+        SettingsListViewControl.Opacity = _revealing ? 0 : 1;
+        if (!_scrollerSetUp && !IsLoading && IsLoaded)
+            SetUpScroller();
+        CompleteShownIfDone();
+    }
+
+    private void ListView_LayoutUpdated(object? sender, object e)
+    {
+        if (IsLoading || SettingsListViewControl.ContainerFromIndex(0) is not ListViewItem { ContentTemplateRoot: not null })
+            return;
+
+        SettingsListViewControl.LayoutUpdated -= ListView_LayoutUpdated;
+        DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, async () =>
+        {
+            try
+            {
+                if (ScrollMemoryKey is { } key && await ScrollMemory.RestoreAsync(key, SettingsListViewControl))
+                    FocusFirstVisibleSetting();
+            }
+            finally
+            {
+                _revealing = false;
+                ShowLoadingState();
+            }
+        });
+    }
+
+    // Focus waits on the first card while the list is hidden. After a restored scroll that card is out of view and the
+    // first Tab would jump the page back to the top, so focus moves to the first card the restore brought into view,
+    // unless the user has already put it somewhere else.
+    private void FocusFirstVisibleSetting()
+    {
+        if (XamlRoot is null || SettingsListViewControl.FindDescendant<ScrollViewer>() is not { } scroller) return;
+
+        var focused = FocusManager.GetFocusedElement(XamlRoot) as DependencyObject;
+        while (focused is not null && focused != SettingsListViewControl)
+            focused = VisualTreeHelper.GetParent(focused);
+        if (focused is null && FocusManager.GetFocusedElement(XamlRoot) is not null) return;
+
+        for (var i = 0; i < SettingsListViewControl.Items.Count; i++)
+        {
+            if (SettingsListViewControl.ContainerFromIndex(i) is not ListViewItem row
+                || row.TransformToVisual(scroller).TransformPoint(default).Y < 0)
+                continue;
+            if (FocusManager.FindFirstFocusableElement(row) is Control target)
+                target.Focus(FocusState.Programmatic);
+            return;
         }
     }
 

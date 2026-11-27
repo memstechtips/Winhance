@@ -1,122 +1,91 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Helpers;
-using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 
 namespace Winhance.Infrastructure.Features.Common.Helpers;
 
-internal class OSInfo
-{
-    public int BuildNumber { get; set; }
-    public int BuildRevision { get; set; }
-    public bool IsWindows10 { get; set; }
-    public bool IsWindows11 { get; set; }
-}
-
 internal static class RecommendedSettingsResolver
 {
-    internal static OSInfo BuildOSInfo(IWindowsVersionService versionService) =>
-        new OSInfo
-        {
-            BuildNumber = versionService.GetWindowsBuildNumber(),
-            BuildRevision = versionService.GetWindowsBuildRevision(),
-            IsWindows10 = !versionService.IsWindows11(),
-            IsWindows11 = versionService.IsWindows11()
-        };
-
-    internal static bool IsCompatibleWithCurrentOS(SettingDefinition setting, OSInfo osInfo)
+    internal static string GetPowerCfgDisplayUnits(Setting setting)
     {
-        if (setting.IsWindows10Only && !osInfo.IsWindows10) return false;
-        if (setting.IsWindows11Only && !osInfo.IsWindows11) return false;
-
-        if (setting.SupportedBuildRanges?.Count > 0)
-        {
-            bool inSupportedRange = setting.SupportedBuildRanges.Any(range =>
-                osInfo.BuildNumber >= range.MinBuild && osInfo.BuildNumber <= range.MaxBuild);
-            if (!inSupportedRange) return false;
-        }
-        else if (!BuildVersionGate.IsCompatible(
-            osInfo.BuildNumber,
-            osInfo.BuildRevision,
-            setting.MinimumBuildNumber,
-            setting.MinimumBuildRevision,
-            setting.MaximumBuildNumber,
-            setting.MaximumBuildRevision))
-        {
-            return false;
-        }
-
-        return true;
+        if (setting.Numeric?.Units is { } units) return units;
+        return setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Units ?? string.Empty;
     }
 
-    internal static bool HasRecommendedValue(SettingDefinition setting)
+    // Returns the index of the first State carrying an UNCONDITIONAL Recommended role. Scoped to Selection -
+    // returns null for Toggle/Slider/Action/PowerPlan. A powercfg Selection's roles are CONTEXT-scoped
+    // (AC/DC), so the unconditional HasRole(Recommended) does not match them. Build-scoped roles (theme-mode-windows)
+    // are WindowsDefault only, so this lookup can stay build-unaware; GetDefaultIndex below is the build-aware one.
+    internal static int? GetRecommendedIndex(Setting setting)
     {
-        if (SettingDefinitionToggleState.GetRecommendedToggleState(setting).HasValue) return true;
-        if (setting.PowerCfgSettings?.Any(p => p.RecommendedValueAC.HasValue || p.RecommendedValueDC.HasValue) == true) return true;
-        if (setting.ComboBox?.Options?.Any(o => o.IsRecommended) == true) return true;
-        return false;
-    }
-
-    internal static bool HasDefaultValue(SettingDefinition setting)
-    {
-        if (SettingDefinitionToggleState.GetDefaultToggleState(setting).HasValue) return true;
-        if (setting.PowerCfgSettings?.Any(p => p.DefaultValueAC.HasValue || p.DefaultValueDC.HasValue) == true) return true;
-        if (setting.ComboBox?.Options?.Any(o => o.IsDefault) == true) return true;
-        return false;
-    }
-
-    internal static object? GetRecommendedValueForSetting(SettingDefinition setting)
-    {
-        var registrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.RecommendedValue != null);
-        return registrySetting?.RecommendedValue;
-    }
-
-    internal static object? GetDefaultValueForSetting(SettingDefinition setting)
-    {
-        var registrySetting = setting.RegistrySettings?.FirstOrDefault(rs => rs.DefaultValue != null);
-        return registrySetting?.DefaultValue;
-    }
-
-    internal static int? GetRecommendedIndex(SettingDefinition setting)
-    {
-        var opts = setting.ComboBox?.Options;
-        if (opts is null) return null;
-        for (int i = 0; i < opts.Count; i++)
-            if (opts[i].IsRecommended) return i;
+        if (setting.Control != ControlKind.Selection) return null;
+        for (int i = 0; i < setting.States.Count; i++)
+            if (setting.States[i].HasRole(RoleKind.Recommended)) return i;
         return null;
     }
 
-    internal static int? GetDefaultIndex(SettingDefinition setting)
+    // Build-aware default lookup: matches a state's unconditional WindowsDefault role OR one whose build scope
+    // admits `build`. A merged Selection (theme-mode-windows) declares Light as the Windows 11 WindowsDefault via a
+    // build-scoped role that an unconditional-only lookup would miss; this resolves the state that is default on
+    // the live build (Light on Windows 11; none on Windows 10).
+    internal static int? GetDefaultIndex(Setting setting, WinBuild build)
     {
-        var opts = setting.ComboBox?.Options;
-        if (opts is null) return null;
-        for (int i = 0; i < opts.Count; i++)
-            if (opts[i].IsDefault) return i;
+        if (setting.Control != ControlKind.Selection) return null;
+        for (int i = 0; i < setting.States.Count; i++)
+            if (setting.States[i].HasRole(RoleKind.WindowsDefault, build)) return i;
         return null;
     }
 
-    // For PowerCfg-backed Selection/NumericRange settings, build the value shape that
-    // SettingApplicationService → PowerCfgApplier expects (matches what SettingItemViewModel
-    // sends for AC/DC quick-set buttons). Returns null if the setting isn't PowerCfg-backed
-    // or if neither AC nor DC has a target value.
-    internal static object? BuildPowerCfgApplyValue(SettingDefinition setting, bool useRecommended)
+    // Deliberately no OS-compatibility helper here: the catalog registry gates OS membership via
+    // CatalogMembershipFilter.IsAvailable, and a by-id consumer that still needs the check reads
+    // Setting.Availability.Allows(build) directly. Deliberately no recommended/default VALUE helper either:
+    // Actions are excluded from Apply-Recommended and bulk reset, which leaves NumericRange only (all
+    // powercfg), where such a helper would always return null.
+
+    // True when a setting has a recommended value, unioning three signals: a recommended toggle state (the
+    // build-aware TwoState.GetRecommended), a powercfg slider's recommended (Numeric.Recommended),
+    // or a selection's recommended (registry unconditional OR powercfg context-scoped) carried as a
+    // Recommended-kind role on some state. The role check is Selection-scoped so a merged toggle's
+    // build-scoped role can never be caught build-unaware here (selections are never merged). A powercfg
+    // recommended role is present only when its value matched a selectable option - which holds for the real
+    // population, where every recommended powercfg value is a selectable option.
+    internal static bool HasRecommendedValue(Setting setting, WinBuild build)
     {
-        var pcfg = setting.PowerCfgSettings?.FirstOrDefault();
-        if (pcfg == null) return null;
+        if (TwoState.GetRecommended(setting, build) is not null) return true;
+        if (setting.Numeric is { } numeric && numeric.Recommended.Count > 0) return true;
+        if (setting.Control == ControlKind.Selection
+            && setting.States.Any(s => s.Roles.Any(r => r.Kind == RoleKind.Recommended)))
+            return true;
+        return false;
+    }
 
-        int? acRaw = useRecommended ? pcfg.RecommendedValueAC : pcfg.DefaultValueAC;
-        int? dcRaw = useRecommended ? pcfg.RecommendedValueDC : pcfg.DefaultValueDC;
-        if (!acRaw.HasValue && !dcRaw.HasValue) return null;
+    // As HasRecommendedValue but the WindowsDefault role / Numeric.WindowsDefault. The toggle part uses the
+    // build-aware TwoState.GetDefault, so the merged This PC folder toggles - whose Windows default is
+    // OS-divergent and build-scoped - agree on either OS with zero divergence.
+    internal static bool HasDefaultValue(Setting setting, WinBuild build)
+    {
+        if (TwoState.GetDefault(setting, build) is not null) return true;
+        if (setting.Numeric is { } numeric && numeric.WindowsDefault.Count > 0) return true;
+        if (setting.Control == ControlKind.Selection
+            && setting.States.Any(s => s.HasRole(RoleKind.WindowsDefault, build)))
+            return true;
+        return false;
+    }
 
-        bool isSeparate = pcfg.PowerModeSupport == PowerModeSupport.Separate;
+    // Builds the powercfg apply value. For a powercfg Selection, the recommended/default option is the state
+    // carrying a context-scoped role (Recommended / WindowsDefault, AC / DC); that index equals
+    // PowerCfgValues.OptionIndex for the per-mode value. For a NumericRange, the Numeric.Recommended /
+    // Numeric.WindowsDefault ContextValues are already in DISPLAY units, so they are handed over directly.
+    internal static object? BuildPowerCfgApplyValue(Setting setting, bool useRecommended)
+    {
+        var pcfg = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault();
+        if (pcfg is null) return null;
 
-        if (setting.InputType == InputType.Selection)
+        bool isSeparate = pcfg.Mode == PowerModeSupport.Separate;
+        var roleKind = useRecommended ? RoleKind.Recommended : RoleKind.WindowsDefault;
+
+        if (setting.Control == ControlKind.Selection)
         {
-            int? acIdx = FindOptionIndexForPowerCfgValue(setting, acRaw);
-            int? dcIdx = FindOptionIndexForPowerCfgValue(setting, dcRaw);
+            int? acIdx = IndexOfContextRole(setting, roleKind, PowerContext.AC);
+            int? dcIdx = IndexOfContextRole(setting, roleKind, PowerContext.DC);
 
             if (isSeparate)
             {
@@ -130,13 +99,11 @@ internal static class RecommendedSettingsResolver
             return (object?)(acIdx ?? dcIdx);
         }
 
-        if (setting.InputType == InputType.NumericRange)
+        if (setting.Numeric is { } numeric)
         {
-            // Stored values are system units (e.g. Seconds). PowerCfgApplier converts
-            // display→system on its end, so we hand it display units here.
-            string displayUnits = GetPowerCfgDisplayUnits(setting);
-            int? acDisplay = acRaw.HasValue ? ConvertSystemToDisplayUnits(acRaw.Value, displayUnits) : null;
-            int? dcDisplay = dcRaw.HasValue ? ConvertSystemToDisplayUnits(dcRaw.Value, displayUnits) : null;
+            var contextValues = useRecommended ? numeric.Recommended : numeric.WindowsDefault;
+            int? acDisplay = ContextValueFor(contextValues, PowerContext.AC);
+            int? dcDisplay = ContextValueFor(contextValues, PowerContext.DC);
 
             if (isSeparate)
             {
@@ -153,38 +120,67 @@ internal static class RecommendedSettingsResolver
         return null;
     }
 
-    internal static int? FindOptionIndexForPowerCfgValue(SettingDefinition setting, int? targetValue)
+    private static int? IndexOfContextRole(Setting setting, RoleKind kind, PowerContext context)
     {
-        if (!targetValue.HasValue) return null;
-        var opts = setting.ComboBox?.Options;
-        if (opts == null) return null;
-        for (int i = 0; i < opts.Count; i++)
-        {
-            if (opts[i].ValueMappings is { } m && m.TryGetValue("PowerCfgValue", out var v) && v != null)
-            {
-                try { if (Convert.ToInt32(v) == targetValue.Value) return i; }
-                catch { }
-            }
-        }
+        for (int i = 0; i < setting.States.Count; i++)
+            if (setting.States[i].Roles.Any(r => r.Kind == kind && r.Context == context))
+                return i;
         return null;
     }
 
-    internal static string GetPowerCfgDisplayUnits(SettingDefinition setting)
+    private static int? ContextValueFor(IReadOnlyList<ContextValue> values, PowerContext context)
     {
-        if (setting.NumericRange?.Units is { } unitsStr) return unitsStr;
-        return setting.PowerCfgSettings?[0]?.Units ?? string.Empty;
+        foreach (var v in values)
+            if (v.Context == context) return v.Value;
+        return null;
     }
 
-    // Inverse of PowerCfgApplier.ConvertToSystemUnits.
-    internal static int ConvertSystemToDisplayUnits(int systemValue, string? units)
+    // The recommended AC/DC SYSTEM values PowerPlanActivationService writes to a freshly-created plan via
+    // PowerWriteAC/DCValueIndex: the Recommended-role state's Set["Power"] payload (Selection) or
+    // Numeric.Recommended converted display->system (Slider, e.g. Minutes over a Seconds powercfg value). AC/DC
+    // fall back to each other.
+    internal static (string SubgroupGuid, string SettingGuid, int Ac, int Dc)? ComputePlanRecommendedWrite(Setting setting)
     {
-        return units?.ToLowerInvariant() switch
+        var pcfg = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault();
+        if (pcfg is null) return null;
+
+        int? acSys = RecommendedSystemValue(setting, pcfg, PowerContext.AC);
+        int? dcSys = RecommendedSystemValue(setting, pcfg, PowerContext.DC);
+        if (!acSys.HasValue && !dcSys.HasValue) return null;
+
+        int ac = acSys ?? dcSys ?? 0;
+        int dc = dcSys ?? acSys ?? 0;
+        return (pcfg.SubgroupGuid, pcfg.SettingGuid, ac, dc);
+    }
+
+    // The recommended SYSTEM powercfg value for one context: a Selection's Recommended-context-role state
+    // carries Set["Power"] = StateValue.Of(the option's PowerCfgValue), so its WritePayload IS the system
+    // value; a Slider's Numeric.Recommended is in DISPLAY units, inverted back to the raw SYSTEM value the
+    // write needs. Null when there is no recommended role/value in that context.
+    private static int? RecommendedSystemValue(Setting setting, PowerCfgTarget pcfg, PowerContext context)
+    {
+        // State-based (Selection - or, defensively, any state-carrying powercfg setting): the recommended value
+        // is the Recommended-context-role state's Set["Power"] payload. Gating on States.Count (not Control ==
+        // Selection) keeps a future powercfg setting whose two states happen to compute as Toggle from silently
+        // dropping its plan write. A Numeric slider has no states and falls through to Numeric.Recommended below.
+        // NO powercfg setting derives as Toggle today, and CatalogPowerCfgControlKindConformanceTests is what
+        // holds that line - it fails the build the moment one does.
+        if (setting.States.Count > 0)
         {
-            "minutes" => systemValue / 60,
-            "hours" => systemValue / 3600,
-            // 1:1 — see UnitConversionHelper for the rationale.
-            "milliseconds" => systemValue,
-            _ => systemValue
-        };
+            foreach (var st in setting.States)
+                if (st.Roles.Any(r => r.Kind == RoleKind.Recommended && r.Context == context)
+                    && st.Set.TryGetValue(pcfg.Key, out var sv) && sv.WritePayload != null)
+                    return Convert.ToInt32(sv.WritePayload);
+            return null;
+        }
+        if (setting.Numeric is { } numeric)
+        {
+            // Numeric.Recommended is in DISPLAY units; the plan write needs the raw SYSTEM value, so invert
+            // it - e.g. power-harddisk-timeout is a Minutes slider over a Seconds powercfg value, so display
+            // 10 -> system 600.
+            var display = ContextValueFor(numeric.Recommended, context);
+            return display.HasValue ? PowerCfgValues.ToSystem(display.Value, numeric.Units) : (int?)null;
+        }
+        return null;
     }
 }

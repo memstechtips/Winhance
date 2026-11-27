@@ -1,41 +1,33 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Winhance.Infrastructure.Extensions.DI;
+using Winhance.UI.Helpers;
 
 namespace Winhance.UI.Features.Common.Extensions.DI;
 
-/// <summary>
-/// The composition root for the Winhance WinUI 3 application.
-/// Orchestrates the registration of all services following Clean Architecture principles.
-/// </summary>
 public static class CompositionRoot
 {
-    /// <summary>
-    /// Configures all services for the Winhance application.
-    /// </summary>
-    /// <param name="services">The service collection to configure</param>
-    /// <returns>The configured service collection for method chaining</returns>
     public static IServiceCollection ConfigureWinhanceServices(this IServiceCollection services)
     {
-        // Register services in dependency order
         services
-            .AddInfrastructureServices() // Infrastructure implementations
-            .AddSettingServices()        // Setting services (Customization, Optimization, SoftwareApps)
-            .AddUIServices();            // UI-specific services (ThemeService, etc.)
+            .AddInfrastructureServices()
+            .AddUIServices();
 
         return services;
     }
 
-    /// <summary>
-    /// Creates and configures a host builder with the Winhance service configuration.
-    /// </summary>
-    /// <returns>Configured host builder</returns>
-    public static IHostBuilder CreateWinhanceHost()
+    // A plain container rather than the generic host: nothing here uses its configuration, logging or lifetime,
+    // and Host.CreateDefaultBuilder loads about 30 assemblies and watches appsettings.json for them.
+    // ValidateOnBuild makes a registration with an unresolvable dependency fail at startup, not on first use, and
+    // WinhanceHostSmokeTests fails the gate first.
+    public static ServiceProvider BuildWinhanceServices(LaunchOptions? launch = null)
     {
-        return Host.CreateDefaultBuilder()
-            .ConfigureServices((context, services) =>
-            {
-                services.ConfigureWinhanceServices();
-            });
+        var services = new ServiceCollection()
+            .ConfigureWinhanceServices()
+            .AddSingleton(launch ?? LaunchOptions.None);
+        return services.BuildServiceProvider(new ServiceProviderOptions
+        {
+            ValidateOnBuild = true,
+            ValidateScopes = true,
+        });
     }
 }

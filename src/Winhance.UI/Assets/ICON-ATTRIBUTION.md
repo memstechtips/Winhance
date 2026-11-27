@@ -24,6 +24,7 @@ Files:
 - `AppIcons/winhance-rocket.png`
 - `AppIcons/winhance-rocket-black-transparent-bg.png`
 - `AppIcons/winhance-rocket-white-transparent-bg.png`
+- `AppIcons/winhance-rocket-card.png` - the same rocket resampled to 48px for setting cards
 - `ModeIcons/winhance-monitor.png` — Normal mode. Original monitor glyph by Marco du Plessis,
   displaying the rocket on its screen. Because it incorporates the OpenMoji-derived rocket, the
   **combined icon is licensed CC BY-SA 4.0**, with attribution to OpenMoji for the rocket element.
@@ -46,3 +47,14 @@ covered by the CC BY-SA term above.
 
 > Any rocket-free original icon added later (e.g. under `FeatureIcons/`) belongs in this
 > section. Only icons that embed the OpenMoji rocket fall under CC BY-SA.
+
+---
+
+## Fluent UI System Icons — MIT
+
+Two pill icons are path geometries taken from Microsoft's **Fluent UI System Icons**
+(<https://github.com/microsoft/fluentui-system-icons>, MIT License): `ic_fluent_star_12_regular`
+(the Recommended pill) and `ic_fluent_person_12_regular` (the Preference pill). They live as
+`x:String` resources in `Features/Common/Resources/FeatureIcons.xaml` (`BadgeRecommendedIconPath`,
+`BadgePreferenceIconPath`) rather than as Segoe Fluent Icons glyphs so the same shape can be rendered
+outside the app (the generated winhance.net docs).

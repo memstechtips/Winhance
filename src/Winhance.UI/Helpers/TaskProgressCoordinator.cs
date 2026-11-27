@@ -1,123 +1,106 @@
-using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
-using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Controls;
+using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.ViewModels;
 
 namespace Winhance.UI.Helpers;
 
-/// <summary>
-/// Coordinates task progress display across 1-3 TaskProgressControl slots.
-/// Extracted from MainWindow to reduce code-behind complexity.
-/// </summary>
 internal sealed class TaskProgressCoordinator
 {
     private readonly TaskProgressControl _control1;
     private readonly TaskProgressControl _control2;
     private readonly TaskProgressControl _control3;
-    private readonly ILogService _logService;
-    private readonly DispatcherQueue _dispatcherQueue;
-    private readonly CancellationTokenSource?[] _hideDelayCts = new CancellationTokenSource?[3];
+    private readonly ITaskProgressService _taskProgressService;
+    private readonly IDispatcherService _dispatcherService;
+    private readonly IDebounceTimer?[] _hideTimers = new IDebounceTimer?[3];
 
     public TaskProgressCoordinator(
         TaskProgressControl control1,
         TaskProgressControl control2,
         TaskProgressControl control3,
-        ILogService logService,
-        DispatcherQueue dispatcherQueue)
+        ITaskProgressService taskProgressService,
+        IDispatcherService dispatcherService)
     {
         _control1 = control1;
         _control2 = control2;
         _control3 = control3;
-        _logService = logService;
-        _dispatcherQueue = dispatcherQueue;
+        _taskProgressService = taskProgressService;
+        _dispatcherService = dispatcherService;
     }
 
-    /// <summary>
-    /// Handles TaskProgressViewModel property changes, updating the primary TaskProgressControl.
-    /// </summary>
     public void HandlePropertyChanged(TaskProgressViewModel tp, string? propertyName)
     {
-        if (propertyName == nameof(TaskProgressViewModel.IsLoading))
+        if (propertyName is nameof(TaskProgressViewModel.IsLoading) or nameof(TaskProgressViewModel.IsTaskFailed)
+            or nameof(TaskProgressViewModel.IsCancelling) or nameof(TaskProgressViewModel.CancelButtonLabel)
+            or nameof(TaskProgressViewModel.CloseButtonLabel) or nameof(TaskProgressViewModel.CancellingLabel))
         {
-            _dispatcherQueue.TryEnqueue(() =>
-            {
-                // Skip single-task IsLoading updates when multi-script mode is active
-                if (tp.ActiveScriptCount > 0) return;
-
-                var taskProgressService = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions
-                    .GetService<ITaskProgressService>(App.Services);
-                var isActuallyRunning = taskProgressService?.IsTaskRunning == true;
-
-                if (tp.IsLoading)
-                {
-                    _control1.IsProgressVisible = Visibility.Visible;
-                    if (isActuallyRunning)
-                    {
-                        _control1.CanCancel = Visibility.Visible;
-                        _control1.IsTaskRunning = true;
-                        _control1.CancelCommand = tp.CancelCommand;
-                        _control1.CancelText = tp.CancelButtonLabel;
-                    }
-                    else if (tp.IsTaskFailed)
-                    {
-                        // Failure state: show Close button to dismiss the bar
-                        _control1.CanCancel = Visibility.Visible;
-                        _control1.IsTaskRunning = true;
-                        _control1.CancelCommand = tp.CloseFailedTaskCommand;
-                        _control1.CancelText = tp.CloseButtonLabel;
-                    }
-                    else
-                    {
-                        _control1.CanCancel = Visibility.Collapsed;
-                        _control1.IsTaskRunning = false;
-                    }
-                }
-                else
-                {
-                    _control1.IsProgressVisible = Visibility.Collapsed;
-                    _control1.CanCancel = Visibility.Collapsed;
-                    _control1.IsTaskRunning = false;
-                }
-            });
+            _dispatcherService.Enqueue(() => RenderSingleTask(tp));
         }
         else if (propertyName == nameof(TaskProgressViewModel.AppName))
         {
-            _dispatcherQueue.TryEnqueue(() => _control1.AppName = tp.AppName);
+            _dispatcherService.Enqueue(() => _control1.AppName = tp.AppName);
         }
         else if (propertyName == nameof(TaskProgressViewModel.LastTerminalLine))
         {
-            _dispatcherQueue.TryEnqueue(() => _control1.LastTerminalLine = tp.LastTerminalLine);
-        }
-        else if (propertyName == nameof(TaskProgressViewModel.CancelButtonLabel))
-        {
-            _dispatcherQueue.TryEnqueue(() => _control1.CancelText = tp.CancelButtonLabel);
+            _dispatcherService.Enqueue(() => _control1.LastTerminalLine = tp.LastTerminalLine);
         }
         else if (propertyName == nameof(TaskProgressViewModel.QueueStatusText))
         {
-            _dispatcherQueue.TryEnqueue(() => _control1.QueueStatusText = tp.QueueStatusText);
+            _dispatcherService.Enqueue(() => _control1.QueueStatusText = tp.QueueStatusText);
         }
         else if (propertyName == nameof(TaskProgressViewModel.QueueNextItemName))
         {
-            _dispatcherQueue.TryEnqueue(() => _control1.QueueNextItemName = tp.QueueNextItemName);
+            _dispatcherService.Enqueue(() => _control1.QueueNextItemName = tp.QueueNextItemName);
         }
         else if (propertyName == nameof(TaskProgressViewModel.IsQueueVisible))
         {
-            _dispatcherQueue.TryEnqueue(() =>
+            _dispatcherService.Enqueue(() =>
                 _control1.IsQueueInfoVisible = tp.IsQueueVisible ? Visibility.Visible : Visibility.Collapsed);
         }
         else if (propertyName == nameof(TaskProgressViewModel.ActiveScriptCount))
         {
-            _dispatcherQueue.TryEnqueue(() => UpdateMultiScriptControls(tp.ActiveScriptCount));
+            _dispatcherService.Enqueue(() => UpdateMultiScriptControls(tp.ActiveScriptCount));
         }
     }
 
-    /// <summary>
-    /// Routes multi-script progress updates to the correct TaskProgressControl slot.
-    /// Adds a 2-second delay before hiding a slot on completion.
-    /// </summary>
+    private void RenderSingleTask(TaskProgressViewModel tp)
+    {
+        // Multi-script mode drives the controls itself.
+        if (tp.ActiveScriptCount > 0) return;
+
+        if (!tp.IsLoading)
+        {
+            _control1.IsProgressVisible = Visibility.Collapsed;
+            _control1.CanCancel = Visibility.Collapsed;
+            _control1.IsTaskRunning = false;
+            return;
+        }
+
+        _control1.IsProgressVisible = Visibility.Visible;
+        if (tp.IsTaskFailed)
+        {
+            _control1.CanCancel = Visibility.Visible;
+            _control1.IsTaskRunning = true;
+            _control1.CancelCommand = tp.CloseFailedTaskCommand;
+            _control1.CancelText = tp.CloseButtonLabel;
+        }
+        else if (_taskProgressService.IsTaskRunning)
+        {
+            // While cancelling, the button stays in place, disabled, until the current step returns.
+            _control1.CanCancel = Visibility.Visible;
+            _control1.IsTaskRunning = !tp.IsCancelling;
+            _control1.CancelCommand = tp.CancelCommand;
+            _control1.CancelText = tp.IsCancelling ? tp.CancellingLabel : tp.CancelButtonLabel;
+        }
+        else
+        {
+            _control1.CanCancel = Visibility.Collapsed;
+            _control1.IsTaskRunning = false;
+        }
+    }
+
     public void HandleScriptProgressReceived(int slotIndex, TaskProgressDetail detail)
     {
         var control = slotIndex switch
@@ -129,17 +112,16 @@ internal sealed class TaskProgressCoordinator
         };
         if (control == null) return;
 
-        // Cancel any pending hide-delay for this slot when new data arrives
-        CancelPendingHide(slotIndex);
+        _hideTimers[slotIndex]?.Stop();
 
         // Slot completed -- keep visible briefly so the user can see the result
         if (detail.IsCompletion)
         {
             control.IsTaskRunning = false;
             control.CanCancel = Visibility.Collapsed;
-            var cts = new CancellationTokenSource();
-            _hideDelayCts[slotIndex] = cts;
-            HideControlAfterDelayAsync(control, 2000, cts.Token).FireAndForget(_logService);
+            _hideTimers[slotIndex] ??= _dispatcherService.CreateDebounceTimer(
+                TimeSpan.FromMilliseconds(2000), () => control.IsProgressVisible = Visibility.Collapsed);
+            _hideTimers[slotIndex]!.Restart();
             return;
         }
 
@@ -155,9 +137,6 @@ internal sealed class TaskProgressCoordinator
         }
     }
 
-    /// <summary>
-    /// Shows/hides multi-script progress controls based on active slot count.
-    /// </summary>
     private void UpdateMultiScriptControls(int activeCount)
     {
         _control1.IsProgressVisible = activeCount >= 1 ? Visibility.Visible : Visibility.Collapsed;
@@ -171,34 +150,5 @@ internal sealed class TaskProgressCoordinator
         _control3.IsProgressVisible = activeCount >= 3 ? Visibility.Visible : Visibility.Collapsed;
         _control3.IsTaskRunning = activeCount >= 3;
         _control3.CanCancel = Visibility.Collapsed;
-    }
-
-    /// <summary>
-    /// Cancels any pending hide-delay for the given slot.
-    /// </summary>
-    private void CancelPendingHide(int slotIndex)
-    {
-        var old = Interlocked.Exchange(ref _hideDelayCts[slotIndex], null);
-        old?.Cancel();
-        old?.Dispose();
-    }
-
-    /// <summary>
-    /// Hides a TaskProgressControl after the specified delay.
-    /// </summary>
-    private async Task HideControlAfterDelayAsync(TaskProgressControl control, int delayMs, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
-            _dispatcherQueue.TryEnqueue(() =>
-            {
-                control.IsProgressVisible = Visibility.Collapsed;
-            });
-        }
-        catch (OperationCanceledException)
-        {
-            // Hide was cancelled because a new task started on this slot
-        }
     }
 }

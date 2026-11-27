@@ -40,7 +40,6 @@ public class SearchHelperTests
     [Fact]
     public void MatchesSearchTerm_MultiWordSearch_AllTermsMustMatch()
     {
-        // Both "power" and "plan" must appear in at least one field each
         SearchHelper.MatchesSearchTerm("power plan", "Power Settings", "Active Plan")
             .Should().BeTrue();
     }
@@ -48,7 +47,6 @@ public class SearchHelperTests
     [Fact]
     public void MatchesSearchTerm_MultiWordSearch_OneTermMissing_ReturnsFalse()
     {
-        // "xyz" does not appear in any field
         SearchHelper.MatchesSearchTerm("power xyz", "Power Settings", "General")
             .Should().BeFalse();
     }
@@ -91,7 +89,6 @@ public class SearchHelperTests
     [Fact]
     public void MatchesSearchTerm_TermInDifferentFields_ReturnsTrue()
     {
-        // "dark" in first field, "theme" in second field
         SearchHelper.MatchesSearchTerm("dark theme", "Dark Mode", "Windows Theme")
             .Should().BeTrue();
     }

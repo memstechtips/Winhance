@@ -1,0 +1,11 @@
+src/Winhance.UI/Features/Common/Dialogs/SponsorsDialogBuilder.cs	1	periodic-timer
+src/Winhance.UI/Features/Common/Services/MemoryDiagnostics.cs	1	periodic-timer
+src/Winhance.UI/Features/Common/Services/TrayController.cs	1	periodic-timer
+src/Winhance.UI/Features/SoftwareApps/ViewModels/ExternalAppsViewModel.cs	1	cancellable-search
+src/Winhance.UI/Features/SoftwareApps/Services/AppUpdateMonitor.cs	1	periodic-timer
+src/Winhance.UI/Features/Common/Services/StartupOrchestrator.cs	1	timeout
+src/Winhance.UI/Helpers/PageCurtain.cs	1	timeout
+src/Winhance.UI/Helpers/StartupUiCoordinator.cs	1	timeout
+src/Winhance.UI/Helpers/StartupUiCoordinator.cs	1	fixed-wait
+src/Winhance.UI/Features/Common/Services/MemoryDiagnostics.cs	1	fixed-wait
+src/Winhance.UI/Features/Common/Pages/SectionDetailPage.xaml.cs	1	fixed-wait

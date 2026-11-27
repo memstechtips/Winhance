@@ -1,0 +1,2 @@
+src/Winhance.UI/Features/Optimize/ViewModels/SettingItemViewModel.cs	9	overlay-projection
+src/Winhance.UI/Features/Common/ViewModels/SectionOverviewItemViewModel.cs	1	live-computed

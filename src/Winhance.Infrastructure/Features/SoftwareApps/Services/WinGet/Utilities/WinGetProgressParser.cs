@@ -1,13 +1,11 @@
-using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
-/// <summary>
-/// Parses WinGet CLI stdout lines for progress information.
-/// </summary>
-public static class WinGetProgressParser
+internal static class WinGetProgressParser
 {
     public enum WinGetPhase
     {
@@ -47,65 +45,82 @@ public static class WinGetProgressParser
         @"^0x[0-9a-fA-F]+\s*:\s*(.+)",
         RegexOptions.Compiled);
 
-    /// <summary>
-    /// Maps bundled winget resource keys to human-readable text.
-    /// Empty string = suppress the line entirely.
-    /// </summary>
-    private static readonly Dictionary<string, string> ResourceKeyMap = new(StringComparer.OrdinalIgnoreCase)
+    // The bundled winget prints its resource keys instead of its text, so each one it can print maps to a
+    // Winhance key; an empty value suppresses the line.
+    internal static readonly IReadOnlyDictionary<string, string> ResourceKeyMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
         ["InstallationDisclaimer1"] = "",
         ["InstallationDisclaimer2"] = "",
-        ["PackageRequiresDependencies"] = "Installing dependencies...",
         ["PackageDependencies"] = "",
-        ["InstallerHashVerified"] = "Hash verified",
-        ["ExtractingArchive"] = "Extracting archive...",
-        ["ExtractArchiveSucceeded"] = "Archive extracted",
-        ["InstallFlowStartingPackageInstall"] = "Installing...",
-        ["InstallFlowInstallSuccess"] = "Installation successful",
-        ["SourceOpenFailedSuggestion"] = "WinGet source unavailable",
-        ["UnexpectedErrorExecutingCommand"] = "Unexpected error",
-        ["InstallingDependencies"] = "Installing dependencies...",
+        ["PackageRequiresDependencies"] = "Progress_WinGetLine_InstallingDependencies",
+        ["InstallingDependencies"] = "Progress_WinGetLine_InstallingDependencies",
+        ["InstallerHashVerified"] = "Progress_WinGetLine_HashVerified",
+        ["ExtractingArchive"] = "Progress_WinGetLine_ExtractingArchive",
+        ["ExtractArchiveSucceeded"] = "Progress_WinGetLine_ArchiveExtracted",
+        ["InstallFlowStartingPackageInstall"] = "Progress_WinGetLine_Installing",
+        ["InstallFlowInstallSuccess"] = "Progress_WinGetLine_InstallSuccess",
+        ["InstallFlowRegistrationDeferred"] = "Progress_WinGetLine_RegistrationDeferred",
+        ["InstallWaitingOnAnother"] = "Progress_WinGetLine_WaitingOnAnother",
+        ["UninstallFlowStartingPackageUninstall"] = "Progress_WinGetLine_Uninstalling",
+        ["UninstallFlowUninstallSuccess"] = "Progress_WinGetLine_UninstallSuccess",
+        ["UninstallAbandoned"] = "Progress_WinGetLine_UninstallAbandoned",
+        ["NoUninstallInfoFound"] = "Progress_WinGetLine_NoUninstallCommand",
+        ["NoInstalledPackageFound"] = "Progress_WinGetLine_NoInstalledPackage",
+        ["MultipleInstalledPackagesFound"] = "Progress_WinGetLine_MultipleInstalledPackages",
+        ["SourceOpenFailedSuggestion"] = "Progress_WinGetLine_SourceUnavailable",
+        ["UnexpectedErrorExecutingCommand"] = "Progress_WinGetLine_UnexpectedError",
     };
 
-    /// <summary>
-    /// Translates a raw winget output line to human-readable text.
-    /// Returns null for lines that should be suppressed, or the translated/original line.
-    /// </summary>
-    public static string? TranslateLine(string? line)
+    // A translation that throws must not take the install down with it.
+    public static void Forward(string line, ITaskProgressService? progress, ILocalizationService localization, ILogService? log)
+    {
+        try
+        {
+            var displayLine = TranslateLine(line, localization);
+            progress?.UpdateDetailedProgress(new TaskProgressDetail
+            {
+                TerminalOutput = displayLine ?? line,
+                IsProgressIndicator = true
+            });
+        }
+        catch (Exception ex)
+        {
+            log?.LogWarning($"Progress reporting error (ignored): {ex.Message}");
+        }
+    }
+
+    public static string? TranslateLine(string? line, ILocalizationService localization)
     {
         if (string.IsNullOrWhiteSpace(line))
             return null;
 
         var trimmed = line.Trim();
 
-        // Handle "(n/m) ..." step prefix — translate the rest, re-prepend as "[n/m]"
         var stepMatch = StepPrefixRegex.Match(trimmed);
         if (stepMatch.Success)
         {
             var n = stepMatch.Groups[1].Value;
             var m = stepMatch.Groups[2].Value;
             var rest = stepMatch.Groups[3].Value;
-            var translatedRest = TranslateCore(rest);
+            var translatedRest = TranslateCore(rest, localization);
             if (translatedRest == null)
                 return null;
             return string.IsNullOrEmpty(translatedRest) ? null : $"[{n}/{m}] {translatedRest}";
         }
 
-        return TranslateCore(trimmed);
+        return TranslateCore(trimmed, localization);
     }
 
-    private static string? TranslateCore(string trimmed)
+    private static string? TranslateCore(string trimmed, ILocalizationService localization)
     {
-        // ReportIdentityFound {Name} [{Id}] ShowVersion {Ver} → "Found: {Name} v{Ver}"
         var identityMatch = ReportIdentityRegex.Match(trimmed);
         if (identityMatch.Success)
         {
             var name = identityMatch.Groups[1].Value.Trim();
             var version = identityMatch.Groups[2].Value.Trim();
-            return $"Found: {name} v{version}";
+            return localization.GetString("Progress_WinGetLine_Found", name, version);
         }
 
-        // "Downloading https://..." → "Downloading {filename}..."
         var downloadMatch = DownloadUrlRegex.Match(trimmed);
         if (downloadMatch.Success)
         {
@@ -114,29 +129,23 @@ public static class WinGetProgressParser
                 var uri = new System.Uri(downloadMatch.Groups[1].Value.Trim());
                 var filename = System.IO.Path.GetFileName(uri.LocalPath);
                 if (!string.IsNullOrEmpty(filename))
-                    return $"Downloading {filename}...";
+                    return localization.GetString("Progress_Downloading", filename);
             }
-            catch { /* URL parsing failed — fall through to generic message */ }
-            return "Downloading...";
+            catch { }
+            return localization.GetString("Progress_WinGetLine_Downloading");
         }
 
-        // Exact resource key lookup
-        if (ResourceKeyMap.TryGetValue(trimmed, out var mapped))
-        {
-            // Empty string means suppress the line
-            return string.IsNullOrEmpty(mapped) ? null : mapped;
-        }
+        if (ResourceKeyMap.TryGetValue(trimmed, out var key))
+            return key.Length == 0 ? null : localization.GetString(key);
 
         // Dependency detail lines (indented with "  - " or deep indent) — pass through
         if (trimmed.StartsWith("  - ") || trimmed.StartsWith("      "))
             return trimmed;
 
-        // Hex error codes like "0x8a15000f : ..."
         var hexMatch = HexErrorRegex.Match(trimmed);
         if (hexMatch.Success)
-            return $"Error: {hexMatch.Groups[1].Value.Trim()}";
+            return localization.GetString("Progress_WinGetLine_Error", hexMatch.Groups[1].Value.Trim());
 
-        // Return original line unchanged
         return trimmed;
     }
 
@@ -148,7 +157,6 @@ public static class WinGetProgressParser
         var trimmed = line.Trim();
         var lower = trimmed.ToLowerInvariant();
 
-        // Phase detection from status phrases
         if (lower.Contains("found ") || lower.Contains("package found"))
             return new WinGetProgressInfo(WinGetPhase.Found, null);
 
@@ -165,11 +173,9 @@ public static class WinGetProgressParser
         if (lower.Contains("uninstalling"))
             return new WinGetProgressInfo(WinGetPhase.Uninstalling, null);
 
-        // Try to extract percentage
         var percentMatch = PercentRegex.Match(trimmed);
         if (percentMatch.Success && double.TryParse(percentMatch.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var pct))
         {
-            // Determine phase from context
             var phase = lower.Contains("download") || lower.Contains("██")
                 ? WinGetPhase.Downloading
                 : lower.Contains("install")
@@ -179,7 +185,6 @@ public static class WinGetProgressParser
             return new WinGetProgressInfo(phase, pct);
         }
 
-        // Try byte progress (calculate percentage)
         var byteMatch = ByteProgressRegex.Match(trimmed);
         if (byteMatch.Success &&
             double.TryParse(byteMatch.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var current) &&
@@ -190,7 +195,6 @@ public static class WinGetProgressParser
             return new WinGetProgressInfo(WinGetPhase.Downloading, bytePct);
         }
 
-        // Phase keywords without percentage
         if (lower.Contains("downloading"))
             return new WinGetProgressInfo(WinGetPhase.Downloading, null);
 
@@ -201,6 +205,10 @@ public static class WinGetProgressParser
         if (lower.Contains("installflowstartingpackageinstall"))
             return new WinGetProgressInfo(WinGetPhase.Installing, null);
         if (lower.Contains("installflowinstallsuccess"))
+            return new WinGetProgressInfo(WinGetPhase.Complete, 100);
+        if (lower == "uninstallflowstartingpackageuninstall")
+            return new WinGetProgressInfo(WinGetPhase.Uninstalling, null);
+        if (lower == "uninstallflowuninstallsuccess")
             return new WinGetProgressInfo(WinGetPhase.Complete, 100);
         if (lower == "extractingarchive" || lower == "extractarchivesucceeded")
             return new WinGetProgressInfo(WinGetPhase.Installing, null);

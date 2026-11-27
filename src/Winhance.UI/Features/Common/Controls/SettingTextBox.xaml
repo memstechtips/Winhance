@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<local:SettingBoundControl
+    x:Class="Winhance.UI.Features.Common.Controls.SettingTextBox"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Winhance.UI.Features.Common.Controls">
+
+    <StackPanel Spacing="{StaticResource FieldLabelSpacing}" MinWidth="200">
+        <Grid ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Read-only beside a picker: the value applies as it is typed, and half a path is a folder of its own. -->
+            <TextBox
+                Text="{x:Bind Setting.TextValue, Mode=OneWay}"
+                PlaceholderText="{x:Bind Setting.TextPlaceholder, Mode=OneWay}"
+                IsReadOnly="{x:Bind Setting.HasTextBoxPicker, Mode=OneWay}"
+                TextChanged="OnTextChanged"
+                MinWidth="200"
+                AutomationProperties.Name="{x:Bind Setting.Name, Mode=OneWay}"/>
+
+            <Button
+                x:Name="BrowseButton"
+                x:Load="{x:Bind Setting.HasTextBoxPicker, Mode=OneWay}"
+                Grid.Column="1"
+                MinWidth="140"
+                VerticalAlignment="Center"
+                Content="{x:Bind Setting.BrowseLabel, Mode=OneWay}"
+                Click="OnBrowseClick"
+                AutomationProperties.Name="{x:Bind Setting.Name, Mode=OneWay}"/>
+        </Grid>
+
+        <TextBlock
+            x:Name="ErrorText"
+            x:Load="{x:Bind Setting.HasTextError, Mode=OneWay}"
+            Text="{x:Bind Setting.TextError, Mode=OneWay}"
+            Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+            Style="{StaticResource CaptionTextBlockStyle}"
+            TextWrapping="Wrap"/>
+    </StackPanel>
+</local:SettingBoundControl>

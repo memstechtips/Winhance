@@ -1,11 +1,13 @@
+using System.Text;
 using System.Text.Json;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -15,7 +17,7 @@ public class ConfigLoadService : IConfigLoadService
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
     private readonly IWindowsVersionService _windowsVersionService;
-    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
+    private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
     private readonly IConfigMigrationService _configMigrationService;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IFileSystemService _fileSystemService;
@@ -27,7 +29,7 @@ public class ConfigLoadService : IConfigLoadService
         IDialogService dialogService,
         ILocalizationService localizationService,
         IWindowsVersionService windowsVersionService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry,
+        ICatalogSettingsRegistry catalogSettingsRegistry,
         IConfigMigrationService configMigrationService,
         IInteractiveUserService interactiveUserService,
         IFileSystemService fileSystemService,
@@ -38,7 +40,7 @@ public class ConfigLoadService : IConfigLoadService
         _dialogService = dialogService;
         _localizationService = localizationService;
         _windowsVersionService = windowsVersionService;
-        _compatibleSettingsRegistry = compatibleSettingsRegistry;
+        _catalogSettingsRegistry = catalogSettingsRegistry;
         _configMigrationService = configMigrationService;
         _interactiveUserService = interactiveUserService;
         _fileSystemService = fileSystemService;
@@ -48,7 +50,7 @@ public class ConfigLoadService : IConfigLoadService
 
     private Microsoft.UI.Xaml.Window? GetMainWindow() => _mainWindowProvider.MainWindow;
 
-    public async Task<UnifiedConfigurationFile?> LoadAndValidateConfigurationFromFileAsync()
+    public async Task<string?> PickConfigurationFileAsync()
     {
         try
         {
@@ -56,7 +58,7 @@ public class ConfigLoadService : IConfigLoadService
             if (window == null)
             {
                 _logService.Log(LogLevel.Error, "Cannot show file dialog - no main window");
-                await _dialogService.ShowErrorAsync("Cannot show file dialog.", "Error");
+                await _dialogService.ShowErrorAsync(_localizationService.GetString("Dialog_FileDialogUnavailable"));
                 return null;
             }
 
@@ -66,135 +68,97 @@ public class ConfigLoadService : IConfigLoadService
                 ConfigFileConstants.FileFilter,
                 ConfigFileConstants.FilePattern);
 
-            if (string.IsNullOrEmpty(filePath))
+            return string.IsNullOrEmpty(filePath) ? null : filePath;
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error picking a configuration file: {ex.Message}");
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Config_Load_Error", ex.Message));
+            return null;
+        }
+    }
+
+    public async Task<WinhanceConfigFile?> LoadAndValidateConfigurationAsync(string filePath)
+    {
+        try
+        {
+            var read = await ReadFileAsync(filePath);
+            if (read.Failure == ConfigReadFailure.NotAConfig)
+            {
+                await _dialogService.ShowErrorAsync(_localizationService.GetString("Config_Load_NotAConfig"));
                 return null;
+            }
+            if (read.Failure == ConfigReadFailure.UnsupportedVersion)
+            {
+                await RejectVersionAsync(read.Config!);
+                return null;
+            }
 
             _configImportState.SourceName = Path.GetFileName(filePath);
-
-            var json = await _fileSystemService.ReadAllTextAsync(filePath);
-            var loadedConfig = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);
-
-            if (loadedConfig == null)
-            {
-                _dialogService.ShowMessage("Failed to load configuration file.", "Error");
-                return null;
-            }
-
-            // Migrate legacy config items (e.g. Toggle->Selection conversions)
-            _configMigrationService.MigrateConfig(loadedConfig);
-
-            if (loadedConfig.Version != "2.0")
-            {
-                var versionText = loadedConfig.Version ?? "unknown";
-                await _dialogService.ShowInformationAsync(
-                    _localizationService.GetString("Config_Unsupported_Message", versionText)
-                        ?? $"This configuration file version ({versionText}) is not compatible with this version of Winhance.",
-                    _localizationService.GetString("Config_Unsupported_Title") ?? "Incompatible Configuration");
-                _logService.Log(LogLevel.Warning, $"Rejected incompatible config version: {loadedConfig.Version}");
-                return null;
-            }
-
-            _logService.Log(LogLevel.Info, $"Loaded config v{loadedConfig.Version}");
-            return loadedConfig;
+            _logService.Log(LogLevel.Info, $"Loaded config v{read.Config!.Version}");
+            return read.Config;
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error loading configuration file: {ex.Message}");
-            _dialogService.ShowMessage($"Error loading configuration: {ex.Message}", "Error");
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Config_Load_Error", ex.Message));
             return null;
         }
     }
 
-    public async Task<UnifiedConfigurationFile?> LoadRecommendedConfigurationAsync()
+    public Task<WinhanceConfigFile?> LoadRecommendedConfigurationAsync() =>
+        LoadEmbeddedAsync(windowsDefaults: false, "recommended", "Config_Load_RecommendedMissing", "Dialog_ImportConfig_Option_Recommended_Title");
+
+    public Task<WinhanceConfigFile?> LoadWindowsDefaultsConfigurationAsync() =>
+        LoadEmbeddedAsync(windowsDefaults: true, "Windows defaults", "Config_Load_WindowsDefaultsMissing", "Dialog_ImportConfig_Option_Defaults_Title");
+
+    private async Task<WinhanceConfigFile?> LoadEmbeddedAsync(bool windowsDefaults, string label, string missingKey, string sourceNameKey)
     {
         try
         {
-            _logService.Log(LogLevel.Info, "Loading embedded recommended configuration");
+            var resourceName = EmbeddedResourceName(windowsDefaults);
+            _logService.Log(LogLevel.Info, $"Loading embedded {label} configuration: {resourceName}");
 
-            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-            var resourceName = "Winhance.UI.Resources.Configs.Winhance_Recommended_Config.winhance";
-
-            using var stream = assembly.GetManifestResourceStream(resourceName);
-
-            if (stream == null)
+            var read = await ReadResourceAsync(resourceName);
+            if (read.Failure == ConfigReadFailure.ResourceMissing)
             {
                 _logService.Log(LogLevel.Error, $"Embedded resource not found: {resourceName}");
-                _dialogService.ShowMessage(
-                    "The recommended configuration file could not be found in the application.",
-                    "Resource Error");
+                await _dialogService.ShowInformationAsync(
+                    _localizationService.GetString(missingKey),
+                    _localizationService.GetString("Config_Load_ResourceError_Title"));
                 return null;
             }
+            if (read.Failure == ConfigReadFailure.UnsupportedVersion)
+            {
+                await RejectVersionAsync(read.Config!);
+                return null;
+            }
+            if (read.Failure == ConfigReadFailure.NotAConfig)
+                return null;
 
-            _configImportState.SourceName = _localizationService.GetString("Dialog_ImportConfig_Option_Recommended_Title");
-
-            using var reader = new StreamReader(stream);
-            var json = await reader.ReadToEndAsync();
-            var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);
-
-            _logService.Log(LogLevel.Info, "Successfully loaded embedded recommended configuration");
-            return config;
+            _configImportState.SourceName = _localizationService.GetString(sourceNameKey);
+            _logService.Log(LogLevel.Info, $"Successfully loaded embedded {label} configuration");
+            return read.Config;
         }
         catch (Exception ex)
         {
-            _logService.Log(LogLevel.Error, $"Error loading recommended configuration: {ex.Message}");
-            _dialogService.ShowMessage($"Error loading configuration: {ex.Message}", "Error");
+            _logService.Log(LogLevel.Error, $"Error loading {label} configuration: {ex.Message}");
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Config_Load_Error", ex.Message));
             return null;
         }
     }
 
-    public async Task<UnifiedConfigurationFile?> LoadWindowsDefaultsConfigurationAsync()
+    public async Task<WinhanceConfigFile?> LoadUserBackupConfigurationAsync()
     {
         try
         {
-            var isWindows11 = _windowsVersionService.IsWindows11();
-            var resourceName = isWindows11
-                ? "Winhance.UI.Resources.Configs.Winhance_Default_Config_Windows11_25H2.winhance"
-                : "Winhance.UI.Resources.Configs.Winhance_Default_Config_Windows10_22H2.winhance";
-
-            _logService.Log(LogLevel.Info, $"Loading embedded Windows defaults configuration for {(isWindows11 ? "Windows 11" : "Windows 10")}: {resourceName}");
-
-            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-            using var stream = assembly.GetManifestResourceStream(resourceName);
-
-            if (stream == null)
-            {
-                _logService.Log(LogLevel.Error, $"Embedded resource not found: {resourceName}");
-                _dialogService.ShowMessage(
-                    "The Windows defaults configuration file could not be found in the application.",
-                    "Resource Error");
-                return null;
-            }
-
-            _configImportState.SourceName = _localizationService.GetString("Dialog_ImportConfig_Option_Defaults_Title");
-
-            using var reader = new StreamReader(stream);
-            var json = await reader.ReadToEndAsync();
-            var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);
-
-            _logService.Log(LogLevel.Info, "Successfully loaded embedded Windows defaults configuration");
-            return config;
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"Error loading Windows defaults configuration: {ex.Message}");
-            _dialogService.ShowMessage($"Error loading configuration: {ex.Message}", "Error");
-            return null;
-        }
-    }
-
-    public async Task<UnifiedConfigurationFile?> LoadUserBackupConfigurationAsync()
-    {
-        try
-        {
-            var configDir = _fileSystemService.CombinePath(
-                _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Winhance", "Backup");
+            var configDir = ConfigurationService.BackupFolderFor(_interactiveUserService, _fileSystemService);
 
             if (!_fileSystemService.DirectoryExists(configDir))
             {
-                _dialogService.ShowMessage(
-                    _localizationService.GetString("Config_Backup_NotFound") ?? "No backup configuration files found.",
-                    _localizationService.GetString("Config_Backup_NotFound_Title") ?? "No Backup Found");
+                await _dialogService.ShowInformationAsync(
+                    _localizationService.GetStringOrDefault("Config_Backup_NotFound", "No backup configuration files were found. A backup is automatically created on first app launch."),
+                    _localizationService.GetStringOrDefault("Config_Backup_NotFound_Title", "No Backup Found"));
                 return null;
             }
 
@@ -204,9 +168,9 @@ public class ConfigLoadService : IConfigLoadService
 
             if (backupFiles.Length == 0)
             {
-                _dialogService.ShowMessage(
-                    _localizationService.GetString("Config_Backup_NotFound") ?? "No backup configuration files found.",
-                    _localizationService.GetString("Config_Backup_NotFound_Title") ?? "No Backup Found");
+                await _dialogService.ShowInformationAsync(
+                    _localizationService.GetStringOrDefault("Config_Backup_NotFound", "No backup configuration files were found. A backup is automatically created on first app launch."),
+                    _localizationService.GetStringOrDefault("Config_Backup_NotFound_Title", "No Backup Found"));
                 return null;
             }
 
@@ -222,12 +186,11 @@ public class ConfigLoadService : IConfigLoadService
                 if (window == null)
                 {
                     _logService.Log(LogLevel.Error, "Cannot show file dialog - no main window");
-                    await _dialogService.ShowErrorAsync("Cannot show file dialog.", "Error");
+                    await _dialogService.ShowErrorAsync(_localizationService.GetString("Dialog_FileDialogUnavailable"));
                     return null;
                 }
 
-                var dialogTitle = _localizationService.GetString("Config_Backup_Select_Title")
-                    ?? "Select Backup File";
+                var dialogTitle = _localizationService.GetStringOrDefault("Config_Backup_Select_Title", "Select Backup File");
                 var selectedPath = Win32FileDialogHelper.ShowOpenFilePicker(
                     window, dialogTitle, ConfigFileConstants.FileFilter, ConfigFileConstants.FilePattern, configDir);
 
@@ -240,190 +203,180 @@ public class ConfigLoadService : IConfigLoadService
                 filePath = selectedPath;
             }
             _logService.Log(LogLevel.Info, $"Loading user backup configuration from {filePath}");
-            _configImportState.SourceName = _localizationService.GetString("Dialog_ImportConfig_Option_Backup_Title");
 
-            var json = await _fileSystemService.ReadAllTextAsync(filePath);
-            var config = JsonSerializer.Deserialize<UnifiedConfigurationFile>(json, ConfigFileConstants.JsonOptions);
-
-            if (config == null)
+            var read = await ReadFileAsync(filePath);
+            if (read.Failure == ConfigReadFailure.NotAConfig)
             {
-                _dialogService.ShowMessage("Failed to load backup configuration file.", "Error");
+                await _dialogService.ShowErrorAsync(_localizationService.GetString("Config_Backup_LoadFailed"));
+                return null;
+            }
+            if (read.Failure == ConfigReadFailure.UnsupportedVersion)
+            {
+                await RejectVersionAsync(read.Config!);
                 return null;
             }
 
-            // Migrate legacy config items (e.g. Toggle->Selection conversions)
-            _configMigrationService.MigrateConfig(config);
-
+            _configImportState.SourceName = _localizationService.GetString("Dialog_ImportConfig_Option_Backup_Title");
             _logService.Log(LogLevel.Info, "Successfully loaded user backup configuration");
-            return config;
+            return read.Config;
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error loading user backup configuration: {ex.Message}");
-            _dialogService.ShowMessage($"Error loading backup configuration: {ex.Message}", "Error");
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Config_Backup_LoadError", ex.Message));
             return null;
         }
     }
 
-    public List<string> DetectIncompatibleSettings(UnifiedConfigurationFile config)
+    public async Task<WinhanceConfigFile?> ReadConfigurationAsync(string filePath)
+    {
+        try
+        {
+            return Accepted(await ReadFileAsync(filePath), filePath);
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Could not read {filePath}: {ex.Message}");
+            return null;
+        }
+    }
+
+    public WinhanceConfigFile? ParseConfiguration(byte[] content, string source)
+    {
+        try
+        {
+            return Accepted(Parse(content), source);
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Could not read {source}: {ex.Message}");
+            return null;
+        }
+    }
+
+    private WinhanceConfigFile? Accepted(ConfigRead read, string source)
+    {
+        if (read.Failure == ConfigReadFailure.UnsupportedVersion)
+            _logService.Log(LogLevel.Warning, $"Not loading {source}: config version {read.Config!.Version}");
+        return read.Failure == ConfigReadFailure.None ? read.Config : null;
+    }
+
+    public async Task<WinhanceConfigFile?> ReadEmbeddedConfigurationAsync(bool windowsDefaults)
+    {
+        var resourceName = EmbeddedResourceName(windowsDefaults);
+        try
+        {
+            var read = await ReadResourceAsync(resourceName);
+            if (read.Failure == ConfigReadFailure.ResourceMissing)
+                _logService.Log(LogLevel.Error, $"Embedded resource not found: {resourceName}");
+            return read.Failure == ConfigReadFailure.None ? read.Config : null;
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Could not read {resourceName}: {ex.Message}");
+            return null;
+        }
+    }
+
+    private enum ConfigReadFailure { None, NotAConfig, UnsupportedVersion, ResourceMissing }
+
+    // Config is set for UnsupportedVersion too, so the caller can name the version it refused.
+    private readonly record struct ConfigRead(WinhanceConfigFile? Config, ConfigReadFailure Failure);
+
+    private async Task<ConfigRead> ReadFileAsync(string filePath) =>
+        Parse(await _fileSystemService.ReadAllBytesAsync(filePath));
+
+    private async Task<ConfigRead> ReadResourceAsync(string resourceName)
+    {
+        using var stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
+        if (stream is null)
+            return new ConfigRead(null, ConfigReadFailure.ResourceMissing);
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer);
+        return Parse(buffer.ToArray());
+    }
+
+    // Deserializing the UTF-8 bytes directly keeps a profile that carries a wallpaper from first becoming a string of
+    // twice its size. The span overload does not skip a BOM, so it is cut off here.
+    private ConfigRead Parse(byte[] json)
+    {
+        WinhanceConfigFile? config;
+        try
+        {
+            var preamble = Encoding.UTF8.Preamble;
+            var body = json.AsSpan().StartsWith(preamble) ? json.AsSpan(preamble.Length) : json;
+            config = JsonSerializer.Deserialize<WinhanceConfigFile>(body, ConfigFileConstants.JsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            _logService.Log(LogLevel.Warning, $"Not a Winhance config: {ex.Message}");
+            return new ConfigRead(null, ConfigReadFailure.NotAConfig);
+        }
+        if (config is null)
+            return new ConfigRead(null, ConfigReadFailure.NotAConfig);
+        _configMigrationService.MigrateConfig(config);
+        return new ConfigRead(config, config.Version == "2.0" ? ConfigReadFailure.None : ConfigReadFailure.UnsupportedVersion);
+    }
+
+    private async Task RejectVersionAsync(WinhanceConfigFile config)
+    {
+        var versionText = config.Version ?? "unknown";
+        await _dialogService.ShowInformationAsync(
+            _localizationService.GetStringOrDefault("Config_Unsupported_Message", $"This configuration file version ({versionText}) is not compatible with this version of Winhance.", versionText),
+            _localizationService.GetStringOrDefault("Config_Unsupported_Title", "Unsupported Configuration Version"));
+        _logService.Log(LogLevel.Warning, $"Rejected incompatible config version: {config.Version}");
+    }
+
+    private string EmbeddedResourceName(bool windowsDefaults) =>
+        !windowsDefaults ? "Winhance.UI.Resources.Configs.Winhance_Recommended_Config.winhance"
+        : _windowsVersionService.IsWindows11() ? "Winhance.UI.Resources.Configs.Winhance_Default_Config_Windows11_25H2.winhance"
+        : "Winhance.UI.Resources.Configs.Winhance_Default_Config_Windows10_22H2.winhance";
+
+    public List<string> DetectIncompatibleSettings(WinhanceConfigFile config)
     {
         var incompatible = new List<string>();
-        var isWindows11 = _windowsVersionService.IsWindows11();
-        var buildNumber = _windowsVersionService.GetWindowsBuildNumber();
-        var buildRevision = _windowsVersionService.GetWindowsBuildRevision();
-
-        var allSections = new Dictionary<string, FeatureGroupSection>
+        foreach (var (_, feature, _, items) in config.SettingSections())
         {
-            ["Optimize"] = config.Optimize,
-            ["Customize"] = config.Customize
-        };
-
-        foreach (var section in allSections)
-        {
-            if (section.Value?.Features == null) continue;
-
-            foreach (var feature in section.Value.Features)
+            foreach (var configItem in items)
             {
-                var allSettings = _compatibleSettingsRegistry.GetBypassedSettings(feature.Key);
-
-                foreach (var configItem in feature.Value.Items)
-                {
-                    var settingDef = allSettings.FirstOrDefault(s => s.Id == configItem.Id);
-                    if (settingDef != null)
-                    {
-                        bool isIncompatible = false;
-
-                        if (settingDef.IsWindows10Only && isWindows11)
-                        {
-                            isIncompatible = true;
-                        }
-                        else if (settingDef.IsWindows11Only && !isWindows11)
-                        {
-                            isIncompatible = true;
-                        }
-                        else if (settingDef.SupportedBuildRanges?.Count > 0)
-                        {
-                            bool inRange = settingDef.SupportedBuildRanges.Any(range =>
-                                buildNumber >= range.MinBuild && buildNumber <= range.MaxBuild);
-                            if (!inRange)
-                            {
-                                isIncompatible = true;
-                            }
-                        }
-                        else if (!BuildVersionGate.IsCompatible(
-                            buildNumber,
-                            buildRevision,
-                            settingDef.MinimumBuildNumber,
-                            settingDef.MinimumBuildRevision,
-                            settingDef.MaximumBuildNumber,
-                            settingDef.MaximumBuildRevision))
-                        {
-                            isIncompatible = true;
-                        }
-
-                        if (isIncompatible)
-                        {
-                            incompatible.Add($"{settingDef.Name} ({feature.Key})");
-                        }
-                    }
-                }
+                // An old id is resolved here too. An id nothing answers to is not this PC's to set aside;
+                // the import summary names it as no longer in Winhance.
+                var newSetting = string.IsNullOrEmpty(configItem.Id) ? null : SettingCatalog.Find(configItem.Id);
+                if (newSetting != null && !IsOnThisMachine(newSetting.Id))
+                    incompatible.Add($"{_localizationService.SettingName(newSetting)} ({_localizationService.FeatureName(newSetting.Id, feature)})");
             }
         }
 
         return incompatible;
     }
 
-    public UnifiedConfigurationFile FilterConfigForCurrentSystem(UnifiedConfigurationFile config)
+    // A null section, feature or item is dropped here, so nothing after the filter meets one.
+    public WinhanceConfigFile FilterConfigForCurrentSystem(WinhanceConfigFile config)
     {
-        var isWindows11 = _windowsVersionService.IsWindows11();
-        var buildNumber = _windowsVersionService.GetWindowsBuildNumber();
-        var buildRevision = _windowsVersionService.GetWindowsBuildRevision();
+        var sections = config.SettingSections().ToList();
+        FeatureGroupSection Filtered(string group, FeatureGroupSection? source) => new()
+        {
+            IsIncluded = source?.IsIncluded ?? false,
+            Features = sections.Where(s => s.Group == group).ToDictionary(
+                s => s.Feature,
+                s => new ConfigSection { IsIncluded = s.Section.IsIncluded, Items = s.Items.Where(IsKeptOnThisMachine).ToList() }),
+        };
 
-        var filteredOptimize = FilterFeatureGroup(config.Optimize, isWindows11, buildNumber, buildRevision);
-        var filteredCustomize = FilterFeatureGroup(config.Customize, isWindows11, buildNumber, buildRevision);
-
-        return new UnifiedConfigurationFile
+        return new WinhanceConfigFile
         {
             Version = config.Version,
-            Optimize = filteredOptimize,
-            Customize = filteredCustomize,
+            Optimize = Filtered("Optimize", config.Optimize),
+            Customize = Filtered("Customize", config.Customize),
             WindowsApps = config.WindowsApps,
-            ExternalApps = config.ExternalApps
+            ExternalApps = config.ExternalApps,
+            AppInstallOptions = config.AppInstallOptions,
         };
     }
 
-    private FeatureGroupSection FilterFeatureGroup(
-        FeatureGroupSection section,
-        bool isWindows11,
-        int buildNumber,
-        int buildRevision)
-    {
-        if (section?.Features == null) return section!;
+    private bool IsOnThisMachine(string settingId) =>
+        _catalogSettingsRegistry.GetById(settingId, CatalogScope.CurrentMachine) is not null;
 
-        var filteredFeatures = new Dictionary<string, ConfigSection>();
-
-        foreach (var feature in section.Features)
-        {
-            var allSettings = _compatibleSettingsRegistry.GetBypassedSettings(feature.Key);
-            var filteredItems = new List<ConfigurationItem>();
-
-            foreach (var item in feature.Value.Items)
-            {
-                var settingDef = allSettings.FirstOrDefault(s => s.Id == item.Id);
-                if (settingDef != null)
-                {
-                    bool isCompatible = true;
-
-                    if (settingDef.IsWindows10Only && isWindows11)
-                    {
-                        isCompatible = false;
-                    }
-                    else if (settingDef.IsWindows11Only && !isWindows11)
-                    {
-                        isCompatible = false;
-                    }
-                    else if (settingDef.SupportedBuildRanges?.Count > 0)
-                    {
-                        bool inRange = settingDef.SupportedBuildRanges.Any(range =>
-                            buildNumber >= range.MinBuild && buildNumber <= range.MaxBuild);
-                        if (!inRange)
-                        {
-                            isCompatible = false;
-                        }
-                    }
-                    else if (!BuildVersionGate.IsCompatible(
-                        buildNumber,
-                        buildRevision,
-                        settingDef.MinimumBuildNumber,
-                        settingDef.MinimumBuildRevision,
-                        settingDef.MaximumBuildNumber,
-                        settingDef.MaximumBuildRevision))
-                    {
-                        isCompatible = false;
-                    }
-
-                    if (isCompatible)
-                    {
-                        filteredItems.Add(item);
-                    }
-                }
-                else
-                {
-                    filteredItems.Add(item);
-                }
-            }
-
-            filteredFeatures[feature.Key] = new ConfigSection
-            {
-                IsIncluded = feature.Value.IsIncluded,
-                Items = filteredItems
-            };
-        }
-
-        return new FeatureGroupSection
-        {
-            IsIncluded = section.IsIncluded,
-            Features = filteredFeatures
-        };
-    }
+    // Known catalog setting -> kept only when this machine shows it; unknown id -> keep.
+    private bool IsKeptOnThisMachine(ConfigurationItem item) =>
+        (string.IsNullOrEmpty(item.Id) ? null : SettingCatalog.Find(item.Id)) is not { } setting || IsOnThisMachine(setting.Id);
 }

@@ -1,7 +1,6 @@
-using System;
-using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
@@ -10,65 +9,109 @@ using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.ViewModels;
 
-/// <summary>
-/// Child ViewModel for the Builder mode bar in the main window. Shown while the app is
-/// authoring a config or autounattend.xml from the UI without applying to the system.
-/// Hosts the Config/Autounattend target toggle plus Save and Cancel.
-/// </summary>
 public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
 {
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(BuilderModeTitleText), nameof(BuilderModeDescriptionText), nameof(BuilderConfigTargetText),
+        nameof(BuilderAutounattendTargetText), nameof(BuilderSaveButtonText), nameof(SaveAsConfigText),
+        nameof(SaveAsProfileText), nameof(BuilderCancelButtonText), nameof(ShowOtherHardwareText),
+        nameof(ShowOtherHardwareTooltip), nameof(TargetWindowsText), nameof(TargetWindowsTooltip),
+        nameof(AllVersionsText),
+    ];
+
     private bool _disposed;
     private readonly IApplicationModeService _applicationModeService;
-    private readonly IConfigExportService _configExportService;
+    private readonly IBuilderSaveService _builderSave;
     private readonly IDispatcherService _dispatcherService;
     private readonly ILocalizationService _localizationService;
     private readonly IDialogService _dialogService;
+    private readonly IHardwareFilterService _hardwareFilter;
+    private readonly ITargetWindowsService _targetWindows;
+    private readonly ICatalogScopeProvider _scope;
+    private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
     private readonly ILogService _logService;
 
     [ObservableProperty]
     public partial bool IsBuilderActive { get; set; }
 
-    public bool IsConfigTarget => _applicationModeService.CurrentBuilderTarget == BuilderTarget.Config;
-    public bool IsAutounattendTarget => _applicationModeService.CurrentBuilderTarget == BuilderTarget.Autounattend;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsConfigTarget))]
+    [NotifyPropertyChangedFor(nameof(IsAutounattendTarget))]
+    [NotifyPropertyChangedFor(nameof(BuilderSaveButtonText))]
+    public partial BuilderTarget Target { get; private set; }
+
+    public bool IsConfigTarget => Target == BuilderTarget.Config;
+    public bool IsAutounattendTarget => Target == BuilderTarget.Autounattend;
 
     public string BuilderModeTitleText =>
-        _localizationService.GetString("Builder_Mode_Title") ?? "Builder Mode";
+        _localizationService.GetStringOrDefault("Builder_Mode_Title", "Builder Mode");
 
     public string BuilderModeDescriptionText =>
-        _localizationService.GetString("Builder_Mode_Description")
-            ?? "You're authoring a file from these settings — nothing here changes this PC. Choose a target, set your options, then Save.";
+        _localizationService.GetStringOrDefault("Builder_Mode_Description", "Build a config or answer file from your choices. Nothing changes on this PC.");
 
     public string BuilderConfigTargetText =>
-        _localizationService.GetString("Builder_Mode_Target_Config") ?? "Config";
+        _localizationService.GetStringOrDefault("Builder_Mode_Target_Config", "Config / Profile");
 
     public string BuilderAutounattendTargetText =>
-        _localizationService.GetString("Builder_Mode_Target_Autounattend") ?? "Autounattend";
+        _localizationService.GetStringOrDefault("Builder_Mode_Target_Autounattend", "Autounattend");
+
+    public bool ShowOtherHardware => !_hardwareFilter.IsFilterEnabled;
+
+    public string ShowOtherHardwareText => _localizationService.GetString("Builder_Mode_ShowOtherHardware");
+
+    public string ShowOtherHardwareTooltip => _localizationService.GetString("Builder_Mode_ShowOtherHardware_Tooltip");
+
+    public IReadOnlyList<WindowsRelease> TargetReleases => WindowsReleases.All;
+
+    public int? TargetBuild => _targetWindows.Build;
+
+    public string TargetWindowsText => NameOf(_targetWindows.Build);
+
+    public string TargetWindowsTooltip => _localizationService.GetString("Builder_Mode_TargetWindows_Tooltip");
+
+    public string AllVersionsText => _localizationService.GetString("Builder_Mode_TargetWindows_AllVersions");
 
     public string BuilderSaveButtonText =>
         IsAutounattendTarget
-            ? (_localizationService.GetString("Builder_Mode_Save_Autounattend") ?? "Save autounattend.xml")
-            : (_localizationService.GetString("Builder_Mode_Save_Config") ?? "Save Config");
+            ? (_localizationService.GetStringOrDefault("Builder_Mode_Save_Autounattend", "Save autounattend.xml"))
+            : _localizationService.GetString("Builder_Mode_Save");
+
+    public string SaveAsConfigText => _localizationService.GetString("Builder_Mode_Save_AsConfig");
+
+    public string SaveAsProfileText => _localizationService.GetString("Builder_Mode_Save_AsProfile");
 
     public string BuilderCancelButtonText =>
-        _localizationService.GetString("Button_Cancel") ?? "Cancel";
+        _localizationService.GetStringOrDefault("Button_Cancel", "Cancel");
 
     public BuilderModeBarViewModel(
         IApplicationModeService applicationModeService,
-        IConfigExportService configExportService,
+        IBuilderSaveService builderSave,
         IDispatcherService dispatcherService,
         ILocalizationService localizationService,
         IDialogService dialogService,
+        IHardwareFilterService hardwareFilter,
+        ITargetWindowsService targetWindows,
+        ICatalogScopeProvider scope,
+        ICatalogSettingsRegistry catalogSettingsRegistry,
         ILogService logService)
     {
         _applicationModeService = applicationModeService;
-        _configExportService = configExportService;
+        _builderSave = builderSave;
         _dispatcherService = dispatcherService;
         _localizationService = localizationService;
         _dialogService = dialogService;
+        _hardwareFilter = hardwareFilter;
+        _targetWindows = targetWindows;
+        _scope = scope;
+        _catalogSettingsRegistry = catalogSettingsRegistry;
         _logService = logService;
+        Target = _applicationModeService.CurrentBuilderTarget;
 
         _applicationModeService.ModeChanged += OnModeChanged;
         _localizationService.LanguageChanged += OnLanguageChanged;
+        _hardwareFilter.FilterStateChanged += OnHardwareFilterChanged;
+        _targetWindows.Changed += OnTargetWindowsChanged;
     }
 
     public void Dispose()
@@ -77,6 +120,9 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         _disposed = true;
         _applicationModeService.ModeChanged -= OnModeChanged;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        _hardwareFilter.FilterStateChanged -= OnHardwareFilterChanged;
+        _targetWindows.Changed -= OnTargetWindowsChanged;
+        GC.SuppressFinalize(this);
     }
 
     private void OnModeChanged(object? sender, EventArgs e)
@@ -84,70 +130,124 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         _dispatcherService.RunOnUIThreadAsync(() =>
         {
             IsBuilderActive = _applicationModeService.CurrentMode == WinhanceMode.Builder;
-            OnPropertyChanged(nameof(IsConfigTarget));
-            OnPropertyChanged(nameof(IsAutounattendTarget));
-            OnPropertyChanged(nameof(BuilderSaveButtonText));
+            Target = _applicationModeService.CurrentBuilderTarget;
+            return Task.CompletedTask;
+        }).FireAndForget(_logService);
+    }
+
+    private void OnHardwareFilterChanged(object? sender, bool e)
+    {
+        _dispatcherService.RunOnUIThreadAsync(() =>
+        {
+            OnPropertyChanged(nameof(ShowOtherHardware));
+            return Task.CompletedTask;
+        }).FireAndForget(_logService);
+    }
+
+    private void OnTargetWindowsChanged(object? sender, EventArgs e)
+    {
+        _dispatcherService.RunOnUIThreadAsync(() =>
+        {
+            OnPropertyChanged(nameof(TargetBuild));
+            OnPropertyChanged(nameof(TargetWindowsText));
             return Task.CompletedTask;
         }).FireAndForget(_logService);
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        OnPropertyChanged(nameof(BuilderModeTitleText));
-        OnPropertyChanged(nameof(BuilderModeDescriptionText));
-        OnPropertyChanged(nameof(BuilderConfigTargetText));
-        OnPropertyChanged(nameof(BuilderAutounattendTargetText));
-        OnPropertyChanged(nameof(BuilderSaveButtonText));
-        OnPropertyChanged(nameof(BuilderCancelButtonText));
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
     }
 
-    /// <summary>Switch the Builder target to Config (preserves authored selections).</summary>
+    public async Task SetShowOtherHardwareAsync(bool show)
+    {
+        if (!show && !await ConfirmNarrowingAsync(
+                _scope.Current with { IncludeOtherHardware = false },
+                _localizationService.GetString("Dialog_NarrowHardware_Title"),
+                count => _localizationService.GetString("Dialog_NarrowHardware_Message", count)))
+        {
+            // IsChecked binds OneWay, so nothing has moved the checkbox back off the state the user declined.
+            OnPropertyChanged(nameof(ShowOtherHardware));
+            return;
+        }
+
+        _hardwareFilter.Set(!show);
+    }
+
+    public async Task SetTargetWindowsAsync(int? build)
+    {
+        if (build is { } narrowedTo && !await ConfirmNarrowingAsync(
+                _scope.Current with { IncludeOtherOsVersions = false, TargetBuild = WindowsReleases.TargetOf(narrowedTo) },
+                _localizationService.GetString("Dialog_NarrowWindows_Title"),
+                count => _localizationService.GetString("Dialog_NarrowWindows_Message", count, NameOf(narrowedTo))))
+        {
+            OnPropertyChanged(nameof(TargetBuild));
+            return;
+        }
+
+        _targetWindows.Set(build);
+    }
+
+    private string NameOf(int? build) => build switch
+    {
+        null => AllVersionsText,
+        { } b when WindowsReleases.ForBuild(b) is { } release => release.Name,
+        { } b => _localizationService.GetString("Builder_Mode_TargetWindows_Build", b),
+    };
+
+    // The edits survive the narrowing either way - the writers just resolve the catalog under the narrowed
+    // scope at Save, so anything absent from it silently misses the file.
+    private async Task<bool> ConfirmNarrowingAsync(CatalogScope narrowed, string title, Func<int, string> message)
+    {
+        int outOfScope = _applicationModeService.GetBuilderEdits()
+            .Count(edit => _catalogSettingsRegistry.GetById(edit.SettingId, narrowed) is null);
+        if (outOfScope == 0) return true;
+
+        var request = new ConfirmationRequest
+        {
+            Title = title,
+            Message = message(outOfScope),
+        };
+
+        return (await _dialogService.ShowConfirmationAsync(request)).Confirmed;
+    }
+
     public void SelectConfigTarget()
     {
         _applicationModeService.SetBuilderTarget(BuilderTarget.Config);
-        OnPropertyChanged(nameof(IsConfigTarget));
-        OnPropertyChanged(nameof(IsAutounattendTarget));
-        OnPropertyChanged(nameof(BuilderSaveButtonText));
+        Target = _applicationModeService.CurrentBuilderTarget;
     }
 
-    /// <summary>Switch the Builder target to Autounattend (preserves authored selections).</summary>
     public void SelectAutounattendTarget()
     {
         _applicationModeService.SetBuilderTarget(BuilderTarget.Autounattend);
-        OnPropertyChanged(nameof(IsConfigTarget));
-        OnPropertyChanged(nameof(IsAutounattendTarget));
-        OnPropertyChanged(nameof(BuilderSaveButtonText));
+        Target = _applicationModeService.CurrentBuilderTarget;
     }
 
     [RelayCommand]
-    private async Task SaveAsync()
-    {
-        try
-        {
-            if (_applicationModeService.CurrentBuilderTarget == BuilderTarget.Autounattend)
-            {
-                await _configExportService.ExportBuilderAutounattendAsync();
-            }
-            else
-            {
-                await _configExportService.ExportBuilderConfigAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"Builder Save failed: {ex.Message}");
-        }
-    }
+    private Task SaveAsync() => _builderSave.SaveAsync(_applicationModeService.CurrentBuilderTarget);
+
+    [RelayCommand]
+    private Task SaveAsConfigAsync() => _builderSave.SaveAsync(BuilderTarget.Config);
+
+    [RelayCommand]
+    private Task SaveAsProfileAsync() => _builderSave.SaveAsProfileAsync();
 
     [RelayCommand]
     private async Task CancelAsync()
     {
-        var title = _localizationService.GetString("Builder_Mode_Cancel_Confirmation_Title") ?? "Leave Builder Mode";
-        var message = _localizationService.GetString("Builder_Mode_Cancel_Confirmation")
-            ?? "Leave Builder mode? Your authored selections will be discarded (nothing was applied to this PC).";
+        var title = _localizationService.GetStringOrDefault("Builder_Mode_Cancel_Confirmation_Title", "Leave Builder Mode");
+        var message = _localizationService.GetStringOrDefault("Builder_Mode_Cancel_Confirmation", "Leave Builder mode? Your selections here will be discarded. Nothing was applied to your system.");
 
         var confirmed = (await _dialogService.ShowConfirmationAsync(
-            new ConfirmationRequest { Message = message, Title = title })).Confirmed;
+            new ConfirmationRequest
+            {
+                Message = message,
+                Title = title,
+                ConfirmButtonText = _localizationService.GetString("Button_Leave"),
+                CancelButtonText = _localizationService.GetString("Button_Stay"),
+            })).Confirmed;
         if (confirmed)
         {
             _applicationModeService.EnterNormalMode();

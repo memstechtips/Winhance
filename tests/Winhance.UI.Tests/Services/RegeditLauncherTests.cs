@@ -20,10 +20,6 @@ public class RegeditLauncherTests
             _mockLogService.Object);
     }
 
-    // -------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------
-
     [Fact]
     public void Constructor_WithValidDependencies_DoesNotThrow()
     {
@@ -31,264 +27,6 @@ public class RegeditLauncherTests
 
         act.Should().NotThrow();
     }
-
-    // -------------------------------------------------------
-    // KeyExists - basic parsing
-    // -------------------------------------------------------
-
-    [Fact]
-    public void KeyExists_WithPathWithoutBackslash_ReturnsFalse()
-    {
-        var sut = CreateSut();
-
-        var result = sut.KeyExists("HKLM");
-
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public void KeyExists_WithEmptyString_ReturnsFalse()
-    {
-        var sut = CreateSut();
-
-        var result = sut.KeyExists("");
-
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public void KeyExists_WithUnknownHive_ReturnsFalse()
-    {
-        var sut = CreateSut();
-
-        var result = sut.KeyExists(@"HKEY_INVALID\SOFTWARE\Test");
-
-        result.Should().BeFalse();
-    }
-
-    // -------------------------------------------------------
-    // KeyExists - HKLM paths (these check actual registry,
-    // so use well-known keys)
-    // -------------------------------------------------------
-
-    [Fact]
-    public void KeyExists_WithValidHklmPath_ReturnsTrue()
-    {
-        var sut = CreateSut();
-
-        // SOFTWARE key always exists on Windows
-        var result = sut.KeyExists(@"HKLM\SOFTWARE");
-
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public void KeyExists_WithLongFormHklmPath_ReturnsTrue()
-    {
-        var sut = CreateSut();
-
-        var result = sut.KeyExists(@"HKEY_LOCAL_MACHINE\SOFTWARE");
-
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public void KeyExists_WithNonExistentPath_ReturnsFalse()
-    {
-        var sut = CreateSut();
-
-        var result = sut.KeyExists(@"HKLM\SOFTWARE\NonExistentKeyThatShouldNeverExist_12345");
-
-        result.Should().BeFalse();
-    }
-
-    // -------------------------------------------------------
-    // KeyExists - HKCU paths
-    // -------------------------------------------------------
-
-    [Fact]
-    public void KeyExists_WithValidHkcuPath_ReturnsTrue()
-    {
-        var sut = CreateSut();
-
-        var result = sut.KeyExists(@"HKCU\SOFTWARE");
-
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public void KeyExists_WithLongFormHkcuPath_ReturnsTrue()
-    {
-        var sut = CreateSut();
-
-        var result = sut.KeyExists(@"HKEY_CURRENT_USER\SOFTWARE");
-
-        result.Should().BeTrue();
-    }
-
-    // -------------------------------------------------------
-    // KeyExists - other hives
-    // -------------------------------------------------------
-
-    [Fact]
-    public void KeyExists_WithValidHkcrPath_ReturnsTrue()
-    {
-        var sut = CreateSut();
-
-        var result = sut.KeyExists(@"HKCR\.txt");
-
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public void KeyExists_WithLongFormHkcrPath_ReturnsTrue()
-    {
-        var sut = CreateSut();
-
-        var result = sut.KeyExists(@"HKEY_CLASSES_ROOT\.txt");
-
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public void KeyExists_WithHkuPath_ReturnsTrueForDotDefault()
-    {
-        var sut = CreateSut();
-
-        // .DEFAULT always exists under HKU
-        var result = sut.KeyExists(@"HKU\.DEFAULT");
-
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public void KeyExists_WithLongFormHkuPath_ReturnsTrueForDotDefault()
-    {
-        var sut = CreateSut();
-
-        var result = sut.KeyExists(@"HKEY_USERS\.DEFAULT");
-
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public void KeyExists_WithHkccPath_ReturnsTrue()
-    {
-        var sut = CreateSut();
-
-        var result = sut.KeyExists(@"HKCC\System");
-
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public void KeyExists_WithLongFormHkccPath_ReturnsTrue()
-    {
-        var sut = CreateSut();
-
-        var result = sut.KeyExists(@"HKEY_CURRENT_CONFIG\System");
-
-        result.Should().BeTrue();
-    }
-
-    // -------------------------------------------------------
-    // KeyExists - OTS mode HKCU redirect
-    // -------------------------------------------------------
-
-    [Fact]
-    public void KeyExists_InOtsMode_RedirectsHkcuToHku()
-    {
-        _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(true);
-        _mockInteractiveUserService.Setup(s => s.InteractiveUserSid).Returns("S-1-5-21-FAKE-SID");
-
-        var sut = CreateSut();
-
-        // In OTS mode with a fake SID, the path won't exist
-        var result = sut.KeyExists(@"HKCU\SOFTWARE");
-
-        // Should return false because the redirected path (HKU\S-1-5-21-FAKE-SID\SOFTWARE) won't exist
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public void KeyExists_InOtsModeWithLongFormHkcu_RedirectsToHku()
-    {
-        _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(true);
-        _mockInteractiveUserService.Setup(s => s.InteractiveUserSid).Returns("S-1-5-21-FAKE-SID");
-
-        var sut = CreateSut();
-
-        var result = sut.KeyExists(@"HKEY_CURRENT_USER\SOFTWARE");
-
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public void KeyExists_InOtsMode_DoesNotRedirectHklm()
-    {
-        _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(true);
-        _mockInteractiveUserService.Setup(s => s.InteractiveUserSid).Returns("S-1-5-21-FAKE-SID");
-
-        var sut = CreateSut();
-
-        // HKLM paths should NOT be redirected even in OTS mode
-        var result = sut.KeyExists(@"HKLM\SOFTWARE");
-
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public void KeyExists_WhenNotOtsMode_DoesNotRedirectHkcu()
-    {
-        _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
-        _mockInteractiveUserService.Setup(s => s.InteractiveUserSid).Returns((string?)null);
-
-        var sut = CreateSut();
-
-        // In non-OTS mode, HKCU\SOFTWARE should resolve normally
-        var result = sut.KeyExists(@"HKCU\SOFTWARE");
-
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public void KeyExists_InOtsModeWithNullSid_DoesNotRedirect()
-    {
-        _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(true);
-        _mockInteractiveUserService.Setup(s => s.InteractiveUserSid).Returns((string?)null);
-
-        var sut = CreateSut();
-
-        // With null SID, the redirect condition is not met
-        var result = sut.KeyExists(@"HKCU\SOFTWARE");
-
-        result.Should().BeTrue();
-    }
-
-    // -------------------------------------------------------
-    // KeyExists - exception handling
-    // -------------------------------------------------------
-
-    [Fact]
-    public void KeyExists_WhenExceptionOccurs_ReturnsFalse()
-    {
-        // Setup a scenario where the registry access might fail
-        // Using a malformed path that could cause issues
-        _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(true);
-        _mockInteractiveUserService.Setup(s => s.InteractiveUserSid).Returns("S-1-5-21-FAKE");
-
-        var sut = CreateSut();
-
-        // This redirects to HKU\S-1-5-21-FAKE\... which doesn't exist
-        // but shouldn't throw - should return false
-        var result = sut.KeyExists(@"HKCU\SOFTWARE\NonExistent");
-
-        result.Should().BeFalse();
-    }
-
-    // -------------------------------------------------------
-    // OpenAtPath - normal mode
-    // -------------------------------------------------------
 
     [Fact]
     public void OpenAtPath_InNormalMode_CallsShellExecuteForRegedit()
@@ -313,7 +51,6 @@ public class RegeditLauncherTests
         }
         catch
         {
-            // Best-effort - the method silently catches all exceptions
         }
 
         // In normal mode, ShellExecuteAsync should have been called (or attempted)
@@ -328,7 +65,6 @@ public class RegeditLauncherTests
 
         var sut = CreateSut();
 
-        // This should not throw - the method catches all exceptions
         sut.OpenAtPath(@"HKLM\SOFTWARE\Microsoft");
     }
 
@@ -362,10 +98,6 @@ public class RegeditLauncherTests
         sut.OpenAtPath(@"Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft");
     }
 
-    // -------------------------------------------------------
-    // OpenAtPath - OTS mode
-    // -------------------------------------------------------
-
     [Fact]
     public void OpenAtPath_InOtsMode_CallsLaunchProcessAsInteractiveUser()
     {
@@ -384,7 +116,6 @@ public class RegeditLauncherTests
             // Registry write may fail in test context, but the method catches all exceptions
         }
 
-        // In OTS mode, it should try to launch as interactive user
         _mockInteractiveUserService.Verify(
             s => s.LaunchProcessAsInteractiveUser("regedit.exe", ""),
             Times.AtMostOnce);
@@ -401,7 +132,6 @@ public class RegeditLauncherTests
 
         sut.OpenAtPath(@"HKLM\SOFTWARE\Microsoft");
 
-        // Without token, should NOT use LaunchProcessAsInteractiveUser
         _mockInteractiveUserService.Verify(
             s => s.LaunchProcessAsInteractiveUser(It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
@@ -418,15 +148,10 @@ public class RegeditLauncherTests
 
         sut.OpenAtPath(@"HKLM\SOFTWARE\Microsoft");
 
-        // Without SID, OTS condition is false
         _mockInteractiveUserService.Verify(
             s => s.LaunchProcessAsInteractiveUser(It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
-
-    // -------------------------------------------------------
-    // OpenAtPath - exception handling
-    // -------------------------------------------------------
 
     [Fact]
     public void OpenAtPath_WhenExceptionOccurs_DoesNotThrow()
@@ -442,7 +167,6 @@ public class RegeditLauncherTests
 
         var act = () => sut.OpenAtPath(@"HKLM\SOFTWARE\Microsoft");
 
-        // The method should silently catch all exceptions
         act.Should().NotThrow();
     }
 
@@ -451,8 +175,6 @@ public class RegeditLauncherTests
     {
         var sut = CreateSut();
 
-        // Null path might cause issues in string operations but
-        // the method catches all exceptions
         var act = () => sut.OpenAtPath(null!);
 
         act.Should().NotThrow();

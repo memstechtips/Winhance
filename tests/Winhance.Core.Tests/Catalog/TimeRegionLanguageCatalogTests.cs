@@ -1,0 +1,221 @@
+using Winhance.Core.Features.Customize.Catalogs;
+using Winhance.TestSupport;
+using FluentAssertions;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
+using Xunit;
+using Winhance.Core.Features.Common.Localization;
+
+namespace Winhance.Core.Tests.Catalog;
+
+public class TimeRegionLanguageCatalogTests
+{
+    private static readonly string[] KeyedIds =
+    [
+        "region-time-zone",
+        "region-format",
+        "region-home-location",
+        "region-display-language",
+        "region-keyboard-layout",
+        "region-system-locale",
+    ];
+
+    [Fact]
+    public void ByFeature_KeyedSettings_AreInTheLiveCatalogUnderTheirOwnFeature()
+    {
+        foreach (var id in KeyedIds)
+        {
+            SettingCatalog.Find(id).Should().NotBeNull(id);
+            SettingCatalog.ByFeature[FeatureIds.TimeRegionLanguage].Should().Contain(s => s.Id == id, id);
+        }
+    }
+
+    [Fact]
+    public void Control_EachKeyedSetting_DerivesAsKeyedSelection()
+    {
+        foreach (var id in KeyedIds)
+        {
+            var setting = SettingCatalog.ById[id];
+
+            setting.Control.Should().Be(ControlKind.KeyedSelection, id);
+            setting.States.Should().BeEmpty(id);
+            setting.Targets.Should().NotBeEmpty(id);
+            setting.Options.Should().NotBeNull(id);
+        }
+    }
+
+    [Fact]
+    public void Targets_EveryWrittenTarget_TakesTheValueItsSettingNamesFromTheChosenKey()
+    {
+        // The service computes each value by From alone: a target with the wrong From writes a real but wrong
+        // value and the apply still reports Succeeded.
+        var expected = new Dictionary<string, (string Key, OptionValue From)[]>
+        {
+            ["region-time-zone"] = [("TimeZoneKeyName", OptionValue.Key)],
+            ["region-format"] =
+            [
+                ("LocaleName", OptionValue.Key),
+                ("Locale", OptionValue.LocaleId),
+                ("sDecimal", OptionValue.DecimalSeparator),
+                ("sThousand", OptionValue.GroupSeparator),
+                ("sList", OptionValue.ListSeparator),
+                ("sShortDate", OptionValue.ShortDate),
+                ("sLongDate", OptionValue.LongDate),
+                ("sTimeFormat", OptionValue.LongTime),
+                ("sShortTime", OptionValue.ShortTime),
+                ("iFirstDayOfWeek", OptionValue.FirstDayOfWeek),
+                ("iMeasure", OptionValue.MeasurementSystem),
+                ("sMonDecimalSep", OptionValue.CurrencyDecimalSeparator),
+                ("sMonThousandSep", OptionValue.CurrencyGroupSeparator),
+                ("sCurrency", OptionValue.CurrencySymbol),
+                ("sNegativeSign", OptionValue.NegativeSign),
+                ("sGrouping", OptionValue.GroupSizes),
+                ("sMonGrouping", OptionValue.CurrencyGroupSizes),
+                ("iCurrDigits", OptionValue.CurrencyDecimalDigits),
+                ("iCurrency", OptionValue.CurrencyPositivePattern),
+                ("iNegCurr", OptionValue.CurrencyNegativePattern),
+                ("iNegNumber", OptionValue.NumberNegativePattern),
+                ("s1159", OptionValue.AmDesignator),
+                ("s2359", OptionValue.PmDesignator),
+                ("sDate", OptionValue.DateSeparator),
+                ("sTime", OptionValue.TimeSeparator),
+                ("sYearMonth", OptionValue.YearMonth),
+                ("iDate", OptionValue.DateOrder),
+                ("iTime", OptionValue.HourClock),
+                ("iTLZero", OptionValue.HourLeadingZero),
+                ("iTimePrefix", OptionValue.TimeMarkerPosition),
+                ("iFirstWeekOfYear", OptionValue.FirstWeekOfYear),
+                // Windows' own locale data answers these nine; .NET's numbering disagrees on several.
+                ("iDigits", OptionValue.DecimalDigits),
+                ("iLZero", OptionValue.LeadingZero),
+                ("iCountry", OptionValue.CountryCode),
+                ("iPaperSize", OptionValue.PaperSize),
+                ("iCalendarType", OptionValue.CalendarType),
+                ("sLanguage", OptionValue.AbbreviatedLanguage),
+                ("sNativeDigits", OptionValue.NativeDigits),
+                ("NumShape", OptionValue.DigitSubstitution),
+                ("sPositiveSign", OptionValue.PositiveSign),
+            ],
+            ["region-home-location"] = [("Nation", OptionValue.GeoId), ("Name", OptionValue.Key)],
+            // Empty on purpose: PreferredUILanguages is REG_MULTI_SZ, which the plain value write cannot express,
+            // so the whole apply is the service's .reg effect and the one target exists only to read the current one.
+            ["region-display-language"] = [],
+            ["region-keyboard-layout"] = [("Preload1", OptionValue.Key)],
+            ["region-system-locale"] =
+            [
+                ("Default", OptionValue.SystemLocaleId),
+                ("ACP", OptionValue.AnsiCodePage),
+                ("OEMCP", OptionValue.OemCodePage),
+                ("MACCP", OptionValue.MacCodePage),
+            ],
+        };
+
+        expected.Keys.Should().BeEquivalentTo(KeyedIds);
+        foreach (var (id, targets) in expected)
+        {
+            SettingCatalog.ById[id].Targets.OfType<RegTarget>().Where(t => !t.ReadOnly)
+                .Select(t => (t.Key, t.From))
+                .Should().Equal(targets, id);
+        }
+    }
+
+    [Fact]
+    public void Targets_EveryKeyedSetting_IsARegistryTargetOrAnAnswerFileElement()
+    {
+        foreach (var id in KeyedIds)
+        {
+            var targets = SettingCatalog.ById[id].Targets;
+            targets.OfType<RegTarget>().Should().NotBeEmpty(id);
+            targets.Where(t => t is not RegTarget).Should().AllBeOfType<AutounattendElement>(id);
+        }
+    }
+
+    // The card stays a live one: its option list is read off this PC, so it must not fall into the answer-file-only
+    // bucket that skips detection and apply, and the target it reads must stay ReadOnly so the plain write is skipped.
+    [Fact]
+    public void Targets_DisplayLanguage_ReadsThisPcAndAppliesThroughARegFile()
+    {
+        var setting = SettingCatalog.ById["region-display-language"];
+
+        setting.IsAnswerFileOnly.Should().BeFalse();
+        setting.Options!.Path.Should().NotBeNullOrEmpty("the list is the packs this PC has, not every language");
+        setting.Options.SingleOptionWarning.Should().NotBeNull("a PC with one language installed needs the reason");
+        setting.Targets.OfType<RegTarget>().Should().ContainSingle()
+            .Which.ReadOnly.Should().BeTrue();
+        setting.Targets.OfType<AutounattendElement>().Should().ContainSingle()
+            .Which.Path.Should().Be("UILanguage");
+    }
+
+    [Fact]
+    public void FeatureId_Always_MatchesTheSidebarName()
+    {
+        FeatureIds.TimeRegionLanguage.Should().Be("TimeRegionLanguage");
+        TimeRegionLanguageCatalog.FeatureId.Should().Be(FeatureIds.TimeRegionLanguage);
+        FeatureDefinitions.Get(FeatureIds.TimeRegionLanguage)!.Category.Should().Be("Customize");
+        FeatureDefinitions.CustomizeFeatures.Should().Contain(FeatureIds.TimeRegionLanguage);
+    }
+
+    [Fact]
+    public void Apply_FormatAndLocale_CarriesRestartOrRebootNotice()
+    {
+        SettingCatalog.ById["region-format"].Apply.Restart.Should().Be(new RestartProcess("intl"));
+        SettingCatalog.ById["region-home-location"].Apply.Restart.Should().Be(new RestartProcess("intl"));
+        SettingCatalog.ById["region-system-locale"].Apply.RequiresReboot.Should().BeTrue();
+        SettingCatalog.ById["region-keyboard-layout"].Apply.Should().Be(ApplyBehavior.None,
+            "the layout applies at the next sign-in and there is no affordance for that");
+    }
+
+    [Fact]
+    public void All_Always_DrawsFourGroupsInTheSpecOrder()
+    {
+        TimeRegionLanguageCatalog.All.Select(s => s.Display.GroupName).Distinct()
+            .Should().Equal(
+                LocKey.SettingGroup.Time,
+                LocKey.SettingGroup.Region,
+                LocKey.SettingGroup.LanguageAndKeyboard,
+                LocKey.SettingGroup.Formats);
+    }
+
+    [Fact]
+    public void ByFeature_SixFormatSettings_MovedWithTheirIdsAndStatesIntact()
+    {
+        var moved = new[]
+        {
+            "region-short-date",
+            "region-first-day-of-week",
+            "region-number-decimal",
+            "region-list-separator",
+            "region-measurement-system",
+            "region-currency-decimal",
+        };
+
+        foreach (var id in moved)
+        {
+            SettingCatalog.ByFeature[FeatureIds.TimeRegionLanguage].Should().Contain(s => s.Id == id, id);
+            SettingCatalog.ByFeature[FeatureIds.Explorer].Should().NotContain(s => s.Id == id, id);
+            SettingCatalog.ById[id].Display.GroupName.Should().Be(LocKey.SettingGroup.Formats, id);
+        }
+
+        // Short date is keyed on the pattern itself because region-format writes patterns no fixed list covers;
+        // the other five have small closed value sets, so they stay fixed states with translated labels.
+        SettingCatalog.ById["region-short-date"].Control.Should().Be(ControlKind.KeyedSelection);
+        foreach (var id in moved.Where(id => id != "region-short-date"))
+            SettingCatalog.ById[id].Control.Should().Be(ControlKind.Selection, id);
+
+        SettingCatalog.ById["region-first-day-of-week"].States.Select(s => s.Label)
+            .Should().Equal(Enumerable.Range(0, 7)
+                .Select(i => TestKeys.Of($"Setting_region-first-day-of-week_Option_{i}")));
+
+        // Every one of them follows the region format, so no single value is the default or the recommendation.
+        foreach (var id in moved)
+            SettingCatalog.ById[id].States.Should().NotContain(s => s.Roles.Any(), id);
+    }
+
+    [Fact]
+    public void ByFeature_FormatsGroup_AppliesAfterTheRegionalFormat()
+    {
+        var ids = SettingCatalog.ByFeature[FeatureIds.TimeRegionLanguage].Select(s => s.Id).ToList();
+
+        ids.IndexOf("region-short-date").Should().BeGreaterThan(ids.IndexOf("region-format"));
+    }
+}

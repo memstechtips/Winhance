@@ -6,14 +6,17 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:fluentIcons="using:FluentIcons.WinUI"
+    xmlns:helpers="using:Winhance.UI.Features.Common.Helpers"
+    xmlns:local="using:Winhance.UI.Features.Common.Controls"
     mc:Ignorable="d"
     d:DesignHeight="60"
     d:DesignWidth="400">
 
-    <Grid Visibility="{x:Bind IsProgressVisible, Mode=OneWay}"
-          AutomationProperties.LiveSetting="Assertive">
-        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                CornerRadius="4"
+    <Grid AutomationProperties.LiveSetting="Assertive">
+        <Border x:Name="ProgressCard"
+                x:Load="{x:Bind helpers:LoadWhen.Shown(IsProgressVisible), Mode=OneWay}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                CornerRadius="{StaticResource CardCornerRadius}"
                 Padding="12,8">
             <Grid>
                 <Grid.RowDefinitions>
@@ -23,7 +26,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- Row 0: App Name | Last Terminal Line | Details Button | Cancel Button -->
-                <Grid Grid.Row="0" Margin="0,0,0,8">
+                <Grid Grid.Row="0" Margin="{StaticResource BlockBottomMargin}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
@@ -33,7 +36,7 @@
 
                     <TextBlock Grid.Column="0"
                                Text="{x:Bind AppName, Mode=OneWay}"
-                               FontSize="14"
+                               FontSize="{StaticResource BodyTextBlockFontSize}"
                                FontWeight="Bold"
                                Foreground="{ThemeResource TextFillColorPrimaryBrush}"
                                VerticalAlignment="Center"
@@ -46,7 +49,7 @@
                             HorizontalContentAlignment="Left"
                             CornerRadius="3"
                             Height="30"
-                            Margin="0,0,6,0"
+                            Margin="{StaticResource InlineTrailingMargin}"
                             Padding="0"
                             BorderThickness="0">
                         <Button.Background>
@@ -64,7 +67,8 @@
                                        VerticalAlignment="Center"
                                        TextTrimming="CharacterEllipsis"
                                        MaxLines="1"
-                                       Margin="8,0"/>
+                                       Margin="8,0"
+                                       Loaded="TerminalLineRichText_Loaded"/>
                     </Button>
 
                     <Button Grid.Column="2"
@@ -72,27 +76,29 @@
                             AutomationProperties.Name="View task log"
                             VerticalAlignment="Center"
                             Padding="6,4"
-                            Margin="0,0,6,0">
-                        <fluentIcons:FluentIcon Icon="Info" IconVariant="Regular" FontSize="14"/>
+                            Margin="{StaticResource InlineTrailingMargin}">
+                        <fluentIcons:FluentIcon Icon="Info" IconVariant="Regular" FontSize="{StaticResource ButtonIconFontSize}"/>
                     </Button>
 
-                    <Button Grid.Column="3"
+                    <Button x:Name="CancelButton"
+                            x:Load="{x:Bind helpers:LoadWhen.Shown(CanCancel), Mode=OneWay}"
+                            Grid.Column="3"
                             Command="{x:Bind CancelCommand, Mode=OneWay}"
                             IsEnabled="{x:Bind IsTaskRunning, Mode=OneWay}"
-                            Visibility="{x:Bind CanCancel, Mode=OneWay}"
                             AutomationProperties.Name="{x:Bind CancelText, Mode=OneWay}"
                             VerticalAlignment="Center"
                             Padding="8,4">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular" FontSize="12"/>
-                            <TextBlock Text="{x:Bind CancelText, Mode=OneWay}" FontSize="12"/>
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource CompactIconLabelSpacing}">
+                            <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular" FontSize="{StaticResource CaptionIconFontSize}"/>
+                            <TextBlock Text="{x:Bind CancelText, Mode=OneWay}" FontSize="{StaticResource CaptionTextBlockFontSize}"/>
                         </StackPanel>
                     </Button>
                 </Grid>
 
                 <!-- Row 1: Queue info (Next item | Queue counter) -->
-                <Grid Grid.Row="1"
-                      Visibility="{x:Bind IsQueueInfoVisible, Mode=OneWay}"
+                <Grid x:Name="QueueInfoGrid"
+                      x:Load="{x:Bind helpers:LoadWhen.Shown(IsQueueInfoVisible), Mode=OneWay}"
+                      Grid.Row="1"
                       Margin="0,0,0,6">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -102,7 +108,7 @@
 
                     <TextBlock Grid.Column="0"
                                Text="{x:Bind QueueNextItemName, Mode=OneWay}"
-                               FontSize="12"
+                               FontSize="{StaticResource CaptionTextBlockFontSize}"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis"
@@ -110,7 +116,7 @@
 
                     <TextBlock Grid.Column="2"
                                Text="{x:Bind QueueStatusText, Mode=OneWay}"
-                               FontSize="12"
+                               FontSize="{StaticResource CaptionTextBlockFontSize}"
                                FontFamily="Consolas, 'Courier New', monospace"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                VerticalAlignment="Center"/>

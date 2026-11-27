@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Extensions;
@@ -14,9 +8,10 @@ using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class AppInstallationService(
+internal class AppInstallationService(
     ILegacyCapabilityService capabilityService,
     IOptionalFeatureService featureService,
+    IServicingSession servicingSession,
     ILogService logService,
     IWindowsAppsService windowsAppsService,
     IExternalAppsService externalAppsService,
@@ -24,8 +19,14 @@ public class AppInstallationService(
     IScheduledTaskService scheduledTaskService,
     ITaskProgressService taskProgressService,
     IFileSystemService fileSystemService,
-    IChangeHistoryService changeHistory) : IAppInstallationService
+    IChangeHistoryService changeHistory,
+    IStagedAppInstaller stagedAppInstaller,
+    IBackgroundTaskService backgroundTaskService) : IAppInstallationService
 {
+    // Enabling a feature or capability is handed to a PowerShell window Winhance does not watch, so
+    // every servicing path reports this rather than an install it cannot vouch for.
+    private const string HandedOffMessage = "Enable started in a separate window; success can only be determined there";
+
     public async Task<OperationResult<bool>> InstallAppAsync(ItemDefinition app, IProgress<TaskProgressDetail>? progress = null, bool shouldRemoveFromBloatScript = true)
     {
         try
@@ -34,6 +35,7 @@ public class AppInstallationService(
             {
                 await bloatRemovalService.RemoveItemsFromScriptAsync(new List<ItemDefinition> { app }).ConfigureAwait(false);
                 await CleanupDedicatedRemovalArtifactsAsync(app).ConfigureAwait(false);
+                backgroundTaskService.RemoveKeptApp(app.Id);
             }
             return await InstallSingleAppAsync(app, progress).ConfigureAwait(false);
         }
@@ -49,41 +51,115 @@ public class AppInstallationService(
         }
     }
 
-    public async Task<OperationResult<int>> InstallAppsAsync(List<ItemDefinition> apps, IProgress<TaskProgressDetail>? progress = null, bool shouldRemoveFromBloatScript = true)
+    // Skips the package-id gate InstallSingleAppCoreAsync applies, so a Chocolatey-only app reaches Chocolatey.
+    public async Task<OperationResult<bool>> InstallOnNewPcAsync(ItemDefinition app, IProgress<TaskProgressDetail>? progress = null)
     {
+        var cancellationToken = taskProgressService.GetCurrentCancellationToken();
+
         try
         {
-            if (apps == null || !apps.Any())
-                return OperationResult<int>.Failed("No apps provided");
+            cancellationToken.ThrowIfCancellationRequested();
 
-            if (shouldRemoveFromBloatScript)
+            OperationResult<bool> result;
+            var staged = stagedAppInstaller.Find(app);
+            if (staged != null && await stagedAppInstaller.InstallAsync(staged, progress, cancellationToken).ConfigureAwait(false))
             {
-                await bloatRemovalService.RemoveItemsFromScriptAsync(apps).ConfigureAwait(false);
+                result = OperationResult<bool>.Succeeded(true);
+            }
+            else
+            {
+                result = await externalAppsService.InstallAppOnNewPcAsync(app, progress).ConfigureAwait(false);
 
-                foreach (var app in apps)
+                // The Store route installs for the signed-in user only, so it is the last resort for an app that also ships as a Store package.
+                if (!result.Success && app.AppxPackageName?.Length > 0)
                 {
-                    await CleanupDedicatedRemovalArtifactsAsync(app).ConfigureAwait(false);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    result = await windowsAppsService.InstallAppAsync(app, progress).ConfigureAwait(false);
                 }
             }
 
-            int successCount = 0;
-            foreach (var app in apps)
+            if (result.Success)
             {
-                var result = await InstallSingleAppAsync(app, progress).ConfigureAwait(false);
-                if (result.Success) successCount++;
+                logService.Log(LogLevel.Success, $"Successfully installed app '{app.Id}'");
+                changeHistory.LogAppChange(app.Name, AppChangeKind.Installed);
             }
-
-            return OperationResult<int>.Succeeded(successCount);
+            return result;
         }
         catch (OperationCanceledException)
         {
-            logService.Log(LogLevel.Info, "Bulk installation was cancelled");
-            return OperationResult<int>.Cancelled("Operation was cancelled");
+            logService.Log(LogLevel.Info, $"Installation of '{app.Id}' was cancelled");
+            return OperationResult<bool>.Cancelled("Operation was cancelled");
         }
         catch (Exception ex)
         {
-            logService.LogError($"Failed to install apps: {ex.Message}");
-            return OperationResult<int>.Failed(ex.Message);
+            logService.LogError($"Failed to install app '{app.Id}': {ex.Message}");
+            return OperationResult<bool>.Failed(ex.Message);
+        }
+    }
+
+    public async Task<OperationResult<bool>> EnableServicingBatchAsync(
+        IReadOnlyList<ItemDefinition> apps,
+        IProgress<TaskProgressDetail>? progress = null)
+    {
+        try
+        {
+            var batch = apps?
+                .Where(a => !string.IsNullOrEmpty(a.CapabilityName) || !string.IsNullOrEmpty(a.OptionalFeatureName))
+                .ToList();
+            if (batch == null || batch.Count == 0)
+                return OperationResult<bool>.Failed("No apps provided");
+
+            var cancellationToken = taskProgressService.GetCurrentCancellationToken();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await bloatRemovalService.RemoveItemsFromScriptAsync(batch).ConfigureAwait(false);
+            foreach (var app in batch)
+            {
+                backgroundTaskService.RemoveKeptApp(app.Id);
+                await CleanupDedicatedRemovalArtifactsAsync(app).ConfigureAwait(false);
+            }
+
+            // An item may carry both names; capability wins, so nothing is serviced twice.
+            var featureNames = batch
+                .Where(a => string.IsNullOrEmpty(a.CapabilityName))
+                .Select(a => a.OptionalFeatureName!)
+                .ToList();
+            var capabilityNames = batch
+                .Where(a => !string.IsNullOrEmpty(a.CapabilityName))
+                .Select(a => a.CapabilityName!)
+                .ToList();
+
+            var statements = new List<string>();
+            if (featureNames.Count > 0)
+                statements.Add(featureService.BuildEnableStatement(featureNames));
+            if (capabilityNames.Count > 0)
+                statements.Add(capabilityService.BuildEnableStatement(capabilityNames));
+
+            var launched = await servicingSession.RunAsync(
+                statements,
+                string.Join(", ", batch.Select(a => a.Name)),
+                progress,
+                cancellationToken).ConfigureAwait(false);
+
+            if (!launched)
+                return OperationResult<bool>.Failed("Failed to launch PowerShell");
+
+            foreach (var app in batch)
+            {
+                changeHistory.LogAppChange(app.Name, AppChangeKind.EnableStarted);
+            }
+
+            return OperationResult<bool>.DeferredSuccess(true, HandedOffMessage);
+        }
+        catch (OperationCanceledException)
+        {
+            logService.Log(LogLevel.Info, "Enabling was cancelled");
+            return OperationResult<bool>.Cancelled("Operation was cancelled");
+        }
+        catch (Exception ex)
+        {
+            logService.LogError($"Failed to enable: {ex.Message}");
+            return OperationResult<bool>.Failed(ex.Message);
         }
     }
 
@@ -91,7 +167,9 @@ public class AppInstallationService(
     {
         var result = await InstallSingleAppCoreAsync(app, progress).ConfigureAwait(false);
         if (result.Success)
+        {
             changeHistory.LogAppChange(app.Name, AppChangeKind.Installed);
+        }
         return result;
     }
 
@@ -103,34 +181,9 @@ public class AppInstallationService(
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (!string.IsNullOrEmpty(app?.CapabilityName))
-            {
-                var launched = await capabilityService.EnableCapabilityAsync(app.CapabilityName, app.Name).ConfigureAwait(false);
-                if (launched)
-                {
-                    logService.Log(LogLevel.Info, $"PowerShell launched for capability '{app.Id}'");
-                    return OperationResult<bool>.Succeeded(true);
-                }
-                return OperationResult<bool>.Failed("Failed to launch PowerShell for capability");
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (!string.IsNullOrEmpty(app?.OptionalFeatureName))
-            {
-                var launched = await featureService.EnableFeatureAsync(app.OptionalFeatureName, app.Name).ConfigureAwait(false);
-                if (launched)
-                {
-                    logService.Log(LogLevel.Info, $"PowerShell launched for feature '{app.Id}'");
-                    return OperationResult<bool>.Succeeded(true);
-                }
-                return OperationResult<bool>.Failed("Failed to launch PowerShell for feature");
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if ((app?.WinGetPackageId != null && app.WinGetPackageId.Any()) ||
+            if ((app?.WinGetPackageId != null && app.WinGetPackageId.Length > 0) ||
                 !string.IsNullOrEmpty(app?.MsStoreId) ||
+                !string.IsNullOrEmpty(app?.ChocoPackageId) ||
                 app?.ExternalApp?.RequiresDirectDownload == true ||
                 app?.ExternalApp?.DownloadUrl != null)
             {
@@ -172,36 +225,48 @@ public class AppInstallationService(
 
     private async Task CleanupDedicatedRemovalArtifactsAsync(ItemDefinition app)
     {
-        if (app.Id == "windows-app-edge" || app.Id == "windows-app-onedrive")
+        if (app.RemovalScriptFileName is not { } scriptName)
+            return;
+
+        var taskName = app.RemovalScriptName!;
+        var isEdgeScript = taskName == EdgeRemovalScript.ScriptName;
+        if (isEdgeScript && EdgeRemovalScript.RemovesWebView2(app.RemovalScript!()))
         {
-            var scriptName = CreateScriptName(app.Id);
-            var scriptPath = fileSystemService.CombinePath(ScriptPaths.ScriptsDirectory, scriptName);
-            var taskName = scriptName.Replace(".ps1", "");
+            await KeepEdgeRemovedAsync(scriptName).ConfigureAwait(false);
+            return;
+        }
 
-            if (fileSystemService.FileExists(scriptPath))
-            {
-                fileSystemService.DeleteFile(scriptPath);
-                logService.LogInformation($"Deleted obsolete script: {scriptPath}");
-            }
+        var scriptPath = fileSystemService.CombinePath(ScriptPaths.ScriptsDirectory, scriptName);
 
-            await scheduledTaskService.UnregisterScheduledTaskAsync(taskName).ConfigureAwait(false);
-            logService.LogInformation($"Cleaned up artifacts for reinstalled app: {app.Id}");
+        if (fileSystemService.FileExists(scriptPath))
+        {
+            fileSystemService.DeleteFile(scriptPath);
+            logService.LogInformation($"Deleted obsolete script: {scriptPath}");
+        }
 
-            if (app.Id == "windows-app-edge")
-            {
-                await CleanupOpenWebSearchAsync().ConfigureAwait(false);
-            }
+        await scheduledTaskService.UnregisterScheduledTaskAsync(taskName).ConfigureAwait(false);
+        logService.LogInformation($"Cleaned up artifacts for reinstalled app: {app.Id}");
+
+        if (isEdgeScript)
+        {
+            await CleanupOpenWebSearchAsync().ConfigureAwait(false);
         }
     }
 
-    private static string CreateScriptName(string appId)
+    // Bringing WebView2 back leaves Edge removed, so a full-mode script drops to Edge-only instead of being
+    // deleted. The startup task runs the file, so rewriting it is enough.
+    private async Task KeepEdgeRemovedAsync(string scriptName)
     {
-        return appId switch
-        {
-            "windows-app-edge" => "EdgeRemoval.ps1",
-            "windows-app-onedrive" => "OneDriveRemoval.ps1",
-            _ => throw new NotSupportedException($"No dedicated script defined for {appId}")
-        };
+        var scriptPath = fileSystemService.CombinePath(ScriptPaths.ScriptsDirectory, scriptName);
+        if (!fileSystemService.FileExists(scriptPath))
+            return;
+
+        var content = await fileSystemService.ReadAllTextAsync(scriptPath).ConfigureAwait(false);
+        if (!EdgeRemovalScript.RemovesWebView2(content))
+            return;
+
+        await fileSystemService.WriteAllTextAsync(scriptPath, EdgeRemovalScript.GetScript()).ConfigureAwait(false);
+        logService.LogInformation("EdgeRemoval script now removes Edge only, so WebView2 stays installed");
     }
 
     private async Task CleanupOpenWebSearchAsync()
@@ -210,10 +275,10 @@ public class AppInstallationService(
         {
             logService.LogInformation("Cleaning up OpenWebSearch installation...");
 
-            await scheduledTaskService.UnregisterScheduledTaskAsync("OpenWebSearchRepair").ConfigureAwait(false);
+            await scheduledTaskService.UnregisterScheduledTaskAsync(ScriptPaths.OpenWebSearchTaskName).ConfigureAwait(false);
             logService.LogInformation("Removed OpenWebSearchRepair scheduled task");
 
-            var openWebSearchDir = @"C:\ProgramData\Winhance\OpenWebSearch";
+            var openWebSearchDir = ScriptPaths.OpenWebSearchDirectoryLiteral;
             if (fileSystemService.DirectoryExists(openWebSearchDir))
             {
                 fileSystemService.DeleteDirectory(openWebSearchDir, recursive: true);

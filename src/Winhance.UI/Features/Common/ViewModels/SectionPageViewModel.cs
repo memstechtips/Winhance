@@ -1,66 +1,103 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
+using Winhance.Core.Features.Common.Extensions;
+using Winhance.UI.Features.Common.Services;
+using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.ViewModels;
 
-/// <summary>
-/// Base ViewModel for section-based pages (Optimize, Customize).
-/// Handles initialization, search, navigation, and localization for pages
-/// that display a collection of feature ViewModels organized into sections.
-/// </summary>
-public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObject, IDisposable
+public abstract partial class SectionPageViewModel<TSectionInfo>
+    : ObservableObject, ISectionPageViewModel, IDisposable
     where TSectionInfo : ISectionInfo
 {
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(PageTitle), nameof(PageDescription), nameof(BreadcrumbRootText), nameof(SearchPlaceholder),
+        nameof(NoResultsText), nameof(ActiveStateFilterText), nameof(ClearStateFilterTooltip), nameof(ShowAllText),
+    ];
+
     private bool _disposed;
     private readonly ILogService _logService;
     private readonly ILocalizationService _localizationService;
+    private readonly IConfigReviewBadgeService _badgeService;
+    private readonly IConfigReviewModeService _reviewModeService;
+    private readonly ICatalogSettingsRegistry _registry;
+    private readonly ICatalogScopeProvider _scope;
+    private readonly IApplicationModeService _modeService;
     private readonly IReadOnlyList<ISettingsFeatureViewModel> _featureViewModels;
     private readonly Dictionary<string, ISettingsFeatureViewModel> _viewModelBySectionKey;
     private bool _isInitialized;
+    private WinhanceMode _lastMode;
+
+    // The source the overview cards and the breadcrumb flyout are generated from; each item derives its own badges
+    // from observed state, so nothing has to remember to refresh them.
+    public IReadOnlyList<SectionOverviewItemViewModel> OverviewItems { get; private set; } =
+        Array.Empty<SectionOverviewItemViewModel>();
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNotLoading))]
     public partial bool IsLoading { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNoSearchResults))]
+    [NotifyPropertyChangedFor(nameof(IsShowAllVisible))]
+    [NotifyPropertyChangedFor(nameof(NoResultsText))]
     public partial string SearchText { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsInDetailPage))]
+    [NotifyPropertyChangedFor(nameof(CurrentSectionName))]
+    [NotifyPropertyChangedFor(nameof(CurrentSectionItem))]
+    [NotifyPropertyChangedFor(nameof(HasNoSearchResults))]
+    [NotifyPropertyChangedFor(nameof(IsShowAllVisible))]
     public partial string CurrentSectionKey { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNoSearchResults))]
+    [NotifyPropertyChangedFor(nameof(NoResultsText))]
+    [NotifyPropertyChangedFor(nameof(IsStateFilterActive))]
+    [NotifyPropertyChangedFor(nameof(ActiveStateFilterText))]
+    [NotifyPropertyChangedFor(nameof(IsShowAllVisible))]
+    public partial SettingStateFilter StateFilter { get; set; }
 
     [ObservableProperty]
     public partial ObservableCollection<SearchSuggestionItem> SearchSuggestions { get; set; }
 
-    /// <summary>Localization key for the page title (e.g., "Category_Optimize_Title").</summary>
     protected abstract string PageTitleKey { get; }
 
-    /// <summary>Localization key for the page description/status text.</summary>
     protected abstract string PageDescriptionKey { get; }
 
-    /// <summary>Fallback text for the breadcrumb root when localization is missing.</summary>
     protected abstract string BreadcrumbRootFallback { get; }
 
-    /// <summary>Log prefix for initialization messages (e.g., "OptimizeViewModel").</summary>
     protected abstract string LogPrefix { get; }
 
-    /// <summary>The section definitions for this page.</summary>
     protected abstract IReadOnlyList<TSectionInfo> SectionDefinitions { get; }
 
     public string PageTitle => _localizationService.GetString(PageTitleKey);
     public string PageDescription => _localizationService.GetString(PageDescriptionKey);
-    public string BreadcrumbRootText => _localizationService.GetString(PageTitleKey) ?? BreadcrumbRootFallback;
-    public string SearchPlaceholder => _localizationService.GetString("Common_Search_Placeholder") ?? "Type here to search...";
+    public string BreadcrumbRootText => _localizationService.GetStringOrDefault(PageTitleKey, BreadcrumbRootFallback);
+    public string SearchPlaceholder => _localizationService.GetStringOrDefault("Common_Search_Placeholder", "Type here to search...");
     public bool IsNotLoading => !IsLoading;
     public bool IsInDetailPage => CurrentSectionKey != "Overview";
     public string CurrentSectionName => GetSectionDisplayName(CurrentSectionKey);
+
+    // Lets the breadcrumb bind its icon and review badge to the same derived state the card uses, instead of a
+    // second imperative path computing the same answers.
+    public SectionOverviewItemViewModel? CurrentSectionItem =>
+        OverviewItems.FirstOrDefault(item => item.SectionKey == CurrentSectionKey);
 
     public bool HasNoSearchResults
     {
         get
         {
-            if (string.IsNullOrWhiteSpace(SearchText))
+            if (string.IsNullOrWhiteSpace(SearchText) && StateFilter == SettingStateFilter.All)
                 return false;
 
             var currentVm = GetSectionViewModel(CurrentSectionKey);
@@ -71,14 +108,56 @@ public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObj
         }
     }
 
+    public string NoResultsText => _localizationService.GetString(
+        string.IsNullOrWhiteSpace(SearchText) ? "View_StateFilter_NoResults" : "Common_Search_NoResults");
+
+    public bool IsStateFilterActive => StateFilter != SettingStateFilter.All;
+
+    // Same words as the View menu item the filter was picked from.
+    public string ActiveStateFilterText => string.Format(
+        _localizationService.GetStringOrDefault("View_StateFilter_Chip", "Filter: {0}"),
+        StateFilter switch
+        {
+            SettingStateFilter.Recommended => _localizationService.GetStringOrDefault("InfoBadge_Recommended", "Recommended"),
+            SettingStateFilter.WindowsDefault => _localizationService.GetStringOrDefault("View_StateFilter_WindowsDefault", "Windows default"),
+            SettingStateFilter.Custom => _localizationService.GetStringOrDefault("View_StateFilter_Custom", "Custom"),
+            _ => _localizationService.GetStringOrDefault("View_StateFilter_All", "All settings"),
+        });
+
+    public string ClearStateFilterTooltip =>
+        _localizationService.GetStringOrDefault("View_StateFilter_Clear_Tooltip", "Clear the filter and show all settings");
+
+    // A search that finds nothing is the search's answer; only an empty list caused by the filter alone offers this.
+    public bool IsShowAllVisible =>
+        IsStateFilterActive && string.IsNullOrWhiteSpace(SearchText) && HasNoSearchResults;
+
+    public string ShowAllText => _localizationService.GetStringOrDefault("View_StateFilter_ShowAll", "Show all settings");
+
+    // The page owns the filter and its saved preference, and follows StateFilter when it changes here.
+    [RelayCommand]
+    private void ShowAllSettings() => StateFilter = SettingStateFilter.All;
+
     protected SectionPageViewModel(
         ILogService logService,
         ILocalizationService localizationService,
-        IEnumerable<ISettingsFeatureViewModel> featureViewModels)
+        IEnumerable<ISettingsFeatureViewModel> featureViewModels,
+        IConfigReviewBadgeService badgeService,
+        IConfigReviewModeService reviewModeService,
+        ICatalogSettingsRegistry registry,
+        ICatalogScopeProvider scope,
+        IApplicationModeService modeService)
     {
+        LiveInstanceTracker.Shared.Register(this);
         _logService = logService;
         _localizationService = localizationService;
+        _badgeService = badgeService;
+        _reviewModeService = reviewModeService;
+        _registry = registry;
+        _scope = scope;
+        _modeService = modeService;
         _featureViewModels = featureViewModels.ToList();
+        foreach (var vm in _featureViewModels)
+            vm.PropertyChanged += OnFeaturePropertyChanged;
 
         _viewModelBySectionKey = new Dictionary<string, ISettingsFeatureViewModel>();
 
@@ -88,6 +167,8 @@ public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObj
         SearchText = string.Empty;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
+        _lastMode = _modeService.CurrentMode;
+        _modeService.ModeChanged += OnModeChanged;
     }
 
     public void Dispose()
@@ -95,43 +176,69 @@ public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObj
         if (_disposed) return;
         _disposed = true;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        _modeService.ModeChanged -= OnModeChanged;
+        foreach (var vm in _featureViewModels)
+            vm.PropertyChanged -= OnFeaturePropertyChanged;
+
+        // Each item holds subscriptions to the badge/review services and to every setting it
+        // observes; leaving them attached would keep this page's cards recomputing forever.
+        foreach (var item in OverviewItems)
+            item.Dispose();
+        GC.SuppressFinalize(this);
     }
 
-    /// <summary>
-    /// Must be called from the derived constructor after SectionDefinitions is available,
-    /// to populate the section-key → VM dictionary.
-    /// </summary>
+    // Call from the derived constructor after SectionDefinitions is available.
     protected void InitializeSectionMappings()
     {
         var byModuleId = _featureViewModels.ToDictionary(vm => vm.ModuleId);
+        var overviewItems = new List<SectionOverviewItemViewModel>();
+
         foreach (var section in SectionDefinitions)
         {
-            if (byModuleId.TryGetValue(section.ModuleId, out var vm))
-                _viewModelBySectionKey[section.Key] = vm;
-        }
-    }
+            if (!byModuleId.TryGetValue(section.ModuleId, out var vm))
+                continue;
 
-    /// <summary>
-    /// Looks up a feature ViewModel by its module ID.
-    /// Useful for derived classes to populate named XAML-bound properties.
-    /// </summary>
-    protected ISettingsFeatureViewModel GetFeatureByModuleId(string moduleId)
-    {
-        return _featureViewModels.First(vm => vm.ModuleId == moduleId);
+            _viewModelBySectionKey[section.Key] = vm;
+            overviewItems.Add(new SectionOverviewItemViewModel(
+                section.Key,
+                section.ModuleId,
+                section.IconGlyphKey,
+                vm,
+                _badgeService,
+                _reviewModeService,
+                _localizationService,
+                _registry,
+                _scope,
+                _modeService));
+        }
+
+        OverviewItems = overviewItems;
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        OnPropertyChanged(nameof(PageTitle));
-        OnPropertyChanged(nameof(PageDescription));
-        OnPropertyChanged(nameof(BreadcrumbRootText));
-        OnPropertyChanged(nameof(SearchPlaceholder));
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
     }
 
-    public async Task InitializeAsync()
+    // A feature filters its cards on a later dispatcher turn, so the answer here changes after SearchText has raised.
+    private void OnFeaturePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ISettingsFeatureViewModel.HasVisibleSettings))
+        {
+            OnPropertyChanged(nameof(HasNoSearchResults));
+            OnPropertyChanged(nameof(IsShowAllVisible));
+        }
+    }
+
+    // A later visit is a fresh navigation too, so it refreshes what the overview shows instead of loading again.
+    public virtual async Task InitializeAsync()
     {
         if (_isInitialized)
+        {
+            await RefreshOnNavigationAsync(null);
             return;
+        }
 
         try
         {
@@ -164,7 +271,27 @@ public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObj
         finally
         {
             IsLoading = false;
-            OnPropertyChanged(nameof(IsNotLoading));
+        }
+    }
+
+    // A section shows one feature; the overview summarises every one, so it refreshes them all. Only a rebuild
+    // raises the loader: a state re-read changes values in place and would just flash it.
+    public async Task RefreshOnNavigationAsync(ISettingsFeatureViewModel? section)
+    {
+        IReadOnlyList<ISettingsFeatureViewModel> shown = section is null ? _featureViewModels : [section];
+        bool rebuilds = shown.Any(feature => feature.NeedsRebuild);
+        if (rebuilds)
+            IsLoading = true;
+
+        try
+        {
+            foreach (var feature in shown)
+                await feature.RefreshOnNavigationAsync();
+        }
+        finally
+        {
+            if (rebuilds)
+                IsLoading = false;
         }
     }
 
@@ -173,30 +300,54 @@ public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObj
         SearchText = string.Empty;
     }
 
+    // A search typed in one mode would hide the next mode's settings. Builder to Builder is a target switch, not a new mode.
+    private void OnModeChanged(object? sender, EventArgs e)
+    {
+        var mode = _modeService.CurrentMode;
+        if (mode != WinhanceMode.Builder || _lastMode != WinhanceMode.Builder)
+        {
+            SearchText = string.Empty;
+        }
+        _lastMode = mode;
+    }
+
     public ISettingsFeatureViewModel? GetSectionViewModel(string sectionKey)
     {
         return _viewModelBySectionKey.GetValueOrDefault(sectionKey);
     }
 
-    public string GetSectionDisplayName(string sectionKey)
+    // Asking the sections is deliberate: they are the only thing that knows what they hold; a separate id-to-section
+    // map would be a second copy of that fact, free to drift the moment a setting moves.
+    public string? FindSectionForSetting(string settingId)
     {
-        var section = SectionDefinitions.FirstOrDefault(s => s.Key == sectionKey);
-        if (section != null)
+        if (string.IsNullOrEmpty(settingId)) return null;
+
+        foreach (var (sectionKey, viewModel) in _viewModelBySectionKey)
         {
-            return GetSectionViewModel(sectionKey)?.DisplayName ?? section.DisplayName;
+            foreach (var setting in viewModel.Settings)
+            {
+                if (string.Equals(setting.SettingId, settingId, StringComparison.OrdinalIgnoreCase))
+                    return sectionKey;
+            }
         }
-        return "Overview";
+        return null;
     }
 
-    private void UpdateSearchSuggestions(string searchText)
+    public virtual bool TakesQuickActions(SettingItemViewModel setting) => true;
+
+    // Its cards are filtered as the user types, so the search box does not also suggest them.
+    protected virtual ISettingsFeatureViewModel? SectionOnScreen => GetSectionViewModel(CurrentSectionKey);
+
+    private string GetSectionDisplayName(string sectionKey) =>
+        GetSectionViewModel(sectionKey)?.DisplayName ?? "Overview";
+
+    private List<SearchSuggestionItem> FindSearchSuggestions(string searchText)
     {
-        SearchSuggestions.Clear();
-
+        var suggestions = new List<SearchSuggestionItem>();
         if (string.IsNullOrWhiteSpace(searchText) || searchText.Length < 2)
-            return;
+            return suggestions;
 
-        var searchLower = searchText.ToLowerInvariant();
-        var currentViewModel = GetSectionViewModel(CurrentSectionKey);
+        var currentViewModel = SectionOnScreen;
 
         foreach (var section in SectionDefinitions)
         {
@@ -206,34 +357,25 @@ public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObj
 
             foreach (var setting in viewModel.Settings)
             {
-                if (setting.Name?.ToLowerInvariant().Contains(searchLower) == true ||
-                    setting.Description?.ToLowerInvariant().Contains(searchLower) == true)
+                if (setting.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true ||
+                    setting.Description?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true)
                 {
-                    SearchSuggestions.Add(new SearchSuggestionItem(
+                    suggestions.Add(new SearchSuggestionItem(
                         setting.Name ?? "Unknown",
                         section.Key,
-                        viewModel.DisplayName,
-                        section.IconGlyphKey
-                    ));
+                        viewModel.DisplayName));
 
-                    if (SearchSuggestions.Count >= 5)
-                        return;
+                    if (suggestions.Count >= 5)
+                        return suggestions;
                 }
             }
         }
-    }
 
-    partial void OnIsLoadingChanged(bool value)
-    {
-        OnPropertyChanged(nameof(IsNotLoading));
+        return suggestions;
     }
 
     partial void OnCurrentSectionKeyChanged(string value)
     {
-        OnPropertyChanged(nameof(IsInDetailPage));
-        OnPropertyChanged(nameof(CurrentSectionName));
-        OnPropertyChanged(nameof(HasNoSearchResults));
-
         if (!string.IsNullOrEmpty(SearchText))
         {
             SearchText = string.Empty;
@@ -260,7 +402,6 @@ public abstract partial class SectionPageViewModel<TSectionInfo> : ObservableObj
             }
         }
 
-        UpdateSearchSuggestions(value);
-        OnPropertyChanged(nameof(HasNoSearchResults));
+        SearchSuggestions.ReplaceInPlace(FindSearchSuggestions(value));
     }
 }

@@ -1,54 +1,23 @@
-using System;
+using System.Runtime.CompilerServices;
 using Winhance.Core.Features.Common.Enums;
 
 namespace Winhance.Core.Features.Common.Interfaces;
 
-/// <summary>
-/// Provides logging functionality for the application.
-/// </summary>
+// The compiler fills callerFilePath at every call site and the log line carries that file's type
+// name as its source, so a message never names its own class.
 public interface ILogService
 {
-    /// <summary>
-    /// Starts logging to a file.
-    /// </summary>
     void StartLog();
 
-    /// <summary>
-    /// Logs an informational message.
-    /// </summary>
-    /// <param name="message">The message to log.</param>
-    void LogInformation(string message);
+    void LogInformation(string message, [CallerFilePath] string callerFilePath = "");
 
-    /// <summary>
-    /// Logs a warning message.
-    /// </summary>
-    /// <param name="message">The message to log.</param>
-    void LogWarning(string message);
+    void LogWarning(string message, [CallerFilePath] string callerFilePath = "");
 
-    /// <summary>
-    /// Logs an error message.
-    /// </summary>
-    /// <param name="message">The message to log.</param>
-    /// <param name="exception">The exception associated with the error, if any.</param>
-    void LogError(string message, Exception? exception = null);
+    void LogError(string message, Exception? exception = null, [CallerFilePath] string callerFilePath = "");
 
-    /// <summary>
-    /// Logs a debug message.
-    /// </summary>
-    /// <param name="message">The message to log.</param>
-    void LogDebug(string message);
+    void LogDebug(string message, [CallerFilePath] string callerFilePath = "");
 
-    /// <summary>
-    /// Gets the path to the current log file.
-    /// </summary>
-    /// <returns>The path to the log file.</returns>
     string GetLogPath();
 
-    /// <summary>
-    /// Logs a message with the specified level.
-    /// </summary>
-    /// <param name="level">The log level.</param>
-    /// <param name="message">The message to log.</param>
-    /// <param name="exception">The exception associated with the message, if any.</param>
-    void Log(LogLevel level, string message, Exception? exception = null);
+    void Log(LogLevel level, string message, Exception? exception = null, [CallerFilePath] string callerFilePath = "");
 }

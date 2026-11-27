@@ -1,25 +1,19 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using System.IO.Compression;
+using Windows.Win32;
+using Windows.Win32.System.ApplicationInstallationAndServicing;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class DirectDownloadService : IDirectDownloadService
+internal class DirectDownloadService : IDirectDownloadService
 {
     private readonly ILogService _logService;
     private readonly HttpClient _httpClient;
@@ -41,7 +35,7 @@ public class DirectDownloadService : IDirectDownloadService
         _interactiveUserService = interactiveUserService;
         _processExecutor = processExecutor;
         _fileSystemService = fileSystemService;
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClient = httpClient;
     }
 
     private static readonly string UserAgent = "Winhance-Download-Manager";
@@ -71,7 +65,7 @@ public class DirectDownloadService : IDirectDownloadService
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var downloadUrl = await ResolveDownloadUrlAsync(item, cancellationToken).ConfigureAwait(false);
+            var downloadUrl = await ResolveDownloadUrlAsync(item, GetCurrentArchitecture(), cancellationToken).ConfigureAwait(false);
             if (string.IsNullOrEmpty(downloadUrl))
             {
                 progress?.Report(new TaskProgressDetail
@@ -97,7 +91,6 @@ public class DirectDownloadService : IDirectDownloadService
 
             var downloadedFile = await DownloadFileAsync(downloadUrl, tempPath, item.Name, progress, cancellationToken).ConfigureAwait(false);
 
-            // Try fallback download URL if primary download failed
             if (string.IsNullOrEmpty(downloadedFile) && !string.IsNullOrEmpty(item.ExternalApp?.FallbackDownloadUrl))
             {
                 _logService?.LogInformation($"Primary download failed for {item.Name}, trying fallback URL: {item.ExternalApp.FallbackDownloadUrl}");
@@ -179,7 +172,55 @@ public class DirectDownloadService : IDirectDownloadService
         }
     }
 
-    private async Task<string> ResolveDownloadUrlAsync(ItemDefinition item, CancellationToken cancellationToken)
+    public async Task<string?> DownloadAsync(
+        ItemDefinition item,
+        string architecture,
+        string destinationFolder,
+        IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var downloadUrl = await ResolveDownloadUrlAsync(item, architecture, cancellationToken).ConfigureAwait(false);
+            var downloadedFile = await DownloadFileAsync(downloadUrl, destinationFolder, item.Name, progress, cancellationToken).ConfigureAwait(false);
+
+            if (downloadedFile == null && !string.IsNullOrEmpty(item.ExternalApp?.FallbackDownloadUrl))
+            {
+                _logService?.LogInformation($"Primary download failed for {item.Name}, trying fallback URL: {item.ExternalApp.FallbackDownloadUrl}");
+                downloadedFile = await DownloadFileAsync(item.ExternalApp.FallbackDownloadUrl, destinationFolder, item.Name, progress, cancellationToken).ConfigureAwait(false);
+            }
+
+            return downloadedFile;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logService?.LogWarning($"Could not download {item.Name} for {architecture}: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<bool> InstallFileAsync(
+        string filePath,
+        string displayName,
+        IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await InstallDownloadedFileAsync(filePath, displayName, progress, cancellationToken).ConfigureAwait(false);
+        }
+        catch (NotSupportedException ex)
+        {
+            _logService?.LogError($"Cannot install {displayName}: {ex.Message}");
+            return false;
+        }
+    }
+
+    private async Task<string> ResolveDownloadUrlAsync(ItemDefinition item, string architecture, CancellationToken cancellationToken)
     {
         var externalApp = item.ExternalApp;
         if (externalApp == null)
@@ -193,13 +234,12 @@ public class DirectDownloadService : IDirectDownloadService
                 cancellationToken).ConfigureAwait(false);
         }
 
-        return SelectDownloadUrl(item);
+        return SelectDownloadUrl(item, architecture);
     }
 
-    private string SelectDownloadUrl(ItemDefinition item)
+    private string SelectDownloadUrl(ItemDefinition item, string arch)
     {
-        var arch = GetCurrentArchitecture();
-        _logService?.LogInformation($"Detecting architecture: {arch}");
+        _logService?.LogInformation($"Selecting the download URL for {arch}");
 
         var externalApp = item.ExternalApp;
         if (externalApp == null)
@@ -264,74 +304,90 @@ public class DirectDownloadService : IDirectDownloadService
         return regex.IsMatch(fileName);
     }
 
-    private async Task<string?> DownloadFileAsync(
+    public async Task<string?> DownloadFileAsync(
         string url,
-        string downloadPath,
+        string destinationFolder,
         string displayName,
-        IProgress<TaskProgressDetail>? progress,
-        CancellationToken cancellationToken)
+        IProgress<TaskProgressDetail>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         var fileName = _fileSystemService.GetFileName(new Uri(url).LocalPath);
-        var filePath = _fileSystemService.CombinePath(downloadPath, fileName);
+        var filePath = _fileSystemService.CombinePath(destinationFolder, fileName);
 
         try
         {
-            _logService?.LogInformation($"Downloading {fileName} from {url}...");
+            _fileSystemService.CreateDirectory(destinationFolder);
+            _logService?.LogInformation($"Downloading {displayName} from {url}...");
 
             using var downloadRequest = new HttpRequestMessage(HttpMethod.Get, url);
             downloadRequest.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
             using var response = await _httpClient.SendAsync(downloadRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
-            var totalBytes = response.Content.Headers.ContentLength ?? 0;
-            var totalMB = totalBytes / (1024.0 * 1024.0);
-
-            using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
-
-            var buffer = new byte[8192];
-            long totalRead = 0;
-            int bytesRead;
-            int lastProgress = 0;
-
-            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
-            {
-                await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
-                totalRead += bytesRead;
-
-                if (totalBytes > 0)
+            var totalMB = await SaveWithProgressAsync(response, filePath, 10, 70, (percent, downloadedMB, sizeMB) =>
+                progress?.Report(new TaskProgressDetail
                 {
-                    var progressPercent = (int)((totalRead * 60.0 / totalBytes) + 10);
-                    if (progressPercent > lastProgress)
-                    {
-                        lastProgress = progressPercent;
-                        var downloadedMB = totalRead / (1024.0 * 1024.0);
-
-                        progress?.Report(new TaskProgressDetail
-                        {
-                            Progress = progressPercent,
-                            StatusText = _localization.GetString("Progress_Downloading", displayName),
-                            TerminalOutput = $"{downloadedMB:F2} / {totalMB:F2} MB",
-                            IsActive = true,
-                            IsIndeterminate = false
-                        });
-                    }
-                }
-            }
+                    Progress = percent,
+                    StatusText = _localization.GetString("Progress_Downloading", displayName),
+                    TerminalOutput = $"{downloadedMB:F2} / {sizeMB:F2} MB",
+                    IsActive = true,
+                    IsIndeterminate = false
+                }), cancellationToken).ConfigureAwait(false);
 
             _logService?.LogInformation($"Downloaded {fileName} successfully ({totalMB:F2} MB)");
             return filePath;
         }
         catch (OperationCanceledException)
         {
-            _logService?.LogInformation($"Download of {fileName} was cancelled");
+            _logService?.LogInformation($"Download of {displayName} was cancelled");
             throw;
         }
         catch (Exception ex)
         {
-            _logService?.LogError($"Failed to download {fileName}: {ex.Message}");
+            _logService?.LogError($"Failed to download {displayName} from {url}: {ex.Message}");
             return null;
         }
+    }
+
+    // Streams the response body to disk and maps download progress onto [startPercent, endPercent] of the caller's
+    // task, reporting each new whole percent with the MB done and the MB total. Returns the total size in MB.
+    internal static async Task<double> SaveWithProgressAsync(
+        HttpResponseMessage response,
+        string filePath,
+        int startPercent,
+        int endPercent,
+        Action<int, double, double> report,
+        CancellationToken cancellationToken)
+    {
+        const double BytesPerMB = 1024.0 * 1024.0;
+        var totalBytes = response.Content.Headers.ContentLength ?? 0;
+        var totalMB = totalBytes / BytesPerMB;
+
+        using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+
+        var buffer = new byte[8192];
+        long totalRead = 0;
+        int bytesRead;
+        var lastProgress = 0;
+
+        while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
+            totalRead += bytesRead;
+
+            if (totalBytes > 0)
+            {
+                var percent = (int)((totalRead * (double)(endPercent - startPercent) / totalBytes) + startPercent);
+                if (percent > lastProgress)
+                {
+                    lastProgress = percent;
+                    report(percent, totalRead / BytesPerMB, totalMB);
+                }
+            }
+        }
+
+        return totalMB;
     }
 
     private async Task<bool> InstallDownloadedFileAsync(
@@ -408,14 +464,13 @@ public class DirectDownloadService : IDirectDownloadService
                     cancellationToken).ConfigureAwait(false);
             }
 
-            // Exit code 0 = success, 3010 = success but reboot required
-            if (exitCode != 0 && exitCode != 3010)
+            if (!InstallerExitCode.IsSuccess(exitCode))
             {
                 _logService?.LogError($"MSI installation failed with exit code {exitCode}. See log: {logPath}");
                 return false;
             }
 
-            if (exitCode == 3010)
+            if (exitCode == InstallerExitCode.RebootRequired)
             {
                 _logService?.LogInformation($"MSI installed successfully (reboot required). Log: {logPath}");
             }
@@ -448,28 +503,20 @@ public class DirectDownloadService : IDirectDownloadService
         return result.ExitCode;
     }
 
-    /// <summary>
-    /// Reads the ProductCode GUID from an MSI file using the Windows Installer API.
-    /// Opens the package in query-only mode (IGNOREMACHINESTATE) so no install logic runs.
-    /// </summary>
-    private static string? GetProductCodeFromMsi(string msiPath)
+    // Query-only mode (IGNOREMACHINESTATE) so no install logic runs.
+    private static unsafe string? GetProductCodeFromMsi(string msiPath)
     {
-        const uint MSIOPENPACKAGEFLAGS_IGNOREMACHINESTATE = 1;
-
-        uint result = MsiApi.MsiOpenPackageEx(msiPath, MSIOPENPACKAGEFLAGS_IGNOREMACHINESTATE, out var hProduct);
+        const uint ignoreMachineState = (uint)MSIOPENPACKAGEFLAGS.MSIOPENPACKAGEFLAGS_IGNOREMACHINESTATE;
+        uint result = PInvoke.MsiOpenPackageEx(msiPath, ignoreMachineState, out MsiCloseHandleSafeHandle hProduct);
         if (result != 0)
             return null;
 
-        try
+        using (hProduct)
         {
-            var buffer = new StringBuilder(39); // GUID format {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} = 38 chars + null
-            uint bufferSize = 39;
-            result = MsiApi.MsiGetProductProperty(hProduct, "ProductCode", buffer, ref bufferSize);
-            return result == 0 ? buffer.ToString() : null;
-        }
-        finally
-        {
-            MsiApi.MsiCloseHandle(hProduct);
+            var buffer = new char[39]; // GUID format {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} = 38 chars + null
+            uint bufferSize = (uint)buffer.Length;
+            result = PInvoke.MsiGetProductProperty(hProduct, "ProductCode", buffer, &bufferSize);
+            return result == 0 ? new string(buffer, 0, (int)bufferSize) : null;
         }
     }
 
@@ -522,7 +569,7 @@ public class DirectDownloadService : IDirectDownloadService
                 IsActive = true
             });
 
-            await _processExecutor.ShellExecuteAsync(exePath).ConfigureAwait(false);
+            await _processExecutor.ShellExecuteAsync(exePath, ct: cancellationToken).ConfigureAwait(false);
 
             return true;
         }

@@ -5,12 +5,7 @@ using Xunit;
 
 namespace Winhance.UI.Tests.Helpers;
 
-/// <summary>
-/// Covers the pure, UI-independent parts of <see cref="PageScrollHelper"/>.
-/// The guard logic (<c>ShouldSkipForFocusedElement</c>) walks the visual tree and
-/// cannot be exercised without a live XAML island, so it's verified by code
-/// inspection rather than here.
-/// </summary>
+// ShouldSkipForFocusedElement walks the visual tree and cannot be exercised without a live XAML island.
 public class PageScrollHelperTests
 {
     [Theory]
@@ -36,5 +31,32 @@ public class PageScrollHelperTests
     public void IsPagingKey_ForOtherKeys_ReturnsFalse(VirtualKey key)
     {
         PageScrollHelper.IsPagingKey(key).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(VirtualKey.PageDown, 100, 1000, 5000, 250)]
+    [InlineData(VirtualKey.PageUp, 400, 1000, 5000, 250)]
+    [InlineData(VirtualKey.Home, 400, 1000, 5000, 0)]
+    [InlineData(VirtualKey.End, 400, 1000, 5000, 5000)]
+    public void TargetOffset_StepsAFractionOfTheViewport(VirtualKey key, double offset, double viewport, double scrollable, double expected)
+    {
+        PageScrollHelper.TargetOffset(key, offset, viewport, scrollable).Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(VirtualKey.PageUp, 50, 0)]
+    [InlineData(VirtualKey.PageDown, 4950, 5000)]
+    public void TargetOffset_StaysInsideTheScrollableRange(VirtualKey key, double offset, double expected)
+    {
+        PageScrollHelper.TargetOffset(key, offset, 1000, 5000).Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(VirtualKey.PageDown, 0)]
+    [InlineData(VirtualKey.End, -1)]
+    [InlineData(VirtualKey.Down, 5000)]
+    public void TargetOffset_WithNothingToScrollOrNoPagingKey_IsNull(VirtualKey key, double scrollable)
+    {
+        PageScrollHelper.TargetOffset(key, 0, 1000, scrollable).Should().BeNull();
     }
 }

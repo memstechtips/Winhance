@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Windows.UI.ViewManagement;
@@ -9,22 +10,19 @@ using Windows.UI.ViewManagement;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Service for managing application themes in WinUI 3.
-/// </summary>
 public class ThemeService : IThemeService
 {
     private readonly IUserPreferencesService _userPreferences;
     private readonly IWindowsRegistryService _registryService;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IMainWindowProvider _mainWindowProvider;
+    private readonly IDispatcherService _dispatcherService;
+    private readonly ILogService _logService;
     private readonly UISettings _uiSettings;
     private WinhanceTheme _currentTheme = WinhanceTheme.System;
 
-    /// <inheritdoc />
     public WinhanceTheme CurrentTheme => _currentTheme;
 
-    /// <inheritdoc />
     public event EventHandler<WinhanceTheme>? ThemeChanged;
 
     public ThemeService(
@@ -32,15 +30,18 @@ public class ThemeService : IThemeService
         IWindowsRegistryService registryService,
         IInteractiveUserService interactiveUserService,
         IEventBus eventBus,
-        IMainWindowProvider mainWindowProvider)
+        IMainWindowProvider mainWindowProvider,
+        IDispatcherService dispatcherService,
+        ILogService logService)
     {
         _userPreferences = userPreferences;
         _registryService = registryService;
         _interactiveUserService = interactiveUserService;
         _mainWindowProvider = mainWindowProvider;
+        _dispatcherService = dispatcherService;
+        _logService = logService;
         _uiSettings = new UISettings();
 
-        // Listen for Windows theme changes to update System theme followers
         _uiSettings.ColorValuesChanged += OnWindowsThemeChanged;
 
         // Under OTS, UISettings.ColorValuesChanged tracks the admin's theme.
@@ -51,19 +52,16 @@ public class ThemeService : IThemeService
         }
     }
 
-    /// <inheritdoc />
     public void SetTheme(WinhanceTheme theme)
     {
         _currentTheme = theme;
         ApplyTheme(theme);
 
-        // Save preference asynchronously (fire and forget since UI has already updated)
-        _ = SaveThemePreferenceAsync(theme);
+        _userPreferences.SetPreferenceAsync(UserPreferenceKeys.Theme, theme.ToString()).FireAndForget(_logService);
 
         ThemeChanged?.Invoke(this, theme);
     }
 
-    /// <inheritdoc />
     public void LoadSavedTheme()
     {
         // Load theme preference synchronously to avoid async/await deadlock on UI thread
@@ -75,12 +73,11 @@ public class ThemeService : IThemeService
     {
         try
         {
-            // Use synchronous method to get preference to avoid deadlock
-            var themeString = _userPreferences.GetPreference<string>("Theme", string.Empty);
+            var themeString = _userPreferences.GetPreference<string>(UserPreferenceKeys.Theme, string.Empty);
 
             if (string.IsNullOrEmpty(themeString))
             {
-                return WinhanceTheme.System; // Default to following Windows
+                return WinhanceTheme.System;
             }
 
             if (Enum.TryParse<WinhanceTheme>(themeString, out var theme))
@@ -96,7 +93,6 @@ public class ThemeService : IThemeService
         return WinhanceTheme.System;
     }
 
-    /// <inheritdoc />
     public ElementTheme GetEffectiveTheme()
     {
         return _currentTheme switch
@@ -134,42 +130,6 @@ public class ThemeService : IThemeService
         }
     }
 
-    private async Task SaveThemePreferenceAsync(WinhanceTheme theme)
-    {
-        try
-        {
-            await _userPreferences.SetPreferenceAsync("Theme", theme.ToString());
-        }
-        catch
-        {
-            // Silently ignore save failures - theme is already applied in memory
-        }
-    }
-
-    private async Task<WinhanceTheme> LoadThemePreferenceAsync()
-    {
-        try
-        {
-            var themeString = await _userPreferences.GetPreferenceAsync<string>("Theme", string.Empty);
-
-            if (string.IsNullOrEmpty(themeString))
-            {
-                return WinhanceTheme.System; // Default to following Windows
-            }
-
-            if (Enum.TryParse<WinhanceTheme>(themeString, out var theme))
-            {
-                return theme;
-            }
-        }
-        catch
-        {
-            // Fall through to default
-        }
-
-        return WinhanceTheme.System;
-    }
-
     private bool IsWindowsDarkTheme()
     {
         if (_interactiveUserService.IsOtsElevation)
@@ -189,10 +149,11 @@ public class ThemeService : IThemeService
 
     private void OnSettingApplied(SettingAppliedEvent evt)
     {
-        if (evt.SettingId != SettingIds.ThemeModeWindows || _currentTheme != WinhanceTheme.System)
+        // No window yet means the dispatcher is not initialized and there is nothing to theme.
+        if (evt.SettingId != "theme-mode-windows" || _currentTheme != WinhanceTheme.System || _mainWindowProvider.MainWindow is null)
             return;
 
-        _mainWindowProvider.MainWindow?.DispatcherQueue.TryEnqueue(() =>
+        _dispatcherService.Enqueue(() =>
         {
             ApplyTheme(WinhanceTheme.System);
             ThemeChanged?.Invoke(this, WinhanceTheme.System);
@@ -201,11 +162,9 @@ public class ThemeService : IThemeService
 
     private void OnWindowsThemeChanged(UISettings sender, object args)
     {
-        // Only react if we're following system theme
-        if (_currentTheme == WinhanceTheme.System)
+        if (_currentTheme == WinhanceTheme.System && _mainWindowProvider.MainWindow is not null)
         {
-            // Must dispatch to UI thread
-            _mainWindowProvider.MainWindow?.DispatcherQueue.TryEnqueue(() =>
+            _dispatcherService.Enqueue(() =>
             {
                 // Under OTS, re-apply explicitly since ElementTheme.Default tracks the admin
                 if (_interactiveUserService.IsOtsElevation)

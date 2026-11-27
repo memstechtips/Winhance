@@ -8,144 +8,167 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.System;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Services;
 using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Common.Utilities;
+using Winhance.UI.Features.Common.ViewModels;
+using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Winhance.UI.Helpers;
 using Winhance.UI.ViewModels;
-using System;
 using System.ComponentModel;
-using System.Threading.Tasks;
 using Windows.Foundation;
+using Winhance.UI.Features.Common.Helpers;
 
 namespace Winhance.UI;
 
-/// <summary>
-/// Main application window with custom NavSidebar navigation.
-/// Delegates task progress, navigation, startup, and title bar management to helper classes.
-/// </summary>
-public sealed partial class MainWindow : Window, INotifyPropertyChanged
+public sealed partial class MainWindow : Window
 {
-    private MainWindowViewModel? _viewModel;
+    private readonly IDispatcherService _dispatcherService = App.Services.GetRequiredService<IDispatcherService>();
     private WindowSizeManager? _windowSizeManager;
+
+    private const double CompactPaneBelowWidth = 1008;
+    private bool _isNarrowWindow;
+    private bool _paneCompactedForWidth;
     private UiZoomManager? _uiZoomManager;
+    private IDebounceTimer? _zoomIndicatorTimer;
+    private ZoomIndicator? _zoomIndicator;
     private IConfigReviewService? _configReviewService;
+    private IApplicationModeService? _applicationModeService;
     private INavBadgeService? _navBadgeService;
     private ILogService? _logService;
     private bool _isStartupLoading = true;
 
-    // Helper classes (Phases 2-5)
     private TaskProgressCoordinator? _taskProgressCoordinator;
     private NavigationRouter? _navigationRouter;
+    private readonly NavHistory _navHistory = new();
+    private MemoryDiagnostics? _memoryDiagnostics;
+    private WinhanceMode _lastMode = WinhanceMode.Normal;
     private StartupUiCoordinator? _startupUiCoordinator;
     private TitleBarManager? _titleBarManager;
+    private TrayController? _trayController;
 
-    /// <summary>
-    /// ViewModel exposed for x:Bind in XAML. Raises PropertyChanged so bindings update
-    /// when the ViewModel is assigned after construction.
-    /// </summary>
-    public MainWindowViewModel? ViewModel
-    {
-        get => _viewModel;
-        private set
-        {
-            if (_viewModel != value)
-            {
-                _viewModel = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ViewModel)));
-            }
-        }
-    }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
+    // Assigned after construction; Bindings.Update() refreshes x:Bind once it is set.
+    public MainWindowViewModel? ViewModel { get; private set; }
 
     public MainWindow()
     {
-        StartupLogger.Log("MainWindow", "Constructor starting...");
+        StartupLogger.Log("Constructor starting...");
         this.InitializeComponent();
-        StartupLogger.Log("MainWindow", "InitializeComponent completed");
-
-        // Extend content into title bar for custom title bar experience
-        ExtendsContentIntoTitleBar = true;
-        SetTitleBar(AppTitleBar);
-
-        // Set tall title bar mode so caption buttons fill the full height
-        this.AppWindow.TitleBar.PreferredHeightOption = Microsoft.UI.Windowing.TitleBarHeightOption.Tall;
-
-        // Create TitleBarManager and apply theme-aware caption button colors
-        _titleBarManager = new TitleBarManager(this.AppWindow, _logService);
-        RootGrid.ActualThemeChanged += (_, _) => _titleBarManager.ApplyThemeToCaptionButtons(RootGrid.ActualTheme);
-        RootGrid.Loaded += (_, _) => _titleBarManager.ApplyThemeToCaptionButtons(RootGrid.ActualTheme);
-
-        // Initialize window size manager for position/size persistence
-        InitializeWindowSizeManager();
-
-        // Initialize app-local UI zoom (Ctrl +/-/0, Ctrl+MouseWheel)
-        InitializeUiZoom();
-
-        // Apply Mica backdrop (Windows 11) with fallback to DesktopAcrylic (Windows 10)
-        TrySetMicaBackdrop();
+        StartupLogger.Log("InitializeComponent completed");
 
         // Initialize DispatcherService - MUST be done before any service uses it
         InitializeDispatcherService();
 
-        // Apply initial FlowDirection for RTL languages and subscribe to language changes
+        ExtendsContentIntoTitleBar = true;
+        SetTitleBar(AppTitleBar);
+
+        this.AppWindow.TitleBar.PreferredHeightOption = Microsoft.UI.Windowing.TitleBarHeightOption.Tall;
+        WindowIcon.Apply(this.AppWindow);
+
+        _titleBarManager = new TitleBarManager(this.AppWindow, _logService);
+        RootGrid.ActualThemeChanged += RootGrid_ActualThemeChanged;
+
+        InitializeWindowSizeManager();
+
+        InitializeTray();
+
+        InitializeUiZoom();
+
+        TrySetMicaBackdrop();
+
         InitializeFlowDirection();
 
-        // Set up title bar after loaded
         AppTitleBar.Loaded += AppTitleBar_Loaded;
 
-        // Set default navigation after sidebar is loaded
         NavSidebar.Loaded += NavSidebar_Loaded;
+        ContentFrame.Navigated += ContentFrame_Navigated;
+        RootGrid.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(RootGrid_PointerPressed), handledEventsToo: true);
     }
 
-    #region Startup & Initialization
+    private void ContentFrame_Navigated(object sender, Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
+    {
+        _memoryDiagnostics?.LogNavigation(e.Content as Page);
+        // Every page drops elements on the way out, cached ones included (Optimize and Customize close their
+        // open section), so every navigation releases them.
+        NativeHeaps.ReleaseDroppedMemoryLater(_dispatcherService, _logService!);
+        var tag = _navigationRouter?.GetTagForCurrentPage(e.SourcePageType);
+        DocsButton.CommandParameter = tag;
+        NavSidebar.CurrentPageTag = tag;
+        _navHistory.Arrived(tag);
+        BackButton.IsEnabled = _navHistory.CanGoBack;
+    }
 
-    /// <summary>
-    /// Sets the default navigation item after the NavSidebar is loaded.
-    /// </summary>
+    private void BackButton_Click(object sender, RoutedEventArgs e) => GoBackAsync().FireAndForget(_logService!);
+
+    private void BackAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        GoBackAsync().FireAndForget(_logService!);
+        args.Handled = true;
+    }
+
+    // The mouse's back button (XButton1), which most apps treat as Back.
+    private void RootGrid_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(RootGrid).Properties.IsXButton1Pressed) return;
+        GoBackAsync().FireAndForget(_logService!);
+        e.Handled = true;
+    }
+
+    private async Task GoBackAsync()
+    {
+        if (_navHistory.BeginBack() is not { } tag) return;
+        try
+        {
+            await OpenPageAsync(tag);
+        }
+        finally
+        {
+            _navHistory.EndBack();
+            BackButton.IsEnabled = _navHistory.CanGoBack;
+        }
+    }
+
     private void NavSidebar_Loaded(object sender, RoutedEventArgs e)
     {
-        StartupLogger.Log("MainWindow", "NavSidebar_Loaded");
+        StartupLogger.Log("NavSidebar_Loaded");
         NavSidebar.MoreMenuClosed += NavSidebar_MoreMenuClosed;
 
         // Skip auto-navigation during startup -- CompleteStartup() will trigger it
         if (_isStartupLoading)
         {
-            StartupLogger.Log("MainWindow", "Startup loading in progress, deferring navigation");
+            StartupLogger.Log("Startup loading in progress, deferring navigation");
             return;
         }
 
         NavSidebar.SelectedTag = "SoftwareApps";
         _navigationRouter?.NavigateToPage(ContentFrame, "SoftwareApps", applyNavBadges: ApplyNavBadges);
-        StartupLogger.Log("MainWindow", "SoftwareApps selected");
+        StartupLogger.Log("SoftwareApps selected");
     }
 
-    /// <summary>
-    /// Kicks off the async startup sequence. Called by App.xaml.cs after Activate + InitializeTheme.
-    /// </summary>
+    // Called by App.xaml.cs after Activate + InitializeTheme.
     public void StartStartupOperations()
     {
-        StartupLogger.Log("MainWindow", "StartStartupOperations called");
+        StartupLogger.Log("StartStartupOperations called");
 
-        _startupUiCoordinator = new StartupUiCoordinator(this.DispatcherQueue, _logService);
+        _startupUiCoordinator = new StartupUiCoordinator(_dispatcherService, _logService!);
         _startupUiCoordinator.InitializeLoadingOverlay(
-            LoadingTitleText, LoadingTaglineText, LoadingStatusText, LoadingLogo, RootGrid);
+            LoadingTitleText, LoadingTaglineText, LoadingStatusText);
+        _startupUiCoordinator.ShowLoadingSponsors(LoadingContent);
 
-        _ = _startupUiCoordinator.RunStartupAndCompleteAsync(
+        _startupUiCoordinator.RunStartupAndCompleteAsync(
             LoadingStatusText, ContentFrame, NavSidebar, LoadingOverlay, () => ViewModel,
-            markStartupComplete: () => _isStartupLoading = false);
+            markStartupComplete: () => _isStartupLoading = false).FireAndForget(_logService!);
     }
 
-    /// <summary>
-    /// Initializes the WindowSizeManager for window position/size persistence
-    /// and wires up ApplicationCloseService for proper shutdown with the sponsors dialog.
-    /// </summary>
     private void InitializeWindowSizeManager()
     {
         try
@@ -153,20 +176,18 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             var userPreferencesService = App.Services.GetRequiredService<IUserPreferencesService>();
             _logService = App.Services.GetRequiredService<ILogService>();
             _windowSizeManager = new WindowSizeManager(this.AppWindow, userPreferencesService, _logService);
-            _windowSizeManager.InitializeAsync().FireAndForget(_logService!);
+            _windowSizeManager.Initialize();
 
             var applicationCloseService = App.Services.GetRequiredService<IApplicationCloseService>();
             applicationCloseService.BeforeShutdown = async () =>
             {
+                _memoryDiagnostics?.LogExit();
+                _trayController?.RemoveIcon();
                 if (_windowSizeManager != null)
                     await _windowSizeManager.SaveWindowSettingsAsync();
             };
 
-            this.AppWindow.Closing += async (sender, args) =>
-            {
-                args.Cancel = true;
-                await applicationCloseService.CheckOperationsAndCloseAsync();
-            };
+            this.AppWindow.Closing += AppWindow_Closing;
         }
         catch (Exception ex)
         {
@@ -175,10 +196,36 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    /// <summary>
-    /// Wires up app-local UI zoom: the UiZoomManager, the OemPlus/OemMinus accelerators
-    /// that XAML can't express, and Ctrl+MouseWheel.
-    /// </summary>
+    private void AppWindow_Closing(Microsoft.UI.Windowing.AppWindow sender, Microsoft.UI.Windowing.AppWindowClosingEventArgs args)
+    {
+        args.Cancel = true;
+        if (_trayController?.TryHideOnClose() == true)
+            return;
+        App.Services.GetRequiredService<IApplicationCloseService>().CheckOperationsAndCloseAsync().FireAndForget(_logService!);
+    }
+
+    private void InitializeTray()
+    {
+        try
+        {
+            _trayController = App.Services.GetRequiredService<TrayController>();
+            _trayController.Attach(this, ShowAppUpdates);
+        }
+        catch (Exception ex)
+        {
+            _logService?.LogError("Failed to set up the tray icon", ex);
+        }
+    }
+
+    private void ShowAppUpdates()
+    {
+        NavSidebar.SelectedTag = "SoftwareApps";
+        _navigationRouter?.NavigateToPage(ContentFrame, "SoftwareApps", applyNavBadges: ApplyNavBadges);
+        var softwareApps = App.Services.GetRequiredService<SoftwareAppsViewModel>();
+        softwareApps.ShowAppUpdates();
+    }
+
+    // The OemPlus/OemMinus accelerators XAML can't express, and Ctrl+MouseWheel.
     private void InitializeUiZoom()
     {
         try
@@ -214,9 +261,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         return accelerator;
     }
 
-    /// <summary>
-    /// Attempts to set Mica backdrop for Windows 11, falls back to DesktopAcrylic for Windows 10.
-    /// </summary>
+    // Mica on Windows 11, DesktopAcrylic fallback on Windows 10.
     private void TrySetMicaBackdrop()
     {
         try
@@ -237,39 +282,22 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    /// <summary>
-    /// Sets the initial FlowDirection based on the current language and subscribes to language changes.
-    /// </summary>
     private void InitializeFlowDirection()
     {
         try
         {
-            var localizationService = App.Services.GetService<ILocalizationService>();
-            if (localizationService != null)
-            {
-                ApplyFlowDirection(localizationService.IsRightToLeft);
-                localizationService.LanguageChanged += (_, _) =>
-                {
-                    DispatcherQueue.TryEnqueue(() =>
-                    {
-                        ApplyFlowDirection(localizationService.IsRightToLeft);
-
-                        // Refresh locked nav button tooltip in the new language
-                        var advancedToolsButton = NavSidebar.GetButton("AdvancedTools");
-                        if (advancedToolsButton?.IsLocked == true)
-                        {
-                            ToolTipService.SetToolTip(advancedToolsButton,
-                                localizationService.GetString("Nav_AdvancedTools_Locked_Tooltip") ?? "Unavailable during config review");
-                        }
-                    });
-                };
-            }
+            var localizationService = App.Services.GetRequiredService<ILocalizationService>();
+            ApplyFlowDirection(localizationService.IsRightToLeft);
+            localizationService.LanguageChanged += LocalizationService_LanguageChanged;
         }
         catch (Exception ex)
         {
             _logService?.LogDebug($"Failed to initialize FlowDirection: {ex.Message}");
         }
     }
+
+    private void LocalizationService_LanguageChanged(object? sender, EventArgs e) =>
+        _dispatcherService.Enqueue(() => ApplyFlowDirection(App.Services.GetRequiredService<ILocalizationService>().IsRightToLeft));
 
     private void ApplyFlowDirection(bool isRightToLeft)
     {
@@ -287,14 +315,17 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     private void RootGrid_Loaded(object sender, RoutedEventArgs e)
     {
         InitializeDialogService();
+        _titleBarManager?.ApplyThemeToCaptionButtons(RootGrid.ActualTheme);
     }
+
+    private void RootGrid_ActualThemeChanged(FrameworkElement sender, object args) =>
+        _titleBarManager?.ApplyThemeToCaptionButtons(RootGrid.ActualTheme);
 
     private void InitializeDispatcherService()
     {
         try
         {
-            var dispatcherService = App.Services.GetRequiredService<IDispatcherService>();
-            if (dispatcherService is DispatcherService concreteService)
+            if (_dispatcherService is DispatcherService concreteService)
             {
                 concreteService.Initialize(this.DispatcherQueue);
             }
@@ -321,109 +352,129 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    #endregion
-
-    #region Title Bar
-
-    /// <summary>
-    /// Called when the title bar is loaded. Sets up ViewModel bindings and padding.
-    /// </summary>
     private void AppTitleBar_Loaded(object sender, RoutedEventArgs e)
     {
         _titleBarManager?.SetTitleBarPadding(
             LeftPaddingColumn, RightPaddingColumn, AppTitleBar, RootGrid.FlowDirection);
 
         // Defer passthrough region setup to ensure all elements are laid out
-        DispatcherQueue.TryEnqueue(() =>
-            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons, ModeSwitcher));
+        _dispatcherService.Enqueue(() =>
+            _titleBarManager?.SetPassthroughRegions(AppTitleBar, NavButtons, TitleBarButtons, ModeSwitcher));
 
-        AppTitleBar.SizeChanged += (_, _) =>
-            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons, ModeSwitcher);
-        TitleBarButtons.SizeChanged += (_, _) =>
-            _titleBarManager?.SetPassthroughRegions(AppTitleBar, PaneToggleButton, TitleBarButtons, ModeSwitcher);
+        FitTitleBar();
+        FitNavPane(AppTitleBar.ActualWidth);
+        AppTitleBar.SizeChanged += AppTitleBar_SizeChanged;
+        TitleBarButtons.SizeChanged += TitleBarButtons_SizeChanged;
+        // A language switch changes the labels' length without resizing the window.
+        ModeSwitcher.SizeChanged += ModeSwitcher_SizeChanged;
+        // A Grid whose columns overflow reports their width, not the window's, and stops raising SizeChanged as the
+        // window narrows further, so the title bar and the mode bars are fitted to the window content instead.
+        RootGrid.SizeChanged += RootGrid_SizeChanged;
 
-        // Initialize ViewModel and wire up bindings
         InitializeViewModel();
     }
 
-    /// <summary>
-    /// Initializes the ViewModel and wires up button commands and helper classes.
-    /// </summary>
+    private void AppTitleBar_SizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        FitTitleBar();
+        FitNavPane(args.NewSize.Width);
+        _titleBarManager?.SetPassthroughRegions(AppTitleBar, NavButtons, TitleBarButtons, ModeSwitcher);
+    }
+
+    private void TitleBarButtons_SizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        FitTitleBar();
+        _titleBarManager?.SetPassthroughRegions(AppTitleBar, NavButtons, TitleBarButtons, ModeSwitcher);
+    }
+
+    private void ModeSwitcher_SizeChanged(object sender, SizeChangedEventArgs args) => FitTitleBar();
+
+    private void RootGrid_SizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        FitTitleBar();
+        FitModeBars();
+    }
+
     private void InitializeViewModel()
     {
         try
         {
-            ViewModel = App.Services.GetService<MainWindowViewModel>();
+            ViewModel = App.Services.GetRequiredService<MainWindowViewModel>();
 
-            if (ViewModel != null)
+            WindowsFilterButton.Command = ViewModel.ToggleWindowsFilterCommand;
+            DonateButton.Command = ViewModel.DonateCommand;
+            BugReportButton.Command = ViewModel.BugReportCommand;
+            DocsButton.Command = ViewModel.DocsCommand;
+
+            ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+            ViewModel.UpdateCheck.PropertyChanged += UpdateCheck_PropertyChanged;
+            ViewModel.ReviewModeBar.PropertyChanged += ReviewModeBar_PropertyChanged;
+            ViewModel.BuilderModeBar.PropertyChanged += BuilderModeBar_PropertyChanged;
+
+            ViewModel.Initialize();
+
+            UpdateAppIcon();
+
+            if (App.Services.GetRequiredService<IVersionService>().GetCurrentVersion().IsBeta)
             {
-                // Wire up button commands
-                WindowsFilterButton.Command = ViewModel.ToggleWindowsFilterCommand;
-                DonateButton.Command = ViewModel.DonateCommand;
-                BugReportButton.Command = ViewModel.BugReportCommand;
-                DocsButton.Command = ViewModel.DocsCommand;
-
-                // Set initial filter button icon
-                UpdateFilterButtonIcon();
-
-                // Subscribe to property changes that require code-behind
-                // (Narrator announcements, icon conversion, dynamic button creation, filter icon opacity)
-                ViewModel.PropertyChanged += ViewModel_PropertyChanged;
-                ViewModel.UpdateCheck.PropertyChanged += UpdateCheck_PropertyChanged;
-                ViewModel.ReviewModeBar.PropertyChanged += ReviewModeBar_PropertyChanged;
-                ViewModel.BuilderModeBar.PropertyChanged += BuilderModeBar_PropertyChanged;
-
-                // Deferred initialization: subscribes to events and sets initial state
-                ViewModel.Initialize();
-
-                // Set initial icon
-                UpdateAppIcon();
-
-                // Show beta banner if this is a beta build
-                var versionService = App.Services.GetService<IVersionService>();
-                if (versionService?.GetCurrentVersion().IsBeta == true)
+                var banner = new TextBlock
                 {
-                    BetaBannerText.Visibility = Visibility.Visible;
-                }
-
-                // Pass ViewModel to NavSidebar for localized nav button text
-                NavSidebar.ViewModel = ViewModel;
-
-                // Wire up Task Progress Coordinator (Phase 2)
-                _taskProgressCoordinator = new TaskProgressCoordinator(
-                    TaskProgressControl, TaskProgressControl2, TaskProgressControl3,
-                    _logService!, this.DispatcherQueue);
-
-                TaskProgressControl.CancelCommand = ViewModel.TaskProgress.CancelCommand;
-                TaskProgressControl.CancelText = ViewModel.TaskProgress.CancelButtonLabel;
-                TaskProgressControl.ShowDetailsCommand = ViewModel.TaskProgress.ShowDetailsCommand;
-                TaskProgressControl2.ShowDetailsCommand = ViewModel.TaskProgress.ShowDetailsCommand;
-                TaskProgressControl3.ShowDetailsCommand = ViewModel.TaskProgress.ShowDetailsCommand;
-
-                ViewModel.TaskProgress.PropertyChanged += (s, e) =>
-                    _taskProgressCoordinator?.HandlePropertyChanged(ViewModel.TaskProgress, e.PropertyName);
-                ViewModel.TaskProgress.ScriptProgressReceived +=
-                    (slotIndex, detail) => _taskProgressCoordinator?.HandleScriptProgressReceived(slotIndex, detail);
-
-                // Wire up Navigation Router (Phase 3)
-                _configReviewService = App.Services.GetService<IConfigReviewService>();
-                _navBadgeService = App.Services.GetService<INavBadgeService>();
-                _navigationRouter = new NavigationRouter(
-                    _configReviewService, _navBadgeService, this.DispatcherQueue);
-
-                // Subscribe to review mode badge events
-                if (_configReviewService != null)
-                {
-                    _configReviewService.ReviewModeChanged += OnReviewModeBadgeChanged;
-                    _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
-                }
-
-                // Load filter preference asynchronously
-                _ = ViewModel.LoadFilterPreferenceAsync();
-
-                // Notify x:Bind that ViewModel is now available
-                Bindings.Update();
+                    Text = "Release-Preview: Version is for Testing Only",
+                    Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0xE7, 0x4C, 0x3C)),
+                    FontSize = 12,
+                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(12, 0, 0, 0),
+                    IsHitTestVisible = false,
+                };
+                Grid.SetColumn(banner, 4);
+                AppTitleBar.Children.Add(banner);
             }
+
+            NavSidebar.ViewModel = ViewModel;
+
+            _taskProgressCoordinator = new TaskProgressCoordinator(
+                TaskProgressControl, TaskProgressControl2, TaskProgressControl3,
+                App.Services.GetRequiredService<ITaskProgressService>(), _dispatcherService);
+
+            TaskProgressControl.CancelCommand = ViewModel.TaskProgress.CancelCommand;
+            TaskProgressControl.CancelText = ViewModel.TaskProgress.CancelButtonLabel;
+            TaskProgressControl.ShowDetailsCommand = ViewModel.TaskProgress.ShowDetailsCommand;
+            TaskProgressControl2.ShowDetailsCommand = ViewModel.TaskProgress.ShowDetailsCommand;
+            TaskProgressControl3.ShowDetailsCommand = ViewModel.TaskProgress.ShowDetailsCommand;
+
+            // Pending Explorer restart bar. The pending state changes on background apply threads,
+            // so the ViewModel's notification is marshalled onto the dispatcher before Refresh()
+            // touches any bound property.
+            PendingRestartBar.ViewModel = App.Services.GetRequiredService<PendingRestartViewModel>();
+
+            ViewModel.TaskProgress.PropertyChanged += TaskProgress_PropertyChanged;
+            ViewModel.TaskProgress.ScriptProgressReceived += TaskProgress_ScriptProgressReceived;
+
+            _configReviewService = App.Services.GetRequiredService<IConfigReviewService>();
+            _navBadgeService = App.Services.GetRequiredService<INavBadgeService>();
+            _navigationRouter = new NavigationRouter(
+                _configReviewService, _navBadgeService, _dispatcherService, new PageCurtain(ContentFrame, PageLoader, _logService!));
+
+            _configReviewService.ReviewModeChanged += OnReviewModeBadgeChanged;
+            _configReviewService.BadgeStateChanged += OnBadgeStateChanged;
+
+            _memoryDiagnostics = App.Services.GetRequiredService<MemoryDiagnostics>();
+            _memoryDiagnostics.Attach(this);
+            _memoryDiagnostics.Log("startup");
+
+            _applicationModeService = App.Services.GetRequiredService<IApplicationModeService>();
+            _applicationModeService.ModeChanged += OnApplicationModeChangedForNavLocks;
+            LeaveUnavailablePage();
+
+            App.Services.GetRequiredService<IEventBus>().Subscribe<PageRequestedEvent>(request =>
+                _dispatcherService.Enqueue(() => OpenRequestedPageAsync(request).FireAndForget(_logService!)));
+
+            ViewModel.LoadFilterPreference();
+
+            // Notify x:Bind that ViewModel is now available
+            Bindings.Update();
         }
         catch (Exception ex)
         {
@@ -431,19 +482,113 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    #endregion
+    private void TaskProgress_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (ViewModel is { } vm)
+            _taskProgressCoordinator?.HandlePropertyChanged(vm.TaskProgress, e.PropertyName);
+    }
 
-    #region Navigation
+    private void TaskProgress_ScriptProgressReceived(int slotIndex, TaskProgressDetail detail) =>
+        _taskProgressCoordinator?.HandleScriptProgressReceived(slotIndex, detail);
 
     private void PaneToggleButton_Click(object sender, RoutedEventArgs e)
     {
+        _paneCompactedForWidth = false;
         NavSidebar.TogglePane();
+    }
+
+    // The mode labels go first, since each mode button keeps its icon and tooltip, then the app title, then the
+    // Support text.
+    private void FitTitleBar()
+    {
+        UIElement[] modeLabels = [ModeLabelText, NormalModeText, BuilderModeText, ConfigReviewModeText];
+        FitToWidth.Apply(
+            RootGrid.ActualWidth,
+            TitleBarContentWidth,
+            reset: () => FitToWidth.SetVisible(true, [.. modeLabels, AppTitleStack, SupportButtonText]),
+            () => FitToWidth.SetVisible(false, modeLabels),
+            () => FitToWidth.SetVisible(false, AppTitleStack),
+            () => FitToWidth.SetVisible(false, SupportButtonText));
+    }
+
+    private ReviewModeBar? _reviewModeBar;
+    private BuilderModeBar? _builderModeBar;
+    private OtsElevationBanner? _otsElevationBanner;
+    private UpdateBanner? _updateBanner;
+
+    private void FitModeBars()
+    {
+        _builderModeBar?.Fit(RootGrid.ActualWidth);
+        _reviewModeBar?.Fit(RootGrid.ActualWidth);
+    }
+
+    // The mode bars and banners are built when they show and dropped when they hide. x:Load cannot do this in a
+    // Window: the generated code calls FindName, which a Window does not have.
+    private T? ShowPart<T>(T? part, bool show, int row, Func<T> create, Panel? host = null) where T : FrameworkElement
+    {
+        host ??= RootGrid;
+        if (!show)
+        {
+            if (part is not null)
+                host.Children.Remove(part);
+            return null;
+        }
+
+        if (part is not null)
+            return part;
+
+        part = create();
+        Grid.SetRow(part, row);
+        host.Children.Add(part);
+        return part;
+    }
+
+    private T FitsToWindow<T>(T bar) where T : FrameworkElement
+    {
+        bar.SizeChanged += ModeBar_SizeChanged;
+        return bar;
+    }
+
+    private void ModeBar_SizeChanged(object sender, SizeChangedEventArgs args) => FitModeBars();
+
+    private double TitleBarContentWidth()
+    {
+        var unbounded = new Size(double.PositiveInfinity, double.PositiveInfinity);
+        double width = LeftPaddingColumn.ActualWidth + RightPaddingColumn.ActualWidth;
+        foreach (var element in new FrameworkElement[] { NavButtons, AppIcon, AppTitleStack, ModeSwitcher, TitleBarButtons })
+        {
+            element.Measure(unbounded);
+            width += element.DesiredSize.Width;
+        }
+
+        return width;
+    }
+
+    // Below Microsoft's 1008px large-window breakpoint the pane gives its width to the page. It comes back when the
+    // window widens again, unless the user has toggled it in between.
+    private void FitNavPane(double windowWidth)
+    {
+        bool narrow = windowWidth < CompactPaneBelowWidth;
+        if (narrow == _isNarrowWindow)
+            return;
+
+        _isNarrowWindow = narrow;
+        if (narrow && NavSidebar.IsPaneOpen)
+        {
+            NavSidebar.IsPaneOpen = false;
+            _paneCompactedForWidth = true;
+        }
+        else if (!narrow && _paneCompactedForWidth)
+        {
+            NavSidebar.IsPaneOpen = true;
+            _paneCompactedForWidth = false;
+        }
     }
 
     private void NavSidebar_ItemClicked(object sender, NavButtonClickedEventArgs e)
     {
         var tag = e.NavigationTag?.ToString();
-        StartupLogger.Log("MainWindow", $"NavSidebar_ItemClicked - Tag: {tag}");
+        StartupLogger.Log($"NavSidebar_ItemClicked - Tag: {tag}");
 
         if (tag == "More")
         {
@@ -451,10 +596,39 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
-        _navigationRouter?.NavigateToPage(ContentFrame, tag, applyNavBadges: ApplyNavBadges);
+        OpenPageAsync(tag).FireAndForget(_logService!);
     }
 
-    private void NavSidebar_MoreMenuClosed(object? sender, EventArgs e)
+    // Unattend and WIMUtil are never locked: the view model asks before changing mode, and a no keeps the current page.
+    private async Task<bool> OpenPageAsync(string? tag)
+    {
+        if (tag is null || ViewModel is not { } viewModel || !await viewModel.RequestPageAsync(tag))
+        {
+            SelectCurrentPage();
+            return false;
+        }
+
+        NavSidebar.SelectedTag = tag;
+        if (_navigationRouter is { } router)
+            await router.NavigateToPage(ContentFrame, tag, applyNavBadges: ApplyNavBadges);
+        return true;
+    }
+
+    private async Task OpenRequestedPageAsync(PageRequestedEvent request)
+    {
+        if (!await OpenPageAsync(request.PageTag) || request.PageTag != "SoftwareApps")
+            return;
+
+        var softwareApps = App.Services.GetRequiredService<SoftwareAppsViewModel>();
+        if (request.FeatureId == FeatureIds.ExternalApps)
+            softwareApps.IsExternalAppsTabSelected = true;
+        else if (request.FeatureId == FeatureIds.WindowsApps)
+            softwareApps.IsWindowsAppsTabSelected = true;
+    }
+
+    private void NavSidebar_MoreMenuClosed(object? sender, EventArgs e) => SelectCurrentPage();
+
+    private void SelectCurrentPage()
     {
         var currentTag = _navigationRouter?.GetTagForCurrentPage(ContentFrame.CurrentSourcePageType);
         if (!string.IsNullOrEmpty(currentTag))
@@ -463,47 +637,67 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    #endregion
-
-    #region Review Mode Badges
-
     private void OnReviewModeBadgeChanged(object? sender, EventArgs e)
     {
-        DispatcherQueue.TryEnqueue(() =>
+        _dispatcherService.Enqueue(() =>
         {
             if (_configReviewService?.IsInReviewMode == true)
             {
                 _navBadgeService?.SubscribeToSoftwareAppsChanges(() =>
-                    DispatcherQueue.TryEnqueue(ApplyNavBadges));
+                    _dispatcherService.Enqueue(ApplyNavBadges));
                 ApplyNavBadges();
 
-                // Lock Advanced Tools during review mode
-                var localizationService = App.Services.GetService<ILocalizationService>();
-                NavSidebar.SetButtonLocked("AdvancedTools", true,
-                    localizationService?.GetString("Nav_AdvancedTools_Locked_Tooltip") ?? "Unavailable during config review");
-
-                // If currently on Advanced Tools, navigate away to Software & Apps
-                var currentTag = _navigationRouter?.GetTagForCurrentPage(ContentFrame.CurrentSourcePageType);
-                if (currentTag == "AdvancedTools")
-                {
-                    _navigationRouter?.NavigateToPage(ContentFrame, "SoftwareApps", applyNavBadges: ApplyNavBadges);
-                    NavSidebar.SelectedTag = "SoftwareApps";
-                }
+                LeaveUnavailablePage();
             }
             else
             {
                 NavSidebar.ClearAllBadges();
                 _navBadgeService?.UnsubscribeFromSoftwareAppsChanges();
 
-                // Unlock Advanced Tools
-                NavSidebar.SetButtonLocked("AdvancedTools", false);
+                LeaveUnavailablePage();
             }
+
+            NativeHeaps.ReleaseDroppedMemoryLater(_dispatcherService, _logService!);
         });
     }
 
     private void OnBadgeStateChanged(object? sender, EventArgs e)
     {
-        DispatcherQueue.TryEnqueue(ApplyNavBadges);
+        _dispatcherService.Enqueue(ApplyNavBadges);
+    }
+
+    private void OnApplicationModeChangedForNavLocks(object? sender, EventArgs e)
+    {
+        var mode = _applicationModeService?.CurrentMode ?? WinhanceMode.Normal;
+        var builderOpened = mode == WinhanceMode.Builder && _lastMode != WinhanceMode.Builder;
+        _lastMode = mode;
+        _dispatcherService.Enqueue(LeaveUnavailablePage);
+        // Every card swaps its mode-specific parts.
+        NativeHeaps.ReleaseDroppedMemoryLater(_dispatcherService, _logService!);
+        if (builderOpened && App.Services.GetRequiredService<IBuilderModeEntry>().EditingProfile is not null)
+            _dispatcherService.Enqueue(LeaveSettingsPage);
+    }
+
+    // Editing a profile in Builder starts from Settings, which has nothing to build.
+    private void LeaveSettingsPage()
+    {
+        if (_navigationRouter is not { } router || router.GetTagForCurrentPage(ContentFrame.CurrentSourcePageType) != "Settings")
+            return;
+        router.NavigateToPage(ContentFrame, "Optimize", applyNavBadges: ApplyNavBadges);
+        NavSidebar.SelectedTag = "Optimize";
+    }
+
+    // A mode change can leave the frame on a page the new mode does not offer.
+    private void LeaveUnavailablePage()
+    {
+        var mode = _applicationModeService?.CurrentMode ?? WinhanceMode.Normal;
+        var target = _applicationModeService?.CurrentBuilderTarget ?? BuilderTarget.Config;
+        var currentTag = _navigationRouter?.GetTagForCurrentPage(ContentFrame.CurrentSourcePageType);
+        if (NavLockPolicy.GateFor(currentTag, mode, target) == PageGate.Open)
+            return;
+
+        _navigationRouter?.NavigateToPage(ContentFrame, "SoftwareApps", applyNavBadges: ApplyNavBadges);
+        NavSidebar.SelectedTag = "SoftwareApps";
     }
 
     private void ApplyNavBadges()
@@ -516,26 +710,17 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    #endregion
-
-    #region PropertyChanged Handlers (code-behind only -- Narrator, icon conversion, dynamic buttons)
-
-    /// <summary>
-    /// Handles MainWindowViewModel property changes that genuinely require code-behind:
-    /// icon source (BitmapImage creation), filter icon (geometry conversion), filter icon opacity,
-    /// and WindowsFilterTooltip Narrator announcement.
-    /// Tooltip text, InfoBar, AppTitle/AppSubtitle are now handled by XAML x:Bind.
-    /// </summary>
+    // Only what genuinely needs code-behind: BitmapImage creation, opacity, and the Narrator
+    // announcement; the rest is x:Bind.
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(MainWindowViewModel.AppIconSource))
         {
-            DispatcherQueue.TryEnqueue(UpdateAppIcon);
+            _dispatcherService.Enqueue(UpdateAppIcon);
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.WindowsFilterTooltip) && ViewModel != null)
         {
-            // Narrator announcement for filter state change (visual update handled by XAML binding)
-            DispatcherQueue.TryEnqueue(() =>
+            _dispatcherService.Enqueue(() =>
             {
                 var tooltip = ViewModel.WindowsFilterTooltip;
                 var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(WindowsFilterButton)
@@ -547,43 +732,30 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                     "FilterStateChanged");
             });
         }
-        else if (e.PropertyName == nameof(MainWindowViewModel.WindowsFilterIcon) && ViewModel != null)
+        else if (e.PropertyName == nameof(MainWindowViewModel.IsOtsInfoBarOpen) && ViewModel is { } vm)
         {
-            DispatcherQueue.TryEnqueue(UpdateFilterButtonIcon);
+            _dispatcherService.Enqueue(() => _otsElevationBanner = ShowPart(
+                _otsElevationBanner, vm.IsOtsInfoBarOpen, 2, () => new OtsElevationBanner(vm)));
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.IsWindowsFilterButtonEnabled) && ViewModel != null)
         {
-            // Update opacity for the disabled state (IsEnabled is handled by XAML binding)
-            DispatcherQueue.TryEnqueue(() =>
+            _dispatcherService.Enqueue(() =>
             {
                 WindowsFilterIcon.Opacity = ViewModel.IsWindowsFilterButtonEnabled ? 1.0 : 0.4;
             });
         }
     }
 
-    /// <summary>
-    /// Handles UpdateCheckViewModel property changes that require code-behind:
-    /// dynamic action button creation (cannot be done in XAML).
-    /// IsOpen, Title, Message, Severity are now handled by XAML x:Bind.
-    /// </summary>
     private void UpdateCheck_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (ViewModel == null) return;
+        if (ViewModel is not { } vm || e.PropertyName != nameof(UpdateCheckViewModel.IsUpdateInfoBarOpen))
+            return;
 
-        if (e.PropertyName == nameof(UpdateCheckViewModel.IsUpdateActionButtonVisible)
-            || e.PropertyName == nameof(UpdateCheckViewModel.InstallNowButtonText)
-            || e.PropertyName == nameof(UpdateCheckViewModel.IsRelaunchButtonVisible)
-            || e.PropertyName == nameof(UpdateCheckViewModel.RelaunchButtonText))
-        {
-            DispatcherQueue.TryEnqueue(UpdateInfoBarActionButton);
-        }
+        _dispatcherService.Enqueue(() => _updateBanner = ShowPart(
+            _updateBanner, vm.UpdateCheck.IsUpdateInfoBarOpen, 3, () => new UpdateBanner(vm.UpdateCheck)));
     }
 
-    /// <summary>
-    /// Handles ReviewModeBarViewModel property changes that require code-behind:
-    /// Narrator announcements for review mode entry/exit, and ReviewModeBar visibility toggle.
-    /// Text bindings, IsEnabled, AutomationProperties.Name are now handled by XAML x:Bind.
-    /// </summary>
+    // Narrator announcements and building or dropping the bar; the rest is x:Bind.
     private void ReviewModeBar_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (ViewModel == null) return;
@@ -591,86 +763,18 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
         if (e.PropertyName == nameof(ReviewModeBarViewModel.IsInReviewMode))
         {
-            DispatcherQueue.TryEnqueue(() =>
+            _dispatcherService.Enqueue(() =>
             {
-                ReviewModeBar.Visibility = rm.IsInReviewMode ? Visibility.Visible : Visibility.Collapsed;
-                if (rm.IsInReviewMode)
-                {
-                    // Announce review mode entry to Narrator
-                    var announcement = $"{rm.ReviewModeTitleText}. {rm.ReviewModeDescriptionText}";
-                    var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(ReviewModeBar)
-                               ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(ReviewModeBar);
-                    peer?.RaiseNotificationEvent(
-                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.ActionCompleted,
-                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.ImportantMostRecent,
-                        announcement,
-                        "ReviewModeEntered");
-                }
-                else
-                {
-                    // Announce review mode exit to Narrator
-                    var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(RootGrid)
-                               ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(RootGrid);
-                    peer?.RaiseNotificationEvent(
-                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.ActionCompleted,
-                        Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.ImportantMostRecent,
-                        "Config Review Mode ended",
-                        "ReviewModeExited");
-                }
+                _reviewModeBar = ShowPart(_reviewModeBar, rm.IsInReviewMode, 1, () => FitsToWindow(new ReviewModeBar(rm)));
+                UIElement source = (UIElement?)_reviewModeBar ?? RootGrid;
+                var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(source)
+                           ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(source);
+                peer?.RaiseNotificationEvent(
+                    Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.ActionCompleted,
+                    Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.ImportantMostRecent,
+                    rm.IsInReviewMode ? $"{rm.ReviewModeTitleText}. {rm.ReviewModeDescriptionText}" : "Config Review Mode ended",
+                    rm.IsInReviewMode ? "ReviewModeEntered" : "ReviewModeExited");
             });
-        }
-    }
-
-    #endregion
-
-    #region UI Update Helpers
-
-    private void UpdateFilterButtonIcon()
-    {
-        try
-        {
-            if (ViewModel != null && WindowsFilterIcon != null)
-            {
-                var geometry = (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
-                    typeof(Geometry),
-                    ViewModel.WindowsFilterIcon);
-                WindowsFilterIcon.Data = geometry;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService?.LogDebug($"Failed to update filter button icon: {ex.Message}");
-        }
-    }
-
-    private void UpdateInfoBarActionButton()
-    {
-        if (ViewModel == null) return;
-        var uc = ViewModel.UpdateCheck;
-
-        if (uc.IsRelaunchButtonVisible)
-        {
-            var button = new Button
-            {
-                Content = uc.RelaunchButtonText,
-                Command = uc.RelaunchCommand,
-                Style = (Style)Application.Current.Resources["AccentButtonStyle"],
-            };
-            UpdateInfoBar.ActionButton = button;
-        }
-        else if (uc.IsUpdateActionButtonVisible)
-        {
-            var button = new Button
-            {
-                Content = uc.InstallNowButtonText,
-                Command = uc.InstallUpdateCommand,
-                Style = (Style)Application.Current.Resources["AccentButtonStyle"],
-            };
-            UpdateInfoBar.ActionButton = button;
-        }
-        else
-        {
-            UpdateInfoBar.ActionButton = null;
         }
     }
 
@@ -694,34 +798,6 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    #endregion
-
-    #region Event Handlers (XAML-referenced)
-
-    private void OtsElevationInfoBar_Closed(InfoBar sender, InfoBarClosedEventArgs args)
-    {
-        ViewModel?.DismissOtsInfoBar();
-    }
-
-    private void UpdateInfoBar_Closed(InfoBar sender, InfoBarClosedEventArgs args)
-    {
-        ViewModel?.UpdateCheck.DismissUpdateInfoBar();
-    }
-
-    private void ReviewModeApplyButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (ViewModel?.ReviewModeBar.ApplyReviewedConfigCommand.CanExecute(null) == true)
-            ViewModel.ReviewModeBar.ApplyReviewedConfigCommand.Execute(null);
-    }
-
-    private void ReviewModeCancelButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (ViewModel?.ReviewModeBar.CancelReviewModeCommand.CanExecute(null) == true)
-            ViewModel.ReviewModeBar.CancelReviewModeCommand.Execute(null);
-    }
-
-    // ---- Mode switcher + Builder bar ----
-
     private void ModeButton_Click(object sender, RoutedEventArgs e)
     {
         if (ViewModel == null || sender is not ToggleButton tb || tb.Tag is not string tag)
@@ -743,85 +819,50 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
     private void BuilderModeBar_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (ViewModel == null) return;
+        if (ViewModel is not { } vm || e.PropertyName != nameof(BuilderModeBarViewModel.IsBuilderActive))
+            return;
 
-        if (e.PropertyName == nameof(BuilderModeBarViewModel.IsBuilderActive))
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                BuilderModeBarGrid.Visibility = ViewModel.BuilderModeBar.IsBuilderActive
-                    ? Visibility.Visible
-                    : Visibility.Collapsed;
-            });
-        }
+        _dispatcherService.Enqueue(() => _builderModeBar = ShowPart(
+            _builderModeBar, vm.BuilderModeBar.IsBuilderActive, 1, () => FitsToWindow(new BuilderModeBar(vm.BuilderModeBar, _logService!))));
     }
-
-    private void BuilderSaveButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (ViewModel?.BuilderModeBar.SaveCommand.CanExecute(null) == true)
-            ViewModel.BuilderModeBar.SaveCommand.Execute(null);
-    }
-
-    private void BuilderCancelButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (ViewModel?.BuilderModeBar.CancelCommand.CanExecute(null) == true)
-            ViewModel.BuilderModeBar.CancelCommand.Execute(null);
-    }
-
-    private void BuilderConfigRadio_Checked(object sender, RoutedEventArgs e)
-    {
-        ViewModel?.BuilderModeBar.SelectConfigTarget();
-    }
-
-    private void BuilderAutounattendRadio_Checked(object sender, RoutedEventArgs e)
-    {
-        ViewModel?.BuilderModeBar.SelectAutounattendTarget();
-    }
-
-    #endregion
-
-    #region Keyboard Accelerators
 
     private void NavigateAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
-        var tag = sender.Key switch
-        {
-            VirtualKey.Number1 => "SoftwareApps",
-            VirtualKey.Number2 => "Optimize",
-            VirtualKey.Number3 => "Customize",
-            VirtualKey.Number4 => "AdvancedTools",
-            VirtualKey.Number5 => "Settings",
-            _ => null
-        };
+        var tag = NavAccelerators.TagFor(sender.Key);
 
         if (tag != null)
         {
-            NavSidebar.SelectedTag = tag;
-            _navigationRouter?.NavigateToPage(ContentFrame, tag, applyNavBadges: ApplyNavBadges);
-
-            // Focus the NavButton so Narrator announces the page name
-            var navButton = NavSidebar.GetButton(tag);
-            navButton?.Focus(FocusState.Keyboard);
+            OpenPageAndFocusAsync(tag).FireAndForget(_logService!);
 
             args.Handled = true;
         }
     }
 
+    private async Task OpenPageAndFocusAsync(string tag)
+    {
+        // Focus the NavButton so Narrator announces the page name
+        if (await OpenPageAsync(tag))
+            NavSidebar.GetButton(tag)?.Focus(FocusState.Keyboard);
+    }
+
     private void ZoomInAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         _uiZoomManager?.StepUp();
+        ShowZoomIndicator();
         args.Handled = true;
     }
 
     private void ZoomOutAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         _uiZoomManager?.StepDown();
+        ShowZoomIndicator();
         args.Handled = true;
     }
 
     private void ZoomResetAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         _uiZoomManager?.Reset();
+        ShowZoomIndicator();
         args.Handled = true;
     }
 
@@ -836,8 +877,27 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         else if (delta < 0)
             _uiZoomManager?.StepDown();
 
+        ShowZoomIndicator();
         e.Handled = true;
     }
+
+    // Shown on every zoom key, even at a limit, so the user sees why nothing changed (#692).
+    private void ShowZoomIndicator()
+    {
+        if (_uiZoomManager is null)
+            return;
+
+        var percent = (int)Math.Round(_uiZoomManager.Factor * 100);
+        _zoomIndicator = ShowPart(_zoomIndicator, true, 0, () => new ZoomIndicator(), ZoomViewport);
+        _zoomIndicator!.SetText(App.Services.GetRequiredService<ILocalizationService>()
+            .GetString("Zoom_Indicator_Format", percent));
+
+        _zoomIndicatorTimer ??= _dispatcherService.CreateDebounceTimer(TimeSpan.FromMilliseconds(1500), HideZoomIndicator);
+        _zoomIndicatorTimer.Restart();
+    }
+
+    private void HideZoomIndicator() =>
+        _zoomIndicator = ShowPart(_zoomIndicator, false, 0, () => new ZoomIndicator(), ZoomViewport);
 
     private void MoreMenuAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
@@ -849,8 +909,8 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     {
         var button = sender.Key switch
         {
-            VirtualKey.Number1 => WindowsFilterButton,
-            VirtualKey.Number2 => DonateButton,
+            VirtualKey.Number1 => DonateButton,
+            VirtualKey.Number2 => WindowsFilterButton,
             VirtualKey.Number3 => BugReportButton,
             VirtualKey.Number4 => DocsButton,
             _ => (Button?)null
@@ -862,13 +922,13 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
-        if (button.Command?.CanExecute(null) == true)
+        if (button.Command?.CanExecute(button.CommandParameter) == true)
         {
-            button.Command.Execute(null);
+            button.Command.Execute(button.CommandParameter);
         }
 
         // Announce after a short delay so async state changes are reflected
-        DispatcherQueue.TryEnqueue(() =>
+        _dispatcherService.Enqueue(() =>
         {
             var name = AutomationProperties.GetName(button);
             if (!string.IsNullOrEmpty(name))
@@ -885,6 +945,4 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
         args.Handled = true;
     }
-
-    #endregion
 }

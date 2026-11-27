@@ -1,14 +1,17 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Optimize.ViewModels;
 using System.Collections.ObjectModel;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.Services;
 
@@ -35,6 +38,8 @@ public class SettingReviewDiffApplierTests
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+        // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
+        _mockLocalizationService.MirrorTryGetString();
 
         _mockLocalizationService
             .Setup(l => l.GetString("Review_Mode_Diff_Toggle"))
@@ -62,29 +67,27 @@ public class SettingReviewDiffApplierTests
         string name = "Test Setting",
         InputType inputType = InputType.Toggle,
         bool isSelected = false,
-        object? selectedValue = null)
+        object? selectedValue = null,
+        Setting? setting = null,
+        string onText = "On",
+        string offText = "Off")
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = settingId,
-            Name = name,
-            Description = "Test",
-            InputType = inputType
-        };
-
         var config = new SettingItemViewModelConfig
         {
-            SettingDefinition = settingDef,
+            Setting = setting ?? new Setting { Id = settingId, Display = new() { Name = TestKeys.Of(name), Description = TestKeys.Of("Test") } },
             SettingId = settingId,
             Name = name,
             Description = "Test",
             InputType = inputType,
-            IsSelected = isSelected
+            IsSelected = isSelected,
+            OnText = onText,
+            OffText = offText
         };
 
         var vm = new SettingItemViewModel(
             config,
-            _mockSettingApplicationService.Object,
+            SettingWriteStrategies.Selector(
+                _mockSettingApplicationService.Object, _mockDialogService.Object, _mockLocalizationService.Object, _mockLogService.Object),
             _mockLogService.Object,
             _mockDispatcher.Object,
             _mockDialogService.Object,
@@ -96,15 +99,11 @@ public class SettingReviewDiffApplierTests
         return vm;
     }
 
-    // -------------------------------------------------------
-    // ApplyReviewDiffToViewModel - No active config
-    // -------------------------------------------------------
-
     [Fact]
     public void ApplyReviewDiffToViewModel_WhenNoActiveConfig_DoesNothing()
     {
         _mockConfigReviewModeService.Setup(r => r.ActiveConfig)
-            .Returns((UnifiedConfigurationFile?)null);
+            .Returns((WinhanceConfigFile?)null);
 
         var vm = CreateSettingViewModel();
         var state = new SettingStateResult { IsEnabled = true };
@@ -116,14 +115,10 @@ public class SettingReviewDiffApplierTests
         vm.HasReviewDiff.Should().BeFalse();
     }
 
-    // -------------------------------------------------------
-    // ApplyReviewDiffToViewModel - With existing eager diff
-    // -------------------------------------------------------
-
     [Fact]
     public void ApplyReviewDiffToViewModel_WithExistingDiff_SetsReviewModeProperties()
     {
-        var activeConfig = new UnifiedConfigurationFile();
+        var activeConfig = new WinhanceConfigFile();
         _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
 
         var diff = new ConfigReviewDiff
@@ -150,9 +145,26 @@ public class SettingReviewDiffApplierTests
     }
 
     [Fact]
+    public void ApplyReviewDiffToViewModel_AppliedTwice_ForwardsEachApprovalOnce()
+    {
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(new WinhanceConfigFile());
+        _mockConfigReviewDiffService
+            .Setup(d => d.GetDiffForSetting("test-setting"))
+            .Returns(new ConfigReviewDiff { SettingId = "test-setting", CurrentValueDisplay = "Off", ConfigValueDisplay = "On" });
+        var vm = CreateSettingViewModel();
+        var service = CreateService();
+
+        service.ApplyReviewDiffToViewModel(vm, new SettingStateResult());
+        service.ApplyReviewDiffToViewModel(vm, new SettingStateResult());
+        vm.IsReviewApproved = true;
+
+        _mockConfigReviewDiffService.Verify(d => d.SetSettingApproval("test-setting", true), Times.Once);
+    }
+
+    [Fact]
     public void ApplyReviewDiffToViewModel_WithExistingDiff_ActionSetting_ShowsActionMessage()
     {
-        var activeConfig = new UnifiedConfigurationFile();
+        var activeConfig = new WinhanceConfigFile();
         _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
 
         var diff = new ConfigReviewDiff
@@ -180,7 +192,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_WithReviewedApprovedDiff_RestoresDecisionState()
     {
-        var activeConfig = new UnifiedConfigurationFile();
+        var activeConfig = new WinhanceConfigFile();
         _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
 
         var diff = new ConfigReviewDiff
@@ -208,7 +220,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_WithReviewedRejectedDiff_RestoresDecisionState()
     {
-        var activeConfig = new UnifiedConfigurationFile();
+        var activeConfig = new WinhanceConfigFile();
         _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
 
         var diff = new ConfigReviewDiff
@@ -232,14 +244,10 @@ public class SettingReviewDiffApplierTests
         vm.IsReviewRejected.Should().BeTrue();
     }
 
-    // -------------------------------------------------------
-    // ApplyReviewDiffToViewModel - No eager diff, setting not in config
-    // -------------------------------------------------------
-
     [Fact]
     public void ApplyReviewDiffToViewModel_SettingNotInConfig_OnlySetsReviewMode()
     {
-        var activeConfig = new UnifiedConfigurationFile();
+        var activeConfig = new WinhanceConfigFile();
         _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
         _mockConfigReviewDiffService
             .Setup(d => d.GetDiffForSetting("test-setting"))
@@ -255,14 +263,10 @@ public class SettingReviewDiffApplierTests
         vm.HasReviewDiff.Should().BeFalse();
     }
 
-    // -------------------------------------------------------
-    // ApplyReviewDiffToViewModel - No eager diff, toggle diff computed
-    // -------------------------------------------------------
-
     [Fact]
     public void ApplyReviewDiffToViewModel_Toggle_WithDiff_RegistersDiff()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -306,9 +310,54 @@ public class SettingReviewDiffApplierTests
     }
 
     [Fact]
+    public void ApplyReviewDiffToViewModel_CheckBox_WithDiff_UsesTheCardsOwnTexts()
+    {
+        var activeConfig = new WinhanceConfigFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "check-setting",
+                                Name = "Check",
+                                IsSelected = true,
+                                InputType = InputType.CheckBox
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
+        _mockConfigReviewDiffService
+            .Setup(d => d.GetDiffForSetting("check-setting"))
+            .Returns((ConfigReviewDiff?)null);
+
+        var vm = CreateSettingViewModel(
+            settingId: "check-setting",
+            name: "Check",
+            inputType: InputType.CheckBox,
+            onText: "Checked",
+            offText: "Unchecked");
+        var state = new SettingStateResult { IsEnabled = false };
+
+        var service = CreateService();
+        service.ApplyReviewDiffToViewModel(vm, state);
+
+        vm.HasReviewDiff.Should().BeTrue();
+        vm.ReviewDiffMessage.Should().Be("Current: Unchecked -> Config: Checked");
+    }
+
+    [Fact]
     public void ApplyReviewDiffToViewModel_Toggle_NoDiff_DoesNotRegister()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -347,14 +396,10 @@ public class SettingReviewDiffApplierTests
             Times.Never);
     }
 
-    // -------------------------------------------------------
-    // ApplyReviewDiffToViewModel - Selection type
-    // -------------------------------------------------------
-
     [Fact]
     public void ApplyReviewDiffToViewModel_Selection_WithDifferentIndex_RegistersDiff()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -407,9 +452,53 @@ public class SettingReviewDiffApplierTests
     }
 
     [Fact]
+    public void ApplyReviewDiffToViewModel_KeyedSelection_WithLegacyIndexInConfig_NoDiff()
+    {
+        var activeConfig = new WinhanceConfigFile
+        {
+            Customize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Taskbar"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "fake-keyed",
+                                Name = "Keyed",
+                                InputType = InputType.Selection,
+                                SelectedIndex = 1
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
+        _mockConfigReviewDiffService
+            .Setup(d => d.GetDiffForSetting("fake-keyed"))
+            .Returns((ConfigReviewDiff?)null);
+
+        var vm = CreateSettingViewModel(
+            settingId: "fake-keyed",
+            name: "Keyed",
+            inputType: InputType.Selection,
+            setting: FakeOptionProvider.SettingFor());
+
+        var service = CreateService();
+        service.ApplyReviewDiffToViewModel(vm, new SettingStateResult());
+
+        vm.HasReviewDiff.Should().BeFalse();
+        _mockConfigReviewDiffService.Verify(
+            d => d.RegisterDiff(It.IsAny<ConfigReviewDiff>()), Times.Never);
+    }
+
+    [Fact]
     public void ApplyReviewDiffToViewModel_Selection_SameIndex_NoDiff()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -456,10 +545,66 @@ public class SettingReviewDiffApplierTests
         vm.HasReviewDiff.Should().BeFalse();
     }
 
+    [Theory]
+    [InlineData("192.168.10.1", false)]
+    [InlineData("10.0.0.1", true)]
+    public void ApplyReviewDiffToViewModel_Selection_CustomValues_DiffOnlyWhenThePcReadsOtherValues(string pcServer, bool expectDiff)
+    {
+        var activeConfig = new WinhanceConfigFile
+        {
+            Customize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Taskbar"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem>
+                        {
+                            new ConfigurationItem
+                            {
+                                Id = "selection-setting",
+                                Name = "Selection",
+                                InputType = InputType.Selection,
+                                CustomStateValues = new Dictionary<string, object> { ["Preferred"] = "192.168.10.1" }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
+        _mockConfigReviewDiffService
+            .Setup(d => d.GetDiffForSetting("selection-setting"))
+            .Returns((ConfigReviewDiff?)null);
+
+        var vm = CreateSettingViewModel(
+            settingId: "selection-setting",
+            name: "Selection",
+            inputType: InputType.Selection,
+            selectedValue: ComboBoxConstants.CustomStateIndex);
+
+        vm.ComboBoxOptions = new ObservableCollection<ComboBoxDisplayOption>
+        {
+            new ComboBoxDisplayOption("Option A", 0),
+            new ComboBoxDisplayOption("Option B", 1)
+        };
+
+        var state = new SettingStateResult
+        {
+            CurrentValue = ComboBoxConstants.CustomStateIndex,
+            Readings = new Dictionary<string, object?> { ["Preferred"] = pcServer },
+        };
+
+        var service = CreateService();
+        service.ApplyReviewDiffToViewModel(vm, state);
+
+        vm.HasReviewDiff.Should().Be(expectDiff);
+    }
+
     [Fact]
     public void ApplyReviewDiffToViewModel_Selection_WithNullSelectedIndex_NoDiff()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -500,14 +645,10 @@ public class SettingReviewDiffApplierTests
         vm.HasReviewDiff.Should().BeFalse();
     }
 
-    // -------------------------------------------------------
-    // ApplyReviewDiffToViewModel - Searches both Optimize and Customize
-    // -------------------------------------------------------
-
     [Fact]
     public void ApplyReviewDiffToViewModel_FindsSettingInCustomizeSection()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -547,14 +688,10 @@ public class SettingReviewDiffApplierTests
             Times.Once);
     }
 
-    // -------------------------------------------------------
-    // ApplyReviewDiffToViewModel - NumericRange on-the-fly diff
-    // -------------------------------------------------------
-
     [Fact]
     public void ApplyReviewDiffToViewModel_NumericRange_WithACValueDiff_SetsHasReviewDiff()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -607,7 +744,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_NumericRange_SameACValue_NoReviewDiff()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -657,7 +794,7 @@ public class SettingReviewDiffApplierTests
     [Fact]
     public void ApplyReviewDiffToViewModel_NumericRange_NoPowerSettings_NoReviewDiff()
     {
-        var activeConfig = new UnifiedConfigurationFile
+        var activeConfig = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -698,14 +835,10 @@ public class SettingReviewDiffApplierTests
         vm.HasReviewDiff.Should().BeFalse();
     }
 
-    // -------------------------------------------------------
-    // ApplyReviewDiffToViewModel - Action settings in review
-    // -------------------------------------------------------
-
     [Fact]
     public void ApplyReviewDiffToViewModel_Action_InConfig_SetsReviewMode()
     {
-        var activeConfig = new UnifiedConfigurationFile();
+        var activeConfig = new WinhanceConfigFile();
         _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(activeConfig);
 
         var diff = new ConfigReviewDiff

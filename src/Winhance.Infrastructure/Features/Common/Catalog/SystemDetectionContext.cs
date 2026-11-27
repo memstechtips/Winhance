@@ -1,0 +1,213 @@
+using System.Net.NetworkInformation;
+using Windows.Win32;
+using Windows.Win32.UI.Shell.Common;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Infrastructure.Features.Optimize.Services;
+
+namespace Winhance.Infrastructure.Features.Common.Catalog;
+
+// One instance per detection batch - it holds that batch's pre-fetch cache.
+internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
+{
+    private readonly IWindowsRegistryService _reg;
+    private readonly ISystemRestoreService _restore;
+    private readonly IScheduledTaskStateService _tasks;
+    private readonly IPowerSettingsQueryService _power;
+    private readonly ILocalizationService _localization;
+    private readonly ILogService _log;
+    private readonly ISystemParametersService _systemParameters;
+
+    private Dictionary<string, bool?> _taskCache = new();
+    private Dictionary<string, (int? acValue, int? dcValue)> _powerCache = new();
+    private WinBuild? _currentBuild;
+    private IReadOnlyList<DnsServer>? _dns;
+    private string? _activeAdapter;
+    private bool _powerPrefetched;
+    private string? _activePlanGuid;
+    private bool _planPrefetched;
+    private IReadOnlyList<DynamicOption> _installedPlans = System.Array.Empty<DynamicOption>();
+
+    public SystemDetectionContext(
+        IWindowsRegistryService reg,
+        ISystemRestoreService restore,
+        IScheduledTaskStateService tasks,
+        IPowerSettingsQueryService power,
+        ILocalizationService localization,
+        ILogService log,
+        ISystemParametersService systemParameters)
+    {
+        _reg = reg;
+        _restore = restore;
+        _tasks = tasks;
+        _power = power;
+        _localization = localization;
+        _log = log;
+        _systemParameters = systemParameters;
+    }
+
+    // Two registry reads, and every AppliesTo-gated target asks for it - so once per batch, not per target.
+    public WinBuild CurrentBuild => _currentBuild ??= ReadCurrentBuild();
+
+    private WinBuild ReadCurrentBuild()
+    {
+        const string key = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion";
+        int build = int.TryParse(_reg.GetValue(key, "CurrentBuildNumber")?.ToString(), out var b) ? b : 0;
+        int ubr = int.TryParse(_reg.GetValue(key, "UBR")?.ToString(), out var r) ? r : 0;
+        return new WinBuild(build, ubr);
+    }
+
+    public object? GetValue(string keyPath, string? valueName) => _reg.GetValue(keyPath, valueName ?? "");
+
+    public object? GetMessageDuration(MessageDurationTarget target) => _systemParameters.GetMessageDuration()
+        ?? throw new InvalidOperationException("Cannot read the active user's notification duration.");
+
+    public Microsoft.Win32.RegistryValueKind? GetValueKind(string keyPath, string? valueName) =>
+        _reg.GetValueKind(keyPath, valueName ?? "");
+
+    public string[] GetSubKeyNames(string keyPath) => _reg.GetSubKeyNames(keyPath);
+
+    public bool KeyExists(string keyPath) => _reg.KeyExists(keyPath);
+
+    // Every DNS target of a batch asks, so the adapters are enumerated once. DNS via DHCP leaves NameServer empty;
+    // that reads as the Automatic state.
+    public IReadOnlyList<DnsServer> DnsServersOfActiveAdapter() =>
+        _dns ??= ActiveAdapter() is { Length: > 0 } adapter ? DnsSettingsService.Read(_reg, adapter) : Array.Empty<DnsServer>();
+
+    public bool ActiveAdapterHasManualIp() =>
+        ActiveAdapter() is { Length: > 0 } adapter && _reg.GetValue($@"{DnsSettingsService.Interfaces}\{adapter}", "EnableDHCP") is 0;
+
+    private string ActiveAdapter() =>
+        _activeAdapter ??= NetworkInterface.GetAllNetworkInterfaces()
+            .FirstOrDefault(n => n.OperationalStatus == OperationalStatus.Up
+                && n.NetworkInterfaceType is not (NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel))?.Id ?? "";
+
+    public bool IsSystemRestoreEnabled() => _restore.IsEnabledForC();
+
+    // The Disabled update-policy state renames the two critical DLLs to _BAK, so this reads as "a _BAK backup
+    // exists AND the live DLL is gone".
+    public bool CriticalUpdateDllsRenamed()
+    {
+        foreach (var dll in new[] { "WaaSMedicSvc.dll", "wuaueng.dll" })
+        {
+            var dllPath = $@"C:\Windows\System32\{dll}";
+            var backupPath = $@"C:\Windows\System32\{System.IO.Path.GetFileNameWithoutExtension(dll)}_BAK.dll";
+            if (System.IO.File.Exists(backupPath) && !System.IO.File.Exists(dllPath))
+                return true;
+        }
+        return false;
+    }
+
+    public bool FileExists(string path) => System.IO.File.Exists(path);
+
+    // Windows stores a USHORT byte count, then the ITEMIDLIST; a count that does not match the rest is rejected.
+    public unsafe string? ShellFolderPath(byte[] itemList)
+    {
+        const int IdListOffset = 2;
+        if (itemList.Length <= IdListOffset || BitConverter.ToUInt16(itemList, 0) != itemList.Length - IdListOffset)
+            return null;
+
+        Span<char> buffer = stackalloc char[(int)PInvoke.MAX_PATH];
+        fixed (byte* bytes = itemList)
+        {
+            if (!PInvoke.SHGetPathFromIDList(in *(ITEMIDLIST*)(bytes + IdListOffset), buffer))
+                return null;
+        }
+
+        var end = buffer.IndexOf('\0');
+        return new string(buffer[..(end < 0 ? buffer.Length : end)]);
+    }
+
+    public bool? ScheduledTaskEnabled(string taskPath)
+    {
+        if (_taskCache.TryGetValue(taskPath, out var enabled))
+            return enabled;
+
+        _log.Log(LogLevel.Warning,
+            $"Scheduled task '{taskPath}' was not pre-fetched; returning null.");
+        return null;
+    }
+
+    public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context)
+    {
+        if (!_powerPrefetched)
+        {
+            _log.Log(LogLevel.Warning,
+                $"Power setting '{settingGuid}' read before a powercfg pre-fetch; returning null.");
+            return null;
+        }
+
+        if (!_powerCache.TryGetValue(settingGuid, out var values))
+            return null;
+
+        return context == PowerContext.DC ? values.dcValue : values.acValue;
+    }
+
+    public string? ActivePowerPlanGuid()
+    {
+        if (!_planPrefetched)
+            _log.Log(LogLevel.Warning,
+                "Active power plan read before a pre-fetch; returning null.");
+        return _activePlanGuid;
+    }
+
+    public IReadOnlyList<DynamicOption> InstalledPowerPlans()
+    {
+        if (!_planPrefetched)
+            _log.Log(LogLevel.Warning,
+                "Installed power plans read before a pre-fetch; returning none.");
+        return _installedPlans;
+    }
+
+    public async Task PrefetchAsync(IReadOnlyCollection<Setting> settings)
+    {
+        var build = CurrentBuild;
+
+        // One connection for every task path: a per-path read opens its own out-of-process Schedule.Service
+        // instance, so a page navigation would activate N at once. Cache holds enabled / disabled / absent.
+        var taskPaths = settings
+            .SelectMany(s => LiveTargets(s, build).OfType<TaskTarget>())
+            .Select(t => t.TaskPath)
+            .Distinct()
+            .ToList();
+        if (taskPaths.Count > 0)
+        {
+            var read = await Task.Run(() => _tasks.GetTasksEnabled(taskPaths)).ConfigureAwait(false);
+            _taskCache = new Dictionary<string, bool?>(read, StringComparer.OrdinalIgnoreCase);
+        }
+
+        // PowerCfg: read this batch's own targets, keyed by setting GUID. PowerCfgValue serves it via the same
+        // key (PowerCfgTarget.SettingGuid). A full store walk costs ~225 PowerEnumerate + ~400 PowerRead*
+        // whatever the batch size, which is what made a one-setting pre-apply read cost 72ms; two native reads
+        // per target beats that for every batch this catalog can produce (41 powercfg targets in total).
+        var powerTargets = settings
+            .SelectMany(s => LiveTargets(s, build).OfType<PowerCfgTarget>())
+            .Select(t => (t.SubgroupGuid, t.SettingGuid))
+            .Distinct()
+            .ToList();
+        if (powerTargets.Count > 0)
+        {
+            _powerCache = await _power.GetPowerSettingsACDCAsync(powerTargets).ConfigureAwait(false);
+            _powerPrefetched = true;
+        }
+
+        // Active power plan + the installed plans (the runtime-sourced options): read once when a setting selects
+        // the power plan. Both the active GUID and each option's GUID are lowercased so a dynamic-option setting can
+        // match the current selection to an option Value directly (no index round-trip).
+        bool needsPlan = settings.Any(s => s.Detector is PowerPlanDetector || s.Options?.Source == OptionSource.PowerPlans);
+        if (needsPlan)
+        {
+            var plan = await _power.GetActivePowerPlanAsync().ConfigureAwait(false);
+            _activePlanGuid = string.IsNullOrEmpty(plan?.Guid) ? null : plan.Guid.ToLowerInvariant();
+
+            var plans = await _power.GetAvailablePowerPlansAsync().ConfigureAwait(false);
+            _installedPlans = PowerPlanOptions.Build(plans, _activePlanGuid, _localization);
+
+            _planPrefetched = true;
+        }
+    }
+
+    private static IEnumerable<Target> LiveTargets(Setting setting, WinBuild build) =>
+        setting.Targets.Where(t => t.AppliesTo.Count == 0 || t.AppliesTo.Any(r => r.Contains(build)));
+}

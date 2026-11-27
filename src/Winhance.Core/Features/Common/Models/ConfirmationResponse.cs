@@ -1,19 +1,11 @@
 namespace Winhance.Core.Features.Common.Models;
 
-/// <summary>
-/// Represents the user's response to a confirmation request.
-/// This generic model can be used across all features that require user confirmation.
-/// </summary>
 public sealed record ConfirmationResponse
 {
-    /// <summary>
-    /// Gets whether the user confirmed the operation.
-    /// </summary>
+    // The PRIMARY button only - a secondary-button pick does not count as Confirmed, so two-button callers are unaffected.
     public bool Confirmed { get; init; }
 
-    /// <summary>
-    /// Gets whether the optional checkbox was checked.
-    /// Only relevant if the ConfirmationRequest had CheckboxText.
-    /// </summary>
+    public bool SecondaryChosen { get; init; }
+
     public bool CheckboxChecked { get; init; }
 }

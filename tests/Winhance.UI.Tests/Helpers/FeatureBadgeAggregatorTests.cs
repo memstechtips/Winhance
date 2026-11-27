@@ -22,7 +22,6 @@ public class FeatureBadgeAggregatorTests
         result.TotalWithBadgeData.Should().Be(0);
         result.RecommendedCount.Should().Be(0);
         result.DefaultCount.Should().Be(0);
-        result.CustomCount.Should().Be(0);
         result.NewCount.Should().Be(0);
     }
 
@@ -38,7 +37,6 @@ public class FeatureBadgeAggregatorTests
         result.TotalWithBadgeData.Should().Be(0);
         result.RecommendedCount.Should().Be(0);
         result.DefaultCount.Should().Be(0);
-        result.CustomCount.Should().Be(0);
         result.NewCount.Should().Be(0);
     }
 

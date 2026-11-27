@@ -1,0 +1,14 @@
+src/Winhance.UI/App.xaml.cs	2	same-lifetime
+src/Winhance.UI/Features/Common/Controls/OptionMatrixView.xaml.cs	1	same-lifetime
+src/Winhance.UI/Features/Common/Controls/SectionPage.cs	16	same-lifetime
+src/Winhance.UI/Features/Common/Controls/SettingsListView.xaml.cs	1	same-lifetime
+src/Winhance.UI/Features/Common/Services/BuilderModeEntry.cs	1	same-lifetime
+src/Winhance.UI/Features/Common/Services/ThemeService.cs	1	same-lifetime
+src/Winhance.UI/Features/Common/Services/TrayController.cs	3	same-lifetime
+src/Winhance.UI/Features/Common/Services/TrayHost.cs	1	same-lifetime
+src/Winhance.UI/Features/Common/Utilities/WindowSizeManager.cs	1	same-lifetime
+src/Winhance.UI/Features/Optimize/ViewModels/SettingItemViewModel.cs	1	same-lifetime
+src/Winhance.UI/Features/SoftwareApps/SoftwareAppsPage.xaml.cs	1	same-lifetime
+src/Winhance.UI/Helpers/PageCurtain.cs	1	same-lifetime
+src/Winhance.UI/MainWindow.xaml.cs	21	same-lifetime
+src/Winhance.UI/Program.cs	1	same-lifetime

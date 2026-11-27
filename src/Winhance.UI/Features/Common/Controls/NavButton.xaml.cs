@@ -1,26 +1,16 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
+using Windows.Foundation;
 using Windows.System;
-using System;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using Microsoft.Extensions.DependencyInjection;
-using Winhance.Core.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Helpers;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-/// <summary>
-/// Custom navigation button with icon-over-text layout, selection indicator,
-/// loading overlay, and compact mode support.
-/// </summary>
-public sealed partial class NavButton : UserControl, INotifyPropertyChanged
+public sealed partial class NavButton : UserControl
 {
-    // Expanded dimensions
     private const double ExpandedWidth = 70;
     private const double ExpandedHeight = 60;
 
@@ -28,17 +18,14 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     private const double CompactWidth = 40;
     private const double CompactHeight = 40;
 
-    public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler<NavButtonClickedEventArgs>? Clicked;
-
-    #region Dependency Properties
 
     public static readonly DependencyProperty IconSymbolProperty =
         DependencyProperty.Register(
             nameof(IconSymbol),
             typeof(string),
             typeof(NavButton),
-            new PropertyMetadata(null, OnIconPropertyChanged));
+            new PropertyMetadata(null));
 
     public static readonly DependencyProperty IconMarginProperty =
         DependencyProperty.Register(
@@ -52,7 +39,7 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
             nameof(Text),
             typeof(string),
             typeof(NavButton),
-            new PropertyMetadata(string.Empty));
+            new PropertyMetadata(string.Empty, OnTextChanged));
 
     public static readonly DependencyProperty IsSelectedProperty =
         DependencyProperty.Register(
@@ -61,26 +48,12 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
             typeof(NavButton),
             new PropertyMetadata(false, OnIsSelectedChanged));
 
-    public static readonly DependencyProperty IsLoadingProperty =
-        DependencyProperty.Register(
-            nameof(IsLoading),
-            typeof(bool),
-            typeof(NavButton),
-            new PropertyMetadata(false, OnIsLoadingChanged));
-
-    public static readonly DependencyProperty IsLockedProperty =
-        DependencyProperty.Register(
-            nameof(IsLocked),
-            typeof(bool),
-            typeof(NavButton),
-            new PropertyMetadata(false, OnIsLockedChanged));
-
     public static readonly DependencyProperty IsCompactProperty =
         DependencyProperty.Register(
             nameof(IsCompact),
             typeof(bool),
             typeof(NavButton),
-            new PropertyMetadata(false, OnIsCompactChanged));
+            new PropertyMetadata(false));
 
     public static readonly DependencyProperty NavigationTagProperty =
         DependencyProperty.Register(
@@ -94,106 +67,59 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
             nameof(BadgeValue),
             typeof(int),
             typeof(NavButton),
-            new PropertyMetadata(-1, OnBadgePropertyChanged));
+            new PropertyMetadata(-1));
 
     public static readonly DependencyProperty BadgeStatusProperty =
         DependencyProperty.Register(
             nameof(BadgeStatus),
             typeof(string),
             typeof(NavButton),
-            new PropertyMetadata(string.Empty, OnBadgePropertyChanged));
+            new PropertyMetadata(string.Empty));
 
-    #endregion
-
-    #region Properties
-
-    /// <summary>
-    /// The Fluent System Icon name to display (e.g., "Apps", "Settings").
-    /// Rendered as a colored Fluent icon (IconVariant.Color).
-    /// </summary>
     public string? IconSymbol
     {
         get => (string?)GetValue(IconSymbolProperty);
         set => SetValue(IconSymbolProperty, value);
     }
 
-    /// <summary>
-    /// Optional margin for fine-tuning icon positioning.
-    /// Use this to adjust icons that appear visually off-center.
-    /// </summary>
     public Thickness IconMargin
     {
         get => (Thickness)GetValue(IconMarginProperty);
         set => SetValue(IconMarginProperty, value);
     }
 
-    /// <summary>
-    /// The text label displayed below the icon.
-    /// </summary>
     public string Text
     {
         get => (string)GetValue(TextProperty);
         set => SetValue(TextProperty, value);
     }
 
-    /// <summary>
-    /// Whether this button is currently selected.
-    /// </summary>
     public bool IsSelected
     {
         get => (bool)GetValue(IsSelectedProperty);
         set => SetValue(IsSelectedProperty, value);
     }
 
-    /// <summary>
-    /// Whether the button is in a loading state (shows spinner, blocks clicks).
-    /// </summary>
-    public bool IsLoading
-    {
-        get => (bool)GetValue(IsLoadingProperty);
-        set => SetValue(IsLoadingProperty, value);
-    }
-
-    /// <summary>
-    /// Whether the button is locked (reduced opacity, blocks clicks, shows lock icon).
-    /// Used to disable navigation to certain pages during config review mode.
-    /// </summary>
-    public bool IsLocked
-    {
-        get => (bool)GetValue(IsLockedProperty);
-        set => SetValue(IsLockedProperty, value);
-    }
-
-    /// <summary>
-    /// Whether the button should display in compact mode (icon only).
-    /// </summary>
     public bool IsCompact
     {
         get => (bool)GetValue(IsCompactProperty);
         set => SetValue(IsCompactProperty, value);
     }
 
-    /// <summary>
-    /// Navigation identifier for this button.
-    /// </summary>
     public object? NavigationTag
     {
         get => GetValue(NavigationTagProperty);
         set => SetValue(NavigationTagProperty, value);
     }
 
-    /// <summary>
-    /// Badge value to display. Set to -1 to hide the badge.
-    /// </summary>
+    // -1 hides the badge.
     public int BadgeValue
     {
         get => (int)GetValue(BadgeValueProperty);
         set => SetValue(BadgeValueProperty, value);
     }
 
-    /// <summary>
-    /// Badge status: "Attention", "Success", or "" (hidden).
-    /// </summary>
+    // "Attention", "Success", or "" (hidden).
     public string BadgeStatus
     {
         get => (string)GetValue(BadgeStatusProperty);
@@ -203,45 +129,50 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     // Icon sizes (matching NavigationView)
     private const double ExpandedIconSize = 20;
     private const double CompactIconSize = 16;
+    private const double LabelFontSize = 10;
 
-    // Computed properties for bindings
-    public double ActualButtonWidth => IsCompact ? CompactWidth : ExpandedWidth;
-    public double ActualButtonHeight => IsCompact ? CompactHeight : ExpandedHeight;
-    public double IconSize => IsCompact ? CompactIconSize : ExpandedIconSize;
-    public Visibility TextVisibility => IsCompact ? Visibility.Collapsed : Visibility.Visible;
-    public Visibility IndicatorVisibility => IsSelected ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility LoadingVisibility => IsLoading ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility LockedVisibility => IsLocked ? Visibility.Visible : Visibility.Collapsed;
-    public double ContentOpacity => IsLocked ? 0.4 : 1.0;
+    public static double ButtonWidth(bool isCompact) => isCompact ? CompactWidth : ExpandedWidth;
 
-    // Icon visibility - show the Fluent icon when a symbol name is set
-    public Visibility FluentIconVisibility => !string.IsNullOrEmpty(IconSymbol) ? Visibility.Visible : Visibility.Collapsed;
+    public static double ButtonHeight(bool isCompact) => isCompact ? CompactHeight : ExpandedHeight;
 
-    // Badge visibility
-    public Visibility BadgeVisibility => BadgeValue >= 0 || BadgeStatus == "SuccessIcon" ? Visibility.Visible : Visibility.Collapsed;
+    public static double IconSizeFor(bool isCompact) => isCompact ? CompactIconSize : ExpandedIconSize;
 
-    #endregion
+    public static bool HasIcon(string? iconSymbol) => !string.IsNullOrEmpty(iconSymbol);
+
+    public static FluentIcons.Common.Icon IconKindOf(string? iconSymbol) =>
+        Enum.TryParse<FluentIcons.Common.Icon>(iconSymbol, ignoreCase: true, out var icon) ? icon : default;
+
+    public static bool HasBadge(int badgeValue, string badgeStatus) =>
+        !string.IsNullOrEmpty(badgeStatus) && (badgeValue >= 0 || badgeStatus == "SuccessIcon");
+
+    public static Style? BadgeStyleFor(string badgeStatus)
+    {
+        var key = badgeStatus switch
+        {
+            "Attention" => "AttentionValueInfoBadgeStyle",
+            "Success" => "InformationalValueInfoBadgeStyle",
+            "SuccessIcon" => "SuccessIconInfoBadgeStyle",
+            _ => "AttentionValueInfoBadgeStyle"
+        };
+        return Application.Current.Resources.TryGetValue(key, out var style) ? style as Style : null;
+    }
 
     private bool _isPointerOver;
-    private bool _isFocused;
-    private ILogService? _logService;
+
+    // Closing a popup replays the last pointer update, so PointerEntered can fire under a pointer that never moved
+    // and no PointerExited follows. Set when the More flyout closes; hover then waits for a real move or a press.
+    private bool _hoverWaitsForMove;
 
     public NavButton()
     {
         this.InitializeComponent();
         UpdateVisualState();
 
-        // Keyboard and focus accessibility
         KeyDown += NavButton_KeyDown;
-        GotFocus += NavButton_GotFocus;
-        LostFocus += NavButton_LostFocus;
-        Loaded += (_, _) => _logService = App.Services.GetService<ILogService>();
     }
 
     private void NavButton_KeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (IsLoading || IsLocked) return;
-
         if (e.Key == VirtualKey.Enter || e.Key == VirtualKey.Space)
         {
             Clicked?.Invoke(this, new NavButtonClickedEventArgs(NavigationTag));
@@ -255,141 +186,77 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     // Lets the automation peer route Narrator's Invoke through the same gates as pointer / keyboard.
     internal void InvokeFromAutomation()
     {
-        if (IsLoading || IsLocked) return;
         Clicked?.Invoke(this, new NavButtonClickedEventArgs(NavigationTag));
     }
-
-    private void NavButton_GotFocus(object sender, RoutedEventArgs e)
-    {
-        _isFocused = true;
-        UpdateVisualState();
-    }
-
-    private void NavButton_LostFocus(object sender, RoutedEventArgs e)
-    {
-        _isFocused = false;
-        UpdateVisualState();
-    }
-
-    #region Property Change Handlers
 
     private static void OnIsSelectedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is NavButton button)
         {
-            button.NotifyPropertyChanged(nameof(IndicatorVisibility));
             button.UpdateVisualState();
         }
     }
 
-    private static void OnIsLoadingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    private static void OnTextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) => ((NavButton)d).FitLabel();
+
+    private void ButtonText_Loaded(object sender, RoutedEventArgs e) => FitLabel();
+
+    // The label wraps only between words, so a word wider than the label ("Einstellungen") steps the font down
+    // until it fits instead of breaking mid-word. Past the last step it is trimmed with an ellipsis.
+    private void FitLabel()
     {
-        if (d is NavButton button)
-        {
-            button.NotifyPropertyChanged(nameof(LoadingVisibility));
-            button.UpdateVisualState();
-        }
+        if (ButtonText is not { } label)
+            return;
+
+        FitToWidth.Apply(
+            label.MaxWidth,
+            () => FitToWidth.WidestWord(Text, word => WordWidth(label, word)),
+            reset: () => label.FontSize = LabelFontSize,
+            () => label.FontSize = 9,
+            () => label.FontSize = 8,
+            () => label.FontSize = 7);
     }
 
-    private static void OnIsLockedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    private static double WordWidth(TextBlock label, string word)
     {
-        if (d is NavButton button)
-        {
-            button.NotifyPropertyChanged(nameof(LockedVisibility));
-            button.NotifyPropertyChanged(nameof(ContentOpacity));
-            button.UpdateVisualState();
-        }
+        var probe = new TextBlock { Text = word, FontSize = label.FontSize, FontFamily = label.FontFamily, FontWeight = label.FontWeight };
+        probe.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        return probe.DesiredSize.Width;
     }
-
-    private static void OnIsCompactChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        if (d is NavButton button)
-        {
-            button.NotifyPropertyChanged(nameof(ActualButtonWidth));
-            button.NotifyPropertyChanged(nameof(ActualButtonHeight));
-            button.NotifyPropertyChanged(nameof(IconSize));
-            button.NotifyPropertyChanged(nameof(TextVisibility));
-        }
-    }
-
-    private static void OnBadgePropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        if (d is NavButton button)
-        {
-            button.NotifyPropertyChanged(nameof(BadgeVisibility));
-            button.ApplyBadgeStyle();
-        }
-    }
-
-    private void ApplyBadgeStyle()
-    {
-        try
-        {
-            if (Badge == null) return;
-
-            if (string.IsNullOrEmpty(BadgeStatus) || (BadgeValue < 0 && BadgeStatus != "SuccessIcon"))
-            {
-                Badge.Visibility = Visibility.Collapsed;
-                return;
-            }
-
-            Badge.Visibility = Visibility.Visible;
-            var styleKey = BadgeStatus switch
-            {
-                "Attention" => "AttentionValueInfoBadgeStyle",
-                "Success" => "InformationalValueInfoBadgeStyle",
-                "SuccessIcon" => "SuccessIconInfoBadgeStyle",
-                _ => "AttentionValueInfoBadgeStyle"
-            };
-
-            if (Application.Current.Resources.TryGetValue(styleKey, out var style) && style is Style badgeStyle)
-            {
-                Badge.Style = badgeStyle;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService?.LogDebug($"Failed to apply badge style: {ex.Message}");
-        }
-    }
-
-    private static void OnIconPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        if (d is NavButton button)
-        {
-            button.NotifyPropertyChanged(nameof(FluentIconVisibility));
-
-            // Parse the Fluent icon name and apply it to the FluentIcon element.
-            // Icon is an enum, so it can't be x:Bind'd directly from the string DP.
-            if (!string.IsNullOrEmpty(button.IconSymbol) && button.ButtonFluentIcon is not null
-                && Enum.TryParse<FluentIcons.Common.Icon>(button.IconSymbol, ignoreCase: true, out var fluentIcon))
-            {
-                button.ButtonFluentIcon.Icon = fluentIcon;
-            }
-        }
-    }
-
-    #endregion
-
-    #region Pointer Events
 
     private void RootGrid_PointerEntered(object sender, PointerRoutedEventArgs e)
     {
+        if (_hoverWaitsForMove)
+            return;
+
+        _isPointerOver = true;
+        UpdateVisualState();
+    }
+
+    private void RootGrid_PointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_hoverWaitsForMove)
+            return;
+
+        _hoverWaitsForMove = false;
         _isPointerOver = true;
         UpdateVisualState();
     }
 
     private void RootGrid_PointerExited(object sender, PointerRoutedEventArgs e)
     {
+        _hoverWaitsForMove = false;
         _isPointerOver = false;
         UpdateVisualState();
     }
 
+    // Focus on press, as Button does, so a flyout this button opens hands focus back to it on Esc.
     private void RootGrid_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        // Block interaction when loading or locked
-        if (IsLoading || IsLocked) return;
-
+        _hoverWaitsForMove = false;
+        _isPointerOver = true;
+        UpdateVisualState();
+        Focus(FocusState.Pointer);
         RootGrid.CapturePointer(e.Pointer);
     }
 
@@ -397,51 +264,28 @@ public sealed partial class NavButton : UserControl, INotifyPropertyChanged
     {
         RootGrid.ReleasePointerCapture(e.Pointer);
 
-        // Block interaction when loading or locked
-        if (IsLoading || IsLocked) return;
-
-        // Only fire click if pointer is still over the button
         if (_isPointerOver)
         {
             Clicked?.Invoke(this, new NavButtonClickedEventArgs(NavigationTag));
         }
     }
 
-    #endregion
-
-    #region Visual State Management
+    internal void ClearPointerOver()
+    {
+        _isPointerOver = false;
+        _hoverWaitsForMove = true;
+        UpdateVisualState();
+    }
 
     private void UpdateVisualState()
     {
-        // Determine background based on state
-        if (IsSelected)
-        {
-            // Selected state: use tertiary fill
-            BackgroundBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorTertiaryBrush"];
-        }
-        else if ((_isPointerOver || _isFocused) && !IsLoading && !IsLocked)
-        {
-            // Hover/Focus state: use secondary fill
-            BackgroundBorder.Background = (Brush)Application.Current.Resources["SubtleFillColorSecondaryBrush"];
-        }
-        else
-        {
-            // Normal state: transparent
-            BackgroundBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
-        }
-    }
-
-    #endregion
-
-    private void NotifyPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        string state = IsSelected ? "Selected"
+            : _isPointerOver ? "PointerOver"
+            : "Normal";
+        VisualStateManager.GoToState(this, state, false);
     }
 }
 
-/// <summary>
-/// Event args for NavButton click events.
-/// </summary>
 public class NavButtonClickedEventArgs : EventArgs
 {
     public object? NavigationTag { get; }
@@ -452,10 +296,6 @@ public class NavButtonClickedEventArgs : EventArgs
     }
 }
 
-/// <summary>
-/// Automation peer that exposes NavButton as a Button to UI Automation clients
-/// (Narrator etc.) and routes the Invoke pattern through NavButton.InvokeFromAutomation.
-/// </summary>
 public sealed partial class NavButtonAutomationPeer : FrameworkElementAutomationPeer, IInvokeProvider
 {
     public NavButtonAutomationPeer(NavButton owner) : base(owner) { }
@@ -466,13 +306,7 @@ public sealed partial class NavButtonAutomationPeer : FrameworkElementAutomation
     protected override string GetClassNameCore() => nameof(NavButton);
 
     protected override object GetPatternCore(PatternInterface patternInterface)
-    {
-        if (patternInterface == PatternInterface.Invoke)
-        {
-            return this;
-        }
-        return base.GetPatternCore(patternInterface);
-    }
+        => patternInterface == PatternInterface.Invoke ? this : base.GetPatternCore(patternInterface);
 
     public void Invoke()
     {

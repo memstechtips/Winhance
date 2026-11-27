@@ -129,3 +129,47 @@ These icons come from several sources, each with its own posture:
     corresponding products inside the application.
 
 =========================================================================
+
+WinUI.TableView (techniques and visual treatment - no code included)
+https://github.com/w-ahmad/WinUI.TableView
+
+Author: w-ahmad
+
+Winhance does not ship or reference this package. Its source was read while
+building the Technical Details option table (Winhance.UI TechnicalDetailsTable
+and OptionMatrixView), and the following were adopted from it:
+
+  - clipping scrolled cells at the frozen-column boundary rather than layering
+    an opaque backdrop over them;
+  - synchronising the header and body horizontally through one shared offset
+    value plus an arrange invalidation, rather than nested scroll viewers;
+  - keeping one authoritative width per column and assigning it to every cell;
+  - the visual treatment: the per-theme border and grid-line brushes from
+    Themes/Resources.xaml, the 32px header / 40px body row metrics, and the
+    12px horizontal cell padding.
+
+The implementation is Winhance's own -- the option table needs spanning group
+headers over frozen columns, which the control does not provide. This notice
+records the debt.
+
+MIT License
+
+Copyright (c) [2024] [w-ahmad https://github.com/w-ahmad]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

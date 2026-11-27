@@ -16,6 +16,27 @@ public class WindowSizeManagerTests
     private static readonly RectInt32[] DualDisplay = { R(0, 0, 1920, 1032), R(1920, 0, 1920, 1032) };
 
     [Fact]
+    public void FitInside_SizeSavedOnABiggerScreen_ShrinksToTheWorkArea()
+    {
+        WindowSizeManager.FitInside(R(200, 100, 1344, 864), R(0, 0, 1024, 728))
+            .Should().Be(R(0, 0, 1024, 728));
+    }
+
+    [Fact]
+    public void FitInside_WindowHangingOffTheRight_MovesBackOnScreen()
+    {
+        WindowSizeManager.FitInside(R(700, 100, 800, 600), R(0, 0, 1024, 728))
+            .Should().Be(R(224, 100, 800, 600));
+    }
+
+    [Fact]
+    public void FitInside_WindowThatFits_IsLeftAlone()
+    {
+        WindowSizeManager.FitInside(R(100, 100, 1280, 800), SingleDisplay[0])
+            .Should().Be(R(100, 100, 1280, 800));
+    }
+
+    [Fact]
     public void IsWindowRectVisible_FullyOnPrimary_ReturnsTrue()
     {
         WindowSizeManager.IsWindowRectVisible(R(100, 100, 1280, 800), SingleDisplay)
@@ -42,7 +63,6 @@ public class WindowSizeManagerTests
     [Fact]
     public void IsWindowRectVisible_OnSecondaryDisplay_ReturnsTrue()
     {
-        // Window on the secondary monitor (x=2500) — valid when dual-display is active.
         WindowSizeManager.IsWindowRectVisible(R(2500, 100, 1280, 800), DualDisplay)
             .Should().BeTrue();
     }
@@ -50,7 +70,6 @@ public class WindowSizeManagerTests
     [Fact]
     public void IsWindowRectVisible_OnSecondary_AfterItDisconnects_ReturnsFalse()
     {
-        // Same rect as above, but the secondary display is no longer in the list.
         WindowSizeManager.IsWindowRectVisible(R(2500, 100, 1280, 800), SingleDisplay)
             .Should().BeFalse();
     }

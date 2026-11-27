@@ -1,77 +1,295 @@
 {
-  "$schemaNote": "See sponsors/README.md. This file is the single source of truth for Winhance sponsor & supporter recognition. It is fetched live by the app from the main branch and a snapshot ships with every release as the offline fallback.",
-  "updated": "2026-06-11",
+  "$schemaNote": "See sponsors/README.md. This file is the single source of truth for Winhance sponsor & supporter recognition. Every surface fetches it live from the `sponsors` branch (the app via SponsorsService.LiveUrl, the store wall via theme JS), and a snapshot ships with every release as the offline fallback. The copy on `main` is docs-only and is NOT what anything reads.",
+  "updated": "2026-09-30",
   "sponsors": [
     {
-      "id": "contoso",
-      "name": "Contoso IT",
-      "tier": "emerald",
-      "city": "Redmond, WA",
-      "country": "US",
-      "contact": "it@example.com",
-      "url": "https://example.com",
-      "logo": "logos/contoso.png",
-      "since": "2026-06",
-      "example": true
-    },
-    {
-      "id": "fabrikam",
-      "name": "Fabrikam Systems",
+      "id": "imperium-sns",
+      "name": "Imperium SNS",
       "tier": "gold",
-      "city": "Austin, TX",
-      "country": "US",
-      "contact": "hello@example.com",
-      "url": "https://example.com",
-      "logo": "logos/fabrikam.png",
-      "since": "2026-06",
-      "example": true
-    },
-    {
-      "id": "example-it",
-      "name": "Example IT Services",
-      "tier": "gold",
-      "city": "Springfield, US",
-      "country": "US",
-      "contact": "it@example.com",
-      "url": "https://example.com",
-      "logo": "logos/example-it.png",
-      "since": "2026-06",
-      "example": true
-    },
-    {
-      "id": "winhance",
-      "name": "Winhance",
-      "tier": "gold",
-      "city": "WC, ZA",
+      "city": "Mpumalanga, ZA",
       "country": "ZA",
-      "contact": "contact@memstechtips.com",
-      "url": "https://www.winhance.net",
-      "logo": "logos/winhance.png",
-      "since": "2026-06",
-      "example": true
-    },
-    {
-      "id": "unattendedwinstall",
-      "name": "UnattendedWinstall",
-      "tier": "silver",
-      "city": "WC, ZA",
-      "country": "ZA",
-      "contact": "contact@memstechtips.com",
-      "logo": "logos/unattendedwinstall.png",
-      "since": "2026-06",
-      "example": true
-    },
-    {
-      "id": "memstechtips",
-      "name": "Memstechtips",
-      "tier": "bronze",
-      "country": "ZA",
-      "logo": "logos/memstechtips.png",
-      "since": "2026-06",
-      "example": true
+      "url": "https://www.imperiumsns.co.za",
+      "slogan": "Fortifying Your Digital Future",
+      "logo": "logos/imperium-sns.png",
+      "since": "2026-09"
     }
   ],
   "supporters": [
+    {
+      "name": "Tim Lengert",
+      "since": "2026-09"
+    },
+    {
+      "name": "derik liberator",
+      "since": "2026-09"
+    },
+    {
+      "name": "MNGopher46",
+      "since": "2026-09",
+      "src": "Tom Reese"
+    },
+    {
+      "name": "Mark Brumfield",
+      "since": "2026-09",
+      "src": "mark brumfield"
+    },
+    {
+      "name": "Manuel Rubio",
+      "since": "2026-09"
+    },
+    {
+      "name": "James Miller",
+      "since": "2026-09"
+    },
+    {
+      "name": "Ngh Fu Fu",
+      "since": "2026-09",
+      "src": "Bengt Tall"
+    },
+    {
+      "name": "Julian K.",
+      "since": "2026-09",
+      "src": "Julian Kinlaw"
+    },
+    {
+      "name": "Marco Machado",
+      "since": "2026-09",
+      "src": "marco machado"
+    },
+    {
+      "name": "WARREN B MCKENNA",
+      "since": "2026-09",
+      "src": "WARREN MCKENNA"
+    },
+    {
+      "name": "Roseg",
+      "since": "2026-09",
+      "gh": "Roseg7068"
+    },
+    {
+      "name": "Petesidewalk",
+      "since": "2026-09",
+      "src": "G Lytle"
+    },
+    {
+      "name": "JLGutierrez",
+      "since": "2026-09",
+      "src": "Luis Gutierrez"
+    },
+    {
+      "name": "Rhapsody",
+      "since": "2026-09",
+      "src": "Lucena Newport"
+    },
+    {
+      "name": "go winhance! kracken them all",
+      "since": "2026-09",
+      "src": "sebastien rivas"
+    },
+    {
+      "name": "Kevin M Rowe",
+      "since": "2026-08"
+    },
+    {
+      "name": "Friction",
+      "since": "2026-08",
+      "src": "Michael Baker"
+    },
+    {
+      "name": "Paul Block",
+      "since": "2026-08"
+    },
+    {
+      "name": "Puerto Rico",
+      "since": "2026-08",
+      "src": "Angel Rivera"
+    },
+    {
+      "name": "J. Wikmann K.",
+      "since": "2026-08",
+      "src": "Jan K"
+    },
+    {
+      "name": "Gregg Saunders - KC1TCZ",
+      "since": "2026-08",
+      "src": "Gregg Saunders"
+    },
+    {
+      "name": "abbdoc",
+      "since": "2026-08",
+      "src": "Alan B Baker"
+    },
+    {
+      "name": "Johnny Dollar",
+      "since": "2026-08",
+      "src": "Harry McDow"
+    },
+    {
+      "name": "Brandon Ewing",
+      "since": "2026-08"
+    },
+    {
+      "name": "Jaime Perez",
+      "since": "2026-08"
+    },
+    {
+      "name": "Merlin Pieters",
+      "since": "2026-08"
+    },
+    {
+      "name": "Stig Hellberg",
+      "since": "2026-08"
+    },
+    {
+      "name": "KANGMYEONG LEE",
+      "since": "2026-08"
+    },
+    {
+      "name": "Kiwi@ResultsOOO",
+      "since": "2026-08",
+      "src": "Kevin Borg"
+    },
+    {
+      "name": "Johnny Lai-Kristiansen",
+      "since": "2026-07"
+    },
+    {
+      "name": "Fabio Fabbri",
+      "since": "2026-07"
+    },
+    {
+      "name": "Jose Urena",
+      "since": "2026-07"
+    },
+    {
+      "name": "Kennedy Naidoo",
+      "since": "2026-07"
+    },
+    {
+      "name": "Paul ODea",
+      "since": "2026-07"
+    },
+    {
+      "name": "Steve Mikolajczyk",
+      "since": "2026-07"
+    },
+    {
+      "name": "Isaac Flores",
+      "since": "2026-07"
+    },
+    {
+      "name": "Jean-Claude Hasler",
+      "since": "2026-07"
+    },
+    {
+      "name": "Leandro Romano",
+      "since": "2026-07"
+    },
+    {
+      "name": "Mike Panchaud",
+      "since": "2026-07"
+    },
+    {
+      "name": "Christopher Paterson",
+      "since": "2026-07"
+    },
+    {
+      "name": "Connie Kottke",
+      "since": "2026-07"
+    },
+    {
+      "name": "Thomas Mavian",
+      "since": "2026-07"
+    },
+    {
+      "name": "Alfred Hu",
+      "since": "2026-07"
+    },
+    {
+      "name": "Charles Mitchum",
+      "since": "2026-06"
+    },
+    {
+      "name": "QUACK ATTACK",
+      "since": "2026-06"
+    },
+    {
+      "name": "WAYNE HUSKINS",
+      "since": "2026-06"
+    },
+    {
+      "name": "Andres Rosales",
+      "since": "2026-06"
+    },
+    {
+      "name": "Forkinator",
+      "since": "2026-06",
+      "src": "Philip Skora"
+    },
+    {
+      "name": "CJ Jones",
+      "since": "2026-06"
+    },
+    {
+      "name": "Dustin Woods",
+      "since": "2026-06"
+    },
+    {
+      "name": "Arafat Hossain",
+      "since": "2026-06"
+    },
+    {
+      "name": "Derik M Liberator",
+      "since": "2026-06"
+    },
+    {
+      "name": "John Herstine",
+      "since": "2026-06"
+    },
+    {
+      "name": "Ralph Walker",
+      "since": "2026-06"
+    },
+    {
+      "name": "Roger Tolley",
+      "since": "2026-06"
+    },
+    {
+      "name": "Dean Barnes",
+      "since": "2026-06"
+    },
+    {
+      "name": "Darren Turnbull",
+      "since": "2026-06"
+    },
+    {
+      "name": "Marcus Fitzpatrick",
+      "since": "2026-06"
+    },
+    {
+      "name": "Barry Richter",
+      "since": "2026-06"
+    },
+    {
+      "name": "Adam Bridge",
+      "since": "2026-06"
+    },
+    {
+      "name": "Kristoffer Haglund",
+      "since": "2026-06"
+    },
+    {
+      "name": "Rick Slinger",
+      "since": "2026-06"
+    },
+    {
+      "name": "Paul-Adrian Popovici",
+      "since": "2026-06"
+    },
+    {
+      "name": "Leo Smith",
+      "since": "2026-06"
+    },
     {
       "name": "Marco du Plessis",
       "since": "2026-06"

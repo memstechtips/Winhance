@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Winhance.UI.Features.Common.Pages.SectionDetailPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:commonControls="using:Winhance.UI.Features.Common.Controls"
+    x:DefaultBindMode="OneWay"
+    NavigationCacheMode="Disabled">
+
+    <!-- The grouped source and the loading/no-results bindings are wired in code-behind: one page
+         serves every section, so the binding paths differ per section and are not knowable here. -->
+    <commonControls:SettingsListView x:Name="SettingsList"/>
+</Page>

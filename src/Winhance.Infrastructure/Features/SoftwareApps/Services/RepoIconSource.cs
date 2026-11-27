@@ -1,10 +1,5 @@
-using System;
-using System.IO;
-using System.Net.Http;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Security.Cryptography;
-using System.Threading;
-using System.Threading.Tasks;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
 using Winhance.Core.Features.Common.Interfaces;
@@ -12,7 +7,7 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services;
 
-public class RepoIconSource(HttpClient httpClient, ILogService logService) : IRepoIconSource
+internal class RepoIconSource(HttpClient httpClient, ILogService logService) : IRepoIconSource
 {
     private const string BaseUrl = "https://cdn.jsdelivr.net/gh/memstechtips/package-icons@main/";
     private const string UserAgent = "Winhance/1.0 (+https://github.com/memstechtips/Winhance)";

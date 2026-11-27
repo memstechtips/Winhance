@@ -1,19 +1,14 @@
-using System;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
-using Microsoft.UI.Xaml.Media.Imaging;
 using Winhance.Core.Features.Common.Interfaces;
 using WinRT.Interop;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Views;
 
-/// <summary>
-/// A fullscreen overlay window shown during config application.
-/// Uses Win32 interop for semi-transparency and borderless maximized presentation.
-/// </summary>
 public sealed partial class ConfigImportOverlayWindow : Window
 {
     [DllImport("user32.dll")]
@@ -31,33 +26,19 @@ public sealed partial class ConfigImportOverlayWindow : Window
     private const uint LWA_ALPHA = 0x2;
 
     private bool _configured;
-    private ILogService? _logService;
+    private readonly ILogService _logService = App.Services.GetRequiredService<ILogService>();
 
     public ConfigImportOverlayWindow(string statusText, string? detailText = null)
     {
         this.InitializeComponent();
 
-        // Set initial text
         OverlayStatusText.Text = statusText;
         OverlayDetailText.Text = detailText ?? string.Empty;
 
-        // Set branding
-        OverlayLogo.Source = new BitmapImage(
-            new Uri("ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png"));
+        var localizationService = App.Services.GetRequiredService<ILocalizationService>();
+        OverlayTitleText.Text = localizationService.GetStringOrDefault("App_Title", "Winhance");
+        OverlayTaglineText.Text = localizationService.GetStringOrDefault("App_Tagline", "Enhance Your Windows Experience");
 
-        try
-        {
-            var localizationService = App.Services.GetService<ILocalizationService>();
-            OverlayTitleText.Text = localizationService?.GetString("App_Title") ?? "Winhance";
-            OverlayTaglineText.Text = localizationService?.GetString("App_Tagline") ?? "";
-        }
-        catch
-        {
-            OverlayTitleText.Text = "Winhance";
-            OverlayTaglineText.Text = "";
-        }
-
-        // Configure window after activation
         this.Activated += OnActivated;
     }
 
@@ -65,23 +46,19 @@ public sealed partial class ConfigImportOverlayWindow : Window
     {
         if (_configured) return;
         _configured = true;
-        _logService = App.Services.GetService<ILogService>();
-
         try
         {
-            // Remove title bar
             ExtendsContentIntoTitleBar = true;
 
             var hwnd = WindowNative.GetWindowHandle(this);
 
             // Add WS_EX_LAYERED (for opacity) and WS_EX_TOOLWINDOW (hides from taskbar)
             var exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-            SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED | WS_EX_TOOLWINDOW);
+            _ = SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED | WS_EX_TOOLWINDOW);
 
-            // Set window opacity to ~90% (0xE6 = 230) — matches WPF's #E6000000
+            // Window opacity ~90% (0xE6 = 230).
             SetLayeredWindowAttributes(hwnd, 0, 230, LWA_ALPHA);
 
-            // Borderless, always-on-top, maximized
             if (AppWindow.Presenter is OverlappedPresenter presenter)
             {
                 presenter.SetBorderAndTitleBar(false, false);
@@ -91,24 +68,17 @@ public sealed partial class ConfigImportOverlayWindow : Window
         }
         catch (Exception ex)
         {
-            _logService?.LogDebug($"Failed to configure overlay window: {ex.Message}");
+            _logService.LogDebug($"Failed to configure overlay window: {ex.Message}");
         }
 
-        // Announce initial status text to Narrator
         AnnounceStatus(OverlayStatusText.Text);
     }
 
-    /// <summary>
-    /// Updates the status and detail text on the overlay.
-    /// </summary>
     public void UpdateStatus(string status, string? detail = null)
     {
-        DispatcherQueue.TryEnqueue(() =>
-        {
-            OverlayStatusText.Text = status;
-            OverlayDetailText.Text = detail ?? string.Empty;
-            AnnounceStatus(status);
-        });
+        OverlayStatusText.Text = status;
+        OverlayDetailText.Text = detail ?? string.Empty;
+        AnnounceStatus(status);
     }
 
     private void AnnounceStatus(string text)

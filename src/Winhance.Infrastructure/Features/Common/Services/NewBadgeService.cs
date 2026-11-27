@@ -1,16 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class NewBadgeService : INewBadgeService
+internal class NewBadgeService : INewBadgeService
 {
     private readonly IUserPreferencesService _prefs;
     private readonly ILogService _logService;
+    private const string AutoHidePendingKey = "NewBadgesAutoHidePending";
+
     private Version _baseline = new(99, 99, 99);
 
     public NewBadgeService(IUserPreferencesService prefs, ILogService logService)
@@ -27,11 +26,10 @@ public class NewBadgeService : INewBadgeService
 
     public void Initialize(IEnumerable<string?> allAddedInVersions)
     {
-        // Keep writing LastRunVersion for future migration use — it no longer drives badges.
+        // LastRunVersion is kept only for future migration use; it does not drive badges.
         var currentAssemblyVersion = GetAppVersion();
         _prefs.SetPreferenceAsync("LastRunVersion", currentAssemblyVersion);
 
-        // Compute the highest AddedInVersion present in the loaded registry.
         Version? highestInRegistry = null;
         if (allAddedInVersions != null)
         {
@@ -49,30 +47,27 @@ public class NewBadgeService : INewBadgeService
         var storedHighestStr  = _prefs.GetPreference(UserPreferenceKeys.HighestSeenAddedInVersion, "");
         var storedBaselineStr = _prefs.GetPreference("NewBadgeBaseline", "");
 
-        // Branch A: uninitialized state — first-ever install, returning user whose
-        // preferences predate the badge system, OR a half-populated state where one
-        // of the two keys is missing (or unparseable). All roads lead to: baseline =
-        // 0.0.0, every tagged setting renders as NEW, both keys get seeded so the
-        // next launch has a consistent pair.
+        // No usable stored state: first install, preferences that predate the badge system, or one
+        // of the two keys missing or unparseable. Everything is new to this user, so nothing gets a
+        // NEW badge; the baseline is seeded at the registry's highest so the next upgrade works.
         var highestOk  = TryParseVersion(storedHighestStr,  out var storedHighest);
         var baselineOk = TryParseVersion(storedBaselineStr, out var storedBaseline);
         if (!highestOk || !baselineOk)
         {
-            _baseline = new Version(0, 0, 0);
             if (highestInRegistry is not null)
             {
+                _baseline = highestInRegistry;
                 _prefs.SetPreferenceAsync(
                     UserPreferenceKeys.HighestSeenAddedInVersion,
                     VersionToString(highestInRegistry));
+                _prefs.SetPreferenceAsync("NewBadgeBaseline", VersionToString(highestInRegistry));
             }
-            _prefs.SetPreferenceAsync("NewBadgeBaseline", VersionToString(_baseline));
-            // Do NOT touch ShowNewBadges — leave whatever the user already has.
+            _prefs.SetPreferenceAsync(AutoHidePendingKey, false);
             _logService.LogInformation(
-                "[NewBadge] Uninitialized or half-populated state. Baseline set to 0.0.0 (all tagged settings treated as new).");
+                "No usable badge state. Baseline set to the registry highest; no NEW badges.");
             return;
         }
 
-        // Branch B: effective upgrade detected — new settings added to the registry since last run.
         if (highestInRegistry is not null && highestInRegistry > storedHighest)
         {
             _baseline = storedHighest;
@@ -81,17 +76,23 @@ public class NewBadgeService : INewBadgeService
                 VersionToString(highestInRegistry));
             _prefs.SetPreferenceAsync("NewBadgeBaseline", VersionToString(storedHighest));
             ShowNewBadges = true;
+            _prefs.SetPreferenceAsync(AutoHidePendingKey, true);
             _logService.LogInformation(
-                $"[NewBadge] Effective upgrade: registry highest {highestInRegistry} > stored {storedHighest}. " +
+                $"Effective upgrade: registry highest {highestInRegistry} > stored {storedHighest}. " +
                 $"Baseline={storedHighest}; ShowNewBadges reset to true.");
             return;
         }
 
-        // Branch C: no upgrade since last run — use the stored NewBadgeBaseline so NEW
-        // badges persist across app launches until the next upgrade.
+        // No upgrade since last run. The upgrade launch set the pending flag; this launch consumes
+        // it and hides the badges. A later manual re-enable finds the flag clear and sticks.
         _baseline = storedBaseline;
+        if (_prefs.GetPreference(AutoHidePendingKey, false))
+        {
+            ShowNewBadges = false;
+            _prefs.SetPreferenceAsync(AutoHidePendingKey, false);
+        }
         _logService.LogDebug(
-            $"[NewBadge] No upgrade. Baseline={_baseline}, ShowNewBadges={ShowNewBadges}.");
+            $"No upgrade. Baseline={_baseline}, ShowNewBadges={ShowNewBadges}.");
     }
 
     public bool IsSettingNew(string? addedInVersion, string settingId)
@@ -110,7 +111,6 @@ public class NewBadgeService : INewBadgeService
         var attr = Assembly.GetEntryAssembly()?
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>();
         var version = attr?.InformationalVersion ?? "0.0.0";
-        // Strip leading 'v' and any '+commithash' suffix
         version = version.TrimStart('v');
         var plusIndex = version.IndexOf('+');
         if (plusIndex >= 0)

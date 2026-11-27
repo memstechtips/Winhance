@@ -10,96 +10,72 @@ public class HardwareDetectionServiceTests
 {
     private readonly Mock<ILogService> _mockLogService = new();
 
-    #region Constructor
-
-    [Fact]
-    public void Constructor_NullLogService_ThrowsArgumentNullException()
-    {
-        // Act
-        var act = () => new HardwareDetectionService(null!);
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("logService");
-    }
+    private HardwareDetectionService CreateSut() => new(_mockLogService.Object);
 
     [Fact]
     public void Constructor_ValidLogService_CreatesInstance()
     {
-        // Act
-        var service = new HardwareDetectionService(_mockLogService.Object);
+        var service = CreateSut();
 
-        // Assert
         service.Should().NotBeNull();
     }
 
-    #endregion
-
-    #region HasBatteryAsync — WMI integration test (runs against real hardware)
-
-    [Fact]
-    public async Task HasBatteryAsync_DoesNotThrow_ReturnsBooleanValue()
+    [Theory]
+    [InlineData(128, false)]
+    [InlineData(0, true)]
+    [InlineData(1, true)]
+    [InlineData(2, true)]
+    [InlineData(4, true)]
+    [InlineData(8, true)]
+    [InlineData(9, true)]
+    public void InterpretBatteryFlag_MapsEveryDocumentedFlagToAVerdict(int flag, bool expected)
     {
-        // Arrange
-        var service = new HardwareDetectionService(_mockLogService.Object);
-
-        // Act
-        var act = () => service.HasBatteryAsync();
-
-        // Assert - should complete without throwing; actual value depends on hardware
-        await act.Should().NotThrowAsync();
+        // 128 is NoBattery (a desktop). 1/2/4 are High/Low/Critical charge, 8 is Charging, 9 is the
+        // usual laptop-on-mains pair, 0 is a battery present with no charge state reported - all of
+        // which mean a battery exists.
+        HardwareDetectionService.InterpretBatteryFlag((byte)flag).Should().Be(expected);
     }
 
-    #endregion
-
-    #region HasLidAsync — WMI integration test
-
     [Fact]
-    public async Task HasLidAsync_DoesNotThrow_ReturnsBooleanValue()
+    public void InterpretBatteryFlag_Unknown_ReportsCouldNotTell_NotNoBattery()
     {
-        // Arrange
-        var service = new HardwareDetectionService(_mockLogService.Object);
-
-        // Act
-        var act = () => service.HasLidAsync();
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        // The trap this pins: Unknown is 255 = 0xFF, which has the NoBattery bit (128) set inside it.
+        // A plain bit test would call every machine reporting Unknown a desktop, and callers treat
+        // "no battery" and "could not tell" differently.
+        HardwareDetectionService.InterpretBatteryFlag(255).Should().BeNull();
     }
 
-    #endregion
-
-    #region SupportsBrightnessControlAsync
-
     [Fact]
-    public async Task SupportsBrightnessControlAsync_DoesNotThrow_ReturnsBooleanValue()
+    public void HasBattery_ReachesAVerdict_OnAnySupportedMachine()
     {
-        // Arrange
-        var service = new HardwareDetectionService(_mockLogService.Object);
+        // GetSystemPowerStatus answers on every machine Winhance supports, desktop included, so a
+        // null here means the P/Invoke binding is wrong rather than that the hardware is unusual.
+        // The true/false split is a property of the test machine, so it is not asserted.
+        var service = CreateSut();
 
-        // Act
-        var act = () => service.SupportsBrightnessControlAsync();
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        service.HasBattery().Should().NotBeNull();
     }
 
-    #endregion
-
-    #region SupportsHybridSleepAsync
-
     [Fact]
-    public async Task SupportsHybridSleepAsync_DoesNotThrow_ReturnsBooleanValue()
+    public void HasBattery_QueriesOnce_AndServesLaterCallsFromCache()
     {
-        // Arrange
-        var service = new HardwareDetectionService(_mockLogService.Object);
+        // The cache is what makes a synchronous HasBattery() safe to call from anywhere: only the
+        // first caller pays for the lookup. Same instance must keep answering the same way.
+        var service = CreateSut();
 
-        // Act
-        var act = () => service.SupportsHybridSleepAsync();
+        var first = service.HasBattery();
+        var second = service.HasBattery();
 
-        // Assert
-        await act.Should().NotThrowAsync();
+        second.Should().Be(first);
     }
 
-    #endregion
+    [Fact]
+    public void SupportsHybridSleep_DoesNotThrow_ReturnsBooleanValue()
+    {
+        var service = CreateSut();
+
+        var act = () => service.SupportsHybridSleep();
+
+        act.Should().NotThrow();
+    }
 }

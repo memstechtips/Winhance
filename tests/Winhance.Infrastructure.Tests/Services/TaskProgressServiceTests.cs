@@ -10,6 +10,9 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class TaskProgressServiceTests
 {
+    private static readonly string[] TwoScripts = ["A", "B"];
+    private static readonly string[] OneScript = ["Script1"];
+
     private readonly Mock<ILogService> _mockLog = new();
     private readonly TaskProgressService _sut;
 
@@ -18,28 +21,14 @@ public class TaskProgressServiceTests
         _sut = new TaskProgressService(_mockLog.Object);
     }
 
-    // ── Constructor ──
-
-    [Fact]
-    public void Constructor_NullLogService_ThrowsArgumentNullException()
-    {
-        var act = () => new TaskProgressService(null!);
-
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("logService");
-    }
-
     [Fact]
     public void Constructor_InitializesWithDefaultState()
     {
         _sut.IsTaskRunning.Should().BeFalse();
-        _sut.CurrentProgress.Should().Be(0);
         _sut.CurrentStatusText.Should().BeEmpty();
         _sut.IsIndeterminate.Should().BeFalse();
         _sut.CurrentTaskCancellationSource.Should().BeNull();
     }
-
-    // ── StartTask ──
 
     [Fact]
     public void StartTask_ValidName_SetsRunningStateAndReturnsCancellationSource()
@@ -48,7 +37,6 @@ public class TaskProgressServiceTests
 
         _sut.IsTaskRunning.Should().BeTrue();
         _sut.CurrentStatusText.Should().Be("Apply Settings");
-        _sut.CurrentProgress.Should().Be(0);
         cts.Should().NotBeNull();
         cts.IsCancellationRequested.Should().BeFalse();
         _sut.CurrentTaskCancellationSource.Should().BeSameAs(cts);
@@ -70,7 +58,7 @@ public class TaskProgressServiceTests
         var act = () => _sut.StartTask(taskName!);
 
         act.Should().Throw<ArgumentException>()
-            .WithParameterName("taskName");
+            .WithParameterName(nameof(taskName));
     }
 
     [Fact]
@@ -86,8 +74,6 @@ public class TaskProgressServiceTests
         received.StatusText.Should().Be("Test Task");
     }
 
-    // ── UpdateProgress ──
-
     [Fact]
     public void UpdateProgress_WithinRunningTask_UpdatesProgressAndStatus()
     {
@@ -95,18 +81,15 @@ public class TaskProgressServiceTests
 
         _sut.UpdateProgress(50, "Halfway");
 
-        _sut.CurrentProgress.Should().Be(50);
         _sut.CurrentStatusText.Should().Be("Halfway");
     }
 
     [Fact]
     public void UpdateProgress_WhenNoTaskRunning_DoesNothing()
     {
-        // No task started, so the method should silently return
         var act = () => _sut.UpdateProgress(50, "Status");
 
         act.Should().NotThrow();
-        _sut.CurrentProgress.Should().Be(0);
     }
 
     [Theory]
@@ -129,10 +112,7 @@ public class TaskProgressServiceTests
         _sut.UpdateProgress(25);
 
         _sut.CurrentStatusText.Should().Be("Initial");
-        _sut.CurrentProgress.Should().Be(25);
     }
-
-    // ── CompleteTask ──
 
     [Fact]
     public void CompleteTask_SetsProgressTo100AndClearsRunningState()
@@ -143,7 +123,6 @@ public class TaskProgressServiceTests
         _sut.CompleteTask();
 
         _sut.IsTaskRunning.Should().BeFalse();
-        _sut.CurrentProgress.Should().Be(100);
         _sut.IsIndeterminate.Should().BeFalse();
         _sut.CurrentTaskCancellationSource.Should().BeNull();
     }
@@ -170,7 +149,51 @@ public class TaskProgressServiceTests
         received.DetailedMessage.Should().Be("Task completed");
     }
 
-    // ── CancelCurrentTask ──
+    [Fact]
+    public void FailTask_EndsTheTaskInOneEventAtZeroProgress()
+    {
+        _sut.StartTask("Work");
+        var received = new List<(TaskProgressDetail Detail, bool WasRunning)>();
+        _sut.ProgressUpdated += (_, detail) => received.Add((detail, _sut.IsTaskRunning));
+
+        _sut.FailTask();
+
+        _sut.IsTaskRunning.Should().BeFalse();
+        _sut.CurrentTaskCancellationSource.Should().BeNull();
+        received.Should().ContainSingle();
+        received[0].WasRunning.Should().BeFalse();
+        received[0].Detail.Progress.Should().Be(0);
+        received[0].Detail.StatusText.Should().Be("Work");
+        received[0].Detail.DetailedMessage.Should().Be("Task failed");
+    }
+
+    [Fact]
+    public void FailTask_ThenCompleteTask_NeverLogsCompletion()
+    {
+        _sut.StartTask("Work");
+
+        _sut.FailTask();
+        _sut.CompleteTask();
+
+        _mockLog.Verify(l => l.Log(LogLevel.Warning, It.Is<string>(m => m.StartsWith("Task failed")), It.IsAny<Exception>(), It.IsAny<string>()), Times.Once);
+        _mockLog.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.StartsWith("Task completed")), It.IsAny<Exception>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void CancelTask_EndsTheTaskAndLogsItAsCancelledNotCompleted()
+    {
+        _sut.StartTask("Work");
+        TaskProgressDetail? received = null;
+        _sut.ProgressUpdated += (_, detail) => received = detail;
+
+        _sut.CancelTask();
+        _sut.CompleteTask();
+
+        _sut.IsTaskRunning.Should().BeFalse();
+        received!.DetailedMessage.Should().Be("Task cancelled");
+        _mockLog.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.StartsWith("Task cancelled")), It.IsAny<Exception>(), It.IsAny<string>()), Times.Once);
+        _mockLog.Verify(l => l.Log(LogLevel.Info, It.Is<string>(m => m.StartsWith("Task completed")), It.IsAny<Exception>(), It.IsAny<string>()), Times.Never);
+    }
 
     [Fact]
     public void CancelCurrentTask_WithRunningTask_RequestsCancellation()
@@ -189,8 +212,6 @@ public class TaskProgressServiceTests
 
         act.Should().NotThrow();
     }
-
-    // ── StartMultiScriptTask ──
 
     [Fact]
     public void StartMultiScriptTask_ValidScripts_SetsTaskRunning()
@@ -217,7 +238,7 @@ public class TaskProgressServiceTests
         var received = new List<TaskProgressDetail>();
         _sut.ProgressUpdated += (_, detail) => received.Add(detail);
 
-        _sut.StartMultiScriptTask(new[] { "A", "B" });
+        _sut.StartMultiScriptTask(TwoScripts);
 
         received.Should().HaveCount(2);
         received[0].ScriptSlotIndex.Should().Be(0);
@@ -226,12 +247,10 @@ public class TaskProgressServiceTests
         received[1].ScriptSlotCount.Should().Be(2);
     }
 
-    // ── CompleteMultiScriptTask ──
-
     [Fact]
     public void CompleteMultiScriptTask_ResetsStateAndFiresCompletionEvent()
     {
-        _sut.StartMultiScriptTask(new[] { "Script1" });
+        _sut.StartMultiScriptTask(OneScript);
         TaskProgressDetail? received = null;
         _sut.ProgressUpdated += (_, detail) => received = detail;
 
@@ -243,8 +262,6 @@ public class TaskProgressServiceTests
         received.Progress.Should().Be(100);
     }
 
-    // ── ConsumeSkipNextRequest ──
-
     [Fact]
     public void ConsumeSkipNextRequest_WhenNotRequested_ReturnsFalse()
     {
@@ -252,8 +269,6 @@ public class TaskProgressServiceTests
 
         _sut.ConsumeSkipNextRequest().Should().BeFalse();
     }
-
-    // ── UpdateDetailedProgress ──
 
     [Fact]
     public void UpdateDetailedProgress_WhenNoTaskRunning_DoesNothing()
@@ -263,7 +278,6 @@ public class TaskProgressServiceTests
         var act = () => _sut.UpdateDetailedProgress(detail);
 
         act.Should().NotThrow();
-        _sut.CurrentProgress.Should().Be(0);
     }
 
     [Fact]
@@ -312,8 +326,6 @@ public class TaskProgressServiceTests
         _sut.GetTerminalOutputLines().Should().BeEmpty();
     }
 
-    // ── CreateDetailedProgress / CreatePowerShellProgress ──
-
     [Fact]
     public void CreateDetailedProgress_ReturnsNonNullProgressReporter()
     {
@@ -325,25 +337,12 @@ public class TaskProgressServiceTests
     }
 
     [Fact]
-    public void CreatePowerShellProgress_ReturnsNonNullProgressReporter()
-    {
-        _sut.StartTask("Work");
-
-        var progress = _sut.CreatePowerShellProgress();
-
-        progress.Should().NotBeNull();
-    }
-
-    // ── Queue sticky state ──
-
-    [Fact]
     public void UpdateDetailedProgress_WithQueueInfo_PersistsStickily()
     {
         _sut.StartTask("Queue Task");
         var receivedDetails = new List<TaskProgressDetail>();
         _sut.ProgressUpdated += (_, detail) => receivedDetails.Add(detail);
 
-        // First update with queue info
         _sut.UpdateDetailedProgress(new TaskProgressDetail
         {
             Progress = 10,
@@ -353,7 +352,6 @@ public class TaskProgressServiceTests
             QueueNextItemName = "Item 2"
         });
 
-        // Second update without queue info should still carry it
         _sut.UpdateDetailedProgress(new TaskProgressDetail
         {
             Progress = 20,

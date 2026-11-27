@@ -1,0 +1,261 @@
+using System.Runtime.Versioning;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Customize.Interfaces;
+using Winhance.Core.Features.Optimize.Interfaces;
+using Winhance.Infrastructure.Features.Common.Services;
+using Winhance.Infrastructure.Features.Optimize.Services;
+
+namespace Winhance.Infrastructure.Features.Common.Catalog;
+
+// Delegates to the proven WindowsRegistryService / task / powercfg / effect services - never reimplements byte
+// logic. Singleton; sync-over-async at the writer boundary (the apply funnel runs off the UI thread).
+[SupportedOSPlatform("windows")]
+internal sealed class WindowsStateWriter : IStateWriter
+{
+    private readonly IWindowsRegistryService _reg;
+    private readonly IScheduledTaskStateService _tasks;
+    private readonly IPowerCfgApplier _powerCfg;
+    private readonly IPowerPlanActivationService _activation;
+    private readonly IWindowsThemeService _theme;
+    private readonly IDnsSettingsService _dns;
+    private readonly ISystemParametersService _systemParameters;
+    private readonly IServiceStartControl _services;
+    private readonly ILogService _log;
+
+    // Process-launching effects (script / reg import) are deferred to IAsyncEffectRunner rather than blocked on here.
+    public WindowsStateWriter(
+        IWindowsRegistryService reg,
+        IScheduledTaskStateService tasks,
+        IPowerCfgApplier powerCfg,
+        IPowerPlanActivationService activation,
+        IWindowsThemeService theme,
+        IDnsSettingsService dns,
+        ISystemParametersService systemParameters,
+        IServiceStartControl services,
+        ILogService log)
+    {
+        _reg = reg;
+        _tasks = tasks;
+        _powerCfg = powerCfg;
+        _activation = activation;
+        _theme = theme;
+        _dns = dns;
+        _systemParameters = systemParameters;
+        _services = services;
+        _log = log;
+    }
+
+    public bool WriteRegistry(RegTarget target, string path, object value)
+    {
+        if (!_reg.CreateKey(path) || !_reg.SetValue(path, target.ValueName!, value, target.Type))
+            return false;
+
+        if (target.ValueName == "Start" && value is int start and >= 2 and <= 4
+            && ServiceStartControl.ServiceNameOf(path) is { } service)
+            _services.Apply(service, start);
+        return true;
+    }
+
+    public bool SetMessageDuration(MessageDurationTarget target, int seconds) =>
+        _systemParameters.SetMessageDuration(seconds) && _systemParameters.GetMessageDuration() == seconds
+        && Equals(_reg.GetValue(target.Paths[0], target.ValueName!), seconds);
+
+    public bool DeleteRegistry(RegTarget target, string path)
+    {
+        // A ValueName-less target encodes state as key existence, so its "off" deletes the KEY. A named value
+        // deletes just the value.
+        return target.ValueName == null
+            ? _reg.DeleteKey(path)
+            : _reg.DeleteValue(path, target.ValueName);
+    }
+
+    public bool EnsureRegistryKey(RegTarget target, string path)
+    {
+        return _reg.CreateKey(path);
+    }
+
+    public bool UnlockKey(RegTarget target, string path) => _reg.UnlockRegistryKey(path);
+
+    public bool LockKey(RegTarget target, string path) => _reg.LockRegistryKey(path);
+
+    public bool SetRegistryBit(RegTarget target, string path, int byteIndex, byte bitMask, bool set)
+    {
+        if (!_reg.CreateKey(path))
+            return false;
+        return _reg.ModifyBinaryBit(path, target.ValueName!, byteIndex, bitMask, set);
+    }
+
+    public bool SetRegistryByte(RegTarget target, string path, int byteIndex, byte value)
+    {
+        if (!_reg.CreateKey(path))
+            return false;
+        return _reg.ModifyBinaryByte(path, target.ValueName!, byteIndex, value);
+    }
+
+    public bool SetRegistryStringFlag(RegTarget target, string path, int flagMask, int absentBase, bool set)
+    {
+        // An absent or unparseable current value starts from the OS-default base rather than 0.
+        if (!_reg.CreateKey(path))
+            return false;
+        long flags = _reg.GetValue(path, target.ValueName!) is string raw && long.TryParse(raw, out var parsed)
+            ? parsed
+            : absentBase;
+        flags = set ? flags | (uint)flagMask : flags & ~(long)flagMask;
+        return _reg.SetValue(path, target.ValueName!, flags.ToString(), target.Type);
+    }
+
+    public bool SetRegistryListItem(RegTarget target, string path, string prefix, string item, bool present)
+    {
+        // The other entries belong to whoever put them there (a Group Policy can hide more pages), so only ours
+        // changes. A value in another form is left alone unless the item has to be added.
+        var current = _reg.GetValue(path, target.ValueName!) as string;
+        if (current is not null
+            && !current.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            && RegTargetReader.ShowOnlyItems(current) is { } allowed)
+        {
+            return SetShowOnlyListItem(target, path, allowed, item, present);
+        }
+
+        var items = current is null ? new List<string>() : RegTargetReader.ListItems(current, prefix);
+        if (items is null)
+        {
+            if (!present)
+                return true;
+            items = new List<string>();
+        }
+
+        items.RemoveAll(i => string.Equals(i, item, StringComparison.OrdinalIgnoreCase));
+        if (present)
+            items.Add(item);
+
+        if (items.Count == 0)
+            return current is null || _reg.DeleteValue(path, target.ValueName!);
+        if (!_reg.CreateKey(path))
+            return false;
+        return _reg.SetValue(path, target.ValueName!, prefix + string.Join(';', items), target.Type);
+    }
+
+    // A "showonly:" allow-list lists the pages that stay visible, so hiding the item takes it out of the list.
+    private bool SetShowOnlyListItem(RegTarget target, string path, List<string> allowed, string item, bool hidden)
+    {
+        int removed = allowed.RemoveAll(i => string.Equals(i, item, StringComparison.OrdinalIgnoreCase));
+        if (!hidden)
+            allowed.Add(item);
+
+        // An empty allow-list already hides every page, ours included.
+        if (allowed.Count == 0 && removed == 0)
+            return true;
+        if (allowed.Count == 0)
+        {
+            _log.Log(LogLevel.Warning, $"'{item}' is the only entry in the showonly list at '{path}', so it was left as it is");
+            return false;
+        }
+        return _reg.SetValue(path, target.ValueName!, RegTargetReader.ShowOnlyPrefix + string.Join(';', allowed), target.Type);
+    }
+
+    public bool SetRegistryComposite(RegTarget target, string path, string compositeKey, string? subValue)
+    {
+        // SetCompositeSubValue does its own CreateKey + re-read-merge-write per call.
+        return _reg.SetCompositeSubValue(path, target.ValueName!, compositeKey, subValue);
+    }
+
+    public bool WriteRegistryPerSubkey(RegTarget target, string parentPath, object value)
+    {
+        // Per-NIC / per-monitor: enumerate the parent's sub-keys LIVE per call and write the value under each.
+        var subKeys = _reg.GetSubKeyNames(parentPath);
+        if (subKeys.Length == 0)
+        {
+            _log.Log(LogLevel.Warning, $"No subkeys under '{parentPath}' for per-subkey write");
+            return false;
+        }
+
+        var allSucceeded = true;
+        foreach (var subKey in subKeys)
+        {
+            var subPath = $@"{parentPath}\{subKey}";
+            if (!_reg.CreateKey(subPath) || !_reg.SetValue(subPath, target.ValueName!, value, target.Type))
+                allSucceeded = false;
+        }
+        return allSucceeded;
+    }
+
+    public bool DeleteRegistryPerSubkey(RegTarget target, string parentPath)
+    {
+        // Per-NIC / per-monitor "absent": enumerate sub-keys LIVE per call and delete the value under each.
+        var subKeys = _reg.GetSubKeyNames(parentPath);
+        if (subKeys.Length == 0)
+        {
+            _log.Log(LogLevel.Warning, $"No subkeys under '{parentPath}' for per-subkey delete");
+            return false;
+        }
+
+        var allSucceeded = true;
+        foreach (var subKey in subKeys)
+        {
+            var subPath = $@"{parentPath}\{subKey}";
+            if (!_reg.DeleteValue(subPath, target.ValueName!))
+                allSucceeded = false;
+        }
+        return allSucceeded;
+    }
+
+    public bool SetTask(TaskTarget target, bool enabled) =>
+        _tasks.SetTaskEnabled(target.TaskPath, enabled).Success;
+
+    public bool SetSlideshow(DesktopSlideshowTarget target, string folder) => _theme.SetSlideshow(folder);
+
+    public bool SetDns(IReadOnlyList<DnsServer> servers) => _dns.SetDns(servers);
+
+    public bool WritePowerCfgValue(PowerCfgTarget target, PowerContext context, int value) =>
+        // Per-context write on the active scheme (battery-gated DC, commit) lives in PowerCfgApplier, where the
+        // native P/Invoke already lives and is exercised by the powercfg apply-smoke.
+        _powerCfg.WriteValueIndex(target, context, value);
+
+    public bool RunEffect(Effect effect)
+    {
+        // Routed to IAsyncEffectRunner instead; arriving here is a routing bug, and the permissive
+        // default below would hide it as a success.
+        if (effect.IsAsyncIo)
+        {
+            _log.Log(LogLevel.Error,
+                $"{effect.GetType().Name} must be deferred, not run on the synchronous writer");
+            return false;
+        }
+
+        switch (effect)
+        {
+            case RegistryWriteEffect w:
+                if (!_reg.CreateKey(w.Path))
+                    return false;
+                return _reg.SetValue(w.Path, w.ValueName, w.Value, w.Kind);
+
+            case PowerPlanEffect p:
+                return ActivatePowerPlan(p.Guid);
+
+            // The registry write before it already persists the value, so a refusal only delays it to the next sign-in.
+            case SystemParameterEffect sp:
+                if (!_systemParameters.SetLive(sp.Parameter, sp.On))
+                    _log.Log(LogLevel.Warning, $"Windows did not take {sp.Parameter} live; it applies at the next sign-in");
+                return true;
+
+            default:
+                // Unknown effect: no-op success (matches ApplyExecutor's permissive default for unknown ops).
+                return true;
+        }
+    }
+
+    public bool ActivatePowerPlan(string guid)
+    {
+        // EnsureActivatedAsync imports a predefined-but-not-installed plan first, then activates and invalidates the cache.
+        // The guard keeps its empty-GUID throw off the sync-over-async boundary.
+        if (string.IsNullOrWhiteSpace(guid) || !Guid.TryParse(guid, out _))
+        {
+            _log.Log(LogLevel.Error, $"ActivatePowerPlan: invalid GUID '{guid}'");
+            return false;
+        }
+
+        return _activation.EnsureActivatedAsync(guid).GetAwaiter().GetResult().Success;
+    }
+}

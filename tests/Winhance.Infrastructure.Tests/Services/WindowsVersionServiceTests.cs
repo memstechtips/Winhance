@@ -16,23 +16,9 @@ public class WindowsVersionServiceTests
         _sut = new WindowsVersionService(_mockLog.Object);
     }
 
-    // ── Constructor ──
-
-    [Fact]
-    public void Constructor_NullLogService_ThrowsArgumentNullException()
-    {
-        var act = () => new WindowsVersionService(null!);
-
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("logService");
-    }
-
-    // ── GetWindowsBuildNumber ──
-
     [Fact]
     public void GetWindowsBuildNumber_ReturnsPositiveValue()
     {
-        // On any real Windows machine, the build number should be positive
         var buildNumber = _sut.GetWindowsBuildNumber();
 
         buildNumber.Should().BeGreaterThan(0);
@@ -56,8 +42,6 @@ public class WindowsVersionServiceTests
 
         result.Should().Be(expected);
     }
-
-    // ── IsWindows11 ──
 
     [Fact]
     public void IsWindows11_ReturnsBoolBasedOnBuildNumber()
@@ -91,35 +75,5 @@ public class WindowsVersionServiceTests
         var act = () => _sut.IsWindows11();
 
         act.Should().NotThrow();
-    }
-
-    // ── IsWindowsServer ──
-
-    [Fact]
-    public void IsWindowsServer_ReturnsConsistentValue()
-    {
-        var first = _sut.IsWindowsServer();
-        var second = _sut.IsWindowsServer();
-
-        first.Should().Be(second);
-    }
-
-    [Fact]
-    public void IsWindowsServer_DoesNotThrow()
-    {
-        var act = () => _sut.IsWindowsServer();
-
-        act.Should().NotThrow();
-    }
-
-    [Fact]
-    public void IsWindowsServer_ReturnsBool()
-    {
-        // On a desktop Windows machine this should be false;
-        // on a Server SKU it should be true.
-        // Either way it must return without error.
-        var result = _sut.IsWindowsServer();
-
-        result.Should().Be(result); // valid bool
     }
 }

@@ -1,14 +1,12 @@
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Management.Deployment;
 using Winhance.Core.Features.Common.Interfaces;
 using WindowsPackageManager.Interop;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 
-/// <summary>
-/// Owns the WinGet COM state (factory, package manager, lock, flags).
-/// Shared singleton — injected into services that need COM access.
-/// </summary>
-public class WinGetComSession
+internal class WinGetComSession
 {
     private readonly ILogService _logService;
 
@@ -32,6 +30,9 @@ public class WinGetComSession
         set => _comInitTimedOut = value;
     }
 
+    [MemberNotNullWhen(true, nameof(PackageManager), nameof(Factory))]
+    public bool IsReady() => EnsureComInitialized() && PackageManager != null && Factory != null;
+
     public bool EnsureComInitialized()
     {
         if (_isInitialized && _packageManager != null)
@@ -53,7 +54,7 @@ public class WinGetComSession
                 // Winhance always runs as admin with self-contained AppSdk.
                 // StandardFactory + ALLOW_LOWER_TRUST_REGISTRATION is the only approach
                 // that works in this configuration.
-                // ElevatedFactory (winrtact.dll) hangs in self-contained mode:
+                // winget's elevated factory (winrtact.dll) hangs in self-contained mode:
                 // https://github.com/microsoft/winget-cli/issues/4377
                 _logService?.LogInformation("Initializing WinGet COM API via StandardFactory");
                 _winGetFactory = new WindowsPackageManagerStandardFactory(
@@ -73,6 +74,24 @@ public class WinGetComSession
                 return false;
             }
         }
+    }
+
+    // The COM server belongs to App Installer and keeps its package in use while any reference lives, so Windows can only
+    // stage an App Installer update for later. Collecting the runtime wrappers drops the last references and lets it exit.
+    public void Release()
+    {
+        ResetFactory();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+    }
+
+    internal static bool IsServerRunning()
+    {
+        var processes = Process.GetProcessesByName("WindowsPackageManagerServer");
+        foreach (var process in processes)
+            process.Dispose();
+        return processes.Length > 0;
     }
 
     public void ResetFactory()

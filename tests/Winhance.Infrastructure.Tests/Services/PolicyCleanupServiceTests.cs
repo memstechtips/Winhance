@@ -1,75 +1,57 @@
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
 public class PolicyCleanupServiceTests
 {
-    private readonly Mock<ICompatibleSettingsRegistry> _mockRegistry = new();
+    private readonly Mock<ICatalogSettingsRegistry> _mockRegistry = new();
     private readonly Mock<IWindowsRegistryService> _mockRegistryService = new();
     private readonly Mock<ILogService> _mockLogService = new();
 
     private PolicyCleanupService CreateService() =>
         new(_mockRegistry.Object, _mockRegistryService.Object, _mockLogService.Object);
 
-    private static SettingDefinition CreateSettingWithGroupPolicyPaths(string id, params string[] keyPaths)
-    {
-        return new SettingDefinition
+    private static Setting SettingWithGroupPolicyPaths(string id, params string[] keyPaths) =>
+        new()
         {
             Id = id,
-            Name = id,
-            Description = "Test",
-            RegistrySettings = keyPaths.Select(kp => new RegistrySetting
-            {
-                KeyPath = kp,
-                ValueName = "TestValue",
-                ValueType = Microsoft.Win32.RegistryValueKind.DWord,
-                IsGroupPolicy = true,
-                RecommendedValue = null,
-                DefaultValue = null
-            }).ToArray()
+            Display = new Display { Name = TestKeys.Of(id), Description = TestKeys.Of("Test") },
+            Targets = keyPaths.Select((kp, i) => (Target)new RegTarget(
+                $"k{i}", new[] { kp }, "TestValue", Microsoft.Win32.RegistryValueKind.DWord)
+                { IsGroupPolicy = true }).ToArray()
         };
-    }
 
-    private static SettingDefinition CreateSettingWithPaths(string id, params string[] keyPaths)
-    {
-        return new SettingDefinition
+    private static Setting SettingWithPaths(string id, params string[] keyPaths) =>
+        new()
         {
             Id = id,
-            Name = id,
-            Description = "Test",
-            RegistrySettings = keyPaths.Select(kp => new RegistrySetting
-            {
-                KeyPath = kp,
-                ValueName = "TestValue",
-                ValueType = Microsoft.Win32.RegistryValueKind.DWord,
-                RecommendedValue = null,
-                DefaultValue = null
-            }).ToArray()
+            Display = new Display { Name = TestKeys.Of(id), Description = TestKeys.Of("Test") },
+            Targets = keyPaths.Select((kp, i) => (Target)new RegTarget(
+                $"k{i}", new[] { kp }, "TestValue", Microsoft.Win32.RegistryValueKind.DWord)).ToArray()
         };
-    }
 
     [Fact]
     public void CollectPolicyKeyPaths_FindsGroupPolicyPaths()
     {
-        var settings = new Dictionary<string, IEnumerable<SettingDefinition>>
+        var settings = new Dictionary<string, IReadOnlyList<Setting>>
         {
             ["Privacy"] = new[]
             {
-                CreateSettingWithGroupPolicyPaths("s1",
+                SettingWithGroupPolicyPaths("s1",
                     @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DataCollection",
                     @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\DataCollection"),
-                CreateSettingWithPaths("s2",
+                SettingWithPaths("s2",
                     @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer")
             }
         };
 
-        _mockRegistry.Setup(r => r.GetAllBypassedSettings()).Returns(settings);
+        _mockRegistry.Setup(r => r.GetAll(new CatalogScope(true, false))).Returns(settings);
 
         var service = CreateService();
         var paths = service.CollectPolicyKeyPaths();
@@ -83,16 +65,16 @@ public class PolicyCleanupServiceTests
     public void CollectPolicyKeyPaths_IgnoresNonGroupPolicySettings()
     {
         // A setting with a Policies path but IsGroupPolicy = false should be ignored
-        var settings = new Dictionary<string, IEnumerable<SettingDefinition>>
+        var settings = new Dictionary<string, IReadOnlyList<Setting>>
         {
             ["Privacy"] = new[]
             {
-                CreateSettingWithPaths("s1",
+                SettingWithPaths("s1",
                     @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System")
             }
         };
 
-        _mockRegistry.Setup(r => r.GetAllBypassedSettings()).Returns(settings);
+        _mockRegistry.Setup(r => r.GetAll(new CatalogScope(true, false))).Returns(settings);
 
         var service = CreateService();
         var paths = service.CollectPolicyKeyPaths();
@@ -103,60 +85,75 @@ public class PolicyCleanupServiceTests
     [Fact]
     public void CollectPolicyKeyPaths_DeduplicatesParentAndChildPaths()
     {
-        var settings = new Dictionary<string, IEnumerable<SettingDefinition>>
+        var settings = new Dictionary<string, IReadOnlyList<Setting>>
         {
             ["Update"] = new[]
             {
-                CreateSettingWithGroupPolicyPaths("s1",
+                SettingWithGroupPolicyPaths("s1",
                     @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"),
-                CreateSettingWithGroupPolicyPaths("s2",
+                SettingWithGroupPolicyPaths("s2",
                     @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU")
             }
         };
 
-        _mockRegistry.Setup(r => r.GetAllBypassedSettings()).Returns(settings);
+        _mockRegistry.Setup(r => r.GetAll(new CatalogScope(true, false))).Returns(settings);
 
         var service = CreateService();
         var paths = service.CollectPolicyKeyPaths();
 
-        // Parent path should be kept, child path should be deduplicated
         paths.Should().Contain(@"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate");
         paths.Should().NotContain(@"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU");
     }
 
+    private static readonly string[] TelemetryMirrorPaths =
+    [
+        @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection",
+        @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DataCollection",
+    ];
+
+    // Windows writes CurrentVersion\Policies\DataCollection itself during setup, so deleting it is not a reset.
     [Fact]
-    public void CollectPolicyKeyPaths_FindsCurrentVersionPoliciesPaths()
+    public void CollectPolicyKeyPaths_SkipsAGroupPolicyMirrorsWindowsOwnPaths()
     {
-        var settings = new Dictionary<string, IEnumerable<SettingDefinition>>
+        var mirror = new Setting
+        {
+            Id = "s1",
+            Display = new Display { Name = TestKeys.Of("s1"), Description = TestKeys.Of("Test") },
+            Targets = new Target[]
+            {
+                new RegTarget("AllowTelemetry", TelemetryMirrorPaths, "AllowTelemetry", Microsoft.Win32.RegistryValueKind.DWord) { IsGroupPolicy = true },
+            },
+        };
+        var settings = new Dictionary<string, IReadOnlyList<Setting>>
         {
             ["Privacy"] = new[]
             {
-                CreateSettingWithGroupPolicyPaths("s1",
-                    @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection")
+                mirror,
+                SettingWithGroupPolicyPaths("s2",
+                    @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\InkingAndTypingPersonalization"),
             }
         };
 
-        _mockRegistry.Setup(r => r.GetAllBypassedSettings()).Returns(settings);
+        _mockRegistry.Setup(r => r.GetAll(new CatalogScope(true, false))).Returns(settings);
 
-        var service = CreateService();
-        var paths = service.CollectPolicyKeyPaths();
+        var paths = CreateService().CollectPolicyKeyPaths();
 
-        paths.Should().Contain(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection");
+        paths.Should().BeEquivalentTo(TelemetryMirrorPaths[1..]);
     }
 
     [Fact]
     public void CleanupPolicyKeys_DeletesExistingPolicyKeys()
     {
-        var settings = new Dictionary<string, IEnumerable<SettingDefinition>>
+        var settings = new Dictionary<string, IReadOnlyList<Setting>>
         {
             ["Privacy"] = new[]
             {
-                CreateSettingWithGroupPolicyPaths("s1",
+                SettingWithGroupPolicyPaths("s1",
                     @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DataCollection")
             }
         };
 
-        _mockRegistry.Setup(r => r.GetAllBypassedSettings()).Returns(settings);
+        _mockRegistry.Setup(r => r.GetAll(new CatalogScope(true, false))).Returns(settings);
         _mockRegistryService
             .Setup(r => r.KeyExists(@"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DataCollection"))
             .Returns(true);
@@ -176,16 +173,16 @@ public class PolicyCleanupServiceTests
     [Fact]
     public void CleanupPolicyKeys_SkipsNonExistentKeys()
     {
-        var settings = new Dictionary<string, IEnumerable<SettingDefinition>>
+        var settings = new Dictionary<string, IReadOnlyList<Setting>>
         {
             ["Privacy"] = new[]
             {
-                CreateSettingWithGroupPolicyPaths("s1",
+                SettingWithGroupPolicyPaths("s1",
                     @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DataCollection")
             }
         };
 
-        _mockRegistry.Setup(r => r.GetAllBypassedSettings()).Returns(settings);
+        _mockRegistry.Setup(r => r.GetAll(new CatalogScope(true, false))).Returns(settings);
         _mockRegistryService
             .Setup(r => r.KeyExists(It.IsAny<string>()))
             .Returns(false);
@@ -200,21 +197,20 @@ public class PolicyCleanupServiceTests
     [Fact]
     public void CleanupPolicyKeys_ContinuesOnDeleteFailure()
     {
-        var settings = new Dictionary<string, IEnumerable<SettingDefinition>>
+        var settings = new Dictionary<string, IReadOnlyList<Setting>>
         {
             ["Privacy"] = new[]
             {
-                CreateSettingWithGroupPolicyPaths("s1",
+                SettingWithGroupPolicyPaths("s1",
                     @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DataCollection"),
-                CreateSettingWithGroupPolicyPaths("s2",
+                SettingWithGroupPolicyPaths("s2",
                     @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo")
             }
         };
 
-        _mockRegistry.Setup(r => r.GetAllBypassedSettings()).Returns(settings);
+        _mockRegistry.Setup(r => r.GetAll(new CatalogScope(true, false))).Returns(settings);
         _mockRegistryService.Setup(r => r.KeyExists(It.IsAny<string>())).Returns(true);
 
-        // First key fails, second succeeds
         _mockRegistryService
             .Setup(r => r.DeleteKey(@"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo"))
             .Returns(false);
@@ -225,17 +221,15 @@ public class PolicyCleanupServiceTests
         var service = CreateService();
         var deletedCount = service.CleanupPolicyKeys();
 
-        // Only one succeeded
         deletedCount.Should().Be(1);
-        // Both were attempted
         _mockRegistryService.Verify(r => r.DeleteKey(It.IsAny<string>()), Times.Exactly(2));
     }
 
     [Fact]
     public void CollectPolicyKeyPaths_WithNoSettings_ReturnsEmpty()
     {
-        _mockRegistry.Setup(r => r.GetAllBypassedSettings())
-            .Returns(new Dictionary<string, IEnumerable<SettingDefinition>>());
+        _mockRegistry.Setup(r => r.GetAll(new CatalogScope(true, false)))
+            .Returns(new Dictionary<string, IReadOnlyList<Setting>>());
 
         var service = CreateService();
         var paths = service.CollectPolicyKeyPaths();

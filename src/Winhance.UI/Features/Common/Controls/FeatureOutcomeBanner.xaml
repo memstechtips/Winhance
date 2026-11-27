@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.FeatureOutcomeBanner"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Winhance.UI.Features.Common.Controls">
+
+    <!--
+    Names the settings Winhance could not place on a feature's overview card, each a link to that
+    setting. Margin -9 closes the parent StackPanel's 8px gap and overlaps the card border by 1.
+
+    Severity stays Informational and the per-outcome colour lives on each ROW: colouring the whole bar
+    by the worst outcome made the other kinds disappear.
+
+    Rows are built in code because each is one wrapping TextBlock whose Inlines mix text with Hyperlink
+    runs - TextBlock.Inlines cannot be data-bound, and a panel of link buttons would not reflow.
+    -->
+    <Grid>
+        <local:QuietInfoBar
+            x:Name="Bar"
+            x:Load="{x:Bind IsBannerOpen, Mode=OneWay}"
+            IsOpen="True"
+            Severity="Informational"
+            Message="{x:Bind BannerMessage, Mode=OneWay}"
+            IsClosable="False"
+            IsTabStop="True"
+            UseSystemFocusVisuals="True"
+            Margin="0,-9,0,0"
+            CornerRadius="{StaticResource JoinedCardCornerRadius}">
+            <StackPanel x:Name="FragmentHost" Spacing="{StaticResource TextLineSpacing}" Margin="0,0,0,6"/>
+        </local:QuietInfoBar>
+    </Grid>
+</UserControl>

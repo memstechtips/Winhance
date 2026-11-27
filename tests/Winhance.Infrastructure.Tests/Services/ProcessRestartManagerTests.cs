@@ -1,10 +1,11 @@
-using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Customize.Interfaces;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
@@ -12,288 +13,434 @@ public class ProcessRestartManagerTests
 {
     private readonly Mock<IWindowsUIManagementService> _mockUiManagement = new();
     private readonly Mock<IConfigImportState> _mockConfigImportState = new();
+    private readonly Mock<IPendingRestartService> _mockPendingRestart = new();
+    private readonly Mock<IExplorerRestartService> _mockExplorerRestart = new();
+    private readonly Mock<IWindowsThemeService> _mockTheme = new();
     private readonly Mock<ILogService> _mockLog = new();
     private readonly ProcessRestartManager _sut;
 
     public ProcessRestartManagerTests()
     {
         _mockConfigImportState.Setup(c => c.IsActive).Returns(false);
-        _mockUiManagement
-            .Setup(u => u.RefreshWindowsGUI(It.IsAny<bool>()))
-            .ReturnsAsync(OperationResult.Succeeded());
         _sut = new ProcessRestartManager(
             _mockUiManagement.Object,
             _mockConfigImportState.Object,
+            _mockPendingRestart.Object,
+            _mockExplorerRestart.Object,
+            _mockTheme.Object,
             _mockLog.Object);
     }
 
-    private static SettingDefinition CreateSetting(
-        string id,
-        string? restartProcess = null,
-        string? restartService = null) => new()
+    // Which broadcast a setting gets is DECLARED on it (ApplyBehavior.NotifyWindows); the catalog-wide conformance
+    // test pins the declarations to the settings that really write the personalisation key.
+    private static Setting CreateCatalogSetting(
+        string id, RestartTarget? restart = null, WindowsChange notify = WindowsChange.None) => new()
     {
         Id = id,
-        Name = $"Setting {id}",
-        Description = $"Description for {id}",
-        RestartProcess = restartProcess,
-        RestartService = restartService,
+        Display = new Display { Name = TestKeys.Of($"Setting {id}"), Description = TestKeys.Of($"Description for {id}")},
+        Apply = restart is null && notify == WindowsChange.None
+            ? ApplyBehavior.None
+            : new ApplyBehavior { Restart = restart, NotifyWindows = notify },
     };
 
     [Fact]
-    public async Task HandleProcessAndServiceRestartsAsync_NoRestartRequirements_DoesNothing()
+    public async Task HandleProcessAndServiceRestartsAsync_Setting_NoRestart_DoesNothing()
     {
-        // Arrange
-        var setting = CreateSetting("no-restart");
+        var setting = CreateCatalogSetting("cat-no-restart");
 
-        // Act
         await _sut.HandleProcessAndServiceRestartsAsync(setting);
 
-        // Assert
-        _mockUiManagement.Verify(
-            u => u.KillProcess(It.IsAny<string>()), Times.Never);
-        _mockLog.Verify(
-            l => l.Log(LogLevel.Info, It.IsAny<string>(), It.IsAny<Exception?>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task HandleProcessAndServiceRestartsAsync_WithNonExplorerProcess_KillsProcess()
-    {
-        // Arrange — use a non-explorer process to test the simple KillProcess path
-        var setting = CreateSetting("proc-restart", restartProcess: "notepad");
-
-        // Act
-        await _sut.HandleProcessAndServiceRestartsAsync(setting);
-
-        // Assert
-        _mockUiManagement.Verify(u => u.KillProcess("notepad"), Times.Once);
-        _mockLog.Verify(
-            l => l.Log(LogLevel.Info,
-                It.Is<string>(s => s.Contains("notepad") && s.Contains("proc-restart")),
-                It.IsAny<Exception?>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task HandleProcessAndServiceRestartsAsync_ExplorerInInteractiveMode_CallsRefreshWindowsGUIWithKill()
-    {
-        // Arrange — interactive mode (not config import); Explorer restart should
-        // delegate to RefreshWindowsGUI(killExplorer: true) so theme/settings
-        // broadcasts fire AND Explorer is recycled.
-        _mockConfigImportState.Setup(c => c.IsActive).Returns(false);
-        var setting = CreateSetting("explorer-restart", restartProcess: "Explorer");
-
-        // Act
-        await _sut.HandleProcessAndServiceRestartsAsync(setting);
-
-        // Assert
-        _mockUiManagement.Verify(u => u.RefreshWindowsGUI(true), Times.Once);
         _mockUiManagement.Verify(u => u.KillProcess(It.IsAny<string>()), Times.Never);
-        _mockLog.Verify(
-            l => l.Log(LogLevel.Info,
-                It.Is<string>(s => s.Contains("Refreshing Windows UI") && s.Contains("explorer-restart")),
-                It.IsAny<Exception?>()),
-            Times.Once);
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Never);
+        _mockPendingRestart.Verify(p => p.Register(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
-    public async Task HandleProcessAndServiceRestartsAsync_WithRestartService_LogsServiceRestart()
+    public async Task ScrollbarPreference_SendsOneAccessibilityNoticeWithoutRefreshingTheShell()
     {
-        // Arrange -- we use a service name that will cause ServiceController to throw,
-        // which exercises the catch block; the key assertion is the log call.
-        var setting = CreateSetting("svc-restart", restartService: "FakeTestService12345");
+        var setting = SettingCatalog.ById["explorer-always-show-scrollbars"];
+        using (_sut.CoalesceBroadcasts())
+        {
+            await _sut.HandleProcessAndServiceRestartsAsync(setting);
+            await _sut.HandleProcessAndServiceRestartsAsync(setting);
+            _mockUiManagement.Verify(u => u.BroadcastAccessibilitySettingChange(), Times.Never);
+        }
+        await _sut.LastBroadcastTask;
 
-        // Act
+        _mockUiManagement.Verify(u => u.BroadcastAccessibilitySettingChange(), Times.Once);
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Never);
+        _mockPendingRestart.Verify(p => p.Register(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GenericNotice_DoesNotBroadcastAnAccessibilityChange()
+    {
+        await _sut.HandleProcessAndServiceRestartsAsync(CreateCatalogSetting("generic", notify: WindowsChange.Settings));
+        await _sut.LastBroadcastTask;
+
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once);
+        _mockUiManagement.Verify(u => u.BroadcastAccessibilitySettingChange(), Times.Never);
+    }
+
+    // Explorer: broadcast + register, NEVER kill. Applying a setting must not take the shell down -
+    // several toggles in a row could otherwise leave the user with no shell.
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_Explorer_RegistersPendingAndNeverKills()
+    {
+        var setting = CreateCatalogSetting("cat-explorer", new RestartProcess("Explorer"));
+
         await _sut.HandleProcessAndServiceRestartsAsync(setting);
+        // The broadcast is deliberately fire-and-forget (blocking the caller - the UI thread on an interactive
+        // apply - would cost seconds), so the suite awaits the task it dispatched rather than racing the
+        // thread pool.
+        await _sut.LastBroadcastTask;
 
-        // Assert -- the manager logs the attempt and then catches the expected exception
-        _mockLog.Verify(
-            l => l.Log(LogLevel.Info,
-                It.Is<string>(s => s.Contains("FakeTestService12345") && s.Contains("svc-restart")),
-                It.IsAny<Exception?>()),
-            Times.Once);
-        _mockLog.Verify(
-            l => l.Log(LogLevel.Warning,
-                It.Is<string>(s => s.Contains("Failed to restart service") && s.Contains("FakeTestService12345")),
-                It.IsAny<Exception?>()),
-            Times.Once);
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once);
+        _mockPendingRestart.Verify(p => p.Register("cat-explorer"), Times.Once);
+        _mockExplorerRestart.Verify(e => e.RestartAsync(), Times.Never,
+            "applying a setting must never restart the shell as a side effect");
+        _mockUiManagement.Verify(u => u.KillProcess(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
-    public async Task HandleProcessAndServiceRestartsAsync_ExplorerInConfigImportMode_CallsRefreshWindowsGUIWithoutKill()
+    public async Task HandleProcessAndServiceRestartsAsync_Explorer_DuringConfigImport_BroadcastsAndNeverKills()
     {
-        // Arrange — config-import mode: Explorer must STILL fire the broadcast
-        // immediately for visual feedback, but the kill is deferred to flush.
         _mockConfigImportState.Setup(c => c.IsActive).Returns(true);
-        var setting = CreateSetting("import-defer", restartProcess: "Explorer");
+        var setting = CreateCatalogSetting("cat-explorer", new RestartProcess("Explorer"));
 
-        // Act
         await _sut.HandleProcessAndServiceRestartsAsync(setting);
+        await _sut.LastBroadcastTask;
 
-        // Assert
-        _mockUiManagement.Verify(u => u.RefreshWindowsGUI(false), Times.Once);
-        _mockUiManagement.Verify(u => u.RefreshWindowsGUI(true), Times.Never);
-        _mockUiManagement.Verify(u => u.KillProcess(It.IsAny<string>()), Times.Never);
-        _mockLog.Verify(
-            l => l.Log(LogLevel.Debug,
-                It.Is<string>(s => s.Contains("Broadcast Explorer-refresh") && s.Contains("import-defer")),
-                It.IsAny<Exception?>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task HandleProcessAndServiceRestartsAsync_NonExplorerInConfigImportMode_DefersAndDoesNotBroadcast()
-    {
-        // Arrange — non-Explorer process restarts are still purely deferred during config import.
-        _mockConfigImportState.Setup(c => c.IsActive).Returns(true);
-        var setting = CreateSetting("import-other", restartProcess: "notepad");
-
-        // Act
-        await _sut.HandleProcessAndServiceRestartsAsync(setting);
-
-        // Assert — no UI broadcast and no kill; just the debug skip log.
-        _mockUiManagement.Verify(u => u.RefreshWindowsGUI(It.IsAny<bool>()), Times.Never);
-        _mockUiManagement.Verify(u => u.KillProcess(It.IsAny<string>()), Times.Never);
-        _mockLog.Verify(
-            l => l.Log(LogLevel.Debug,
-                It.Is<string>(s => s.Contains("Skipping process restart") && s.Contains("config import")),
-                It.IsAny<Exception?>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task HandleProcessAndServiceRestartsAsync_NoRestartProcess_DoesNotInvokeRefreshWindowsGUI()
-    {
-        // Arrange
-        _mockConfigImportState.Setup(c => c.IsActive).Returns(false);
-        var setting = CreateSetting("no-restart-process");
-
-        // Act
-        await _sut.HandleProcessAndServiceRestartsAsync(setting);
-
-        // Assert
-        _mockUiManagement.Verify(u => u.RefreshWindowsGUI(It.IsAny<bool>()), Times.Never);
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once);
         _mockUiManagement.Verify(u => u.KillProcess(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
-    public async Task HandleProcessAndServiceRestartsAsync_KillProcessThrows_LogsWarning()
+    public async Task HandleProcessAndServiceRestartsAsync_Explorer_WhenSuppressed_StillRegisters()
     {
-        // Arrange
-        var setting = CreateSetting("failing-proc", restartProcess: "badprocess");
-        _mockUiManagement
-            .Setup(u => u.KillProcess("badprocess"))
-            .Throws(new InvalidOperationException("Process not found"));
+        var setting = CreateCatalogSetting("cat-explorer", new RestartProcess("Explorer"));
 
-        // Act
-        await _sut.HandleProcessAndServiceRestartsAsync(setting);
-
-        // Assert
-        _mockLog.Verify(
-            l => l.Log(LogLevel.Warning,
-                It.Is<string>(s => s.Contains("Failed to restart process") && s.Contains("badprocess")),
-                It.IsAny<Exception?>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task HandleProcessAndServiceRestartsAsync_WildcardService_LogsServiceRestart()
-    {
-        // Arrange -- wildcard service name triggers the enumeration path
-        var setting = CreateSetting("wildcard-svc", restartService: "NonExistent*");
-
-        // Act
-        await _sut.HandleProcessAndServiceRestartsAsync(setting);
-
-        // Assert -- the manager should log the initial attempt
-        _mockLog.Verify(
-            l => l.Log(LogLevel.Info,
-                It.Is<string>(s => s.Contains("NonExistent*")),
-                It.IsAny<Exception?>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task HandleProcessAndServiceRestartsAsync_BothProcessAndService_HandlesEach()
-    {
-        // Arrange
-        var setting = CreateSetting("both", restartProcess: "notepad", restartService: "FakeSvc999");
-
-        // Act
-        await _sut.HandleProcessAndServiceRestartsAsync(setting);
-
-        // Assert -- process kill is invoked
-        _mockUiManagement.Verify(u => u.KillProcess("notepad"), Times.Once);
-        // Service restart is attempted (and fails with a warning because the service doesn't exist)
-        _mockLog.Verify(
-            l => l.Log(LogLevel.Info,
-                It.Is<string>(s => s.Contains("notepad")),
-                It.IsAny<Exception?>()),
-            Times.Once);
-        _mockLog.Verify(
-            l => l.Log(LogLevel.Info,
-                It.Is<string>(s => s.Contains("FakeSvc999")),
-                It.IsAny<Exception?>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task HandleProcessAndServiceRestartsAsync_WhenSuppressed_SkipsProcessRestart()
-    {
-        // Arrange
-        var setting = CreateSetting("suppressed", restartProcess: "notepad");
-
-        // Act
         using (_sut.SuppressRestarts())
         {
             await _sut.HandleProcessAndServiceRestartsAsync(setting);
         }
 
-        // Assert -- process kill should NOT be called while suppressed
-        _mockUiManagement.Verify(
-            u => u.KillProcess(It.IsAny<string>()), Times.Never);
+        _mockPendingRestart.Verify(p => p.Register("cat-explorer"), Times.Once,
+            "registering is not a restart, so a suppress scope must not hide the bar from a bulk apply");
+    }
+
+    [Fact]
+    public async Task FlushCoalescedRestartsAsync_ExplorerNameInAnyCase_Registers_AndRegionBroadcastDoesNot()
+    {
+        var settings = new[]
+        {
+            CreateCatalogSetting("shell-lower", new RestartProcess("explorer")),
+            CreateCatalogSetting("region", new RestartProcess("intl")),
+        };
+
+        await _sut.FlushCoalescedRestartsAsync(settings);
+
+        _mockPendingRestart.Verify(p => p.Register("shell-lower"), Times.Once);
+        _mockPendingRestart.Verify(p => p.Register("region"), Times.Never);
+        _mockUiManagement.Verify(u => u.BroadcastRegionalSettingChange(), Times.Once);
+        _mockExplorerRestart.Verify(e => e.RestartAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task FlushCoalescedRestartsAsync_Explorer_RegistersInsteadOfRestarting()
+    {
+        var settings = new[]
+        {
+            CreateCatalogSetting("bulk-a", new RestartProcess("Explorer")),
+            CreateCatalogSetting("bulk-b", new RestartProcess("Explorer")),
+            CreateCatalogSetting("bulk-c", new RestartProcess("notepad")),
+        };
+
+        await _sut.FlushCoalescedRestartsAsync(settings);
+
+        _mockPendingRestart.Verify(p => p.Register("bulk-a"), Times.Once);
+        _mockPendingRestart.Verify(p => p.Register("bulk-b"), Times.Once);
+        _mockExplorerRestart.Verify(e => e.RestartAsync(), Times.Never);
+        _mockUiManagement.Verify(u => u.KillProcess("explorer"), Times.Never);
+        _mockUiManagement.Verify(u => u.KillProcess("notepad"), Times.Once,
+            "non-Explorer targets still coalesce and restart immediately");
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once,
+            "one generic broadcast covers the whole coalesced batch");
+        _mockExplorerRestart.Verify(e => e.BroadcastThemeRefresh(), Times.Never,
+            "no setting in the batch declares WindowsChange.Appearance");
+    }
+
+    // The broadcast SPLIT. Three of the four messages are theme/colour notifications, and one of
+    // those must be sent synchronously at a per-top-level-window timeout - seconds on a busy
+    // desktop. Only a setting that can actually change the theme has any reason to pay for it.
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_ThemeSetting_BroadcastsThemeAndGeneric()
+    {
+        var setting = CreateCatalogSetting(
+            "cat-theme", new RestartProcess("Explorer"), WindowsChange.Appearance);
+
+        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+        await _sut.LastBroadcastTask;
+
+        _mockExplorerRestart.Verify(e => e.BroadcastThemeRefresh(), Times.Once,
+            "a setting that declares WindowsChange.Appearance is exactly what the theme messages exist for");
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once,
+            "the generic message still goes out - the theme set is an ADDITION, not a replacement");
+    }
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_NonThemeExplorerSetting_BroadcastsGenericOnly()
+    {
+        var setting = CreateCatalogSetting(
+            "cat-task-view", new RestartProcess("Explorer"));
+
+        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+        await _sut.LastBroadcastTask;
+
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once);
+        _mockExplorerRestart.Verify(e => e.BroadcastThemeRefresh(), Times.Never,
+            "a setting that declares no appearance change has no business paying for the theme messages");
+    }
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_NotifyWithoutRestart_StillBroadcasts()
+    {
+        // The regression this pins: if the broadcast lived INSIDE the isExplorer branch, a theme setting
+        // with no Explorer restart would never be announced and the theme would silently stop applying.
+        // Declaring a notice and needing a restart are independent facts; a setting may do either
+        // without the other.
+        var setting = CreateCatalogSetting("cat-notify-only", restart: null, notify: WindowsChange.Appearance);
+
+        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+        await _sut.LastBroadcastTask;
+
+        _mockExplorerRestart.Verify(e => e.BroadcastThemeRefresh(), Times.Once,
+            "a declared appearance change must be announced even with no restart to hang it off");
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once);
+        _mockPendingRestart.Verify(p => p.Register(It.IsAny<string>()), Times.Never,
+            "a notice is not a restart - it has already taken effect, so no bar may be raised");
+        _mockUiManagement.Verify(u => u.KillProcess(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_DesktopSetting_RefreshesTheDesktopWithoutARestart()
+    {
+        var setting = CreateCatalogSetting("cat-background", restart: null, notify: WindowsChange.Desktop);
+
+        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+        await _sut.LastBroadcastTask;
+
+        _mockTheme.Verify(t => t.RefreshDesktop(), Times.Once,
+            "a declared desktop change must be announced even with no restart to hang it off");
+        _mockExplorerRestart.Verify(e => e.BroadcastThemeRefresh(), Times.Never,
+            "the desktop rows change no theme, so the expensive half must not be paid for");
+        _mockPendingRestart.Verify(p => p.Register(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_SettingsNotice_SendsOnlyTheGenericBroadcast()
+    {
+        var setting = CreateCatalogSetting("cat-visual-effect", restart: null, notify: WindowsChange.Settings);
+
+        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+        await _sut.LastBroadcastTask;
+
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once);
+        _mockExplorerRestart.Verify(e => e.BroadcastThemeRefresh(), Times.Never);
+        _mockTheme.Verify(t => t.RefreshDesktop(), Times.Never);
+        _mockPendingRestart.Verify(p => p.Register(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_NumLockSetting_MatchesTheLiveKeyToTheSavedValue()
+    {
+        await _sut.HandleProcessAndServiceRestartsAsync(CreateCatalogSetting("cat-numlock", restart: null, notify: WindowsChange.NumLock));
+        await _sut.HandleProcessAndServiceRestartsAsync(CreateCatalogSetting("cat-plain", restart: null));
+
+        _mockUiManagement.Verify(u => u.MatchNumLockToSavedValue(), Times.Once);
+        _mockPendingRestart.Verify(p => p.Register(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_NonDesktopSetting_LeavesTheDesktopAlone()
+    {
+        var setting = CreateCatalogSetting("cat-theme", new RestartProcess("Explorer"), WindowsChange.Appearance);
+
+        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+        await _sut.LastBroadcastTask;
+
+        _mockTheme.Verify(t => t.RefreshDesktop(), Times.Never);
+    }
+
+    [Fact]
+    public async Task FlushCoalescedRestartsAsync_WithOneDesktopSetting_RefreshesTheDesktopOnce()
+    {
+        var settings = new[]
+        {
+            CreateCatalogSetting("bulk-plain", new RestartProcess("Explorer")),
+            CreateCatalogSetting("bulk-background", new RestartProcess("Explorer"), WindowsChange.Desktop),
+        };
+
+        await _sut.FlushCoalescedRestartsAsync(settings);
+
+        _mockTheme.Verify(t => t.RefreshDesktop(), Times.Once,
+            "one desktop-affecting setting in the batch is enough, and once is enough");
+    }
+
+    [Fact]
+    public async Task FlushCoalescedRestartsAsync_WithOneThemeSetting_BroadcastsThemeOnce()
+    {
+        var settings = new[]
+        {
+            CreateCatalogSetting("bulk-plain", new RestartProcess("Explorer")),
+            CreateCatalogSetting("bulk-theme", new RestartProcess("Explorer"), WindowsChange.Appearance),
+        };
+
+        await _sut.FlushCoalescedRestartsAsync(settings);
+
+        _mockExplorerRestart.Verify(e => e.BroadcastThemeRefresh(), Times.Once,
+            "one theme-affecting setting in the batch is enough, and once is enough");
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once);
+    }
+
+    // LEGIBILITY. A silent two-second stall is undiagnosable, so the broadcast logs which variant ran
+    // and how long it took - and a failure on the background task must still reach the log rather
+    // than dying unobserved on the thread pool.
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_Explorer_LogsTheBroadcastVariantAndElapsedTime()
+    {
+        var setting = CreateCatalogSetting(
+            "cat-task-view", new RestartProcess("Explorer"));
+
+        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+        await _sut.LastBroadcastTask;
+
         _mockLog.Verify(
             l => l.Log(LogLevel.Debug,
-                It.Is<string>(s => s.Contains("restarts suppressed")),
-                It.IsAny<Exception?>()),
+                It.Is<string>(m => m.Contains("Broadcasting shell refresh")
+                    && m.Contains("generic") && m.Contains("cat-task-view")),
+                It.IsAny<Exception?>(), It.IsAny<string>()),
+            Times.Once);
+        _mockLog.Verify(
+            l => l.Log(LogLevel.Debug,
+                It.Is<string>(m => m.Contains("Shell broadcast")
+                    && m.Contains("cat-task-view") && m.Contains("ms")),
+                It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task HandleProcessAndServiceRestartsAsync_WhenSuppressed_SkipsServiceRestart()
+    public async Task HandleProcessAndServiceRestartsAsync_Explorer_BroadcastFailure_IsLoggedNotSwallowed()
     {
-        // Arrange
-        var setting = CreateSetting("suppressed-svc", restartService: "FakeSvc999");
+        _mockExplorerRestart
+            .Setup(e => e.BroadcastShellRefresh())
+            .Throws(new InvalidOperationException("user32 said no"));
+        var setting = CreateCatalogSetting(
+            "cat-explodes", new RestartProcess("Explorer"));
 
-        // Act
+        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+        // Nothing in production awaits this task, so an escaping fault would vanish. Awaiting it here
+        // must NOT throw - the failure has to have been caught and logged inside.
+        await _sut.LastBroadcastTask;
+
+        _mockLog.Verify(
+            l => l.Log(LogLevel.Error,
+                It.Is<string>(m => m.Contains("Shell broadcast") && m.Contains("cat-explodes")),
+                It.IsAny<Exception?>(), It.IsAny<string>()),
+            Times.Once);
+        _mockPendingRestart.Verify(p => p.Register("cat-explodes"), Times.Once,
+            "a failed broadcast must not cost the user the pending-restart bar");
+    }
+
+    // Non-Explorer targets restart immediately: none of them is the shell, and all return
+    // instantly, so deferring them would cost the user a click for no benefit.
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_Setting_NonExplorerProcess_KillsProcess()
+    {
+        var setting = CreateCatalogSetting("cat-proc", new RestartProcess("notepad"));
+
+        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+
+        _mockUiManagement.Verify(u => u.KillProcess("notepad"), Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_Setting_RestartService_LogsServiceRestart()
+    {
+        var setting = CreateCatalogSetting("cat-svc", new RestartService("FakeTestServiceCat"));
+
+        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+
+        _mockLog.Verify(
+            l => l.Log(LogLevel.Info,
+                It.Is<string>(s => s.Contains("FakeTestServiceCat") && s.Contains("cat-svc")),
+                It.IsAny<Exception?>(), It.IsAny<string>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleProcessAndServiceRestartsAsync_Setting_WhenSuppressed_SkipsProcessRestart()
+    {
+        var setting = CreateCatalogSetting("cat-suppressed", new RestartProcess("notepad"));
+
         using (_sut.SuppressRestarts())
         {
             await _sut.HandleProcessAndServiceRestartsAsync(setting);
         }
 
-        // Assert -- service restart should NOT be attempted while suppressed
+        _mockUiManagement.Verify(u => u.KillProcess(It.IsAny<string>()), Times.Never);
         _mockLog.Verify(
             l => l.Log(LogLevel.Debug,
                 It.Is<string>(s => s.Contains("restarts suppressed")),
-                It.IsAny<Exception?>()),
+                It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
-        _mockLog.Verify(
-            l => l.Log(LogLevel.Info,
-                It.Is<string>(s => s.Contains("Restarting service")),
-                It.IsAny<Exception?>()),
-            Times.Never);
     }
 
     [Fact]
-    public async Task HandleProcessAndServiceRestartsAsync_AfterSuppressDisposed_RestartsNormally()
+    public async Task CoalesceBroadcasts_ThreeThemeSettings_BroadcastOnceWhenTheScopeEnds()
     {
-        // Arrange
-        var setting = CreateSetting("after-suppress", restartProcess: "notepad");
+        using (_sut.CoalesceBroadcasts())
+        {
+            foreach (var id in new[] { "theme-parent", "theme-apps", "theme-system" })
+                await _sut.HandleProcessAndServiceRestartsAsync(CreateCatalogSetting(id, notify: WindowsChange.Appearance));
 
-        // Act -- suppress and dispose, then call
-        using (_sut.SuppressRestarts()) { }
-        await _sut.HandleProcessAndServiceRestartsAsync(setting);
+            _mockExplorerRestart.Verify(e => e.BroadcastThemeRefresh(), Times.Never);
+        }
+        await _sut.LastBroadcastTask;
 
-        // Assert -- process kill should be called since suppression was lifted
-        _mockUiManagement.Verify(u => u.KillProcess("notepad"), Times.Once);
+        _mockExplorerRestart.Verify(e => e.BroadcastThemeRefresh(), Times.Once);
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once);
+    }
+
+    [Fact]
+    public async Task CoalesceBroadcasts_NestedScope_MergesIntoTheOuterBroadcast()
+    {
+        using (_sut.CoalesceBroadcasts())
+        {
+            using (_sut.CoalesceBroadcasts())
+                await _sut.HandleProcessAndServiceRestartsAsync(CreateCatalogSetting("inner-theme", notify: WindowsChange.Appearance));
+
+            _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Never);
+            await _sut.HandleProcessAndServiceRestartsAsync(CreateCatalogSetting("outer-desktop", notify: WindowsChange.Desktop));
+        }
+        await _sut.LastBroadcastTask;
+
+        _mockExplorerRestart.Verify(e => e.BroadcastThemeRefresh(), Times.Once);
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once);
+        _mockTheme.Verify(t => t.RefreshDesktop(), Times.Once);
+    }
+
+    [Fact]
+    public async Task CoalesceBroadcasts_NothingRequested_SendsNothing()
+    {
+        using (_sut.CoalesceBroadcasts())
+            await _sut.HandleProcessAndServiceRestartsAsync(CreateCatalogSetting("plain"));
+        await _sut.LastBroadcastTask;
+
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Never);
     }
 }

@@ -1,188 +1,170 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
-using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
 using Winhance.UI.Features.Common.Extensions.DI;
+using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Helpers;
 
 namespace Winhance.UI;
 
-/// <summary>
-/// Provides application-specific behavior to supplement the default Application class.
-/// </summary>
 public partial class App : Application
 {
+    // E_LAYOUTCYCLE, which CsWinRT surfaces as LayoutCycleException.
+    private const int LayoutCycleHResult = unchecked((int)0x802B0014);
+
     private Window? _mainWindow;
-    private IHost? _host;
+    private ServiceProvider? _services;
     private ILogService? _logService;
 
-    /// <summary>
-    /// Gets the main window instance.
-    /// </summary>
     public static Window? MainWindow => (Current as App)?._mainWindow;
 
-    /// <summary>
-    /// Gets the service provider for dependency injection.
-    /// </summary>
-    public static IServiceProvider Services => (Current as App)?._host?.Services
+    public static IServiceProvider Services => (Current as App)?._services
         ?? throw new InvalidOperationException("Host not initialized");
 
-    /// <summary>
-    /// Initializes the singleton application object.
-    /// </summary>
     public App()
     {
-        StartupLogger.Log("App", "App constructor starting");
+        StartupLogger.Log("App constructor starting");
         try
         {
             // Register exception handlers before any UI initialization
             RegisterExceptionHandlers();
-            StartupLogger.Log("App", "Exception handlers registered");
+            StartupLogger.Log("Exception handlers registered");
 
             this.InitializeComponent();
-            StartupLogger.Log("App", "InitializeComponent completed");
+            StartupLogger.Log("InitializeComponent completed");
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("App", $"App constructor EXCEPTION: {ex}");
+            StartupLogger.Log($"App constructor EXCEPTION: {ex}");
             throw;
         }
     }
 
-    /// <summary>
-    /// Registers all exception handlers for comprehensive error logging.
-    /// </summary>
     private void RegisterExceptionHandlers()
     {
-        // AppDomain unhandled exceptions (fatal errors)
         AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
 
-        // WinUI 3 unhandled exceptions (replaces WPF DispatcherUnhandledException)
         this.UnhandledException += OnAppUnhandledException;
 
-        // Unobserved task exceptions
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
     }
 
-    /// <summary>
-    /// Handles fatal AppDomain unhandled exceptions.
-    /// </summary>
     private void OnAppDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)
     {
         var ex = e.ExceptionObject as Exception;
-        StartupLogger.Log("App", $"[FATAL] AppDomain unhandled exception: {ex?.Message}\n{ex?.StackTrace}");
+        StartupLogger.Log($"AppDomain unhandled exception: {ex?.Message}\n{ex?.StackTrace}");
         _logService?.LogError($"Fatal unhandled exception: {ex?.Message}", ex);
     }
 
-    /// <summary>
-    /// Handles WinUI 3 unhandled exceptions.
-    /// </summary>
     private void OnAppUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
-        StartupLogger.Log("App", $"[CRASH] Unhandled UI exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}\nInner: {e.Exception?.InnerException?.Message}\n{e.Exception?.InnerException?.StackTrace}");
-        _logService?.LogError($"Unhandled UI exception: {e.Exception?.Message}", e.Exception);
-        e.Handled = true; // Prevent crash if possible
+        StartupLogger.Log($"Unhandled UI exception 0x{e.Exception?.HResult:X8}: {e.Message}\n{e.Exception?.StackTrace}\nInner: {e.Exception?.InnerException?.Message}\n{e.Exception?.InnerException?.StackTrace}");
+        _logService?.LogError($"Unhandled UI exception 0x{e.Exception?.HResult:X8}: {e.Message}", e.Exception);
+
+        // WinUI cannot lay out again after a layout cycle; handled, it leaves a window that draws nothing and
+        // takes no clicks, so that one closes the app with the error already logged.
+        e.Handled = e.Exception?.HResult != LayoutCycleHResult;
     }
 
-    /// <summary>
-    /// Handles unobserved task exceptions.
-    /// </summary>
     private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
     {
-        StartupLogger.Log("App", $"[ERROR] Unobserved task exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}");
+        StartupLogger.Log($"Unobserved task exception: {e.Exception?.Message}\n{e.Exception?.StackTrace}");
         _logService?.LogError($"Unobserved task exception: {e.Exception?.Message}", e.Exception);
-        e.SetObserved(); // Prevent crash
+        e.SetObserved();
     }
 
-    /// <summary>
-    /// Invoked when the application is launched.
-    /// </summary>
-    /// <param name="args">Details about the launch request and process.</param>
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
-        StartupLogger.Log("App", "OnLaunched starting");
+        StartupLogger.Log("OnLaunched starting");
         try
         {
-            // Build the host with DI container using CompositionRoot
-            StartupLogger.Log("App", "Building DI host...");
-            _host = CompositionRoot.CreateWinhanceHost().Build();
-            StartupLogger.Log("App", "DI host built successfully");
+            StartupLogger.Log("Building DI host...");
+            var launch = LaunchCommandLine.Parse(Environment.GetCommandLineArgs()[1..], message => StartupLogger.Log(message));
+            LiveInstanceTracker.Shared.Enabled = launch.Diagnostics;
+            _services = CompositionRoot.BuildWinhanceServices(launch);
+            StartupLogger.Log("DI host built successfully");
 
-            // Initialize log service for exception handlers and file logging
+            // Before anything reads preferences, so a portable copy's first run starts from the installed settings.
             try
             {
-                _logService = Services.GetService<ILogService>();
-                StartupLogger.Log("App", "LogService obtained");
+                var localAppData = Services.GetRequiredService<IInteractiveUserService>()
+                    .GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                foreach (var path in Services.GetRequiredService<IPortableDataCopy>().CopyInstalledData(localAppData))
+                    StartupLogger.Log($"Portable: copied {path}");
+            }
+            catch (Exception ex)
+            {
+                StartupLogger.Log($"Portable: copying the installed data failed: {ex.Message}");
+            }
 
-                // Start file logging to C:\ProgramData\Winhance\Logs
+            try
+            {
+                var logService = Services.GetRequiredService<ILogService>();
+                _logService = logService;
+                StartupLogger.Log("LogService obtained");
+
                 try
                 {
-                    // Wire up interactive user service and system info provider for logging
-                    var interactiveUserService = Services.GetService<IInteractiveUserService>();
-                    if (_logService is Winhance.Core.Features.Common.Services.LogService concreteLogService)
-                    {
-                        if (interactiveUserService != null)
-                        {
-                            concreteLogService.SetInteractiveUserService(interactiveUserService);
-                        }
-                        var systemInfoProvider = Services.GetService<ISystemInfoProvider>();
-                        if (systemInfoProvider != null)
-                        {
-                            concreteLogService.SetSystemInfoProvider(systemInfoProvider);
-                        }
-                    }
-                    _logService?.StartLog();
-                    StartupLogger.Log("App", "LogService.StartLog() called - file logging initialized");
-                    var logPath = _logService?.GetLogPath();
-                    StartupLogger.Log("App", $"Log file path: {logPath}");
-                    _logService?.LogInformation("Winhance application starting...");
+                    if (logService is Winhance.Core.Features.Common.Services.LogService concreteLogService)
+                        concreteLogService.SetSystemInfoProvider(Services.GetRequiredService<ISystemInfoProvider>());
+                    logService.StartLog();
+                    StartupLogger.Log("LogService.StartLog() called - file logging initialized");
+                    StartupLogger.Log($"Log file path: {logService.GetLogPath()}");
+                    logService.LogInformation("Winhance application starting...");
                 }
                 catch (Exception startLogEx)
                 {
-                    StartupLogger.Log("App", $"StartLog() FAILED: {startLogEx.Message}");
-                    StartupLogger.Log("App", $"StartLog() Stack: {startLogEx.StackTrace}");
+                    StartupLogger.Log($"StartLog() FAILED: {startLogEx.Message}");
+                    StartupLogger.Log($"StartLog() Stack: {startLogEx.StackTrace}");
                 }
             }
             catch (Exception ex)
             {
-                StartupLogger.Log("App", $"LogService unavailable: {ex.Message}");
+                StartupLogger.Log($"LogService unavailable: {ex.Message}");
             }
 
             // Initialize localization before creating any UI
-            StartupLogger.Log("App", "Initializing localization...");
+            StartupLogger.Log("Initializing localization...");
             InitializeLocalization();
-            StartupLogger.Log("App", "Localization initialized");
+            StartupLogger.Log("Localization initialized");
 
-            // Create and activate the main window (loading overlay is visible by default)
-            StartupLogger.Log("App", "Creating MainWindow...");
+            // The tray host's Exit when the support ask is due: only the ask, never the main window and its startup.
+            if (launch.ExitFromTray)
+            {
+                TrayHost.SignalQuit();
+                InitializeTheme();
+                Services.GetRequiredService<IApplicationCloseService>().ExitWithoutWindowAsync().FireAndForget(Services.GetRequiredService<ILogService>());
+                return;
+            }
+
+            StartupLogger.Log("Creating MainWindow...");
             _mainWindow = new MainWindow();
-            StartupLogger.Log("App", "MainWindow created, activating...");
+            StartupLogger.Log("MainWindow created, activating...");
             _mainWindow.Activate();
-            StartupLogger.Log("App", "MainWindow activated");
+            StartupLogger.Log("MainWindow activated");
+            if (launch.StartsHidden)
+                Services.GetRequiredService<TrayController>().HideToTray();
 
             // Initialize theme service after window is created
-            StartupLogger.Log("App", "Initializing theme...");
+            StartupLogger.Log("Initializing theme...");
             InitializeTheme();
-            StartupLogger.Log("App", "Theme initialized");
+            StartupLogger.Log("Theme initialized");
 
-            // Start async startup operations (settings init, backups, scripts)
-            // The loading overlay provides visual feedback while these run
-            StartupLogger.Log("App", "Starting startup operations...");
+            StartupLogger.Log("Starting startup operations...");
             (_mainWindow as MainWindow)?.StartStartupOperations();
-            StartupLogger.Log("App", "Startup operations kicked off - OnLaunched complete");
+            StartupLogger.Log("Startup operations kicked off - OnLaunched complete");
         }
         catch (Exception ex)
         {
-            StartupLogger.Log("App", $"OnLaunched EXCEPTION: {ex}");
+            StartupLogger.Log($"OnLaunched EXCEPTION: {ex}");
             throw;
         }
     }
 
-    /// <summary>
-    /// Initializes the localization system for use with x:Bind in XAML.
-    /// </summary>
     private void InitializeLocalization()
     {
         try
@@ -191,7 +173,7 @@ public partial class App : Application
 
             // Load and apply the saved language preference (sync to avoid async deadlock on UI thread)
             var preferencesService = Services.GetRequiredService<IUserPreferencesService>();
-            var savedLanguage = preferencesService.GetPreference("Language", "en");
+            var savedLanguage = preferencesService.GetPreference(UserPreferenceKeys.Language, "en");
             localizationService.SetLanguage(savedLanguage);
         }
         catch (Exception ex)
@@ -201,9 +183,6 @@ public partial class App : Application
         }
     }
 
-    /// <summary>
-    /// Initializes the theme system and loads the saved user preference.
-    /// </summary>
     private void InitializeTheme()
     {
         try

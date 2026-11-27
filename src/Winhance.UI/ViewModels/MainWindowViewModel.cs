@@ -1,21 +1,36 @@
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using FluentIcons.Common;
 using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Services;
+using Winhance.Core.Features.Common.Extensions;
+using Winhance.UI.Helpers;
 
 namespace Winhance.UI.ViewModels;
 
-/// <summary>
-/// ViewModel for the MainWindow, handling title bar commands and state.
-/// Child ViewModels handle task progress, update checking, and review mode.
-/// </summary>
 public partial class MainWindowViewModel : ObservableObject, IDisposable
 {
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(AppTitle), nameof(AppSubtitle), nameof(WinhanceModeLabel), nameof(ModeNormalLabel),
+        nameof(ModeBuilderLabel), nameof(ModeConfigReviewLabel), nameof(ModeNormalTooltip), nameof(ModeBuilderTooltip),
+        nameof(ModeConfigReviewTooltip), nameof(WindowsFilterTooltip), nameof(ToggleNavigationTooltip),
+        nameof(BackTooltip), nameof(DonateTooltip), nameof(SupportButtonText), nameof(BugReportTooltip),
+        nameof(DocsTooltip), nameof(NavSoftwareAppsText), nameof(NavOptimizeText), nameof(NavCustomizeText),
+        nameof(NavAutounattendText), nameof(NavWimUtilText), nameof(NavSettingsText), nameof(NavMoreText),
+    ];
+
+    private static readonly string[] ModeProperties =
+    [
+        nameof(CurrentMode), nameof(IsNormalMode), nameof(IsBuilderModeActive), nameof(IsConfigReviewModeActive),
+        nameof(IsWindowsFilterButtonEnabled),
+    ];
+
     private bool _disposed;
     private readonly IThemeService _themeService;
     private readonly IConfigurationService _configurationService;
@@ -26,21 +41,16 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly IWindowsVersionFilterService _windowsVersionFilterService;
     private readonly IApplicationModeService _applicationModeService;
     private readonly IDialogService _dialogService;
-    private readonly IUserPreferencesService _userPreferencesService;
+    private readonly IBuilderModeEntry _builderModeEntry;
 
-    /// <summary>Child ViewModel for task progress display.</summary>
     public TaskProgressViewModel TaskProgress { get; }
 
-    /// <summary>Child ViewModel for update checking.</summary>
     public UpdateCheckViewModel UpdateCheck { get; }
 
-    /// <summary>Child ViewModel for review mode bar.</summary>
     public ReviewModeBarViewModel ReviewModeBar { get; }
 
-    /// <summary>Child ViewModel for the Builder mode bar.</summary>
     public BuilderModeBarViewModel BuilderModeBar { get; }
 
-    /// <summary>The current app-wide interaction mode (for the mode switcher).</summary>
     public WinhanceMode CurrentMode => _applicationModeService.CurrentMode;
     public bool IsNormalMode => CurrentMode == WinhanceMode.Normal;
     public bool IsBuilderModeActive => CurrentMode == WinhanceMode.Builder;
@@ -57,7 +67,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(WindowsFilterIcon))]
     public partial bool IsWindowsVersionFilterEnabled { get; set; }
 
-    // OTS Elevation InfoBar properties
     [ObservableProperty]
     public partial bool IsOtsInfoBarOpen { get; set; }
 
@@ -81,7 +90,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         BuilderModeBarViewModel builderModeBar,
         IApplicationModeService applicationModeService,
         IDialogService dialogService,
-        IUserPreferencesService userPreferencesService)
+        IBuilderModeEntry builderModeEntry)
     {
         _themeService = themeService;
         _configurationService = configurationService;
@@ -92,14 +101,13 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _windowsVersionFilterService = windowsVersionFilterService;
         _applicationModeService = applicationModeService;
         _dialogService = dialogService;
-        _userPreferencesService = userPreferencesService;
+        _builderModeEntry = builderModeEntry;
 
         TaskProgress = taskProgress;
         UpdateCheck = updateCheck;
         ReviewModeBar = reviewModeBar;
         BuilderModeBar = builderModeBar;
 
-        // Initialize partial property defaults
         AppIconSource = "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png";
         VersionInfo = "Winhance";
         IsWindowsVersionFilterEnabled = true;
@@ -107,35 +115,23 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         OtsInfoBarMessage = string.Empty;
     }
 
-    /// <summary>
-    /// Performs deferred initialization: subscribes to events and sets initial state.
-    /// Must be called after construction, typically after the caller has subscribed
-    /// to PropertyChanged so that initial state changes are observed.
-    /// </summary>
+    // Call after construction, after the caller has subscribed to PropertyChanged, so initial state changes are observed.
     public void Initialize()
     {
-        // Subscribe to theme changes
         _themeService.ThemeChanged += OnThemeChanged;
 
-        // Subscribe to language changes
         _localizationService.LanguageChanged += OnLanguageChanged;
 
-        // Subscribe to review mode filter cross-cutting
         ReviewModeBar.PropertyChanged += OnReviewModeBarPropertyChanged;
 
-        // Keep the mode switcher in sync with the app-wide mode
         _applicationModeService.ModeChanged += OnApplicationModeChanged;
 
-        // Subscribe to filter state changes from the service
         _windowsVersionFilterService.FilterStateChanged += OnFilterStateChanged;
 
-        // Set initial icon based on current theme
         UpdateAppIconForTheme();
 
-        // Initialize version info
         InitializeVersionInfo();
 
-        // Show OTS elevation InfoBar if needed
         InitializeOtsInfoBar();
     }
 
@@ -148,47 +144,20 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         ReviewModeBar.PropertyChanged -= OnReviewModeBarPropertyChanged;
         _applicationModeService.ModeChanged -= OnApplicationModeChanged;
         _windowsVersionFilterService.FilterStateChanged -= OnFilterStateChanged;
+        GC.SuppressFinalize(this);
     }
 
-    /// <summary>
-    /// Handles language changes to update localized strings.
-    /// </summary>
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        // Notify all localized string properties
-        OnPropertyChanged(nameof(AppTitle));
-        OnPropertyChanged(nameof(AppSubtitle));
-        OnPropertyChanged(nameof(WinhanceModeLabel));
-        OnPropertyChanged(nameof(ModeNormalLabel));
-        OnPropertyChanged(nameof(ModeBuilderLabel));
-        OnPropertyChanged(nameof(ModeConfigReviewLabel));
-        OnPropertyChanged(nameof(ModeNormalTooltip));
-        OnPropertyChanged(nameof(ModeBuilderTooltip));
-        OnPropertyChanged(nameof(ModeConfigReviewTooltip));
-        OnPropertyChanged(nameof(WindowsFilterTooltip));
-        OnPropertyChanged(nameof(ToggleNavigationTooltip));
-        OnPropertyChanged(nameof(DonateTooltip));
-        OnPropertyChanged(nameof(BugReportTooltip));
-        OnPropertyChanged(nameof(DocsTooltip));
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
 
-        // Nav bar text
-        OnPropertyChanged(nameof(NavSoftwareAppsText));
-        OnPropertyChanged(nameof(NavOptimizeText));
-        OnPropertyChanged(nameof(NavCustomizeText));
-        OnPropertyChanged(nameof(NavAdvancedToolsText));
-        OnPropertyChanged(nameof(NavSettingsText));
-        OnPropertyChanged(nameof(NavMoreText));
-
-        // OTS InfoBar
         if (IsOtsInfoBarOpen)
         {
             RefreshOtsInfoBarText();
         }
     }
 
-    /// <summary>
-    /// Initializes the version info string from the version service.
-    /// </summary>
     private void InitializeVersionInfo()
     {
         try
@@ -198,16 +167,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
-            _logService.LogDebug($"[MainWindowViewModel] Failed to get version info: {ex.Message}");
+            _logService.LogDebug($"Failed to get version info: {ex.Message}");
             VersionInfo = "Winhance";
         }
     }
 
-    #region OTS Elevation InfoBar
-
-    /// <summary>
-    /// Initializes the OTS InfoBar if the app is running under OTS elevation.
-    /// </summary>
     private void InitializeOtsInfoBar()
     {
         if (_interactiveUserService.IsOtsElevation)
@@ -217,124 +181,95 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Refreshes the OTS InfoBar text from localization.
-    /// </summary>
     private void RefreshOtsInfoBarText()
     {
-        OtsInfoBarTitle = _localizationService.GetString("InfoBar_OtsElevation_Title")
-            ?? "Running as a different user";
-        var messageTemplate = _localizationService.GetString("InfoBar_OtsElevation_Message")
-            ?? "This app was elevated with a different account's credentials. Settings will still be applied to the logged-in user ({0}). This message is informational only.";
+        OtsInfoBarTitle = _localizationService.GetStringOrDefault("InfoBar_OtsElevation_Title", "Running as a different user");
+        var messageTemplate = _localizationService.GetStringOrDefault("InfoBar_OtsElevation_Message", "This app was elevated with a different account's credentials. Settings will still be applied to the logged-in user ({0}). This message is informational only.");
         OtsInfoBarMessage = string.Format(messageTemplate, _interactiveUserService.InteractiveUserName);
     }
 
-    /// <summary>
-    /// Dismisses the OTS InfoBar.
-    /// </summary>
     public void DismissOtsInfoBar()
     {
         IsOtsInfoBarOpen = false;
     }
 
-    #endregion
-
-    #region Localized Strings
-
-    // App title bar
     public string AppTitle =>
-        _localizationService.GetString("App_Title") ?? "Winhance";
+        _localizationService.GetStringOrDefault("App_Title", "Winhance");
 
     public string AppSubtitle =>
-        _localizationService.GetString("App_By") ?? "by Memory";
+        _localizationService.GetStringOrDefault("App_By", "by Memory");
 
-    // Mode switcher label + per-mode labels and tooltips
-    public string WinhanceModeLabel => _localizationService.GetString("Mode_Switcher_Label") ?? "Winhance Mode";
-    public string ModeNormalLabel => _localizationService.GetString("Mode_Normal") ?? "Normal";
-    public string ModeBuilderLabel => _localizationService.GetString("Mode_Builder") ?? "Builder";
-    public string ModeConfigReviewLabel => _localizationService.GetString("Mode_ConfigReview") ?? "Config Review";
-    public string ModeNormalTooltip => _localizationService.GetString("Mode_Normal_Tooltip") ?? "Normal mode";
-    public string ModeBuilderTooltip => _localizationService.GetString("Mode_Builder_Tooltip") ?? "Builder mode";
-    public string ModeConfigReviewTooltip => _localizationService.GetString("Mode_ConfigReview_Tooltip") ?? "Config Review";
+    public string WinhanceModeLabel => _localizationService.GetStringOrDefault("Mode_Switcher_Label", "Winhance Mode");
+    public string ModeNormalLabel => _localizationService.GetStringOrDefault("Mode_Normal", "Normal");
+    public string ModeBuilderLabel => _localizationService.GetStringOrDefault("Mode_Builder", "Builder");
+    public string ModeConfigReviewLabel => _localizationService.GetStringOrDefault("Mode_ConfigReview", "Config Import");
+    public string ModeNormalTooltip => _localizationService.GetStringOrDefault("Mode_Normal_Tooltip", "Normal mode — changes apply to this PC immediately.");
+    public string ModeBuilderTooltip => _localizationService.GetStringOrDefault("Mode_Builder_Tooltip", "Builder mode — create a config or autounattend file without changing this PC.");
+    public string ModeConfigReviewTooltip => _localizationService.GetStringOrDefault("Mode_ConfigReview_Tooltip", "Config Import. Choose a config to review or apply immediately.");
 
-    // Tooltips
     public string WindowsFilterTooltip
     {
         get
         {
             if (IsWindowsVersionFilterEnabled)
             {
-                var title = _localizationService.GetString("Tooltip_FilterEnabled") ?? "Windows Version Filter: ON";
-                var description = _localizationService.GetString("Tooltip_FilterEnabled_Description") ?? "Click to show settings for all Windows versions";
+                var title = _localizationService.GetStringOrDefault("Tooltip_FilterEnabled", "Windows Version Filter: ON");
+                var description = _localizationService.GetStringOrDefault("Tooltip_FilterEnabled_Description", "Click to show settings for all Windows versions");
                 return $"{title}\n{description}";
             }
             else
             {
-                var title = _localizationService.GetString("Tooltip_FilterDisabled") ?? "Windows Version Filter: OFF";
-                var description = _localizationService.GetString("Tooltip_FilterDisabled_Description") ?? "Showing all settings (incompatible settings marked)";
+                var title = _localizationService.GetStringOrDefault("Tooltip_FilterDisabled", "Windows Version Filter: OFF");
+                var description = _localizationService.GetStringOrDefault("Tooltip_FilterDisabled_Description", "Showing all settings (incompatible settings marked)");
                 return $"{title}\n{description}";
             }
         }
     }
 
-    /// <summary>
-    /// Gets the icon path data for the Windows filter button based on filter state.
-    /// Filter ON = filter-check icon (showing filtered/compatible only)
-    /// Filter OFF = filter-off icon (showing all settings)
-    /// Path data is retrieved from Application resources (FeatureIcons.xaml).
-    /// </summary>
-    public string WindowsFilterIcon
-    {
-        get
-        {
-            var resourceKey = IsWindowsVersionFilterEnabled ? "FilterCheckIconPath" : "FilterOffIconPath";
-            return Application.Current.Resources[resourceKey] as string ?? string.Empty;
-        }
-    }
+    public Icon WindowsFilterIcon => IsWindowsVersionFilterEnabled ? Icon.Filter : Icon.FilterDismiss;
 
     public string ToggleNavigationTooltip =>
-        _localizationService.GetString("Tooltip_ToggleNavigation") ?? "Toggle Navigation";
+        _localizationService.GetStringOrDefault("Tooltip_ToggleNavigation", "Toggle Navigation");
+
+    public string BackTooltip => _localizationService.GetString("Tooltip_Back");
 
     public string DonateTooltip =>
-        _localizationService.GetString("Menu_SupportWinhance") ?? "Support Winhance";
+        _localizationService.GetStringOrDefault("Menu_SupportWinhance", "Support Winhance");
+
+    public string SupportButtonText =>
+        _localizationService.GetStringOrDefault("Support_TitleBarLabel", "Support");
 
     public string BugReportTooltip =>
-        _localizationService.GetString("Tooltip_ReportBug") ?? "Report a Bug";
+        _localizationService.GetStringOrDefault("Tooltip_ReportBug", "Report a Bug");
 
     public string DocsTooltip =>
-        _localizationService.GetString("Tooltip_Documentation") ?? "Documentation";
+        _localizationService.GetStringOrDefault("Tooltip_Documentation", "Documentation");
 
-    // Nav bar text
     public string NavSoftwareAppsText =>
-        _localizationService.GetString("Nav_SoftwareAndApps") ?? "Software & Apps";
+        _localizationService.GetStringOrDefault("Nav_SoftwareAndApps", "Software & Apps");
 
     public string NavOptimizeText =>
-        _localizationService.GetString("Nav_Optimize") ?? "Optimize";
+        _localizationService.GetStringOrDefault("Nav_Optimize", "Optimize");
 
     public string NavCustomizeText =>
-        _localizationService.GetString("Nav_Customize") ?? "Customize";
+        _localizationService.GetStringOrDefault("Nav_Customize", "Customize");
 
-    public string NavAdvancedToolsText =>
-        _localizationService.GetString("Nav_AdvancedTools") ?? "Advanced Tools";
+    public string NavAutounattendText =>
+        _localizationService.GetStringOrDefault("Nav_Autounattend", "Unattend");
+
+    public string NavWimUtilText =>
+        _localizationService.GetStringOrDefault("Nav_WimUtil", "WIMUtil");
 
     public string NavSettingsText =>
-        _localizationService.GetString("Nav_Settings") ?? "Settings";
+        _localizationService.GetStringOrDefault("Nav_Settings", "Settings");
 
     public string NavMoreText =>
-        _localizationService.GetString("Nav_More") ?? "More";
+        _localizationService.GetStringOrDefault("Nav_More", "More");
 
-    // Filter button enabled state
-    public bool IsWindowsFilterButtonEnabled => !ReviewModeBar.IsInReviewMode;
+    // Builder picks the Windows a file is for in its own bar, so this PC's filter has nothing to say there.
+    public bool IsWindowsFilterButtonEnabled => !ReviewModeBar.IsInReviewMode && !IsBuilderModeActive;
 
-    #endregion
-
-    #region Commands
-
-    /// <summary>
-    /// Switch the app-wide mode from the title-bar mode switcher. Confirms first if the
-    /// current mode has unsaved progress (Builder edits, or a pending Config Review).
-    /// Normal → live system; Builder → author without applying; Config Review → import dialog.
-    /// </summary>
+    // Confirms first if the current mode has unsaved progress (Builder edits, or a pending Config Review).
     public async Task RequestSwitchModeAsync(WinhanceMode target)
     {
         if (target == _applicationModeService.CurrentMode)
@@ -342,31 +277,22 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        bool leavingBuilderWithEdits = _applicationModeService.CurrentMode == WinhanceMode.Builder
-            && _applicationModeService.GetBuilderEdits().Count > 0;
-        bool leavingReview = _applicationModeService.CurrentMode == WinhanceMode.ConfigReview;
-
-        if (leavingBuilderWithEdits || leavingReview)
-        {
-            var message = _localizationService.GetString("Mode_Switch_Confirmation")
-                ?? "Switch mode? Your current unsaved progress will be discarded. Nothing was applied to this PC.";
-            var title = _localizationService.GetString("Mode_Switch_Confirmation_Title") ?? "Switch Mode";
-            var confirmed = (await _dialogService.ShowConfirmationAsync(
-                new ConfirmationRequest { Message = message, Title = title })).Confirmed;
-            if (!confirmed)
-            {
-                RaiseModeProperties();
-                return;
-            }
-        }
-
-        // Show the first-run explainer for the mode being entered (unless dismissed).
-        if (target == WinhanceMode.Builder && !await ShowBuilderIntroIfNeededAsync())
+        // The mode buttons have already moved to the target, so they are put back.
+        if (_dialogService.IsDialogOpen)
         {
             RaiseModeProperties();
             return;
         }
-        if (target == WinhanceMode.ConfigReview && !await ShowConfigReviewIntroIfNeededAsync())
+
+        // Builder and Config Import warn inside their own entry dialog, so only Normal asks here.
+        if (target == WinhanceMode.Normal
+            && !await ModeSwitchConfirmation.ConfirmLeavingAsync(_applicationModeService, _dialogService, _localizationService))
+        {
+            RaiseModeProperties();
+            return;
+        }
+
+        if (target == WinhanceMode.Builder && !await _builderModeEntry.EnterAsync(BuilderTarget.Config, reason: null))
         {
             RaiseModeProperties();
             return;
@@ -383,14 +309,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                         _applicationModeService.EnterNormalMode();
                     break;
 
-                case WinhanceMode.Builder:
-                    if (_applicationModeService.CurrentMode == WinhanceMode.ConfigReview)
-                        await _configurationService.CancelReviewModeAsync();
-                    _applicationModeService.EnterBuilderMode(BuilderTarget.Config);
-                    break;
-
                 case WinhanceMode.ConfigReview:
-                    // Entering review = the existing import-and-review flow (file picker).
+                    // The same Import as Settings: it asks before leaving this mode and offers review or apply.
                     await _configurationService.ImportConfigurationAsync();
                     break;
             }
@@ -403,148 +323,84 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         RaiseModeProperties();
     }
 
+    // True once the mode lets the page open; false when the user stays where they are.
+    public async Task<bool> RequestPageAsync(string tag)
+    {
+        // UI Automation's Invoke (Narrator, Voice Access) reaches a nav button past an open dialog; a second dialog
+        // queued behind it would ask about the mode as it was before the first one closed.
+        if (_dialogService.IsDialogOpen)
+            return false;
+
+        var wimUtil = tag == "WimUtil";
+        switch (NavLockPolicy.GateFor(tag, _applicationModeService.CurrentMode, _applicationModeService.CurrentBuilderTarget))
+        {
+            case PageGate.SwitchToAutounattend:
+                if (!await ConfirmAsync(
+                        _localizationService.GetString("Nav_Autounattend_SwitchTarget_Title"),
+                        _localizationService.GetString(wimUtil ? "Nav_WimUtil_SwitchTarget_Message" : "Nav_Autounattend_SwitchTarget_Message"),
+                        _localizationService.GetString("Nav_Autounattend_SwitchTarget_Confirm"),
+                        _localizationService.GetString("Button_Cancel")))
+                    return false;
+                BuilderModeBar.SelectAutounattendTarget();
+                return true;
+
+            // Entering Builder ends a review itself, once its entry dialog is accepted, so a cancel there keeps it.
+            case PageGate.EnterBuilder:
+                return await _builderModeEntry.EnterAsync(
+                    BuilderTarget.Autounattend,
+                    _localizationService.GetString(wimUtil ? "Dialog_ModeEntry_WimUtilReason" : "Dialog_ModeEntry_UnattendReason"));
+
+            default:
+                return true;
+        }
+    }
+
+    private async Task<bool> ConfirmAsync(string title, string message, string confirm, string cancel) =>
+        (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+        {
+            Title = title,
+            Message = message,
+            ConfirmButtonText = confirm,
+            CancelButtonText = cancel,
+        })).Confirmed;
+
     private void OnApplicationModeChanged(object? sender, EventArgs e)
     {
         RaiseModeProperties();
     }
 
-    private const string BuilderIntroDontShowKey = "BuilderModeIntroDontShow";
-    private const string ConfigReviewIntroDontShowKey = "ConfigReviewModeIntroDontShow";
-
-    /// <summary>
-    /// Shows the Builder Mode explainer (with a "don't show again" option) unless the user
-    /// has dismissed it. Returns true to proceed into Builder mode, false if the user cancels.
-    /// </summary>
-    private Task<bool> ShowBuilderIntroIfNeededAsync()
-    {
-        return ShowModeIntroIfNeededAsync(
-            BuilderIntroDontShowKey,
-            "Dialog_BuilderIntro_Title",
-            "Dialog_BuilderIntro_Message",
-            "Dialog_BuilderIntro_Confirm");
-    }
-
-    /// <summary>
-    /// Shows the Config Review explainer (with a "don't show again" option) unless the user
-    /// has dismissed it. Returns true to proceed to the import window, false if the user cancels.
-    /// </summary>
-    private Task<bool> ShowConfigReviewIntroIfNeededAsync()
-    {
-        return ShowModeIntroIfNeededAsync(
-            ConfigReviewIntroDontShowKey,
-            "Dialog_ConfigReviewIntro_Title",
-            "Dialog_ConfigReviewIntro_Message",
-            "Dialog_ConfigReviewIntro_Confirm");
-    }
-
-    private async Task<bool> ShowModeIntroIfNeededAsync(
-        string dontShowKey,
-        string titleKey,
-        string messageKey,
-        string confirmKey)
-    {
-        if (_userPreferencesService.GetPreference(dontShowKey, false))
-        {
-            return true;
-        }
-
-        var response = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
-        {
-            Title = _localizationService.GetString(titleKey),
-            Message = _localizationService.GetString(messageKey),
-            CheckboxText = _localizationService.GetString("Dialog_Mode_DontShowAgain"),
-            CheckboxInitiallyChecked = false,
-            ConfirmButtonText = _localizationService.GetString(confirmKey),
-            CancelButtonText = _localizationService.GetString("Button_Cancel"),
-        });
-
-        if (response.Confirmed && response.CheckboxChecked)
-        {
-            await _userPreferencesService.SetPreferenceAsync(dontShowKey, true);
-        }
-
-        return response.Confirmed;
-    }
-
     private void RaiseModeProperties()
     {
-        OnPropertyChanged(nameof(CurrentMode));
-        OnPropertyChanged(nameof(IsNormalMode));
-        OnPropertyChanged(nameof(IsBuilderModeActive));
-        OnPropertyChanged(nameof(IsConfigReviewModeActive));
+        foreach (var property in ModeProperties)
+            OnPropertyChanged(property);
     }
 
-    /// <summary>
-    /// Command to toggle Windows version filter.
-    /// </summary>
     [RelayCommand]
     private async Task ToggleWindowsFilterAsync()
     {
         await _windowsVersionFilterService.ToggleFilterAsync(ReviewModeBar.IsInReviewMode);
     }
 
-    /// <summary>
-    /// Loads the filter preference from user preferences.
-    /// Should be called during initialization.
-    /// </summary>
-    public async Task LoadFilterPreferenceAsync()
-    {
-        await _windowsVersionFilterService.LoadFilterPreferenceAsync();
-    }
+    public void LoadFilterPreference() => _windowsVersionFilterService.LoadFilterPreference();
 
-    /// <summary>
-    /// Command to open the in-app sponsors dialog.
-    /// </summary>
     [RelayCommand]
     private async Task DonateAsync()
     {
-        try
-        {
+        if (!_dialogService.IsDialogOpen)
             await _dialogService.ShowSponsorsDialogAsync(SponsorsDialogMode.Normal);
-        }
-        catch (Exception ex)
-        {
-            _logService.LogDebug($"Failed to open sponsors dialog: {ex.Message}");
-        }
     }
 
-    /// <summary>
-    /// Command to open the bug report page.
-    /// </summary>
     [RelayCommand]
     private async Task BugReportAsync()
     {
-        try
-        {
-            await Windows.System.Launcher.LaunchUriAsync(
-                new Uri("https://github.com/memstechtips/Winhance/issues"));
-        }
-        catch (Exception ex)
-        {
-            _logService.LogDebug($"Failed to open bug report page: {ex.Message}");
-        }
+        await Windows.System.Launcher.LaunchUriAsync(HelpLinks.BugReport);
     }
 
-    /// <summary>
-    /// Command to open the documentation page.
-    /// </summary>
     [RelayCommand]
-    private async Task DocsAsync()
+    private async Task DocsAsync(string? pageTag)
     {
-        try
-        {
-            await Windows.System.Launcher.LaunchUriAsync(
-                new Uri("https://winhance.net/docs/index.html"));
-        }
-        catch (Exception ex)
-        {
-            _logService.LogDebug($"Failed to open documentation page: {ex.Message}");
-        }
+        await Windows.System.Launcher.LaunchUriAsync(HelpLinks.DocsFor(pageTag));
     }
-
-    #endregion
-
-    #region Review Mode / Filter Cross-Cutting
 
     private void OnReviewModeBarPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -563,41 +419,25 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
         else
         {
-            _ = _windowsVersionFilterService.RestoreFilterPreferenceAsync();
+            _windowsVersionFilterService.RestoreFilterPreference();
         }
     }
 
-    /// <summary>
-    /// Syncs the ViewModel's IsWindowsVersionFilterEnabled property when the service state changes.
-    /// </summary>
     private void OnFilterStateChanged(object? sender, bool isEnabled)
     {
         IsWindowsVersionFilterEnabled = isEnabled;
     }
 
-    #endregion
-
-    #region Theme Handling
-
-    /// <summary>
-    /// Handles theme changes to update the app icon.
-    /// </summary>
     private void OnThemeChanged(object? sender, WinhanceTheme theme)
     {
         UpdateAppIconForTheme();
     }
 
-    /// <summary>
-    /// Updates the app icon based on the current effective theme.
-    /// </summary>
     public void UpdateAppIconForTheme()
     {
         var effectiveTheme = _themeService.GetEffectiveTheme();
-        // Use white icon on dark background, black icon on light background
         AppIconSource = effectiveTheme == ElementTheme.Dark
             ? "ms-appx:///Assets/AppIcons/winhance-rocket-white-transparent-bg.png"
             : "ms-appx:///Assets/AppIcons/winhance-rocket-black-transparent-bg.png";
     }
-
-    #endregion
 }

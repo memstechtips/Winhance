@@ -1,0 +1,139 @@
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Interfaces;
+using Xunit;
+
+using Winhance.TestSupport;
+using Winhance.Core.Features.Common.Localization;
+namespace Winhance.Core.Tests.Catalog;
+
+public class StateDetectionEngineTests
+{
+    // Simple in-memory readings: key -> (value, present). Missing key => absent.
+    private sealed class FakeReadings : IStateReadings
+    {
+        private readonly Dictionary<string, object?> _present;
+        public FakeReadings(Dictionary<string, object?> present) => _present = present;
+        public bool TryGet(string key, out object? value, out bool present)
+        {
+            present = _present.TryGetValue(key, out value);
+            return true;
+        }
+    }
+
+    private static SettingState State(LocKey label, Dictionary<string, StateValue> set,
+        params StateRole[] roles) =>
+        new() { Label = label, Set = set, Roles = roles };
+
+    private static SettingState Fallback(LocKey label, Dictionary<string, StateValue>? set = null) =>
+        new() { Label = label, Set = set ?? new Dictionary<string, StateValue>(), IsFallback = true };
+
+    [Theory]
+    [InlineData(true, false, false, true)]
+    [InlineData(false, true, false, true)]
+    [InlineData(true, true, true, false)]
+    [InlineData(false, false, false, false)]
+    public void ClassicContextMenu_Match_RequiresBothShellOverrides(bool legacy, bool redesigned, bool enabled, bool catchAll)
+    {
+        var setting = SettingCatalog.Find("context-menu-classic")!;
+        var readings = new Dictionary<string, object?>();
+        if (legacy)
+            readings[""] = "";
+        if (redesigned)
+            readings["Redesigned"] = "";
+
+        Assert.Equal((enabled ? LocKey.Common.Enabled.Value : LocKey.Common.Disabled.Value, catchAll),
+            StateDetectionEngine.Match(setting.States, new FakeReadings(readings)));
+    }
+
+    [Fact]
+    public void Detect_OneMatchingState_ReturnsThatState()
+    {
+        var states = new[]
+        {
+            State(TestKeys.Of("Hide"),  new() { ["Mode"] = StateValue.Of(0) }, new StateRole(RoleKind.Recommended)),
+            State(TestKeys.Of("Icon"),  new() { ["Mode"] = StateValue.Of(1) }),
+            State(TestKeys.Of("Box"),   new() { ["Mode"] = StateValue.Of(2) }, new StateRole(RoleKind.WindowsDefault)),
+        };
+        var readings = new FakeReadings(new() { ["Mode"] = 1 });
+        Assert.Equal("Icon", StateDetectionEngine.Detect(states, readings));
+    }
+
+    [Fact]
+    public void Detect_StateWithAnUnmatchedTarget_DoesNotMatch()
+    {
+        var states = new[]
+        {
+            State(TestKeys.Of("Manual"), new()
+            {
+                ["Start"]   = StateValue.Of(3),
+                ["Preload"] = StateValue.Of(1),
+            }),
+        };
+        var readings = new FakeReadings(new() { ["Start"] = 3, ["Preload"] = 0 });
+        Assert.Null(StateDetectionEngine.Detect(states, readings));
+    }
+
+    [Fact]
+    public void Detect_AbsentKeyWithOrAbsent_Matches()
+    {
+        var states = new[]
+        {
+            State(TestKeys.Of("Manual"), new()
+            {
+                ["Start"]   = StateValue.Of(3).OrAbsent(),
+                ["Preload"] = StateValue.Of(1).OrAbsent(),
+            }, new StateRole(RoleKind.WindowsDefault)),
+        };
+        var readings = new FakeReadings(new());
+        Assert.Equal("Manual", StateDetectionEngine.Detect(states, readings));
+    }
+
+    [Fact]
+    public void Detect_NoStateMatches_ReturnsNullForCustom()
+    {
+        var states = new[]
+        {
+            State(TestKeys.Of("On"),  new() { ["K"] = StateValue.Of(1) }),
+            State(TestKeys.Of("Off"), new() { ["K"] = StateValue.Of(0) }),
+        };
+        var readings = new FakeReadings(new() { ["K"] = 99 });
+        Assert.Null(StateDetectionEngine.Detect(states, readings));
+    }
+
+    [Fact]
+    public void Detect_NothingElseMatches_ResolvesToFallbackState()
+    {
+        var states = new[]
+        {
+            State(TestKeys.Of("Programs disabled"), new() { ["Prio"] = StateValue.Of(0x26) }),
+            Fallback(TestKeys.Of("Default"), new() { ["Prio"] = StateValue.Of(2) }),
+        };
+        var unrecognised = new FakeReadings(new() { ["Prio"] = 0x18 });
+        Assert.Equal("Default", StateDetectionEngine.Detect(states, unrecognised));
+    }
+
+    [Theory]
+    [InlineData(2, false)]
+    [InlineData(0x18, true)]
+    public void Match_FallbackAnsweringForUndescribedReadings_FlagsIt(int prio, bool catchAll)
+    {
+        var states = new[]
+        {
+            State(TestKeys.Of("Programs disabled"), new() { ["Prio"] = StateValue.Of(0x26) }),
+            Fallback(TestKeys.Of("Default"), new() { ["Prio"] = StateValue.Of(2) }),
+        };
+        Assert.Equal(("Default", catchAll), StateDetectionEngine.Match(states, new FakeReadings(new() { ["Prio"] = prio })));
+    }
+
+    [Fact]
+    public void Detect_MultipleStatesMatch_ReturnsTheFirst()
+    {
+        var states = new[]
+        {
+            State(TestKeys.Of("A"), new() { ["K"] = StateValue.Exists }),
+            State(TestKeys.Of("B"), new() { ["K"] = StateValue.Of(5) }),
+        };
+        var readings = new FakeReadings(new() { ["K"] = 5 });
+        Assert.Equal("A", StateDetectionEngine.Detect(states, readings));
+    }
+}

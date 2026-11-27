@@ -1,25 +1,8 @@
 namespace Winhance.UI.Features.Common.Models;
 
-/// <summary>
-/// Represents a search suggestion item for cross-section searching.
-/// </summary>
-public class SearchSuggestionItem
+// The suggestion list's automation name and the text a chosen suggestion writes into the box both come from
+// ToString, which a record would otherwise fill with every member.
+public sealed record SearchSuggestionItem(string SettingName, string SectionKey, string SectionDisplayName)
 {
-    public string SettingName { get; set; } = string.Empty;
-    public string SectionKey { get; set; } = string.Empty;
-    public string SectionDisplayName { get; set; } = string.Empty;
-    public string SectionIconGlyph { get; set; } = string.Empty;
-    public string DisplayText => $"{SettingName} ({SectionDisplayName})";
-
-    public SearchSuggestionItem()
-    {
-    }
-
-    public SearchSuggestionItem(string settingName, string sectionKey, string sectionDisplayName, string sectionIconGlyph)
-    {
-        SettingName = settingName;
-        SectionKey = sectionKey;
-        SectionDisplayName = sectionDisplayName;
-        SectionIconGlyph = sectionIconGlyph;
-    }
+    public override string ToString() => SettingName;
 }

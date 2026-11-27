@@ -6,18 +6,25 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Winhance.Core.Tests" />
+    <InternalsVisibleTo Include="Winhance.TestSupport" />
+  </ItemGroup>
+
+  <!-- The key generator reads en.json and emits a LocKey member per key. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Winhance.Localization.Generator\Winhance.Localization.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <AdditionalFiles Include="Features\Common\Localization\en.json" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.7"/>
     <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.0-preview.6.24327.6" />
     <PackageReference Include="System.DirectoryServices.Protocols" Version="8.0.0" />
     <PackageReference Include="System.IO.Packaging" Version="8.0.1" />
     <PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.10"/>
-    <!-- Pin patched System.Security.Cryptography.Xml: floors out the vulnerable
-         transitive (NU1903 / GHSA-37gx-xxp4-5rgx CVE-2026-33116,
-         GHSA-w3x6-4m5h-cxqf CVE-2026-26171). 10.0.6 is the patched floor; 10.0.7 is latest. -->
-    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.7" />
+    <!-- Pin patched System.Security.Cryptography.Xml. It also floors its Pkcs dependency;
+         both transitives are vulnerable (NU1903) below 10.0.13. -->
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.13" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2"/>
   </ItemGroup>
 </Project>

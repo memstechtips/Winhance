@@ -1,0 +1,104 @@
+using Winhance.Core.Features.Common.Localization;
+namespace Winhance.Core.Features.Common.Catalog;
+
+// Forward relationships fire only when the owner moves to a non-default (active) state.
+public static class RelationshipResolver
+{
+    // Requires only when not already met; Enables always (force); the children the target state Controls.
+    // Empty when the target state is the WindowsDefault (a deactivation) or unknown.
+    public static IReadOnlyList<ApplyAction> ResolveForward(
+        Setting setting, LocKey targetStateLabel, Func<string, LocKey?> currentStateOf)
+    {
+        var actions = new List<ApplyAction>();
+
+        var targetState = setting.States.FirstOrDefault(s => s.Label == targetStateLabel);
+        if (targetState is null)
+            return actions;
+
+        // Forward triggers are a property of the STATE being applied (like Controls): applying a state fires the
+        // relationships IT declares. A deactivation/off state simply declares no Links, so there is no role-based
+        // skip - this also lets a default-ON owner's active (WindowsDefault) state fire its prerequisites.
+        foreach (var link in targetState.Links.Where(l => l.Kind == LinkKind.Requires))
+            if (currentStateOf(link.OtherId) != link.RequiredState)
+                actions.Add(new ApplyAction(link.OtherId, link.RequiredState, link.Force));
+
+        foreach (var link in targetState.Links.Where(l => l.Kind == LinkKind.Enables))
+            actions.Add(new ApplyAction(link.OtherId, link.RequiredState, Force: true));
+
+        if (targetState.Controls is { } controls)
+            foreach (var (childId, childState) in controls)
+                actions.Add(new ApplyAction(childId, childState));
+
+        return actions;
+    }
+
+    // Only dependents currently away from their default are reset.
+    public static IReadOnlyList<ApplyAction> ResolveReverseCascade(
+        string changedSettingId, LocKey newStateLabel,
+        IReadOnlyList<Setting> allSettings, Func<string, LocKey?> currentStateOf, WinBuild build)
+    {
+        var actions = new List<ApplyAction>();
+
+        foreach (var dependent in allSettings)
+        {
+            // The dependent's Requires live on its states; it relies on changedSettingId only if its CURRENT
+            // state declares that Requires (the links sit on the active/non-default states, and a dependent away
+            // from its default is exactly one in such a state).
+            var currentLabel = currentStateOf(dependent.Id);
+            var currentState = currentLabel is null
+                ? null
+                : dependent.States.FirstOrDefault(s => s.Label == currentLabel);
+            bool broken = currentState?.Links.Any(l =>
+                l.Kind == LinkKind.Requires &&
+                l.OtherId == changedSettingId &&
+                l.ReverseCascade &&
+                l.RequiredState != newStateLabel) ?? false;
+            if (!broken)
+                continue;
+
+            if (dependent.States.FirstOrDefault(s => s.HasRole(RoleKind.WindowsDefault, build))?.Label is { } defaultState
+                && currentStateOf(dependent.Id) != defaultState)
+                actions.Add(new ApplyAction(dependent.Id, defaultState, IsReset: true));
+        }
+
+        return actions;
+    }
+
+    // Snap the parent to the first state whose Controls are all satisfied, else to its neutral state; a parent already
+    // in the resulting state is left alone.
+    public static IReadOnlyList<ApplyAction> ResolveReverseSync(
+        string changedChildId, IReadOnlyList<Setting> allSettings, Func<string, LocKey?> currentStateOf)
+    {
+        var actions = new List<ApplyAction>();
+
+        foreach (var parent in allSettings)
+        {
+            bool controlsChild = parent.States.Any(st => st.Controls?.ContainsKey(changedChildId) == true);
+            if (!controlsChild)
+                continue;
+
+            // Snap the parent to the first preset state whose Controls are now ALL satisfied by the children's
+            // current states. If NO preset matches, the children have been customised away from every preset, so
+            // the parent drops to its neutral state - the one that imposes NO preset (no Controls), e.g. each
+            // master's "Custom". Identify it by "imposes no Controls", NOT by role: that neutral is WindowsDefault
+            // for privacy-ads-promotional-master but Recommended for visual-effects-mode (whose WindowsDefault
+            // "Let Windows choose" carries its own preset).
+            LocKey? target = null;
+            foreach (var state in parent.States.Where(s => s.Controls is { Count: > 0 }))
+            {
+                if (state.Controls!.All(kv => currentStateOf(kv.Key) == kv.Value))
+                {
+                    target = state.Label;
+                    break; // first fully-matching preset wins
+                }
+            }
+
+            target ??= parent.States.FirstOrDefault(s => s.Controls is null || s.Controls.Count == 0)?.Label;
+
+            if (target is { } targetLabel && currentStateOf(parent.Id) != targetLabel)
+                actions.Add(new ApplyAction(parent.Id, targetLabel));
+        }
+
+        return actions;
+    }
+}

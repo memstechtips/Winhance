@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260416003" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.6.5" />
     <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
@@ -34,5 +34,6 @@
     <ProjectReference Include="..\..\src\Winhance.Core\Winhance.Core.csproj" />
     <ProjectReference Include="..\..\src\Winhance.Infrastructure\Winhance.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Winhance.UI\Winhance.UI.csproj" />
+    <ProjectReference Include="..\Winhance.TestSupport\Winhance.TestSupport.csproj" />
   </ItemGroup>
 </Project>

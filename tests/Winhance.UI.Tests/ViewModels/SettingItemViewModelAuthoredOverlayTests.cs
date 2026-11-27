@@ -1,0 +1,486 @@
+using FluentAssertions;
+using Moq;
+using Winhance.Core.Features.Autounattend.Catalogs;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
+using Winhance.UI.Features.Common.Controls;
+using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
+using Winhance.UI.Features.Optimize.ViewModels;
+using Winhance.TestSupport;
+using Xunit;
+
+using Winhance.Core.Features.Common.Localization;
+namespace Winhance.UI.Tests.ViewModels;
+
+// A filter toggle or language change during Builder recreates every setting ViewModel from live state while
+// the recorded edits survive and are still written on Save - screen and file disagreed silently, and each half
+// was individually correct. The round-trips drive the REAL recording path (TrySetToRecommended -> the write
+// strategy) and the real restore path.
+public class SettingItemViewModelAuthoredOverlayTests
+{
+    private readonly Mock<ISettingApplicationService> _applyService = new();
+    private readonly Mock<ILogService> _logService = new();
+    private readonly Mock<IDispatcherService> _dispatcherService = new();
+    private readonly Mock<IDialogService> _dialogService = new();
+    private readonly Mock<ILocalizationService> _localizationService = new();
+    private readonly Mock<IApplicationModeService> _modeService = new();
+
+    private readonly Dictionary<string, SettingChoice> _authored = new();
+
+    public SettingItemViewModelAuthoredOverlayTests()
+    {
+        _localizationService.Setup(l => l.GetString(It.IsAny<string>())).Returns((string k) => k);
+        _localizationService.MirrorTryGetString();
+
+        _modeService.SetupGet(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _modeService.Setup(m => m.RecordBuilderEdit(It.IsAny<SettingChoice>()))
+            .Callback<SettingChoice>(e => _authored[e.SettingId] = e);
+        _modeService.Setup(m => m.GetBuilderEdit(It.IsAny<string>()))
+            .Returns<string>(id => _authored.TryGetValue(id, out var e) ? e : null);
+        _modeService.Setup(m => m.GetBuilderEdits())
+            .Returns(() => _authored.Values.ToList());
+        _modeService.Setup(m => m.IsIncluded(It.IsAny<string>())).Returns(true);
+    }
+
+    private SettingItemViewModel CreateSut(SettingItemViewModelConfig config) =>
+        new(
+            config,
+            SettingWriteStrategies.Selector(
+                _applyService.Object, _dialogService.Object, _localizationService.Object,
+                _logService.Object, _modeService.Object),
+            _logService.Object,
+            _dispatcherService.Object,
+            _dialogService.Object,
+            _localizationService.Object,
+            null,
+            null,
+            null,
+            _modeService.Object);
+
+    private static SettingItemViewModelConfig Config(Setting setting, InputType inputType, bool isSelected = false) =>
+        new()
+        {
+            Setting = setting,
+            SettingId = setting.Id,
+            Name = setting.Display.Name.Value,
+            Description = setting.Display.Description.Value,
+            InputType = inputType,
+            IsSelected = isSelected,
+        };
+
+    private static Setting ToggleSetting(string id) => new()
+    {
+        Id = id,
+        Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
+    };
+
+    // Without a WindowsDefault or Recommended role, HasQuickSetTarget is false and the command silently no-ops, so
+    // the round-trip would prove nothing.
+    private static Setting ToggleSettingWithRoles(string id, bool recommendedEnabled, bool defaultEnabled)
+    {
+        var enabled = new List<StateRole>();
+        var disabled = new List<StateRole>();
+        (recommendedEnabled ? enabled : disabled).Add(StateRole.Recommended);
+        (defaultEnabled ? enabled : disabled).Add(StateRole.WindowsDefault);
+
+        return new Setting
+        {
+            Id = id,
+            Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
+            States = new[]
+            {
+                new SettingState { Label = LocKey.Common.Enabled, Roles = enabled },
+                new SettingState { Label = LocKey.Common.Disabled, Roles = disabled },
+            },
+        };
+    }
+
+    // The Checked/Unchecked labels are what derive ControlKind.CheckBox.
+    private static Setting CheckBoxSetting(string id) => new()
+    {
+        Id = id,
+        Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
+        States = new[]
+        {
+            new SettingState { Label = LocKey.Common.Checked, Roles = new[] { StateRole.Recommended } },
+            new SettingState { Label = LocKey.Common.Unchecked, Roles = new[] { StateRole.WindowsDefault } },
+        },
+    };
+
+    private static Setting NumericSetting(string id, string? units = null, int recommended = 90) => new()
+    {
+        Id = id,
+        Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
+        Numeric = new()
+        {
+            Min = 0,
+            Max = 100,
+            Units = units,
+            Recommended = new[] { new ContextValue(PowerContext.Always, recommended) },
+            WindowsDefault = new[] { new ContextValue(PowerContext.Always, 10) },
+        },
+    };
+
+    private static readonly StateRole[] RecommendedOnAc = [new StateRole(RoleKind.Recommended, PowerContext.AC)];
+    private static readonly StateRole[] RecommendedOnDc = [new StateRole(RoleKind.Recommended, PowerContext.DC)];
+    private static readonly ContextValue[] FifteenAcFiveDc = [new ContextValue(PowerContext.AC, 15), new ContextValue(PowerContext.DC, 5)];
+
+    // A Separate PowerCfgTarget is what turns the card into the AC/DC pair; the context-scoped Recommended roles
+    // are what the quick-set resolves the two option indices from, and they sit on different options on purpose.
+    private static Setting AcDcSelectionSetting(string id) => new()
+    {
+        Id = id,
+        Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
+        Targets = new Target[] { new PowerCfgTarget("P", "sub", "set", PowerModeSupport.Separate) },
+        States = new[]
+        {
+            new SettingState { Label = LocKey.Setting.TaskbarButtonSize.Option2 },
+            new SettingState { Label = TestKeys.Of("5 minutes"), Roles = RecommendedOnDc },
+            new SettingState { Label = TestKeys.Of("15 minutes"), Roles = RecommendedOnAc },
+        },
+    };
+
+    private static Setting AcDcNumericSetting(string id, string? units = null) => new()
+    {
+        Id = id,
+        Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
+        Targets = new Target[] { new PowerCfgTarget("P", "sub", "set", PowerModeSupport.Separate) },
+        Numeric = new()
+        {
+            Min = 0,
+            Max = 100,
+            Units = units,
+            Recommended = FifteenAcFiveDc,
+        },
+    };
+
+    private static Setting PowerPlanSetting(string id) => new()
+    {
+        Id = id,
+        Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("") },
+        Options = new(OptionSource.PowerPlans),
+    };
+
+    private static void AddBuilderPowerPlanOptions(SettingItemViewModel vm, bool balancedFirst = false)
+    {
+        var high = new DynamicOption("PowerPlan_HighPerformance", "g-high");
+        var balanced = new DynamicOption("PowerPlan_Balanced", "g-bal");
+        var ordered = balancedFirst ? new[] { balanced, high } : new[] { high, balanced };
+        vm.TryApplyKeyedOptions(new SettingStateResult
+        {
+            Success = true,
+            CurrentValue = 0,
+            Outcome = SettingDetectionOutcome.Resolved,
+            DynamicOptions = ordered,
+            DynamicSelection = "g-high",
+        });
+    }
+
+    // The catalog's own settings: the product key's rule upper-cases, so the box and the record hold different strings.
+    private static readonly Setting TextSetting =
+        AutounattendCatalog.All.Single(s => s.Id == "autounattend-product-key");
+
+    private static readonly Setting ListSetting =
+        AutounattendCatalog.All.Single(s => s.Id == "autounattend-accounts");
+
+    private static SettingStateResult LiveState(bool isEnabled = false, object? currentValue = null) => new()
+    {
+        Success = true,
+        IsEnabled = isEnabled,
+        CurrentValue = currentValue,
+        Outcome = SettingDetectionOutcome.Resolved,
+    };
+
+    [Fact]
+    public void ARefreshFromLiveState_DoesNotOverwriteAnAuthoredToggle()
+    {
+        var sut = CreateSut(Config(ToggleSetting("authored-toggle"), InputType.Toggle));
+        _authored["authored-toggle"] = new SettingChoice("authored-toggle", new ChoiceValue.Toggle(true));
+
+        sut.UpdateStateFromSystemState(LiveState(isEnabled: false));
+
+        sut.IsSelected.Should().BeTrue(
+            because: "the card must show what Save will write, not what the machine currently says");
+    }
+
+    [Fact]
+    public void ARefreshFromLiveState_DoesNotOverwriteAnAuthoredCheckBox()
+    {
+        var sut = CreateSut(Config(CheckBoxSetting("authored-check"), InputType.CheckBox));
+        _authored["authored-check"] = new SettingChoice("authored-check", new ChoiceValue.CheckBox(true));
+
+        sut.UpdateStateFromSystemState(LiveState(isEnabled: false));
+
+        sut.IsSelected.Should().BeTrue(
+            because: "the card must show what Save will write, not what the machine currently says");
+    }
+
+    [Fact]
+    public void EachTwoStateKind_RecordsItsOwnChoiceValue()
+    {
+        var checkBox = CreateSut(Config(CheckBoxSetting("rec-check"), InputType.CheckBox));
+        var toggle = CreateSut(Config(
+            ToggleSettingWithRoles("rec-toggle", recommendedEnabled: true, defaultEnabled: false),
+            InputType.Toggle));
+
+        checkBox.TrySetToRecommended().Should().BeTrue();
+        toggle.TrySetToRecommended().Should().BeTrue();
+
+        _authored["rec-check"].Value.Should().BeOfType<ChoiceValue.CheckBox>().Which.Checked.Should().BeTrue();
+        _authored["rec-toggle"].Value.Should().BeOfType<ChoiceValue.Toggle>().Which.On.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ARefreshFromLiveState_DoesNotOverwriteAnAuthoredNumericValue()
+    {
+        var sut = CreateSut(Config(NumericSetting("authored-numeric"), InputType.NumericRange));
+        _authored["authored-numeric"] = new SettingChoice("authored-numeric", new ChoiceValue.Number(42));
+
+        sut.UpdateStateFromSystemState(LiveState(currentValue: 7));
+
+        sut.NumericValue.Should().Be(42);
+    }
+
+    [Fact]
+    public void ARefreshFromLiveState_AppliesLiveValuesForSettingsTheUserNeverAuthored()
+    {
+        var sut = CreateSut(Config(ToggleSetting("untouched"), InputType.Toggle));
+
+        sut.UpdateStateFromSystemState(LiveState(isEnabled: true));
+
+        sut.IsSelected.Should().BeTrue(
+            because: "the overlay must only defend authored settings, never freeze the rest");
+    }
+
+    [Fact]
+    public void AfterARefresh_TheCardAndTheSavedEditStillAgree()
+    {
+        var sut = CreateSut(Config(NumericSetting("agree", units: null), InputType.NumericRange));
+        sut.TrySetToRecommended();
+
+        int shownBeforeRefresh = sut.NumericValue;
+        sut.UpdateStateFromSystemState(LiveState(currentValue: 3));
+
+        var saved = _modeService.Object.GetBuilderEdits().Single(e => e.SettingId == "agree");
+
+        sut.NumericValue.Should().Be(shownBeforeRefresh);
+        sut.NumericValue.Should().Be(saved.Value.Should().BeOfType<ChoiceValue.Number>().Which.Value,
+            because: "the screen and the file are the same fact read from the same store");
+    }
+
+    [Fact]
+    public void RoundTrip_Text()
+    {
+        var authoring = CreateSut(Config(TextSetting, InputType.TextBox));
+        authoring.OnTextBoxChanged("vk7jg-nphtm-c97jm-9mpgt-3v66t");
+
+        var reloaded = CreateSut(Config(TextSetting, InputType.TextBox));
+        reloaded.ApplyAuthoredOverlay();
+
+        reloaded.TextValue.Should().Be("VK7JG-NPHTM-C97JM-9MPGT-3V66T",
+            because: "the card comes back showing what Save will write, not the casing it was typed in");
+        reloaded.HasTextError.Should().BeFalse();
+    }
+
+    [Fact]
+    public void RoundTrip_List()
+    {
+        var authoring = CreateSut(Config(ListSetting, InputType.List));
+        authoring.AddRow();
+        authoring.Rows[0].FieldFor("name")!.Text = "Marco";
+        authoring.Rows[0].FieldFor("auto-logon")!.Checked = true;
+        authoring.SavePasswords = true;
+
+        var reloaded = CreateSut(Config(ListSetting, InputType.List));
+        reloaded.ApplyAuthoredOverlay();
+
+        reloaded.Rows.Should().ContainSingle();
+        reloaded.Rows[0].FieldFor("name")!.Text.Should().Be("Marco");
+        reloaded.Rows[0].FieldFor("auto-logon")!.Checked.Should().BeTrue();
+        reloaded.SavePasswords.Should().BeTrue(
+            because: "the next row edit rewrites the whole record, so a dropped box would silently drop the choice");
+    }
+
+    [Fact]
+    public void RoundTrip_Toggle()
+    {
+        // Live state is off; the recommended state is on, so the quick-set authors a real change.
+        var setting = ToggleSettingWithRoles("rt-toggle", recommendedEnabled: true, defaultEnabled: false);
+        var authoring = CreateSut(Config(setting, InputType.Toggle, isSelected: false));
+
+        authoring.TrySetToRecommended().Should().BeTrue();
+        authoring.IsSelected.Should().BeTrue();
+        _authored.Should().ContainKey("rt-toggle");
+
+        var reloaded = CreateSut(Config(setting, InputType.Toggle, isSelected: false));
+        reloaded.ApplyAuthoredOverlay();
+
+        reloaded.IsSelected.Should().Be(authoring.IsSelected);
+    }
+
+    [Fact]
+    public void RoundTrip_NumericRange()
+    {
+        var setting = NumericSetting("rt-numeric");
+        var authoring = CreateSut(Config(setting, InputType.NumericRange));
+        authoring.TrySetToRecommended();
+
+        var reloaded = CreateSut(Config(setting, InputType.NumericRange));
+        reloaded.NumericValue = 0;
+        reloaded.ApplyAuthoredOverlay();
+
+        reloaded.NumericValue.Should().Be(authoring.NumericValue).And.Be(90);
+    }
+
+    [Fact]
+    public void RoundTrip_NumericRange_SurvivesUnitConversion()
+    {
+        // The record holds SYSTEM units and the slider reads DISPLAY units. A restore that skipped
+        // the conversion would look right for unitless settings and be wrong by 60x here.
+        var setting = NumericSetting("rt-minutes", units: "Minutes", recommended: 15);
+        var authoring = CreateSut(Config(setting, InputType.NumericRange));
+        authoring.TrySetToRecommended();
+
+        var saved = _authored["rt-minutes"];
+        saved.Value.Should().BeOfType<ChoiceValue.Number>().Which.Value.Should().NotBe(authoring.NumericValue,
+            because: "this fixture's display and system units genuinely differ - otherwise the test proves nothing");
+
+        var reloaded = CreateSut(Config(setting, InputType.NumericRange));
+        reloaded.NumericValue = 0;
+        reloaded.ApplyAuthoredOverlay();
+
+        reloaded.NumericValue.Should().Be(authoring.NumericValue);
+    }
+
+    [Fact]
+    public void OutsideAnAuthoringMode_TheOverlayIsANoOp()
+    {
+        _modeService.SetupGet(m => m.CurrentMode).Returns(WinhanceMode.Normal);
+        _authored["stale"] = new SettingChoice("stale", new ChoiceValue.Toggle(true));
+
+        var sut = CreateSut(Config(ToggleSetting("stale"), InputType.Toggle));
+        sut.UpdateStateFromSystemState(LiveState(isEnabled: false));
+
+        sut.IsSelected.Should().BeFalse(
+            because: "Normal mode shows the machine; an edit lingering in the store must never reach the card");
+    }
+
+    [Fact]
+    public void InConfigReview_TheOverlayIsANoOp()
+    {
+        _modeService.SetupGet(m => m.CurrentMode).Returns(WinhanceMode.ConfigReview);
+        _authored["reviewed"] = new SettingChoice("reviewed", new ChoiceValue.Toggle(true));
+
+        var sut = CreateSut(Config(ToggleSetting("reviewed"), InputType.Toggle));
+        sut.UpdateStateFromSystemState(LiveState(isEnabled: false));
+
+        sut.IsSelected.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ApplyingTheOverlay_DoesNotRecordASecondEdit()
+    {
+        var sut = CreateSut(Config(ToggleSetting("no-echo"), InputType.Toggle));
+        _authored["no-echo"] = new SettingChoice("no-echo", new ChoiceValue.Toggle(true));
+
+        sut.ApplyAuthoredOverlay();
+
+        _modeService.Verify(m => m.RecordBuilderEdit(It.IsAny<SettingChoice>()), Times.Never,
+            failMessage: "restoring the user's own value must not re-enter the input handlers");
+    }
+
+    [Fact]
+    public void RoundTrip_PowerPlan()
+    {
+        var setting = PowerPlanSetting("rt-power-plan");
+
+        var authoring = CreateSut(Config(setting, InputType.Selection));
+        AddBuilderPowerPlanOptions(authoring);
+        authoring.CommitComboBoxSelection("g-bal");
+
+        _authored["rt-power-plan"].Value.Should().Be(new ChoiceValue.Keyed("g-bal", "PowerPlan_Balanced"));
+
+        // Reloaded with the plans in the other order: only a key lookup lands on Balanced again.
+        var reloaded = CreateSut(Config(setting, InputType.Selection));
+        AddBuilderPowerPlanOptions(reloaded, balancedFirst: true);
+        reloaded.ApplyAuthoredOverlay();
+
+        reloaded.SelectedValue.Should().Be("g-bal");
+        reloaded.ComboIndexForMode(SettingInputMode.Single).Should().Be(0);
+        reloaded.Outcome.Should().Be(SettingDetectionOutcome.Resolved);
+    }
+
+    [Fact]
+    public void RoundTrip_AcDcOption()
+    {
+        // The two contexts are authored by two separate writes, so the record has to end up carrying both.
+        var setting = AcDcSelectionSetting("rt-acdc-option");
+        var authoring = CreateSut(Config(setting, InputType.Selection));
+
+        authoring.TrySetToRecommended().Should().BeTrue();
+        _authored["rt-acdc-option"].Value.Should().Be(new ChoiceValue.AcDcOption(2, 1));
+
+        var reloaded = CreateSut(Config(setting, InputType.Selection));
+        reloaded.ApplyAuthoredOverlay();
+
+        reloaded.AcValue.Should().Be(authoring.AcValue).And.Be(2);
+        reloaded.DcValue.Should().Be(authoring.DcValue).And.Be(1);
+        reloaded.Outcome.Should().Be(SettingDetectionOutcome.Resolved);
+    }
+
+    [Fact]
+    public void RoundTrip_AcDcNumber_SurvivesUnitConversion()
+    {
+        // Both halves cross the display/system unit boundary here, so a restore that skipped the conversion on
+        // either one would be wrong by 60x on that half alone.
+        var setting = AcDcNumericSetting("rt-acdc-minutes", units: "Minutes");
+        var authoring = CreateSut(Config(setting, InputType.NumericRange));
+
+        authoring.TrySetToRecommended().Should().BeTrue();
+        _authored["rt-acdc-minutes"].Value.Should().Be(new ChoiceValue.AcDcNumber(900, 300));
+
+        var reloaded = CreateSut(Config(setting, InputType.NumericRange));
+        reloaded.ApplyAuthoredOverlay();
+
+        reloaded.AcNumericValue.Should().Be(authoring.AcNumericValue).And.Be(15);
+        reloaded.DcNumericValue.Should().Be(authoring.DcNumericValue).And.Be(5);
+    }
+
+    [Fact]
+    public void RoundTrip_CustomValues()
+    {
+        // The Custom arm reads neither States nor options: the payload is the raw per-ValueName readings the card
+        // captured at seed time, and the position is the sentinel index, so the setting only has to exist.
+        var setting = ToggleSetting("rt-custom");
+        var captured = new Dictionary<string, object> { ["Mode"] = 7 };
+
+        var authoring = CreateSut(Config(setting, InputType.Selection));
+        authoring.CapturedCustomStateValues = captured;
+        authoring.CommitComboBoxSelection(ComboBoxConstants.CustomStateIndex);
+
+        _authored["rt-custom"].Value.Should().BeOfType<ChoiceValue.CustomValues>()
+            .Which.Values.Should().Equal(captured);
+
+        var reloaded = CreateSut(Config(setting, InputType.Selection));
+        reloaded.ApplyAuthoredOverlay();
+
+        reloaded.CapturedCustomStateValues.Should().Equal(captured);
+        reloaded.SelectedValue.Should().Be(ComboBoxConstants.CustomStateIndex);
+    }
+
+    [Fact]
+    public void ARefreshFromLiveState_DoesNotPutAnExcludedSettingBackInTheFile()
+    {
+        _modeService.Setup(m => m.IsIncluded("excluded")).Returns(false);
+        var sut = CreateSut(Config(ToggleSetting("excluded"), InputType.Toggle));
+
+        sut.UpdateStateFromSystemState(LiveState(isEnabled: true));
+
+        sut.IsIncluded.Should().BeFalse();
+    }
+}

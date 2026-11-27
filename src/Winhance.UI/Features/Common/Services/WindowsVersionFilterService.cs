@@ -1,22 +1,16 @@
-using System;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Manages the Windows version filter state, persistence, and review mode interactions.
-/// Extracted from MainWindowViewModel for testability.
-/// </summary>
 public class WindowsVersionFilterService : IWindowsVersionFilterService
 {
     private readonly IUserPreferencesService _preferencesService;
-    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly IEventBus _eventBus;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
@@ -24,35 +18,28 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
 
     public WindowsVersionFilterService(
         IUserPreferencesService preferencesService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IEventBus eventBus,
         IDialogService dialogService,
         ILocalizationService localizationService,
         ILogService logService)
     {
         _preferencesService = preferencesService;
-        _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _eventBus = eventBus;
         _dialogService = dialogService;
         _localizationService = localizationService;
         _logService = logService;
     }
 
-    /// <inheritdoc />
     public bool IsFilterEnabled { get; private set; } = true;
 
-    /// <inheritdoc />
     public event EventHandler<bool>? FilterStateChanged;
 
-    /// <inheritdoc />
-    public async Task LoadFilterPreferenceAsync()
+    public void LoadFilterPreference()
     {
         try
         {
-            IsFilterEnabled = await _preferencesService.GetPreferenceAsync(
+            IsFilterEnabled = _preferencesService.GetPreference(
                 UserPreferenceKeys.EnableWindowsVersionFilter, defaultValue: true);
-
-            _compatibleSettingsRegistry.SetFilterEnabled(IsFilterEnabled);
 
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
                 $"Loaded Windows version filter preference: {(IsFilterEnabled ? "ON" : "OFF")}");
@@ -66,31 +53,28 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
         }
     }
 
-    /// <inheritdoc />
     public async Task<bool> ToggleFilterAsync(bool isInReviewMode)
     {
-        // Don't allow toggling during review mode
         if (isInReviewMode) return false;
 
         try
         {
-            // Check if we should show explanation dialog
-            var dontShowAgain = await _preferencesService.GetPreferenceAsync(
+            var dontShowAgain = _preferencesService.GetPreference(
                 UserPreferenceKeys.DontShowFilterExplanation, defaultValue: false);
 
             if (!dontShowAgain)
             {
-                var message = _localizationService.GetString("Filter_Dialog_Message") ??
-                    "The Windows Version Filter controls which settings are shown based on your Windows version.\n\nWhen ON: Only settings compatible with your Windows version are shown.\nWhen OFF: All settings are shown, with incompatible ones marked.";
-                var checkboxText = _localizationService.GetString("Filter_Dialog_Checkbox") ?? "Don't show this message again";
-                var title = _localizationService.GetString("Filter_Dialog_Title") ?? "Windows Version Filter";
-                var continueText = _localizationService.GetString("Filter_Dialog_Button_Toggle") ?? "Toggle Filter";
-                var cancelText = _localizationService.GetString("Button_Cancel") ?? "Cancel";
+                var message = _localizationService.GetStringOrDefault("Filter_Dialog_Message", "This filter controls which settings are visible in Winhance and included in export operations:\n\n• Filter ON (Default):\n  - Shows only settings compatible with your Windows version\n  - Exports settings for your Windows version only\n\n• Filter OFF:\n  - Shows ALL settings (Windows 10 + 11)\n  - Exports cross-version settings (for both Windows 10 + 11)\n\nUse this when creating Winhance config or autounattend.xml files that need to work across different Windows versions or if you need to toggle a setting that is related to the other Windows version.\n\nDo you want to toggle the filter?");
+                var checkboxText = _localizationService.GetStringOrDefault("Filter_Dialog_Checkbox", "Don't show this message again");
+                var title = _localizationService.GetStringOrDefault("Filter_Dialog_Title", "Windows Version Filter");
+                var continueText = _localizationService.GetStringOrDefault("Filter_Dialog_Button_Toggle", "Toggle Filter");
+                var cancelText = _localizationService.GetStringOrDefault("Button_Cancel", "Cancel");
 
                 var result = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
                 {
                     Message = message,
                     CheckboxText = checkboxText,
+                    CheckboxInitiallyChecked = false,
                     Title = title,
                     ConfirmButtonText = continueText,
                     CancelButtonText = cancelText,
@@ -105,18 +89,12 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
                 if (!result.Confirmed) return false;
             }
 
-            // Toggle state
             IsFilterEnabled = !IsFilterEnabled;
 
-            // Persist preference
             await _preferencesService.SetPreferenceAsync(
                 UserPreferenceKeys.EnableWindowsVersionFilter,
                 IsFilterEnabled);
 
-            // Update registry filter state
-            _compatibleSettingsRegistry.SetFilterEnabled(IsFilterEnabled);
-
-            // Publish event for all subscribers (pages/viewmodels) to refresh
             _eventBus.Publish(new FilterStateChangedEvent(IsFilterEnabled));
 
             FilterStateChanged?.Invoke(this, IsFilterEnabled);
@@ -134,27 +112,23 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
         }
     }
 
-    /// <inheritdoc />
     public void ForceFilterOn()
     {
         if (!IsFilterEnabled)
         {
             IsFilterEnabled = true;
-            _compatibleSettingsRegistry.SetFilterEnabled(true);
             _eventBus.Publish(new FilterStateChangedEvent(true));
             FilterStateChanged?.Invoke(this, true);
         }
     }
 
-    /// <inheritdoc />
-    public async Task RestoreFilterPreferenceAsync()
+    public void RestoreFilterPreference()
     {
-        var savedPreference = await _preferencesService.GetPreferenceAsync(
+        var savedPreference = _preferencesService.GetPreference(
             UserPreferenceKeys.EnableWindowsVersionFilter, defaultValue: true);
         if (IsFilterEnabled != savedPreference)
         {
             IsFilterEnabled = savedPreference;
-            _compatibleSettingsRegistry.SetFilterEnabled(savedPreference);
             _eventBus.Publish(new FilterStateChangedEvent(savedPreference));
             FilterStateChanged?.Invoke(this, savedPreference);
         }

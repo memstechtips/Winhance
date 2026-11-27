@@ -5,38 +5,31 @@ using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Enriches a SettingItemViewModel with hardware detection, cross-group info, and review diff state.
-/// </summary>
 public class SettingViewModelEnricher : ISettingViewModelEnricher
 {
     private readonly IHardwareDetectionService _hardwareDetectionService;
-    private readonly ISettingLocalizationService _settingLocalizationService;
     private readonly ISettingReviewDiffApplier _reviewDiffApplier;
+    private readonly ICatalogScopeProvider _scopeProvider;
 
     public SettingViewModelEnricher(
         IHardwareDetectionService hardwareDetectionService,
-        ISettingLocalizationService settingLocalizationService,
-        ISettingReviewDiffApplier reviewDiffApplier)
+        ISettingReviewDiffApplier reviewDiffApplier,
+        ICatalogScopeProvider scopeProvider)
     {
         _hardwareDetectionService = hardwareDetectionService;
-        _settingLocalizationService = settingLocalizationService;
         _reviewDiffApplier = reviewDiffApplier;
+        _scopeProvider = scopeProvider;
     }
 
-    /// <inheritdoc />
     public async Task DetectBatteryAsync(SettingItemViewModel viewModel)
     {
-        viewModel.HasBattery = await _hardwareDetectionService.HasBatteryAsync();
+        // Task.Run at the call site: the first HasBattery() blocks on WMI and this is the UI thread.
+        // Unknown shows both AC and DC, and so does authoring for other hardware - a desktop still has to
+        // show the DC half of a battery setting it is writing into a file for a laptop.
+        viewModel.HasBattery = _scopeProvider.Current.IncludeOtherHardware
+            || (await Task.Run(() => _hardwareDetectionService.HasBattery()) ?? true);
     }
 
-    /// <inheritdoc />
-    public void SetCrossGroupInfoMessage(SettingItemViewModel viewModel, SettingDefinition setting)
-    {
-        viewModel.CrossGroupInfoMessage = _settingLocalizationService.BuildCrossGroupInfoMessage(setting);
-    }
-
-    /// <inheritdoc />
     public void ApplyReviewDiff(SettingItemViewModel viewModel, SettingStateResult currentState)
     {
         _reviewDiffApplier.ApplyReviewDiffToViewModel(viewModel, currentState);

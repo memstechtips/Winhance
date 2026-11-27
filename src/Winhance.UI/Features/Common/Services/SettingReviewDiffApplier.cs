@@ -1,52 +1,35 @@
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Applies review-mode diff state to a SettingItemViewModel by checking
-/// for eagerly-computed diffs or falling back to on-the-fly diff computation.
-/// </summary>
-public class SettingReviewDiffApplier : ISettingReviewDiffApplier
+public class SettingReviewDiffApplier(
+    IConfigReviewModeService configReviewModeService,
+    IConfigReviewDiffService configReviewDiffService,
+    ILocalizationService localizationService) : ISettingReviewDiffApplier
 {
-    private readonly IConfigReviewModeService _configReviewModeService;
-    private readonly IConfigReviewDiffService _configReviewDiffService;
-    private readonly ILocalizationService _localizationService;
-
-    public SettingReviewDiffApplier(
-        IConfigReviewModeService configReviewModeService,
-        IConfigReviewDiffService configReviewDiffService,
-        ILocalizationService localizationService)
-    {
-        _configReviewModeService = configReviewModeService;
-        _configReviewDiffService = configReviewDiffService;
-        _localizationService = localizationService;
-    }
-
-    /// <inheritdoc />
     public void ApplyReviewDiffToViewModel(SettingItemViewModel viewModel, SettingStateResult currentState)
     {
-        var config = _configReviewModeService.ActiveConfig;
+        var config = configReviewModeService.ActiveConfig;
         if (config == null) return;
 
         viewModel.IsInReviewMode = true;
 
-        // Check if an eager diff already exists from ConfigReviewService
-        var existingDiff = _configReviewDiffService.GetDiffForSetting(viewModel.SettingId);
+        var existingDiff = configReviewDiffService.GetDiffForSetting(viewModel.SettingId);
         if (existingDiff != null)
         {
-            // Use the pre-computed diff
             bool hasDiffValues = !string.IsNullOrEmpty(existingDiff.CurrentValueDisplay) && !string.IsNullOrEmpty(existingDiff.ConfigValueDisplay);
             bool hasAction = existingDiff.IsActionSetting && !string.IsNullOrEmpty(existingDiff.ActionConfirmationMessage);
 
             if (hasDiffValues)
             {
-                // Show the value diff (e.g. "Current: Light Mode → Config: Dark Mode")
-                var diffFormat = _localizationService.GetString("Review_Mode_Diff_Toggle") ?? "Current: {0} \u2192 Config: {1}";
+                var diffFormat = localizationService.GetStringOrDefault("Review_Mode_Diff_Toggle", "Current: {0} → Config: {1}");
                 viewModel.HasReviewDiff = true;
                 viewModel.ReviewDiffMessage = string.Format(diffFormat, existingDiff.CurrentValueDisplay, existingDiff.ConfigValueDisplay);
             }
@@ -64,7 +47,6 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
                 viewModel.ReviewDiffMessage = existingDiff.ActionConfirmationMessage;
             }
 
-            // Restore review decision state
             if (existingDiff.IsReviewed)
             {
                 if (existingDiff.IsApproved)
@@ -73,7 +55,6 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
                     viewModel.IsReviewRejected = true;
             }
 
-            // Restore action review decision state
             if (existingDiff.IsActionReviewed)
             {
                 if (existingDiff.IsActionApproved)
@@ -82,22 +63,13 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
                     viewModel.IsReviewActionRejected = true;
             }
 
-            // Subscribe to approval changes from this ViewModel
-            viewModel.ReviewApprovalChanged += (sender, approved) =>
-            {
-                _configReviewDiffService.SetSettingApproval(viewModel.SettingId, approved);
-            };
-
-            // Subscribe to action approval changes
-            viewModel.ReviewActionApprovalChanged += (sender, approved) =>
-            {
-                _configReviewDiffService.SetActionApproval(viewModel.SettingId, approved);
-            };
+            viewModel.ReviewApprovalChanged -= OnReviewApprovalChanged;
+            viewModel.ReviewApprovalChanged += OnReviewApprovalChanged;
+            viewModel.ReviewActionApprovalChanged -= OnReviewActionApprovalChanged;
+            viewModel.ReviewActionApprovalChanged += OnReviewActionApprovalChanged;
             return;
         }
 
-        // No eager diff exists - setting not in config or no change
-        // Find this setting in the config to determine if it's in the config at all
         var (configItem, featureModuleId) = FindConfigItemForSetting(viewModel.SettingId, config);
         if (configItem == null)
         {
@@ -105,17 +77,15 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
             return;
         }
 
-        // Compute diff based on input type (fallback for settings not caught by eager computation)
         var (hasDiff, currentDisplay, configDisplay) = ComputeDiff(viewModel, configItem, currentState);
 
         if (hasDiff)
         {
-            var diffFormat = _localizationService.GetString("Review_Mode_Diff_Toggle") ?? "Current: {0} \u2192 Config: {1}";
+            var diffFormat = localizationService.GetStringOrDefault("Review_Mode_Diff_Toggle", "Current: {0} → Config: {1}");
             viewModel.HasReviewDiff = true;
             viewModel.ReviewDiffMessage = string.Format(diffFormat, currentDisplay, configDisplay);
             viewModel.IsReviewApproved = false;
 
-            // Register the diff with the service for tracking
             var diff = new ConfigReviewDiff
             {
                 SettingId = viewModel.SettingId,
@@ -124,29 +94,35 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
                 CurrentValueDisplay = currentDisplay,
                 ConfigValueDisplay = configDisplay,
                 ConfigItem = configItem,
-                IsApproved = false,
-                InputType = viewModel.InputType
+                IsApproved = false
             };
-            _configReviewDiffService.RegisterDiff(diff);
+            configReviewDiffService.RegisterDiff(diff);
 
-            // Subscribe to approval changes from this ViewModel
-            viewModel.ReviewApprovalChanged += (sender, approved) =>
-            {
-                _configReviewDiffService.SetSettingApproval(viewModel.SettingId, approved);
-            };
+            viewModel.ReviewApprovalChanged -= OnReviewApprovalChanged;
+            viewModel.ReviewApprovalChanged += OnReviewApprovalChanged;
         }
     }
 
-    private (ConfigurationItem? item, string? featureId) FindConfigItemForSetting(string settingId, UnifiedConfigurationFile config)
+    private void OnReviewApprovalChanged(object? sender, bool approved)
     {
-        // Search in Optimize features
+        if (sender is SettingItemViewModel viewModel)
+            configReviewDiffService.SetSettingApproval(viewModel.SettingId, approved);
+    }
+
+    private void OnReviewActionApprovalChanged(object? sender, bool approved)
+    {
+        if (sender is SettingItemViewModel viewModel)
+            configReviewDiffService.SetActionApproval(viewModel.SettingId, approved);
+    }
+
+    private (ConfigurationItem? item, string? featureId) FindConfigItemForSetting(string settingId, WinhanceConfigFile config)
+    {
         foreach (var feature in config.Optimize.Features)
         {
             var item = feature.Value.Items.FirstOrDefault(i => i.Id == settingId);
             if (item != null) return (item, feature.Key);
         }
 
-        // Search in Customize features
         foreach (var feature in config.Customize.Features)
         {
             var item = feature.Value.Items.FirstOrDefault(i => i.Id == settingId);
@@ -161,9 +137,6 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
         ConfigurationItem configItem,
         SettingStateResult currentState)
     {
-        var onText = _localizationService.GetString("Common_On") ?? "On";
-        var offText = _localizationService.GetString("Common_Off") ?? "Off";
-
         switch (viewModel.InputType)
         {
             case InputType.Toggle:
@@ -173,35 +146,33 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
                 var configBool = configItem.IsSelected ?? false;
                 if (currentBool != configBool)
                 {
-                    return (true, currentBool ? onText : offText, configBool ? onText : offText);
+                    return (true,
+                        currentBool ? viewModel.OnText : viewModel.OffText,
+                        configBool ? viewModel.OnText : viewModel.OffText);
                 }
                 return (false, string.Empty, string.Empty);
             }
 
             case InputType.Selection:
             {
-                // Compare by SelectedIndex
                 var currentIndex = viewModel.SelectedValue is int idx ? idx : -1;
 
-                // PowerPlan diffs are computed eagerly in ConfigReviewService.ComputeEagerDiffAsync
-                // using GUID-and-predefined-plan resolution. If eager didn't register a diff for
-                // this setting, respect that result — a naive display-name compare here would
-                // produce a false positive whenever the dropdown shows a localized label while
-                // the config stores the raw English/registry name.
-                if (configItem.PowerPlanGuid != null)
+                // A keyed card's SelectedValue is the key, so currentIndex is -1; ConfigReviewService compared the keys.
+                // Gated on the card, not the item, so a legacy SelectedIndex for a now-keyed setting stops here too.
+                if (viewModel.IsKeyedSelection)
                     return (false, string.Empty, string.Empty);
 
-                // Special handling: CustomStateValues means "custom" config
                 if (configItem.CustomStateValues != null)
                 {
+                    if (ConfigFileMapper.CustomValuesMatch(configItem, currentState.Readings))
+                        return (false, string.Empty, string.Empty);
                     var currentDisplayName = GetComboBoxDisplayName(viewModel, currentIndex);
-                    var configDisplayName = configItem.PowerPlanName ?? "Custom";
+                    var configDisplayName = localizationService.GetStringOrDefault(LocKey.Common.CustomState.Value, "Custom");
                     if (!string.Equals(currentDisplayName, configDisplayName, StringComparison.OrdinalIgnoreCase))
                         return (true, currentDisplayName, configDisplayName);
                     return (false, string.Empty, string.Empty);
                 }
 
-                // If config has no SelectedIndex, skip diff for this setting
                 if (configItem.SelectedIndex == null)
                     return (false, string.Empty, string.Empty);
 
@@ -216,11 +187,25 @@ public class SettingReviewDiffApplier : ISettingReviewDiffApplier
                 return (false, string.Empty, string.Empty);
             }
 
+            case InputType.TextBox:
+            {
+                // A missing Text is no answer, an empty one is; the card draws the diff only when both sides are non-empty.
+                if (configItem.Text is not { } configText)
+                    return (false, string.Empty, string.Empty);
+
+                var currentText = currentState.CurrentValue as string ?? viewModel.TextValue;
+                if (string.Equals(currentText, configText, StringComparison.Ordinal))
+                    return (false, string.Empty, string.Empty);
+
+                var unknown = localizationService.GetStringOrDefault("ConfigReview_UnknownValue", "Unknown");
+                return (true,
+                    currentText.Length > 0 ? currentText : unknown,
+                    configText.Length > 0 ? configText : unknown);
+            }
+
             case InputType.NumericRange:
             {
                 var currentVal = currentState.CurrentValue is int cv ? cv : viewModel.NumericValue;
-                // For numeric range, the config value might be in PowerSettings or a direct value
-                // Try to extract from the config item
                 if (configItem.PowerSettings != null)
                 {
                     // Power settings have AC/DC values - show AC for display

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.TechnicalDetailsPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Winhance.UI.Features.Common.Controls"
+    xmlns:helpers="using:Winhance.UI.Features.Common.Helpers"
+    xmlns:utilities="using:Winhance.UI.Features.Common.Utilities"
+    xmlns:ctk="using:CommunityToolkit.WinUI.Controls"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
+    xmlns:td="using:Winhance.Core.Features.Common.TechnicalDetails"
+    HorizontalAlignment="Stretch"
+    HorizontalContentAlignment="Stretch">
+
+
+    <StackPanel>
+        <!-- Toggle bar, seamlessly attached below the settings card -->
+        <Border Background="{ThemeResource InfoBarInformationalSeverityBackgroundBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1,0,1,1"
+                CornerRadius="{x:Bind BarCornerRadius, Mode=OneWay}"
+                Margin="{StaticResource JoinedCardMargin}">
+            <Button Command="{x:Bind ToggleCommand, Mode=OneWay}"
+                    AutomationProperties.Name="{x:Bind HeaderLabel, Mode=OneWay}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    Padding="10,4"
+                    Background="Transparent"
+                    BorderThickness="0">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <fluentIcons:FluentIcon Grid.Column="0" Icon="Code" IconVariant="Regular"
+                                            FontSize="{StaticResource TechnicalDetailsIconFontSize}" Margin="{StaticResource InlineTrailingMargin}"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Column="1" Text="{x:Bind HeaderLabel, Mode=OneWay}" FontSize="11"
+                               VerticalAlignment="Center"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <fluentIcons:FluentIcon Grid.Column="2" Icon="{x:Bind helpers:ExpandChevron.For(IsExpanded), Mode=OneWay}"
+                                            IconVariant="Regular"
+                                            FontSize="{StaticResource TechnicalDetailsChevronFontSize}"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                </Grid>
+            </Button>
+        </Border>
+
+        <!-- Built only while expanded: a collapsed table still costs its full cell tree on every card. -->
+        <Border x:Name="ExpandedContent"
+                x:Load="{x:Bind IsExpanded, Mode=OneWay}"
+                Background="{ThemeResource InfoBarInformationalSeverityBackgroundBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1,0,1,1"
+                CornerRadius="{StaticResource JoinedCardCornerRadius}"
+                Padding="12,6">
+            <controls:OptionMatrixView Matrix="{x:Bind Matrix, Mode=OneWay}"
+                                       RegeditCommand="{x:Bind RegeditCommand, Mode=OneWay}"/>
+        </Border>
+    </StackPanel>
+</UserControl>

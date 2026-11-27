@@ -6,10 +6,6 @@ namespace Winhance.Core.Tests.Models;
 
 public class RepoIconKeyTests
 {
-    // ------------------------------------------------------------------
-    // external-app-* cases
-    // ------------------------------------------------------------------
-
     [Fact]
     public void For_ExternalApp_WinGetPackageId_WinsOverChoco()
     {
@@ -23,6 +19,14 @@ public class RepoIconKeyTests
         };
 
         RepoIconKey.For(def).Should().Be("icons/external/7zip.7zip.png");
+    }
+
+    [Fact]
+    public void For_WinGetSearchPick_UsesItsPackageId()
+    {
+        var def = WinGetPackageItem.Create("VideoLAN.VLC", "VLC media player");
+
+        RepoIconKey.For(def).Should().Be("icons/external/videolan.vlc.png");
     }
 
     [Fact]
@@ -66,10 +70,6 @@ public class RepoIconKeyTests
         RepoIconKey.For(def).Should().Be("icons/external/notepad++.notepad++.png");
     }
 
-    // ------------------------------------------------------------------
-    // windows-app-* cases
-    // ------------------------------------------------------------------
-
     [Fact]
     public void For_WindowsApp_WithAppxPackageName_ReturnsLowercasedPath()
     {
@@ -97,9 +97,20 @@ public class RepoIconKeyTests
         RepoIconKey.For(def).Should().BeNull();
     }
 
-    // ------------------------------------------------------------------
-    // Non-software ids
-    // ------------------------------------------------------------------
+    [Fact]
+    public void For_WindowsApp_NoAppxButWinGetId_ReturnsWinGetExternalPath()
+    {
+        var def = new ItemDefinition
+        {
+            Id = "windows-app-edge-webview",
+            Name = "Microsoft Edge WebView2 and EdgeUpdate",
+            Description = "WebView2 runtime",
+            WinGetPackageId = ["Microsoft.EdgeWebView2Runtime"],
+        };
+
+        RepoIconKey.For(def).Should().Be("icons/external/microsoft.edgewebview2runtime.png");
+        RepoIconKey.WindowsCandidates(def).Should().Equal("icons/external/microsoft.edgewebview2runtime.png");
+    }
 
     [Fact]
     public void For_CapabilityId_NoCapabilityName_ReturnsNull()
@@ -154,10 +165,6 @@ public class RepoIconKeyTests
 
         RepoIconKey.For(def).Should().Be("icons/windows/microsoft-windows-subsystem-linux.png");
     }
-
-    // ------------------------------------------------------------------
-    // WindowsCandidates
-    // ------------------------------------------------------------------
 
     [Fact]
     public void WindowsCandidates_MultiplePackageNames_ReturnsAllInOrder()

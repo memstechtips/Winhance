@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using Winhance.Core.Features.Common.Converters;
 using Winhance.Core.Features.Common.Enums;
@@ -38,6 +36,7 @@ public class ConfigurationItem
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, object>? PowerSettings { get; set; }
 
+    // Written beside SelectedKey for the power plan alone: Winhance 26.06.12 reads no other spelling.
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? PowerPlanGuid { get; set; }
 
@@ -45,10 +44,23 @@ public class ConfigurationItem
     public string? PowerPlanName { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [Obsolete("SelectedValue is only used for backward compatibility during migration. Use SelectedIndex instead.")]
-    public string? SelectedValue { get; set; }
+    public string? SelectedKey { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [Obsolete("CustomProperties is only used for backward compatibility during migration. Use specific properties instead.")]
-    public Dictionary<string, object>? CustomProperties { get; set; }
+    public string? SelectedKeyLabel { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Text { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<Dictionary<string, string>>? Rows { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? SelectedKeys { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? SavePasswords { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public CarriedFileItem? File { get; set; }
 }

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Enums;
 
@@ -7,47 +5,44 @@ namespace Winhance.Core.Features.SoftwareApps.Models;
 
 public record ItemDefinition : BaseDefinition
 {
-    // Immutable definition properties
-    public new InputType InputType { get; init; } = InputType.CheckBox;
+    // What the Windows Apps table shows in its Type column. Every Windows Apps & Features item states it; external
+    // apps leave it null.
+    public WindowsAppKind? Kind { get; init; }
     public string[]? AppxPackageName { get; init; }
     public string[]? WinGetPackageId { get; init; }
     public string? MsStoreId { get; init; }
     public string? CapabilityName { get; init; }
     public string? OptionalFeatureName { get; init; }
     public string? ChocoPackageId { get; init; }
-    /// <summary>
-    /// When set, replaces the winget manifest's InstallerSwitches entirely via `winget install --override "<value>"`.
-    /// Use to work around upstream manifests that pass broken switches to the underlying installer.
-    /// </summary>
+    // Replaces the winget manifest's InstallerSwitches entirely (winget install --override) - for upstream
+    // manifests that pass broken switches to the installer.
     public string? WinGetInstallerOverride { get; init; }
     public bool CanBeReinstalled { get; init; } = true;
     public bool RequiresReboot { get; init; }
+    // The taskbar keeps what the package put there until the shell restarts, so a removal raises the restart-Explorer bar.
+    public bool RequiresExplorerRestart { get; init; }
     public Func<string>? RemovalScript { get; init; }
-    /// <summary>
-    /// Pattern for registry DisplayName matching. Supports {version}, {arch}, {locale} placeholders.
-    /// When set, compared against registry DisplayNames.
-    /// </summary>
+    // The script's name without ".ps1", also its startup task and log slot. Items that share a name share one file.
+    public string? RemovalScriptName { get; init; }
+    public string? RemovalScriptFileName => RemovalScriptName is null ? null : RemovalScriptName + ".ps1";
+    // Its scheduled task fires at boot instead of at sign-in. Items that share a script must agree.
+    public bool RemovalScriptRunsAtStartup { get; init; }
+    // Ids of items this item's script removes as well, so selecting one of them beside this item needs no run of its own.
+    public string[]? AlsoRemoves { get; init; }
+    // Supports {version}, {arch}, {locale} placeholders.
     public string? RegistryDisplayName { get; init; }
-    /// <summary>
-    /// Pattern for registry SubKeyName matching. Supports {version}, {arch}, {locale} placeholders.
-    /// When set, compared against registry SubKeyNames (including SystemComponent=1 entries).
-    /// </summary>
+    // Supports {version}, {arch}, {locale}; matched against SubKeyNames including SystemComponent=1 entries.
     public string? RegistrySubKeyName { get; init; }
-    /// <summary>
-    /// Paths to check for existence (file or directory) as a detection fallback.
-    /// Supports environment variables (e.g. %USERPROFILE%).
-    /// </summary>
+    // Supports environment variables (%USERPROFILE%).
     public string[]? DetectionPaths { get; init; }
     public string[]? ProcessesToStop { get; init; }
     public string? WebsiteUrl { get; init; }
-    /// <summary>
-    /// Marks the item as carrying a meaningful uninstall risk (e.g. Microsoft Edge:
-    /// removing it may break Windows components that depend on it). When true, the
-    /// Card view renders an Amber "Warning" pill next to the name; the pill's
-    /// tooltip shows a generic instability message sourced from localization, so
-    /// the same flag is reusable across packages without per-item warning text.
-    /// </summary>
+    // e.g. Microsoft Edge: removing it may break Windows components. Renders an amber Warning pill with a generic
+    // localized message, so the flag is reusable without per-item text.
     public bool HasInstabilityWarning { get; init; }
+    // A warning only some PCs get: WindowsAppsService turns HasInstabilityWarning on where RegistryKey exists, and
+    // the pill shows TooltipKey's text instead of the generic one.
+    public MachineWarning? MachineWarning { get; init; }
     public ExternalAppMetadata? ExternalApp { get; init; }
 
     // Mutable runtime state — set by WindowsAppsViewModel/ExternalAppsViewModel
@@ -56,10 +51,7 @@ public record ItemDefinition : BaseDefinition
     public bool IsInstalled { get; set; }
     public DetectionSource DetectedVia { get; set; }
 
-    /// <summary>
-    /// Absolute path to the cached icon PNG, or null if no icon is available.
-    /// Populated by IAppIconResolver from WindowsAppsViewModel after install-status
-    /// discovery; null for capabilities, optional features, and not-installed AppX entries.
-    /// </summary>
     public string? IconPath { get; set; }
 }
+
+public sealed record MachineWarning(string RegistryKey, string TooltipKey);

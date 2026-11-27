@@ -14,23 +14,12 @@ public class InitializationService : IInitializationService
         _logService = logService;
     }
 
-    public bool IsGloballyInitializing
-    {
-        get
-        {
-            lock (_lock)
-            {
-                return _initializingFeatures.Count > 0;
-            }
-        }
-    }
-
     public void StartFeatureInitialization(string featureName)
     {
         lock (_lock)
         {
             _initializingFeatures.Add(featureName);
-            _logService.Log(LogLevel.Info, $"[InitializationService] Started initialization for '{featureName}' - Total initializing: {_initializingFeatures.Count}, Features: [{string.Join(", ", _initializingFeatures)}]");
+            _logService.Log(LogLevel.Info, $"Started initialization for '{featureName}' - Total initializing: {_initializingFeatures.Count}, Features: [{string.Join(", ", _initializingFeatures)}]");
         }
     }
 
@@ -39,7 +28,7 @@ public class InitializationService : IInitializationService
         lock (_lock)
         {
             _initializingFeatures.Remove(featureName);
-            _logService.Log(LogLevel.Info, $"[InitializationService] Completed initialization for '{featureName}' - Total initializing: {_initializingFeatures.Count}, Features: [{string.Join(", ", _initializingFeatures)}]");
+            _logService.Log(LogLevel.Info, $"Completed initialization for '{featureName}' - Total initializing: {_initializingFeatures.Count}, Features: [{string.Join(", ", _initializingFeatures)}]");
         }
     }
 }

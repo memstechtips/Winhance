@@ -1,4 +1,3 @@
-using System.IO;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
@@ -10,6 +9,9 @@ namespace Winhance.Core.Tests.Services;
 
 public class LogServiceTests
 {
+    // The machine log folder is locked to administrators, so tests that write a log use their own.
+    private static readonly string TempLogs = Path.Combine(Path.GetTempPath(), "WinhanceLogServiceTests");
+
     [Fact]
     public void GetLogPath_ReturnsNonEmptyPath()
     {
@@ -35,7 +37,7 @@ public class LogServiceTests
     [Fact]
     public void Log_WithDifferentLevels_DoesNotThrow()
     {
-        using var service = new LogService();
+        using var service = new LogService(TempLogs);
 
         // Without calling StartLog(), these should still not throw
         // (they just won't write to the file)
@@ -54,7 +56,7 @@ public class LogServiceTests
     [Fact]
     public void Log_WithException_DoesNotThrow()
     {
-        using var service = new LogService();
+        using var service = new LogService(TempLogs);
 
         var ex = new InvalidOperationException("test error");
         var action = () => service.Log(
@@ -66,7 +68,7 @@ public class LogServiceTests
     [Fact]
     public void Dispose_CalledMultipleTimes_DoesNotThrow()
     {
-        var service = new LogService();
+        var service = new LogService(TempLogs);
 
         var action = () =>
         {
@@ -78,20 +80,9 @@ public class LogServiceTests
     }
 
     [Fact]
-    public void SetInteractiveUserService_DoesNotThrow()
-    {
-        using var service = new LogService();
-        var mockService = new Mock<IInteractiveUserService>();
-
-        var action = () => service.SetInteractiveUserService(mockService.Object);
-
-        action.Should().NotThrow();
-    }
-
-    [Fact]
     public void SetSystemInfoProvider_DoesNotThrow()
     {
-        using var service = new LogService();
+        using var service = new LogService(TempLogs);
         var mockProvider = new Mock<ISystemInfoProvider>();
 
         var action = () => service.SetSystemInfoProvider(mockProvider.Object);
@@ -102,7 +93,7 @@ public class LogServiceTests
     [Fact]
     public void StartLog_WithSystemInfoProvider_WritesAllDiagnosticFields()
     {
-        var service = new LogService();
+        var service = new LogService(TempLogs);
         var mockProvider = new Mock<ISystemInfoProvider>();
         mockProvider.Setup(p => p.Collect()).Returns(new SystemInfo
         {
@@ -145,7 +136,7 @@ public class LogServiceTests
     [Fact]
     public void StartLog_WithoutSystemInfoProvider_WritesFallbackMessage()
     {
-        var service = new LogService();
+        var service = new LogService(TempLogs);
         service.StartLog();
         var logPath = service.GetLogPath();
         service.Dispose(); // Release file lock before reading
@@ -156,9 +147,65 @@ public class LogServiceTests
     }
 
     [Fact]
+    public void StartLog_LinesLoggedWhileTheHeaderIsCollected_FollowTheHeader()
+    {
+        var service = new LogService(TempLogs);
+        var mockProvider = new Mock<ISystemInfoProvider>();
+        mockProvider.Setup(p => p.Collect()).Returns(() =>
+        {
+            Thread.Sleep(300);
+            return new SystemInfo { AppVersion = "26.02.20" };
+        });
+        service.SetSystemInfoProvider(mockProvider.Object);
+        service.StartLog();
+        service.LogInformation("logged during the header");
+        var logPath = service.GetLogPath();
+        service.Dispose();
+
+        var lines = File.ReadAllLines(logPath);
+        lines[0].Should().Contain("Winhance 26.02.20 Log Started");
+        Array.FindIndex(lines, l => l.Contains("logged during the header"))
+            .Should().BeGreaterThan(Array.FindIndex(lines, l => l.EndsWith("=====================================")));
+    }
+
+    [Fact]
+    public void StartLog_CalledTwice_ReplacesTheWriterAndKeepsLogging()
+    {
+        var service = new LogService(TempLogs);
+        service.StartLog();
+        service.StartLog();
+        service.LogInformation("after second start");
+        var logPath = service.GetLogPath();
+        service.Dispose();
+
+        File.ReadAllText(logPath).Should().Contain("after second start");
+    }
+
+    [Fact]
+    public void LogInformation_StampsTheCallingTypeAsTheSource()
+    {
+        var service = new LogService(TempLogs);
+        service.StartLog();
+        service.LogInformation("stamped");
+        var logPath = service.GetLogPath();
+        service.Dispose();
+
+        File.ReadAllText(logPath).Should().Contain("[INFO] [LogServiceTests] stamped");
+    }
+
+    [Theory]
+    [InlineData(@"C:\src\Winhance.UI\App.xaml.cs", "App")]
+    [InlineData("/_/src/Winhance.Core/Services/LogService.cs", "LogService")]
+    [InlineData("", "Unknown")]
+    public void SourceName_IsTheFileNameUpToItsFirstDot(string callerFilePath, string expected)
+    {
+        LogService.SourceName(callerFilePath).Should().Be(expected);
+    }
+
+    [Fact]
     public void StartLog_DoesNotContainUserOrMachineInfo()
     {
-        var service = new LogService();
+        var service = new LogService(TempLogs);
         var mockProvider = new Mock<ISystemInfoProvider>();
         mockProvider.Setup(p => p.Collect()).Returns(new SystemInfo());
         service.SetSystemInfoProvider(mockProvider.Object);
@@ -173,8 +220,6 @@ public class LogServiceTests
         logContent.Should().NotContain("Timestamp:");
     }
 
-    // ── CleanupOldLogs (BP-7) ──
-
     [Fact]
     public void CleanupOldLogs_DeletesFilesOlderThanMaxAge()
     {
@@ -182,12 +227,10 @@ public class LogServiceTests
         Directory.CreateDirectory(tempDir);
         try
         {
-            // Create an "old" log file with a creation time well in the past
             var oldFile = Path.Combine(tempDir, "Winhance_Log_20200101_000000.log");
             File.WriteAllText(oldFile, "old");
             File.SetCreationTimeUtc(oldFile, DateTime.UtcNow.AddDays(-60));
 
-            // Create a "recent" log file
             var recentFile = Path.Combine(tempDir, "Winhance_Log_20260226_120000.log");
             File.WriteAllText(recentFile, "recent");
 
@@ -209,7 +252,6 @@ public class LogServiceTests
         Directory.CreateDirectory(tempDir);
         try
         {
-            // Create 5 files, all recent
             for (int i = 0; i < 5; i++)
             {
                 var file = Path.Combine(tempDir, $"Winhance_Log_20260226_{i:D6}.log");
@@ -251,5 +293,68 @@ public class LogServiceTests
         {
             Directory.Delete(tempDir, true);
         }
+    }
+
+    [Fact]
+    public void Dispose_AfterManyLines_LeavesEveryLoggedLineInTheFile()
+    {
+        var service = new LogService(TempLogs);
+        service.StartLog();
+        for (int i = 0; i < 500; i++)
+            service.LogInformation($"line {i}");
+        var logPath = service.GetLogPath();
+        service.Dispose();
+
+        var content = File.ReadAllText(logPath);
+        content.Should().Contain("] line 0").And.Contain("] line 499").And.Contain("==== Winhance Log Ended ====");
+    }
+
+    [Fact]
+    public void LogError_WhileLogStillOpen_PutsTheErrorAndEverythingBeforeItOnDisk()
+    {
+        using var service = new LogService(TempLogs);
+        service.StartLog();
+        service.LogInformation("before the error");
+        service.LogError("it broke");
+
+        var content = ReadShared(service.GetLogPath());
+
+        content.Should().Contain("[INFO] [LogServiceTests] before the error");
+        content.Should().Contain("[ERROR] [LogServiceTests] it broke");
+    }
+
+    [Fact]
+    public void LogInformation_WhenLeftAlone_ReachesDiskShortlyAfter()
+    {
+        using var service = new LogService(TempLogs);
+        service.StartLog();
+        service.LogInformation("flushed by the timer");
+
+        SpinWait.SpinUntil(() => ReadShared(service.GetLogPath()).Contains("flushed by the timer"), TimeSpan.FromSeconds(10))
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public void StartLog_WhenSystemInfoProviderThrows_StillWritesAHeader()
+    {
+        var service = new LogService(TempLogs);
+        var provider = new Mock<ISystemInfoProvider>();
+        provider.Setup(p => p.Collect()).Throws(new InvalidOperationException("WMI is down"));
+        service.SetSystemInfoProvider(provider.Object);
+
+        service.Invoking(s => s.StartLog()).Should().NotThrow();
+        var logPath = service.GetLogPath();
+        service.Dispose();
+
+        var content = File.ReadAllText(logPath);
+        content.Should().Contain("==== Winhance Log Started ====");
+        content.Should().Contain("System info unavailable: WMI is down");
+    }
+
+    private static string ReadShared(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 }

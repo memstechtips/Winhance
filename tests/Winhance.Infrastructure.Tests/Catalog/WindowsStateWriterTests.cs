@@ -1,0 +1,532 @@
+using FluentAssertions;
+using Microsoft.Win32;
+using Moq;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Customize.Interfaces;
+using Winhance.Core.Features.Optimize.Interfaces;
+using Winhance.Infrastructure.Features.Common.Catalog;
+using Winhance.Infrastructure.Features.Common.Services;
+using Winhance.Infrastructure.Features.Optimize.Services;
+using Xunit;
+
+namespace Winhance.Infrastructure.Tests.Catalog;
+
+public class WindowsStateWriterTests
+{
+    private const string Path = @"HKEY_LOCAL_MACHINE\SOFTWARE\Winhance\Test";
+    private const string ValueName = "MyValue";
+    private static readonly string[] InterfaceSubKeys = ["if1", "if2"];
+
+    private readonly Mock<IWindowsRegistryService> _reg = new(MockBehavior.Strict);
+    private readonly Mock<IScheduledTaskStateService> _tasks = new(MockBehavior.Strict);
+    private readonly Mock<IPowerCfgApplier> _powerCfg = new(MockBehavior.Strict);
+    private readonly Mock<IPowerPlanActivationService> _activation = new();
+    private readonly Mock<IWindowsThemeService> _theme = new();
+    private readonly Mock<IDnsSettingsService> _dns = new();
+    private readonly Mock<ISystemParametersService> _systemParameters = new();
+    private readonly Mock<IServiceStartControl> _services = new();
+    private readonly Mock<ILogService> _log = new();
+    private readonly WindowsStateWriter _sut;
+
+    public WindowsStateWriterTests()
+    {
+        _sut = new WindowsStateWriter(
+            _reg.Object, _tasks.Object, _powerCfg.Object, _activation.Object, _theme.Object, _dns.Object,
+            _systemParameters.Object, _services.Object, _log.Object);
+    }
+
+    private static RegTarget Reg(string? valueName = ValueName, RegistryValueKind kind = RegistryValueKind.DWord) =>
+        new("key", new[] { Path }, valueName, kind);
+
+    [Theory]
+    [InlineData(true, 30, 30, true)]
+    [InlineData(true, 30, 5, false)]
+    [InlineData(true, 30, null, false)]
+    [InlineData(true, 5, 30, false)]
+    [InlineData(false, 30, 30, false)]
+    public void MessageDuration_RequiresSuccessfulLiveApplyAndMatchingReadback(bool set, int actual, int? stored, bool success)
+    {
+        var target = new MessageDurationTarget();
+        _systemParameters.Setup(p => p.SetMessageDuration(30)).Returns(set);
+        _systemParameters.Setup(p => p.GetMessageDuration()).Returns(actual);
+        _reg.Setup(r => r.GetValue(target.Paths[0], target.ValueName!)).Returns(stored);
+
+        var result = ApplyExecutor.Execute(new ApplyPlan([new RegistryWriteOp(target, target.Paths[0], 30)], []), _sut);
+
+        result.AllSucceeded.Should().Be(success);
+        _systemParameters.Verify(p => p.SetMessageDuration(30), Times.Once);
+        _reg.Verify(r => r.GetValue(target.Paths[0], target.ValueName!), set && actual == 30 ? Times.Once() : Times.Never());
+        _reg.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public void MessageDuration_OtsElevationDoesNotCallSpiForTheAdmin()
+    {
+        var parameters = new SystemParametersService(Mock.Of<IInteractiveUserService>(u => u.IsOtsElevation));
+
+        parameters.SetMessageDuration(30).Should().BeFalse();
+        parameters.GetMessageDuration().Should().BeNull();
+    }
+
+    private static RegTarget ListReg() =>
+        new("key", new[] { Path }, ValueName, RegistryValueKind.String) { ListItem = "home", ListPrefix = "hide:" };
+
+    [Theory]
+    [InlineData("showonly:display;home", true, "showonly:display")]
+    [InlineData("showonly:display", false, "showonly:display;home")]
+    public void SetRegistryListItem_ShowOnlyList_AddsOrDropsTheItem(string current, bool hidden, string expected)
+    {
+        _reg.Setup(r => r.GetValue(Path, ValueName)).Returns(current);
+        _reg.Setup(r => r.SetValue(Path, ValueName, expected, RegistryValueKind.String)).Returns(true);
+
+        _sut.SetRegistryListItem(ListReg(), Path, "hide:", "home", hidden).Should().BeTrue();
+
+        _reg.Verify(r => r.SetValue(Path, ValueName, expected, RegistryValueKind.String), Times.Once);
+    }
+
+    [Fact]
+    public void SetRegistryListItem_ShowOnlyListWithOnlyTheItem_LeavesTheValueAlone()
+    {
+        _reg.Setup(r => r.GetValue(Path, ValueName)).Returns("showonly:home");
+
+        _sut.SetRegistryListItem(ListReg(), Path, "hide:", "home", true).Should().BeFalse();
+
+        _reg.Verify(r => r.SetValue(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<RegistryValueKind>()), Times.Never);
+    }
+
+    [Fact]
+    public void SetRegistryListItem_EmptyShowOnlyList_ShowingTheItemAllowsOnlyIt()
+    {
+        _reg.Setup(r => r.GetValue(Path, ValueName)).Returns("showonly:");
+        _reg.Setup(r => r.SetValue(Path, ValueName, "showonly:home", RegistryValueKind.String)).Returns(true);
+
+        _sut.SetRegistryListItem(ListReg(), Path, "hide:", "home", false).Should().BeTrue();
+
+        _reg.Verify(r => r.SetValue(Path, ValueName, "showonly:home", RegistryValueKind.String), Times.Once);
+    }
+
+    [Fact]
+    public void SetRegistryListItem_EmptyShowOnlyList_HidingTheItemLeavesTheValueAlone()
+    {
+        _reg.Setup(r => r.GetValue(Path, ValueName)).Returns("showonly:");
+
+        _sut.SetRegistryListItem(ListReg(), Path, "hide:", "home", true).Should().BeTrue();
+
+        _reg.Verify(r => r.SetValue(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<RegistryValueKind>()), Times.Never);
+    }
+
+    [Fact]
+    public void SetRegistryListItem_HideList_StillAppendsTheItem()
+    {
+        _reg.Setup(r => r.GetValue(Path, ValueName)).Returns("hide:printers");
+        _reg.Setup(r => r.CreateKey(Path)).Returns(true);
+        _reg.Setup(r => r.SetValue(Path, ValueName, "hide:printers;home", RegistryValueKind.String)).Returns(true);
+
+        _sut.SetRegistryListItem(ListReg(), Path, "hide:", "home", true).Should().BeTrue();
+    }
+
+    [Fact]
+    public void WriteRegistry_CreatesKeyThenSetsValue()
+    {
+        _reg.Setup(r => r.CreateKey(Path)).Returns(true);
+        _reg.Setup(r => r.SetValue(Path, ValueName, 1, RegistryValueKind.DWord)).Returns(true);
+
+        _sut.WriteRegistry(Reg(), Path, 1).Should().BeTrue();
+
+        _reg.Verify(r => r.CreateKey(Path), Times.Once);
+        _reg.Verify(r => r.SetValue(Path, ValueName, 1, RegistryValueKind.DWord), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(4)]
+    [InlineData(3)]
+    [InlineData(2)]
+    public void WriteRegistry_ServiceStart_AlsoTellsTheServiceManager(int start)
+    {
+        const string servicePath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SysMain";
+        var target = new RegTarget("Start", new[] { servicePath }, "Start", RegistryValueKind.DWord);
+        _reg.Setup(r => r.CreateKey(servicePath)).Returns(true);
+        _reg.Setup(r => r.SetValue(servicePath, "Start", start, RegistryValueKind.DWord)).Returns(true);
+
+        _sut.WriteRegistry(target, servicePath, start).Should().BeTrue();
+
+        _services.Verify(s => s.Apply("SysMain", start), Times.Once);
+    }
+
+    [Fact]
+    public void WriteRegistry_StartValueOutsideServices_LeavesTheServiceManagerAlone()
+    {
+        var target = new RegTarget("Start", new[] { Path }, "Start", RegistryValueKind.DWord);
+        _reg.Setup(r => r.CreateKey(Path)).Returns(true);
+        _reg.Setup(r => r.SetValue(Path, "Start", 4, RegistryValueKind.DWord)).Returns(true);
+
+        _sut.WriteRegistry(target, Path, 4).Should().BeTrue();
+
+        _services.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public void WriteRegistry_ServiceStart_WhenTheWriteFails_LeavesTheServiceManagerAlone()
+    {
+        const string servicePath = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SysMain";
+        var target = new RegTarget("Start", new[] { servicePath }, "Start", RegistryValueKind.DWord);
+        _reg.Setup(r => r.CreateKey(servicePath)).Returns(true);
+        _reg.Setup(r => r.SetValue(servicePath, "Start", 4, RegistryValueKind.DWord)).Returns(false);
+
+        _sut.WriteRegistry(target, servicePath, 4).Should().BeFalse();
+
+        _services.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public void ActivatePowerPlan_DelegatesToActivationService_AndReturnsTrueOnSuccess()
+    {
+        var guid = Guid.NewGuid();
+        _activation
+            .Setup(a => a.EnsureActivatedAsync(guid.ToString(), It.IsAny<string?>()))
+            .ReturnsAsync((true, guid.ToString()));
+
+        _sut.ActivatePowerPlan(guid.ToString()).Should().BeTrue();
+
+        _activation.Verify(a => a.EnsureActivatedAsync(guid.ToString(), It.IsAny<string?>()), Times.Once);
+    }
+
+    [Fact]
+    public void ActivatePowerPlan_ReturnsFalse_OnInvalidGuid()
+    {
+        _sut.ActivatePowerPlan("not-a-guid").Should().BeFalse();
+
+        _activation.Verify(a => a.EnsureActivatedAsync(It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
+    }
+
+    [Fact]
+    public void ActivatePowerPlan_ReturnsFalse_WhenActivationServiceReportsFailure()
+    {
+        var guid = Guid.NewGuid();
+        _activation
+            .Setup(a => a.EnsureActivatedAsync(guid.ToString(), It.IsAny<string?>()))
+            .ReturnsAsync((false, guid.ToString()));
+
+        _sut.ActivatePowerPlan(guid.ToString()).Should().BeFalse();
+    }
+
+    [Fact]
+    public void WriteRegistry_WhenCreateKeyFails_DoesNotWriteAndReturnsFalse()
+    {
+        _reg.Setup(r => r.CreateKey(Path)).Returns(false);
+
+        _sut.WriteRegistry(Reg(), Path, 1).Should().BeFalse();
+
+        _reg.Verify(r => r.SetValue(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<RegistryValueKind>()), Times.Never);
+    }
+
+    [Fact]
+    public void DeleteRegistry_NamedValue_DeletesValue()
+    {
+        _reg.Setup(r => r.DeleteValue(Path, ValueName)).Returns(true);
+
+        _sut.DeleteRegistry(Reg(), Path).Should().BeTrue();
+
+        _reg.Verify(r => r.DeleteValue(Path, ValueName), Times.Once);
+        _reg.Verify(r => r.DeleteKey(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void DeleteRegistry_ValueNameless_DeletesKey()
+    {
+        _reg.Setup(r => r.DeleteKey(Path)).Returns(true);
+
+        _sut.DeleteRegistry(Reg(valueName: null, kind: RegistryValueKind.None), Path).Should().BeTrue();
+
+        _reg.Verify(r => r.DeleteKey(Path), Times.Once);
+        _reg.Verify(r => r.DeleteValue(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void EnsureRegistryKey_CreatesKey()
+    {
+        _reg.Setup(r => r.CreateKey(Path)).Returns(true);
+
+        _sut.EnsureRegistryKey(Reg(valueName: null), Path).Should().BeTrue();
+
+        _reg.Verify(r => r.CreateKey(Path), Times.Once);
+    }
+
+    [Fact]
+    public void UnlockKey_DelegatesToUnlockRegistryKey()
+    {
+        _reg.Setup(r => r.UnlockRegistryKey(Path)).Returns(true);
+
+        _sut.UnlockKey(Reg(), Path).Should().BeTrue();
+
+        _reg.Verify(r => r.UnlockRegistryKey(Path), Times.Once);
+    }
+
+    [Fact]
+    public void LockKey_DelegatesToLockRegistryKey()
+    {
+        _reg.Setup(r => r.LockRegistryKey(Path)).Returns(true);
+
+        _sut.LockKey(Reg(), Path).Should().BeTrue();
+
+        _reg.Verify(r => r.LockRegistryKey(Path), Times.Once);
+    }
+
+    [Fact]
+    public void SetRegistryBit_CreatesKeyThenModifiesBit()
+    {
+        _reg.Setup(r => r.CreateKey(Path)).Returns(true);
+        _reg.Setup(r => r.ModifyBinaryBit(Path, ValueName, 4, 0x08, true)).Returns(true);
+
+        _sut.SetRegistryBit(Reg(), Path, 4, 0x08, true).Should().BeTrue();
+
+        _reg.Verify(r => r.CreateKey(Path), Times.Once);
+        _reg.Verify(r => r.ModifyBinaryBit(Path, ValueName, 4, 0x08, true), Times.Once);
+    }
+
+    [Fact]
+    public void SetRegistryBit_WhenCreateKeyFails_DoesNotModifyAndReturnsFalse()
+    {
+        _reg.Setup(r => r.CreateKey(Path)).Returns(false);
+
+        _sut.SetRegistryBit(Reg(), Path, 4, 0x08, true).Should().BeFalse();
+
+        _reg.Verify(r => r.ModifyBinaryBit(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<byte>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public void SetRegistryByte_CreatesKeyThenModifiesByte()
+    {
+        _reg.Setup(r => r.CreateKey(Path)).Returns(true);
+        _reg.Setup(r => r.ModifyBinaryByte(Path, ValueName, 2, 0x5A)).Returns(true);
+
+        _sut.SetRegistryByte(Reg(), Path, 2, 0x5A).Should().BeTrue();
+
+        _reg.Verify(r => r.CreateKey(Path), Times.Once);
+        _reg.Verify(r => r.ModifyBinaryByte(Path, ValueName, 2, 0x5A), Times.Once);
+    }
+
+    [Fact]
+    public void SetRegistryByte_WhenCreateKeyFails_DoesNotModifyAndReturnsFalse()
+    {
+        _reg.Setup(r => r.CreateKey(Path)).Returns(false);
+
+        _sut.SetRegistryByte(Reg(), Path, 2, 0x5A).Should().BeFalse();
+
+        _reg.Verify(r => r.ModifyBinaryByte(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<byte>()), Times.Never);
+    }
+
+    [Fact]
+    public void SetRegistryComposite_DelegatesToSetCompositeSubValue()
+    {
+        _reg.Setup(r => r.SetCompositeSubValue(Path, ValueName, "SubKey", "1")).Returns(true);
+
+        _sut.SetRegistryComposite(Reg(), Path, "SubKey", "1").Should().BeTrue();
+
+        _reg.Verify(r => r.SetCompositeSubValue(Path, ValueName, "SubKey", "1"), Times.Once);
+    }
+
+    [Fact]
+    public void WriteRegistryPerSubkey_EnumeratesAndWritesUnderEachSubkey()
+    {
+        _reg.Setup(r => r.GetSubKeyNames(Path)).Returns(InterfaceSubKeys);
+        _reg.Setup(r => r.CreateKey(It.IsAny<string>())).Returns(true);
+        _reg.Setup(r => r.SetValue(It.IsAny<string>(), ValueName, 1, RegistryValueKind.DWord)).Returns(true);
+
+        _sut.WriteRegistryPerSubkey(Reg(), Path, 1).Should().BeTrue();
+
+        _reg.Verify(r => r.SetValue($@"{Path}\if1", ValueName, 1, RegistryValueKind.DWord), Times.Once);
+        _reg.Verify(r => r.SetValue($@"{Path}\if2", ValueName, 1, RegistryValueKind.DWord), Times.Once);
+    }
+
+    [Fact]
+    public void WriteRegistryPerSubkey_WhenNoSubkeys_ReturnsFalse()
+    {
+        _reg.Setup(r => r.GetSubKeyNames(Path)).Returns(System.Array.Empty<string>());
+
+        _sut.WriteRegistryPerSubkey(Reg(), Path, 1).Should().BeFalse();
+
+        _reg.Verify(r => r.SetValue(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<RegistryValueKind>()), Times.Never);
+    }
+
+    [Fact]
+    public void WriteRegistryPerSubkey_WhenOneSubkeyFails_ReturnsFalseButWritesAll()
+    {
+        _reg.Setup(r => r.GetSubKeyNames(Path)).Returns(InterfaceSubKeys);
+        _reg.Setup(r => r.CreateKey(It.IsAny<string>())).Returns(true);
+        _reg.Setup(r => r.SetValue($@"{Path}\if1", ValueName, 1, RegistryValueKind.DWord)).Returns(true);
+        _reg.Setup(r => r.SetValue($@"{Path}\if2", ValueName, 1, RegistryValueKind.DWord)).Returns(false);
+
+        _sut.WriteRegistryPerSubkey(Reg(), Path, 1).Should().BeFalse();
+
+        _reg.Verify(r => r.SetValue($@"{Path}\if1", ValueName, 1, RegistryValueKind.DWord), Times.Once);
+        _reg.Verify(r => r.SetValue($@"{Path}\if2", ValueName, 1, RegistryValueKind.DWord), Times.Once);
+    }
+
+    [Fact]
+    public void DeleteRegistryPerSubkey_EnumeratesAndDeletesUnderEachSubkey()
+    {
+        _reg.Setup(r => r.GetSubKeyNames(Path)).Returns(InterfaceSubKeys);
+        _reg.Setup(r => r.DeleteValue(It.IsAny<string>(), ValueName)).Returns(true);
+
+        _sut.DeleteRegistryPerSubkey(Reg(), Path).Should().BeTrue();
+
+        _reg.Verify(r => r.DeleteValue($@"{Path}\if1", ValueName), Times.Once);
+        _reg.Verify(r => r.DeleteValue($@"{Path}\if2", ValueName), Times.Once);
+    }
+
+    [Fact]
+    public void DeleteRegistryPerSubkey_WhenNoSubkeys_ReturnsFalse()
+    {
+        _reg.Setup(r => r.GetSubKeyNames(Path)).Returns(System.Array.Empty<string>());
+
+        _sut.DeleteRegistryPerSubkey(Reg(), Path).Should().BeFalse();
+
+        _reg.Verify(r => r.DeleteValue(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void SetTask_WhenEnabled_EnablesTask()
+    {
+        _tasks.Setup(t => t.SetTaskEnabled(@"\MS\Win\Foo", true)).Returns(OperationResult.Succeeded());
+
+        _sut.SetTask(new TaskTarget("key", @"\MS\Win\Foo"), enabled: true).Should().BeTrue();
+
+        _tasks.Verify(t => t.SetTaskEnabled(@"\MS\Win\Foo", true), Times.Once);
+        _tasks.Verify(t => t.SetTaskEnabled(It.IsAny<string>(), false), Times.Never);
+    }
+
+    [Fact]
+    public void SetTask_WhenDisabled_DisablesTask()
+    {
+        _tasks.Setup(t => t.SetTaskEnabled(@"\MS\Win\Foo", false)).Returns(OperationResult.Succeeded());
+
+        _sut.SetTask(new TaskTarget("key", @"\MS\Win\Foo"), enabled: false).Should().BeTrue();
+
+        _tasks.Verify(t => t.SetTaskEnabled(@"\MS\Win\Foo", false), Times.Once);
+        _tasks.Verify(t => t.SetTaskEnabled(It.IsAny<string>(), true), Times.Never);
+    }
+
+    [Fact]
+    public void SetTask_WhenServiceFails_ReturnsFalse()
+    {
+        _tasks.Setup(t => t.SetTaskEnabled(@"\MS\Win\Foo", true)).Returns(OperationResult.Failed("nope"));
+
+        _sut.SetTask(new TaskTarget("key", @"\MS\Win\Foo"), enabled: true).Should().BeFalse();
+    }
+
+    // Script and .reg effects launch a process, so ApplyExecutor defers them to IAsyncEffectRunner and
+    // they must never reach this synchronous writer. If one does, that is a routing bug: it fails loudly
+    // rather than falling through to the permissive unknown-effect default.
+    [Fact]
+    public void RunEffect_Script_IsRejected_BecauseItShouldHaveBeenDeferred()
+    {
+        _sut.RunEffect(new ScriptEffect("Write-Host hi", RunContext.System)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void RunEffect_RegContent_IsRejected_BecauseItShouldHaveBeenDeferred()
+    {
+        _sut.RunEffect(new RegContentEffect("REGCONTENT")).Should().BeFalse();
+    }
+
+    [Fact]
+    public void RunEffect_RegistryWrite_CreatesKeyThenSetsValue()
+    {
+        _reg.Setup(r => r.CreateKey(Path)).Returns(true);
+        _reg.Setup(r => r.SetValue(Path, ValueName, 7, RegistryValueKind.DWord)).Returns(true);
+
+        _sut.RunEffect(new RegistryWriteEffect(Path, ValueName, RegistryValueKind.DWord, 7)).Should().BeTrue();
+
+        _reg.Verify(r => r.CreateKey(Path), Times.Once);
+        _reg.Verify(r => r.SetValue(Path, ValueName, 7, RegistryValueKind.DWord), Times.Once);
+    }
+
+    [Fact]
+    public void RunEffect_PowerPlanEffect_ActivatesThroughTheActivationService()
+    {
+        var guid = Guid.NewGuid();
+        _activation
+            .Setup(a => a.EnsureActivatedAsync(guid.ToString(), It.IsAny<string?>()))
+            .ReturnsAsync((true, guid.ToString()));
+
+        _sut.RunEffect(new PowerPlanEffect(guid.ToString())).Should().BeTrue();
+
+        _activation.Verify(a => a.EnsureActivatedAsync(guid.ToString(), It.IsAny<string?>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RunEffect_SystemParameter_SetsTheLiveValue(bool on)
+    {
+        _systemParameters.Setup(p => p.SetLive(SystemParameter.DropShadow, on)).Returns(true);
+
+        _sut.RunEffect(new SystemParameterEffect(SystemParameter.DropShadow, on)).Should().BeTrue();
+
+        _systemParameters.Verify(p => p.SetLive(SystemParameter.DropShadow, on), Times.Once);
+    }
+
+    [Fact]
+    public void RunEffect_SystemParameter_WhenWindowsRefuses_StillSucceeds_BecauseTheRegistryHoldsIt()
+    {
+        _systemParameters.Setup(p => p.SetLive(SystemParameter.MenuAnimation, false)).Returns(false);
+
+        _sut.RunEffect(new SystemParameterEffect(SystemParameter.MenuAnimation, false)).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SysMain", "SysMain")]
+    [InlineData(@"hkey_local_machine\system\currentcontrolset\services\DiagTrack", "DiagTrack")]
+    [InlineData(@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SysMain\Parameters", null)]
+    [InlineData(@"HKEY_LOCAL_MACHINE\SOFTWARE\Winhance", null)]
+    public void ServiceNameOf_MatchesOnlyAServiceKeyItself(string path, string? expected)
+    {
+        ServiceStartControl.ServiceNameOf(path).Should().Be(expected);
+    }
+
+    [Fact]
+    public void SetSlideshow_HandsTheFolderToTheThemeService()
+    {
+        _theme.Setup(t => t.SetSlideshow(@"D:\Pictures\Holiday")).Returns(true);
+
+        _sut.SetSlideshow(new DesktopSlideshowTarget("album"), @"D:\Pictures\Holiday").Should().BeTrue();
+
+        _theme.Verify(t => t.SetSlideshow(@"D:\Pictures\Holiday"), Times.Once);
+    }
+
+    [Fact]
+    public void RunEffect_RegistryWrite_WhenCreateKeyFails_ReturnsFalse()
+    {
+        _reg.Setup(r => r.CreateKey(Path)).Returns(false);
+
+        _sut.RunEffect(new RegistryWriteEffect(Path, ValueName, RegistryValueKind.DWord, 7)).Should().BeFalse();
+
+        _reg.Verify(r => r.SetValue(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<RegistryValueKind>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(PowerContext.AC)]
+    [InlineData(PowerContext.DC)]
+    public void WritePowerCfgValue_DelegatesToApplierPerContext(PowerContext context)
+    {
+        var target = new PowerCfgTarget("key", "381b4222-f694-41f0-9685-ff5bb260df2e", "29f6c1db-86da-48c5-9fdb-f2b67b1f44da", PowerModeSupport.Both);
+        _powerCfg.Setup(p => p.WriteValueIndex(target, context, 3)).Returns(true);
+
+        _sut.WritePowerCfgValue(target, context, 3).Should().BeTrue();
+
+        _powerCfg.Verify(p => p.WriteValueIndex(target, context, 3), Times.Once);
+    }
+
+    [Fact]
+    public void WritePowerCfgValue_PassesThroughFailure()
+    {
+        var target = new PowerCfgTarget("key", "381b4222-f694-41f0-9685-ff5bb260df2e", "29f6c1db-86da-48c5-9fdb-f2b67b1f44da", PowerModeSupport.Both);
+        _powerCfg.Setup(p => p.WriteValueIndex(target, PowerContext.AC, 1)).Returns(false);
+
+        _sut.WritePowerCfgValue(target, PowerContext.AC, 1).Should().BeFalse();
+    }
+}

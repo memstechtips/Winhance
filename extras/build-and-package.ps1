@@ -234,10 +234,10 @@ function Set-FileSignature {
 # so Winhance.UI's publish output lands under <root>\Winhance.UI\bin\...
 # instead of in-tree. Match whichever location the build actually used.
 if ($repoIsRemote) {
-    $publishOutputPath = "$localBuildRoot\Winhance.UI\bin\x64\Release\$tfm\win-x64"
+    $publishOutputPath = "$localBuildRoot\Winhance.UI\bin\x64\Release\$tfm\win-x64\publish"
 }
 else {
-    $publishOutputPath = "$solutionDir\src\Winhance.UI\bin\x64\Release\$tfm\win-x64"
+    $publishOutputPath = "$solutionDir\src\Winhance.UI\bin\x64\Release\$tfm\win-x64\publish"
 }
 $innoSetupScript = "$scriptRoot\Winhance.Installer.iss"
 $tempInnoScript = "$env:TEMP\Winhance.Installer.temp.iss"
@@ -348,7 +348,7 @@ $csprojContent = $csprojContent -replace '<FileVersion>.*?</FileVersion>', "<Fil
 $csprojContent = $csprojContent -replace '<AssemblyVersion>.*?</AssemblyVersion>', "<AssemblyVersion>$Version</AssemblyVersion>"
 $csprojContent = $csprojContent -replace '<InformationalVersion>.*?</InformationalVersion>', "<InformationalVersion>v$displayVersion</InformationalVersion>"
 
-# Write updated csproj content (verbatim — no appended newline, no BOM)
+# Write updated csproj content (verbatim - no appended newline, no BOM)
 [System.IO.File]::WriteAllText($csprojPath, $csprojContent, $utf8NoBom)
 
 # Find MSBuild.exe (required for WinUI3/WindowsAppSDK projects)
@@ -356,7 +356,7 @@ Write-Host "Locating MSBuild..." -ForegroundColor Green
 $msbuildPath = $null
 
 # Try vswhere.exe first (ships with VS2022+ installer)
-# Require both MSBuild and MSVC C++ tools — the WindowsAppSDK XAML compiler needs MSVC
+# Require both MSBuild and MSVC C++ tools - the WindowsAppSDK XAML compiler needs MSVC
 $vswherePath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 if (Test-Path $vswherePath) {
     $msbuildPath = & $vswherePath -latest -requires Microsoft.Component.MSBuild -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
@@ -400,11 +400,28 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# Step 2: Build the solution (self-contained: .NET runtime + Windows App SDK bundled with the app)
+# Step 2: Build and publish (self-contained, ReadyToRun: precompiled code ships in publish\)
+# Clean does not empty publish\, and the installer packages that folder alone, so a file left by an older publish would ship.
+if (Test-Path $publishOutputPath) { Remove-Item -Path $publishOutputPath -Recurse -Force }
 Write-Host "Building solution..." -ForegroundColor Green
-& $msbuildPath "$projectPath" /p:Configuration=Release /p:Platform=x64 -restore
+& $msbuildPath "$projectPath" /t:Publish /p:Configuration=Release /p:Platform=x64 -restore
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to build solution" -ForegroundColor Red
+    exit 1
+}
+
+# Publish copies only what MSBuild marks for publish; a file missing there (the .pri, a page's .xbf, an image) installs
+# an app that dies on its first window. The build folder beside it is the full set, so every file in it must be in publish\.
+$buildOutputPath = Split-Path -Parent $publishOutputPath
+$publishedFiles = @{}
+Get-ChildItem -Path $publishOutputPath -Recurse -File | ForEach-Object { $publishedFiles[$_.FullName.Substring($publishOutputPath.Length)] = $true }
+$notPublished = @(Get-ChildItem -Path $buildOutputPath -Recurse -File |
+    Where-Object { -not $_.FullName.StartsWith($publishOutputPath + "\") } |
+    ForEach-Object { $_.FullName.Substring($buildOutputPath.Length) } |
+    Where-Object { -not $publishedFiles.ContainsKey($_) })
+if ($notPublished.Count -gt 0) {
+    Write-Host "These build files are missing from the publish folder:" -ForegroundColor Red
+    $notPublished | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
     exit 1
 }
 
@@ -419,6 +436,13 @@ if (-not $SkipTests) {
 }
 else {
     Write-Host "Skipping tests (-SkipTests)..." -ForegroundColor Yellow
+}
+
+# Step 3b: Check the External Apps' winget ids. A warning only: winget being down must not block a release.
+Write-Host "Checking External Apps winget ids..." -ForegroundColor Green
+& "$scriptRoot\Test-PackageIds.ps1"
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Some apps have no live winget id. Winhance hides them until their ids are fixed." -ForegroundColor Yellow
 }
 
 # Step 4: Sign the application executable using the cert resolved at script start

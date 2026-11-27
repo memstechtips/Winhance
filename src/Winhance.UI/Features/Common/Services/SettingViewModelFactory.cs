@@ -1,19 +1,23 @@
-using System.Linq;
+using System.Collections.ObjectModel;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.Common.TechnicalDetails;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
-using Winhance.UI.Features.Common.Utilities;
 using Winhance.UI.Features.Optimize.ViewModels;
+using Winhance.Core.Features.Common.Extensions;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Creates fully-configured SettingItemViewModel instances from setting definitions.
-/// </summary>
 public class SettingViewModelFactory : ISettingViewModelFactory
 {
     private readonly SettingViewModelDependencies _viewModelDeps;
@@ -21,9 +25,10 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     private readonly ILocalizationService _localizationService;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly INewBadgeService _newBadgeService;
-    private readonly IComboBoxSetupService _comboBoxSetupService;
-    private readonly IComboBoxResolver _comboBoxResolver;
     private readonly ISettingViewModelEnricher _enricher;
+    private readonly IPowerSettingsQueryService _power;
+    private readonly IAppIconResolver _appIcons;
+    private readonly IThemeService _themeService;
 
     public SettingViewModelFactory(
         SettingViewModelDependencies viewModelDeps,
@@ -31,91 +36,107 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         ILocalizationService localizationService,
         IUserPreferencesService userPreferencesService,
         INewBadgeService newBadgeService,
-        IComboBoxSetupService comboBoxSetupService,
-        IComboBoxResolver comboBoxResolver,
-        ISettingViewModelEnricher enricher)
+        ISettingViewModelEnricher enricher,
+        IPowerSettingsQueryService power,
+        IAppIconResolver appIcons,
+        IThemeService themeService)
     {
         _viewModelDeps = viewModelDeps;
         _logService = logService;
         _localizationService = localizationService;
         _userPreferencesService = userPreferencesService;
         _newBadgeService = newBadgeService;
-        _comboBoxSetupService = comboBoxSetupService;
-        _comboBoxResolver = comboBoxResolver;
         _enricher = enricher;
+        _power = power;
+        _appIcons = appIcons;
+        _themeService = themeService;
     }
 
-    /// <summary>
-    /// Creates a fully-configured SettingItemViewModel for the given setting definition and current state.
-    /// </summary>
     public async Task<SettingItemViewModel> CreateAsync(
-        SettingDefinition setting,
+        Setting setting,
         SettingStateResult currentState,
-        ISettingsFeatureViewModel? parentViewModel)
+        ISettingsFeatureViewModel? parentViewModel,
+        string? crossGroupInfoMessage,
+        string? compatibilityMessage,
+        WinBuild build = default)
     {
+        InputType inputType = ConfigFileMapper.InputTypeFor(setting);
+        var (iconGlyph, iconPack) = CatalogIconDisplay.For(
+            setting.Display.Icon, _appIcons, _themeService.GetEffectiveTheme() == ElementTheme.Light);
+
         var config = new SettingItemViewModelConfig
         {
-            SettingDefinition = setting,
+            Setting = setting,
+            Build = build,
             ParentFeatureViewModel = parentViewModel,
             SettingId = setting.Id,
-            Name = setting.Name,
-            Description = setting.Description,
-            GroupName = setting.GroupName ?? string.Empty,
-            Icon = setting.Icon ?? string.Empty,
-            IconPack = setting.IconPack ?? "Material",
-            InputType = setting.InputType,
+            Name = _localizationService.GetString(setting.Display.Name),
+            Description = _localizationService.GetString(setting.Display.Description),
+            GroupName = setting.Display.GroupName is { } group ? _localizationService.GetString(group) : string.Empty,
+            Icon = iconGlyph,
+            IconPack = iconPack,
+            InputType = inputType,
             IsSelected = currentState.IsEnabled,
-            OnText = _localizationService.GetString("Common_On") ?? "On",
-            OffText = _localizationService.GetString("Common_Off") ?? "Off",
-            ActionButtonText = _localizationService.GetString("Button_Apply") ?? "Apply"
+            Outcome = currentState.Outcome,
+            OnText = inputType == InputType.CheckBox
+                ? _localizationService.GetStringOrDefault(TechnicalDetailKeys.Checked, "Checked")
+                : _localizationService.GetStringOrDefault("Common_On", "On"),
+            OffText = inputType == InputType.CheckBox
+                ? _localizationService.GetStringOrDefault(TechnicalDetailKeys.Unchecked, "Unchecked")
+                : _localizationService.GetStringOrDefault("Common_Off", "Off"),
+            ActionButtonText = _localizationService.GetStringOrDefault("Button_Apply", "Apply"),
+            OptionWarnings = BuildCatalogOptionWarnings(setting)
         };
 
         var viewModel = new SettingItemViewModel(
             config,
-            _viewModelDeps.SettingApplicationService,
+            _viewModelDeps.WriteStrategySelector,
             _viewModelDeps.LogService,
             _viewModelDeps.DispatcherService,
             _viewModelDeps.DialogService,
             _localizationService,
-            _viewModelDeps.EventBus,
             _userPreferencesService,
             _viewModelDeps.RegeditLauncher,
             _newBadgeService,
-            _viewModelDeps.ApplicationModeService);
+            _viewModelDeps.ApplicationModeService,
+            _viewModelDeps.FilePickerService);
 
-        // Set lock state for advanced settings
-        if (setting.RequiresAdvancedUnlock)
+        // Typed fields open read-only; the pencil unlocks them.
+        viewModel.IsLocked = setting.Fields.Count > 0;
+        viewModel.RecordKnownState(currentState);
+        viewModel.CrossGroupInfoMessage = crossGroupInfoMessage;
+        viewModel.CompatibilityMessage = compatibilityMessage;
+        viewModel.CompatibilitySeverity = setting.Availability.Allows(build) ? InfoBarSeverity.Informational : InfoBarSeverity.Warning;
+
+        if (setting.Availability.RequiresAdvancedUnlock)
         {
-            var unlocked = await _userPreferencesService.GetPreferenceAsync("AdvancedPowerSettingsUnlocked", false);
+            var unlocked = _userPreferencesService.GetPreference("AdvancedPowerSettingsUnlocked", false);
             viewModel.IsLocked = !unlocked;
         }
 
-        // Populate AC/DC values for PowerModeSupport.Separate settings
         if (viewModel.SupportsSeparateACDC)
         {
             await _enricher.DetectBatteryAsync(viewModel);
 
-            if (setting.InputType == InputType.NumericRange && currentState.RawValues != null)
+            if (inputType == InputType.NumericRange)
             {
-                if (currentState.RawValues.TryGetValue("ACValue", out var acVal) && acVal is int acInt)
+                if (currentState.AcValue is int acInt)
                     viewModel.AcNumericValue = ConvertFromSystemUnits(acInt, setting);
-                if (currentState.RawValues.TryGetValue("DCValue", out var dcVal) && dcVal is int dcInt)
+                if (currentState.DcValue is int dcInt)
                     viewModel.DcNumericValue = ConvertFromSystemUnits(dcInt, setting);
             }
-            // Note: AC/DC Selection values are set AFTER ComboBox options are populated (below)
         }
 
-        if (setting.InputType != InputType.Selection)
+        if (inputType != InputType.Selection)
         {
             viewModel.SelectedValue = currentState.CurrentValue;
         }
 
-        // Set up numeric range settings
-        if (setting.InputType == InputType.NumericRange && setting.NumericRange != null)
+        if (inputType == InputType.NumericRange && setting.Numeric != null)
         {
-            viewModel.MaxValue = setting.NumericRange.MaxValue;
-            viewModel.MinValue = setting.NumericRange.MinValue;
-            viewModel.Units = setting.NumericRange.Units ?? "";
+            viewModel.MaxValue = setting.Numeric.Max;
+            viewModel.MinValue = setting.Numeric.Min;
+            viewModel.Units = setting.Numeric.Units ?? "";
 
             if (currentState.CurrentValue is int intValue)
             {
@@ -123,69 +144,72 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             }
         }
 
-        // Set up combo box options for selection settings
-        if (setting.InputType == InputType.Selection)
+        if (inputType == InputType.TextBox)
+        {
+            viewModel.SeedText(currentState.CurrentValue as string ?? setting.TextBox?.Default ?? string.Empty);
+        }
+
+        if (inputType == InputType.List)
+        {
+            viewModel.ListAddLabel = setting.List!.Add is { } add ? _localizationService.GetString(add) : string.Empty;
+            viewModel.ListRemoveLabel = setting.List.Remove is { } remove ? _localizationService.GetString(remove) : string.Empty;
+            viewModel.SavePasswordsLabel = _localizationService.GetString(LocKey.AutounattendAccounts.SavePasswords);
+            viewModel.SavePasswordsNote = _localizationService.GetString(LocKey.AutounattendAccounts.SavePasswordsNote);
+
+            if (currentState.CurrentValue is ChoiceValue.List seeded)
+                viewModel.SeedList(seeded);
+        }
+
+        viewModel.TryApplyKeyedOptions(currentState);
+
+        // A keyed selection's States are named keys, never indices, so a keyed card with no detected options stays empty.
+        if (inputType == InputType.Selection && setting.Control != ControlKind.KeyedSelection)
         {
             try
             {
-                var comboBoxResult = await _comboBoxSetupService.SetupComboBoxOptionsAsync(setting, currentState.CurrentValue);
                 viewModel.ComboBoxOptions.Clear();
+                object? resolvedSelection = null;
 
-                // Check if this is a PowerPlan setting that needs localization
-                var isPowerPlanSetting = setting.Recommendation?.LoadDynamicOptions == true;
-
-                foreach (var option in comboBoxResult.Options)
+                if (setting is { States.Count: > 0 })
                 {
-                    // Translate PowerPlan localization keys
-                    if (isPowerPlanSetting && option.DisplayText.StartsWith("PowerPlan_"))
-                    {
-                        option.DisplayText = _localizationService.GetString(option.DisplayText);
-                    }
-
-                    viewModel.ComboBoxOptions.Add(option);
+                    int currentIndex = currentState.CurrentValue is int ci ? ci : ComboBoxConstants.CustomStateIndex;
+                    BuildCatalogSelectionOptions(setting, viewModel.ComboBoxOptions, await WindowsPowerOptionsAsync(setting));
+                    resolvedSelection = currentState.CurrentValue ?? currentIndex;
                 }
 
-                // Build cross-group info message if this setting has CrossGroupChildSettings
-                _enricher.SetCrossGroupInfoMessage(viewModel, setting);
-
-                // Set the selected value from the setup result or current state
-                if (comboBoxResult.SelectedValue != null)
+                if (resolvedSelection != null)
                 {
-                    viewModel.SelectedValue = comboBoxResult.SelectedValue;
-                    viewModel.UpdateStatusBanner(comboBoxResult.SelectedValue);
-                }
-                else if (currentState.CurrentValue != null)
-                {
-                    viewModel.SelectedValue = currentState.CurrentValue;
-                    viewModel.UpdateStatusBanner(currentState.CurrentValue);
+                    viewModel.SelectedValue = resolvedSelection;
+                    viewModel.UpdateStatusBanner(resolvedSelection);
                 }
 
                 // Builder/serialization support: when the live state resolves to "Custom"
                 // (no predefined option matched), retain the raw values so Builder Save can
                 // serialize the custom value without re-reading the system.
                 if (viewModel.SelectedValue is int customSelIdx
-                    && customSelIdx == ComboBoxConstants.CustomStateIndex
-                    && currentState.RawValues != null)
+                    && customSelIdx == ComboBoxConstants.CustomStateIndex)
                 {
-                    viewModel.CapturedCustomStateValues = currentState.RawValues
+                    var captured = CustomStateValueReconstructor.Build(setting, currentState)
                         .Where(kv => kv.Value != null)
                         .ToDictionary(kv => kv.Key, kv => kv.Value!);
+                    if (captured.Count > 0)
+                        viewModel.CapturedCustomStateValues = captured;
                 }
 
                 // Resolve AC/DC Selection values AFTER ComboBox options are populated
-                // (ComboBox needs items before SelectedValue can match)
-                if (viewModel.SupportsSeparateACDC && currentState.RawValues != null)
+                // (ComboBox needs items before SelectedValue can match). AC/DC index: match the
+                // typed AC/DC powercfg reading against each option's per-context State value (Set[powerKey]).
+                // -1 (Custom) on no match is unreachable (0 orphan / 0 duplicate powercfg option values).
+                if (viewModel.SupportsSeparateACDC
+                    && setting is { States.Count: > 0 }
+                    && setting.Targets.OfType<PowerCfgTarget>().Any())
                 {
-                    var rawAcVal = currentState.RawValues.GetValueOrDefault("ACValue");
-                    var rawDcVal = currentState.RawValues.GetValueOrDefault("DCValue");
-
-                    var acRaw = currentState.RawValues.ToDictionary(kv => kv.Key, kv => kv.Value); acRaw["PowerCfgValue"] = rawAcVal;
-                    var dcRaw = currentState.RawValues.ToDictionary(kv => kv.Key, kv => kv.Value); dcRaw["PowerCfgValue"] = rawDcVal;
-                    var acIndex = await _comboBoxResolver.ResolveCurrentValueAsync(setting, acRaw);
-                    var dcIndex = await _comboBoxResolver.ResolveCurrentValueAsync(setting, dcRaw);
-
-                    viewModel.AcValue = acIndex is int ai ? ai : 0;
-                    viewModel.DcValue = dcIndex is int di ? di : 0;
+                    viewModel.AcValue = currentState.AcValue is int acInt
+                        ? PowerCfgValues.OptionIndex(setting, acInt) ?? ComboBoxConstants.CustomStateIndex
+                        : 0;
+                    viewModel.DcValue = currentState.DcValue is int dcInt
+                        ? PowerCfgValues.OptionIndex(setting, dcInt) ?? ComboBoxConstants.CustomStateIndex
+                        : 0;
                 }
             }
             catch (Exception ex)
@@ -193,24 +217,116 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                 _logService.Log(LogLevel.Warning, $"Failed to setup combo box for '{setting.Id}': {ex.Message}");
             }
         }
-        else
+        else if (inputType != InputType.Selection)
         {
-            // For non-Selection types, initialize compatibility banner (Selection types handle this in UpdateStatusBanner)
-            viewModel.InitializeCompatibilityBanner();
+            // For non-Selection types, surface the Windows-version compatibility banner here (Selection types get
+            // it via UpdateStatusBanner's compat fallback).
+            viewModel.ShowCompatibilityBanner();
         }
 
-        // If in review mode, apply review diff to the newly created ViewModel
+        // Everything above seeded this card from the live machine. If the user already authored
+        // this setting in the current session, that is the value the card must show and the value
+        // Save will write, so it goes on last - this is the seeding half of the same invariant
+        // UpdateStateFromSystemState honours on refresh.
+        viewModel.ApplyAuthoredOverlay();
+
         _enricher.ApplyReviewDiff(viewModel, currentState);
 
         // Compute initial badge state after all values are populated
         viewModel.ComputeBadgeState();
 
+        // Initial Custom-state banner (Informational; a compatibility Warning applied above outranks it).
+        viewModel.UpdateDetectionOutcomeBanner();
+
+        // Build the technical-details panel from the Setting model + the now-populated current state
+        // (the panel is VM-driven, not TooltipUpdatedEvent-driven).
+        viewModel.RefreshTechnicalDetails();
+
         return viewModel;
     }
 
-    private static int ConvertFromSystemUnits(int systemValue, SettingDefinition setting)
+    private static int ConvertFromSystemUnits(int systemValue, Setting setting)
     {
-        var displayUnits = setting.NumericRange?.Units;
-        return UnitConversionHelper.ConvertFromSystemUnits(systemValue, displayUnits);
+        var displayUnits = setting.Numeric?.Units;
+        return PowerCfgValues.ToDisplay(systemValue, displayUnits);
     }
+
+    // The list contains ONLY real, choosable options. An unresolved selection (CurrentValue == -1) is shown by the
+    // card's outcome overlay, not by a synthetic list entry: a fake "Custom" item made an unreadable value read as
+    // a deliberate choice, and it was pickable. An IsDetectOnly state is left out for the same reason from the
+    // other direction. SKIP, NEVER RENUMBER: every option keeps its own STATE index as its Value - that index is
+    // what the drop-down-closed handler applies, what a saved .winhance config persists, and what the review diff compares.
+    // Windows names the choices of a power setting itself, in the language it is installed in, and lists only the
+    // ones this machine has: a CPU that cannot boost aggressively does not offer those modes. So a power card shows
+    // Windows' own wording and, on the machine it is about to change, drops the states this PC does not offer.
+    // Keyed by the possible-setting INDEX, which is what a catalog state carries.
+    // An authoring mode keeps every state, because the file is for a PC whose hardware this one cannot speak for.
+    // The catalog still owns the values, which is what the apply and the answer file write and a config carries.
+    private async Task<IReadOnlyDictionary<int, string>?> WindowsPowerOptionsAsync(Setting setting)
+    {
+        if (setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault() is not { } target)
+            return null;
+
+        try
+        {
+            var offered = await _power.GetPossibleValuesAsync(target.SubgroupGuid, target.SettingGuid)
+                .ConfigureAwait(false);
+            return offered.Count > 0
+                ? offered.GroupBy(option => option.Index).ToDictionary(group => group.Key, group => group.First().Name)
+                : null;
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Warning,
+                $"Could not read the options Windows offers for {setting.Id}: {ex.Message}");
+            return null;
+        }
+    }
+
+    private void BuildCatalogSelectionOptions(
+        Setting setting,
+        ObservableCollection<ComboBoxDisplayOption> options,
+        IReadOnlyDictionary<int, string>? windowsOptions = null)
+    {
+        var states = setting.States;
+        var powerKey = setting.Targets.OfType<PowerCfgTarget>().FirstOrDefault()?.Key;
+        for (int i = 0; i < states.Count; i++)
+        {
+            var state = states[i];
+            if (state.IsDetectOnly)
+                continue;
+            string? windowsName = null;
+            if (windowsOptions is not null && powerKey is not null)
+            {
+                if (state.Set.TryGetValue(powerKey, out var stateValue)
+                    && stateValue.WritePayload is int index
+                    && windowsOptions.TryGetValue(index, out var offeredName))
+                {
+                    windowsName = offeredName;
+                }
+                else if (!_viewModelDeps.ApplicationModeService.Capabilities().AuthorsIntent)
+                {
+                    continue;   // this PC has no such value, and the card is about to change this PC
+                }
+            }
+            var label = windowsName ?? _localizationService.GetString(state.Label);
+            var tooltip = state.Tooltip is { } tip ? _localizationService.GetString(tip) : null;
+            options.Add(new ComboBoxDisplayOption(label, i, tooltip)
+            {
+                IsRecommended = state.HasRole(RoleKind.Recommended),
+                IsDefault = state.HasRole(RoleKind.WindowsDefault),
+                IsSubjectivePreference = setting.Display.IsSubjectivePreference,
+            });
+        }
+    }
+
+    // Options that share one text (Manual and Disabled) print it once.
+    private IReadOnlyList<string> BuildCatalogOptionWarnings(Setting setting) =>
+        setting.States
+            .Select(state => state.RiskWarning)
+            .OfType<LocKey>()
+            .Select(risk => _localizationService.GetString(risk))
+            .Distinct()
+            .ToList();
+
 }

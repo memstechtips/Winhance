@@ -1,0 +1,69 @@
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Interfaces;
+using Xunit;
+using Winhance.TestSupport;
+
+namespace Winhance.Core.Tests.Catalog;
+
+public class SystemTrayDetectorTests
+{
+    private sealed class FakeCtx : IDetectionContext
+    {
+        public WinBuild CurrentBuild => new(int.MaxValue);
+        public string[] SubKeys = System.Array.Empty<string>();
+        public Dictionary<string, object?> Values = new(); // "path\\name" -> value
+        public string[] GetSubKeyNames(string keyPath) => SubKeys;
+        public object? GetValue(string keyPath, string? valueName) =>
+            Values.TryGetValue($"{keyPath}\\{valueName}", out var v) ? v : null;
+        public bool KeyExists(string keyPath) => false;
+        public bool? ScheduledTaskEnabled(string taskPath) => null;
+        public IReadOnlyList<DnsServer> DnsServersOfActiveAdapter() => System.Array.Empty<DnsServer>();
+        public bool IsSystemRestoreEnabled() => false;
+        public int? PowerCfgValue(string subgroupGuid, string settingGuid, PowerContext context) => null;
+        public string? ActivePowerPlanGuid() => null;
+    }
+
+    private const string Key = @"HKEY_CURRENT_USER\Control Panel\NotifyIconSettings";
+    private static readonly Setting Dummy = new() { Id = "tray", Display = new() { Name = TestKeys.Of("t"), Description = TestKeys.Of("t") } };
+    private static readonly SystemTrayDetector Det = new(TestKeys.Of("Show all"), TestKeys.Of("Hide all"));
+
+    [Fact]
+    public void Detect_AllPromoted_ReturnsShowAll()
+    {
+        var ctx = new FakeCtx { SubKeys = new[] { "a", "b" } };
+        ctx.Values[$@"{Key}\a\IsPromoted"] = 1;
+        ctx.Values[$@"{Key}\b\IsPromoted"] = 1;
+        Assert.Equal("Show all", Det.Detect(Dummy, ctx));
+    }
+
+    [Fact]
+    public void Detect_NonePromoted_ReturnsHideAll()
+    {
+        var ctx = new FakeCtx { SubKeys = new[] { "a", "b" } };
+        ctx.Values[$@"{Key}\a\IsPromoted"] = 0;
+        ctx.Values[$@"{Key}\b\IsPromoted"] = 0;
+        Assert.Equal("Hide all", Det.Detect(Dummy, ctx));
+    }
+
+    [Fact]
+    public void Detect_MixedPromotion_ReturnsNull()
+    {
+        var ctx = new FakeCtx { SubKeys = new[] { "a", "b" } };
+        ctx.Values[$@"{Key}\a\IsPromoted"] = 1;
+        ctx.Values[$@"{Key}\b\IsPromoted"] = 0;
+        Assert.Null(Det.Detect(Dummy, ctx));
+    }
+
+    [Fact]
+    public void Detect_NoSubkeys_ReturnsNull()
+    {
+        Assert.Null(Det.Detect(Dummy, new FakeCtx()));
+    }
+
+    [Fact]
+    public void Detect_NoIsPromotedValues_ReturnsNull()
+    {
+        var ctx = new FakeCtx { SubKeys = new[] { "a" } }; // subkey exists but no IsPromoted value
+        Assert.Null(Det.Detect(Dummy, ctx));
+    }
+}

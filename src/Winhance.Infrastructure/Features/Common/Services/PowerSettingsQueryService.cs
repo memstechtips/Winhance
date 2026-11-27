@@ -1,19 +1,22 @@
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.System.Power;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Native;
 using Winhance.Core.Features.Optimize.Models;
 using System.Runtime.InteropServices;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQueryService
+internal class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQueryService
 {
     private volatile List<PowerPlan>? _cachedPlans;
     private DateTime _cacheTime;
     private readonly TimeSpan _cacheTimeout = TimeSpan.FromSeconds(2);
     private readonly object _cacheLock = new();
     private readonly Dictionary<string, (int? min, int? max)> _capabilityCache = new();
+    private readonly Dictionary<string, IReadOnlyList<PowerSettingOption>> _possibleValueCache = new(StringComparer.Ordinal);
 
     public async Task<List<PowerPlan>> GetAvailablePowerPlansAsync()
     {
@@ -24,7 +27,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
             {
                 if (DateTime.UtcNow - _cacheTime < _cacheTimeout)
                 {
-                    logService.Log(LogLevel.Debug, $"[PowerSettingsQueryService] Using cached power plans ({cached.Count} plans)");
+                    logService.Log(LogLevel.Debug, $"Using cached power plans ({cached.Count} plans)");
                     return cached;
                 }
             }
@@ -32,7 +35,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
 
         try
         {
-            logService.Log(LogLevel.Info, "[PowerSettingsQueryService] Enumerating power plans via Native API");
+            logService.Log(LogLevel.Info, "Enumerating power plans via Native API");
             
             var plans = new List<PowerPlan>();
             var activeGuid = GetActivePowerSchemeGuid();
@@ -43,14 +46,16 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
 
             try
             {
+                unsafe
+                {
                 while (true)
                 {
-                    uint ret = PowerProf.PowerEnumerate(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, PowerProf.ACCESS_SCHEME, index, buffer, ref bufferSize);
+                    var ret = PInvoke.PowerEnumerate(null, null, null, POWER_DATA_ACCESSOR.ACCESS_SCHEME, index, (byte*)buffer, ref bufferSize);
                     
-                    if (ret == PowerProf.ERROR_NO_MORE_ITEMS)
+                    if (ret == WIN32_ERROR.ERROR_NO_MORE_ITEMS)
                         break;
 
-                    if (ret == PowerProf.ERROR_SUCCESS)
+                    if (ret == WIN32_ERROR.ERROR_SUCCESS)
                     {
                         var guidBytes = new byte[16];
                         Marshal.Copy(buffer, guidBytes, 0, 16);
@@ -69,6 +74,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
                     index++;
                     bufferSize = 16; // Reset for next call
                 }
+                }
             }
             finally
             {
@@ -83,51 +89,117 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
             }
 
             var activePlan = sortedPlans.FirstOrDefault(p => p.IsActive);
-            logService.Log(LogLevel.Info, $"[PowerSettingsQueryService] Discovered {sortedPlans.Count} system power plans. Active: {activePlan?.Name ?? "None"} ({activePlan?.Guid ?? "N/A"})");
+            logService.Log(LogLevel.Info, $"Discovered {sortedPlans.Count} system power plans. Active: {activePlan?.Name ?? "None"} ({activePlan?.Guid ?? "N/A"})");
 
             return sortedPlans;
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Warning, $"[PowerSettingsQueryService] Error getting available power plans: {ex.Message}");
+            logService.Log(LogLevel.Warning, $"Error getting available power plans: {ex.Message}");
             return new List<PowerPlan>();
         }
     }
 
-    private Guid GetActivePowerSchemeGuid()
+    private unsafe Guid GetActivePowerSchemeGuid()
     {
-        IntPtr ptr = IntPtr.Zero;
+        Guid* active = null;
         try
         {
-            uint ret = PowerProf.PowerGetActiveScheme(IntPtr.Zero, out ptr);
-            if (ret == PowerProf.ERROR_SUCCESS && ptr != IntPtr.Zero)
+            if (PInvoke.PowerGetActiveScheme(null, out active) == WIN32_ERROR.ERROR_SUCCESS && active is not null)
             {
-                return Marshal.PtrToStructure<Guid>(ptr);
+                return *active;
             }
             return Guid.Empty;
         }
         finally
         {
-            if (ptr != IntPtr.Zero)
+            if (active is not null)
             {
-                PowerProf.LocalFree(ptr);
+                PInvoke.LocalFree((HLOCAL)(IntPtr)active);
             }
         }
     }
 
-    private string GetPowerPlanName(Guid schemeGuid)
+    // Windows answers a min/max for a setting that takes a RANGE and nothing for one that takes a list, and that
+    // is the discriminator this has to use: for a range setting the possible-setting walk never ends - every index
+    // answers success, echoing the index back under the setting's own name ("Turn off display after"). Measured on
+    // 24H2 across all 41 power cards: the 15 that report a range are exactly the 15 whose walk runs away.
+    public async Task<IReadOnlyList<PowerSettingOption>> GetPossibleValuesAsync(string subgroupGuid, string settingGuid)
+    {
+        var cacheKey = subgroupGuid + "/" + settingGuid;
+        lock (_cacheLock)
+        {
+            if (_possibleValueCache.TryGetValue(cacheKey, out var cached))
+                return cached;
+        }
+
+        var (min, max) = await GetPowerSettingCapabilitiesAsync(subgroupGuid, settingGuid).ConfigureAwait(false);
+
+        IReadOnlyList<PowerSettingOption> options = min is null && max is null
+            ? await Task.Run(() => ReadPossibleOptions(Guid.Parse(subgroupGuid), Guid.Parse(settingGuid))).ConfigureAwait(false)
+            : Array.Empty<PowerSettingOption>();
+
+        lock (_cacheLock)
+        {
+            _possibleValueCache[cacheKey] = options;
+        }
+        return options;
+    }
+
+    // Walked by NAME, not by value: PowerReadPossibleValue answers a number from a different space than the index
+    // powercfg writes (the power button's five choices are indices 0-4 and values 0, 2, 3, 6, 8) and fails outright
+    // for settings whose names Windows does have, such as the wireless adapter's power mode. The cap is a guard - no
+    // power setting has anywhere near that many choices - so a Windows that stops saying no cannot hang the caller.
+    private IReadOnlyList<PowerSettingOption> ReadPossibleOptions(Guid subgroup, Guid setting)
+    {
+        const uint maxChoices = 64;
+        var options = new List<PowerSettingOption>();
+        for (uint index = 0; index < maxChoices; index++)
+        {
+            if (ReadPossibleName(subgroup, setting, index) is not { } name)
+                break;
+            options.Add(new PowerSettingOption((int)index, name));
+        }
+        return options;
+    }
+
+    // The name Windows shows for one choice, in the language Windows is installed in; null once the index runs past
+    // the list, which is what ends the walk.
+    private unsafe string? ReadPossibleName(Guid subgroup, Guid setting, uint index)
+    {
+        uint size = 0;
+        if (PInvoke.PowerReadPossibleFriendlyName(null, subgroup, setting, index, null, ref size) != WIN32_ERROR.ERROR_SUCCESS
+            || size == 0)
+        {
+            return null;
+        }
+
+        IntPtr buffer = Marshal.AllocHGlobal((int)size);
+        try
+        {
+            return PInvoke.PowerReadPossibleFriendlyName(null, subgroup, setting, index, (byte*)buffer, ref size) == WIN32_ERROR.ERROR_SUCCESS
+                ? Marshal.PtrToStringUni(buffer)
+                : null;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+    }
+
+    private unsafe string GetPowerPlanName(Guid schemeGuid)
     {
         uint bufferSize = 0;
         // First call to get size
-        PowerProf.PowerReadFriendlyName(IntPtr.Zero, ref schemeGuid, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, ref bufferSize);
+        _ = PInvoke.PowerReadFriendlyName(null, schemeGuid, null, null, null, ref bufferSize);
 
         if (bufferSize == 0) return "Unknown Power Plan";
 
         IntPtr buffer = Marshal.AllocHGlobal((int)bufferSize);
         try
         {
-            uint ret = PowerProf.PowerReadFriendlyName(IntPtr.Zero, ref schemeGuid, IntPtr.Zero, IntPtr.Zero, buffer, ref bufferSize);
-            if (ret == PowerProf.ERROR_SUCCESS)
+            var ret = PInvoke.PowerReadFriendlyName(null, schemeGuid, null, null, (byte*)buffer, ref bufferSize);
+            if (ret == WIN32_ERROR.ERROR_SUCCESS)
             {
                 return Marshal.PtrToStringUni(buffer) ?? "Unknown Power Plan";
             }
@@ -145,6 +217,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
         {
             _cachedPlans = null;
             _capabilityCache.Clear();
+            _possibleValueCache.Clear();
         }
     }
 
@@ -173,34 +246,47 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
         }
     }
 
-    public async Task<(int? acValue, int? dcValue)> GetPowerSettingACDCValuesAsync(PowerCfgSetting powerCfgSetting)
+    // Reads only what the caller asked for: two native calls per setting against one scheme lookup, where
+    // GetAllPowerSettingsACDCAsync below costs ~225 PowerEnumerate + ~400 PowerRead* no matter how small the
+    // batch. Keyed and filtered identically to it, so a caller can swap between the two.
+    public async Task<Dictionary<string, (int? acValue, int? dcValue)>> GetPowerSettingsACDCAsync(IReadOnlyCollection<(string subgroupGuid, string settingGuid)> settings)
     {
         try
         {
             return await Task.Run(() =>
             {
+                var results = new Dictionary<string, (int? acValue, int? dcValue)>(StringComparer.OrdinalIgnoreCase);
+
                 var schemeGuid = GetActivePowerSchemeGuid();
-                if (schemeGuid == Guid.Empty) return (null, null);
+                if (schemeGuid == Guid.Empty) return results;
 
-                var subGuid = Guid.Parse(powerCfgSetting.SubgroupGuid);
-                var setGuid = Guid.Parse(powerCfgSetting.SettingGuid);
+                foreach (var (subgroup, setting) in settings)
+                {
+                    if (!Guid.TryParse(subgroup, out var subGuid) || !Guid.TryParse(setting, out var setGuid))
+                        continue;
 
-                uint acIndex, dcIndex;
-                int? ac = null, dc = null;
+                    uint acIndex, dcIndex;
+                    int? ac = null, dc = null;
 
-                if (PowerProf.PowerReadACValueIndex(IntPtr.Zero, ref schemeGuid, ref subGuid, ref setGuid, out acIndex) == PowerProf.ERROR_SUCCESS)
-                    ac = (int)acIndex;
+                    if (PInvoke.PowerReadACValueIndex(null, schemeGuid, subGuid, setGuid, out acIndex) == WIN32_ERROR.ERROR_SUCCESS)
+                        ac = (int)acIndex;
 
-                if (PowerProf.PowerReadDCValueIndex(IntPtr.Zero, ref schemeGuid, ref subGuid, ref setGuid, out dcIndex) == PowerProf.ERROR_SUCCESS)
-                    dc = (int)dcIndex;
+                    if (PInvoke.PowerReadDCValueIndex(null, schemeGuid, subGuid, setGuid, out dcIndex) == (uint)WIN32_ERROR.ERROR_SUCCESS)
+                        dc = (int)dcIndex;
 
-                return (ac, dc);
+                    // Omitted rather than stored as (null, null): absent from the map is how a caller reads
+                    // "this setting does not exist on this machine", the same contract the full walk has.
+                    if (ac.HasValue || dc.HasValue)
+                        results[setGuid.ToString()] = (ac, dc);
+                }
+
+                return results;
             }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Error, $"Error getting power setting AC/DC values: {ex.Message}");
-            return (null, null);
+            logService.Log(LogLevel.Error, $"Error in GetPowerSettingsACDCAsync: {ex.Message}");
+            return new Dictionary<string, (int?, int?)>(StringComparer.OrdinalIgnoreCase);
         }
     }
 
@@ -210,7 +296,9 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
         {
             return await Task.Run(() =>
             {
-                var results = new Dictionary<string, (int? acValue, int? dcValue)>();
+                // OrdinalIgnoreCase because two paths now fill this map and catalog GUIDs are authored as
+                // strings, while the walk keys on Guid.ToString().
+                var results = new Dictionary<string, (int? acValue, int? dcValue)>(StringComparer.OrdinalIgnoreCase);
 
                 Guid schemeGuid;
                 if (string.Equals(powerPlanGuid, "SCHEME_CURRENT", StringComparison.OrdinalIgnoreCase))
@@ -224,24 +312,24 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
 
                 if (schemeGuid == Guid.Empty) return results;
 
-                // Enumerate Subgroups
                 uint subIndex = 0;
                 uint bufferSize = 16;
                 IntPtr buffer = Marshal.AllocHGlobal((int)bufferSize);
 
                 try
                 {
+                    unsafe
+                    {
                     while (true)
                     {
-                        uint ret = PowerProf.PowerEnumerate(IntPtr.Zero, ref schemeGuid, IntPtr.Zero, PowerProf.ACCESS_SUBGROUP, subIndex, buffer, ref bufferSize);
-                        if (ret == PowerProf.ERROR_NO_MORE_ITEMS) break;
-                        if (ret == PowerProf.ERROR_SUCCESS)
+                        var ret = PInvoke.PowerEnumerate(null, schemeGuid, null, POWER_DATA_ACCESSOR.ACCESS_SUBGROUP, subIndex, (byte*)buffer, ref bufferSize);
+                        if (ret == WIN32_ERROR.ERROR_NO_MORE_ITEMS) break;
+                        if (ret == WIN32_ERROR.ERROR_SUCCESS)
                         {
                             var subBytes = new byte[16];
                             Marshal.Copy(buffer, subBytes, 0, 16);
                             var subGuid = new Guid(subBytes);
 
-                            // Enumerate Settings in Subgroup
                             uint setIndex = 0;
                             uint setBufferSize = 16;
                             IntPtr setBuffer = Marshal.AllocHGlobal((int)setBufferSize);
@@ -250,9 +338,9 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
                             {
                                 while (true)
                                 {
-                                    uint setRet = PowerProf.PowerEnumerate(IntPtr.Zero, ref schemeGuid, ref subGuid, PowerProf.ACCESS_INDIVIDUAL_SETTING, setIndex, setBuffer, ref setBufferSize);
-                                    if (setRet == PowerProf.ERROR_NO_MORE_ITEMS) break;
-                                    if (setRet == PowerProf.ERROR_SUCCESS)
+                                    var setRet = PInvoke.PowerEnumerate(null, schemeGuid, subGuid, POWER_DATA_ACCESSOR.ACCESS_INDIVIDUAL_SETTING, setIndex, (byte*)setBuffer, ref setBufferSize);
+                                    if (setRet == WIN32_ERROR.ERROR_NO_MORE_ITEMS) break;
+                                    if (setRet == WIN32_ERROR.ERROR_SUCCESS)
                                     {
                                         var setBytes = new byte[16];
                                         Marshal.Copy(setBuffer, setBytes, 0, 16);
@@ -261,10 +349,10 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
                                         uint acIndex, dcIndex;
                                         int? ac = null, dc = null;
 
-                                        if (PowerProf.PowerReadACValueIndex(IntPtr.Zero, ref schemeGuid, ref subGuid, ref setGuid, out acIndex) == PowerProf.ERROR_SUCCESS)
+                                        if (PInvoke.PowerReadACValueIndex(null, schemeGuid, subGuid, setGuid, out acIndex) == WIN32_ERROR.ERROR_SUCCESS)
                                             ac = (int)acIndex;
 
-                                        if (PowerProf.PowerReadDCValueIndex(IntPtr.Zero, ref schemeGuid, ref subGuid, ref setGuid, out dcIndex) == PowerProf.ERROR_SUCCESS)
+                                        if (PInvoke.PowerReadDCValueIndex(null, schemeGuid, subGuid, setGuid, out dcIndex) == (uint)WIN32_ERROR.ERROR_SUCCESS)
                                             dc = (int)dcIndex;
 
                                         if (ac.HasValue || dc.HasValue)
@@ -284,6 +372,7 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
                         subIndex++;
                         bufferSize = 16;
                     }
+                    }
                 }
                 finally
                 {
@@ -296,19 +385,19 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
         catch (Exception ex)
         {
             logService.Log(LogLevel.Error, $"Error in GetAllPowerSettingsACDCAsync: {ex.Message}");
-            return new Dictionary<string, (int?, int?)>();
+            return new Dictionary<string, (int?, int?)>(StringComparer.OrdinalIgnoreCase);
         }
     }
 
-    private async Task<(int? minValue, int? maxValue)> GetPowerSettingCapabilitiesAsync(PowerCfgSetting powerCfgSetting)
+    private async Task<(int? minValue, int? maxValue)> GetPowerSettingCapabilitiesAsync(string subgroupGuid, string settingGuid)
     {
-        var cacheKey = powerCfgSetting.SettingGuid;
+        var cacheKey = settingGuid;
 
         lock (_cacheLock)
         {
             if (_capabilityCache.TryGetValue(cacheKey, out var cached))
             {
-                logService.Log(LogLevel.Debug, $"Using cached capabilities for {powerCfgSetting.SettingGUIDAlias ?? cacheKey}");
+                logService.Log(LogLevel.Debug, $"Using cached capabilities for {cacheKey}");
                 return cached;
             }
         }
@@ -317,15 +406,15 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
         {
             var capabilities = await Task.Run(() =>
             {
-                var subGuid = Guid.Parse(powerCfgSetting.SubgroupGuid);
-                var setGuid = Guid.Parse(powerCfgSetting.SettingGuid);
+                var subGuid = Guid.Parse(subgroupGuid);
+                var setGuid = Guid.Parse(settingGuid);
 
                 int? min = null, max = null;
 
-                if (PowerProf.PowerReadValueMin(IntPtr.Zero, ref subGuid, ref setGuid, out uint minVal) == PowerProf.ERROR_SUCCESS)
+                if (PInvoke.PowerReadValueMin(null, subGuid, setGuid, out uint minVal) == WIN32_ERROR.ERROR_SUCCESS)
                     min = (int)minVal;
 
-                if (PowerProf.PowerReadValueMax(IntPtr.Zero, ref subGuid, ref setGuid, out uint maxVal) == PowerProf.ERROR_SUCCESS)
+                if (PInvoke.PowerReadValueMax(null, subGuid, setGuid, out uint maxVal) == WIN32_ERROR.ERROR_SUCCESS)
                     max = (int)maxVal;
 
                 return (min, max);
@@ -337,28 +426,28 @@ public class PowerSettingsQueryService(ILogService logService) : IPowerSettingsQ
             }
 
             logService.Log(LogLevel.Info,
-                $"Power setting '{powerCfgSetting.SettingGUIDAlias ?? cacheKey}' capabilities: Min={capabilities.min}, Max={capabilities.max}");
+                $"Power setting '{cacheKey}' capabilities: Min={capabilities.min}, Max={capabilities.max}");
 
             return capabilities;
         }
         catch (Exception ex)
         {
             logService.Log(LogLevel.Error,
-                $"Error querying capabilities for {powerCfgSetting.SettingGuid}: {ex.Message}");
+                $"Error querying capabilities for {cacheKey}: {ex.Message}");
             return (null, null);
         }
     }
 
-    public async Task<bool> IsSettingHardwareControlledAsync(PowerCfgSetting powerCfgSetting)
+    public async Task<bool> IsSettingHardwareControlledAsync(string subgroupGuid, string settingGuid)
     {
-        var (minValue, maxValue) = await GetPowerSettingCapabilitiesAsync(powerCfgSetting).ConfigureAwait(false);
+        var (minValue, maxValue) = await GetPowerSettingCapabilitiesAsync(subgroupGuid, settingGuid).ConfigureAwait(false);
 
         bool isHardwareControlled = minValue == 0 && maxValue == 0;
 
         if (isHardwareControlled)
         {
             logService.Log(LogLevel.Info,
-                $"Setting '{powerCfgSetting.SettingGUIDAlias ?? powerCfgSetting.SettingGuid}' is hardware-controlled (Min=0, Max=0)");
+                $"Setting '{settingGuid}' is hardware-controlled (Min=0, Max=0)");
         }
 
         return isHardwareControlled;

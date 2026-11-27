@@ -1,20 +1,45 @@
+using Winhance.Core.Features.Common.Helpers;
+
 namespace Winhance.Core.Features.Common.Constants;
 
 public static class ScriptPaths
 {
-    public static readonly string ScriptsDirectory = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-        "Winhance", "Scripts");
+    public static readonly string ScriptsDirectory = Path.Combine(AppDataPaths.InstalledMachineRoot, "Scripts");
 
-    /// <summary>Literal path for embedding in generated PowerShell scripts.</summary>
     public const string ScriptsDirectoryLiteral = @"C:\ProgramData\Winhance\Scripts";
 
-    /// <summary>Literal path for embedding in generated PowerShell scripts.</summary>
+    public const string TaskFolder = @"\Winhance";
+
+    // Edge removal always leaves this folder and its AtLogon task behind; reinstalling Edge deletes both.
+    public const string OpenWebSearchTaskName = "OpenWebSearchRepair";
+
+    public const string OpenWebSearchDirectoryLiteral = @"C:\ProgramData\Winhance\OpenWebSearch";
+
     public const string LogsDirectoryLiteral = @"C:\ProgramData\Winhance\Logs";
 
-    /// <summary>Literal path for embedding in generated PowerShell scripts.</summary>
-    public const string UnattendScriptPath = @"C:\ProgramData\Winhance\Unattend\Scripts\Winhancements.ps1";
+    public const string AutounattendScriptPath = @"C:\ProgramData\Winhance\Unattend\Scripts\Winhancements.ps1";
 
-    /// <summary>Literal path for embedding in generated PowerShell scripts.</summary>
-    public const string PowerShellExePath = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
+    // WIMUtil stages these under the media's sources\$OEM$\$1, which Setup copies to the same paths on C:.
+    public const string UnattendAppsDirectory = @"C:\ProgramData\Winhance\Unattend\Apps";
+
+    public const string UnattendUpdatesDirectory = @"C:\ProgramData\Winhance\Unattend\Updates";
+
+    // The offline build records the exact removal plan in SOFTWARE; setup skips only the matching work.
+    public const string UnattendAppsRemovedValue = "AppsRemovedInImage";
+
+    public const string LegacyUnattendAppsRemovedMarker = @"C:\ProgramData\Winhance\Unattend\AppsRemovedInImage";
+
+    // DISM finds a target update's checkpoints in the folder it sits in, so the folder holds that update's .msu files and nothing else.
+    public const string UnattendUpdatesMediaDirectory = @"sources\$OEM$\$1\ProgramData\Winhance\Unattend\Updates";
+
+    public const string UnattendOwnInstallersDirectory = @"C:\ProgramData\Winhance\Unattend\Apps\Custom";
+
+    public const string UnattendUserScriptsDirectory = @"C:\ProgramData\Winhance\Unattend\Scripts\Custom";
+
+    public const string UnattendComputerNameScriptPath = @"C:\ProgramData\Winhance\Unattend\Scripts\SetComputerName.ps1";
+
+    // The answer file sets KeepStagedInstallers=1 here when the user chose to keep the installers after they run.
+    public const string UnattendSettingsKey = @"HKEY_LOCAL_MACHINE\SOFTWARE\Winhance";
+
+    public const string UnattendWinhanceInstallerPath = @"C:\ProgramData\Winhance\Unattend\Winhance.Installer.exe";
 }

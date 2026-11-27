@@ -1,16 +1,14 @@
-using System;
 using System.Text;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Extensions;
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-/// <summary>
-/// Writes the user-facing change receipt to C:\ProgramData\Winhance\ChangeHistory.txt.
-/// Append-only, localized at write time, UTF-8 with BOM, CRLF. Never throws —
-/// a failed receipt write must never block the actual operation.
-/// </summary>
-public class ChangeHistoryService(
+// <data root>\ChangeHistory.txt; append-only, localized at write time, UTF-8 with BOM, CRLF.
+// Never throws - a failed receipt must never block the operation.
+internal class ChangeHistoryService(
     IFileSystemService fileSystemService,
     ILocalizationService localizationService,
     ILogService logService) : IChangeHistoryService
@@ -21,13 +19,14 @@ public class ChangeHistoryService(
     private int _batchDepth;
     private string? _pendingBatchHeader;
 
-    private static string FilePath => System.IO.Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-        "Winhance",
-        "ChangeHistory.txt");
+    private static string FilePath => System.IO.Path.Combine(AppDataPaths.MachineRoot, "ChangeHistory.txt");
 
-    public void LogSettingChange(string displayName, string? localizedGroupName, string before, string after) =>
-        WriteEntry(FormatSettingLabel(displayName, localizedGroupName) + $": {before} → {after}");
+    public void LogSettingChange(string displayName, string? localizedGroupName, string before, string after)
+    {
+        var label = FormatSettingLabel(displayName, localizedGroupName);
+        WriteEntry(localizationService.GetStringOrDefault(
+            "ChangeHistory_SettingChanged", $"{label}: {before} → {after}", label, before, after));
+    }
 
     public void LogSettingAction(string displayName, string? localizedGroupName) =>
         WriteEntry(FormatSettingLabel(displayName, localizedGroupName));
@@ -36,15 +35,19 @@ public class ChangeHistoryService(
     {
         try
         {
-            var key = kind == AppChangeKind.Installed ? "ChangeHistory_AppInstalled" : "ChangeHistory_AppRemoved";
-            var template = localizationService.GetString(key);
-            if (string.IsNullOrEmpty(template))
-                template = kind == AppChangeKind.Installed ? "App installed" : "App removed";
-            WriteEntry($"{template}: {appDisplayName}");
+            // The separator between label and name lives in the template, not here: French wants a space
+            // before the colon and CJK a fullwidth one, and no translation can correct a colon baked into C#.
+            var (key, fallback) = kind switch
+            {
+                AppChangeKind.Removed => ("ChangeHistory_AppRemoved", $"App removed: {appDisplayName}"),
+                AppChangeKind.EnableStarted => ("ChangeHistory_AppEnableStarted", $"Enable started for {appDisplayName} in a separate window; success can only be determined there"),
+                _ => ("ChangeHistory_AppInstalled", $"App installed: {appDisplayName}"),
+            };
+            WriteEntry(localizationService.GetStringOrDefault(key, fallback, appDisplayName));
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Warning, $"[ChangeHistoryService] Failed to write entry: {ex.Message}");
+            logService.Log(LogLevel.Warning, $"Failed to write entry: {ex.Message}");
         }
     }
 
@@ -69,7 +72,7 @@ public class ChangeHistoryService(
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Warning, $"[ChangeHistoryService] Failed to create history file: {ex.Message}");
+                logService.Log(LogLevel.Warning, $"Failed to create history file: {ex.Message}");
             }
         }
         return FilePath;
@@ -99,7 +102,7 @@ public class ChangeHistoryService(
             }
             catch (Exception ex)
             {
-                logService.Log(LogLevel.Warning, $"[ChangeHistoryService] Failed to write entry: {ex.Message}");
+                logService.Log(LogLevel.Warning, $"Failed to write entry: {ex.Message}");
             }
         }
     }
@@ -113,9 +116,7 @@ public class ChangeHistoryService(
         if (!fileSystemService.DirectoryExists(directory))
             fileSystemService.CreateDirectory(directory);
 
-        var header = localizationService.GetString("ChangeHistory_FileHeader");
-        if (string.IsNullOrEmpty(header))
-            header = "Changes made by Winhance are listed below (newest at the bottom).";
+        var header = localizationService.GetStringOrDefault("ChangeHistory_FileHeader", "Changes made by Winhance are listed below (newest at the bottom).");
         // Use AppendAllText with Utf8Bom so the file is created with the BOM preamble.
         // File.WriteAllText (the 2-arg overload) writes UTF-8 without BOM; AppendAllText
         // with UTF8Encoding(true) writes the BOM on the first call when the file is new.

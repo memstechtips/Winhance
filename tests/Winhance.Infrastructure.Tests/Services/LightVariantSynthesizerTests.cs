@@ -63,18 +63,17 @@ public class LightVariantSynthesizerTests
         // on a much larger dark-grey background. Mean saturation across the
         // whole image is well below 0.15 (the grey area dilutes it), but the
         // yellow pixels are unmistakably colored and the icon must not be
-        // recolored. The count-based check catches this where the mean check
-        // didn't.
+        // recolored; the count-based check catches this.
         //
         // 20×20 image: ~20% of opaque pixels are saturated yellow, the rest
-        // are dark grey. Total opaque saturation mean ≈ 0.10 (below the old
-        // 0.15 mean threshold), but the yellow count is way above 5% of opaque.
+        // are dark grey. Total opaque saturation mean ≈ 0.10, but the yellow
+        // count is way above 5% of opaque.
         var input = await PngTestHelper.MakePngAsync(20, 20, (x, y) =>
         {
             bool isYellowShape = x >= 8 && x < 16 && y >= 8 && y < 12;
             return isYellowShape
                 ? ((byte)0x00, (byte)0xE0, (byte)0xE0, (byte)0xFF)   // BGR: yellow (R=0xE0, G=0xE0, B=0x00)
-                : ((byte)0x40, (byte)0x40, (byte)0x40, (byte)0xFF);  // dark grey
+                : ((byte)0x40, (byte)0x40, (byte)0x40, (byte)0xFF);
         });
 
         var (light, dark) = await LightVariantSynthesizer.TryGenerateAsync(input, CancellationToken.None);
@@ -95,7 +94,7 @@ public class LightVariantSynthesizerTests
         {
             if ((x == 0 && y == 0) || (x == 7 && y == 7))
                 return ((byte)0x00, (byte)0x00, (byte)0xFF, (byte)0xFF); // BGR: red noise
-            return ((byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF);     // white
+            return ((byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF);
         });
 
         var (light, dark) = await LightVariantSynthesizer.TryGenerateAsync(input, CancellationToken.None);
@@ -118,8 +117,8 @@ public class LightVariantSynthesizerTests
         // is 0%, well under the 5% solid-block ceiling.
         var input = await PngTestHelper.MakePngAsync(10, 10, (x, y) =>
             x < 7
-                ? ((byte)0x20, (byte)0x20, (byte)0x20, (byte)0xFF)   // dark
-                : ((byte)0xE0, (byte)0xE0, (byte)0xE0, (byte)0xFF)); // light
+                ? ((byte)0x20, (byte)0x20, (byte)0x20, (byte)0xFF)
+                : ((byte)0xE0, (byte)0xE0, (byte)0xE0, (byte)0xFF));
 
         var (light, dark) = await LightVariantSynthesizer.TryGenerateAsync(input, CancellationToken.None);
 
@@ -147,10 +146,10 @@ public class LightVariantSynthesizerTests
         var input = await PngTestHelper.MakePngAsync(12, 12, (x, y) =>
         {
             bool inBlock = x >= 3 && x < 9 && y >= 3 && y < 9;
-            if (!inBlock) return ((byte)0, (byte)0, (byte)0, (byte)0); // transparent
+            if (!inBlock) return ((byte)0, (byte)0, (byte)0, (byte)0);
             return y < 7
-                ? ((byte)0x20, (byte)0x20, (byte)0x20, (byte)0xFF)    // dark (rows 3-6)
-                : ((byte)0xE0, (byte)0xE0, (byte)0xE0, (byte)0xFF);   // light (rows 7-8)
+                ? ((byte)0x20, (byte)0x20, (byte)0x20, (byte)0xFF)
+                : ((byte)0xE0, (byte)0xE0, (byte)0xE0, (byte)0xFF);
         });
 
         var (light, dark) = await LightVariantSynthesizer.TryGenerateAsync(input, CancellationToken.None);
@@ -170,8 +169,8 @@ public class LightVariantSynthesizerTests
         {
             bool isHighlight = y == 0 && x < 6;
             return isHighlight
-                ? ((byte)0xF0, (byte)0xF0, (byte)0xF0, (byte)0xFF)   // light highlight
-                : ((byte)0x33, (byte)0x33, (byte)0x33, (byte)0xFF);  // dark body
+                ? ((byte)0xF0, (byte)0xF0, (byte)0xF0, (byte)0xFF)
+                : ((byte)0x33, (byte)0x33, (byte)0x33, (byte)0xFF);
         });
 
         var (light, dark) = await LightVariantSynthesizer.TryGenerateAsync(input, CancellationToken.None);

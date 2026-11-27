@@ -1,0 +1,1110 @@
+﻿using FluentAssertions;
+using Microsoft.Win32;
+using Moq;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.TechnicalDetails;
+using Xunit;
+using Winhance.TestSupport;
+
+using Winhance.Core.Features.Common.Localization;
+namespace Winhance.Core.Tests.TechnicalDetails;
+
+public class TechnicalDetailsBuilderTests
+{
+    private static readonly WinBuild Build = new(26100);
+
+    // Returns the key itself, so an assertion can prove which key produced a string.
+    private static ILocalizationService Loc()
+    {
+        var mock = new Mock<ILocalizationService>();
+        mock.Setup(l => l.GetString(It.IsAny<string>())).Returns((string k) => k);
+        mock.MirrorTryGetString();
+        return mock.Object;
+    }
+
+    // No-setup mock: TryGetString reports every key missing, so every lookup falls back to its English default.
+    private static ILocalizationService FallbackLoc() => new Mock<ILocalizationService>().Object;
+
+    private static Display Show(string name = "Test") => new() { Name = TestKeys.Of(name), Description = TestKeys.Of("d") };
+
+    private static SettingStateSnapshot Snap(
+        InputType inputType = InputType.Toggle,
+        bool isSelected = false,
+        int? selectedIndex = null,
+        params string[] optionLabels) => new()
+    {
+        InputType = inputType,
+        IsSelected = isSelected,
+        SelectedIndex = selectedIndex,
+        Options = optionLabels.Select(l => new ComboBoxDisplayOption(l, 0)).ToList(),
+    };
+
+    // Scheduled tasks — the catalog authors Of(true)/Of(false), so DeleteOnWrite is false for BOTH
+    // states. Reading DeleteOnWrite made every task setting report "On" for current/recommended/default.
+
+    private static Setting TaskSetting() => new()
+    {
+        Id = "task-setting",
+        Display = Show(),
+        Targets = [new TaskTarget("Task", @"\Microsoft\Windows\Foo\Bar")],
+        States =
+        [
+            new SettingState
+            {
+                Label = LocKey.Common.Enabled,
+                Roles = [StateRole.WindowsDefault],
+                Set = new Dictionary<string, StateValue> { ["Task"] = StateValue.Of(true) },
+            },
+            new SettingState
+            {
+                Label = LocKey.Common.Disabled,
+                Roles = [StateRole.Recommended],
+                Set = new Dictionary<string, StateValue> { ["Task"] = StateValue.Of(false) },
+            },
+        ],
+    };
+
+    // Script labels — a Selection whose states aren't literally named "Enabled"/"Disabled" used to
+    // render every script block as "On Enable" because the label was matched against English text.
+
+    private static Setting ThreeStateScriptSetting() => new()
+    {
+        Id = "service-setting",
+        Display = Show(),
+        Targets = [new RegTarget("Start", [@"HKEY_LOCAL_MACHINE\SYSTEM\Svc"], "Start", RegistryValueKind.DWord)],
+        States =
+        [
+            new SettingState
+            {
+                Label = TestKeys.Of("ServiceOption_DisabledRecommended"),
+                Roles = [StateRole.Recommended],
+                Effects = [new ScriptEffect("disable-script", RunContext.System)],
+                Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(4) },
+            },
+            new SettingState
+            {
+                Label = TestKeys.Of("ServiceOption_Manual"),
+                Roles = [StateRole.WindowsDefault],
+                Effects = [new ScriptEffect("manual-script", RunContext.System)],
+                Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(3) },
+            },
+            new SettingState
+            {
+                Label = TestKeys.Of("ServiceOption_Automatic"),
+                Effects = [new ScriptEffect("auto-script", RunContext.System)],
+                Set = new Dictionary<string, StateValue> { ["Start"] = StateValue.Of(2) },
+            },
+        ],
+    };
+
+    [Fact]
+    public void ScriptRows_AreLabelledByTheirOwnOption_NotAllOnEnable()
+    {
+        var snapshot = Snap(InputType.Selection, selectedIndex: 0,
+            optionLabels: ["Disabled (Recommended)", "Manual", "Automatic"]);
+
+        var sections = TechnicalDetailsBuilder.Build(ThreeStateScriptSetting(), snapshot, FallbackLoc(), Build);
+
+        var labels = MatrixOf(sections).CodeBlocks.Select(b => b.Label).ToList();
+        labels.Should().Equal(
+            "When set to Disabled (Recommended)",
+            "When set to Manual",
+            "When set to Automatic");
+        labels.Should().OnlyHaveUniqueItems();
+    }
+
+    private static Setting AnswerFileScriptSetting() => new()
+    {
+        Id = "answer-file-script-setting",
+        Display = Show(),
+        States =
+        [
+            new SettingState
+            {
+                Label = TestKeys.Of("ServiceOption_Manual"),
+                Roles = [StateRole.WindowsDefault],
+                Effects =
+                [
+                    new ScriptEffect("no-apps-script", RunContext.System) { When = AppsToInstall.None },
+                    new ScriptEffect("apps-script", RunContext.System) { When = AppsToInstall.Some },
+                ],
+            },
+            new SettingState
+            {
+                Label = TestKeys.Of("ServiceOption_Automatic"),
+                Effects = [new ScriptEffect("sign-in-script", RunContext.SignInAfterSetup)],
+            },
+        ],
+    };
+
+    [Fact]
+    public void ScriptRows_SayWhichAnswerFilesRunThemAndWhen()
+    {
+        var snapshot = Snap(InputType.Selection, selectedIndex: 0, optionLabels: ["Manual", "Automatic"]);
+
+        var sections = TechnicalDetailsBuilder.Build(AnswerFileScriptSetting(), snapshot, FallbackLoc(), Build);
+
+        MatrixOf(sections).CodeBlocks.Select(b => b.Label).Should().Equal(
+            "When set to Manual, if the answer file installs no apps",
+            "When set to Manual, if the answer file installs apps",
+            "When set to Automatic, at the first sign-in after Setup restarts");
+    }
+
+    [Fact]
+    public void ScriptRows_CarryTheirOwnBody()
+    {
+        var snapshot = Snap(InputType.Selection, selectedIndex: 0,
+            optionLabels: ["Disabled (Recommended)", "Manual", "Automatic"]);
+
+        var sections = TechnicalDetailsBuilder.Build(ThreeStateScriptSetting(), snapshot, FallbackLoc(), Build);
+
+        var blocks = MatrixOf(sections).CodeBlocks;
+        blocks.Select(b => b.Body).Should().Equal("disable-script", "manual-script", "auto-script");
+        blocks.Should().OnlyContain(b => b.Kind == CodeKind.PowerShell);
+    }
+
+    private static Setting TwoKeySelection() => new()
+    {
+        Id = "uac",
+        Display = Show(),
+        Targets =
+        [
+            new RegTarget("Consent", [@"HKEY_LOCAL_MACHINE\SOFTWARE\Policies"], "ConsentPromptBehaviorAdmin", RegistryValueKind.DWord),
+            new RegTarget("Secure", [@"HKEY_LOCAL_MACHINE\SOFTWARE\Policies"], "PromptOnSecureDesktop", RegistryValueKind.DWord),
+        ],
+        States =
+        [
+            new SettingState
+            {
+                Label = TestKeys.Of("NotifyDim"),
+                Roles = [StateRole.WindowsDefault],
+                Set = new Dictionary<string, StateValue> { ["Consent"] = StateValue.Of(5), ["Secure"] = StateValue.Of(1) },
+            },
+            new SettingState
+            {
+                Label = TestKeys.Of("NeverNotify"),
+                Roles = [StateRole.Recommended],
+                Set = new Dictionary<string, StateValue> { ["Consent"] = StateValue.Of(0), ["Secure"] = StateValue.Of(0) },
+            },
+        ],
+    };
+
+    // .reg-driven settings — the RegTarget is a detection probe, not the change
+
+    private static Setting RegContentSetting() => new()
+    {
+        Id = "take-ownership",
+        Display = Show(),
+        Targets = [new RegTarget("K", [@"HKEY_CLASSES_ROOT\*\shell\TakeOwnership"], "", RegistryValueKind.String)],
+        States =
+        [
+            new SettingState
+            {
+                Label = LocKey.Common.Enabled,
+                Roles = [StateRole.Recommended],
+                Effects = [new RegContentEffect("Windows Registry Editor Version 5.00\n\n[HKEY_CLASSES_ROOT\\*\\shell\\TakeOwnership]\n@=\"Take Ownership\"")],
+                Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of("Take Ownership") },
+            },
+            new SettingState
+            {
+                Label = LocKey.Common.Disabled,
+                Roles = [StateRole.WindowsDefault],
+                Effects = [new RegContentEffect("Windows Registry Editor Version 5.00\n\n[-HKEY_CLASSES_ROOT\\*\\shell\\TakeOwnership]")],
+                Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Absent },
+            },
+        ],
+    };
+
+    [Fact]
+    public void RegContentPayloads_AreLabelledByOptionAndTaggedAsRegFiles()
+    {
+        var sections = TechnicalDetailsBuilder.Build(RegContentSetting(), Snap(isSelected: true), FallbackLoc(), Build);
+
+        var code = MatrixOf(sections).CodeBlocks;
+        code.Should().HaveCount(2);
+        code.Should().OnlyContain(b => b.Kind == CodeKind.RegFile);
+        code.Select(b => b.Label).Should().Equal("When set to On", "When set to Off");
+    }
+
+    // The card skips the redraw when a refresh yields an equal matrix, so equal state must give an equal matrix.
+    [Fact]
+    public void Build_SameStateTwice_GivesEqualMatrices()
+    {
+        var first = TechnicalDetailsBuilder.Build(RegContentSetting(), Snap(isSelected: true), FallbackLoc(), Build);
+        var second = TechnicalDetailsBuilder.Build(RegContentSetting(), Snap(isSelected: true), FallbackLoc(), Build);
+        var changed = TechnicalDetailsBuilder.Build(RegContentSetting(), Snap(isSelected: false), FallbackLoc(), Build);
+
+        second.Should().Be(first);
+        second!.GetHashCode().Should().Be(first!.GetHashCode());
+        changed.Should().NotBe(first);
+    }
+
+    private static OptionMatrix MatrixOf(OptionMatrix? matrix) =>
+        matrix.Should().NotBeNull().And.Subject.As<OptionMatrix>();
+
+    private static Setting AnswerFileToggle() => new()
+    {
+        Id = "setup-hide-eula",
+        Display = Show(),
+        Targets = [new AutounattendElement("Eula", "oobeSystem", "Microsoft-Windows-Shell-Setup", "OOBE/HideEULAPage")],
+        States =
+        [
+            new SettingState
+            {
+                Label = LocKey.Common.Enabled,
+                Roles = [StateRole.WindowsDefault],
+                Set = new Dictionary<string, StateValue> { ["Eula"] = StateValue.Absent },
+            },
+            new SettingState
+            {
+                Label = LocKey.Common.Disabled,
+                Set = new Dictionary<string, StateValue> { ["Eula"] = StateValue.Of("true") },
+                Effects = [new AutounattendCommand("specialize", "Microsoft-Windows-Deployment", "cmd.exe /c echo hidden")],
+            },
+        ],
+    };
+
+    [Fact]
+    public void Build_AnswerFileToggle_DocumentsItsElementAndWhatEachOptionWrites()
+    {
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(AnswerFileToggle(), Snap(), FallbackLoc(), Build));
+
+        var group = matrix.Groups.Should().ContainSingle().Which;
+        group.Kind.Should().Be(MatrixGroupKind.AnswerFile);
+        group.Paths.Select(p => p.Full).Should().Equal(
+            "oobeSystem", "Microsoft-Windows-Shell-Setup", "OOBE/HideEULAPage");
+        matrix.Columns.Should().ContainSingle().Which.Header.Should().Be("HideEULAPage");
+        matrix.Options[0].Cells.Should().ContainSingle().Which.Text.Should().Be("Not written");
+        matrix.Options[1].Cells.Should().ContainSingle().Which.Text.Should().Be("true");
+    }
+
+    [Fact]
+    public void Build_SetupCommands_RenderAsCodeBlocksLabelledByOption()
+    {
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(AnswerFileToggle(), Snap(), FallbackLoc(), Build));
+
+        var block = matrix.CodeBlocks.Should().ContainSingle().Which;
+        block.Kind.Should().Be(CodeKind.SetupCommand);
+        block.Body.Should().Be("cmd.exe /c echo hidden");
+        block.Label.Should().Be("When set to Off");
+    }
+
+    private static Setting TextSetting() => new()
+    {
+        Id = "setup-computer-name",
+        Display = Show(),
+        Targets = [new AutounattendElement("Name", "specialize", "Microsoft-Windows-Shell-Setup", "ComputerName")],
+        TextBox = new(new TextRule("^[A-Za-z0-9-]{1,15}$", UpperCase: false, TestKeys.Of("Up to 15 letters, digits or hyphens.")), "PC-01"),
+    };
+
+    [Fact]
+    public void Build_TextSetting_DocumentsTheRuleAndItsDefault()
+    {
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(TextSetting(), Snap(), FallbackLoc(), Build));
+
+        matrix.Groups.Should().ContainSingle().Which.Kind.Should().Be(MatrixGroupKind.AnswerFile);
+        matrix.Columns.Should().ContainSingle().Which.Header.Should().Be("ComputerName");
+        matrix.Options.Select(o => o.Label).Should().Equal("Allowed form", "Default");
+        matrix.Options[0].Cells.Should().ContainSingle().Which.Text.Should().Be("^[A-Za-z0-9-]{1,15}$");
+        matrix.Options[1].Cells.Should().ContainSingle().Which.Text.Should().Be("PC-01");
+        matrix.SettingDescription.Should().BeEmpty("a text box has no option to select");
+    }
+
+    [Fact]
+    public void Build_TextSettingWithNoDefault_LeavesThatCellEmpty()
+    {
+        var setting = TextSetting() with { TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything."))) };
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(setting, Snap(), FallbackLoc(), Build));
+
+        matrix.Options[1].Cells.Should().ContainSingle().Which.Text.Should().BeEmpty();
+    }
+
+    private static Setting ListSetting() => new()
+    {
+        Id = "setup-accounts",
+        Display = Show(),
+        Targets = [new AutounattendElement("Accounts", "oobeSystem", "Microsoft-Windows-Shell-Setup", "UserAccounts/LocalAccounts")],
+        List = new(
+        [
+            new Field("name", FieldKind.Text, TestKeys.Of("Account name"), Rule: new TextRule("^[A-Za-z0-9-]{1,20}$", UpperCase: false, TestKeys.Of("Up to 20 characters."))),
+            new Field("group", FieldKind.Selection, TestKeys.Of("Group"), Options: [TestKeys.Of("Administrators"), TestKeys.Of("Users")]),
+            new Field("password", FieldKind.Password, TestKeys.Of("Password")),
+        ]),
+    };
+
+    [Fact]
+    public void Build_ListSetting_DocumentsTheFieldsItOffers()
+    {
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(ListSetting(), Snap(), FallbackLoc(), Build));
+
+        matrix.Groups.Should().ContainSingle().Which.Kind.Should().Be(MatrixGroupKind.AnswerFile);
+        matrix.Columns.Should().ContainSingle().Which.Header.Should().Be("LocalAccounts");
+        matrix.Options.Select(o => o.Label).Should().Equal("Account name", "Group", "Password");
+        matrix.Options[0].Cells.Should().ContainSingle().Which.Text.Should().Be("name (Text): ^[A-Za-z0-9-]{1,20}$");
+        matrix.Options[1].Cells.Should().ContainSingle().Which.Text.Should().Be("group (Selection)");
+        matrix.SettingDescription.Should().BeEmpty("a table has no option to select");
+    }
+
+    private static Setting AlbumSetting() => new()
+    {
+        Id = "theme-wallpaper-album",
+        Display = Show(),
+        TextBox = new(new TextRule("^.{1,}$", UpperCase: false, TestKeys.Of("A folder.")), Picker: PickerKind.Folder),
+        Targets = [new DesktopSlideshowTarget("album")],
+        CustomStateScripts = [new ScriptEffect("Set-Slideshow '{{value}}'", RunContext.User)],
+    };
+
+    [Fact]
+    public void Build_SlideshowBox_DocumentsTheTargetTheFolderGoesTo()
+    {
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(AlbumSetting(), Snap(), FallbackLoc(), Build));
+
+        var column = matrix.Columns.Should().ContainSingle().Which;
+        column.Header.Should().Be("album");
+        column.Chips.Select(c => c.Text).Should().ContainSingle()
+            .Which.Should().Be("applied through the desktop slideshow");
+        matrix.Groups.Should().ContainSingle().Which.Kind.Should().Be(MatrixGroupKind.AlsoRuns);
+    }
+
+    [Fact]
+    public void Build_SlideshowBox_DocumentsTheScriptThatRunsOnANewInstall()
+    {
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(AlbumSetting(), Snap(), FallbackLoc(), Build));
+
+        var block = matrix.CodeBlocks.Should().ContainSingle().Which;
+        block.Kind.Should().Be(CodeKind.PowerShell);
+        block.Body.Should().Be("Set-Slideshow '{{value}}'");
+        block.Label.Should().Be("On Apply");
+    }
+
+    [Fact]
+    public void Matrix_HasOneColumnPerTarget_NamedAndTyped()
+    {
+        var snapshot = Snap(InputType.Selection, selectedIndex: 1, optionLabels: ["Notify", "Never notify"]);
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(TwoKeySelection(), snapshot, FallbackLoc(), Build));
+
+        matrix.Columns.Select(c => (c.Header, c.TypeName)).Should().Equal(
+            ("ConsentPromptBehaviorAdmin", "DWord"),
+            ("PromptOnSecureDesktop", "DWord"));
+    }
+
+    [Fact]
+    public void Matrix_CellsAreAlignedWithColumns()
+    {
+        var snapshot = Snap(InputType.Selection, selectedIndex: 1, optionLabels: ["Notify", "Never notify"]);
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(TwoKeySelection(), snapshot, FallbackLoc(), Build));
+
+        matrix.Options.Should().HaveCount(2);
+        matrix.Options.Should().OnlyContain(o => o.Cells.Count == matrix.Columns.Count);
+        matrix.Options[0].Cells.Select(c => c.Text).Should().Equal("5", "1");
+        matrix.Options[1].Cells.Select(c => c.Text).Should().Equal("0", "0");
+    }
+
+    [Fact]
+    public void Matrix_MarksCurrentRecommendedAndDefaultOnTheOptionRow()
+    {
+        var snapshot = Snap(InputType.Selection, selectedIndex: 1, optionLabels: ["Notify", "Never notify"]);
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(TwoKeySelection(), snapshot, FallbackLoc(), Build));
+
+        matrix.Options[0].Label.Should().Be("Notify");
+        matrix.Options[0].IsWindowsDefault.Should().BeTrue();
+        matrix.Options[0].IsCurrent.Should().BeFalse();
+
+        matrix.Options[1].Label.Should().Be("Never notify");
+        matrix.Options[1].IsRecommended.Should().BeTrue();
+        matrix.Options[1].IsCurrent.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Matrix_ScalesToASettingWithManyTargets_WithoutTruncating()
+    {
+        var targets = Enumerable.Range(0, 22)
+            .Select(i => new RegTarget($"k{i}", [@"HKEY_LOCAL_MACHINE\SOFTWARE\U"], $"Value{i}", RegistryValueKind.DWord))
+            .Cast<Target>().ToArray();
+        var setting = new Setting
+        {
+            Id = "many-keys",
+            Display = Show(),
+            Targets = targets,
+            States =
+            [
+                new SettingState { Label = TestKeys.Of("A"), Set = targets.ToDictionary(t => t.Key, _ => StateValue.Of(1)) },
+                new SettingState { Label = TestKeys.Of("B"), Set = targets.ToDictionary(t => t.Key, _ => StateValue.Of(2)) },
+            ],
+        };
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(
+            setting, Snap(InputType.Selection, selectedIndex: 0, optionLabels: ["A", "B"]), FallbackLoc(), Build));
+
+        // Every value is present; the view scrolls sideways rather than the model dropping any.
+        matrix.Columns.Should().HaveCount(22);
+        matrix.Options.Should().OnlyContain(o => o.Cells.Count == 22);
+    }
+
+    [Fact]
+    public void ToggleOptions_AreLabelledOnAndOff()
+    {
+        var setting = new Setting
+        {
+            Id = "toggle",
+            Display = Show(),
+            Targets = [new RegTarget("K", [@"HKEY_CURRENT_USER\SOFTWARE\X"], "V", RegistryValueKind.DWord)],
+            States =
+            [
+                new SettingState { Label = LocKey.Common.Enabled, Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) } },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = [StateRole.Recommended],
+                    Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(0) },
+                },
+            ],
+        };
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(setting, Snap(isSelected: false), FallbackLoc(), Build));
+
+        matrix.Options.Select(o => o.Label).Should().Equal("On", "Off");
+        matrix.Options[1].IsCurrent.Should().BeTrue();
+    }
+
+    [Fact]
+    public void TaskSetting_ColumnReadsEnabledOrDisabled_NotTrueFalse()
+    {
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(TaskSetting(), Snap(isSelected: false), FallbackLoc(), Build));
+
+        matrix.Options[0].Cells.Select(c => c.Text).Should().Equal("Enabled");     // On  -> task stays enabled
+        matrix.Options[1].Cells.Select(c => c.Text).Should().Equal("Disabled");    // Off -> task disabled
+        matrix.Options[1].IsCurrent.Should().BeTrue();
+        matrix.Options[1].IsRecommended.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Matrix_FlagsTheOptionsThatAlsoRunAScript()
+    {
+        var snapshot = Snap(InputType.Selection, selectedIndex: 0,
+            optionLabels: ["Disabled (Recommended)", "Manual", "Automatic"]);
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(ThreeStateScriptSetting(), snapshot, FallbackLoc(), Build));
+
+        matrix.Columns.Should().Contain(c => c.Kind == MatrixColumnKind.Script);
+        var scriptColumn = matrix.Columns.Select((c, i) => (c, i)).First(x => x.c.Kind == MatrixColumnKind.Script).i;
+        matrix.Options.Should().OnlyContain(o => o.Cells[scriptColumn].IsCheck);
+    }
+
+    [Fact]
+    public void Reading_IsAbsentWhenDetectionResolvedToAnOption()
+    {
+        var snapshot = Snap(InputType.Selection, selectedIndex: 1, optionLabels: ["Notify", "Never notify"]);
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(TwoKeySelection(), snapshot, FallbackLoc(), Build));
+
+        matrix.HasReading.Should().BeFalse("the current marker already says what is on the system");
+    }
+
+    [Fact]
+    public void Reading_ReportsLiveValuesWhenNoOptionMatched()
+    {
+        var snapshot = Snap(InputType.Selection, optionLabels: ["Notify", "Never notify"]) with
+        {
+            Outcome = SettingDetectionOutcome.Custom,
+            Readings = new Dictionary<string, object>
+            {
+                ["ConsentPromptBehaviorAdmin"] = 3,
+                ["PromptOnSecureDesktop"] = 1,
+            },
+        };
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(TwoKeySelection(), snapshot, FallbackLoc(), Build));
+
+        matrix.HasReading.Should().BeTrue();
+        matrix.ReadingLabel.Should().Be("On your system now (matches no option)");
+        matrix.ReadingCells.Select(c => c.Text).Should().Equal("3", "1");
+        matrix.Options.Should().OnlyContain(o => !o.IsCurrent, "nothing matched, so no option is current");
+    }
+
+    [Fact]
+    public void Reading_SaysSoWhenDetectionCouldNotRead()
+    {
+        var snapshot = Snap(InputType.Selection, optionLabels: ["Notify", "Never notify"]) with
+        {
+            Outcome = SettingDetectionOutcome.Undetermined,
+        };
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(TwoKeySelection(), snapshot, FallbackLoc(), Build));
+
+        matrix.ReadingLabel.Should().Be("Winhance could not read this");
+        matrix.ReadingCells.Select(c => c.Text).Should().Equal("unknown", "unknown");
+    }
+
+    [Fact]
+    public void Group_CarriesTheMechanismAndThePath()
+    {
+        var snapshot = Snap(InputType.Selection, selectedIndex: 0, optionLabels: ["Notify", "Never notify"]);
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(TwoKeySelection(), snapshot, FallbackLoc(), Build));
+
+        var group = matrix.Groups.Should().ContainSingle("both values share one path").Subject;
+        group.Label.Should().Be("Registry", "a reader who doesn't know DWord means registry needs telling");
+        group.Kind.Should().Be(MatrixGroupKind.Registry);
+        group.Paths.Should().ContainSingle().Which.Full.Should().Be(@"HKEY_LOCAL_MACHINE\SOFTWARE\Policies");
+        group.StartColumn.Should().Be(0);
+        group.ColumnSpan.Should().Be(2, "the header spans the columns it owns");
+    }
+
+    [Fact]
+    public void Group_SplitsWhenValuesLiveInDifferentPaths()
+    {
+        var setting = new Setting
+        {
+            Id = "two-hives",
+            Display = Show(),
+            Targets =
+            [
+                new RegTarget("A", [@"HKEY_LOCAL_MACHINE\SYSTEM\Svc"], "Start", RegistryValueKind.DWord),
+                new RegTarget("B", [@"HKEY_CURRENT_USER\Software\X"], "Preload", RegistryValueKind.DWord),
+            ],
+            States =
+            [
+                new SettingState { Label = LocKey.Common.Enabled, Set = new Dictionary<string, StateValue> { ["A"] = StateValue.Of(1), ["B"] = StateValue.Of(1) } },
+                new SettingState { Label = LocKey.Common.Disabled, Set = new Dictionary<string, StateValue> { ["A"] = StateValue.Of(0), ["B"] = StateValue.Of(0) } },
+            ],
+        };
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(setting, Snap(isSelected: true), FallbackLoc(), Build));
+
+        matrix.Groups.Should().HaveCount(2);
+        matrix.Groups.Select(g => g.ColumnSpan).Should().AllBeEquivalentTo(1);
+        matrix.Groups.Select(g => g.Paths[0].Full).Should().Equal(
+            @"HKEY_LOCAL_MACHINE\SYSTEM\Svc", @"HKEY_CURRENT_USER\Software\X");
+    }
+
+    [Fact]
+    public void Column_CarriesItsOwnChips_EachWithATooltip()
+    {
+        var setting = new Setting
+        {
+            Id = "gp",
+            Display = Show(),
+            Targets =
+            [
+                new RegTarget("K", [@"HKEY_CURRENT_USER\SOFTWARE\A", @"HKEY_LOCAL_MACHINE\SOFTWARE\A"], "V", RegistryValueKind.DWord)
+                    { IsGroupPolicy = true },
+            ],
+            States =
+            [
+                new SettingState { Label = LocKey.Common.Enabled, Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) } },
+                new SettingState { Label = LocKey.Common.Disabled, Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(0) } },
+            ],
+        };
+
+        var column = MatrixOf(TechnicalDetailsBuilder.Build(setting, Snap(isSelected: true), FallbackLoc(), Build))
+            .Columns.Should().ContainSingle().Subject;
+
+        column.Chips.Select(c => c.Text).Should().Contain("Group Policy")
+            .And.NotContain("mirrored", "the group header lists both paths now, each with its own button");
+
+        // The mirror is stated by showing the places, not by a chip saying there is more than one.
+        var group = MatrixOf(TechnicalDetailsBuilder.Build(setting, Snap(isSelected: true), FallbackLoc(), Build))
+            .Groups.Should().ContainSingle().Subject;
+        group.Paths.Select(p => p.Full).Should().Equal(
+            @"HKEY_CURRENT_USER\SOFTWARE\A", @"HKEY_LOCAL_MACHINE\SOFTWARE\A");
+        group.Paths.Select(p => p.Display).Should().Equal(@"HKCU\SOFTWARE\A", @"HKLM\SOFTWARE\A");
+        column.Chips.Should().OnlyContain(c => c.Tooltip.Length > 0,
+            "an unexplained chip like \"mirrored\" tells the user nothing on its own");
+    }
+
+    [Fact]
+    public void RegContentSetting_TagsItsRegistryValueAsReadOnlyForDetection()
+    {
+        var column = MatrixOf(TechnicalDetailsBuilder.Build(RegContentSetting(), Snap(isSelected: true), FallbackLoc(), Build))
+            .Columns.Should().ContainSingle(c => c.Kind == MatrixColumnKind.Value).Subject;
+
+        column.Chips.Select(c => c.Text).Should().Contain("read only to detect");
+    }
+
+    [Fact]
+    public void UnnamedRegistryValue_IsShownAsDefaultAndExplained()
+    {
+        // Catalogs author the key's unnamed default value as an EMPTY value name, not null.
+        var column = MatrixOf(TechnicalDetailsBuilder.Build(RegContentSetting(), Snap(isSelected: true), FallbackLoc(), Build))
+            .Columns.Should().ContainSingle(c => c.Kind == MatrixColumnKind.Value).Subject;
+
+        column.Header.Should().Be("(Default)", "an empty header reads as a bug");
+        column.HeaderTooltip.Should().NotBeEmpty("the user needs telling why this value has no name");
+    }
+
+    // A null value name is the key itself: a presence check, or a key whose values the setting's service reads.
+    [Fact]
+    public void KeyLevelTarget_IsShownAsTheKeyAndExplained()
+    {
+        var setting = RegContentSetting() with
+        {
+            Targets = [new RegTarget("K", [@"HKEY_CLASSES_ROOT\*\shell\TakeOwnership"], null, RegistryValueKind.String)],
+        };
+
+        var column = MatrixOf(TechnicalDetailsBuilder.Build(setting, Snap(isSelected: true), FallbackLoc(), Build))
+            .Columns.Should().ContainSingle(c => c.Kind == MatrixColumnKind.Value).Subject;
+
+        column.Header.Should().Be("(Key)");
+        column.HeaderTooltip.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public void TaskSetting_GetsItsOwnGroupNamingTheTask()
+    {
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(TaskSetting(), Snap(isSelected: false), FallbackLoc(), Build));
+
+        var group = matrix.Groups.Should().ContainSingle().Subject;
+        group.Label.Should().Be("Scheduled task");
+        group.Kind.Should().Be(MatrixGroupKind.ScheduledTask, "regedit cannot open a task path");
+        group.CanOpenRegedit.Should().BeFalse("there is no launcher for a scheduled-task path");
+        group.Paths.Should().ContainSingle().Which.Full.Should().Be(@"\Microsoft\Windows\Foo\Bar");
+        matrix.Columns.Should().ContainSingle().Which.Header.Should().Be("Bar", "the leaf name keeps the column narrow");
+    }
+
+    [Fact]
+    public void ScriptAndRegFileGetTheirOwnColumns_NotChipsOnTheOptionName()
+    {
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(RegContentSetting(), Snap(isSelected: true), FallbackLoc(), Build));
+
+        matrix.Columns.Should().Contain(c => c.Kind == MatrixColumnKind.RegFile);
+        matrix.Groups.Should().Contain(g => g.Label == "Also runs");
+
+        var regFileColumn = matrix.Columns.Select((c, i) => (c, i)).First(x => x.c.Kind == MatrixColumnKind.RegFile).i;
+        matrix.Options.Should().OnlyContain(o => o.Cells[regFileColumn].IsCheck,
+            "both On and Off import a .reg file");
+    }
+
+    [Fact]
+    public void SettingWithNoScripts_HasNoAlsoRunsColumns()
+    {
+        var snapshot = Snap(InputType.Selection, selectedIndex: 0, optionLabels: ["Notify", "Never notify"]);
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(TwoKeySelection(), snapshot, FallbackLoc(), Build));
+
+        matrix.Columns.Should().OnlyContain(c => c.Kind == MatrixColumnKind.Value);
+        matrix.Groups.Should().NotContain(g => g.Label == "Also runs");
+    }
+    [Fact]
+    public void NumericPowerSetting_BecomesAMatrixOfTheValuesWorthNaming()
+    {
+        var snapshot = new SettingStateSnapshot
+        {
+            InputType = InputType.NumericRange,
+            SupportsSeparateACDC = true,
+            HasBattery = false,
+            AcNumericValue = 20,
+        };
+
+        var sections = TechnicalDetailsBuilder.Build(PowerNumericSetting(), snapshot, FallbackLoc(), Build);
+        var matrix = MatrixOf(sections);
+
+        // A range has no options, so the rows are the values worth naming: Windows' default, the
+        // recommendation, and what the machine is on. Ordered by value, not by which role found them.
+        matrix.Options.Select(o => o.Label).Should().Equal("10 Minutes", "15 Minutes", "20 Minutes");
+        matrix.Options.Single(o => o.IsWindowsDefault).Label.Should().Be("10 Minutes");
+        matrix.Options.Single(o => o.IsRecommended).Label.Should().Be("15 Minutes");
+        matrix.Options.Single(o => o.IsCurrent).Label.Should().Be("20 Minutes");
+
+        // No battery means one context, so nothing is qualified with "plugged in".
+        matrix.Options.Should().OnlyContain(o =>
+            o.CurrentContext == "" && o.RecommendedContext == "" && o.DefaultContext == "");
+
+        matrix.Columns.Should().ContainSingle().Which.Chips.Select(c => c.Text)
+            .Should().Contain(c => c.Contains("0-999 Minutes"),
+                "the range is the thing to state when there is no list of options");
+    }
+
+    [Fact]
+    public void NumericPowerSetting_SplitsAValueThatDiffersOnBattery()
+    {
+        var snapshot = new SettingStateSnapshot
+        {
+            InputType = InputType.NumericRange,
+            SupportsSeparateACDC = true,
+            HasBattery = true,
+            AcNumericValue = 15,
+            DcNumericValue = 5,
+        };
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(PowerNumericSetting(), snapshot, FallbackLoc(), Build));
+
+        // Recommended is 15 plugged in and 5 on battery, so each row carries its own qualifier
+        // rather than the table growing a column that would repeat the same number down every row.
+        matrix.Options.Single(o => o.Label == "15 Minutes").RecommendedContext.Should().Be("Plugged In");
+        matrix.Options.Single(o => o.Label == "5 Minutes").RecommendedContext.Should().Be("On Battery");
+
+        // Windows' default is 10 plugged in and 5 on battery; 5 is therefore both recommended on
+        // battery and the default there, and is also what the machine is on.
+        matrix.Options.Single(o => o.Label == "5 Minutes").DefaultContext.Should().Be("On Battery");
+        matrix.Options.Single(o => o.Label == "10 Minutes").DefaultContext.Should().Be("Plugged In");
+
+        // Two rows can be current at once: one for each context.
+        matrix.Options.Where(o => o.IsCurrent).Select(o => o.Label)
+            .Should().BeEquivalentTo(["15 Minutes", "5 Minutes"]);
+    }
+
+    private static Setting PowerNumericSetting() => new()
+    {
+        Id = "power-display",
+        Display = Show(),
+        Targets = [new PowerCfgTarget("P", "sub-guid", "set-guid", PowerModeSupport.Separate) { Units = "Seconds" }],
+        Numeric = new Numeric
+        {
+            Min = 0,
+            Max = 999,
+            Units = "Minutes",
+            Recommended = [new ContextValue(PowerContext.AC, 15), new ContextValue(PowerContext.DC, 5)],
+            WindowsDefault = [new ContextValue(PowerContext.AC, 10), new ContextValue(PowerContext.DC, 5)],
+        },
+    };
+
+    [Fact]
+    public void Build_WithNoSetting_ReturnsNothing()
+    {
+        TechnicalDetailsBuilder.Build(null, Snap(), FallbackLoc(), Build).Should().BeNull();
+    }
+
+    [Fact]
+    public void ASettingWithSomethingToDocument_ProducesOneTable()
+    {
+        var snapshot = Snap(InputType.Selection, selectedIndex: 0, optionLabels: ["A", "B"]);
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(TwoKeySelection(), snapshot, FallbackLoc(), Build));
+
+        matrix.Columns.Should().NotBeEmpty();
+        matrix.Options.Should().NotBeEmpty();
+        matrix.SettingLabel.Should().NotBeEmpty("the table names itself in its own corner cell");
+    }
+
+    [Fact]
+    public void ApplyBehaviour_BecomesRequirementChipsOnTheMatrix()
+    {
+        var setting = new Setting
+        {
+            Id = "restarts",
+            Display = Show(),
+            Apply = new ApplyBehavior { RequiresReboot = true, Restart = new RestartProcess("Explorer") },
+            Targets = [new RegTarget("K", [@"HKEY_CURRENT_USER\SOFTWARE\X"], "V", RegistryValueKind.DWord)],
+            States =
+            [
+                new SettingState { Label = LocKey.Common.Enabled, Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) } },
+                new SettingState { Label = LocKey.Common.Disabled, Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(0) } },
+            ],
+        };
+
+        // FallbackLoc, not Loc: the restart chip runs its text through Format, and a key-echo has no
+        // {0} for the process name to land in.
+        // These hang off Setting.Apply, so they are the same on every option. They belong to the
+        // setting's own cell rather than to a section of their own below the table.
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(setting, Snap(isSelected: true), FallbackLoc(), Build));
+        matrix.Requirements.Select(c => c.Text).Should()
+            .Contain("Requires a system restart")
+            .And.Contain("Explorer restart", "the chip names the process, not just 'a process'");
+        matrix.Requirements.Should().Contain(c => c.Tooltip.Contains("bar at the bottom"),
+            "Explorer is no longer killed on apply -- the user restarts it from the banner when ready");
+
+    }
+
+    private static Setting ActionSetting() => new()
+    {
+        Id = "clean-thing",
+        Display = Show("Clean Thing"),
+        Apply = new() { RequiresConfirmation = true },
+        Effects =
+        [
+            new RegistryWriteEffect(@"HKEY_CURRENT_USER\Software\Foo", "Favorites", RegistryValueKind.Binary, Array.Empty<byte>()),
+            new RegistryWriteEffect(@"HKEY_LOCAL_MACHINE\Software\Policies\Foo", "Pins", RegistryValueKind.String, "[]")
+            {
+                IsGroupPolicy = true,
+            },
+        ],
+    };
+
+    [Fact]
+    public void Action_GetsOneRowCarryingTheValuesItWrites()
+    {
+        // The row IS the action: an action has nothing to choose between, so the table that documents
+        // it has exactly one row rather than none.
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(ActionSetting(), Snap(), FallbackLoc(), Build));
+
+        matrix.Columns.Select(c => c.Header).Should().Equal("Favorites", "Pins");
+        matrix.Columns.Select(c => c.TypeName).Should().Equal("Binary", "String");
+        matrix.Options.Should().ContainSingle();
+        matrix.Options[0].Label.Should().Be("Clean Thing",
+            "the row is named after the button the user pressed, not a new localization key");
+        matrix.Options[0].Cells.Select(c => c.Text).Should().Equal("(empty)", "[]");
+        matrix.Groups.Should().HaveCount(2, "the two writes go to two different paths");
+        matrix.Groups.Should().OnlyContain(g => g.CanOpenRegedit,
+            "each group names its path and can open it, like every other registry group");
+    }
+
+    [Fact]
+    public void Action_RegistryWritesLeaveTheAlsoHappensBand()
+    {
+        // They ARE the action. Listing them under "Also happens when you apply" said the action's own
+        // work was a side effect of itself, which is what made that band read as a puzzle.
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(ActionSetting(), Snap(), FallbackLoc(), Build));
+
+        matrix.Notes.Should().NotContain(n => n.Detail.Contains("Favorites"));
+    }
+
+    [Fact]
+    public void Action_RegistryColumnsSayTheyAreWrittenNotRead()
+    {
+        // An action is never detected, so the group cannot repeat the registry line about reading the
+        // value to decide which option is active - there is no such reading and no option.
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(ActionSetting(), Snap(), Loc(), Build));
+
+        matrix.Groups.Should().OnlyContain(g => g.Description.Length == 0);
+        matrix.Columns.Should().OnlyContain(
+            c => c.Chips.Any(chip => chip.Text == TechnicalDetailKeys.ChipApplyOnly));
+        matrix.SettingDescription.Should().BeEmpty("there is no option to select on a one-shot");
+    }
+
+    [Fact]
+    public void ScriptOnlyAction_KeepsItsPanelAndGrowsNoEmptyTable()
+    {
+        var setting = new Setting
+        {
+            Id = "script-action",
+            Display = Show(),
+            Apply = new() { RequiresConfirmation = true },
+            Effects = [new ScriptEffect("do-the-thing", RunContext.System)],
+        };
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(setting, Snap(), FallbackLoc(), Build));
+
+        matrix.Columns.Should().BeEmpty();
+        matrix.Options.Should().BeEmpty("a labelled row with no cell to its right heads nothing");
+        matrix.CodeBlocks.Should().ContainSingle("its script is still the thing worth documenting");
+    }
+
+    [Fact]
+    public void Action_NotesNameTheSettingsItsConfirmCheckboxWouldApply()
+    {
+        // The band under the table is headed "Also happens when you apply, if you agree to the prompt",
+        // and the prompt's checkbox offers the feature's recommended settings. So the band answers the
+        // question the checkbox raises: WHICH settings, and what each of them becomes. Read from the real
+        // catalog because the feature grouping is what supplies the list.
+        var setting = SettingCatalog.Find("taskbar-clean");
+        setting.Should().NotBeNull("the taskbar cleaner must exist for this test to mean anything");
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(setting, Snap(), Loc(), Build));
+
+        matrix.Notes.Should().Contain(n => n.Label == "Setting_taskbar-task-view_Name",
+            "Show Task View button is a taskbar setting the recommended pass moves");
+        matrix.Notes.Should().NotContain(n => n.Label == "Setting_taskbar-clean_Name",
+            "the trigger applies itself; the checkbox is about the rest of the feature");
+        matrix.Notes.Should().OnlyContain(n => n.Detail.Length > 0,
+            "every row says what the setting will be set to, not just that it will be touched");
+    }
+
+    [Fact]
+    public void TheTable_ProducesAScreenReaderSummary()
+    {
+        var snapshot = Snap(InputType.Selection, selectedIndex: 0, optionLabels: ["A", "B"]);
+
+        MatrixOf(TechnicalDetailsBuilder.Build(TwoKeySelection(), snapshot, FallbackLoc(), Build))
+            .AccessibleSummary.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public void OptionLinks_GroupWhatEachOptionChangesUnderThatOption()
+    {
+        // The old flat chip strip deduped Allow's writes against Deny's and hung the survivors off the
+        // setting, so a reader could see 32 chips and still not tell which option caused which.
+        var setting = SettingCatalog.Find("privacy-ads-promotional-master");
+        setting.Should().NotBeNull("the ads master control is the setting this band exists for");
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(setting, Snap(), FallbackLoc(), Build));
+
+        matrix.OptionLinks.Should().HaveCount(2, "Allow and Deny each set the other settings; Custom sets none");
+        matrix.OptionLinks.Should().OnlyContain(r => r.Chips.Count > 0, "an option with nothing to say gets no row");
+        matrix.OptionLinks[0].Chips.Should().OnlyContain(c => c.Text.Contains($"({LocKey.Common.Enabled.Value})"));
+        matrix.OptionLinks[1].Chips.Should().OnlyContain(c => c.Text.Contains($"({LocKey.Common.Disabled.Value})"));
+        matrix.OptionLinks.Should().OnlyContain(r => r.Chips.All(c => c.HasLink),
+            "every chip names another setting, so every chip is somewhere to go");
+    }
+
+    [Fact]
+    public void Requirements_HoldOnlyWhatTheSettingItselfDoes()
+    {
+        // What one OPTION changes is not a fact about the setting, and the strip has no room for it:
+        // 32 chips in a horizontal StackPanel drew off the end of the card with nothing able to scroll.
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(
+            SettingCatalog.Find("privacy-ads-promotional-master"), Snap(), FallbackLoc(), Build));
+
+        matrix.Requirements.Should().NotContain(c => c.HasLink,
+            "a chip pointing at another setting belongs to the option that changes it");
+    }
+
+    private static Setting PowerPlanSetting() => SettingCatalog.Find("power-plan-selection")!;
+
+    private static SettingStateSnapshot PowerPlanSnap(bool live) => new()
+    {
+        InputType = InputType.Selection,
+        Options = PowerPlanCatalog.BuiltInPowerPlans
+            .Select(p => new ComboBoxDisplayOption(
+                p.Name,
+                p.Guid,
+                tag: live ? new DynamicOption(p.Name, p.Guid, ExistsOnSystem: true) : null))
+            .ToList(),
+    };
+
+    [Fact]
+    public void PowerPlan_ReportsInstalledStatus_WhenTheOptionsCameFromTheMachine()
+    {
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(PowerPlanSetting(), PowerPlanSnap(live: true), FallbackLoc(), Build));
+
+        matrix.Columns.Should().HaveCount(2);
+        matrix.Columns[1].Header.Should().Be("Status");
+        matrix.Options.Should().OnlyContain(o => o.Cells.Count == 2);
+    }
+
+    [Fact]
+    public void PowerPlan_LeavesOffTheStatusColumn_WhenTheOptionsAreReferenceData()
+    {
+        // The docs export lists the predefined plans without a live enumeration behind them, so there is
+        // no machine to report installed-or-not for and the column would only ever hold a guess.
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(PowerPlanSetting(), PowerPlanSnap(live: false), FallbackLoc(), Build));
+
+        matrix.Columns.Should().ContainSingle().Which.Header.Should().Be("Scheme GUID");
+        matrix.Options.Should().HaveCount(PowerPlanCatalog.BuiltInPowerPlans.Count);
+        matrix.Options.Should().OnlyContain(o => o.Cells.Count == 1);
+    }
+
+    private static SettingStateSnapshot PowerPlanSnap(IEnumerable<DynamicOption> live, string? selectedKey = null) => new()
+    {
+        InputType = InputType.Selection,
+        SelectedKey = selectedKey,
+        Options = live.Select(o => new ComboBoxDisplayOption(o.Label, o.Value, tag: o)).ToList(),
+    };
+
+    private static IEnumerable<DynamicOption> InstalledPredefinedPlans() =>
+        PowerPlanCatalog.BuiltInPowerPlans.Select(p => new DynamicOption(p.Name, p.Guid, ExistsOnSystem: true));
+
+    [Fact]
+    public void PowerPlan_ReportsInstalled_WhenTheSchemeIsInstalledUnderItsOwnGuid()
+    {
+        const string ownGuid = "deadbeef-0000-0000-0000-000000000000";
+        var live = PowerPlanCatalog.BuiltInPowerPlans.Select(p => p.Name == "Balanced"
+            ? new DynamicOption(p.Name, ownGuid, ExistsOnSystem: true)
+            : new DynamicOption(p.Name, p.Guid, ExistsOnSystem: false));
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(PowerPlanSetting(), PowerPlanSnap(live), FallbackLoc(), Build));
+
+        var balanced = matrix.Options.Single(o => o.Label == "Balanced");
+        balanced.Cells.Select(c => c.Text).Should().Equal(ownGuid, "Installed on system");
+        matrix.Options.Where(o => o.Label != "Balanced").Should().OnlyContain(o => o.Cells[1].Text == "Not installed");
+    }
+
+    [Fact]
+    public void PowerPlan_ListsAnInstalledCustomScheme_AfterTheReferenceRows()
+    {
+        const string customGuid = "cafe0000-0000-0000-0000-000000000001";
+        var live = InstalledPredefinedPlans().Append(new DynamicOption("My Gaming Plan", customGuid, ExistsOnSystem: true));
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(PowerPlanSetting(), PowerPlanSnap(live), FallbackLoc(), Build));
+
+        matrix.Options.Should().HaveCount(PowerPlanCatalog.BuiltInPowerPlans.Count + 1);
+        var custom = matrix.Options[^1];
+        custom.Label.Should().Be("My Gaming Plan");
+        custom.Cells.Select(c => c.Text).Should().Equal(customGuid, "Installed on system");
+    }
+
+    [Fact]
+    public void PowerPlan_MarksTheSnapshotsKeyAsCurrent()
+    {
+        var balancedGuid = PowerPlanCatalog.BuiltInPowerPlans.Single(p => p.Name == "Balanced").Guid;
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(
+            PowerPlanSetting(), PowerPlanSnap(InstalledPredefinedPlans(), balancedGuid), FallbackLoc(), Build));
+
+        matrix.Options.Should().ContainSingle(o => o.IsCurrent).Which.Label.Should().Be("Balanced");
+    }
+
+    [Fact]
+    public void Build_KeyedSelection_DocumentsItsTargetAndSaysOptionsComeFromWindows()
+    {
+        // The docs export passes an empty snapshot: no machine, so no option rows.
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(
+            FakeOptionProvider.SettingFor(), new SettingStateSnapshot(), FallbackLoc(), Build));
+
+        matrix.Options.Should().BeEmpty();
+        matrix.Columns.Should().ContainSingle();
+        matrix.Columns[0].Chips.Should().ContainSingle()
+            .Which.Text.Should().Be("options come from Windows");
+    }
+
+    // The website keys on these shapes: the group kinds, the column count and the row order.
+    [Fact]
+    public void Build_PowerPlan_DocumentsTheFivePredefinedPlansWithoutAMachine()
+    {
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(PowerPlanSetting(), new SettingStateSnapshot(), FallbackLoc(), Build));
+
+        matrix.Groups.Select(g => g.Kind).Should().Equal(MatrixGroupKind.PowerPlan);
+        matrix.Columns.Should().ContainSingle().Which.Header.Should().Be("Scheme GUID");
+        matrix.Options.Select(o => o.Cells.Single().Text).Should().Equal(PowerPlanCatalog.BuiltInPowerPlans.Select(p => p.Guid));
+        matrix.Options.Should().HaveCount(5);
+    }
+
+    [Fact]
+    public void Build_WallpaperPicture_DocumentsTheThreeWindowsPicturesBesideTheValuesItReads()
+    {
+        var picture = SettingCatalog.Find("theme-wallpaper-picture")!;
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(picture, new SettingStateSnapshot(), FallbackLoc(), Build));
+
+        matrix.Groups.Select(g => g.Kind).Should().Equal(MatrixGroupKind.Registry, MatrixGroupKind.Registry, MatrixGroupKind.Reference);
+        matrix.Columns.Should().HaveCount(12);
+        matrix.Columns[^1].Header.Should().Be("Path");
+        matrix.Columns.Where(c => c.Chips.Any(chip => chip.Text == "read, not written"))
+            .Select(c => c.Header)
+            .Should().Equal(
+                "TranscodedImageCount", "TranscodedImageCache", "TranscodedImageCache_000", "BackgroundType",
+                "BackgroundHistoryPath0", "BackgroundHistoryPath1", "BackgroundHistoryPath2",
+                "BackgroundHistoryPath3", "BackgroundHistoryPath4");
+        matrix.Options.Select(o => o.Label).Should().Equal(picture.States.Select(s => s.Label.Value));
+        matrix.Options.Select(o => o.Cells[^1].Text).Should().Equal(
+            @"C:\Windows\Web\Wallpaper\Windows\img0.jpg",
+            @"C:\Windows\Web\Wallpaper\Windows\img19.jpg",
+            @"C:\Windows\Web\4K\Wallpaper\Windows\img0_3840x2160.jpg");
+        matrix.Options.Should().OnlyContain(o => o.Cells.Count == 12);
+    }
+
+    [Fact]
+    public void Build_KeyboardLayout_DocumentsTheSubstitutesKeyAsWritten()
+    {
+        var layout = SettingCatalog.Find("region-keyboard-layout")!;
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(layout, new SettingStateSnapshot(), FallbackLoc(), Build));
+
+        matrix.Groups.Select(g => g.Kind).Should().Equal(MatrixGroupKind.Registry, MatrixGroupKind.Registry);
+        matrix.Groups.Should().OnlyContain(
+            g => g.Description == "Read to determine which option is active, and written when you apply one.");
+        matrix.Columns.Should().NotContain(c => c.Chips.Any(chip => chip.Text == "read, not written"));
+    }
+
+    [Fact]
+    public void Build_WallpaperColour_DocumentsTwentyFourSwatchesCaptionedByTheirHex()
+    {
+        var color = SettingCatalog.Find("theme-wallpaper-color")!;
+
+        var matrix = MatrixOf(TechnicalDetailsBuilder.Build(color, new SettingStateSnapshot(), FallbackLoc(), Build));
+
+        matrix.Groups.Select(g => g.Kind).Should().Equal(
+            MatrixGroupKind.Registry, MatrixGroupKind.Registry, MatrixGroupKind.Reference);
+        matrix.Columns.Should().HaveCount(3);
+        matrix.Groups[1].Description.Should().Be("Read from this PC to work out the current state; never written.");
+        matrix.Columns[1].Chips.Select(c => c.Text).Should().Contain("read, not written");
+        matrix.Options.Should().HaveCount(24);
+        matrix.Options.Select(o => o.Label).Should().Equal(color.Options!.Keys);
+        matrix.Options.Select(o => o.Cells[^1].Text).Should().Equal(color.Options.Keys);
+        matrix.Options[0].Label.Should().Be("#FF8C00");
+        matrix.Options[^1].Label.Should().Be("#000000");
+    }
+}

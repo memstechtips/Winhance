@@ -1,7 +1,4 @@
-using System;
-using System.IO;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
@@ -9,7 +6,7 @@ using Winhance.Core.Features.SoftwareApps.Utilities;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class RemovalScriptUpdateService : IRemovalScriptUpdateService
+internal class RemovalScriptUpdateService : IRemovalScriptUpdateService
 {
     private readonly ILogService _logService;
     private readonly IScheduledTaskService _scheduledTaskService;
@@ -18,9 +15,10 @@ public class RemovalScriptUpdateService : IRemovalScriptUpdateService
 
     private static readonly ScriptInfo[] Scripts =
     {
-        new("EdgeRemoval", EdgeRemovalScript.ScriptVersion, GetContent: EdgeRemovalScript.GetScript),
-        new("OneDriveRemoval", OneDriveRemovalScript.ScriptVersion, GetContent: OneDriveRemovalScript.GetScript),
-        new("BloatRemoval", BloatRemovalScriptGenerator.ScriptVersion,
+        new(EdgeRemovalScript.ScriptName, EdgeRemovalScript.ScriptVersion,
+            UpdateContent: existing => EdgeRemovalScript.GetScript(EdgeRemovalScript.RemovesWebView2(existing))),
+        new(OneDriveRemovalScript.ScriptName, OneDriveRemovalScript.ScriptVersion, GetContent: OneDriveRemovalScript.GetScript),
+        new(BloatRemovalScriptGenerator.ScriptName, BloatRemovalScriptGenerator.ScriptVersion,
             UpdateContent: BloatRemovalScriptGenerator.UpdateScriptTemplate,
             RunAfterUpdate: false)
     };

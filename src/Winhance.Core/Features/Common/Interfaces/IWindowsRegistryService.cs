@@ -1,5 +1,4 @@
 using Microsoft.Win32;
-using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Core.Features.Common.Interfaces;
 
@@ -7,17 +6,33 @@ public interface IWindowsRegistryService
 {
     bool SetValue(string keyPath, string valueName, object value, RegistryValueKind kind);
     object? GetValue(string keyPath, string valueName);
+
+    // A REG_EXPAND_SZ as stored, %SystemRoot% and all, so a value read and written back keeps its variables.
+    string? GetUnexpandedString(string keyPath, string valueName);
+
+    // Diagnostic only - reports a value stored under a type its catalog target cannot read.
+    RegistryValueKind? GetValueKind(string keyPath, string valueName);
     bool DeleteKey(string keyPath);
     bool DeleteValue(string keyPath, string valueName);
 
     bool KeyExists(string keyPath);
     bool ValueExists(string keyPath, string valueName);
     string[] GetSubKeyNames(string keyPath);
-    bool IsSettingApplied(RegistrySetting setting);
-    bool IsRegistryValueInEnabledState(RegistrySetting setting, object? currentValue, bool valueExists);
+    string[] GetValueNames(string keyPath);
 
-    /// <param name="useDefaultValue">When true, uses DisabledValue[1] (parent cascade value) instead of DisabledValue[0]. If no second element exists, falls back to normal behavior.</param>
-    bool ApplySetting(RegistrySetting setting, bool enable, object? specificValue = null, bool useDefaultValue = false);
+    // Apply primitives for the catalog IStateWriter (WindowsStateWriter).
 
-    Dictionary<string, object?> GetBatchValues(IEnumerable<(string keyPath, string? valueName)> queries);
+    bool CreateKey(string keyPath);
+
+    // Administrators retain full control; SYSTEM loses write so Windows cannot revert the protective value just written.
+    bool LockRegistryKey(string keyPath);
+
+    bool UnlockRegistryKey(string keyPath);
+
+    bool ModifyBinaryBit(string keyPath, string valueName, int byteIndex, byte bitMask, bool setBit);
+
+    bool ModifyBinaryByte(string keyPath, string valueName, int byteIndex, byte newValue);
+
+    // Sub-keys compare OrdinalIgnoreCase; the merged string carries a trailing ";".
+    bool SetCompositeSubValue(string keyPath, string valueName, string compositeKey, string? subValue);
 }

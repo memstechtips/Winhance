@@ -1,40 +1,53 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Management.Deployment;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
 namespace Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
 
-/// <summary>
-/// Handles WinGet package detection — installed package enumeration and installer type lookup.
-/// Uses COM API with CLI fallback.
-/// </summary>
-public class WinGetDetectionService : IWinGetDetectionService
+internal class WinGetDetectionService : IWinGetDetectionService
 {
     private readonly WinGetComSession _comSession;
     private readonly ILogService _logService;
     private readonly IInteractiveUserService _interactiveUserService;
     private readonly IFileSystemService _fileSystemService;
+    private readonly TimeProvider _timeProvider;
 
     private const int ComOperationTimeoutSeconds = 15;
+
+    // Two composite catalogs connecting at once fail with CatalogError (seen when startup detection and the Installed
+    // Apps list ran together), so enumerations take turns. The worker releases it, so an abandoned hang still frees it.
+    private readonly SemaphoreSlim _enumerationGate = new(1, 1);
+    private const uint SearchResultLimit = 30;
+
+    // A status check and the installed-apps scan behind it ask for the same catalog seconds apart, so the second one
+    // reuses the first one's walk. Kept short because winget also sees installs made outside Winhance.
+    private static readonly TimeSpan InstalledWalkLifetime = TimeSpan.FromSeconds(60);
+
+    private readonly object _installedWalkLock = new();
+    private IReadOnlyList<WinGetInstalledPackage>? _installedWalk;
+    private long _installedWalkTimestamp;
+    private int _installedWalkGeneration;
+
+    // The long-lived COM connection can keep reporting an installed version from before an outside update, so the walk
+    // after an invalidation reconnects. It happens inside the enumeration gate, never under a walk that is running.
+    private volatile bool _reconnectBeforeWalk;
 
     public WinGetDetectionService(
         WinGetComSession comSession,
         ILogService logService,
         IInteractiveUserService interactiveUserService,
-        IFileSystemService fileSystemService)
+        IFileSystemService fileSystemService,
+        TimeProvider timeProvider)
     {
         _comSession = comSession;
         _logService = logService;
         _interactiveUserService = interactiveUserService;
         _fileSystemService = fileSystemService;
+        _timeProvider = timeProvider;
     }
 
     public async Task<HashSet<string>> GetInstalledPackageIdsAsync(CancellationToken cancellationToken = default)
@@ -44,15 +57,14 @@ public class WinGetDetectionService : IWinGetDetectionService
         try
         {
             // Only try COM if system winget is available (COM requires DesktopAppInstaller MSIX)
-            if (_comSession.EnsureComInitialized() && _comSession.PackageManager != null && _comSession.Factory != null)
+            if (_comSession.IsReady())
             {
-                var comResult = await GetInstalledPackageIdsViaCom(cancellationToken).ConfigureAwait(false);
-                if (comResult != null)
-                    return comResult;
+                var packages = await GetOrWalkInstalledAsync(WalkInstalledViaComAsync, cancellationToken).ConfigureAwait(false);
+                if (packages != null)
+                    return new HashSet<string>(packages.Select(package => package.Id), StringComparer.OrdinalIgnoreCase);
                 _logService?.LogInformation("COM detection failed/timed out, falling back to CLI");
             }
 
-            // CLI fallback (uses winget export → JSON)
             _logService?.LogInformation("COM not available, falling back to CLI for installed package detection");
             return await GetInstalledPackageIdsViaCli(cancellationToken).ConfigureAwait(false);
         }
@@ -63,84 +75,116 @@ public class WinGetDetectionService : IWinGetDetectionService
         }
     }
 
-    private async Task<HashSet<string>?> GetInstalledPackageIdsViaCom(CancellationToken cancellationToken)
+    // Null when COM is unavailable or broken: the CLI fallback knows ids only, so it cannot fill these records.
+    public async Task<IReadOnlyList<WinGetInstalledPackage>?> GetInstalledPackagesAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            // Native COM calls (FindPackages, Connect) can block indefinitely and
-            // cannot be interrupted by CancellationToken. Use Task.WhenAny with a
-            // hard timeout so the app continues startup via CLI fallback.
-            var workTask = Task.Run(() =>
+            if (!_comSession.IsReady())
+                return null;
+
+            return await GetOrWalkInstalledAsync(WalkInstalledViaComAsync, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logService?.LogError($"Error in GetInstalledPackagesAsync: {ex.Message}");
+            return null;
+        }
+    }
+
+    public void InvalidateInstalledPackages()
+    {
+        lock (_installedWalkLock)
+        {
+            _installedWalk = null;
+            _installedWalkGeneration++;
+        }
+
+        _reconnectBeforeWalk = true;
+    }
+
+    internal void ReconnectIfRequested()
+    {
+        if (!_reconnectBeforeWalk)
+            return;
+
+        _reconnectBeforeWalk = false;
+
+        // The server keeps answering from the list it built until the last client lets go, so a new walk needs it gone.
+        _comSession.Release();
+        for (var i = 0; i < 20 && WinGetComSession.IsServerRunning(); i++)
+            Thread.Sleep(500);
+    }
+
+    // A walk that was already running when the list was invalidated read the PC before the change, so it is not kept.
+    internal async Task<IReadOnlyList<WinGetInstalledPackage>?> GetOrWalkInstalledAsync(
+        Func<CancellationToken, Task<List<WinGetInstalledPackage>?>> walk, CancellationToken cancellationToken)
+    {
+        int generation;
+        lock (_installedWalkLock)
+        {
+            if (_installedWalk != null && _timeProvider.GetElapsedTime(_installedWalkTimestamp) < InstalledWalkLifetime)
+                return _installedWalk;
+            generation = _installedWalkGeneration;
+        }
+
+        var packages = await walk(cancellationToken).ConfigureAwait(false);
+        if (packages == null)
+            return null;
+
+        lock (_installedWalkLock)
+        {
+            if (generation == _installedWalkGeneration)
             {
-                var installedPackageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                _installedWalk = packages;
+                _installedWalkTimestamp = _timeProvider.GetTimestamp();
+            }
+        }
 
-                var catalogs = _comSession.PackageManager!.GetPackageCatalogs().ToArray();
-                var compositeOptions = _comSession.Factory!.CreateCreateCompositePackageCatalogOptions();
-                foreach (var catalog in catalogs)
-                {
-                    compositeOptions.Catalogs.Add(catalog);
-                    _logService?.LogInformation($"Added catalog: {catalog.Info.Name}");
-                }
+        return packages;
+    }
 
-                if (compositeOptions.Catalogs.Count == 0)
-                {
-                    _logService?.LogWarning("No package catalogs available");
-                    return installedPackageIds;
-                }
-                compositeOptions.CompositeSearchBehavior = CompositeSearchBehavior.LocalCatalogs;
+    // DefaultInstallVersion is the remote source's version, so its catalog names where the app can come from again.
+    private static WinGetInstalledPackage Describe(CatalogPackage package)
+    {
+        var installed = package.InstalledVersion;
+        var remote = package.DefaultInstallVersion;
+        return new WinGetInstalledPackage(
+            package.Id,
+            package.Name,
+            installed?.Version,
+            remote?.PackageCatalog?.Info?.Name,
+            remote is not null && package.IsUpdateAvailable ? remote.Version : null)
+        {
+            ProductCodes = installed?.ProductCodes?.ToList() ?? [],
+            PackageFamilyNames = installed?.PackageFamilyNames?.ToList() ?? [],
+        };
+    }
 
-                var compositeCatalogRef = _comSession.PackageManager.CreateCompositePackageCatalog(compositeOptions);
-                var connectResult = compositeCatalogRef.Connect();
-
-                if (connectResult.Status != ConnectResultStatus.Ok)
-                {
-                    // CLI fallback recovers when the COM source store is broken.
-                    _logService?.LogWarning($"Failed to connect to composite catalog: {connectResult.Status} — falling back to CLI");
-                    return null;
-                }
-
-                var findOptions = _comSession.Factory.CreateFindPackagesOptions();
-                var filter = _comSession.Factory.CreatePackageMatchFilter();
-                filter.Field = PackageMatchField.Id;
-                filter.Option = PackageFieldMatchOption.ContainsCaseInsensitive;
-                filter.Value = "";
-                findOptions.Filters.Add(filter);
-
-                _logService?.LogInformation("WinGet COM: calling FindPackages...");
-                var findResult = connectResult.PackageCatalog.FindPackages(findOptions);
-                var matches = findResult.Matches.ToArray();
-
-                foreach (var match in matches)
-                {
-                    var packageId = match.CatalogPackage?.Id;
-                    if (!string.IsNullOrEmpty(packageId))
-                    {
-                        installedPackageIds.Add(packageId);
-                    }
-                }
-
-                _logService?.LogInformation($"WinGet COM API: Found {installedPackageIds.Count} installed packages");
-
-                // If COM returns 0 packages despite catalogs being available,
-                // the database may be corrupted — signal caller to fall through to CLI
-                if (installedPackageIds.Count == 0)
-                {
-                    _logService?.LogWarning("COM returned 0 installed packages — possible database corruption, falling back to CLI");
-                    return null;
-                }
-
-                return installedPackageIds;
-            }, cancellationToken);
-
-            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(ComOperationTimeoutSeconds), cancellationToken);
-
-            if (await Task.WhenAny(workTask, timeoutTask).ConfigureAwait(false) == timeoutTask)
+    private async Task<List<WinGetInstalledPackage>?> WalkInstalledViaComAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!await _enumerationGate.WaitAsync(TimeSpan.FromSeconds(ComOperationTimeoutSeconds), cancellationToken).ConfigureAwait(false))
             {
-                _logService?.LogWarning($"COM package enumeration hard timeout after {ComOperationTimeoutSeconds}s — FindPackages is unresponsive, abandoning thread");
+                _logService?.LogWarning("Another WinGet enumeration is still running, falling back");
                 return null;
             }
 
-            return await workTask.ConfigureAwait(false);
+            var workTask = Task.Run(() =>
+            {
+                try
+                {
+                    ReconnectIfRequested();
+                    return EnumerateInstalled();
+                }
+                finally
+                {
+                    _enumerationGate.Release();
+                }
+            }, CancellationToken.None);
+
+            return await WaitForComAsync(workTask, null, "WinGet installed package enumeration", cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -154,13 +198,98 @@ public class WinGetDetectionService : IWinGetDetectionService
         }
     }
 
+    // Native COM calls (Connect, FindPackages) can block forever and cannot be interrupted, so the caller stops
+    // waiting after the timeout and leaves the thread behind.
+    private async Task<T> WaitForComAsync<T>(Task<T> work, T onTimeout, string operation, CancellationToken cancellationToken)
+    {
+        var timeout = Task.Delay(TimeSpan.FromSeconds(ComOperationTimeoutSeconds), cancellationToken);
+        if (await Task.WhenAny(work, timeout).ConfigureAwait(false) == timeout)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _logService?.LogWarning($"{operation} timed out after {ComOperationTimeoutSeconds}s, abandoning thread");
+            return onTimeout;
+        }
+
+        return await work.ConfigureAwait(false);
+    }
+
+    private PackageCatalog? ConnectToWinGetSource(PackageManager packageManager, string operation)
+    {
+        var connectResult = packageManager
+            .GetPredefinedPackageCatalog(PredefinedPackageCatalog.OpenWindowsCatalog)
+            .Connect();
+        if (connectResult.Status == ConnectResultStatus.Ok)
+            return connectResult.PackageCatalog;
+
+        _logService?.LogWarning($"{operation} could not connect to the winget source: {connectResult.Status}");
+        return null;
+    }
+
+    private List<WinGetInstalledPackage>? EnumerateInstalled()
+    {
+        if (!_comSession.IsReady())
+            return null;
+
+        var catalogs = _comSession.PackageManager.GetPackageCatalogs().ToArray();
+        var compositeOptions = _comSession.Factory.CreateCreateCompositePackageCatalogOptions();
+        foreach (var catalog in catalogs)
+        {
+            compositeOptions.Catalogs.Add(catalog);
+            _logService?.LogInformation($"Added catalog: {catalog.Info.Name}");
+        }
+
+        if (compositeOptions.Catalogs.Count == 0)
+        {
+            _logService?.LogWarning("No package catalogs available");
+            return [];
+        }
+        compositeOptions.CompositeSearchBehavior = CompositeSearchBehavior.LocalCatalogs;
+
+        var compositeCatalogRef = _comSession.PackageManager.CreateCompositePackageCatalog(compositeOptions);
+        var connectResult = compositeCatalogRef.Connect();
+
+        if (connectResult.Status != ConnectResultStatus.Ok)
+        {
+            // CLI fallback recovers when the COM source store is broken.
+            _logService?.LogWarning($"Failed to connect to composite catalog: {connectResult.Status} — falling back to CLI");
+            return null;
+        }
+
+        var findOptions = _comSession.Factory.CreateFindPackagesOptions();
+        var filter = _comSession.Factory.CreatePackageMatchFilter();
+        filter.Field = PackageMatchField.Id;
+        filter.Option = PackageFieldMatchOption.ContainsCaseInsensitive;
+        filter.Value = "";
+        findOptions.Filters.Add(filter);
+
+        _logService?.LogInformation("WinGet COM: calling FindPackages...");
+        var findResult = connectResult.PackageCatalog.FindPackages(findOptions);
+        var packages = findResult.Matches.ToArray()
+            .Select(match => match.CatalogPackage)
+            .Where(package => package is not null && !string.IsNullOrEmpty(package.Id))
+            .Select(Describe)
+            .ToList();
+
+        _logService?.LogInformation($"WinGet COM API: Found {packages.Count} installed packages");
+
+        // If COM returns 0 packages despite catalogs being available,
+        // the database may be corrupted — signal caller to fall through to CLI
+        if (packages.Count == 0)
+        {
+            _logService?.LogWarning("COM returned 0 installed packages — possible database corruption, falling back to CLI");
+            return null;
+        }
+
+        return packages;
+    }
+
     private async Task<HashSet<string>> GetInstalledPackageIdsViaCli(CancellationToken cancellationToken)
     {
         var installedPackageIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         var cacheDir = _fileSystemService.CombinePath(
-            _interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Winhance", "Cache");
+            AppDataPaths.UserRoot(_interactiveUserService.GetInteractiveUserFolderPath(Environment.SpecialFolder.LocalApplicationData)),
+            "Cache");
         _fileSystemService.CreateDirectory(cacheDir);
         var exportPath = _fileSystemService.CombinePath(cacheDir, "winget-packages.json");
 
@@ -172,12 +301,11 @@ public class WinGetDetectionService : IWinGetDetectionService
         {
             try
             {
-                // Clean up any previous export file
                 if (_fileSystemService.FileExists(exportPath))
                     _fileSystemService.DeleteFile(exportPath);
 
                 var arguments = $"export -o \"{exportPath}\" --accept-source-agreements --nowarn --disable-interactivity";
-                _logService?.LogInformation($"[winget-bundled] Running: winget {arguments} (attempt {attempt}/{maxRetries})");
+                _logService?.LogInformation($"Running: winget {arguments} (attempt {attempt}/{maxRetries})");
 
                 var result = await WinGetCliRunner.RunAsync(
                     arguments,
@@ -257,7 +385,6 @@ public class WinGetDetectionService : IWinGetDetectionService
             }
         }
 
-        // Clean up export file
         try
         {
             if (_fileSystemService.FileExists(exportPath))
@@ -268,6 +395,8 @@ public class WinGetDetectionService : IWinGetDetectionService
         return installedPackageIds;
     }
 
+    private static readonly string[] InstallerTypeLabels = ["Installer Type:", "ShowLabelInstallerType"];
+
     public async Task<string?> GetInstallerTypeAsync(string packageId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(packageId))
@@ -275,7 +404,6 @@ public class WinGetDetectionService : IWinGetDetectionService
 
         try
         {
-            // Try COM first
             if (_comSession.EnsureComInitialized())
             {
                 var package = await FindPackageAsync(packageId, cancellationToken).ConfigureAwait(false);
@@ -289,7 +417,6 @@ public class WinGetDetectionService : IWinGetDetectionService
                 }
             }
 
-            // CLI fallback: parse "winget show" output for Installer Type
             var result = await WinGetCliRunner.RunAsync(
                 $"show --id {packageId} --accept-source-agreements --disable-interactivity",
                 cancellationToken: cancellationToken,
@@ -300,10 +427,12 @@ public class WinGetDetectionService : IWinGetDetectionService
             {
                 foreach (var rawLine in result.StandardOutput.Split('\n'))
                 {
+                    // The bundled winget has no resources.pri, so it prints the label's resource key instead of the text.
                     var line = rawLine.Trim();
-                    if (line.StartsWith("Installer Type:", StringComparison.OrdinalIgnoreCase))
+                    var label = InstallerTypeLabels.FirstOrDefault(l => line.StartsWith(l, StringComparison.OrdinalIgnoreCase));
+                    if (label != null)
                     {
-                        var installerType = line.Substring("Installer Type:".Length).Trim();
+                        var installerType = line[label.Length..].TrimStart(':').Trim();
                         if (!string.IsNullOrEmpty(installerType))
                         {
                             _logService?.LogInformation($"Package {packageId} installer type: {installerType}");
@@ -322,9 +451,103 @@ public class WinGetDetectionService : IWinGetDetectionService
         }
     }
 
+    public async Task<IReadOnlyList<WinGetPackageMatch>> SearchPackagesAsync(string query, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return [];
+
+        try
+        {
+            var workTask = Task.Run(() => SearchWinGetCatalog(query.Trim()), cancellationToken);
+            return await WaitForComAsync(workTask, [], $"WinGet search for '{query}'", cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logService?.LogError($"WinGet search for '{query}' failed: {ex.Message}");
+            return [];
+        }
+    }
+
+    public async Task<IReadOnlyCollection<string>> FindMissingPackageIdsAsync(IReadOnlyCollection<string> packageIds, CancellationToken cancellationToken = default)
+    {
+        if (packageIds.Count == 0)
+            return [];
+
+        try
+        {
+            // The lookups read winget's local copy of the source index, so even a whole catalog fits the same timeout.
+            var workTask = Task.Run(() => FindMissingInWinGetCatalog(packageIds), cancellationToken);
+            return await WaitForComAsync(workTask, [], "WinGet id check", cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logService?.LogError($"WinGet id check failed: {ex.Message}");
+            return [];
+        }
+    }
+
+    private List<string> FindMissingInWinGetCatalog(IReadOnlyCollection<string> packageIds)
+    {
+        if (!_comSession.IsReady() || ConnectToWinGetSource(_comSession.PackageManager, "WinGet id check") is not { } catalog)
+            return [];
+
+        var missing = new List<string>();
+        foreach (var packageId in packageIds)
+        {
+            var findOptions = _comSession.Factory.CreateFindPackagesOptions();
+            findOptions.ResultLimit = 1;
+            var filter = _comSession.Factory.CreatePackageMatchFilter();
+            filter.Field = PackageMatchField.Id;
+            filter.Option = PackageFieldMatchOption.EqualsCaseInsensitive;
+            filter.Value = packageId;
+            findOptions.Filters.Add(filter);
+
+            var findResult = catalog.FindPackages(findOptions);
+            if (findResult.Status == FindPackagesResultStatus.Ok && findResult.Matches.Count == 0)
+                missing.Add(packageId);
+        }
+
+        return missing;
+    }
+
+    // Only the winget source: a Microsoft Store match carries a Store id, which the install path takes through a
+    // different source than the winget id it gets from a search result.
+    private List<WinGetPackageMatch> SearchWinGetCatalog(string query)
+    {
+        if (!_comSession.IsReady() || ConnectToWinGetSource(_comSession.PackageManager, "WinGet search") is not { } catalog)
+            return [];
+
+        var findOptions = _comSession.Factory.CreateFindPackagesOptions();
+        findOptions.ResultLimit = SearchResultLimit;
+        var selector = _comSession.Factory.CreatePackageMatchFilter();
+        selector.Field = PackageMatchField.CatalogDefault;
+        selector.Option = PackageFieldMatchOption.ContainsCaseInsensitive;
+        selector.Value = query;
+        findOptions.Selectors.Add(selector);
+
+        var findResult = catalog.FindPackages(findOptions);
+        if (findResult.Status != FindPackagesResultStatus.Ok)
+        {
+            _logService?.LogWarning($"WinGet search for '{query}' returned {findResult.Status}");
+            return [];
+        }
+
+        var matches = new List<WinGetPackageMatch>();
+        foreach (var match in findResult.Matches.ToArray())
+        {
+            var package = match.CatalogPackage;
+            if (package == null || string.IsNullOrEmpty(package.Id))
+                continue;
+
+            matches.Add(new WinGetPackageMatch(package.Id, string.IsNullOrWhiteSpace(package.Name) ? package.Id : package.Name));
+        }
+
+        return matches;
+    }
+
     private async Task<CatalogPackage?> FindPackageAsync(string packageId, CancellationToken cancellationToken)
     {
-        if (!_comSession.EnsureComInitialized() || _comSession.PackageManager == null || _comSession.Factory == null)
+        if (!_comSession.IsReady())
             return null;
 
         return await Task.Run(() =>

@@ -1,32 +1,23 @@
-using System.Threading;
 using Microsoft.UI.Dispatching;
+using Winhance.Core.Features.Common.Extensions;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Services;
 
-/// <summary>
-/// Implementation of IDispatcherService for WinUI 3.
-/// Provides UI thread dispatching capabilities using DispatcherQueue.
-/// </summary>
-/// <remarks>
-/// This service uses late initialization because DI services are created during
-/// container build, which happens BEFORE the Window exists. DispatcherQueue.GetForCurrentThread()
-/// only works on the UI thread, so the DispatcherQueue must be set after window creation.
-/// </remarks>
-public class DispatcherService : IDispatcherService
+// Late initialization: DI services are created during container build, BEFORE the Window exists, and
+// DispatcherQueue.GetForCurrentThread() only works on the UI thread.
+public class DispatcherService(ILogService logService) : IDispatcherService
 {
     private DispatcherQueue? _dispatcherQueue;
 
-    /// <inheritdoc/>
     public bool HasThreadAccess => _dispatcherQueue?.HasThreadAccess ?? false;
 
-    /// <inheritdoc/>
     public void Initialize(DispatcherQueue dispatcherQueue)
     {
-        _dispatcherQueue = dispatcherQueue ?? throw new ArgumentNullException(nameof(dispatcherQueue));
+        _dispatcherQueue = dispatcherQueue;
     }
 
-    /// <inheritdoc/>
     public void RunOnUIThread(Action action)
     {
         EnsureInitialized();
@@ -37,11 +28,10 @@ public class DispatcherService : IDispatcherService
         }
         else
         {
-            _dispatcherQueue.TryEnqueue(() => action());
+            _dispatcherQueue.TryEnqueue(Logged(action));
         }
     }
 
-    /// <inheritdoc/>
     public void RunOnUIThread(DispatcherQueuePriority priority, Action action)
     {
         EnsureInitialized();
@@ -52,17 +42,21 @@ public class DispatcherService : IDispatcherService
         }
         else
         {
-            _dispatcherQueue.TryEnqueue(priority, () => action());
+            _dispatcherQueue.TryEnqueue(priority, Logged(action));
         }
     }
 
-    /// <inheritdoc/>
+    public void Enqueue(Action action)
+    {
+        EnsureInitialized();
+        _dispatcherQueue!.TryEnqueue(Logged(action));
+    }
+
     public async Task RunOnUIThreadAsync(Func<Task> asyncAction)
     {
         await RunOnUIThreadAsync(DispatcherQueuePriority.Normal, asyncAction);
     }
 
-    /// <inheritdoc/>
     public async Task RunOnUIThreadAsync(DispatcherQueuePriority priority, Func<Task> asyncAction)
     {
         EnsureInitialized();
@@ -96,7 +90,6 @@ public class DispatcherService : IDispatcherService
         await tcs.Task;
     }
 
-    /// <inheritdoc/>
     public Task RunOnUIThreadWithContextAsync(Func<Task> asyncAction)
     {
         EnsureInitialized();
@@ -115,7 +108,7 @@ public class DispatcherService : IDispatcherService
                     new DispatcherQueueSynchronizationContext(_dispatcherQueue!));
             }
 
-            _ = InvokeAsync();
+            InvokeAsync().FireAndForget(logService);
         }
 
         async Task InvokeAsync()
@@ -135,12 +128,49 @@ public class DispatcherService : IDispatcherService
         {
             Start();
         }
-        else if (!_dispatcherQueue.TryEnqueue(Start))
+        else if (!_dispatcherQueue.TryEnqueue(Logged(Start)))
         {
             throw new InvalidOperationException("Failed to enqueue action to dispatcher queue.");
         }
 
         return tcs.Task;
+    }
+
+    public IDebounceTimer CreateDebounceTimer(TimeSpan interval, Action tick)
+    {
+        EnsureInitialized();
+
+        var timer = _dispatcherQueue!.CreateTimer();
+        timer.Interval = interval;
+        timer.IsRepeating = false;
+        timer.Tick += (_, _) => Logged(tick)();
+        return new DebounceTimer(timer);
+    }
+
+    // An exception thrown in a dispatcher callback ends the process without reaching any Winhance handler, so this
+    // is the one place that logs and rethrows: the log keeps the cause and the crash dump still gets the exception.
+    internal DispatcherQueueHandler Logged(Action callback) => () =>
+    {
+        try
+        {
+            callback();
+        }
+        catch (Exception ex)
+        {
+            logService.LogError($"Dispatcher callback threw {ex.GetType().FullName}", ex);
+            throw;
+        }
+    };
+
+    private sealed class DebounceTimer(DispatcherQueueTimer timer) : IDebounceTimer
+    {
+        public void Restart()
+        {
+            timer.Stop();
+            timer.Start();
+        }
+
+        public void Stop() => timer.Stop();
     }
 
     private void EnsureInitialized()

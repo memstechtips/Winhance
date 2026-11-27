@@ -2,110 +2,108 @@ using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
-using Winhance.UI.Features.AdvancedTools;
-using Winhance.UI.Features.Common.Controls;
+using Winhance.UI.Features.Autounattend;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Customize;
 using Winhance.UI.Features.Optimize;
 using Winhance.UI.Features.Settings;
 using Winhance.UI.Features.SoftwareApps;
-using Microsoft.UI.Dispatching;
-using System;
-using System.Collections.Generic;
+using Winhance.UI.Features.WimUtil;
 
 namespace Winhance.UI.Helpers;
 
-/// <summary>
-/// Handles page navigation routing, tag-to-Type mapping, and review mode feature tracking.
-/// Extracted from MainWindow to reduce code-behind complexity.
-/// </summary>
 internal sealed class NavigationRouter
 {
-    private readonly IConfigReviewService? _configReviewService;
-    private readonly INavBadgeService? _navBadgeService;
-    private readonly DispatcherQueue _dispatcherQueue;
+    private readonly IConfigReviewService _configReviewService;
+    private readonly INavBadgeService _navBadgeService;
+    private readonly IDispatcherService _dispatcherService;
+    private readonly PageCurtain _curtain;
+    private Type? _pendingPageType;
 
-    private static readonly Dictionary<string, Type> TagToPageType = new()
+    internal static readonly Dictionary<string, Type> TagToPageType = new()
     {
         ["Settings"] = typeof(SettingsPage),
         ["Optimize"] = typeof(OptimizePage),
         ["Customize"] = typeof(CustomizePage),
-        ["AdvancedTools"] = typeof(AdvancedToolsPage),
+        ["WimUtil"] = typeof(WimUtilPage),
+        ["Autounattend"] = typeof(AutounattendPage),
         ["SoftwareApps"] = typeof(SoftwareAppsPage),
     };
 
-    private static readonly Dictionary<string, string> PageTypeNameToTag = new()
+    internal static readonly Dictionary<string, string> PageTypeNameToTag = new()
     {
         [nameof(SettingsPage)] = "Settings",
         [nameof(OptimizePage)] = "Optimize",
         [nameof(CustomizePage)] = "Customize",
-        [nameof(AdvancedToolsPage)] = "AdvancedTools",
+        [nameof(WimUtilPage)] = "WimUtil",
+        [nameof(AutounattendPage)] = "Autounattend",
         [nameof(SoftwareAppsPage)] = "SoftwareApps",
     };
 
     public NavigationRouter(
-        IConfigReviewService? configReviewService,
-        INavBadgeService? navBadgeService,
-        DispatcherQueue dispatcherQueue)
+        IConfigReviewService configReviewService,
+        INavBadgeService navBadgeService,
+        IDispatcherService dispatcherService,
+        PageCurtain curtain)
     {
         _configReviewService = configReviewService;
         _navBadgeService = navBadgeService;
-        _dispatcherQueue = dispatcherQueue;
+        _dispatcherService = dispatcherService;
+        _curtain = curtain;
     }
 
-    /// <summary>
-    /// Navigates the content frame to the page corresponding to the given tag.
-    /// Also handles review mode feature-visited tracking for SoftwareApps.
-    /// </summary>
-    /// <param name="frame">The content frame to navigate.</param>
-    /// <param name="tag">The navigation tag (e.g., "SoftwareApps", "Optimize").</param>
-    /// <param name="parameter">Optional navigation parameter.</param>
-    /// <param name="applyNavBadges">Callback to refresh nav badges after subscription.</param>
-    public void NavigateToPage(Frame frame, string? tag, object? parameter = null, Action? applyNavBadges = null)
+    public Task NavigateToPage(Frame frame, string? tag, object? parameter = null, Action? applyNavBadges = null)
     {
-        StartupLogger.Log("NavigationRouter", $"NavigateToPage called with tag: {tag}");
+        StartupLogger.Log($"NavigateToPage called with tag: {tag}");
 
         if (tag == null || !TagToPageType.TryGetValue(tag, out var pageType))
         {
-            StartupLogger.Log("NavigationRouter", $"Skipping navigation - unknown tag: {tag}");
-            return;
+            StartupLogger.Log($"Skipping navigation - unknown tag: {tag}");
+            return Task.CompletedTask;
         }
 
-        StartupLogger.Log("NavigationRouter", $"Resolved page type: {pageType.Name}");
+        StartupLogger.Log($"Resolved page type: {pageType.Name}");
 
-        if (frame.CurrentSourcePageType != pageType)
+        if (pageType == (_pendingPageType ?? frame.CurrentSourcePageType))
         {
+            StartupLogger.Log($"Skipping navigation - already on page");
+            return Task.CompletedTask;
+        }
+
+        if (pageType == frame.CurrentSourcePageType)
+        {
+            _pendingPageType = null;
+            _curtain.Cancel();
+            return Task.CompletedTask;
+        }
+
+        _pendingPageType = pageType;
+        return _curtain.NavigateAsync(tag, () =>
+        {
+            _pendingPageType = null;
             try
             {
-                StartupLogger.Log("NavigationRouter", $"Navigating to {pageType.Name}...");
+                StartupLogger.Log($"Navigating to {pageType.Name}...");
                 var result = parameter != null
                     ? frame.Navigate(pageType, parameter)
                     : frame.Navigate(pageType);
-                StartupLogger.Log("NavigationRouter", $"Navigate result: {result}");
+                StartupLogger.Log($"Navigate result: {result}");
 
-                // Mark SoftwareApps features as visited when navigating to that page
-                if (tag == "SoftwareApps" && _configReviewService?.IsInReviewMode == true)
+                if (tag == "SoftwareApps" && _configReviewService.IsInReviewMode)
                 {
                     _configReviewService.MarkFeatureVisited(FeatureIds.WindowsApps);
                     _configReviewService.MarkFeatureVisited(FeatureIds.ExternalApps);
-                    _navBadgeService?.SubscribeToSoftwareAppsChanges(() =>
-                        _dispatcherQueue.TryEnqueue(() => applyNavBadges?.Invoke()));
+                    _navBadgeService.SubscribeToSoftwareAppsChanges(() =>
+                        _dispatcherService.Enqueue(() => applyNavBadges?.Invoke()));
                 }
             }
             catch (Exception ex)
             {
-                StartupLogger.Log("NavigationRouter", $"Navigation EXCEPTION: {ex}");
+                StartupLogger.Log($"Navigation EXCEPTION: {ex}");
             }
-        }
-        else
-        {
-            StartupLogger.Log("NavigationRouter", $"Skipping navigation - already on page");
-        }
+        });
     }
 
-    /// <summary>
-    /// Gets the navigation tag for the currently displayed page type.
-    /// </summary>
     public string? GetTagForCurrentPage(Type? pageType)
     {
         if (pageType == null) return null;

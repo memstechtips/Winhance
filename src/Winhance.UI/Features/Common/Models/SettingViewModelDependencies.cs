@@ -1,19 +1,14 @@
-using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Models;
 
-/// <summary>
-/// Groups the pass-through dependencies that SettingViewModelFactory
-/// forwards unchanged to SettingItemViewModel constructors.
-/// </summary>
 public record SettingViewModelDependencies(
-    ISettingApplicationService SettingApplicationService,
+    ISettingWriteStrategySelector WriteStrategySelector,
     ILogService LogService,
     IDispatcherService DispatcherService,
     IDialogService DialogService,
-    IEventBus EventBus,
     IRegeditLauncher RegeditLauncher,
-    IApplicationModeService ApplicationModeService
+    IApplicationModeService ApplicationModeService,
+    IFilePickerService FilePickerService
 );

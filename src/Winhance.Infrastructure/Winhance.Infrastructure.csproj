@@ -3,15 +3,28 @@
         <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <!-- CsWin32's generated power bindings use pointers (GUID**, byte*), as the real API does. -->
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
         <InternalsVisibleTo Include="Winhance.Infrastructure.Tests" />
+        <InternalsVisibleTo Include="Winhance.IntegrationTests" />
+        <InternalsVisibleTo Include="Winhance.UI.Tests" />
+        <!-- WimUtil's native seams are internal to this assembly and are mocked, so Castle's proxy
+             generator needs to see them too. -->
+        <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
     </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.7" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+
+    <!-- Win32 Interop - P/Invoke generated from Microsoft's Win32 SDK metadata (see NativeMethods.txt).
+         Generated members are internal, so they live in the assembly that consumes them. -->
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
@@ -25,11 +38,25 @@
         <PackageReference Include="System.DirectoryServices.Protocols" Version="8.0.0" />
         <PackageReference Include="System.IO.Packaging" Version="8.0.1" />
         <PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.10" />
-        <!-- Pin patched System.Security.Cryptography.Xml: floors out the vulnerable
-             transitive (NU1903 / GHSA-37gx-xxp4-5rgx CVE-2026-33116,
-             GHSA-w3x6-4m5h-cxqf CVE-2026-26171). 10.0.6 is the patched floor; 10.0.7 is latest. -->
-        <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.7" />
+        <!-- Reads the manifest winget download writes beside a staged installer -->
+        <PackageReference Include="YamlDotNet" Version="16.3.0" />
+        <!-- Pin patched System.Security.Cryptography.Xml. It also floors its Pkcs dependency;
+             both transitives are vulnerable (NU1903) below 10.0.13. -->
+        <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.13" />
     </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Features\Autounattend\Resources\ExtractScript.ps1">
+      <LogicalName>Winhance.Infrastructure.Resources.Autounattend.ExtractScript.ps1</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Features\Autounattend\Resources\SetComputerName.ps1">
+      <LogicalName>Winhance.Infrastructure.Resources.Autounattend.SetComputerName.ps1</LogicalName>
+    </EmbeddedResource>
+    <!-- Compiled as source AND embedded as text: the answer file hands this same file to Add-Type. -->
+    <EmbeddedResource Include="Features\Common\Native\DesktopBackgroundInterop.cs">
+      <LogicalName>Winhance.Infrastructure.Resources.Native.DesktopBackgroundInterop.cs</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="Features\SoftwareApps\Services\WinGet\winget-cli\**">

@@ -1,0 +1,67 @@
+using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Models;
+
+namespace Winhance.Core.Features.SoftwareApps.Catalogs;
+
+public static partial class ExternalAppDefinitions
+{
+    public static class OpticalDiscTools
+    {
+        public static ItemGroup GetOpticalDiscTools()
+        {
+            return new ItemGroup
+            {
+                Name = "Optical Disc Tools",
+                FeatureId = FeatureIds.ExternalApps,
+                Items = new List<ItemDefinition>
+                {
+                    new ItemDefinition
+                    {
+                        Id = "external-app-imgburn",
+                        Name = "ImgBurn",
+                        Description = "Lightweight CD / DVD / HD DVD / Blu-ray burning application",
+                        GroupName = "Optical Disc Tools",
+                        WinGetPackageId = ["LIGHTNINGUK.ImgBurn"],
+                        ChocoPackageId = "imgburn",
+                        WebsiteUrl = "https://www.imgburn.com/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-anyburn",
+                        Name = "AnyBurn",
+                        Description = "Lightweight CD/DVD/Blu-ray burning software",
+                        GroupName = "Optical Disc Tools",
+                        WinGetPackageId = ["PowerSoftware.AnyBurn"],
+                        WebsiteUrl = "http://www.anyburn.com/",
+                        ExternalApp = new ExternalAppMetadata
+                        {
+                            DownloadUrl = "https://www.anyburn.com/anyburn_setup.exe",
+                        },
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-cdburnerxp",
+                        Name = "CDBurnerXP",
+                        Description = "Free CD/DVD/Blu-ray burning software",
+                        RegistryDisplayName = "CDBurnerXP",
+                        GroupName = "Optical Disc Tools",
+                        ChocoPackageId = "cdburnerxp",
+                        WebsiteUrl = "https://cdburnerxp.se/",
+                    },
+                    new ItemDefinition
+                    {
+                        Id = "external-app-makemkv",
+                        Name = "MakeMKV",
+                        Description = "DVD and Blu-ray to MKV converter and streaming tool",
+                        RegistryDisplayName = "MakeMKV {version}",
+                        GroupName = "Optical Disc Tools",
+                        WinGetPackageId = ["GuinpinSoft.MakeMKV"],
+                        ChocoPackageId = "makemkv",
+                        WebsiteUrl = "https://www.makemkv.com/",
+                    }
+                }
+            };
+        }
+    }
+}

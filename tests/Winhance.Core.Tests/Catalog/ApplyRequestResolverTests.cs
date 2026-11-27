@@ -1,0 +1,892 @@
+using Microsoft.Win32;
+using Moq;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
+using Xunit;
+using Winhance.TestSupport;
+
+using Winhance.Core.Features.Common.Localization;
+namespace Winhance.Core.Tests.Catalog;
+
+public class ApplyRequestResolverTests
+{
+    private static readonly string[] TestPaths = [@"HKEY_LOCAL_MACHINE\SOFTWARE\Test"];
+
+    private static RegTarget Reg() => new("k", TestPaths, "V", RegistryValueKind.DWord);
+
+    private static SettingState State(LocKey label, int value, bool fallback = false) => new()
+    {
+        Label = label,
+        Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(value) },
+        IsFallback = fallback,
+    };
+
+    private static Setting ToggleSetting(string id = "t") => new()
+    {
+        Id = id,
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+        Targets = new[] { Reg() },
+        States = new[] { State(LocKey.Common.Enabled, 1), State(LocKey.Common.Disabled, 0, fallback: true) },
+    };
+
+    private static Setting SelectionSetting(string id = "t") => new()
+    {
+        Id = id,
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+        Targets = new[] { Reg() },
+        States = new[] { State(TestKeys.Of("OptA"), 0), State(TestKeys.Of("OptB"), 1) },
+    };
+
+    private static Setting NumericSetting(string id = "t") => new()
+    {
+        Id = id,
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+        Targets = new Target[]
+        {
+            new PowerCfgTarget("pk", "11111111-1111-1111-1111-111111111111",
+                "22222222-2222-2222-2222-222222222222", PowerModeSupport.Separate),
+        },
+        Numeric = new Numeric { Min = 0, Max = 100, Units = "Minutes" },
+    };
+
+    private static Setting PowerCfgSelectionSetting(string id = "t") => new()
+    {
+        Id = id,
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+        Targets = new Target[]
+        {
+            new PowerCfgTarget("pk", "11111111-1111-1111-1111-111111111111",
+                "22222222-2222-2222-2222-222222222222", PowerModeSupport.Separate),
+        },
+        States = new[]
+        {
+            new SettingState { Label = TestKeys.Of("OptA"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(10) } },
+            new SettingState { Label = TestKeys.Of("OptB"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(20) } },
+            new SettingState { Label = TestKeys.Of("OptC"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(30) } },
+        },
+    };
+
+    // No Targets and a custom detector, like the system-tray icons: its Custom state has nowhere to write, so the
+    // setting's own scripts are the apply.
+    private static Setting ScriptCustomStateSetting(string id = "t") => new()
+    {
+        Id = id,
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+        States = new[]
+        {
+            new SettingState { Label = TestKeys.Of("Show"), Effects = new Effect[] { new ScriptEffect("Show-Icons", RunContext.User) } },
+            new SettingState { Label = TestKeys.Of("Hide"), Effects = new Effect[] { new ScriptEffect("Hide-Icons", RunContext.User) } },
+        },
+        CustomStateScripts = new[] { new ScriptEffect("Promote-Icons", RunContext.User) },
+        Detector = new FakeDetector(),
+    };
+
+    private static Setting DnsSetting() => new()
+    {
+        Id = "dns",
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+        Targets = new Target[] { new DnsTarget("primary", DnsSlot.Preferred), new DnsTarget("secondary", DnsSlot.Alternate) },
+        States = new[]
+        {
+            new SettingState { Label = TestKeys.Of("Automatic"), Set = new Dictionary<string, StateValue> { ["primary"] = StateValue.Absent, ["secondary"] = StateValue.Absent } },
+            new SettingState { Label = TestKeys.Of("Cloudflare"), Set = new Dictionary<string, StateValue> { ["primary"] = StateValue.Of("1.1.1.1"), ["secondary"] = StateValue.Of("1.0.0.1") } },
+        },
+    };
+
+    private static Setting AlbumSetting(string id = "t") => new()
+    {
+        Id = id,
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+        TextBox = new(new TextRule("^.{1,}$", UpperCase: false, TestKeys.Of("A folder.")), Picker: PickerKind.Folder),
+        Targets = new Target[] { new DesktopSlideshowTarget("album") },
+        CustomStateScripts = [new ScriptEffect("Set-Slideshow '{{value}}'", RunContext.User)],
+    };
+
+    private sealed class FakeDetector : IStateDetector
+    {
+        public string? Detect(Setting setting, IDetectionContext context) => null;
+    }
+
+    [Fact]
+    public void Resolve_SlideshowBox_ReturnsOneOpCarryingTheFolder()
+    {
+        var plan = ApplyRequestResolver.Resolve(
+            "t", enable: true, value: @"D:\Albums\Trip", resetToDefault: false, new[] { AlbumSetting() }, new WinBuild(22631));
+
+        var op = Assert.IsType<SlideshowSetOp>(Assert.Single(plan!));
+        Assert.Equal("album", op.Target.Key);
+        Assert.Equal(@"D:\Albums\Trip", op.Folder);
+    }
+
+    [Fact]
+    public void Slideshow_EmptyBox_ResolvesToAnEmptyPlan()
+    {
+        var plan = ApplyRequestResolver.Resolve(
+            "t", enable: true, value: string.Empty, resetToDefault: false, new[] { AlbumSetting() }, new WinBuild(22631));
+
+        Assert.NotNull(plan);
+        Assert.Empty(plan);
+    }
+
+    [Fact]
+    public void Resolve_SlideshowBoxWithValueOfAnotherShape_ReturnsNull()
+    {
+        Assert.Null(ApplyRequestResolver.Resolve(
+            "t", enable: true, value: 0, resetToDefault: false, new[] { AlbumSetting() }, new WinBuild(22631)));
+    }
+
+    [Fact]
+    public void Resolve_UnpairedDefinition_ReturnsNull()
+    {
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
+            resetToDefault: false, new[] { ToggleSetting("other") });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Resolve_ResetOfToggleWithoutWindowsDefault_FallsThroughToNormalApply()
+    {
+        // A toggle with NO WindowsDefault-roled state carries no reset-specific overrides (ResetSet), so its
+        // reset IS a normal apply of the requested default direction. The resolver falls through to the toggle
+        // resolution with reset:true threaded (a no-op here - no ResetSet).
+        var setting = ToggleSetting();
+        var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
+            resetToDefault: true, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.Build(setting, LocKey.Common.Disabled, build: null, reset: true), plan);
+    }
+
+    [Fact]
+    public void Resolve_CustomDetectorSettingWithoutEffects_ReturnsNull()
+    {
+        // A custom-detector setting whose states carry NO apply effects has nothing
+        // to apply, so it returns null. ToggleSetting()'s states are effect-less.
+        var setting = ToggleSetting() with { Detector = new FakeDetector() };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
+            resetToDefault: false, new[] { setting });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Resolve_ResetOfCustomDetectorWithWindowsDefault_RoutesToNewEngine()
+    {
+        // A custom-detector setting WITH apply effects AND a WindowsDefault state (system-restore-style) routes its
+        // RESET through the new engine: the reset block derives the WindowsDefault state and builds it with reset:true,
+        // exactly as ApplyPlanBuilder would. The passed enable/value are ignored on a reset; the WindowsDefault
+        // direction is authoritative.
+        var setting = ToggleSetting() with
+        {
+            Detector = new FakeDetector(),
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) },
+                    Effects = new Effect[] { new ScriptEffect("Enable-ComputerRestore", RunContext.System) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) },
+                    Effects = new Effect[] { new ScriptEffect("Disable-ComputerRestore", RunContext.System) },
+                },
+            },
+        };
+
+        var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
+            resetToDefault: true, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.Build(setting, LocKey.Common.Enabled, build: null, reset: true), plan);
+    }
+
+    [Fact]
+    public void Resolve_ResetOfCustomDetectorWithoutWindowsDefault_ReturnsNull()
+    {
+        // A custom-detector selection WITH effects but NO WindowsDefault state, reset with a NON-index value
+        // (null): it falls through the reset block to the normal selection resolution, which returns null for a
+        // non-index value -> returns null. (A reset carrying a valid option index DOES route now - see
+        // Resolve_ResetOfSelectionIndexWithoutWindowsDefault_FallsThrough.)
+        var setting = SelectionSetting() with
+        {
+            Detector = new FakeDetector(),
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = TestKeys.Of("OptA"),
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) },
+                    Effects = new Effect[] { new ScriptEffect("a", RunContext.User) },
+                },
+                new SettingState
+                {
+                    Label = TestKeys.Of("OptB"),
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) },
+                    Effects = new Effect[] { new ScriptEffect("b", RunContext.User) },
+                },
+            },
+        };
+
+        var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
+            resetToDefault: true, new[] { setting });
+        Assert.Null(plan);
+    }
+
+    private static Setting PowerPlanSetting() => new()
+    {
+        Id = "t",
+        Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+        Options = new(OptionSource.PowerPlans),
+    };
+
+    private static FakeOptionProviderRegistry PowerPlans()
+    {
+        var provider = new Mock<IOptionProvider>();
+        provider.Setup(p => p.Accepts(It.IsAny<Setting>(), It.IsAny<string>()))
+            .Returns((Setting setting, string key) => Guid.TryParse(key, out _));
+        provider.Setup(p => p.EffectFor(It.IsAny<Setting>(), It.IsAny<string>()))
+            .Returns((Setting _, string key) => new PowerPlanEffect(key));
+        return new FakeOptionProviderRegistry(provider.Object);
+    }
+
+    [Fact]
+    public void Resolve_KeyedSelectionWithRefusedOrNonStringValue_ReturnsNull()
+    {
+        var setting = PowerPlanSetting();
+        Assert.Null(ApplyRequestResolver.Resolve("t", enable: true, value: "not-a-guid",
+            resetToDefault: false, new[] { setting }, options: PowerPlans()));
+        Assert.Null(ApplyRequestResolver.Resolve("t", enable: true, value: 1,
+            resetToDefault: false, new[] { setting }, options: PowerPlans()));
+    }
+
+    [Fact]
+    public void Resolve_KeyedSelectionWithAcceptedKey_BuildsTheProvidersEffect()
+    {
+        const string guid = "381b4222-f694-41f0-9685-ff5bb260df2e";
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: guid,
+            resetToDefault: false, new[] { PowerPlanSetting() }, options: PowerPlans());
+        var effect = Assert.IsType<EffectOp>(Assert.Single(plan!)).Effect;
+        Assert.Equal(guid, Assert.IsType<PowerPlanEffect>(effect).Guid);
+    }
+
+    [Fact]
+    public void Resolve_NumericWithNonDictionaryValue_ReturnsNull()
+    {
+        // A bare int carries no units, so the resolver cannot tell display from system units.
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 5,
+            resetToDefault: false, new[] { NumericSetting() });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Resolve_SelectionIndexOutOfRange_ReturnsNull()
+    {
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 7,
+            resetToDefault: false, new[] { SelectionSetting() });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Resolve_SelectionWithNonIndexValue_ReturnsNull()
+    {
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: "OptB",
+            resetToDefault: false, new[] { SelectionSetting() });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Resolve_ToggleEnable_BuildsEnabledPlan()
+    {
+        var setting = ToggleSetting();
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
+            resetToDefault: false, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.Build(setting, LocKey.Common.Enabled), plan);
+    }
+
+    [Fact]
+    public void Resolve_ToggleDisable_BuildsDisabledPlan()
+    {
+        var setting = ToggleSetting();
+        var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
+            resetToDefault: false, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.Build(setting, LocKey.Common.Disabled), plan);
+    }
+
+    [Fact]
+    public void Resolve_CustomDetectorSettingWithEffects_BuildsTheStatePlan()
+    {
+        // A custom-detector setting whose states carry apply effects (system-tray / system-restore) is
+        // applied by the new engine: the resolver routes the enable request to the matching state's plan exactly
+        // as ApplyPlanBuilder.Build would, instead of returning null.
+        var setting = ToggleSetting() with
+        {
+            Detector = new FakeDetector(),
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) },
+                    Effects = new Effect[] { new ScriptEffect("Enable-ComputerRestore", RunContext.System) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) },
+                    Effects = new Effect[] { new ScriptEffect("Disable-ComputerRestore", RunContext.System) },
+                },
+            },
+        };
+
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
+            resetToDefault: false, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.Build(setting, LocKey.Common.Enabled), plan);
+    }
+
+    [Fact]
+    public void Resolve_ResetWithWindowsDefaultState_AppliesItWithResetOverrides()
+    {
+        // A toggle whose Disabled state is the WindowsDefault AND carries a ResetSet (its [1,null]-style target
+        // DELETEs on reset though it DETECTs "1-or-absent"). The resolver must route reset to that default state
+        // and build with reset:true, so the plan equals ApplyPlanBuilder.Build(setting, LocKey.Common.Disabled, reset:true).
+        var setting = new Setting
+        {
+            Id = "t",
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+            Targets = new[] { Reg() },
+            States = new[]
+            {
+                State(LocKey.Common.Enabled, 1),
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1).OrAbsent() },
+                    ResetSet = new Dictionary<string, StateValue> { ["k"] = StateValue.Absent },
+                },
+            },
+        };
+
+        var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
+            resetToDefault: true, new[] { setting });
+
+        Assert.Equal(ApplyPlanBuilder.Build(setting, LocKey.Common.Disabled, build: null, reset: true), plan);
+    }
+
+    [Fact]
+    public void Resolve_ResetWithResetSetOnNonDefaultState_NeverRoutesToIt()
+    {
+        // A reset resolves the WindowsDefault-roled state, so a ResetSet declared anywhere else is unreachable.
+        // Pinned so the dead declarations stay deleted rather than reappearing as a plausible-looking no-op.
+        var setting = new Setting
+        {
+            Id = "t",
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+            Targets = new[] { Reg() },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) },
+                    ResetSet = new Dictionary<string, StateValue> { ["k"] = StateValue.Absent },
+                },
+            },
+        };
+
+        var plan = ApplyRequestResolver.Resolve("t", enable: false, value: null,
+            resetToDefault: true, new[] { setting });
+
+        Assert.Equal(0, Assert.IsType<RegistryWriteOp>(Assert.Single(plan!)).Value);
+    }
+
+    [Fact]
+    public void Resolve_CheckBox_BuildsItsOwnCheckedPlan()
+    {
+        var setting = ToggleSetting() with
+        {
+            States = new[] { State(LocKey.Common.Checked, 1), State(LocKey.Common.Unchecked, 0, fallback: true) },
+        };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
+            resetToDefault: false, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.Build(setting, LocKey.Common.Checked), plan);
+    }
+
+    [Fact]
+    public void Resolve_AnswerFileOnlySetting_ReturnsNull()
+    {
+        var setting = ToggleSetting() with
+        {
+            Targets = new Target[] { new AutounattendElement("K", "oobeSystem", "Microsoft-Windows-Shell-Setup", "OOBE/HideEULAPage") },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Absent },
+                    Roles = new[] { StateRole.WindowsDefault },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of("true") },
+                },
+            },
+        };
+
+        Assert.Null(ApplyRequestResolver.Resolve("t", enable: true, value: null,
+            resetToDefault: false, new[] { setting }));
+    }
+
+    [Fact]
+    public void Resolve_SelectionIndex_BuildsOptionLabelPlan()
+    {
+        var setting = SelectionSetting();
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 1,
+            resetToDefault: false, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.Build(setting, TestKeys.Of("OptB")), plan);
+    }
+
+    [Fact]
+    public void Resolve_Action_BuildsActionPlan()
+    {
+        var setting = new Setting
+        {
+            Id = "t",
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+            Effects = new Effect[] { new ScriptEffect("echo hi", RunContext.System) },
+        };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
+            resetToDefault: false, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.BuildAction(setting), plan);
+    }
+
+    [Fact]
+    public void Resolve_NumericAcDcDictionary_BuildsPowerCfgNumericPlan()
+    {
+        var setting = NumericSetting();
+        var value = new Dictionary<string, object?> { ["ACValue"] = 10, ["DCValue"] = 5 };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: value,
+            resetToDefault: false, new[] { setting });
+        var expected = ApplyPlanBuilder.BuildPowerCfgNumeric(setting, new[]
+        {
+            new ContextValue(PowerContext.AC, 10),
+            new ContextValue(PowerContext.DC, 5),
+        });
+        Assert.Equal(expected, plan);
+    }
+
+    [Fact]
+    public void Numeric_AcDcNumberChoice_WritesSystemUnitsUnconverted()
+    {
+        var setting = NumericSetting();
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: new ChoiceValue.AcDcNumber(90, 600),
+            resetToDefault: false, new[] { setting });
+        var expected = ApplyPlanBuilder.BuildPowerCfgSystemValues(setting, new[]
+        {
+            new ContextValue(PowerContext.AC, 90),
+            new ContextValue(PowerContext.DC, 600),
+        });
+
+        Assert.Equal(expected, plan);
+    }
+
+    [Fact]
+    public void Numeric_DecodedSingleValueFromConfigFile_WritesBothContexts()
+    {
+        var setting = NumericSetting();
+        var item = new ConfigurationItem
+        {
+            Id = "t",
+            Name = "t",
+            PowerSettings = new Dictionary<string, object> { ["Value"] = 90 },
+        };
+
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: ConfigFileMapper.DecodeValue(setting, item),
+            resetToDefault: false, new[] { setting });
+
+        Assert.Equal(
+            new[] { (PowerContext.AC, 90), (PowerContext.DC, 90) },
+            plan!.Cast<PowerCfgSetOp>().Select(op => (op.Context, op.Value)));
+    }
+
+    [Fact]
+    public void Resolve_PowerCfgSelectionAcDcTuple_BuildsAsymmetricPlan()
+    {
+        // Config-import shape: a (acIndex, dcIndex) ValueTuple. The resolver routes it to BuildPowerCfgSelectionAcDc,
+        // which writes the AC option's value to AC and the DC option's value to DC (asymmetric).
+        var setting = PowerCfgSelectionSetting();
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: (0, 2),
+            resetToDefault: false, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.BuildPowerCfgSelectionAcDc(setting, 0, 2), plan);
+    }
+
+    [Fact]
+    public void Resolve_PowerCfgSelectionAcDcDictionary_BuildsAsymmetricPlan()
+    {
+        // UI AC/DC quick-set shape: { ACValue = acIndex, DCValue = dcIndex }.
+        var setting = PowerCfgSelectionSetting();
+        var value = new Dictionary<string, object?> { ["ACValue"] = 1, ["DCValue"] = 0 };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: value,
+            resetToDefault: false, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.BuildPowerCfgSelectionAcDc(setting, 1, 0), plan);
+    }
+
+    [Fact]
+    public void Resolve_PowerCfgSelectionAcDcIndexOutOfRange_ReturnsNull()
+    {
+        var setting = PowerCfgSelectionSetting();
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: (0, 9),
+            resetToDefault: false, new[] { setting });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Resolve_PowerCfgSelectionWithSiblingRegistryTarget_ReturnsNull()
+    {
+        // DEFENSIVE guard: a powercfg selection with a SIBLING RegTarget is not pure - BuildPowerCfgSelectionAcDc
+        // writes only the powercfg target and would DROP the registry writes, so it returns null. (Real
+        // powercfg selections never take this shape: their enablement registry is nested in PowerCfgTarget.EnablementKey,
+        // out-of-band, so they DO route - see Resolve_PowerCfgSelectionWithEnablementKey_RoutesToAcDcPlan.)
+        var setting = new Setting
+        {
+            Id = "t",
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+            Targets = new Target[]
+            {
+                new PowerCfgTarget("pk", "11111111-1111-1111-1111-111111111111",
+                    "22222222-2222-2222-2222-222222222222", PowerModeSupport.Separate),
+                Reg(),
+            },
+            States = new[]
+            {
+                new SettingState { Label = TestKeys.Of("OptA"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(10), ["k"] = StateValue.Of(0) } },
+                new SettingState { Label = TestKeys.Of("OptB"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(20), ["k"] = StateValue.Of(1) } },
+            },
+        };
+        var value = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 1 };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: value,
+            resetToDefault: false, new[] { setting });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Resolve_PowerCfgSelectionWithEnablementKey_RoutesToAcDcPlan()
+    {
+        // A powercfg selection whose PowerCfgTarget carries a nested EnablementKey (the real power-button-action
+        // shape) is still PURE (its only target is a PowerCfgTarget) - the enablement registry is applied out-of-band
+        // by the existence phase, not the AC/DC write - so its AC/DC apply routes to the new engine.
+        var setting = new Setting
+        {
+            Id = "t",
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+            Targets = new Target[]
+            {
+                new PowerCfgTarget("pk", "11111111-1111-1111-1111-111111111111",
+                    "22222222-2222-2222-2222-222222222222", PowerModeSupport.Separate) { EnablementKey = Reg() },
+            },
+            States = new[]
+            {
+                new SettingState { Label = TestKeys.Of("OptA"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(10) } },
+                new SettingState { Label = TestKeys.Of("OptB"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(20) } },
+                new SettingState { Label = TestKeys.Of("OptC"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(30) } },
+            },
+        };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: (0, 2),
+            resetToDefault: false, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.BuildPowerCfgSelectionAcDc(setting, 0, 2), plan);
+    }
+
+    [Fact]
+    public void Resolve_NonSeparatePowerCfgSelectionAcDc_ReturnsNull()
+    {
+        // PowerCfgApplier's AC/DC path is gated on PowerModeSupport.Separate (a non-Separate powercfg selection
+        // given an AC/DC value throws NotSupportedException there). The resolver mirrors that gate: a non-Separate
+        // powercfg selection returns null rather than writing both contexts. (No such setting exists
+        // today - all catalog powercfg settings are Separate - this guards the invariant if one is ever added.)
+        var setting = new Setting
+        {
+            Id = "t",
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+            Targets = new Target[]
+            {
+                new PowerCfgTarget("pk", "11111111-1111-1111-1111-111111111111",
+                    "22222222-2222-2222-2222-222222222222", PowerModeSupport.Both),
+            },
+            States = new[]
+            {
+                new SettingState { Label = TestKeys.Of("OptA"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(10) } },
+                new SettingState { Label = TestKeys.Of("OptB"), Set = new Dictionary<string, StateValue> { ["pk"] = StateValue.Of(20) } },
+            },
+        };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: (0, 1),
+            resetToDefault: false, new[] { setting });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Resolve_RegistrySelectionWithAcDcDictionary_ReturnsNull()
+    {
+        // A REGISTRY selection (no PowerCfgTarget) with an AC/DC dict is NOT the powercfg path, so it is not
+        // representable: an AC/DC dict is Dictionary<string,object?>, distinct from a CustomStateValues Dictionary<string,object>.
+        var value = new Dictionary<string, object?> { ["ACValue"] = 0, ["DCValue"] = 1 };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: value,
+            resetToDefault: false, new[] { SelectionSetting() });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Resolve_RegistrySelectionCustomStateDictionary_RoutesToNewEngine()
+    {
+        // Config-import CustomStateValues (Dictionary<string,object> of raw per-ValueName values for a Custom /
+        // no-option state): a PLAIN registry selection routes to BuildRegistryCustomState, which writes each
+        // RegTarget whose ValueName is in the dict.
+        var setting = SelectionSetting(); // RegTarget Key="k", ValueName="V"
+        var customValues = new Dictionary<string, object> { ["V"] = 3 };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: customValues,
+            resetToDefault: false, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.BuildRegistryCustomState(setting, customValues), plan);
+    }
+
+    [Fact]
+    public void Resolve_RegistrySelectionCustomStateWithEffects_RoutesRegistryOnly()
+    {
+        // A plain registry selection whose states carry effects (a per-option script) routes
+        // its custom-state to BuildRegistryCustomState - the raw registry values ONLY. The per-option script is NOT
+        // run on a "Custom"/no-option import (a Custom state is not a named option); the normal option apply still
+        // runs the script via the state's Effects.
+        var setting = SelectionSetting() with
+        {
+            States = new[]
+            {
+                new SettingState { Label = TestKeys.Of("OptA"), Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(0) }, Effects = new Effect[] { new ScriptEffect("s", RunContext.User) } },
+                new SettingState { Label = TestKeys.Of("OptB"), Set = new Dictionary<string, StateValue> { ["k"] = StateValue.Of(1) } },
+            },
+        };
+        var customValues = new Dictionary<string, object> { ["V"] = 3 };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: customValues,
+            resetToDefault: false, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.BuildRegistryCustomState(setting, customValues), plan);
+    }
+
+    [Fact]
+    public void Resolve_RegistrySelectionCustomStatePerNetworkInterface_ReturnsNull()
+    {
+        // A per-network-interface registry selection is outside the proven plain-registry custom-state population,
+        // so it returns null.
+        var setting = new Setting
+        {
+            Id = "t",
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+            Targets = new Target[]
+            {
+                new RegTarget("k", TestPaths, "V", RegistryValueKind.DWord) { PerNetworkInterface = true },
+            },
+            States = new[] { State(TestKeys.Of("OptA"), 0), State(TestKeys.Of("OptB"), 1) },
+        };
+        var customValues = new Dictionary<string, object> { ["V"] = 3 };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: customValues,
+            resetToDefault: false, new[] { setting });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Resolve_ScriptOnlyCustomState_RunsTheSettingsScripts()
+    {
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: new Dictionary<string, object> { ["DetectedIndex"] = -1 },
+            resetToDefault: false, new[] { ScriptCustomStateSetting() });
+
+        var op = Assert.IsType<EffectOp>(Assert.Single(plan!));
+        Assert.Equal("Promote-Icons", Assert.IsType<ScriptEffect>(op.Effect).Script);
+    }
+
+    private static readonly string[] CloudflareServers = ["1.1.1.1", "1.0.0.1"];
+
+    [Fact]
+    public void Resolve_DnsPreset_WritesItsServersAsOneList()
+    {
+        var plan = ApplyRequestResolver.Resolve("dns", enable: true, value: 1, resetToDefault: false, new[] { DnsSetting() });
+
+        Assert.Equal(CloudflareServers, Assert.IsType<DnsSetOp>(Assert.Single(plan!)).Servers.Select(s => s.Address));
+    }
+
+    [Fact]
+    public void Resolve_AutomaticDns_WritesNoServers()
+    {
+        var plan = ApplyRequestResolver.Resolve("dns", enable: true, value: 0, resetToDefault: false, new[] { DnsSetting() });
+
+        Assert.Empty(Assert.IsType<DnsSetOp>(Assert.Single(plan!)).Servers);
+    }
+
+    [Theory]
+    [InlineData("10.5.0.1", "10.5.0.2", new[] { "10.5.0.1", "10.5.0.2" })]
+    [InlineData(" 10.5.0.1 ", null, new[] { "10.5.0.1" })]
+    public void Resolve_TypedDnsServers_ApplyAsTyped(string primary, string? secondary, string[] expected)
+    {
+        var values = new Dictionary<string, object> { ["primary"] = primary };
+        if (secondary is not null)
+            values["secondary"] = secondary;
+
+        var plan = ApplyRequestResolver.Resolve("dns", enable: true, value: values, resetToDefault: false, new[] { DnsSetting() });
+
+        Assert.Equal(expected, Assert.IsType<DnsSetOp>(Assert.Single(plan!)).Servers.Select(s => s.Address));
+    }
+
+    // An empty server list would be Automatic: a mistyped server must not hand the machine back to DHCP.
+    [Theory]
+    [InlineData("1.1.1.1'; calc #", "10.5.0.2")]
+    [InlineData("1.1", "10.5.0.2")]
+    [InlineData("2606:4700:4700::1111", "10.5.0.2")]
+    [InlineData("", "10.5.0.2")]
+    [InlineData("10.5.0.1", "not an address")]
+    public void Resolve_ServerThatIsNotIpv4Address_AppliesNothing(string primary, string secondary)
+    {
+        var values = new Dictionary<string, object> { ["primary"] = primary, ["secondary"] = secondary };
+
+        Assert.Null(ApplyRequestResolver.Resolve("dns", enable: true, value: values, resetToDefault: false, new[] { DnsSetting() }));
+    }
+
+    [Fact]
+    public void Resolve_RegistrySelectionCustomStateWithCustomStateScripts_StillWritesRegistryOnly()
+    {
+        // Pinned decision: a Custom state on a setting that HAS registry targets writes the
+        // raw registry values ONLY. Carrying CustomStateScripts must not change that - shortcut-arrow and
+        // touch-keyboard-service both carry them AND have RegTargets.
+        var setting = SelectionSetting() with
+        {
+            CustomStateScripts = new[] { new ScriptEffect("Write-Host '{{V}}'", RunContext.User) },
+        };
+        var customValues = new Dictionary<string, object> { ["V"] = 3 };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: customValues,
+            resetToDefault: false, new[] { setting });
+
+        Assert.Equal(ApplyPlanBuilder.BuildRegistryCustomState(setting, customValues), plan);
+        Assert.DoesNotContain(plan!, op => op is EffectOp);
+    }
+
+    [Fact]
+    public void Resolve_Win10AliasIdEnable_NormalizesToCanonicalMergedSetting()
+    {
+        // On Windows 10 the UI applies a This PC folder setting under its retired "-win10" id. The resolver
+        // alias-normalizes it to the canonical MERGED catalog Setting and builds it with the live (Win10) build gate
+        // - the same path config-import already uses - instead of missing (unpaired) and returning null.
+        const string aliasId = "explorer-customization-thispc-folder-desktop-win10";
+        const string canonicalId = "explorer-customization-thispc-folder-desktop";
+        var win10 = new WinBuild(19045);
+        var canonical = SettingCatalog.All.First(s => s.Id == canonicalId);
+
+        var plan = ApplyRequestResolver.Resolve(aliasId, enable: true, value: null,
+            resetToDefault: false, SettingCatalog.All, win10);
+
+        Assert.Equal(ApplyPlanBuilder.Build(canonical, LocKey.Common.Enabled, win10), plan);
+    }
+
+    [Fact]
+    public void Resolve_Win10AliasIdDisable_NormalizesToCanonicalMergedSetting()
+    {
+        // The Disabled direction of the same alias id routes to the canonical setting's Disabled state on Win10.
+        const string aliasId = "explorer-customization-thispc-folder-desktop-win10";
+        const string canonicalId = "explorer-customization-thispc-folder-desktop";
+        var win10 = new WinBuild(19045);
+        var canonical = SettingCatalog.All.First(s => s.Id == canonicalId);
+
+        var plan = ApplyRequestResolver.Resolve(aliasId, enable: false, value: null,
+            resetToDefault: false, SettingCatalog.All, win10);
+
+        Assert.Equal(ApplyPlanBuilder.Build(canonical, LocKey.Common.Disabled, win10), plan);
+    }
+
+    [Fact]
+    public void Resolve_ResetOfSelectionIndexWithoutWindowsDefault_FallsThrough()
+    {
+        // A no-WindowsDefault selection reset carrying a plain option index (a selection with no IsDefault
+        // option, as DNS / system-tray were) applies that index -
+        // reset:true threaded (a no-op without a ResetSet).
+        var setting = SelectionSetting(); // OptA(0), OptB(1); no WindowsDefault state
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: 1,
+            resetToDefault: true, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.Build(setting, TestKeys.Of("OptB"), build: null, reset: true), plan);
+    }
+
+    [Fact]
+    public void Resolve_ResetOfPowerCfgSelectionAcDcDictionaryWithoutWindowsDefault_FallsThrough()
+    {
+        // A no-WindowsDefault powercfg Separate selection reset (the {ACValue,DCValue} index dict the bulk reset
+        // dispatches) falls through to the asymmetric AC/DC builder - powercfg carries no ResetSet, so no reset
+        // threading is needed there.
+        var setting = PowerCfgSelectionSetting();
+        var value = new Dictionary<string, object?> { ["ACValue"] = 2, ["DCValue"] = 0 };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: value,
+            resetToDefault: true, new[] { setting });
+        Assert.Equal(ApplyPlanBuilder.BuildPowerCfgSelectionAcDc(setting, 2, 0), plan);
+    }
+
+    [Fact]
+    public void Resolve_ResetOfStatelessAction_ReturnsNull()
+    {
+        // A stateless Action has no default STATE to apply on reset (BuildAction runs its one-shot effects, which
+        // is NOT a reset), so its reset is not representable and returns null.
+        var setting = new Setting
+        {
+            Id = "t",
+            Display = new() { Name = TestKeys.Of("n"), Description = TestKeys.Of("d") },
+            Effects = new Effect[] { new ScriptEffect("echo hi", RunContext.System) },
+        };
+        var plan = ApplyRequestResolver.Resolve("t", enable: true, value: null,
+            resetToDefault: true, new[] { setting });
+        Assert.Null(plan);
+    }
+
+    [Fact]
+    public void Resolve_ResetOfThisPcToggleOnWin11_RoutesViaFallThrough()
+    {
+        // Real catalog: a merged This PC toggle has no WindowsDefault state. On Windows 11 the bulk reset
+        // dispatches the default direction (Disabled); the resolver falls through to Build the Disabled state with
+        // the live (Win11) build gate - the same plan a normal apply produces.
+        const string id = "explorer-customization-thispc-folder-desktop";
+        var win11 = new WinBuild(22631);
+        var canonical = SettingCatalog.All.First(s => s.Id == id);
+        var plan = ApplyRequestResolver.Resolve(id, enable: false, value: null,
+            resetToDefault: true, SettingCatalog.All, win11);
+        Assert.Equal(ApplyPlanBuilder.Build(canonical, LocKey.Common.Disabled, win11, reset: true), plan);
+    }
+
+    [Fact]
+    public void Resolve_ResetOfThisPcToggleWin10Alias_RoutesViaFallThrough()
+    {
+        // On Windows 10 the UI applies the merged This PC toggle under its retired -win10 id; the bulk reset
+        // dispatches the default direction (Enabled for the key-existence Win10 variant). Alias-normalize +
+        // the reset fall-through route it to Build the Enabled state with the Win10 build gate.
+        const string aliasId = "explorer-customization-thispc-folder-desktop-win10";
+        const string canonicalId = "explorer-customization-thispc-folder-desktop";
+        var win10 = new WinBuild(19045);
+        var canonical = SettingCatalog.All.First(s => s.Id == canonicalId);
+        var plan = ApplyRequestResolver.Resolve(aliasId, enable: true, value: null,
+            resetToDefault: true, SettingCatalog.All, win10);
+        Assert.Equal(ApplyPlanBuilder.Build(canonical, LocKey.Common.Enabled, win10, reset: true), plan);
+    }
+
+    [Theory]
+    [InlineData(@"\\evil.example\share\Trip")]
+    [InlineData("//evil.example/share/Trip")]
+    [InlineData(@"\\?\UNC\evil.example\share")]
+    [InlineData(@"Albums\Trip")]
+    public void Resolve_SlideshowOnAShare_IsNoOp(string folder)
+    {
+        var plan = ApplyRequestResolver.Resolve(
+            "t", enable: true, value: folder, resetToDefault: false, new[] { AlbumSetting() }, new WinBuild(22631));
+
+        Assert.NotNull(plan);
+        Assert.Empty(plan);
+    }
+}

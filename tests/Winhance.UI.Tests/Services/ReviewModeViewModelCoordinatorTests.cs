@@ -1,13 +1,19 @@
+using System.Collections.ObjectModel;
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.TestSupport;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Customize.ViewModels;
 using Winhance.UI.Features.Optimize.ViewModels;
+using Winhance.UI.Features.SoftwareApps.Services;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
 using Xunit;
 
@@ -15,7 +21,8 @@ namespace Winhance.UI.Tests.Services;
 
 public class ReviewModeViewModelCoordinatorTests
 {
-    // Mocks for child ViewModels' dependencies
+    private static readonly string[] PendingAndRejected = ["pending", "rejected"];
+
     private readonly Mock<IWindowsAppsService> _windowsAppsService = new();
     private readonly Mock<IAppInstallationService> _appInstallationService = new();
     private readonly Mock<IWindowsAppUninstallService> _windowsAppUninstallService = new();
@@ -27,6 +34,7 @@ public class ReviewModeViewModelCoordinatorTests
     private readonly Mock<IThemeService> _themeService = new();
 
     private readonly Mock<IExternalAppsService> _externalAppsService = new();
+    private readonly Mock<IStagedAppInstaller> _stagedAppInstaller = new();
     private readonly Mock<ITaskProgressService> _extProgressService = new();
     private readonly Mock<ILogService> _extLogService = new();
     private readonly Mock<IDialogService> _extDialogService = new();
@@ -39,16 +47,16 @@ public class ReviewModeViewModelCoordinatorTests
     private readonly Mock<IUserPreferencesService> _userPreferencesService = new();
     private readonly Mock<IConfigReviewModeService> _configReviewModeService = new();
     private readonly Mock<IConfigReviewBadgeService> _configReviewBadgeService = new();
-    private readonly Mock<IScheduledTaskService> _scheduledTaskService = new();
     private readonly Mock<IFileSystemService> _fileSystemService = new();
     private readonly Mock<IApplicationModeService> _applicationModeService = new();
 
-    private readonly Mock<OptimizeViewModel> _optimizeVm = new();
-    private readonly Mock<CustomizeViewModel> _customizeVm = new();
     private readonly Mock<ISettingReviewDiffApplier> _reviewDiffApplier = new();
+    private readonly Mock<IConfigReviewDiffService> _diffService = new();
 
     public ReviewModeViewModelCoordinatorTests()
     {
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
         _winDispatcherService.Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(a => a());
         _winDispatcherService.Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
@@ -73,13 +81,17 @@ public class ReviewModeViewModelCoordinatorTests
             .Returns<string>(k => k);
         _softLocalizationService.Setup(l => l.GetString(It.IsAny<string>()))
             .Returns<string>(k => k);
+        _softLocalizationService.MirrorTryGetString();
 
         _userPreferencesService.Setup(u => u.GetPreference(It.IsAny<string>(), It.IsAny<string>()))
             .Returns("Table");
     }
 
+    private readonly Mock<IInstalledAppsService> _installedAppsService = new();
+
     private WindowsAppsViewModel CreateWindowsAppsVm() => new(
         _windowsAppsService.Object,
+        _installedAppsService.Object,
         _appInstallationService.Object,
         _windowsAppUninstallService.Object,
         _winProgressService.Object,
@@ -91,7 +103,10 @@ public class ReviewModeViewModelCoordinatorTests
 
     private ExternalAppsViewModel CreateExternalAppsVm() => new(
         _externalAppsService.Object,
+        _installedAppsService.Object,
         _appInstallationService.Object,
+        _stagedAppInstaller.Object,
+        new Mock<IInstallOptionsService>().Object,
         _extProgressService.Object,
         _extLogService.Object,
         _extDialogService.Object,
@@ -108,35 +123,72 @@ public class ReviewModeViewModelCoordinatorTests
         _userPreferencesService.Object,
         _configReviewModeService.Object,
         _configReviewBadgeService.Object,
-        _scheduledTaskService.Object,
         _fileSystemService.Object,
-        _applicationModeService.Object);
+        _applicationModeService.Object,
+        new Mock<IFilePickerService>().Object,
+        new AppUpdateMonitor(
+            extVm,
+            winVm,
+            _userPreferencesService.Object,
+            _softLocalizationService.Object,
+            new Mock<IVersionService>().Object,
+            TimeProvider.System,
+            _softLogService.Object));
 
-    /// <summary>
-    /// Creates the coordinator with real child ViewModels but mocked OptimizeVM/CustomizeVM.
-    /// Since OptimizeViewModel and CustomizeViewModel have complex constructors that need
-    /// many dependencies, and the coordinator accesses them through their public ISettingsFeatureViewModel
-    /// properties, we use a helper that constructs the coordinator with null-safe placeholders
-    /// for those VMs (tests that exercise ReapplyReviewDiffsToExistingSettings will need separate handling).
-    /// </summary>
     private (ReviewModeViewModelCoordinator Sut, WindowsAppsViewModel WinVm,
         ExternalAppsViewModel ExtVm, SoftwareAppsViewModel SoftVm)
-        CreateSutWithVms()
+        CreateSutWithVms(params SettingItemViewModel[] privacySettings)
     {
         var winVm = CreateWindowsAppsVm();
         var extVm = CreateExternalAppsVm();
         var softVm = CreateSoftwareAppsVm(winVm, extVm);
 
-        // We cannot easily create OptimizeViewModel/CustomizeViewModel without their full
-        // dependency graph (they're concrete classes with complex constructors).
-        // For properties that the coordinator accesses (HasSelectedWindowsApps, etc.),
-        // we use the real VMs. ReapplyReviewDiffsToExistingSettings tests would require
-        // mocking the feature VMs, which is covered below with null checks.
+        var privacy = new Mock<ISettingsFeatureViewModel>();
+        privacy.Setup(f => f.ModuleId).Returns(FeatureIds.Privacy);
+        privacy.Setup(f => f.Settings).Returns(new ObservableCollection<SettingItemViewModel>(privacySettings));
+        var optimize = new OptimizeViewModel(
+            _softLogService.Object, _softLocalizationService.Object, [privacy.Object], _configReviewBadgeService.Object,
+            _configReviewModeService.Object, new Mock<ICatalogSettingsRegistry>().Object,
+            new Mock<ICatalogScopeProvider>().Object, _applicationModeService.Object);
+        var customize = new CustomizeViewModel(
+            _softLogService.Object, _softLocalizationService.Object, [], _configReviewBadgeService.Object,
+            _configReviewModeService.Object, new Mock<ICatalogSettingsRegistry>().Object,
+            new Mock<ICatalogScopeProvider>().Object, _applicationModeService.Object);
+
         var sut = new ReviewModeViewModelCoordinator(
-            softVm, winVm, extVm,
-            null!, null!, _reviewDiffApplier.Object, _winDispatcherService.Object);
+            softVm, winVm, extVm, optimize, customize,
+            _reviewDiffApplier.Object, _diffService.Object, _winDispatcherService.Object);
 
         return (sut, winVm, extVm, softVm);
+    }
+
+    private SettingItemViewModel CreateReviewedSetting(string id)
+    {
+        var setting = new Setting
+        {
+            Id = id,
+            Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of("d") },
+        };
+        var vm = new SettingItemViewModel(
+            new SettingItemViewModelConfig
+            {
+                Setting = setting,
+                SettingId = id,
+                Name = id,
+                Description = "d",
+                InputType = InputType.Toggle,
+            },
+            SettingWriteStrategies.Selector(
+                new Mock<ISettingApplicationService>().Object, _softDialogService.Object,
+                _softLocalizationService.Object, _softLogService.Object),
+            _softLogService.Object,
+            _winDispatcherService.Object,
+            _softDialogService.Object,
+            _softLocalizationService.Object);
+        vm.IsInReviewMode = true;
+        vm.HasReviewDiff = true;
+        vm.HasReviewAction = true;
+        return vm;
     }
 
     private ItemDefinition CreateTestItem(string id, string name = "TestApp",
@@ -148,8 +200,6 @@ public class ReviewModeViewModelCoordinatorTests
         AppxPackageName = new[] { "Microsoft.Test" },
         IsInstalled = isInstalled
     };
-
-    // --- HasSelectedWindowsApps ---
 
     [Fact]
     public void HasSelectedWindowsApps_WhenNoItems_ReturnsFalse()
@@ -164,8 +214,8 @@ public class ReviewModeViewModelCoordinatorTests
     {
         _windowsAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(new[] { CreateTestItem("app1") });
-        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["app1"] = false });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.Windows, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = false }));
 
         var (sut, winVm, _, _) = CreateSutWithVms();
         await winVm.LoadAppsAndCheckInstallationStatusAsync();
@@ -173,8 +223,6 @@ public class ReviewModeViewModelCoordinatorTests
 
         sut.HasSelectedWindowsApps.Should().BeTrue();
     }
-
-    // --- HasSelectedExternalApps ---
 
     [Fact]
     public void HasSelectedExternalApps_WhenNoItems_ReturnsFalse()
@@ -189,8 +237,8 @@ public class ReviewModeViewModelCoordinatorTests
     {
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(new[] { CreateTestItem("ext1") });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["ext1"] = false });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["ext1"] = false }));
 
         var (sut, _, extVm, _) = CreateSutWithVms();
         await extVm.LoadAppsAndCheckInstallationStatusAsync();
@@ -198,8 +246,6 @@ public class ReviewModeViewModelCoordinatorTests
 
         sut.HasSelectedExternalApps.Should().BeTrue();
     }
-
-    // --- Action properties ---
 
     [Fact]
     public void IsWindowsAppsInstallAction_DelegatesToSoftwareAppsViewModel()
@@ -241,8 +287,6 @@ public class ReviewModeViewModelCoordinatorTests
         sut.IsExternalAppsRemoveAction.Should().BeTrue();
     }
 
-    // --- GetSelectedExternalAppIds ---
-
     [Fact]
     public void GetSelectedExternalAppIds_WhenNoItems_ReturnsEmptyList()
     {
@@ -259,8 +303,8 @@ public class ReviewModeViewModelCoordinatorTests
         var item = CreateTestItem("ext1", "Firefox");
         _externalAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(new[] { item });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["ext1"] = false });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["ext1"] = false }));
 
         var (sut, _, extVm, _) = CreateSutWithVms();
         await extVm.LoadAppsAndCheckInstallationStatusAsync();
@@ -271,38 +315,13 @@ public class ReviewModeViewModelCoordinatorTests
         result.Should().Contain("ext1");
     }
 
-    // --- ClearExternalAppSelections ---
-
-    [Fact]
-    public async Task ClearExternalAppSelections_ClearsAllSelections()
-    {
-        _externalAppsService.Setup(s => s.GetAppsAsync())
-            .ReturnsAsync(new[]
-            {
-                CreateTestItem("ext1"),
-                CreateTestItem("ext2")
-            });
-        _externalAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool> { ["ext1"] = false, ["ext2"] = false });
-
-        var (sut, _, extVm, _) = CreateSutWithVms();
-        await extVm.LoadAppsAndCheckInstallationStatusAsync();
-        foreach (var item in extVm.Items) item.IsSelected = true;
-
-        sut.ClearExternalAppSelections();
-
-        extVm.Items.Should().OnlyContain(i => !i.IsSelected);
-    }
-
-    // --- RemoveWindowsAppsAsync ---
-
     [Fact]
     public async Task RemoveWindowsAppsAsync_DelegatesToWindowsAppsViewModel()
     {
         _windowsAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
-        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.Windows, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
 
         var (sut, winVm, _, _) = CreateSutWithVms();
         await winVm.LoadAppsAndCheckInstallationStatusAsync();
@@ -310,20 +329,17 @@ public class ReviewModeViewModelCoordinatorTests
         // Since no items are selected, RemoveApps should return early
         await sut.RemoveWindowsAppsAsync(skipConfirmation: true, saveRemovalScripts: false);
 
-        // Verify it was called (even if no items selected, it should not throw)
         _windowsAppUninstallService.Verify(s => s.UninstallAppsInParallelAsync(
             It.IsAny<List<ItemDefinition>>(), It.IsAny<bool>()), Times.Never);
     }
-
-    // --- InstallWindowsAppsAsync ---
 
     [Fact]
     public async Task InstallWindowsAppsAsync_DelegatesToWindowsAppsViewModel()
     {
         _windowsAppsService.Setup(s => s.GetAppsAsync())
             .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
-        _windowsAppsService.Setup(s => s.CheckBatchInstalledAsync(It.IsAny<IEnumerable<ItemDefinition>>()))
-            .ReturnsAsync(new Dictionary<string, bool>());
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.Windows, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
 
         var (sut, winVm, _, _) = CreateSutWithVms();
         await winVm.LoadAppsAndCheckInstallationStatusAsync();
@@ -335,7 +351,67 @@ public class ReviewModeViewModelCoordinatorTests
             It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
-    // --- Action state defaults ---
+    [Fact]
+    public void AcceptAllRemaining_AcceptsWhatTheReviewStillHasOpen_AndLeavesDecisionsAlone()
+    {
+        var pending = CreateReviewedSetting("pending");
+        var rejected = CreateReviewedSetting("rejected");
+        rejected.IsReviewRejected = true;
+        rejected.IsReviewActionRejected = true;
+        var untouched = CreateReviewedSetting("untouched");
+        _diffService.Setup(d => d.ApproveAllPending()).Returns(PendingAndRejected);
+        var (sut, _, _, _) = CreateSutWithVms(pending, rejected, untouched);
+
+        sut.AcceptAllRemaining();
+
+        _diffService.Verify(d => d.ApproveAllPending(), Times.Once);
+        pending.IsReviewApproved.Should().BeTrue();
+        pending.IsReviewActionApproved.Should().BeTrue();
+        rejected.IsReviewRejected.Should().BeTrue();
+        rejected.IsReviewActionRejected.Should().BeTrue();
+        untouched.IsReviewDecisionMade.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task AcceptAllRemaining_GivesSelectedAppsTheImportDefaults()
+    {
+        _windowsAppsService.Setup(s => s.GetAppsAsync()).ReturnsAsync(new[] { CreateTestItem("app1") });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.Windows, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = true }));
+        _externalAppsService.Setup(s => s.GetAppsAsync()).ReturnsAsync(new[] { CreateTestItem("ext1") });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["ext1"] = false }));
+        _diffService.Setup(d => d.ApproveAllPending()).Returns(Array.Empty<string>());
+        var (sut, winVm, extVm, softVm) = CreateSutWithVms();
+        await winVm.LoadAppsAndCheckInstallationStatusAsync();
+        await extVm.LoadAppsAndCheckInstallationStatusAsync();
+        winVm.Items[0].IsSelected = true;
+        extVm.Items[0].IsSelected = true;
+
+        sut.AcceptAllRemaining();
+
+        softVm.IsWindowsAppsRemoveAction.Should().BeTrue();
+        softVm.IsExternalAppsInstallAction.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AcceptAllRemaining_KeepsAnAppActionAlreadyChosen_AndSkipsListsWithNothingSelected()
+    {
+        _windowsAppsService.Setup(s => s.GetAppsAsync()).ReturnsAsync(new[] { CreateTestItem("app1") });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.Windows, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = false }));
+        _diffService.Setup(d => d.ApproveAllPending()).Returns(Array.Empty<string>());
+        var (sut, winVm, _, softVm) = CreateSutWithVms();
+        await winVm.LoadAppsAndCheckInstallationStatusAsync();
+        winVm.Items[0].IsSelected = true;
+        softVm.IsWindowsAppsInstallAction = true;
+
+        sut.AcceptAllRemaining();
+
+        softVm.IsWindowsAppsInstallAction.Should().BeTrue();
+        softVm.IsWindowsAppsRemoveAction.Should().BeFalse();
+        softVm.IsExternalAppsInstallAction.Should().BeFalse();
+    }
 
     [Fact]
     public void ActionStates_DefaultToFalse()

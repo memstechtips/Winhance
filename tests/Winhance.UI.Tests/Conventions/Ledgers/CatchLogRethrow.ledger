@@ -1,0 +1,9 @@
+src/Winhance.Infrastructure/Features/Common/Utilities/DismSessionManager.cs	1	cancel-log
+src/Winhance.Infrastructure/Features/SoftwareApps/Services/ChocolateyService.cs	4	cancel-log
+src/Winhance.Infrastructure/Features/SoftwareApps/Services/DirectDownloadService.cs	5	cancel-log
+src/Winhance.Infrastructure/Features/WimUtil/Services/IsoService.cs	2	cancel-log
+src/Winhance.Infrastructure/Features/WimUtil/Services/WimImageService.cs	2	cancel-log
+src/Winhance.UI/App.xaml.cs	2	startup-log
+src/Winhance.UI/Features/Customize/CustomizePage.xaml.cs	1	startup-log
+src/Winhance.UI/Features/Optimize/OptimizePage.xaml.cs	1	startup-log
+src/Winhance.UI/Program.cs	1	startup-log

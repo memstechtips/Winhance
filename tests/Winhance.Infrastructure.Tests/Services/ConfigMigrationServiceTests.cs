@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -19,9 +20,9 @@ public class ConfigMigrationServiceTests
         _sut = new ConfigMigrationService(_logMock.Object);
     }
 
-    private static UnifiedConfigurationFile CreateConfigWithCustomizeItem(ConfigurationItem item)
+    private static WinhanceConfigFile CreateConfigWithCustomizeItem(ConfigurationItem item)
     {
-        return new UnifiedConfigurationFile
+        return new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection
             {
@@ -42,6 +43,75 @@ public class ConfigMigrationServiceTests
         var action = () => _sut.MigrateConfig(null!);
 
         action.Should().NotThrow();
+    }
+
+    [Theory]
+    [InlineData(true, 3)]
+    [InlineData(false, 0)]
+    public void AltTabToggle_PreservesWhatTheOldProfileApplied(bool windowsOnly, int index)
+    {
+        var item = new ConfigurationItem
+        {
+            Id = "gaming-explorer-alt-tab-filter",
+            InputType = InputType.Toggle,
+            IsSelected = windowsOnly,
+            CustomStateValues = new() { ["MultiTaskingAltTabFilter"] = 4 },
+        };
+        var config = CreateConfigWithCustomizeItem(item);
+
+        _sut.MigrateConfig(config);
+        _sut.MigrateConfig(config);
+
+        Assert.Equal(InputType.Selection, item.InputType);
+        Assert.Equal(index, item.SelectedIndex);
+        Assert.Null(item.IsSelected);
+        Assert.Null(item.CustomStateValues);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void AltTabSelection_PreservesIntermediateOptions(int index)
+    {
+        var item = new ConfigurationItem { Id = "gaming-explorer-alt-tab-filter", InputType = InputType.Selection, SelectedIndex = index };
+        var config = CreateConfigWithCustomizeItem(item);
+
+        _sut.MigrateConfig(config);
+
+        Assert.Equal(index, item.SelectedIndex);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(-1)]
+    [InlineData(4)]
+    public void AltTabSelection_WithoutAValidChoiceIsSkipped(int? index)
+    {
+        var item = new ConfigurationItem { Id = "gaming-explorer-alt-tab-filter", InputType = InputType.Selection, SelectedIndex = index };
+        var config = CreateConfigWithCustomizeItem(item);
+        _sut.MigrateConfig(config);
+        Assert.Empty(config.Customize.Features["TaskbarCustomizations"].Items);
+    }
+
+    [Fact]
+    public void AltTabSelection_PreservesCustomFilter()
+    {
+        var item = new ConfigurationItem { Id = "gaming-explorer-alt-tab-filter", InputType = InputType.Selection, CustomStateValues = new() { ["MultiTaskingAltTabFilter"] = 4 } };
+        var config = CreateConfigWithCustomizeItem(item);
+        _sut.MigrateConfig(config);
+        Assert.Same(item, Assert.Single(config.Customize.Features["TaskbarCustomizations"].Items));
+        Assert.Equal(4, item.CustomStateValues["MultiTaskingAltTabFilter"]);
+    }
+
+    [Fact]
+    public void AltTabToggle_WithoutASavedChoiceIsSkipped()
+    {
+        var item = new ConfigurationItem { Id = "gaming-explorer-alt-tab-filter", InputType = InputType.Toggle };
+        var config = CreateConfigWithCustomizeItem(item);
+
+        _sut.MigrateConfig(config);
+
+        Assert.Empty(config.Customize.Features["TaskbarCustomizations"].Items);
     }
 
     [Fact]
@@ -119,7 +189,6 @@ public class ConfigMigrationServiceTests
 
         _sut.MigrateConfig(config);
 
-        // Already a Selection, should not be changed
         item.InputType.Should().Be(InputType.Selection);
         item.SelectedIndex.Should().Be(2);
     }
@@ -141,7 +210,7 @@ public class ConfigMigrationServiceTests
 
         _logMock.Verify(
             l => l.Log(LogLevel.Info, It.Is<string>(msg =>
-                msg.Contains("taskbar-transparent") && msg.Contains("Toggle") && msg.Contains("Selection")), null),
+                msg.Contains("taskbar-transparent") && msg.Contains("Toggle") && msg.Contains("Selection")), null, It.IsAny<string>()),
             Times.Once);
     }
 
@@ -156,7 +225,7 @@ public class ConfigMigrationServiceTests
             IsSelected = true,
         };
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Optimize = new FeatureGroupSection
             {
@@ -187,7 +256,7 @@ public class ConfigMigrationServiceTests
             IsSelected = false,
         };
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             WindowsApps = new ConfigSection
             {
@@ -212,7 +281,7 @@ public class ConfigMigrationServiceTests
             IsSelected = true,
         };
 
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             ExternalApps = new ConfigSection
             {
@@ -294,7 +363,7 @@ public class ConfigMigrationServiceTests
     [Fact]
     public void MigrateConfig_NullSections_DoesNotThrow()
     {
-        var config = new UnifiedConfigurationFile
+        var config = new WinhanceConfigFile
         {
             Customize = new FeatureGroupSection { Features = null! },
             Optimize = new FeatureGroupSection { Features = null! },
@@ -324,5 +393,201 @@ public class ConfigMigrationServiceTests
 
         action.Should().NotThrow();
         item.InputType.Should().Be(InputType.Toggle);
+    }
+
+    [Theory]
+    [InlineData("explorer-customization-thispc-folder-desktop-win10", "explorer-customization-thispc-folder-desktop")]
+    [InlineData("explorer-customization-thispc-folder-documents-win10", "explorer-customization-thispc-folder-documents")]
+    [InlineData("explorer-customization-thispc-folder-downloads-win10", "explorer-customization-thispc-folder-downloads")]
+    [InlineData("explorer-customization-thispc-folder-music-win10", "explorer-customization-thispc-folder-music")]
+    [InlineData("explorer-customization-thispc-folder-pictures-win10", "explorer-customization-thispc-folder-pictures")]
+    [InlineData("explorer-customization-thispc-folder-videos-win10", "explorer-customization-thispc-folder-videos")]
+    public void MigrateConfig_RetiredWin10ThisPcId_NormalizedToCanonical(string retired, string canonical)
+    {
+        var item = new ConfigurationItem
+        {
+            Id = retired,
+            Name = "This PC Folder",
+            InputType = InputType.Toggle,
+            IsSelected = true,
+        };
+
+        var config = CreateConfigWithCustomizeItem(item);
+
+        _sut.MigrateConfig(config);
+
+        item.Id.Should().Be(canonical);
+    }
+
+    [Fact]
+    public void MigrateConfig_AlreadyCanonicalThisPcId_IdUnchanged()
+    {
+        var item = new ConfigurationItem
+        {
+            Id = "explorer-customization-thispc-folder-desktop",
+            Name = "This PC Folder",
+            InputType = InputType.Toggle,
+            IsSelected = true,
+        };
+
+        var config = CreateConfigWithCustomizeItem(item);
+
+        _sut.MigrateConfig(config);
+
+        item.Id.Should().Be("explorer-customization-thispc-folder-desktop");
+    }
+
+    [Fact]
+    public void MigrateConfig_AliasNormalization_AppliesInOptimizeSection()
+    {
+        // Normalization lives in MigrateSection, so it applies to every section, not just Customize.
+        var item = new ConfigurationItem
+        {
+            Id = "explorer-customization-thispc-folder-videos-win10",
+            Name = "This PC Folder",
+            InputType = InputType.Toggle,
+            IsSelected = false,
+        };
+
+        var config = new WinhanceConfigFile
+        {
+            Optimize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["SomeFeature"] = new ConfigSection
+                    {
+                        Items = new List<ConfigurationItem> { item },
+                    },
+                },
+            },
+        };
+
+        _sut.MigrateConfig(config);
+
+        item.Id.Should().Be("explorer-customization-thispc-folder-videos");
+    }
+    [Fact]
+    public void MigrateConfig_AFileWrittenUnderARetiredFeatureId_IsRekeyedToTheCurrentOne()
+    {
+        var section = new ConfigSection { Items = new List<ConfigurationItem>() };
+        var config = new WinhanceConfigFile
+        {
+            Customize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection> { ["ExplorerCustomization"] = section },
+            },
+        };
+
+        _sut.MigrateConfig(config);
+
+        config.Customize.Features.Should().ContainKey(FeatureIds.Explorer).WhoseValue.Should().BeSameAs(section);
+        config.Customize.Features.Should().NotContainKey("ExplorerCustomization",
+            "review mode counts and badges features by the key the file carries");
+    }
+
+    [Fact]
+    public void MigrateConfig_FeatureIdsThatAreStillCurrent_AreLeftAlone()
+    {
+        var config = CreateConfigWithCustomizeItem(new ConfigurationItem { Id = "whatever" });
+
+        _sut.MigrateConfig(config);
+
+        config.Customize.Features.Should().ContainKey("TaskbarCustomizations");
+    }
+    [Theory]
+    [InlineData(0, "M/d/yyyy")]
+    [InlineData(3, "yyyy/MM/dd")]
+    [InlineData(4, "dd MMM yyyy")]
+    public void MigrateConfig_AShortDateSavedAsAnIndex_BecomesThePatternItMeant(int index, string expected)
+    {
+        var config = CreateConfigWithCustomizeItem(new ConfigurationItem
+        {
+            Id = "explorer-customization-short-date",
+            InputType = InputType.Selection,
+            SelectedIndex = index,
+        });
+
+        _sut.MigrateConfig(config);
+
+        var item = config.Customize.Features["TaskbarCustomizations"].Items[0];
+        item.Id.Should().Be("region-short-date");
+        item.SelectedKey.Should().Be(expected);
+        item.SelectedIndex.Should().BeNull();
+    }
+
+    [Fact]
+    public void MigrateConfig_AShortDateAlreadyKeyed_IsLeftAlone()
+    {
+        var config = CreateConfigWithCustomizeItem(new ConfigurationItem
+        {
+            Id = "explorer-customization-short-date",
+            SelectedKey = "dd.MM.yyyy",
+        });
+
+        _sut.MigrateConfig(config);
+
+        config.Customize.Features["TaskbarCustomizations"].Items[0].SelectedKey.Should().Be("dd.MM.yyyy");
+    }
+
+    [Theory]
+    [InlineData(7, "1.1.1.1", "1.0.0.1")]
+    [InlineData(8, "8.8.8.8", "8.8.4.4")]
+    [InlineData(9, "9.9.9.9", "149.112.112.112")]
+    public void MigrateConfig_DnsDohOption_BecomesItsServersEncrypted(int old, string preferred, string alternate)
+    {
+        var dns = new ConfigurationItem { Id = "gaming-dns-server", InputType = InputType.Selection, SelectedIndex = old };
+        var config = CreateConfigWithCustomizeItem(dns);
+
+        _sut.MigrateConfig(config);
+
+        dns.SelectedIndex.Should().BeNull();
+        dns.CustomStateValues.Should().BeEquivalentTo(new Dictionary<string, object>
+        {
+            ["primary"] = preferred,
+            ["primaryDoh"] = "1",
+            ["secondary"] = alternate,
+            ["secondaryDoh"] = "1",
+        });
+    }
+
+    [Fact]
+    public void MigrateConfig_DnsPlainOption_StaysAnIndex()
+    {
+        var dns = new ConfigurationItem { Id = "gaming-dns-server", InputType = InputType.Selection, SelectedIndex = 1 };
+        var config = CreateConfigWithCustomizeItem(dns);
+
+        _sut.MigrateConfig(config);
+
+        dns.SelectedIndex.Should().Be(1);
+        dns.CustomStateValues.Should().BeNull();
+    }
+
+    [Fact]
+    public void MigrateConfig_HandEditedNullSectionsAndItems_AreDropped()
+    {
+        var kept = new ConfigurationItem { Id = "updates-pause", Name = "Pause", InputType = InputType.Toggle };
+        var config = new WinhanceConfigFile
+        {
+            WindowsApps = null!,
+            Optimize = null!,
+            Customize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Privacy"] = null!,
+                    ["Sound"] = new ConfigSection { Items = null! },
+                    ["Update"] = new ConfigSection { Items = [null!, new ConfigurationItem { Name = "No id" }, kept] },
+                },
+            },
+        };
+
+        _sut.MigrateConfig(config);
+
+        config.WindowsApps.Items.Should().BeEmpty();
+        config.Optimize.Features.Should().BeEmpty();
+        config.Customize.Features.Keys.Should().BeEquivalentTo("Sound", "Update");
+        config.Customize.Features["Sound"].Items.Should().BeEmpty();
+        config.Customize.Features["Update"].Items.Should().Equal(kept);
     }
 }

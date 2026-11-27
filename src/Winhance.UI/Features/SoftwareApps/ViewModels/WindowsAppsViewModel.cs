@@ -3,7 +3,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.WinUI.Collections;
-using Winhance.Core.Features.Common.Enums;
+using FluentIcons.Common;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -12,17 +12,26 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
-using Winhance.UI.Features.SoftwareApps;
 using Winhance.UI.Features.SoftwareApps.Models;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 
-/// <summary>
-/// ViewModel for the Windows Apps tab in the SoftwareApps feature.
-/// </summary>
-public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProvider
+public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProvider, ISelectAllSource
 {
+    private static readonly string[] VisibleRowProperties =
+    [
+        nameof(IsAllSelected), nameof(IsAllSelectedInstalled), nameof(IsAllSelectedNotInstalled), nameof(IsAllSelectedWithUpdates),
+        nameof(UpdatesCount), nameof(HasUpdates), nameof(SelectAllWithUpdatesLabel),
+    ];
+
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(SelectAllLabel), nameof(SelectAllInstalledLabel), nameof(SelectAllNotInstalledLabel), nameof(SelectAllWithUpdatesLabel),
+        nameof(EnableHandedOffNoteText), nameof(RemovalDeferredNoteText), nameof(StatusText),
+    ];
+
     private readonly IWindowsAppsService _windowsAppsService;
+    private readonly IInstalledAppsService _installedAppsService;
     private readonly IAppInstallationService _appInstallationService;
     private readonly IWindowsAppUninstallService _windowsAppUninstallService;
     private readonly ITaskProgressService _progressService;
@@ -35,6 +44,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
 
     public WindowsAppsViewModel(
         IWindowsAppsService windowsAppsService,
+        IInstalledAppsService installedAppsService,
         IAppInstallationService appInstallationService,
         IWindowsAppUninstallService windowsAppUninstallService,
         ITaskProgressService progressService,
@@ -46,6 +56,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         IAppIconResolver? iconResolver = null)
     {
         _windowsAppsService = windowsAppsService;
+        _installedAppsService = installedAppsService;
         _appInstallationService = appInstallationService;
         _windowsAppUninstallService = windowsAppUninstallService;
         _progressService = progressService;
@@ -57,50 +68,54 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         _iconResolver = iconResolver;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
-        _windowsAppsService.WinGetReady += OnWinGetInstalled;
 
         Items = new ObservableCollection<AppItemViewModel>();
         ItemsView = new AdvancedCollectionView(Items, true);
         ItemsView.Filter = FilterItem;
         AppSortHelper.ApplySortDescriptions(ItemsView, SortMode);
 
-        // Initialize partial property defaults (after Items/ItemsView,
-        // since OnSearchTextChanged uses ItemsView)
-        StatusText = "Ready";
+        StatusKey = string.Empty;
+        // Must come after ItemsView: OnSearchTextChanged uses it.
         SearchText = string.Empty;
     }
 
     public ObservableCollection<AppItemViewModel> Items { get; }
     public AdvancedCollectionView ItemsView { get; }
 
-    public IEnumerable<AppItemViewModel> WindowsAppsFiltered => AppSortHelper.Order(
-        Items.Where(a =>
-            a.Definition.AppxPackageName?.Length > 0 &&
-            string.IsNullOrEmpty(a.Definition.CapabilityName) &&
-            string.IsNullOrEmpty(a.Definition.OptionalFeatureName) &&
-            FilterItem(a)),
-        SortMode);
-
-    public IEnumerable<AppItemViewModel> CapabilitiesFiltered => AppSortHelper.Order(
-        Items.Where(a =>
-            !string.IsNullOrEmpty(a.Definition.CapabilityName) &&
-            FilterItem(a)),
-        SortMode);
-
-    public IEnumerable<AppItemViewModel> OptionalFeaturesFiltered => AppSortHelper.Order(
-        Items.Where(a =>
-            !string.IsNullOrEmpty(a.Definition.OptionalFeatureName) &&
-            FilterItem(a)),
-        SortMode);
+    [ObservableProperty]
+    public partial IReadOnlyList<AppCategory> Sections { get; private set; } = [];
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsContentReady))]
     public partial bool IsLoading { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsContentReady))]
     public partial bool IsInitialized { get; set; }
 
+    // When a scan last read every installed app's update; a scheduled check skips a read this recent.
+    public DateTime? UpdatesReadUtc { get; private set; }
+
+    // The tab shows only its loader until this is true, on the first load and on every refresh.
+    public bool IsContentReady => IsInitialized && !IsLoading;
+
+    // Held as a key so a language switch re-reads it.
     [ObservableProperty]
-    public partial string StatusText { get; set; }
+    [NotifyPropertyChangedFor(nameof(StatusText))]
+    public partial string StatusKey { get; private set; }
+
+    public string StatusText => StatusKey.Length == 0 ? string.Empty : _localizationService.GetString(StatusKey);
+
+    // The enable runs in its own window, where Winhance cannot see how it ends.
+    [ObservableProperty]
+    public partial bool IsEnableHandedOffNoteVisible { get; set; }
+
+    public string EnableHandedOffNoteText => _localizationService.GetString("WindowsApps_EnableHandedOff");
+
+    [ObservableProperty]
+    public partial bool IsRemovalDeferredNoteVisible { get; set; }
+
+    public string RemovalDeferredNoteText => _localizationService.GetString("WindowsApps_RemovalDeferred");
 
     [ObservableProperty]
     public partial string SearchText { get; set; }
@@ -111,57 +126,84 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     partial void OnSortModeChanged(AppSortMode value)
     {
         AppSortHelper.ApplySortDescriptions(ItemsView, value);
-        NotifyCardViewProperties();
+        RebuildSections();
     }
 
-    public string SectionAppsHeader => _localizationService.GetString("WindowsApps_Section_Apps") ?? "Windows Apps";
-    public string SectionCapabilitiesHeader => _localizationService.GetString("WindowsApps_Section_Capabilities") ?? "Windows Capabilities";
-    public string SectionOptionalFeaturesHeader => _localizationService.GetString("WindowsApps_Section_OptionalFeatures") ?? "Windows Optional Features";
+    // UpdatesAvailable is External Software's filter; here it lists everything.
+    [ObservableProperty]
+    public partial AppFilter Filter { get; set; }
 
-    public string SelectAllLabel => _localizationService.GetString("Common_SelectAll") ?? "Select All";
-    public string SelectAllInstalledLabel => _localizationService.GetString("Common_SelectAll_Installed") ?? "Select All Installed";
-    public string SelectAllNotInstalledLabel => _localizationService.GetString("Common_SelectAll_NotInstalled") ?? "Select All Not Installed";
-
-    public bool IsAllSelected =>
-        Items.Count > 0 && Items.All(a => a.IsSelected);
-    public bool IsAllSelectedInstalled =>
-        Items.Any(a => a.IsInstalled) && Items.Where(a => a.IsInstalled).All(a => a.IsSelected);
-    public bool IsAllSelectedNotInstalled =>
-        Items.Any(a => !a.IsInstalled) && Items.Where(a => !a.IsInstalled).All(a => a.IsSelected);
-
-    [RelayCommand]
-    private void ToggleSelectAll()
+    partial void OnFilterChanged(AppFilter value)
     {
-        var newValue = !IsAllSelected;
-        foreach (var item in Items)
-            item.IsSelected = newValue;
-        NotifySelectionStateChanged();
+        using (ItemsView.DeferRefresh())
+        {
+            ItemsView.RefreshFilter();
+        }
+        NotifyVisibleRowsChanged();
+        RebuildSections();
     }
 
-    [RelayCommand]
-    private void ToggleSelectAllInstalled()
-    {
-        var newValue = !IsAllSelectedInstalled;
-        foreach (var item in Items.Where(a => a.IsInstalled))
-            item.IsSelected = newValue;
-        NotifySelectionStateChanged();
-    }
+    public string SectionAppsHeader => _localizationService.GetStringOrDefault("WindowsApps_Section_Apps", "Windows Apps");
+    public string SectionCapabilitiesHeader => _localizationService.GetStringOrDefault("WindowsApps_Section_Capabilities", "Windows Capabilities");
+    public string SectionOptionalFeaturesHeader => _localizationService.GetStringOrDefault("WindowsApps_Section_OptionalFeatures", "Windows Optional Features");
+
+    public string SelectAllLabel => _localizationService.GetStringOrDefault("Common_SelectAll", "Select All");
+    public string SelectAllInstalledLabel => _localizationService.GetStringOrDefault("Common_SelectAll_Installed", "Select All Installed");
+    public string SelectAllNotInstalledLabel => _localizationService.GetStringOrDefault("Common_SelectAll_NotInstalled", "Select All Not Installed");
+    public string SelectAllWithUpdatesLabel => _localizationService.GetString("Common_SelectAll_WithUpdates", UpdatesCount);
+
+    // Only apps are updated here; capabilities and optional features have no package manager version.
+    private IEnumerable<AppItemViewModel> UpdatableItems => Items.Where(a =>
+        string.IsNullOrEmpty(a.Definition.CapabilityName) && string.IsNullOrEmpty(a.Definition.OptionalFeatureName));
+
+    // The select-all boxes and the update count cover the rows the filter and search show, so they match what the
+    // user sees.
+    private IEnumerable<AppItemViewModel> VisibleItems => Items.Where(a => FilterItem(a));
+    private IEnumerable<AppItemViewModel> VisibleUpdatableItems => UpdatableItems.Where(a => FilterItem(a));
+
+    public bool IsAllSelectedWithUpdates => SelectAllRows.AreAllSelected(VisibleUpdatableItems.Where(a => a.HasUpdate));
+    public int UpdatesCount => VisibleUpdatableItems.Count(a => a.HasUpdate);
+    public bool HasUpdates => VisibleUpdatableItems.Any(a => a.HasUpdate);
+
+    public bool IsAllSelected => SelectAllRows.AreAllSelected(VisibleItems);
+    public bool IsAllSelectedInstalled => SelectAllRows.AreAllSelected(VisibleItems.Where(a => a.IsInstalled));
+    public bool IsAllSelectedNotInstalled => SelectAllRows.AreAllSelected(VisibleItems.Where(a => !a.IsInstalled));
 
     [RelayCommand]
-    private void ToggleSelectAllNotInstalled()
+    private void ToggleSelectAll() => ChangeSelection(() => SelectAllRows.Toggle(VisibleItems));
+
+    [RelayCommand]
+    private void ToggleSelectAllInstalled() =>
+        ChangeSelection(() => SelectAllRows.Toggle(VisibleItems.Where(a => a.IsInstalled)));
+
+    [RelayCommand]
+    private void ToggleSelectAllNotInstalled() =>
+        ChangeSelection(() => SelectAllRows.Toggle(VisibleItems.Where(a => !a.IsInstalled)));
+
+    [RelayCommand]
+    private void ToggleSelectAllWithUpdates() =>
+        ChangeSelection(() => SelectAllRows.Toggle(VisibleUpdatableItems.Where(a => a.HasUpdate)));
+
+    // Each tick or status change re-scans every row for the select-all boxes, so a change across the list notifies
+    // once, at the end.
+    public void ChangeSelection(Action change)
     {
-        var newValue = !IsAllSelectedNotInstalled;
-        foreach (var item in Items.Where(a => !a.IsInstalled))
-            item.IsSelected = newValue;
+        _changingSelection = true;
+        try
+        {
+            change();
+        }
+        finally
+        {
+            _changingSelection = false;
+        }
         NotifySelectionStateChanged();
     }
 
     private void NotifySelectionStateChanged()
     {
-        OnPropertyChanged(nameof(IsAllSelected));
-        OnPropertyChanged(nameof(IsAllSelectedInstalled));
-        OnPropertyChanged(nameof(IsAllSelectedNotInstalled));
         OnPropertyChanged(nameof(HasSelectedItems));
+        NotifyVisibleRowsChanged();
         SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -169,6 +211,8 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     public partial bool IsTaskRunning { get; set; }
 
     public event EventHandler? SelectedItemsChanged;
+
+    private bool _changingSelection;
 
     public bool HasSelectedItems => Items.Any(a => a.IsSelected);
 
@@ -178,44 +222,48 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         {
             ItemsView.RefreshFilter();
         }
-        NotifyCardViewProperties();
+        NotifyVisibleRowsChanged();
+        RebuildSections();
     }
 
-    private void NotifyCardViewProperties()
+    // Empty until the load finishes: listed earlier, every app still reads not installed, so the cards sort by name
+    // behind the loader and jump when the status check re-sorts them installed first.
+    private void RebuildSections()
     {
-        OnPropertyChanged(nameof(WindowsAppsFiltered));
-        OnPropertyChanged(nameof(CapabilitiesFiltered));
-        OnPropertyChanged(nameof(OptionalFeaturesFiltered));
+        IReadOnlyList<AppCategory> rebuilt = !IsInitialized ? [] :
+        [
+            Section("Apps", SectionAppsHeader, Icon.Apps,
+                a => string.IsNullOrEmpty(a.Definition.CapabilityName) && string.IsNullOrEmpty(a.Definition.OptionalFeatureName)),
+            Section("Capabilities", SectionCapabilitiesHeader, Icon.PuzzlePiece, a => !string.IsNullOrEmpty(a.Definition.CapabilityName)),
+            Section("OptionalFeatures", SectionOptionalFeaturesHeader, Icon.StarSettings, a => !string.IsNullOrEmpty(a.Definition.OptionalFeatureName)),
+        ];
+        if (!AppCategory.SameLayout(Sections, rebuilt))
+            Sections = rebuilt;
     }
+
+    private AppCategory Section(string groupName, string header, Icon icon, Func<AppItemViewModel, bool> kind) =>
+        new(groupName, header, icon, AppSortHelper.Order(Items.Where(a => kind(a) && FilterItem(a)), SortMode).ToList());
 
     private bool FilterItem(object obj)
     {
         if (obj is AppItemViewModel app)
         {
-            return SearchHelper.MatchesSearchTerm(SearchText, app.Name, app.Description, app.Id);
+            return (Filter != AppFilter.Installed || app.IsInstalled)
+                && SearchHelper.MatchesSearchTerm(SearchText, app.Name, app.Description, app.Id);
         }
         return true;
     }
 
-    /// <summary>
-    /// Loads items - alias for LoadAppsAndCheckInstallationStatusAsync for ConfigurationService compatibility.
-    /// </summary>
     public Task LoadItemsAsync() => LoadAppsAndCheckInstallationStatusAsync();
 
     private readonly object _loadGate = new();
     private Task? _loadTask;
 
-    /// <summary>
-    /// Loads app definitions, checks installation status and resolves icons — exactly once.
-    /// Idempotent: startup triggers this from two independent paths — the UI init
-    /// (StartupUiCoordinator) and first-run backup-config creation (ConfigExportService,
-    /// via StartupOrchestrator phase 2). Both used to sail past an `if (IsInitialized)`
-    /// guard — IsInitialized is only set when the load *finishes* — so two full passes
-    /// ran concurrently, clobbering the shared Items collection and racing over the
-    /// icon-cache .tmp files. Now the first caller starts the load; every other caller
-    /// awaits the same Task. The core runs on the UI thread with a SynchronizationContext
-    /// so its continuations stay UI-thread-affine regardless of which path triggered it.
-    /// </summary>
+    // Exactly once, idempotent: startup triggers this from two independent paths (StartupUiCoordinator, and
+    // first-run backup-config creation via StartupOrchestrator). An `if (IsInitialized)` guard is not enough -
+    // IsInitialized is only set when the load FINISHES - so two full passes would clobber Items and race over
+    // icon-cache .tmp files. The first caller starts the load and every other caller awaits the same Task, on
+    // the UI thread with a SynchronizationContext so continuations stay UI-affine.
     [RelayCommand]
     public Task LoadAppsAndCheckInstallationStatusAsync()
     {
@@ -229,7 +277,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     private async Task LoadAppsAndCheckInstallationStatusCoreAsync()
     {
         IsLoading = true;
-        StatusText = _localizationService.GetString("Progress_LoadingWindowsApps");
+        StatusKey = "Progress_LoadingWindowsApps";
 
         try
         {
@@ -238,7 +286,7 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
             Items.Clear();
 
             var allItems = await _windowsAppsService.GetAppsAsync();
-            var apps = allItems.Where(x => x.AppxPackageName?.Length > 0 || (x.WinGetPackageId != null && x.WinGetPackageId.Any()));
+            var apps = allItems.Where(x => x.AppxPackageName?.Length > 0 || (x.WinGetPackageId != null && x.WinGetPackageId.Length > 0));
             var capabilities = allItems.Where(x => !string.IsNullOrEmpty(x.CapabilityName));
             var features = allItems.Where(x => !string.IsNullOrEmpty(x.OptionalFeatureName));
 
@@ -246,39 +294,38 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         }
         catch (Exception ex)
         {
-            _logService.LogError("[WindowsAppsViewModel] Error loading app definitions", ex);
-            StatusText = $"Error loading apps: {ex.Message}";
+            _logService.LogError("Error loading app definitions", ex);
         }
 
         try
         {
-            StatusText = _localizationService.GetString("Progress_CheckingInstallStatus");
-            await CheckInstallationStatusAsync();
+            await ScanAsync(Items.Select(item => item.Definition).ToList());
         }
         catch (Exception ex)
         {
             _logService.LogWarning(
-                $"[WindowsAppsViewModel] Install status check failed, items loaded without status ({ex.GetType().FullName}, HRESULT=0x{ex.HResult:X8}): {ex.Message}");
+                $"Install status check failed, items loaded without status ({ex.GetType().FullName}, HRESULT=0x{ex.HResult:X8}): {ex.Message}");
         }
 
-        await ResolveIconsAsync();
-
+        // IsInitialized first: a handler that throws below must not leave the tab behind its loader for good.
         try
         {
-            NotifySelectionStateChanged();
             IsInitialized = true;
-            StatusText = $"Loaded {Items.Count} items";
-            NotifyCardViewProperties();
+            RebuildSections();
+            NotifySelectionStateChanged();
         }
         catch (Exception ex)
         {
             _logService.LogWarning(
-                $"[WindowsAppsViewModel] Error finalizing ({ex.GetType().FullName}, HRESULT=0x{ex.HResult:X8}): {ex.Message}");
+                $"Error finalizing ({ex.GetType().FullName}, HRESULT=0x{ex.HResult:X8}): {ex.Message}");
         }
         finally
         {
             IsLoading = false;
         }
+
+        // Icons fill in after the loader clears: a cold icon cache downloads them, which can take far longer than detection.
+        ResolveIconsAsync(Items.ToList()).FireAndForget(_logService);
     }
 
     private void LoadAppsIntoItems(IEnumerable<ItemDefinition> definitions)
@@ -295,190 +342,236 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         }
     }
 
+    // A ticked row gaining or losing its update changes what the Install button will do, like a tick does. A row
+    // that changes status moves between the boxes even while unticked.
     private void Item_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(AppItemViewModel.IsSelected))
+        if (_changingSelection)
+            return;
+        if (e.PropertyName == nameof(AppItemViewModel.IsSelected)
+            || (e.PropertyName == nameof(AppItemViewModel.HasUpdate) && sender is AppItemViewModel { IsSelected: true }))
         {
             NotifySelectionStateChanged();
         }
+        else if (e.PropertyName is nameof(AppItemViewModel.HasUpdate) or nameof(AppItemViewModel.IsInstalled))
+        {
+            NotifyVisibleRowsChanged();
+        }
     }
 
-    [RelayCommand]
-    /// <summary>
-    /// Resolves AppX icons for installed entries and notifies their ViewModels.
-    /// No-op when no resolver was injected (e.g. legacy test construction).
-    /// Failures are logged and swallowed — icon resolution must never block the load flow.
-    /// </summary>
-    private async Task ResolveIconsAsync()
+    private void NotifyVisibleRowsChanged()
+    {
+        foreach (var name in VisibleRowProperties)
+            OnPropertyChanged(name);
+    }
+
+    // No-op when no resolver was injected. Started with FireAndForget, which logs a failure: icon resolution must
+    // never block the load flow.
+    private async Task ResolveIconsAsync(IReadOnlyList<AppItemViewModel> items)
     {
         if (_iconResolver is null) return;
 
-        try
-        {
-            var definitions = Items.Select(item => item.Definition).ToList();
-            // Windows Apps get theme adaptation — backplate crop + light/dark
-            // variant synthesis for monochrome system icons.
-            await _iconResolver.ResolveBatchAsync(definitions, applyThemeAdaptation: true);
+        var definitions = items.Select(item => item.Definition).ToList();
+        // Windows Apps get theme adaptation — backplate crop + light/dark
+        // variant synthesis for monochrome system icons.
+        await _iconResolver.ResolveBatchAsync(definitions, applyThemeAdaptation: true);
 
-            foreach (var item in Items)
-                item.NotifyIconChanged();
-        }
-        catch (Exception ex)
-        {
-            _logService.LogWarning($"[WindowsAppsViewModel] Icon resolution failed: {ex.Message}");
-        }
+        foreach (var item in items)
+            item.NotifyIconChanged();
     }
 
-    // Serializes the install-status re-check. It runs from the Refresh button,
-    // the WinGetReady event (OnWinGetInstalled) and post-install/remove
-    // (RefreshAfterOperationAsync — including config-apply); none are mutually
-    // exclusive. Overlapping callers queue here instead of interleaving access
-    // to the shared Items collection and the detection cache.
-    private readonly SemaphoreSlim _statusCheckGate = new(1, 1);
-
-    public async Task CheckInstallationStatusAsync()
+    // The install status of the given rows and the updates of the apps among them, from one read of the PC. Callers
+    // that arrive together share that read; the apply is synchronous, so two of them cannot interleave. False when
+    // the scan failed or could not read updates, which leaves each row the update it showed before.
+    private async Task<bool> ScanAsync(IReadOnlyList<ItemDefinition> definitions)
     {
-        if (_windowsAppsService == null) return;
-
-        await _statusCheckGate.WaitAsync();
         try
         {
-            var definitions = Items.Select(item => item.Definition).ToList();
-            var statusResults = await _windowsAppsService.CheckBatchInstalledAsync(definitions);
+            var scan = await _installedAppsService.GetInstalledAppsAsync(definitions, StatusRules.Windows);
 
-            // NotificationDeferrer.Dispose() fires VectorChanged events the bound
-            // DataGrid handles by reading its ItemsSource DependencyProperty —
-            // DPs throw WinRT HRESULT off the UI thread.
-            _logService.LogDebug(
-                $"[WindowsAppsViewModel] CheckInstallationStatusAsync pre-dispatch HasThreadAccess={_dispatcherService.HasThreadAccess}");
+            // NotificationDeferrer.Dispose() fires VectorChanged events the bound DataGrid handles by reading its
+            // ItemsSource DependencyProperty, and DPs throw WinRT HRESULT off the UI thread.
             await _dispatcherService.RunOnUIThreadAsync(() =>
             {
-                using (ItemsView.DeferRefresh())
-                {
-                    foreach (var item in Items)
-                    {
-                        if (statusResults.TryGetValue(item.Definition.Id, out bool isInstalled))
-                        {
-                            item.IsInstalled = isInstalled;
-                        }
-                    }
-                }
+                Apply(scan);
                 return Task.CompletedTask;
             });
+            return scan.UpdatesKnown;
         }
         catch (Exception ex)
         {
             _logService.LogError(
-                $"Error checking installation status ({ex.GetType().FullName}, HRESULT=0x{ex.HResult:X8}): {ex.Message}",
-                ex);
-            StatusText = $"Error checking status: {ex.Message}";
-        }
-        finally
-        {
-            _statusCheckGate.Release();
+                $"Error scanning Windows apps ({ex.GetType().FullName}, HRESULT=0x{ex.HResult:X8}): {ex.Message}", ex);
+            return false;
         }
     }
 
-    [RelayCommand]
-    public async Task RefreshInstallationStatusAsync()
+    private void Apply(InstalledAppsScan scan) => ChangeSelection(() =>
+    {
+        using (ItemsView.DeferRefresh())
+        {
+            foreach (var item in Items)
+            {
+                if (scan.Status.TryGetValue(item.Definition.Id, out var isInstalled))
+                    item.IsInstalled = isInstalled;
+            }
+        }
+
+        if (scan.UpdatesKnown)
+        {
+            UpdatesReadUtc = DateTime.UtcNow;
+            var byCatalogId = scan.Apps.Where(app => app.CatalogId is not null).ToLookup(app => app.CatalogId!);
+            foreach (var item in UpdatableItems.ToList())
+            {
+                var found = WindowsAppUpdate.Pick(byCatalogId[item.Id]);
+                item.Installed = WindowsAppUpdate.Applies(found) ? found : null;
+            }
+        }
+    });
+
+    // The apps only: no capability or optional feature is asked for, so DISM does not run. The tray's refresh.
+    public Task<bool> RefreshUpdatesAsync() => ScanAsync(UpdatableItems.Select(item => item.Definition).ToList());
+
+    private bool IsBusy => IsTaskRunning || _progressService.IsTaskRunning;
+
+    // No confirmation: an update keeps the app and its settings. Not started when there was nothing to update or
+    // another task holds the progress bar. Ticks are the caller's to change.
+    public async Task<AppUpdateRun> UpdateAppsAsync(IReadOnlyList<AppItemViewModel> apps, bool askToCloseOpenApps = false)
+    {
+        if (apps.Count == 0 || IsBusy)
+            return default;
+
+        IsTaskRunning = true;
+        bool cancelled;
+        try
+        {
+            cancelled = await AppUpdateRunner.RunAsync(apps, _installedAppsService, _progressService, _localizationService, _logService,
+                askToCloseOpenApps ? _dialogService : null);
+        }
+        finally
+        {
+            IsTaskRunning = false;
+        }
+
+        return new AppUpdateRun(Started: true, cancelled, await RefreshUpdatesAsync());
+    }
+
+    // False before the first load finishes. The updates come from AppUpdateMonitor, which scans once for both tabs.
+    public async Task<bool> RecheckInstallationStatusAsync()
     {
         if (!IsInitialized)
         {
-            StatusText = _localizationService.GetString("Progress_WaitForInitialLoad");
-            return;
+            StatusKey = "Progress_WaitForInitialLoad";
+            return false;
         }
 
+        StatusKey = "Progress_LoadingWindowsApps";
         IsLoading = true;
-        StatusText = _localizationService.GetString("Progress_RefreshingStatus");
 
         try
         {
-            _windowsAppsService.InvalidateStatusCache();
-            await CheckInstallationStatusAsync();
-            NotifyCardViewProperties();
-            StatusText = $"Refreshed status for {Items.Count} items";
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError("Error refreshing status", ex);
-            StatusText = $"Error refreshing: {ex.Message}";
+            _installedAppsService.Invalidate();
+            await ScanAsync(Items.Select(item => item.Definition).ToList());
+            RebuildSections();
         }
         finally
         {
             IsLoading = false;
         }
-    }
 
-    private void OnWinGetInstalled(object? sender, EventArgs e)
-    {
-        _dispatcherService.RunOnUIThreadAsync(async () =>
-        {
-            if (IsInitialized)
-            {
-                _logService.LogInformation("WinGet installed — refreshing Windows Apps installation status");
-                _windowsAppsService.InvalidateStatusCache();
-                await CheckInstallationStatusAsync();
-                NotifyCardViewProperties();
-            }
-        }).FireAndForget(_logService);
+        return true;
     }
 
     [RelayCommand]
     public async Task InstallAppsAsync()
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
-        if (!selectedItems.Any())
+        if (selectedItems.Count == 0)
         {
             await _dialogService.ShowWarningAsync(
-                "Please select at least one item for installation.",
-                "No Items Selected");
+                _localizationService.GetString("WindowsApps_NoSelection_Install"),
+                _localizationService.GetString("WindowsApps_NoSelection_Title"));
             return;
         }
 
-        var itemNames = selectedItems.Select(a => a.Name).ToList();
-        var r = await _dialogService.ShowConfirmationAsync(
-            AppOperationConfirmation.Build("install", itemNames, null, _localizationService));
-        bool confirmed = r.Confirmed;
-        if (!confirmed) return;
+        var toUpdate = selectedItems.Where(a => a.HasUpdate).ToList();
+        var toInstall = selectedItems.Except(toUpdate).ToList();
+        if (toUpdate.Count > 0 && IsBusy)
+        {
+            await _dialogService.ShowWarningAsync(_localizationService.GetString("ExternalApps_UpdateBusy_Message"));
+            return;
+        }
 
+        if (toInstall.Count > 0)
+        {
+            var r = await _dialogService.ShowConfirmationAsync(
+                AppOperationConfirmation.Build(AppOperation.Install, toInstall.Select(a => a.Name).ToList(), null, _localizationService));
+            if (!r.Confirmed) return;
+        }
+
+        var run = await UpdateAppsAsync(toUpdate, askToCloseOpenApps: true);
+        if (run.UpdatesKnown)
+        {
+            // An app the fresh scan still shows an update for did not update, and stays ticked for another try.
+            foreach (var app in toUpdate)
+                app.IsSelected = app.HasUpdate;
+        }
+
+        if (run.Cancelled || toInstall.Count == 0)
+            return;
+
+        await InstallSelectedAsync(toInstall);
+    }
+
+    private async Task InstallSelectedAsync(List<AppItemViewModel> selectedItems)
+    {
+        var servicingApps = selectedItems
+            .Where(a => !string.IsNullOrEmpty(a.Definition.CapabilityName) || !string.IsNullOrEmpty(a.Definition.OptionalFeatureName))
+            .ToList();
+        var installApps = selectedItems.Except(servicingApps).ToList();
+        int queueTotal = installApps.Count + (servicingApps.Count > 0 ? 1 : 0);
+
+        var failedNames = new List<string>();
+        var current = string.Empty;
         IsTaskRunning = true;
-        StatusText = _localizationService.GetString("Progress_Task_InstallingWindowsApps");
+        IsEnableHandedOffNoteVisible = false;
 
         try
         {
-            _progressService.StartTask(_localizationService.GetString("Progress_Task_InstallingWindowsApps") ?? "Installing Windows Apps", false);
-            var progress = _progressService.CreateDetailedProgress();
-
-            int successCount = 0;
-            for (int i = 0; i < selectedItems.Count; i++)
+            var finished = await _dialogService.RunOrShowErrorAsync(_logService, async () =>
             {
-                if (_progressService.ConsumeSkipNextRequest())
-                    continue;
+                var cancellation = _progressService.StartTask(_localizationService.GetStringOrDefault("Progress_Task_InstallingWindowsApps", "Installing Windows Apps"), false);
+                var progress = _progressService.CreateDetailedProgress();
 
-                var app = selectedItems[i];
-                var nextName = i + 1 < selectedItems.Count ? selectedItems[i + 1].Name : null;
-                progress.Report(new TaskProgressDetail
+                for (int i = 0; i < installApps.Count; i++)
                 {
-                    StatusText = _localizationService.GetString("Progress_Installing", app.Name),
-                    QueueTotal = selectedItems.Count,
-                    QueueCurrent = i + 1,
-                    QueueNextItemName = nextName
-                });
+                    if (_progressService.ConsumeSkipNextRequest())
+                        continue;
 
-                var result = await _appInstallationService.InstallAppAsync(app.Definition, progress, shouldRemoveFromBloatScript: true);
-                if (result.Success && result.Result)
-                {
-                    app.IsInstalled = true;
-                    successCount++;
+                    var app = installApps[i];
+                    current = app.Name;
+                    var nextName = i + 1 < installApps.Count ? installApps[i + 1].Name : null;
+                    progress.Report(new TaskProgressDetail
+                    {
+                        StatusText = _localizationService.GetString("Progress_Installing", app.Name),
+                        QueueTotal = queueTotal,
+                        QueueCurrent = i + 1,
+                        QueueNextItemName = nextName
+                    });
+
+                    var result = await _appInstallationService.InstallAppAsync(app.Definition, progress, shouldRemoveFromBloatScript: true);
+                    if (result.Success && result.Result)
+                        app.IsInstalled = true;
+                    else if (!cancellation.IsCancellationRequested)
+                        failedNames.Add(app.Name);
                 }
-            }
 
-            StatusText = $"Installed {successCount} of {selectedItems.Count} items";
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError("Error installing apps", ex);
-            StatusText = $"Error: {ex.Message}";
+                current = string.Join(", ", servicingApps.Select(a => a.Name));
+                IsEnableHandedOffNoteVisible = servicingApps.Count > 0
+                    && await DispatchEnableBatchAsync(servicingApps, progress, queueTotal);
+            }, ex => _localizationService.GetString("Progress_WinGet_InstallationError", current, ex.Message));
+            if (!finished)
+                _progressService.FailTask();
         }
         finally
         {
@@ -490,40 +583,60 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         }
 
         await RefreshAfterOperationAsync();
+
+        if (failedNames.Count > 0)
+            await _dialogService.ShowWarningAsync(
+                _localizationService.GetString("WindowsApps_InstallFailed", string.Join("\n", failedNames)));
     }
 
-    /// <summary>
-    /// Shows removal summary and asks for confirmation.
-    /// </summary>
-    /// <returns>Tuple of (Confirmed, SaveScripts).</returns>
+    // Features and capabilities go into ONE window for the whole batch, named in the progress line, and
+    // it is always the last queue slot. Nothing is marked installed here: the enable runs where Winhance
+    // cannot see it, so only the detection pass in RefreshAfterOperationAsync may flip a pill.
+    private async Task<bool> DispatchEnableBatchAsync(
+        List<AppItemViewModel> apps,
+        IProgress<TaskProgressDetail> progress,
+        int queueTotal)
+    {
+        var names = string.Join(", ", apps.Select(a => a.Name));
+        progress.Report(new TaskProgressDetail
+        {
+            StatusText = _localizationService.GetString("Progress_Installing", names),
+            QueueTotal = queueTotal,
+            QueueCurrent = queueTotal
+        });
+
+        var result = await _appInstallationService.EnableServicingBatchAsync(
+            apps.Select(a => a.Definition).ToList(), progress);
+        if (result.Success)
+            return true;
+
+        _logService.LogError($"Failed to start the enable for: {names}");
+        return false;
+    }
+
     public async Task<(bool Confirmed, bool SaveScripts)> ShowRemovalSummaryAndConfirm()
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
-        if (!selectedItems.Any()) return (true, true);
+        if (selectedItems.Count == 0) return (true, true);
 
-        var itemNames = selectedItems.Select(a => a.Name).ToList();
         var checkboxText = _localizationService.GetString("Dialog_SaveRemovalScripts");
         var r = await _dialogService.ShowConfirmationAsync(
-            AppOperationConfirmation.Build("remove", itemNames, checkboxText, _localizationService));
+            AppOperationConfirmation.Build(AppOperation.Remove, selectedItems.Select(a => a.Definition), checkboxText, _localizationService, _localizationService.GetString("Dialog_SaveRemovalScripts_Description")));
         bool confirmed = r.Confirmed;
         bool checkboxChecked = r.CheckboxChecked;
         return (confirmed, checkboxChecked);
     }
 
-    /// <summary>
-    /// Removes selected apps with optional confirmation skip (for ConfigurationService compatibility).
-    /// </summary>
     public async Task RemoveApps(bool skipConfirmation = false, bool saveRemovalScripts = true)
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
-        if (!selectedItems.Any()) return;
+        if (selectedItems.Count == 0) return;
 
         if (!skipConfirmation)
         {
-            var itemNames = selectedItems.Select(a => a.Name).ToList();
             var checkboxText = _localizationService.GetString("Dialog_SaveRemovalScripts");
             var r = await _dialogService.ShowConfirmationAsync(
-                AppOperationConfirmation.Build("remove", itemNames, checkboxText, _localizationService));
+                AppOperationConfirmation.Build(AppOperation.Remove, selectedItems.Select(a => a.Definition), checkboxText, _localizationService, _localizationService.GetString("Dialog_SaveRemovalScripts_Description")));
             bool confirmed = r.Confirmed;
             bool checkboxChecked = r.CheckboxChecked;
             if (!confirmed) return;
@@ -537,18 +650,17 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     public async Task RemoveAppsAsync()
     {
         var selectedItems = Items.Where(a => a.IsSelected).ToList();
-        if (!selectedItems.Any())
+        if (selectedItems.Count == 0)
         {
             await _dialogService.ShowWarningAsync(
-                "Please select at least one item for removal.",
-                "No Items Selected");
+                _localizationService.GetString("WindowsApps_NoSelection_Remove"),
+                _localizationService.GetString("WindowsApps_NoSelection_Title"));
             return;
         }
 
-        var itemNames = selectedItems.Select(a => a.Name).ToList();
         var checkboxText = _localizationService.GetString("Dialog_SaveRemovalScripts");
         var r = await _dialogService.ShowConfirmationAsync(
-            AppOperationConfirmation.Build("remove", itemNames, checkboxText, _localizationService));
+            AppOperationConfirmation.Build(AppOperation.Remove, selectedItems.Select(a => a.Definition), checkboxText, _localizationService, _localizationService.GetString("Dialog_SaveRemovalScripts_Description")));
         bool confirmed = r.Confirmed;
         bool saveScripts = r.CheckboxChecked;
         if (!confirmed) return;
@@ -559,38 +671,29 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
     private async Task RemoveAppsInternalAsync(List<AppItemViewModel> selectedItems, bool saveRemovalScripts = true)
     {
         IsTaskRunning = true;
-        StatusText = _localizationService.GetString("Progress_Task_RemovingWindowsApps");
+        IsRemovalDeferredNoteVisible = false;
 
         try
         {
-            var definitions = selectedItems.Select(a => a.Definition).ToList();
-            var result = await _windowsAppUninstallService.UninstallAppsInParallelAsync(definitions, saveRemovalScripts);
+            await _dialogService.RunOrShowErrorAsync(_logService, async () =>
+            {
+                var definitions = selectedItems.Select(a => a.Definition).ToList();
+                var result = await _windowsAppUninstallService.UninstallAppsInParallelAsync(definitions, saveRemovalScripts);
 
-            if (result.Success)
-            {
-                if (result.InfoMessage != null)
+                if (result.Success)
                 {
-                    // Deferred: don't mark as uninstalled — they haven't been removed yet
-                    StatusText = result.InfoMessage;
-                }
-                else
-                {
-                    foreach (var item in selectedItems)
+                    // A deferred removal has not happened yet, so nothing is marked uninstalled.
+                    IsRemovalDeferredNoteVisible = !string.IsNullOrEmpty(result.InfoMessage);
+                    if (!IsRemovalDeferredNoteVisible)
                     {
-                        item.IsInstalled = false;
+                        foreach (var item in selectedItems)
+                        {
+                            item.IsInstalled = false;
+                        }
                     }
-                    StatusText = $"Removed {result.Result} items";
                 }
-            }
-            else
-            {
-                StatusText = result.ErrorMessage ?? "Removal failed";
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError("Error removing apps", ex);
-            StatusText = $"Error: {ex.Message}";
+            }, ex => _localizationService.GetString("Progress_WinGet_UninstallationError",
+                string.Join(", ", selectedItems.Select(a => a.Name)), ex.Message));
         }
         finally
         {
@@ -602,30 +705,24 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
 
     private async Task RefreshAfterOperationAsync()
     {
-        _windowsAppsService.InvalidateStatusCache();
-        await CheckInstallationStatusAsync();
-        NotifyCardViewProperties();
+        _installedAppsService.Invalidate();
+        await ScanAsync(Items.Select(item => item.Definition).ToList());
+        RebuildSections();
         ClearSelections();
     }
 
     [RelayCommand]
-    public void ClearSelections()
+    public void ClearSelections() => ChangeSelection(() =>
     {
         foreach (var item in Items)
-        {
             item.IsSelected = false;
-        }
-        NotifySelectionStateChanged();
-    }
+    });
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        OnPropertyChanged(nameof(SectionAppsHeader));
-        OnPropertyChanged(nameof(SectionCapabilitiesHeader));
-        OnPropertyChanged(nameof(SectionOptionalFeaturesHeader));
-        OnPropertyChanged(nameof(SelectAllLabel));
-        OnPropertyChanged(nameof(SelectAllInstalledLabel));
-        OnPropertyChanged(nameof(SelectAllNotInstalledLabel));
+        RebuildSections();
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
     }
 
     protected override void Dispose(bool disposing)
@@ -633,13 +730,11 @@ public partial class WindowsAppsViewModel : BaseViewModel, IWindowsAppsItemsProv
         if (disposing)
         {
             _localizationService.LanguageChanged -= OnLanguageChanged;
-            _windowsAppsService.WinGetReady -= OnWinGetInstalled;
             foreach (var item in Items)
             {
                 item.PropertyChanged -= Item_PropertyChanged;
                 item.Dispose();
             }
-            _statusCheckGate.Dispose();
         }
         base.Dispose(disposing);
     }

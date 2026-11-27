@@ -3,11 +3,10 @@ using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.IntegrationTests.Helpers;
 
-/// <summary>
-/// Factory methods for creating test data objects with known values.
-/// </summary>
 public static class TestSettingFactory
 {
+    private static readonly string[] TestAppPackages = ["Microsoft.TestApp", "Microsoft.TestApp.Sub1", "Microsoft.TestApp.Sub2"];
+
     public static ConfigurationItem CreateToggleItem(
         string id,
         string name = "Test Toggle",
@@ -80,7 +79,7 @@ public static class TestSettingFactory
         };
     }
 
-    public static UnifiedConfigurationFile CreateFullConfig()
+    public static WinhanceConfigFile CreateFullConfig()
     {
         var toggleItem = CreateToggleItem("toggle1", "Toggle Setting", true);
         var falseToggle = CreateToggleItem("toggle2", "Disabled Toggle", false);
@@ -96,11 +95,11 @@ public static class TestSettingFactory
         var appItem = CreateAppItem(
             "app1",
             "Test Windows App",
-            appxPackageName: new[] { "Microsoft.TestApp", "Microsoft.TestApp.Sub1", "Microsoft.TestApp.Sub2" },
+            appxPackageName: TestAppPackages,
             winGetPackageId: "TestVendor.TestApp",
             capabilityName: "TestCapability");
 
-        return new UnifiedConfigurationFile
+        return new WinhanceConfigFile
         {
             Version = "2.0",
             CreatedAt = new DateTime(2025, 6, 15, 12, 0, 0, DateTimeKind.Utc),
@@ -115,30 +114,6 @@ public static class TestSettingFactory
                 ["Privacy"] = CreateSection(true, nullToggle),
                 ["Power"] = CreateSection(true, selectionItem),
             }),
-        };
-    }
-
-    public static SettingDefinition CreateSettingDefinition(
-        string id,
-        string name = "Test Setting",
-        int? minBuild = null,
-        int? maxBuild = null,
-        bool requiresBattery = false,
-        bool requiresLid = false,
-        bool requiresDesktop = false,
-        IReadOnlyList<(int MinBuild, int MaxBuild)>? supportedBuildRanges = null)
-    {
-        return new SettingDefinition
-        {
-            Id = id,
-            Name = name,
-            Description = $"Test setting: {name}",
-            MinimumBuildNumber = minBuild,
-            MaximumBuildNumber = maxBuild,
-            RequiresBattery = requiresBattery,
-            RequiresLid = requiresLid,
-            RequiresDesktop = requiresDesktop,
-            SupportedBuildRanges = supportedBuildRanges ?? Array.Empty<(int, int)>(),
         };
     }
 }

@@ -12,8 +12,21 @@ namespace Winhance.Infrastructure.Tests.Services;
 
 public class AppInstallationServiceTests
 {
+    private static readonly string[] App1PackageId = ["Publisher.App1"];
+
+    private static readonly ItemDefinition WinGetApp = new()
+    {
+        Id = "ext-app",
+        Name = "Test External App",
+        Description = "An external app",
+        WinGetPackageId = ["Publisher.ExtApp"]
+    };
+
+    private static readonly StagedInstaller StagedApp = new("Test External App", @"C:\ProgramData\Winhance\Unattend\Apps\ext-app\x64");
+
     private readonly Mock<ILegacyCapabilityService> _capabilityService = new();
     private readonly Mock<IOptionalFeatureService> _featureService = new();
+    private readonly Mock<IServicingSession> _servicingSession = new();
     private readonly Mock<ILogService> _logService = new();
     private readonly Mock<IWindowsAppsService> _windowsAppsService = new();
     private readonly Mock<IExternalAppsService> _externalAppsService = new();
@@ -22,10 +35,15 @@ public class AppInstallationServiceTests
     private readonly Mock<ITaskProgressService> _taskProgressService = new();
     private readonly Mock<IFileSystemService> _fileSystemService = new();
     private readonly Mock<IChangeHistoryService> _changeHistoryService = new();
+    private readonly Mock<IStagedAppInstaller> _stagedAppInstaller = new();
+    private readonly Mock<IBackgroundTaskService> _backgroundTaskService = new();
+    private IReadOnlyList<string>? _statements;
+    private string? _label;
 
     private AppInstallationService CreateSut() => new(
         _capabilityService.Object,
         _featureService.Object,
+        _servicingSession.Object,
         _logService.Object,
         _windowsAppsService.Object,
         _externalAppsService.Object,
@@ -33,9 +51,9 @@ public class AppInstallationServiceTests
         _scheduledTaskService.Object,
         _taskProgressService.Object,
         _fileSystemService.Object,
-        _changeHistoryService.Object);
-
-    // --- InstallAppAsync: routes to WindowsAppsService ---
+        _changeHistoryService.Object,
+        _stagedAppInstaller.Object,
+        _backgroundTaskService.Object);
 
     [Fact]
     public async Task InstallAppAsync_WindowsStoreApp_RoutesToWindowsAppsService()
@@ -67,8 +85,6 @@ public class AppInstallationServiceTests
             x => x.InstallAppAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Never);
     }
 
-    // --- InstallAppAsync: routes to ExternalAppsService ---
-
     [Fact]
     public async Task InstallAppAsync_ExternalApp_RoutesToExternalAppsService()
     {
@@ -98,89 +114,50 @@ public class AppInstallationServiceTests
             x => x.InstallAppAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Never);
     }
 
-    // --- InstallAppAsync: routes to capability service ---
+    [Fact]
+    public async Task InstallAppAsync_ExternalApp_LeavesTheScopeToTheInstallOptions()
+    {
+        var sut = CreateSut();
+        _bloatRemovalService
+            .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
+            .ReturnsAsync(true);
+        _externalAppsService
+            .Setup(x => x.InstallAppAsync(WinGetApp, It.IsAny<IProgress<TaskProgressDetail>?>()))
+            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+
+        var result = await sut.InstallAppAsync(WinGetApp);
+
+        result.Success.Should().BeTrue();
+        _externalAppsService.Verify(
+            x => x.InstallAppOnNewPcAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Never);
+    }
 
     [Fact]
-    public async Task InstallAppAsync_CapabilityApp_RoutesToCapabilityService()
+    public async Task InstallAppAsync_ChocoOnlyApp_RoutesToExternalAppsService()
     {
         var sut = CreateSut();
         var item = new ItemDefinition
         {
-            Id = "cap-app",
-            Name = "Test Capability",
-            Description = "A capability app",
-            CapabilityName = "App.StepsRecorder"
+            Id = "external-app-cdburnerxp",
+            Name = "CDBurnerXP",
+            Description = "Only Chocolatey carries it",
+            ChocoPackageId = "cdburnerxp"
         };
 
         _bloatRemovalService
             .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
             .ReturnsAsync(true);
 
-        _capabilityService
-            .Setup(x => x.EnableCapabilityAsync("App.StepsRecorder", "Test Capability", null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        _externalAppsService
+            .Setup(x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()))
+            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
 
         var result = await sut.InstallAppAsync(item);
 
         result.Success.Should().BeTrue();
-        _capabilityService.Verify(
-            x => x.EnableCapabilityAsync("App.StepsRecorder", "Test Capability", null, It.IsAny<CancellationToken>()), Times.Once);
+        _externalAppsService.Verify(
+            x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Once);
     }
-
-    [Fact]
-    public async Task InstallAppAsync_CapabilityFails_ReturnsFailed()
-    {
-        var sut = CreateSut();
-        var item = new ItemDefinition
-        {
-            Id = "cap-app",
-            Name = "Test Capability",
-            Description = "A capability app",
-            CapabilityName = "App.StepsRecorder"
-        };
-
-        _bloatRemovalService
-            .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
-            .ReturnsAsync(true);
-
-        _capabilityService
-            .Setup(x => x.EnableCapabilityAsync("App.StepsRecorder", "Test Capability", null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-
-        var result = await sut.InstallAppAsync(item);
-
-        result.Success.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("Failed to launch PowerShell for capability");
-    }
-
-    // --- InstallAppAsync: routes to optional feature service ---
-
-    [Fact]
-    public async Task InstallAppAsync_OptionalFeatureApp_RoutesToFeatureService()
-    {
-        var sut = CreateSut();
-        var item = new ItemDefinition
-        {
-            Id = "feature-app",
-            Name = "Test Feature",
-            Description = "An optional feature",
-            OptionalFeatureName = "TelnetClient"
-        };
-
-        _bloatRemovalService
-            .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
-            .ReturnsAsync(true);
-
-        _featureService
-            .Setup(x => x.EnableFeatureAsync("TelnetClient", "Test Feature", null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        var result = await sut.InstallAppAsync(item);
-
-        result.Success.Should().BeTrue();
-    }
-
-    // --- InstallAppAsync: unsupported type ---
 
     [Fact]
     public async Task InstallAppAsync_UnsupportedApp_ReturnsFailed()
@@ -202,8 +179,6 @@ public class AppInstallationServiceTests
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("not supported");
     }
-
-    // --- InstallAppAsync: bloat script cleanup ---
 
     [Fact]
     public async Task InstallAppAsync_ShouldRemoveFromBloatScript_CallsRemoveItemsFromScript()
@@ -255,8 +230,6 @@ public class AppInstallationServiceTests
             Times.Never);
     }
 
-    // --- InstallAppAsync: Edge cleanup ---
-
     [Fact]
     public async Task InstallAppAsync_EdgeApp_CleansUpDedicatedArtifacts()
     {
@@ -266,6 +239,8 @@ public class AppInstallationServiceTests
             Id = "windows-app-edge",
             Name = "Microsoft Edge",
             Description = "Edge browser",
+            RemovalScript = () => EdgeRemovalScript.GetScript(),
+            RemovalScriptName = "EdgeRemoval",
             WinGetPackageId = new[] { "Microsoft.Edge" },
             AppxPackageName = new[] { "Microsoft.MicrosoftEdge" }
         };
@@ -298,134 +273,72 @@ public class AppInstallationServiceTests
 
         _fileSystemService.Verify(x => x.DeleteFile(It.IsAny<string>()), Times.AtLeastOnce);
         _scheduledTaskService.Verify(x => x.UnregisterScheduledTaskAsync("EdgeRemoval"), Times.Once);
-        // Also cleans up OpenWebSearch
         _scheduledTaskService.Verify(x => x.UnregisterScheduledTaskAsync("OpenWebSearchRepair"), Times.Once);
     }
 
-    // --- InstallAppsAsync: batch install ---
-
-    [Fact]
-    public async Task InstallAppsAsync_MultipleApps_ReturnsSuccessCount()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task InstallAppAsync_WebView2_KeepsEdgeRemoved(bool scriptRemovesWebView2)
     {
-        var sut = CreateSut();
-        var apps = new List<ItemDefinition>
+        var item = new ItemDefinition
         {
-            new()
-            {
-                Id = "app1",
-                Name = "App1",
-                Description = "Desc1",
-                WinGetPackageId = new[] { "Publisher.App1" }
-            },
-            new()
-            {
-                Id = "app2",
-                Name = "App2",
-                Description = "Desc2",
-                WinGetPackageId = new[] { "Publisher.App2" }
-            }
+            Id = "windows-app-edge-webview",
+            Name = "Microsoft Edge WebView2 and EdgeUpdate",
+            Description = "",
+            WinGetPackageId = ["Microsoft.EdgeWebView2Runtime"],
+            RemovalScript = () => EdgeRemovalScript.GetScript(removeWebView2: true),
+            RemovalScriptName = "EdgeRemoval",
+            AlsoRemoves = ["windows-app-edge"]
         };
-
         _bloatRemovalService
             .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
             .ReturnsAsync(true);
+        _fileSystemService.Setup(x => x.CombinePath(It.IsAny<string[]>())).Returns("C:\\test\\EdgeRemoval.ps1");
+        _fileSystemService.Setup(x => x.FileExists("C:\\test\\EdgeRemoval.ps1")).Returns(true);
+        _fileSystemService
+            .Setup(x => x.ReadAllTextAsync("C:\\test\\EdgeRemoval.ps1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EdgeRemovalScript.GetScript(scriptRemovesWebView2));
 
-        _externalAppsService
-            .Setup(x => x.InstallAppAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>()))
-            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+        await CreateSut().InstallAppAsync(item);
 
-        var result = await sut.InstallAppsAsync(apps);
-
-        result.Success.Should().BeTrue();
-        result.Result.Should().Be(2);
+        _fileSystemService.Verify(
+            x => x.WriteAllTextAsync("C:\\test\\EdgeRemoval.ps1",
+                It.Is<string>(s => !EdgeRemovalScript.RemovesWebView2(s)), It.IsAny<CancellationToken>()),
+            scriptRemovesWebView2 ? Times.Once() : Times.Never());
+        _fileSystemService.Verify(x => x.DeleteFile(It.IsAny<string>()), Times.Never);
+        _scheduledTaskService.Verify(x => x.UnregisterScheduledTaskAsync(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
-    public async Task InstallAppsAsync_PartialSuccess_ReturnsPartialCount()
+    public async Task InstallAppAsync_OtherItemWhoseScriptRemovesMore_DeletesItsOwnScriptAndTask()
     {
-        var sut = CreateSut();
-        var apps = new List<ItemDefinition>
+        var item = new ItemDefinition
         {
-            new()
-            {
-                Id = "app1",
-                Name = "App1",
-                Description = "Desc1",
-                WinGetPackageId = new[] { "Publisher.App1" }
-            },
-            new()
-            {
-                Id = "app2",
-                Name = "App2",
-                Description = "Desc2",
-                WinGetPackageId = new[] { "Publisher.App2" }
-            }
+            Id = "windows-app-suite",
+            Name = "Suite",
+            Description = "",
+            WinGetPackageId = ["Example.Suite"],
+            RemovalScript = () => "# suite",
+            RemovalScriptName = "SuiteRemoval",
+            AlsoRemoves = ["windows-app-suite-part"]
         };
-
         _bloatRemovalService
             .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
             .ReturnsAsync(true);
+        _fileSystemService.Setup(x => x.CombinePath(It.IsAny<string[]>())).Returns("C:\\test\\SuiteRemoval.ps1");
+        _fileSystemService.Setup(x => x.FileExists("C:\\test\\SuiteRemoval.ps1")).Returns(true);
+        _scheduledTaskService
+            .Setup(x => x.UnregisterScheduledTaskAsync(It.IsAny<string>()))
+            .ReturnsAsync(OperationResult.Succeeded());
 
-        // First succeeds, second fails
-        _externalAppsService
-            .SetupSequence(x => x.InstallAppAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>()))
-            .ReturnsAsync(OperationResult<bool>.Succeeded(true))
-            .ReturnsAsync(OperationResult<bool>.Failed("Failed"));
+        await CreateSut().InstallAppAsync(item);
 
-        var result = await sut.InstallAppsAsync(apps);
-
-        result.Success.Should().BeTrue();
-        result.Result.Should().Be(1);
+        _fileSystemService.Verify(x => x.DeleteFile("C:\\test\\SuiteRemoval.ps1"), Times.Once);
+        _fileSystemService.Verify(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _scheduledTaskService.Verify(x => x.UnregisterScheduledTaskAsync("SuiteRemoval"), Times.Once);
+        _scheduledTaskService.Verify(x => x.UnregisterScheduledTaskAsync("OpenWebSearchRepair"), Times.Never);
     }
-
-    [Fact]
-    public async Task InstallAppsAsync_EmptyList_ReturnsFailed()
-    {
-        var sut = CreateSut();
-
-        var result = await sut.InstallAppsAsync(new List<ItemDefinition>());
-
-        result.Success.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("No apps provided");
-    }
-
-    [Fact]
-    public async Task InstallAppsAsync_NullList_ReturnsFailed()
-    {
-        var sut = CreateSut();
-
-        var result = await sut.InstallAppsAsync(null!);
-
-        result.Success.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("No apps provided");
-    }
-
-    [Fact]
-    public async Task InstallAppsAsync_OperationCancelled_ReturnsCancelled()
-    {
-        var sut = CreateSut();
-        var apps = new List<ItemDefinition>
-        {
-            new()
-            {
-                Id = "app1",
-                Name = "App1",
-                Description = "Desc1",
-                WinGetPackageId = new[] { "Publisher.App1" }
-            }
-        };
-
-        _bloatRemovalService
-            .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
-            .ThrowsAsync(new OperationCanceledException());
-
-        var result = await sut.InstallAppsAsync(apps);
-
-        result.Success.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("cancelled");
-    }
-
-    // --- InstallAppAsync: DownloadUrl-only routes to external ---
 
     [Fact]
     public async Task InstallAppAsync_DownloadUrlOnly_RoutesToExternalAppsService()
@@ -457,8 +370,6 @@ public class AppInstallationServiceTests
             x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Once);
     }
 
-    // --- InstallAppAsync: RequiresDirectDownload routes to external ---
-
     [Fact]
     public async Task InstallAppAsync_RequiresDirectDownload_RoutesToExternalAppsService()
     {
@@ -485,8 +396,6 @@ public class AppInstallationServiceTests
         _externalAppsService.Verify(
             x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Once);
     }
-
-    // --- InstallAppAsync: change history logging ---
 
     [Fact]
     public async Task InstallAppAsync_Success_LogsAppInstalled()
@@ -538,5 +447,316 @@ public class AppInstallationServiceTests
 
         _changeHistoryService.Verify(
             x => x.LogAppChange(It.IsAny<string>(), It.IsAny<AppChangeKind>()), Times.Never);
+    }
+
+    private void ArrangeStagedInstall(bool succeeds)
+    {
+        _stagedAppInstaller.Setup(x => x.Find(WinGetApp)).Returns(StagedApp);
+        _stagedAppInstaller
+            .Setup(x => x.InstallAsync(StagedApp, It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(succeeds);
+    }
+
+    private void ArrangeOnlineInstallForAllUsers(ItemDefinition app) => _externalAppsService
+        .Setup(x => x.InstallAppOnNewPcAsync(app, It.IsAny<IProgress<TaskProgressDetail>?>()))
+        .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+
+    private void VerifyOnlineInstallForAllUsers(ItemDefinition app, Times times) => _externalAppsService.Verify(
+        x => x.InstallAppOnNewPcAsync(app, It.IsAny<IProgress<TaskProgressDetail>?>()), times);
+
+    [Fact]
+    public async Task InstallOnNewPcAsync_StagedInstallSucceeds_SkipsTheOnlineRoute()
+    {
+        var sut = CreateSut();
+        ArrangeStagedInstall(succeeds: true);
+
+        var result = await sut.InstallOnNewPcAsync(WinGetApp);
+
+        result.Success.Should().BeTrue();
+        VerifyOnlineInstallForAllUsers(WinGetApp, Times.Never());
+        _changeHistoryService.Verify(x => x.LogAppChange("Test External App", AppChangeKind.Installed), Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallOnNewPcAsync_StagedInstallFails_InstallsOnlineForAllUsers()
+    {
+        var sut = CreateSut();
+        ArrangeStagedInstall(succeeds: false);
+        ArrangeOnlineInstallForAllUsers(WinGetApp);
+
+        var result = await sut.InstallOnNewPcAsync(WinGetApp);
+
+        result.Success.Should().BeTrue();
+        VerifyOnlineInstallForAllUsers(WinGetApp, Times.Once());
+    }
+
+    [Fact]
+    public async Task InstallOnNewPcAsync_NothingStaged_InstallsOnlineForAllUsers()
+    {
+        var sut = CreateSut();
+        ArrangeOnlineInstallForAllUsers(WinGetApp);
+
+        var result = await sut.InstallOnNewPcAsync(WinGetApp);
+
+        result.Success.Should().BeTrue();
+        VerifyOnlineInstallForAllUsers(WinGetApp, Times.Once());
+        _externalAppsService.Verify(
+            x => x.InstallAppAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Never);
+        _changeHistoryService.Verify(x => x.LogAppChange("Test External App", AppChangeKind.Installed), Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallOnNewPcAsync_ChocolateyOnlyApp_ReachesTheExternalAppsService()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "choco-only-app",
+            Name = "Choco Only App",
+            Description = "Only a Chocolatey package",
+            ChocoPackageId = "chocoonlyapp"
+        };
+        ArrangeOnlineInstallForAllUsers(item);
+
+        var result = await sut.InstallOnNewPcAsync(item);
+
+        result.Success.Should().BeTrue();
+        VerifyOnlineInstallForAllUsers(item, Times.Once());
+    }
+
+    [Fact]
+    public async Task InstallOnNewPcAsync_AppxAppMachineWideFails_FallsBackToTheStoreRoute()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "windows-app-test",
+            Name = "Test Windows App",
+            Description = "A windows store app",
+            WinGetPackageId = ["Publisher.WinApp"],
+            AppxPackageName = ["Microsoft.WinApp"]
+        };
+        _externalAppsService
+            .Setup(x => x.InstallAppOnNewPcAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()))
+            .ReturnsAsync(OperationResult<bool>.Failed("no machine installer"));
+        _windowsAppsService
+            .Setup(x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()))
+            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+
+        var result = await sut.InstallOnNewPcAsync(item);
+
+        result.Success.Should().BeTrue();
+        VerifyOnlineInstallForAllUsers(item, Times.Once());
+        _windowsAppsService.Verify(x => x.InstallAppAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallOnNewPcAsync_AppxAppMachineWideSucceeds_NeverTakesTheStoreRoute()
+    {
+        var sut = CreateSut();
+        var item = new ItemDefinition
+        {
+            Id = "windows-app-test",
+            Name = "Test Windows App",
+            Description = "A windows store app",
+            WinGetPackageId = ["Publisher.WinApp"],
+            AppxPackageName = ["Microsoft.WinApp"]
+        };
+        _externalAppsService
+            .Setup(x => x.InstallAppOnNewPcAsync(item, It.IsAny<IProgress<TaskProgressDetail>?>()))
+            .ReturnsAsync(OperationResult<bool>.Succeeded(true));
+
+        var result = await sut.InstallOnNewPcAsync(item);
+
+        result.Success.Should().BeTrue();
+        _windowsAppsService.Verify(x => x.InstallAppAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>()), Times.Never);
+    }
+
+    private void ArrangeServicingSession(bool launched = true)
+    {
+        _bloatRemovalService
+            .Setup(x => x.RemoveItemsFromScriptAsync(It.IsAny<List<ItemDefinition>>()))
+            .ReturnsAsync(true);
+        _featureService
+            .Setup(x => x.BuildEnableStatement(It.IsAny<IReadOnlyList<string>>()))
+            .Returns("FEATURES");
+        _capabilityService
+            .Setup(x => x.BuildEnableStatement(It.IsAny<IReadOnlyList<string>>()))
+            .Returns("CAPABILITIES");
+        _servicingSession
+            .Setup(x => x.RunAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
+            .Callback<IReadOnlyList<string>, string, IProgress<TaskProgressDetail>?, CancellationToken>(
+                (statements, label, _, _) => { _statements = statements; _label = label; })
+            .ReturnsAsync(launched);
+    }
+
+    private void VerifySessionsRun(Times times) => _servicingSession.Verify(
+        x => x.RunAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()),
+        times);
+
+    // The bug this replaced: features and capabilities were dispatched as two batches, so two CBS
+    // servicing sessions were live at once and the second one failed.
+    [Fact]
+    public async Task EnableServicingBatchAsync_BothKinds_RunsOneSessionCarryingBothStatements()
+    {
+        var sut = CreateSut();
+        var apps = new List<ItemDefinition>
+        {
+            new() { Id = "f1", Name = "Sandbox", Description = "d", OptionalFeatureName = "Containers-DisposableClientVM" },
+            new() { Id = "c1", Name = "OpenSSH Client", Description = "d", CapabilityName = "OpenSSH.Client" }
+        };
+        ArrangeServicingSession();
+
+        var result = await sut.EnableServicingBatchAsync(apps);
+
+        result.Success.Should().BeTrue();
+        VerifySessionsRun(Times.Once());
+        _statements.Should().Equal("FEATURES", "CAPABILITIES");
+        _label.Should().Be("Sandbox, OpenSSH Client");
+    }
+
+    [Fact]
+    public async Task EnableServicingBatchAsync_BothKinds_LogsEnableStartedOncePerApp()
+    {
+        var sut = CreateSut();
+        var apps = new List<ItemDefinition>
+        {
+            new() { Id = "f1", Name = "Sandbox", Description = "d", OptionalFeatureName = "Containers-DisposableClientVM" },
+            new() { Id = "c1", Name = "OpenSSH Client", Description = "d", CapabilityName = "OpenSSH.Client" }
+        };
+        ArrangeServicingSession();
+
+        await sut.EnableServicingBatchAsync(apps);
+
+        _changeHistoryService.Verify(x => x.LogAppChange("Sandbox", AppChangeKind.EnableStarted), Times.Once);
+        _changeHistoryService.Verify(x => x.LogAppChange("OpenSSH Client", AppChangeKind.EnableStarted), Times.Once);
+        _changeHistoryService.Verify(x => x.LogAppChange(It.IsAny<string>(), It.IsAny<AppChangeKind>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task EnableServicingBatchAsync_ThreeFeatures_SendsAllThreeNamesInOneStatement()
+    {
+        var sut = CreateSut();
+        var apps = new List<ItemDefinition>
+        {
+            new() { Id = "f1", Name = "WSL", Description = "d", OptionalFeatureName = "Microsoft-Windows-Subsystem-Linux" },
+            new() { Id = "f2", Name = ".NET 3.5", Description = "d", OptionalFeatureName = "NetFx3" },
+            new() { Id = "f3", Name = "Sandbox", Description = "d", OptionalFeatureName = "Containers-DisposableClientVM" }
+        };
+        ArrangeServicingSession();
+
+        var result = await sut.EnableServicingBatchAsync(apps);
+
+        result.Success.Should().BeTrue();
+        VerifySessionsRun(Times.Once());
+        _statements.Should().Equal("FEATURES");
+        _featureService.Verify(
+            x => x.BuildEnableStatement(It.Is<IReadOnlyList<string>>(n => n.Count == 3
+                && n[0] == "Microsoft-Windows-Subsystem-Linux"
+                && n[1] == "NetFx3"
+                && n[2] == "Containers-DisposableClientVM")),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task EnableServicingBatchAsync_ThreeCapabilities_SendsAllThreeNamesInOneStatement()
+    {
+        var sut = CreateSut();
+        var apps = new List<ItemDefinition>
+        {
+            new() { Id = "c1", Name = "OpenSSH Client", Description = "d", CapabilityName = "OpenSSH.Client" },
+            new() { Id = "c2", Name = "OpenSSH Server", Description = "d", CapabilityName = "OpenSSH.Server" },
+            new() { Id = "c3", Name = "Steps Recorder", Description = "d", CapabilityName = "App.StepsRecorder" }
+        };
+        ArrangeServicingSession();
+
+        var result = await sut.EnableServicingBatchAsync(apps);
+
+        result.Success.Should().BeTrue();
+        VerifySessionsRun(Times.Once());
+        _statements.Should().Equal("CAPABILITIES");
+        _capabilityService.Verify(
+            x => x.BuildEnableStatement(It.Is<IReadOnlyList<string>>(n => n.Count == 3
+                && n[0] == "OpenSSH.Client"
+                && n[1] == "OpenSSH.Server"
+                && n[2] == "App.StepsRecorder")),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task EnableServicingBatchAsync_AppCarryingBothNames_IsEnabledOnlyAsACapability()
+    {
+        var sut = CreateSut();
+        var apps = new List<ItemDefinition>
+        {
+            new()
+            {
+                Id = "both",
+                Name = "Two Names",
+                Description = "d",
+                CapabilityName = "OpenSSH.Client",
+                OptionalFeatureName = "NetFx3"
+            }
+        };
+        ArrangeServicingSession();
+
+        await sut.EnableServicingBatchAsync(apps);
+
+        _statements.Should().Equal("CAPABILITIES");
+        _featureService.Verify(x => x.BuildEnableStatement(It.IsAny<IReadOnlyList<string>>()), Times.Never);
+        _changeHistoryService.Verify(x => x.LogAppChange("Two Names", AppChangeKind.EnableStarted), Times.Once);
+    }
+
+    [Fact]
+    public async Task EnableServicingBatchAsync_Launched_DefersAndNeverLogsAnInstall()
+    {
+        var sut = CreateSut();
+        var apps = new List<ItemDefinition>
+        {
+            new() { Id = "f3", Name = "Sandbox", Description = "d", OptionalFeatureName = "Containers-DisposableClientVM" }
+        };
+        ArrangeServicingSession();
+
+        var result = await sut.EnableServicingBatchAsync(apps);
+
+        result.Success.Should().BeTrue();
+        result.InfoMessage.Should().NotBeNullOrEmpty();
+        _changeHistoryService.Verify(
+            x => x.LogAppChange("Sandbox", AppChangeKind.EnableStarted), Times.Once);
+        _changeHistoryService.Verify(
+            x => x.LogAppChange(It.IsAny<string>(), AppChangeKind.Installed), Times.Never);
+    }
+
+    [Fact]
+    public async Task EnableServicingBatchAsync_LaunchFails_ReturnsFailedAndWritesNoHistory()
+    {
+        var sut = CreateSut();
+        var apps = new List<ItemDefinition>
+        {
+            new() { Id = "c1", Name = "OpenSSH Client", Description = "d", CapabilityName = "OpenSSH.Client" }
+        };
+        ArrangeServicingSession(launched: false);
+
+        var result = await sut.EnableServicingBatchAsync(apps);
+
+        result.Success.Should().BeFalse();
+        _changeHistoryService.Verify(
+            x => x.LogAppChange(It.IsAny<string>(), It.IsAny<AppChangeKind>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task EnableServicingBatchAsync_NothingToService_ReturnsFailedAndStartsNoSession()
+    {
+        var sut = CreateSut();
+        ArrangeServicingSession();
+
+        var result = await sut.EnableServicingBatchAsync(new List<ItemDefinition>
+        {
+            new() { Id = "a1", Name = "Plain App", Description = "d", WinGetPackageId = App1PackageId }
+        });
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Be("No apps provided");
+        VerifySessionsRun(Times.Never());
     }
 }

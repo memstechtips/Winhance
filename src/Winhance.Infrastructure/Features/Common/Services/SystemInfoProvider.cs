@@ -1,25 +1,48 @@
-using System;
 using System.Diagnostics;
-using System.Linq;
-using System.Management;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Security.Principal;
 using Microsoft.Win32;
+using Windows.Win32;
+using Windows.Win32.System.SystemInformation;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.Common.Native;
+using Winhance.Infrastructure.Features.Common.Utilities;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class SystemInfoProvider : ISystemInfoProvider
+internal class SystemInfoProvider : ISystemInfoProvider
 {
     private readonly IInteractiveUserService _interactiveUserService;
+    private readonly IWmiApi _wmiApi;
 
-    public SystemInfoProvider(IInteractiveUserService interactiveUserService)
+    public SystemInfoProvider(IInteractiveUserService interactiveUserService, IWmiApi wmiApi)
     {
-        _interactiveUserService = interactiveUserService
-            ?? throw new ArgumentNullException(nameof(interactiveUserService));
+        _interactiveUserService = interactiveUserService;
+        _wmiApi = wmiApi;
+    }
+
+    // Each row is copied out before its instance is disposed, so no live WMI object escapes this file.
+    private IReadOnlyList<IReadOnlyDictionary<string, object?>> Rows(
+        string? scope, string className, params string[] columns)
+    {
+        var instances = _wmiApi.Query(scope ?? WmiScope.Cimv2, className, null);
+
+        var rows = new List<IReadOnlyDictionary<string, object?>>();
+        foreach (var instance in instances)
+        {
+            using (instance)
+            {
+                var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                foreach (var column in columns)
+                {
+                    row[column] = instance.Get(column);
+                }
+
+                rows.Add(row);
+            }
+        }
+
+        return rows;
     }
 
     public SystemInfo Collect()
@@ -48,6 +71,35 @@ public class SystemInfoProvider : ISystemInfoProvider
         };
     }
 
+    public string? BiosSerialNumber()
+    {
+        try
+        {
+            return Rows(null, "Win32_BIOS", "SerialNumber").Select(row => row.GetValueOrDefault("SerialNumber") as string).FirstOrDefault();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    // The same pick as the answer file's rename script: the lowest-indexed physical adapter that has an address.
+    public string? NetworkCardAddress()
+    {
+        try
+        {
+            return Rows(null, "Win32_NetworkAdapter", "PhysicalAdapter", "MACAddress", "Index")
+                .Where(row => row.GetValueOrDefault("PhysicalAdapter") is true && row.GetValueOrDefault("MACAddress") is string)
+                .OrderBy(row => Convert.ToInt64(row.GetValueOrDefault("Index") ?? 0L))
+                .Select(row => (string)row["MACAddress"]!)
+                .FirstOrDefault();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private static string CollectAppVersion()
     {
         try
@@ -61,7 +113,6 @@ public class SystemInfoProvider : ISystemInfoProvider
             var versionInfo = FileVersionInfo.GetVersionInfo(location);
             string version = versionInfo.ProductVersion ?? versionInfo.FileVersion ?? "Unknown";
 
-            // Trim build metadata
             int plusIndex = version.IndexOf('+');
             if (plusIndex > 0)
                 version = version.Substring(0, plusIndex);
@@ -130,80 +181,73 @@ public class SystemInfoProvider : ISystemInfoProvider
         }
     }
 
-    private static void CollectComputerSystemInfo(
+    private void CollectComputerSystemInfo(
         ref string deviceType, ref string ram, ref string domainJoined)
     {
         try
         {
-            using var searcher = new ManagementObjectSearcher(
-                "SELECT PCSystemType, Model, Manufacturer, TotalPhysicalMemory, PartOfDomain, Domain FROM Win32_ComputerSystem");
-            using var collection = searcher.Get();
+            var rows = Rows(
+                null,
+                "Win32_ComputerSystem",
+                "PCSystemType", "Model", "Manufacturer", "TotalPhysicalMemory", "PartOfDomain", "Domain");
 
-            foreach (ManagementObject obj in collection)
+            foreach (var row in rows)
             {
-                using (obj)
+                try
                 {
-                    // DeviceType
-                    try
+                    if (row.GetValueOrDefault("PCSystemType") != null)
                     {
-                        if (obj["PCSystemType"] != null)
+                        int pcSystemType = Convert.ToInt32(row.GetValueOrDefault("PCSystemType"));
+                        deviceType = pcSystemType switch
                         {
-                            int pcSystemType = Convert.ToInt32(obj["PCSystemType"]);
-                            deviceType = pcSystemType switch
-                            {
-                                1 => "Desktop",
-                                2 => "Laptop",
-                                3 => "Workstation",
-                                4 => "Enterprise Server",
-                                5 => "SOHO Server",
-                                7 => "Performance Server",
-                                8 => "Slate",
-                                _ => $"Other ({pcSystemType})"
-                            };
-                        }
-
-                        // Detect virtual machines from Model/Manufacturer
-                        string model = (obj["Model"] as string ?? "").Trim();
-                        string manufacturer = (obj["Manufacturer"] as string ?? "").Trim();
-                        if (IsVirtualMachine(model, manufacturer))
-                            deviceType += " (Virtual Machine)";
+                            1 => "Desktop",
+                            2 => "Laptop",
+                            3 => "Workstation",
+                            4 => "Enterprise Server",
+                            5 => "SOHO Server",
+                            7 => "Performance Server",
+                            8 => "Slate",
+                            _ => $"Other ({pcSystemType})"
+                        };
                     }
-                    catch { /* field failure */ }
 
-                    // RAM
-                    try
-                    {
-                        if (obj["TotalPhysicalMemory"] != null)
-                        {
-                            long totalBytes = Convert.ToInt64(obj["TotalPhysicalMemory"]);
-                            int totalGb = (int)Math.Round(totalBytes / (1024.0 * 1024 * 1024));
-                            ram = $"{totalGb} GB";
-                        }
-                    }
-                    catch { /* field failure */ }
-
-                    // Domain
-                    try
-                    {
-                        if (obj["PartOfDomain"] != null)
-                        {
-                            bool partOfDomain = Convert.ToBoolean(obj["PartOfDomain"]);
-                            if (partOfDomain)
-                            {
-                                string domain = obj["Domain"] as string ?? "";
-                                domainJoined = $"Yes ({domain})";
-                            }
-                            else
-                            {
-                                domainJoined = "No";
-                            }
-                        }
-                    }
-                    catch { /* field failure */ }
+                    string model = (row.GetValueOrDefault("Model") as string ?? "").Trim();
+                    string manufacturer = (row.GetValueOrDefault("Manufacturer") as string ?? "").Trim();
+                    if (IsVirtualMachine(model, manufacturer))
+                        deviceType += " (Virtual Machine)";
                 }
+                catch { }
+
+                try
+                {
+                    if (row.GetValueOrDefault("TotalPhysicalMemory") != null)
+                    {
+                        long totalBytes = Convert.ToInt64(row.GetValueOrDefault("TotalPhysicalMemory"));
+                        int totalGb = (int)Math.Round(totalBytes / (1024.0 * 1024 * 1024));
+                        ram = $"{totalGb} GB";
+                    }
+                }
+                catch { }
+
+                try
+                {
+                    if (row.GetValueOrDefault("PartOfDomain") != null)
+                    {
+                        bool partOfDomain = Convert.ToBoolean(row.GetValueOrDefault("PartOfDomain"));
+                        if (partOfDomain)
+                        {
+                            string domain = row.GetValueOrDefault("Domain") as string ?? "";
+                            domainJoined = $"Yes ({domain})";
+                        }
+                        else
+                        {
+                            domainJoined = "No";
+                        }
+                    }
+                }
+                catch { }
             }
 
-            // Fallback to ChassisTypes if PCSystemType wasn't conclusive
             if (deviceType == "Unknown" || deviceType.StartsWith("Other"))
             {
                 try
@@ -212,7 +256,7 @@ public class SystemInfoProvider : ISystemInfoProvider
                     if (chassisResult != "Unknown")
                         deviceType = chassisResult;
                 }
-                catch { /* fallback failure */ }
+                catch { }
             }
         }
         catch
@@ -240,81 +284,67 @@ public class SystemInfoProvider : ISystemInfoProvider
         return false;
     }
 
-    private static string CollectDeviceTypeFromChassis()
+    private string CollectDeviceTypeFromChassis()
     {
         try
         {
-            using var searcher = new ManagementObjectSearcher(
-                "SELECT ChassisTypes FROM Win32_SystemEnclosure");
-            using var collection = searcher.Get();
+            var rows = Rows(null, "Win32_SystemEnclosure", "ChassisTypes");
 
-            foreach (ManagementObject enclosure in collection)
+            foreach (var enclosure in rows)
             {
-                using (enclosure)
+                if (enclosure.GetValueOrDefault("ChassisTypes") is Array chassisTypes
+                    && chassisTypes.Length > 0)
                 {
-                    if (enclosure["ChassisTypes"] is Array chassisTypes && chassisTypes.Length > 0)
+                    foreach (var chassisType in chassisTypes)
                     {
-                        foreach (var chassisType in chassisTypes)
-                        {
-                            int type = Convert.ToInt32(chassisType);
-                            if (LaptopChassisTypes.Contains(type))
-                                return "Laptop";
-                        }
-                        return "Desktop";
+                        int type = Convert.ToInt32(chassisType);
+                        if (LaptopChassisTypes.Contains(type))
+                            return "Laptop";
                     }
+                    return "Desktop";
                 }
             }
         }
-        catch { /* fallback failure */ }
+        catch { }
 
         return "Unknown";
     }
 
-    private static string CollectCpu()
+    private string CollectCpu()
     {
         try
         {
-            using var searcher = new ManagementObjectSearcher(
-                "SELECT Name, NumberOfLogicalProcessors FROM Win32_Processor");
-            using var collection = searcher.Get();
+            var rows = Rows(null, "Win32_Processor", "Name", "NumberOfLogicalProcessors");
 
-            foreach (ManagementObject obj in collection)
+            foreach (var row in rows)
             {
-                using (obj)
-                {
-                    string name = (obj["Name"] as string ?? "Unknown").Trim();
-                    int cores = Convert.ToInt32(obj["NumberOfLogicalProcessors"] ?? 0);
-                    return cores > 0 ? $"{name} ({cores} cores)" : name;
-                }
+                string name = (row.GetValueOrDefault("Name") as string ?? "Unknown").Trim();
+                int cores = Convert.ToInt32(row.GetValueOrDefault("NumberOfLogicalProcessors") ?? 0);
+                return cores > 0 ? $"{name} ({cores} cores)" : name;
             }
         }
-        catch { /* query failure */ }
+        catch { }
 
         return "Unknown";
     }
 
-    private static string CollectGpu()
+    private string CollectGpu()
     {
         try
         {
-            using var searcher = new ManagementObjectSearcher(
-                "SELECT Name, AdapterDACType FROM Win32_VideoController");
-            using var collection = searcher.Get();
+            var rows = Rows(null, "Win32_VideoController", "Name", "AdapterDACType");
 
             var gpus = new System.Collections.Generic.List<string>();
 
-            foreach (ManagementObject obj in collection)
+            foreach (var row in rows)
             {
-                using (obj)
-                {
-                    string name = (obj["Name"] as string ?? "").Trim();
-                    if (string.IsNullOrEmpty(name))
-                        continue;
+                string name = (row.GetValueOrDefault("Name") as string ?? "").Trim();
+                if (string.IsNullOrEmpty(name))
+                    continue;
 
-                    string dacType = (obj["AdapterDACType"] as string ?? "").Trim();
-                    string gpuType = ClassifyGpu(name, dacType);
-                    gpus.Add($"{name} ({gpuType})");
-                }
+                string dacType = (row.GetValueOrDefault("AdapterDACType") as string ?? "").Trim();
+                string gpuType = ClassifyGpu(name, dacType);
+                gpus.Add($"{name} ({gpuType})");
             }
 
             return gpus.Count > 0 ? string.Join("; ", gpus) : "Unknown";
@@ -333,7 +363,6 @@ public class SystemInfoProvider : ISystemInfoProvider
         if (dacType.Equals("Internal", StringComparison.OrdinalIgnoreCase))
             return "Integrated";
 
-        // Name-based heuristics for integrated GPUs
         if (nameLower.Contains("intel") && (nameLower.Contains("uhd") || nameLower.Contains("hd graphics")
             || nameLower.Contains("iris")))
             return "Integrated";
@@ -360,11 +389,7 @@ public class SystemInfoProvider : ISystemInfoProvider
     {
         try
         {
-            using var identity = WindowsIdentity.GetCurrent();
-            var principal = new WindowsPrincipal(identity);
-            bool isAdmin = principal.IsInRole(WindowsBuiltInRole.Administrator);
-
-            if (!isAdmin)
+            if (!FolderLock.IsElevated())
                 return "Standard";
 
             return _interactiveUserService.IsOtsElevation ? "Admin (OTS)" : "Admin";
@@ -379,17 +404,18 @@ public class SystemInfoProvider : ISystemInfoProvider
     {
         try
         {
-            if (Kernel32Api.GetFirmwareType(out var firmwareType))
+            var firmwareType = default(FIRMWARE_TYPE);
+            if (PInvoke.GetFirmwareType(ref firmwareType))
             {
                 return firmwareType switch
                 {
-                    Kernel32Api.FirmwareType.Bios => "Legacy BIOS",
-                    Kernel32Api.FirmwareType.Uefi => "UEFI",
+                    FIRMWARE_TYPE.FirmwareTypeBios => "Legacy BIOS",
+                    FIRMWARE_TYPE.FirmwareTypeUefi => "UEFI",
                     _ => "Unknown"
                 };
             }
         }
-        catch { /* P/Invoke failure */ }
+        catch { }
 
         return "Unknown";
     }
@@ -410,35 +436,30 @@ public class SystemInfoProvider : ISystemInfoProvider
                 return enabled == 1 ? "Enabled" : "Disabled";
             }
         }
-        catch { /* registry failure */ }
+        catch { }
 
         return "Unknown";
     }
 
-    private static string CollectTpm()
+    private string CollectTpm()
     {
         try
         {
-            using var searcher = new ManagementObjectSearcher(
-                @"root\cimv2\Security\MicrosoftTpm",
-                "SELECT SpecVersion FROM Win32_Tpm");
-            using var collection = searcher.Get();
+            var rows = Rows(
+                @"root\cimv2\Security\MicrosoftTpm", "Win32_Tpm", "SpecVersion");
 
-            foreach (ManagementObject obj in collection)
+            foreach (var row in rows)
             {
-                using (obj)
+                string specVersion = row.GetValueOrDefault("SpecVersion") as string ?? "";
+                if (!string.IsNullOrEmpty(specVersion))
                 {
-                    string specVersion = obj["SpecVersion"] as string ?? "";
-                    if (!string.IsNullOrEmpty(specVersion))
-                    {
-                        // SpecVersion is like "2.0, 0, 1.59" — take the major part
-                        string major = specVersion.Split(',')[0].Trim();
-                        return major;
-                    }
+                    // SpecVersion is like "2.0, 0, 1.59" - take the major part
+                    string major = specVersion.Split(',')[0].Trim();
+                    return major;
                 }
             }
         }
-        catch { /* WMI failure — TPM may not exist */ }
+        catch { }
 
         return "Not Detected";
     }

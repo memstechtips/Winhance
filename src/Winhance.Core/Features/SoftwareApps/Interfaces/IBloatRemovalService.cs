@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Models;
@@ -16,6 +12,7 @@ public interface IBloatRemovalService
     Task<RemovalOutcome> ExecuteBloatRemovalAsync(List<ItemDefinition> apps,
         IProgress<TaskProgressDetail>? progress = null, CancellationToken ct = default);
 
+    Task WriteRemovalScriptsAsync(List<ItemDefinition> apps, CancellationToken ct = default);
     Task PersistRemovalScriptsAsync(List<ItemDefinition> allApps);
     Task CleanupAllRemovalArtifactsAsync();
 

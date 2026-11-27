@@ -1,25 +1,17 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 
 namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface IProcessRestartManager
 {
-    Task HandleProcessAndServiceRestartsAsync(SettingDefinition setting);
+    // No setting sets both a process and a service restart.
+    Task HandleProcessAndServiceRestartsAsync(Setting setting);
 
-    /// <summary>
-    /// Coalesces restarts across a batch of applied settings: each distinct
-    /// RestartProcess / RestartService is triggered exactly once, regardless of
-    /// how many settings in the batch declared it. Call this AFTER the batch,
-    /// outside any SuppressRestarts scope.
-    /// </summary>
-    Task FlushCoalescedRestartsAsync(IEnumerable<SettingDefinition> appliedSettings);
+    Task FlushCoalescedRestartsAsync(IEnumerable<Setting> appliedSettings);
 
-    /// <summary>
-    /// Suppresses all process/service restarts until the returned scope is disposed.
-    /// Used by the dependency resolver when auto-enabling multiple children,
-    /// so that a single restart from the parent covers all of them.
-    /// </summary>
+    // Used when auto-enabling multiple children, so a single restart from the parent covers all of them.
     IDisposable SuppressRestarts();
+
+    // Broadcasts requested inside the scope go out once, when it ends, carrying every notice they asked for.
+    IDisposable CoalesceBroadcasts();
 }

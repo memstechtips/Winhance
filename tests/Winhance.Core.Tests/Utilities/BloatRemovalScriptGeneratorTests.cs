@@ -64,8 +64,42 @@ public class BloatRemovalScriptGeneratorTests
             new List<string>(), new List<string>(),
             includeXboxRegistryFix: true);
 
-        // The script should contain Xbox-related registry content
         script.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public void GenerateScript_WithXboxRegistryFix_RedirectsGameBarLinksAndLeavesGameDvrAlone()
+    {
+        var script = BloatRemovalScriptGenerator.GenerateScript(
+            new List<string> { "Microsoft.XboxGamingOverlay" }, new List<string>(),
+            new List<string>(), new List<string>(),
+            includeXboxRegistryFix: true);
+
+        script.Should().Contain(@"ms-gamebarservices").And.Contain(@"$key\shell\open\command");
+        script.Should().NotContain("GameDVR");
+        script.Should().NotContain("AppCaptureEnabled");
+    }
+
+    [Fact]
+    public void GenerateScript_TakesTheImageAndSoftwareRootWithLiveDefaults()
+    {
+        var script = BloatRemovalScriptGenerator.GenerateScript(new List<string>(), new List<string>(), new List<string>(), new List<string>(), includeXboxRegistryFix: true);
+
+        script.Should().Contain("param([string]$Image = '',");
+        script.Should().Contain("[string]$SoftwareRoot = 'HKEY_LOCAL_MACHINE\\SOFTWARE'");
+        script.Should().Contain("$classes = if ($Offline) { \"$SoftwareRoot\\Classes\" } else { 'HKCR' }");
+    }
+
+    [Fact]
+    public void GenerateScript_OnAnImage_RunsOnlyTheXboxRedirect()
+    {
+        var script = BloatRemovalScriptGenerator.GenerateScript(
+            new List<string> { "Microsoft.XboxGamingOverlay" }, new List<string>(), new List<string>(), new List<string> { "OneNote" },
+            includeXboxRegistryFix: true);
+
+        script.IndexOf("if (-not $Offline) {", StringComparison.Ordinal).Should().BePositive()
+            .And.BeLessThan(script.IndexOf("ms-gamebarservices", StringComparison.Ordinal));
+        script.Should().Contain("if ($Offline) { Write-Host $Message; return }");
     }
 
     [Fact]
@@ -158,7 +192,6 @@ public class BloatRemovalScriptGeneratorTests
 
         var updated = BloatRemovalScriptGenerator.UpdateScriptTemplate(original);
 
-        // The updated template should detect Xbox packages and include the fix
         updated.Should().Contain("Microsoft.GamingApp");
     }
 
@@ -173,5 +206,67 @@ public class BloatRemovalScriptGeneratorTests
         var updated = BloatRemovalScriptGenerator.UpdateScriptTemplate(original);
 
         updated.Should().Contain("MSTeams");
+    }
+
+    [Fact]
+    public void UpdateScriptTemplate_LegacyPhotosSelection_AddsCompanionAndOwnerContextCleanup()
+    {
+        var original = "$packages = @(\n    'Microsoft.Windows.Photos'\n)\n";
+        var updated = BloatRemovalScriptGenerator.UpdateScriptTemplate(original);
+        BloatRemovalScriptGenerator.ExtractArrayFromScript(updated, "packages")
+            .Should().Equal("Microsoft.Windows.Photos", "Microsoft.OneDrive.Photos");
+        updated.Should().Contain("-LogonType Interactive -RunLevel Limited");
+        updated.Should().Contain("Global\\WinhanceOneDriveRemoval");
+        updated.Should().Contain("ODPhotosOneDriveSetup.exe");
+        var encoded = System.Text.RegularExpressions.Regex.Match(updated, @"\$userAction = '([^']+)'").Groups[1].Value;
+        var ownerScript = System.Text.Encoding.Unicode.GetString(Convert.FromBase64String(encoded));
+        ownerScript.Should().Contain("/partialodphotosremoval");
+        ownerScript.Should().NotContain("/removeonedrive");
+        ownerScript.Should().Contain("OneDrive Photos installer missing while OneDrive is still installed.");
+        ownerScript.IndexOf("Orphan OneDrive Photos package could not be removed.", StringComparison.Ordinal)
+            .Should().BeLessThan(ownerScript.IndexOf("Remove-Item -LiteralPath $key", StringComparison.Ordinal));
+        updated.IndexOf("-LogonType Interactive -RunLevel Limited", StringComparison.Ordinal)
+            .Should().BeLessThan(updated.IndexOf("# Discover all packages upfront", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("Microsoft.Copilot")]
+    [InlineData("Microsoft.MicrosoftOfficeHub")]
+    public void GenerateScript_CopilotSelection_ChecksManifestAndReportsResidualDesktopInstallation(string package)
+    {
+        var script = BloatRemovalScriptGenerator.GenerateScript([package], [], [], []);
+        script.Should().Contain("copilotapp_proxy.exe").And.Contain("Microsoft Copilot");
+        script.Should().Contain("Get-AuthenticodeSignature").And.Contain("--mscopilot");
+        script.Should().Contain("$retryClock = [Diagnostics.Stopwatch]::StartNew()");
+        script.Should().Contain("while ((Test-Path -LiteralPath $key) -and $retryClock.Elapsed.TotalSeconds -lt 120)");
+        script.Should().Contain("if ($process.ExitCode -ne 60 -or -not (Test-Path -LiteralPath $key)) { break }");
+        script.Should().Contain("Start-Sleep -Seconds ([Math]::Min(15, $remaining))");
+        script.IndexOf("$entry = Get-ItemProperty -LiteralPath $key", StringComparison.Ordinal)
+            .Should().BeGreaterThan(script.IndexOf("while ((Test-Path -LiteralPath $key)", StringComparison.Ordinal));
+        script.Should().Contain("The desktop Copilot installation remains");
+        script.Should().NotContain("Remove-Item -LiteralPath $key");
+    }
+
+    [Fact]
+    public void GenerateScript_NameWithAQuote_IsEscaped()
+    {
+        var script = BloatRemovalScriptGenerator.GenerateScript(
+            new List<string> { "Evil'; calc; '" }, new List<string>(), new List<string>(), new List<string>());
+
+        script.Should().Contain("    'Evil''; calc; '''");
+        script.Should().NotContain("    'Evil'; calc");
+    }
+
+    [Fact]
+    public void UpdateScriptTemplate_EscapedName_RoundTripsUnchanged()
+    {
+        var original = BloatRemovalScriptGenerator.GenerateScript(
+            new List<string> { "Evil'; calc; '", "Microsoft.BingWeather" }, new List<string>(), new List<string>(), new List<string>());
+
+        var updated = BloatRemovalScriptGenerator.UpdateScriptTemplate(original);
+
+        BloatRemovalScriptGenerator.ExtractArrayFromScript(updated, BloatRemovalScriptGenerator.PackagesArray)
+            .Should().Equal("Evil'; calc; '", "Microsoft.BingWeather");
+        updated.Should().Contain("    'Evil''; calc; '''");
     }
 }

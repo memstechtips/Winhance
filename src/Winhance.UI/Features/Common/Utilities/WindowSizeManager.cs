@@ -1,28 +1,28 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Windows.Graphics;
+using Windows.Win32;
+using Windows.Win32.Foundation;
 
 namespace Winhance.UI.Features.Common.Utilities;
 
-/// <summary>
-/// Manages window size and position persistence for WinUI 3.
-/// Saves/restores window bounds and maximized state via user preferences.
-/// </summary>
 public class WindowSizeManager
 {
     private readonly AppWindow _appWindow;
     private readonly IUserPreferencesService _userPreferencesService;
     private readonly ILogService _logService;
 
-    private const int MinWidth = 800;
-    private const int MinHeight = 600;
+    // In effective pixels, like the layout; scaled by the monitor's DPI before they reach AppWindow.
+    private const int MinWidth = 640;
+    private const int MinHeight = 480;
     private const double ScreenWidthPercentage = 0.70;
     private const double ScreenHeightPercentage = 0.80;
+
+    // 70% of a narrower work area leaves room for one card column, so the window takes the whole work area instead.
+    private const int SmallScreenWidth = 1280;
 
     // Minimum on-screen overlap required for a restored window position to be
     // considered usable. Smaller than a normal title bar so partially-dragged
@@ -37,22 +37,21 @@ public class WindowSizeManager
     private int _normalWidth;
     private int _normalHeight;
     private bool _isTrackingBounds;
+    private bool _maximizeWhenShown;
 
     public WindowSizeManager(AppWindow appWindow, IUserPreferencesService userPreferencesService, ILogService logService)
     {
-        _appWindow = appWindow ?? throw new ArgumentNullException(nameof(appWindow));
-        _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _appWindow = appWindow;
+        _userPreferencesService = userPreferencesService;
+        _logService = logService;
     }
 
-    /// <summary>
-    /// Initializes window size and position, restoring from preferences if available.
-    /// </summary>
-    public async Task InitializeAsync()
+    public void Initialize()
     {
         try
         {
-            bool loaded = await LoadWindowSettingsAsync();
+            SetMinimumSize();
+            bool loaded = LoadWindowSettings();
 
             if (!loaded)
             {
@@ -60,7 +59,6 @@ public class WindowSizeManager
                 CenterOnScreen();
             }
 
-            // Start tracking normal bounds after initial positioning
             RecordNormalBounds();
             SubscribeToWindowChanges();
         }
@@ -74,10 +72,6 @@ public class WindowSizeManager
         }
     }
 
-    /// <summary>
-    /// Saves current window settings to preferences.
-    /// Called by ApplicationCloseService.BeforeShutdown which properly awaits before exiting.
-    /// </summary>
     public async Task SaveWindowSettingsAsync()
     {
         try
@@ -94,7 +88,6 @@ public class WindowSizeManager
             if (state == OverlappedPresenterState.Maximized)
             {
                 prefs[UserPreferenceKeys.WindowMaximized] = true;
-                // Save tracked normal bounds (pre-maximize size/position)
                 prefs[UserPreferenceKeys.WindowWidth] = (double)_normalWidth;
                 prefs[UserPreferenceKeys.WindowHeight] = (double)_normalHeight;
                 prefs[UserPreferenceKeys.WindowLeft] = (double)_normalX;
@@ -117,15 +110,15 @@ public class WindowSizeManager
         }
     }
 
-    private async Task<bool> LoadWindowSettingsAsync()
+    private bool LoadWindowSettings()
     {
         try
         {
-            var width = await _userPreferencesService.GetPreferenceAsync<double>(UserPreferenceKeys.WindowWidth, 0);
-            var height = await _userPreferencesService.GetPreferenceAsync<double>(UserPreferenceKeys.WindowHeight, 0);
-            var left = await _userPreferencesService.GetPreferenceAsync<double>(UserPreferenceKeys.WindowLeft, double.NaN);
-            var top = await _userPreferencesService.GetPreferenceAsync<double>(UserPreferenceKeys.WindowTop, double.NaN);
-            var isMaximized = await _userPreferencesService.GetPreferenceAsync<bool>(UserPreferenceKeys.WindowMaximized, false);
+            var width = _userPreferencesService.GetPreference<double>(UserPreferenceKeys.WindowWidth, 0);
+            var height = _userPreferencesService.GetPreference<double>(UserPreferenceKeys.WindowHeight, 0);
+            var left = _userPreferencesService.GetPreference<double>(UserPreferenceKeys.WindowLeft, double.NaN);
+            var top = _userPreferencesService.GetPreference<double>(UserPreferenceKeys.WindowTop, double.NaN);
+            var isMaximized = _userPreferencesService.GetPreference<bool>(UserPreferenceKeys.WindowMaximized, false);
 
             // Only reject clearly invalid values (no saved prefs yet)
             if (width <= 0 || height <= 0)
@@ -143,28 +136,31 @@ public class WindowSizeManager
 
                 if (IsSavedPositionVisibleOnAnyDisplay(savedRect))
                 {
-                    _appWindow.MoveAndResize(savedRect);
+                    _appWindow.MoveAndResize(FitInside(savedRect, DisplayArea.GetFromRect(savedRect, DisplayAreaFallback.Nearest).WorkArea));
                 }
                 else
                 {
                     _logService.Log(
                         LogLevel.Info,
                         $"Saved window position ({savedRect.X}, {savedRect.Y}) is not visible on any active display; re-centering on primary.");
-                    _appWindow.Resize(new SizeInt32(w, h));
+                    ResizeWithin(w, h);
                     CenterOnScreen();
                 }
             }
             else
             {
-                _appWindow.Resize(new SizeInt32(w, h));
+                ResizeWithin(w, h);
                 CenterOnScreen();
             }
 
-            // Restore maximized state (must be done after position/size)
+            // Restore maximized state (must be done after position/size). Maximize shows a hidden window, so a
+            // window started in the tray waits until it is opened.
             if (isMaximized)
             {
-                var presenter = _appWindow.Presenter as OverlappedPresenter;
-                presenter?.Maximize();
+                if (_appWindow.IsVisible)
+                    (_appWindow.Presenter as OverlappedPresenter)?.Maximize();
+                else
+                    _maximizeWhenShown = true;
             }
 
             return true;
@@ -213,11 +209,16 @@ public class WindowSizeManager
             var displayArea = DisplayArea.GetFromWindowId(_appWindow.Id, DisplayAreaFallback.Nearest);
             var workArea = displayArea.WorkArea;
 
-            int windowWidth = (int)(workArea.Width * ScreenWidthPercentage);
-            int windowHeight = (int)(workArea.Height * ScreenHeightPercentage);
+            double scale = Scale();
 
-            windowWidth = Math.Max(windowWidth, MinWidth);
-            windowHeight = Math.Max(windowHeight, MinHeight);
+            if (workArea.Width / scale < SmallScreenWidth)
+            {
+                _appWindow.MoveAndResize(workArea);
+                return;
+            }
+
+            int windowWidth = Math.Max((int)(workArea.Width * ScreenWidthPercentage), (int)(MinWidth * scale));
+            int windowHeight = Math.Max((int)(workArea.Height * ScreenHeightPercentage), (int)(MinHeight * scale));
 
             _appWindow.Resize(new SizeInt32(windowWidth, windowHeight));
         }
@@ -226,6 +227,38 @@ public class WindowSizeManager
             _logService.Log(LogLevel.Error, $"Error setting dynamic window size: {ex.Message}");
             _appWindow.Resize(new SizeInt32(1280, 800));
         }
+    }
+
+    private void SetMinimumSize()
+    {
+        if (_appWindow.Presenter is not OverlappedPresenter presenter)
+            return;
+
+        double scale = Scale();
+        presenter.PreferredMinimumWidth = (int)(MinWidth * scale);
+        presenter.PreferredMinimumHeight = (int)(MinHeight * scale);
+    }
+
+    private double Scale()
+    {
+        uint dpi = PInvoke.GetDpiForWindow(new HWND(Win32Interop.GetWindowFromWindowId(_appWindow.Id)));
+        return dpi > 0 ? dpi / 96.0 : 1.0;
+    }
+
+    private void ResizeWithin(int width, int height)
+    {
+        var workArea = DisplayArea.GetFromWindowId(_appWindow.Id, DisplayAreaFallback.Nearest).WorkArea;
+        _appWindow.Resize(new SizeInt32(Math.Min(width, workArea.Width), Math.Min(height, workArea.Height)));
+    }
+
+    // A size saved on a bigger screen, or before the resolution dropped, would open partly off this one.
+    internal static RectInt32 FitInside(RectInt32 window, RectInt32 workArea)
+    {
+        int width = Math.Min(window.Width, workArea.Width);
+        int height = Math.Min(window.Height, workArea.Height);
+        int x = Math.Clamp(window.X, workArea.X, workArea.X + workArea.Width - width);
+        int y = Math.Clamp(window.Y, workArea.Y, workArea.Y + workArea.Height - height);
+        return new RectInt32(x, y, width, height);
     }
 
     private void CenterOnScreen()
@@ -284,10 +317,15 @@ public class WindowSizeManager
 
     private void AppWindow_Changed(AppWindow sender, AppWindowChangedEventArgs args)
     {
+        if (_maximizeWhenShown && args.DidVisibilityChange && sender.IsVisible)
+        {
+            _maximizeWhenShown = false;
+            (sender.Presenter as OverlappedPresenter)?.Maximize();
+        }
+
         if (!_isTrackingBounds)
             return;
 
-        // Only record bounds when the window is in normal (restored) state
         if (args.DidPositionChange || args.DidSizeChange)
         {
             var presenter = sender.Presenter as OverlappedPresenter;

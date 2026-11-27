@@ -1,9 +1,10 @@
 using FluentAssertions;
 using Microsoft.UI.Xaml;
 using Moq;
+using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.ViewModels;
 using Xunit;
@@ -20,7 +21,6 @@ public class MainWindowViewModelTests : IDisposable
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
     private readonly Mock<IWindowsVersionFilterService> _mockWindowsVersionFilterService = new();
 
-    // Child ViewModel dependencies
     private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
@@ -28,8 +28,10 @@ public class MainWindowViewModelTests : IDisposable
     private readonly Mock<IConfigReviewDiffService> _mockConfigReviewDiffService = new();
     private readonly Mock<IConfigReviewBadgeService> _mockConfigReviewBadgeService = new();
     private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
-    private readonly Mock<IConfigExportService> _mockConfigExportService = new();
-    private readonly Mock<IUserPreferencesService> _mockUserPreferencesService = new();
+    private readonly Mock<IBuilderSaveService> _mockBuilderSaveService = new();
+    private readonly Mock<IHardwareFilterService> _mockHardwareFilterService = new();
+    private readonly Mock<ICatalogSettingsRegistry> _mockCatalogSettingsRegistry = new();
+    private readonly Mock<IBuilderModeEntry> _mockBuilderModeEntry = new();
 
     private readonly TaskProgressViewModel _taskProgressViewModel;
     private readonly UpdateCheckViewModel _updateCheckViewModel;
@@ -38,7 +40,6 @@ public class MainWindowViewModelTests : IDisposable
 
     public MainWindowViewModelTests()
     {
-        // Set up dispatcher to execute actions synchronously
         _mockDispatcherService
             .Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(a => a());
@@ -51,32 +52,28 @@ public class MainWindowViewModelTests : IDisposable
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => null!);
 
-        // Default theme
         _mockThemeService
             .Setup(t => t.GetEffectiveTheme())
             .Returns(ElementTheme.Dark);
 
-        // Default version info
         _mockVersionService
             .Setup(v => v.GetCurrentVersion())
             .Returns(new VersionInfo { Version = "v25.05.01" });
 
-        // Default interactive user service (not OTS)
         _mockInteractiveUserService
             .Setup(i => i.IsOtsElevation)
             .Returns(false);
 
-        // Create child ViewModels
         _taskProgressViewModel = new TaskProgressViewModel(
             _mockTaskProgressService.Object,
             _mockDispatcherService.Object,
             _mockDialogService.Object,
-            _mockLocalizationService.Object,
-            _mockLogService.Object);
+            _mockLocalizationService.Object);
 
         _updateCheckViewModel = new UpdateCheckViewModel(
             _mockVersionService.Object,
             _mockLocalizationService.Object,
+            Mock.Of<IUserPreferencesService>(),
             _mockLogService.Object);
 
         _reviewModeBarViewModel = new ReviewModeBarViewModel(
@@ -84,6 +81,7 @@ public class MainWindowViewModelTests : IDisposable
             _mockConfigReviewDiffService.Object,
             _mockConfigReviewBadgeService.Object,
             _mockConfigurationService.Object,
+            new Mock<IReviewModeViewModelCoordinator>().Object,
             _mockDispatcherService.Object,
             _mockLocalizationService.Object,
             _mockDialogService.Object,
@@ -91,10 +89,14 @@ public class MainWindowViewModelTests : IDisposable
 
         _builderModeBarViewModel = new BuilderModeBarViewModel(
             _mockApplicationModeService.Object,
-            _mockConfigExportService.Object,
+            _mockBuilderSaveService.Object,
             _mockDispatcherService.Object,
             _mockLocalizationService.Object,
             _mockDialogService.Object,
+            _mockHardwareFilterService.Object,
+            Mock.Of<ITargetWindowsService>(),
+            Mock.Of<ICatalogScopeProvider>(),
+            _mockCatalogSettingsRegistry.Object,
             _mockLogService.Object);
     }
 
@@ -114,7 +116,7 @@ public class MainWindowViewModelTests : IDisposable
             _builderModeBarViewModel,
             _mockApplicationModeService.Object,
             _mockDialogService.Object,
-            _mockUserPreferencesService.Object);
+            _mockBuilderModeEntry.Object);
     }
 
     public void Dispose()
@@ -123,9 +125,8 @@ public class MainWindowViewModelTests : IDisposable
         _updateCheckViewModel.Dispose();
         _reviewModeBarViewModel.Dispose();
         _builderModeBarViewModel.Dispose();
+        GC.SuppressFinalize(this);
     }
-
-    // ── Constructor ──
 
     [Fact]
     public void Constructor_InitializesDefaultProperties()
@@ -149,8 +150,6 @@ public class MainWindowViewModelTests : IDisposable
         sut.ReviewModeBar.Should().BeSameAs(_reviewModeBarViewModel);
     }
 
-    // ── Initialize ──
-
     [Fact]
     public void Initialize_SubscribesToThemeChangedEvent()
     {
@@ -158,7 +157,6 @@ public class MainWindowViewModelTests : IDisposable
 
         sut.Initialize();
 
-        // Raise the theme changed event and verify the icon updates
         _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Light);
         _mockThemeService.Raise(t => t.ThemeChanged += null, this, WinhanceTheme.LightNative);
 
@@ -218,8 +216,6 @@ public class MainWindowViewModelTests : IDisposable
         sut.IsOtsInfoBarOpen.Should().BeFalse();
     }
 
-    // ── Theme Handling ──
-
     [Fact]
     public void UpdateAppIconForTheme_DarkTheme_SetsWhiteIcon()
     {
@@ -242,8 +238,6 @@ public class MainWindowViewModelTests : IDisposable
         sut.AppIconSource.Should().Contain("black");
     }
 
-    // ── OTS InfoBar ──
-
     [Fact]
     public void DismissOtsInfoBar_SetsIsOtsInfoBarOpenToFalse()
     {
@@ -263,8 +257,6 @@ public class MainWindowViewModelTests : IDisposable
         sut.IsOtsInfoBarOpen.Should().BeFalse();
     }
 
-    // ── Localized Strings with Fallbacks ──
-
     [Fact]
     public void AppTitle_ReturnsFallbackWhenLocalizationReturnsNull()
     {
@@ -280,17 +272,48 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
+    public void ModeConfigReviewLabel_ReturnsImportEntryNameWhenLocalizationReturnsNull()
+    {
+        var sut = CreateSut();
+        sut.ModeConfigReviewLabel.Should().Be("Config Import");
+    }
+
+    [Fact]
     public void ModeConfigReviewTooltip_ReturnsFallbackWhenLocalizationReturnsNull()
     {
         var sut = CreateSut();
-        sut.ModeConfigReviewTooltip.Should().Be("Config Review");
+        sut.ModeConfigReviewTooltip.Should().Be("Config Import. Choose a config to review or apply immediately.");
+    }
+
+    [Theory]
+    [InlineData(WinhanceMode.Normal)]
+    [InlineData(WinhanceMode.Builder)]
+    [InlineData(WinhanceMode.ConfigReview)]
+    public void TitleBarModeLabels_StayStaticWhenTheActiveModeChanges(WinhanceMode mode)
+    {
+        var sut = CreateSut();
+        sut.Initialize();
+        var notifications = new List<string?>();
+        sut.PropertyChanged += (_, args) => notifications.Add(args.PropertyName);
+
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(mode);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        sut.ModeNormalLabel.Should().Be("Normal");
+        sut.ModeBuilderLabel.Should().Be("Builder");
+        sut.ModeConfigReviewLabel.Should().Be("Config Import");
+        sut.ModeConfigReviewTooltip.Should().StartWith("Config Import.");
+        sut.IsConfigReviewModeActive.Should().Be(mode == WinhanceMode.ConfigReview);
+        notifications.Should().Contain(nameof(MainWindowViewModel.IsConfigReviewModeActive));
+        notifications.Should().NotContain(nameof(MainWindowViewModel.ModeConfigReviewLabel));
+        notifications.Should().NotContain(nameof(MainWindowViewModel.ModeConfigReviewTooltip));
     }
 
     [Fact]
     public void ModeBuilderTooltip_ReturnsFallbackWhenLocalizationReturnsNull()
     {
         var sut = CreateSut();
-        sut.ModeBuilderTooltip.Should().Be("Builder mode");
+        sut.ModeBuilderTooltip.Should().Be("Builder mode — create a config or autounattend file without changing this PC.");
     }
 
     [Fact]
@@ -322,10 +345,17 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
-    public void NavAdvancedToolsText_ReturnsFallbackWhenLocalizationReturnsNull()
+    public void NavAutounattendText_ReturnsFallbackWhenLocalizationReturnsNull()
     {
         var sut = CreateSut();
-        sut.NavAdvancedToolsText.Should().Be("Advanced Tools");
+        sut.NavAutounattendText.Should().Be("Unattend");
+    }
+
+    [Fact]
+    public void NavWimUtilText_ReturnsFallbackWhenLocalizationReturnsNull()
+    {
+        var sut = CreateSut();
+        sut.NavWimUtilText.Should().Be("WIMUtil");
     }
 
     [Fact]
@@ -342,15 +372,12 @@ public class MainWindowViewModelTests : IDisposable
         sut.NavMoreText.Should().Be("More");
     }
 
-    // ── Windows Filter Tooltip ──
-
     [Fact]
     public void WindowsFilterTooltip_WhenFilterEnabled_ContainsON()
     {
         var sut = CreateSut();
         sut.IsWindowsVersionFilterEnabled = true;
 
-        // The fallback strings contain "ON" or specific text
         sut.WindowsFilterTooltip.Should().Contain("ON");
     }
 
@@ -362,8 +389,6 @@ public class MainWindowViewModelTests : IDisposable
 
         sut.WindowsFilterTooltip.Should().Contain("OFF");
     }
-
-    // ── Review Mode / Filter Cross-Cutting ──
 
     [Fact]
     public void IsWindowsFilterButtonEnabled_ReturnsTrueWhenNotInReviewMode()
@@ -381,6 +406,14 @@ public class MainWindowViewModelTests : IDisposable
         _reviewModeBarViewModel.IsInReviewMode = true;
 
         sut.IsWindowsFilterButtonEnabled.Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsWindowsFilterButtonEnabled_ReturnsFalseInBuilder()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+
+        CreateSut().IsWindowsFilterButtonEnabled.Should().BeFalse();
     }
 
     [Fact]
@@ -411,22 +444,14 @@ public class MainWindowViewModelTests : IDisposable
     [Fact]
     public void ReviewModeExited_RestoresFilterPreference()
     {
-        _mockWindowsVersionFilterService
-            .Setup(f => f.RestoreFilterPreferenceAsync())
-            .Returns(Task.CompletedTask);
-
         var sut = CreateSut();
         sut.Initialize();
 
-        // Enter review mode first
         _reviewModeBarViewModel.IsInReviewMode = true;
-        // Exit review mode
         _reviewModeBarViewModel.IsInReviewMode = false;
 
-        _mockWindowsVersionFilterService.Verify(f => f.RestoreFilterPreferenceAsync(), Times.Once);
+        _mockWindowsVersionFilterService.Verify(f => f.RestoreFilterPreference(), Times.Once);
     }
-
-    // ── Language Change ──
 
     [Fact]
     public void LanguageChanged_NotifiesLocalizedStringProperties()
@@ -449,9 +474,14 @@ public class MainWindowViewModelTests : IDisposable
         changedProperties.Should().Contain(nameof(sut.DonateTooltip));
         changedProperties.Should().Contain(nameof(sut.BugReportTooltip));
         changedProperties.Should().Contain(nameof(sut.DocsTooltip));
+        changedProperties.Should().Contain(nameof(sut.NavSoftwareAppsText));
+        changedProperties.Should().Contain(nameof(sut.NavOptimizeText));
+        changedProperties.Should().Contain(nameof(sut.NavCustomizeText));
+        changedProperties.Should().Contain(nameof(sut.NavAutounattendText));
+        changedProperties.Should().Contain(nameof(sut.NavWimUtilText));
+        changedProperties.Should().Contain(nameof(sut.NavSettingsText));
+        changedProperties.Should().Contain(nameof(sut.NavMoreText));
     }
-
-    // ── Filter State Changed ──
 
     [Fact]
     public void FilterStateChanged_UpdatesIsWindowsVersionFilterEnabled()
@@ -465,23 +495,15 @@ public class MainWindowViewModelTests : IDisposable
         sut.IsWindowsVersionFilterEnabled.Should().BeFalse();
     }
 
-    // ── LoadFilterPreferenceAsync ──
-
     [Fact]
-    public async Task LoadFilterPreferenceAsync_DelegatesToService()
+    public void LoadFilterPreference_DelegatesToService()
     {
-        _mockWindowsVersionFilterService
-            .Setup(f => f.LoadFilterPreferenceAsync())
-            .Returns(Task.CompletedTask);
-
         var sut = CreateSut();
 
-        await sut.LoadFilterPreferenceAsync();
+        sut.LoadFilterPreference();
 
-        _mockWindowsVersionFilterService.Verify(f => f.LoadFilterPreferenceAsync(), Times.Once);
+        _mockWindowsVersionFilterService.Verify(f => f.LoadFilterPreference(), Times.Once);
     }
-
-    // ── IDisposable ──
 
     [Fact]
     public void Dispose_UnsubscribesFromEvents()
@@ -491,14 +513,262 @@ public class MainWindowViewModelTests : IDisposable
 
         sut.Dispose();
 
-        // After dispose, raising theme changed should not update the icon
-        // (we can verify this indirectly by ensuring no exception is thrown
-        //  and the icon stays as it was before the event)
         var iconBeforeEvent = sut.AppIconSource;
         _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Light);
         _mockThemeService.Raise(t => t.ThemeChanged += null, this, WinhanceTheme.LightNative);
 
         sut.AppIconSource.Should().Be(iconBeforeEvent);
+    }
+
+    // Leaving Builder mode: the discard prompt must key off HasBuilderChanges, not GetBuilderEdits().Count.
+    // An input shape with no serializable ChoiceValue is authored into the UI but reports zero edits; gating
+    // on the count skips the prompt and the (correct, intended) reload on Builder exit discards the authoring
+    // silently.
+
+    [Fact]
+    public async Task RequestSwitchModeAsync_LeavingBuilderWithAuthoredChangesButNoRecordedEdits_Prompts()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _mockApplicationModeService.Setup(m => m.HasBuilderChanges).Returns(true);
+        // The regression: no edit was ever recorded for this session.
+        _mockApplicationModeService.Setup(m => m.GetBuilderEdits()).Returns(new List<SettingChoice>());
+        _mockDialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+
+        var sut = CreateSut();
+        await sut.RequestSwitchModeAsync(WinhanceMode.Normal);
+
+        _mockDialogService.Verify(
+            d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Once);
+        _mockApplicationModeService.Verify(m => m.EnterNormalMode(), Times.Once);
+    }
+
+    [Fact]
+    public async Task RequestSwitchModeAsync_LeavingBuilderWithAuthoredChanges_WhenUserDeclines_StaysInBuilder()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _mockApplicationModeService.Setup(m => m.HasBuilderChanges).Returns(true);
+        _mockDialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
+
+        var sut = CreateSut();
+        await sut.RequestSwitchModeAsync(WinhanceMode.Normal);
+
+        _mockApplicationModeService.Verify(m => m.EnterNormalMode(), Times.Never);
+    }
+
+    [Fact]
+    public async Task RequestSwitchModeAsync_LeavingAnUntouchedBuilderSession_SwitchesWithoutPrompting()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _mockApplicationModeService.Setup(m => m.HasBuilderChanges).Returns(false);
+
+        var sut = CreateSut();
+        await sut.RequestSwitchModeAsync(WinhanceMode.Normal);
+
+        _mockDialogService.Verify(
+            d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        _mockApplicationModeService.Verify(m => m.EnterNormalMode(), Times.Once);
+    }
+
+    [Fact]
+    public async Task SwitchToBuilder_EntersThroughTheEntryService_WithTheConfigTarget()
+    {
+        _mockBuilderModeEntry.Setup(e => e.EnterAsync(It.IsAny<BuilderTarget>(), It.IsAny<string?>())).ReturnsAsync(true);
+
+        var sut = CreateSut();
+        await sut.RequestSwitchModeAsync(WinhanceMode.Builder);
+
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(BuilderTarget.Config, null), Times.Once);
+    }
+
+    // The entry dialog carries the discard warning itself, so leaving a review for Builder is one dialog.
+    [Fact]
+    public async Task SwitchToBuilder_FromAReview_AsksNothingBeforeTheEntryDialog()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.ConfigReview);
+        _mockBuilderModeEntry.Setup(e => e.EnterAsync(It.IsAny<BuilderTarget>(), It.IsAny<string?>())).ReturnsAsync(true);
+
+        var sut = CreateSut();
+        await sut.RequestSwitchModeAsync(WinhanceMode.Builder);
+
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(BuilderTarget.Config, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task SwitchToConfigReview_FromBuilderWithEdits_LeavesTheAskToImport()
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _mockApplicationModeService.Setup(m => m.HasBuilderChanges).Returns(true);
+
+        var sut = CreateSut();
+        await sut.RequestSwitchModeAsync(WinhanceMode.ConfigReview);
+
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        _mockConfigurationService.Verify(c => c.ImportConfigurationAsync(), Times.Once);
+    }
+
+    private void InMode(WinhanceMode mode, BuilderTarget target = BuilderTarget.Config, bool confirmed = true)
+    {
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(mode);
+        _mockApplicationModeService.Setup(m => m.CurrentBuilderTarget).Returns(target);
+        _mockDialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = confirmed });
+        _mockBuilderModeEntry.Setup(e => e.EnterAsync(It.IsAny<BuilderTarget>(), It.IsAny<string?>())).ReturnsAsync(confirmed);
+    }
+
+    // A nav click that reaches the window past an open dialog (a shortcut key, UI Automation) would queue
+    // a second dialog behind it, decided on the mode as it was before the first one closed.
+    [Theory]
+    [InlineData("Autounattend")]
+    [InlineData("Settings")]
+    public async Task RequestPage_WhileADialogIsOpen_OpensNothing(string tag)
+    {
+        InMode(WinhanceMode.Normal);
+        _mockDialogService.Setup(d => d.IsDialogOpen).Returns(true);
+
+        var opened = await CreateSut().RequestPageAsync(tag);
+
+        opened.Should().BeFalse();
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(It.IsAny<BuilderTarget>(), It.IsAny<string?>()), Times.Never);
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SwitchMode_WhileADialogIsOpen_OpensNothing()
+    {
+        InMode(WinhanceMode.Normal);
+        _mockDialogService.Setup(d => d.IsDialogOpen).Returns(true);
+
+        await CreateSut().RequestSwitchModeAsync(WinhanceMode.Builder);
+
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(It.IsAny<BuilderTarget>(), It.IsAny<string?>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("Autounattend")]
+    [InlineData("WimUtil")]
+    public async Task RequestPage_AnswerFilePage_FromNormal_EntersBuilderForAnAnswerFile(string tag)
+    {
+        InMode(WinhanceMode.Normal);
+
+        var opened = await CreateSut().RequestPageAsync(tag);
+
+        opened.Should().BeTrue();
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(BuilderTarget.Autounattend, It.IsAny<string?>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("Autounattend", "Dialog_ModeEntry_UnattendReason")]
+    [InlineData("WimUtil", "Dialog_ModeEntry_WimUtilReason")]
+    public async Task RequestPage_AnswerFilePage_FromNormal_SaysWhichPageNeedsBuilder(string tag, string reasonKey)
+    {
+        InMode(WinhanceMode.Normal);
+        _mockLocalizationService.Setup(l => l.GetString(reasonKey)).Returns("reason");
+
+        await CreateSut().RequestPageAsync(tag);
+
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(BuilderTarget.Autounattend, "reason"), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("Autounattend")]
+    [InlineData("WimUtil")]
+    public async Task RequestPage_AnswerFilePage_FromNormal_Declined_StaysInNormal_AfterOneDialog(string tag)
+    {
+        InMode(WinhanceMode.Normal, confirmed: false);
+
+        var opened = await CreateSut().RequestPageAsync(tag);
+
+        opened.Should().BeFalse();
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(BuilderTarget.Autounattend, It.IsAny<string?>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("Autounattend")]
+    [InlineData("WimUtil")]
+    public async Task RequestPage_AnswerFilePage_FromBuilderConfig_SwitchesTheTargetAndKeepsTheSession(string tag)
+    {
+        InMode(WinhanceMode.Builder, BuilderTarget.Config);
+
+        var opened = await CreateSut().RequestPageAsync(tag);
+
+        opened.Should().BeTrue();
+        _mockApplicationModeService.Verify(m => m.SetBuilderTarget(BuilderTarget.Autounattend), Times.Once);
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(It.IsAny<BuilderTarget>(), It.IsAny<string?>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("Autounattend", "Nav_Autounattend_SwitchTarget_Message")]
+    [InlineData("WimUtil", "Nav_WimUtil_SwitchTarget_Message")]
+    public async Task RequestPage_AnswerFilePage_FromBuilderConfig_SaysWhichPageNeedsTheSwitch(string tag, string messageKey)
+    {
+        InMode(WinhanceMode.Builder, BuilderTarget.Config);
+        _mockLocalizationService.Setup(l => l.GetString(messageKey)).Returns("message");
+
+        await CreateSut().RequestPageAsync(tag);
+
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.Is<ConfirmationRequest>(r => r.Message == "message")), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("Autounattend")]
+    [InlineData("WimUtil")]
+    public async Task RequestPage_AnswerFilePage_FromBuilderConfig_Declined_KeepsTheTarget(string tag)
+    {
+        InMode(WinhanceMode.Builder, BuilderTarget.Config, confirmed: false);
+
+        (await CreateSut().RequestPageAsync(tag)).Should().BeFalse();
+        _mockApplicationModeService.Verify(m => m.SetBuilderTarget(It.IsAny<BuilderTarget>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("Autounattend")]
+    [InlineData("WimUtil")]
+    public async Task RequestPage_AnswerFilePage_InBuilderAutounattend_OpensWithoutAsking(string tag)
+    {
+        InMode(WinhanceMode.Builder, BuilderTarget.Autounattend);
+
+        (await CreateSut().RequestPageAsync(tag)).Should().BeTrue();
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(It.IsAny<BuilderTarget>(), It.IsAny<string?>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("Autounattend")]
+    [InlineData("WimUtil")]
+    public async Task RequestPage_AnswerFilePage_FromConfigReview_LeavesThroughTheBuilderFlow(string tag)
+    {
+        InMode(WinhanceMode.ConfigReview);
+
+        (await CreateSut().RequestPageAsync(tag)).Should().BeTrue();
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(BuilderTarget.Autounattend, It.IsAny<string?>()), Times.Once);
+        _mockConfigurationService.Verify(c => c.CancelReviewModeAsync(), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("Autounattend")]
+    [InlineData("WimUtil")]
+    public async Task RequestPage_FromConfigReview_Declined_KeepsTheReview(string tag)
+    {
+        InMode(WinhanceMode.ConfigReview, confirmed: false);
+
+        (await CreateSut().RequestPageAsync(tag)).Should().BeFalse();
+        _mockConfigurationService.Verify(c => c.CancelReviewModeAsync(), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("SoftwareApps")]
+    [InlineData("Optimize")]
+    public async Task RequestPage_OpenPages_NeverAsk(string tag)
+    {
+        InMode(WinhanceMode.Normal);
+
+        (await CreateSut().RequestPageAsync(tag)).Should().BeTrue();
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(It.IsAny<BuilderTarget>(), It.IsAny<string?>()), Times.Never);
     }
 
     [Fact]

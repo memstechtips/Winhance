@@ -1,0 +1,767 @@
+using Microsoft.Win32;
+using Moq;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Selections;
+using Winhance.Infrastructure.Features.Common.Services;
+using Winhance.TestSupport;
+using Xunit;
+
+using Winhance.Core.Features.Common.Localization;
+namespace Winhance.Infrastructure.Tests.Catalog;
+
+// Machine-independent: readings/detection results are constructed; covers the Windows-grounded IsEnabled rule
+// and the selection value-match fallback.
+public class CatalogSettingStateProviderConformanceTests
+{
+
+    private static readonly IReadOnlyDictionary<string, Setting> Catalog = SettingCatalog.All.ToDictionary(s => s.Id);
+
+    // Gate-population predicates. Catalog-side translations of the IsPure* classifiers (IsPureRegistrySelection /
+    // IsPurePowerCfgSelection / IsPurePowerCfgNumeric). Faithful: "pure" == exactly one DETECTION mechanism and no
+    // custom detector. NOTE a PowerCfgTarget's EnablementKey is a NESTED RegTarget, not a top-level Target, so
+    // OfType over Targets never sees an enablement key - which is precisely what these predicates mean by
+    // "no registry settings".
+    private static bool IsPureRegistrySelection(Setting s) =>
+        s.Control == ControlKind.Selection
+        && s.Detector is null
+        && s.Targets.OfType<RegTarget>().Any()
+        && !s.Targets.OfType<MessageDurationTarget>().Any() // live SPI detection, registry storage for offline images
+        && !s.Targets.OfType<PowerCfgTarget>().Any()
+        && !s.Targets.OfType<TaskTarget>().Any();
+
+    private static bool IsPurePowerCfgSelection(Setting s) =>
+        s.Control == ControlKind.Selection
+        && s.Detector is null
+        && s.Targets.OfType<PowerCfgTarget>().Any()
+        && !s.Targets.OfType<RegTarget>().Any()
+        && !s.Targets.OfType<TaskTarget>().Any();
+
+    private static bool IsPurePowerCfgNumeric(Setting s) =>
+        s.Control == ControlKind.Slider
+        && s.Detector is null
+        && s.Targets.OfType<PowerCfgTarget>().Any()
+        && !s.Targets.OfType<RegTarget>().Any()
+        && !s.Targets.OfType<TaskTarget>().Any();
+
+    private static readonly WinBuild Win10 = new(19045);
+    private static readonly WinBuild Win11 = new(26200);
+
+    private static bool Derive(Setting s, string? stateLabel, WinBuild? build = null)
+        => CatalogSettingStateProvider.DeriveIsEnabled(s, new CatalogDetectionResult { StateLabel = stateLabel }, build ?? Win11);
+
+    private static bool DeriveNumeric(Setting s, int? acReadingSystemUnits)
+        => CatalogSettingStateProvider.DeriveIsEnabled(s, new CatalogDetectionResult { Value = acReadingSystemUnits }, Win11);
+
+    [Fact]
+    public void DeriveIsEnabled_RegistrySelection_IsEnabledWhenModifiedFromWindowsDefault()
+    {
+        // A 3-option service: Automatic = WindowsDefault, ManualRecommended = Recommended, Disabled = no role.
+        // The hard instance: Disabled is neither default nor recommended, yet it IS a modification from the Windows
+        // default, so it must read enabled - this is where `!WindowsDefault` and `HasRole(Recommended)` diverge.
+        var s = Catalog["gaming-windows-search-service"];
+        Assert.False(Derive(s, "ServiceOption_Automatic"));         // Windows default -> not enabled
+        Assert.True(Derive(s, "ServiceOption_ManualRecommended"));  // recommended, non-default -> enabled
+        Assert.True(Derive(s, "ServiceOption_Disabled"));           // non-default, non-recommended -> enabled
+        Assert.True(Derive(s, null));                               // Custom / unrecognised -> non-default -> enabled
+    }
+
+    [Fact]
+    public void DeriveIsEnabled_PowercfgSelection_UsesTheAcContextDefault()
+    {
+        // SelectionStates(LidActions, recAC:1, recDC:1, defAC:1, defDC:1) -> option index 1 is the AC default. The
+        // WindowsDefault role is context-scoped (AC), so IsEnabled must check the AC role, not the Always default.
+        var s = Catalog["lid-close-action"];
+        Assert.False(Derive(s, "Template_LidActions_Option_1"));    // AC default -> not enabled
+        Assert.True(Derive(s, "Template_LidActions_Option_0"));     // non-default -> enabled
+        Assert.True(Derive(s, "Template_LidActions_Option_3"));     // non-default -> enabled
+    }
+
+    [Fact]
+    public void DeriveIsEnabled_NumericPercent_IsEnabledWhenModifiedFromDefaultValue()
+    {
+        // WindowsDefault AC = 5 (%), per the shipped Balanced scheme in the image SYSTEM hives.
+        // "%" converts system->display 1:1.
+        var s = Catalog["processor-min-state"];
+        Assert.False(DeriveNumeric(s, 5));      // at the Windows default -> not enabled
+        Assert.True(DeriveNumeric(s, 0));       // 0% != 5 -> modified -> enabled
+        Assert.True(DeriveNumeric(s, 100));     // 100% -> enabled
+        Assert.False(DeriveNumeric(s, null));   // no reading -> cannot be modified -> not enabled
+    }
+
+    [Fact]
+    public void DeriveIsEnabled_NumericMinutes_ConvertsSystemUnitsBeforeComparing()
+    {
+        // WindowsDefault AC = 20 (minutes); the raw powercfg reading is in seconds. The compare MUST convert
+        // system->display first (1200s -> 20min) - comparing the raw 1200 to 20 would wrongly read enabled.
+        var s = Catalog["power-harddisk-timeout"];
+        Assert.False(DeriveNumeric(s, 1200));   // 1200s = 20min = default -> not enabled
+        Assert.True(DeriveNumeric(s, 600));     // 600s = 10min != 20 -> enabled
+    }
+
+    [Fact]
+    public void DeriveIsEnabled_Toggle_TracksTheEnabledLabel()
+    {
+        // Toggles keep the proven switch-position rule (the reading names TwoState's on key); any toggle Setting exercises it.
+        var toggle = Catalog.Values.First(x => x.Control == ControlKind.Toggle);
+        Assert.True(Derive(toggle, LocKey.Common.Enabled.Value));
+        Assert.False(Derive(toggle, LocKey.Common.Disabled.Value));
+        Assert.False(Derive(toggle, null));   // a Custom toggle -> not enabled
+    }
+
+    [Fact]
+    public void DeriveIsEnabled_CheckBox_TracksTheCheckedLabel()
+    {
+        var checkBox = new Setting
+        {
+            Id = "c",
+            Display = new() { Name = TestKeys.Of("c"), Description = TestKeys.Of("c") },
+            Targets = [new RegTarget("K", ["HKCU\\S"], "V", Microsoft.Win32.RegistryValueKind.DWord)],
+            States =
+            [
+                new() { Label = LocKey.Common.Checked, Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(1) } },
+                new() { Label = LocKey.Common.Unchecked, Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(0) } },
+            ],
+        };
+        Assert.True(Derive(checkBox, LocKey.Common.Checked.Value));
+        Assert.False(Derive(checkBox, LocKey.Common.Unchecked.Value));
+        Assert.False(Derive(checkBox, LocKey.Common.Enabled.Value));
+    }
+
+    // Selections with NO WindowsDefault anchor on ANY build, BY DESIGN: their shipped value is locale-dependent
+    // (HKCU\Control Panel\International materializes per-locale formats at OOBE) - measurement-system's old Metric
+    // claim was wrong on the en-US gold laptop, which ships Imperial=1. Kept exact both ways: a setting here that
+    // REGAINS an anchor fails, forcing this pin's conscious removal.
+    private static readonly IReadOnlyDictionary<string, string> NoWindowsDefaultByDesign = new Dictionary<string, string>
+    {
+        ["region-number-decimal"] = "locale: separator materialized per-locale at OOBE (B3 locale class)",
+        ["region-measurement-system"] = "locale: en-US ships Imperial, most others Metric (B3 locale class)",
+        ["region-currency-decimal"] = "locale: separator materialized per-locale at OOBE (B3 locale class)",
+        ["region-first-day-of-week"] = "locale: en-US starts on Sunday, most of Europe on Monday",
+        ["region-list-separator"] = "locale: comma-decimal locales such as de-DE ship ';'",
+    };
+
+    [Fact]
+    public void MessageDuration_IsNotAPureRegistrySelection()
+    {
+        Assert.False(IsPureRegistrySelection(Catalog["notifications-banner-duration"]));
+        Assert.True(IsPureRegistrySelection(Catalog["region-measurement-system"]));
+    }
+
+    [Fact]
+    public void DeriveIsEnabled_EveryGateSelection_HasExactlyOneWindowsDefaultAnchor()
+    {
+        // The DeriveIsEnabled selection rule ("not the WindowsDefault state") is only well-defined when each gate-
+        // population selection has EXACTLY ONE WindowsDefault anchor in its resolution context (AC for powercfg,
+        // Always for registry). This pins the "a semantic state is not reliably a role" trap structurally: a future
+        // authoring that drops or duplicates the default anchor fails here, not silently in the field.
+        var population = SettingCatalog.All
+            .Where(s => IsPureRegistrySelection(s) || IsPurePowerCfgSelection(s))
+            .ToList();
+        Assert.NotEmpty(population);   // vacuity guard: a silently-narrowed predicate must fail, not pass over nothing
+
+        var offenders = new List<string>();
+        foreach (var s in population)
+        {
+            // Per-build counting: an OS-divergent selection may legitimately anchor DIFFERENT states per build,
+            // or have NO anchor on one build (theme-mode-windows on Win10, whose true default is the
+            // apps-light/system-dark mix - not a representable state; DeriveIsEnabled defers there). What must
+            // never happen: two anchors live on the same build (ambiguous), or no anchor on ANY build (the
+            // dropped-anchor trap this fact originally pinned) - EXCEPT the locale-dependent selections that
+            // carry no anchor by design (NoWindowsDefaultByDesign, asserted exact below).
+            int CountFor(WinBuild b) => s.States.Count(st =>
+                st.HasRole(RoleKind.WindowsDefault, b, PowerContext.Always) ||
+                st.HasRole(RoleKind.WindowsDefault, b, PowerContext.AC));
+            int w10 = CountFor(Win10), w11 = CountFor(Win11);
+
+            if (NoWindowsDefaultByDesign.ContainsKey(s.Id))
+            {
+                if (w10 != 0 || w11 != 0)
+                    offenders.Add($"{s.Id}=w10:{w10},w11:{w11} (listed as no-anchor-by-design but HAS an anchor - remove the pin)");
+                continue;
+            }
+
+            if (w10 > 1 || w11 > 1 || (w10 == 0 && w11 == 0))
+                offenders.Add($"{s.Id}=w10:{w10},w11:{w11}");
+        }
+
+        // The by-design set must stay REAL: every listed id is a live gate-population selection.
+        foreach (var id in NoWindowsDefaultByDesign.Keys)
+        {
+            if (!population.Any(s => s.Id == id))
+                offenders.Add($"{id}: listed in NoWindowsDefaultByDesign but not in the gate population - remove the pin");
+        }
+
+        Assert.True(offenders.Count == 0,
+            "Every gate-population selection must carry at most one Windows-default anchor per build, and at least " +
+            "one on some build (unless pinned no-anchor-by-design), for the DeriveIsEnabled invariant to be " +
+            "well-defined. Offenders: " + string.Join(", ", offenders));
+    }
+
+    [Fact]
+    public void DeriveIsEnabled_OsDivergentSelection_ResolvesItsAnchorPerBuild()
+    {
+        // theme-mode-windows: Light Mode is the Windows default ONLY on Win11; Win10's true default is the
+        // apps-light/system-dark mix (not a representable state), so IsEnabled defers there.
+        var s = Catalog["theme-mode-windows"];
+        Assert.False(Derive(s, "Setting_theme-mode-windows_Option_0", Win11));   // at the Win11 default -> not enabled
+        Assert.True(Derive(s, "Setting_theme-mode-windows_Option_1", Win11));     // non-default -> enabled
+        Assert.True(Derive(s, null, Win11));            // Custom -> enabled
+        Assert.False(Derive(s, "Setting_theme-mode-windows_Option_0", Win10));   // no Win10 anchor -> deferred
+        Assert.False(Derive(s, null, Win10));           // no Win10 anchor -> deferred
+    }
+
+    [Fact]
+    public void DeriveIsEnabled_KeyedSelection_IsNeverEnabledForLackOfAnchor()
+    {
+        var s = FakeOptionProvider.SettingFor();
+        Assert.False(Derive(s, "beta"));
+        Assert.False(Derive(s, null));
+    }
+
+    [Fact]
+    public void DeriveIsEnabled_EveryGateNumeric_HasAnAcWindowsDefault()
+    {
+        // The numeric IsEnabled rule compares against Numeric.WindowsDefault(AC); assert every gate-population numeric
+        // supplies one, so the rule is never silently a no-op (return false for lack of an anchor).
+        var population = SettingCatalog.All.Where(IsPurePowerCfgNumeric).ToList();
+        Assert.NotEmpty(population);   // vacuity guard: a silently-narrowed predicate must fail, not pass over nothing
+
+        var offenders = new List<string>();
+        foreach (var s in population)
+        {
+            if (s.Numeric is null || !s.Numeric.WindowsDefault.Any(cv => cv.Context == PowerContext.AC))
+                offenders.Add(s.Id);
+        }
+
+        Assert.True(offenders.Count == 0,
+            "Every gate-population numeric must carry a WindowsDefault(AC) value. Offenders: " + string.Join(", ", offenders));
+    }
+
+    // A selection with NO resolved label must fall back to the value-match over the reads, NOT collapse to Custom -
+    // the service dropdowns + delivery optimization once regressed to Custom in the live UI when only the label
+    // override was kept.
+    [Fact]
+    public async Task GetStatesAsync_SelectionWithNoResolvedLabel_FallsBackToValueMatchNotCustom()
+    {
+        // gaming-sysmain-service: option index 1 is Start=3 ("Manual"). The engine reports NO label (the regression
+        // trigger) but the live reads say Start=3, so the value-match must land on index 1, never Custom (-1).
+        var sysmain = SettingCatalog.Find("gaming-sysmain-service");
+        Assert.NotNull(sysmain);
+
+        var detection = new Mock<ICatalogDetectionService>();
+        detection
+            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>
+            {
+                ["gaming-sysmain-service"] = new CatalogDetectionResult
+                {
+                    StateLabel = null,
+                    Detected = false,
+                    Readings = new Dictionary<string, object?> { ["Start"] = 3 },
+                },
+            });
+
+        var version = new Mock<IWindowsVersionService>();
+        version.Setup(v => v.GetWindowsBuildNumber()).Returns(26200);
+        version.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
+        var provider = new CatalogSettingStateProvider(detection.Object, new ComboBoxResolver(version.Object), version.Object);
+
+        var states = await provider.GetStatesAsync(new[] { sysmain! });
+
+        Assert.True(states.TryGetValue("gaming-sysmain-service", out var s));
+        Assert.True(s!.Success);
+        Assert.Equal(1, s.CurrentValue); // Start=3 value-matches "Manual" (index 1), not Custom (-1)
+    }
+
+    // ResolveSelectionIndex takes the FIRST State whose Label matches, which is only well-defined if a selection's
+    // Labels are distinct and non-empty.
+    [Fact]
+    public void GetStatesAsync_EverySelection_HasDistinctNonEmptyStateLabels()
+    {
+        var selections = SettingCatalog.All.Where(s => s.Control == ControlKind.Selection).ToList();
+        Assert.NotEmpty(selections);
+
+        var offenders = new List<string>();
+        foreach (var s in selections)
+        {
+            if (s.States.Any(st => string.IsNullOrWhiteSpace(st.Label.Value)))
+                offenders.Add($"{s.Id}: has a blank state Label");
+
+            var dupes = s.States.GroupBy(st => st.Label.Value, System.StringComparer.Ordinal)
+                .Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+            if (dupes.Count > 0)
+                offenders.Add($"{s.Id}: duplicate state Labels [{string.Join(", ", dupes)}]");
+        }
+
+        Assert.True(offenders.Count == 0,
+            "ResolveSelectionIndex takes the FIRST state whose Label matches, so a selection's Labels must be "
+                + "distinct and non-empty:" + "\n" + string.Join("\n", offenders));
+    }
+
+    private static Setting AnswerFileOnly(string id, params SettingState[] states) => new()
+    {
+        Id = id,
+        Display = new() { Name = TestKeys.Of(id), Description = TestKeys.Of(id)},
+        Targets = new Target[] { new AutounattendElement("K", "oobeSystem", "Microsoft-Windows-Shell-Setup", "OOBE/HideEULAPage") },
+        States = states,
+    };
+
+    private static SettingState Writes(LocKey label, params StateRole[] roles) => new()
+    {
+        Label = label,
+        Roles = roles,
+        Set = new Dictionary<string, StateValue> { ["K"] = StateValue.Of(label) },
+    };
+
+    private static CatalogSettingStateProvider Provider(Mock<ICatalogDetectionService> detection)
+    {
+        var version = new Mock<IWindowsVersionService>();
+        version.Setup(v => v.GetWindowsBuildNumber()).Returns(26200);
+        version.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
+        return new CatalogSettingStateProvider(detection.Object, new ComboBoxResolver(version.Object), version.Object);
+    }
+
+    private static Mock<ICatalogDetectionService> DetectsNothing()
+    {
+        var detection = new Mock<ICatalogDetectionService>();
+        detection
+            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>());
+        return detection;
+    }
+
+    [Fact]
+    public async Task GetStatesAsync_AnswerFileToggle_IsNeverDetectedAndOpensOnItsWindowsDefault()
+    {
+        var setting = AnswerFileOnly("setup-toggle",
+            Writes(LocKey.Common.Enabled),
+            Writes(LocKey.Common.Disabled, StateRole.WindowsDefault));
+        IReadOnlyCollection<Setting> detectionInput = System.Array.Empty<Setting>();
+        var detection = new Mock<ICatalogDetectionService>();
+        detection
+            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .Callback<IReadOnlyCollection<Setting>>(input => detectionInput = input)
+            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>());
+
+        var states = await Provider(detection).GetStatesAsync(new[] { setting });
+
+        Assert.True(states["setup-toggle"].Success);
+        Assert.False(states["setup-toggle"].IsEnabled);
+        Assert.DoesNotContain(detectionInput, s => s.Id == "setup-toggle");
+    }
+
+    [Fact]
+    public async Task GetStatesAsync_AnswerFileCheckBox_OpensCheckedWhenThatIsTheWindowsDefault()
+    {
+        var setting = AnswerFileOnly("setup-check",
+            Writes(LocKey.Common.Checked, StateRole.WindowsDefault),
+            Writes(LocKey.Common.Unchecked));
+
+        var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { setting });
+
+        Assert.True(states["setup-check"].Success);
+        Assert.True(states["setup-check"].IsEnabled);
+    }
+
+    [Fact]
+    public async Task GetStatesAsync_AnswerFileToggle_OpensOnRecommendedStateOverWindowsDefault()
+    {
+        var setting = AnswerFileOnly("setup-toggle",
+            Writes(LocKey.Common.Enabled, StateRole.Recommended),
+            Writes(LocKey.Common.Disabled, StateRole.WindowsDefault));
+
+        var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { setting });
+
+        Assert.True(states["setup-toggle"].IsEnabled);
+    }
+
+    [Fact]
+    public async Task GetStatesAsync_AnswerFileSelection_OpensOnRecommendedIndexOverWindowsDefault()
+    {
+        var setting = AnswerFileOnly("setup-selection",
+            Writes(TestKeys.Of("First"), StateRole.WindowsDefault),
+            Writes(TestKeys.Of("Second"), StateRole.Recommended),
+            Writes(TestKeys.Of("Third")));
+
+        var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { setting });
+
+        Assert.Equal(1, states["setup-selection"].CurrentValue);
+    }
+
+    [Fact]
+    public async Task GetStatesAsync_AnswerFileSelection_OpensOnWindowsDefaultIndex()
+    {
+        var setting = AnswerFileOnly("setup-selection",
+            Writes(TestKeys.Of("First")),
+            Writes(TestKeys.Of("Second")),
+            Writes(TestKeys.Of("Third"), StateRole.WindowsDefault));
+
+        var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { setting });
+
+        Assert.True(states["setup-selection"].Success);
+        Assert.Equal(2, states["setup-selection"].CurrentValue);
+    }
+
+    private static Setting AnswerFileText(string id, string? defaultValue) =>
+        AnswerFileOnly(id) with { TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything.")), defaultValue) };
+
+    [Fact]
+    public async Task GetStatesAsync_AnswerFileTextBox_OpensOnTheSettingsOwnDefault()
+    {
+        var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { AnswerFileText("setup-name", "PC-01") });
+
+        Assert.True(states["setup-name"].Success);
+        Assert.Equal("PC-01", states["setup-name"].CurrentValue);
+    }
+
+    [Fact]
+    public async Task GetStatesAsync_AnswerFileTextBoxWithoutDefault_OpensEmpty()
+    {
+        var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { AnswerFileText("setup-name", null) });
+
+        Assert.True(states["setup-name"].Success);
+        Assert.Null(states["setup-name"].CurrentValue);
+    }
+
+    private static readonly Field[] AccountFields =
+    [
+        new("name", FieldKind.Text, TestKeys.Of("name"), new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything."))),
+        new("display-name", FieldKind.Text, TestKeys.Of("display-name")),
+        new("group", FieldKind.Selection, TestKeys.Of("group"),
+            Options: [TestKeys.Of("Administrators"), TestKeys.Of("Users")], Default: "0"),
+        new("obscure", FieldKind.CheckBox, TestKeys.Of("obscure"), Default: "true"),
+    ];
+
+    private static Setting AnswerFileAccounts(string id) =>
+        AnswerFileOnly(id) with { List = new(AccountFields) };
+
+    [Fact]
+    public async Task GetStatesAsync_AnswerFileListWithoutSeed_OpensWithNothingRead()
+    {
+        var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { AnswerFileAccounts("setup-accounts") });
+
+        Assert.True(states["setup-accounts"].Success);
+        Assert.Null(states["setup-accounts"].CurrentValue);
+    }
+
+    private static readonly string[] SeedPaths = [@"HKEY_CURRENT_USER\Volatile Environment"];
+
+    private static Setting AnswerFileCheckBoxSeededFromThisPc(string id) =>
+        AnswerFileOnly(id, Writes(LocKey.Common.Checked, StateRole.WindowsDefault), Writes(LocKey.Common.Unchecked)) with
+        {
+            Targets =
+            [
+                new AutounattendElement("K", "oobeSystem", "Microsoft-Windows-Shell-Setup", "OOBE/HideEULAPage"),
+                new RegTarget("this-pc", SeedPaths, "PROCESSOR_ARCHITECTURE", RegistryValueKind.String) { ReadOnly = true },
+            ],
+        };
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    [InlineData(null, true)]
+    public async Task GetStatesAsync_AnswerFileCheckBoxSeededFromThisPc_TakesDetectedStateOrItsDefault(bool? ticked, bool expected)
+    {
+        var label = ticked is null
+            ? null
+            : (ticked.Value ? LocKey.Common.Checked : LocKey.Common.Unchecked).Value;
+
+        var state = await MapViaProvider(
+            AnswerFileCheckBoxSeededFromThisPc("setup-arch"),
+            new CatalogDetectionResult { StateLabel = label, Detected = label is not null });
+
+        Assert.True(state.Success);
+        Assert.Equal(expected, state.IsEnabled);
+    }
+
+    private static Setting AnswerFileSeededAccounts(string id) =>
+        AnswerFileOnly(id) with
+        {
+            Targets =
+            [
+                new AutounattendElement("K", "oobeSystem", "Microsoft-Windows-Shell-Setup", "UserAccounts/LocalAccounts"),
+                new RegTarget("name", SeedPaths, "USERNAME", RegistryValueKind.String) { ReadOnly = true },
+                new RegTarget("display-name", SeedPaths, "LastLoggedOnDisplayName", RegistryValueKind.String) { ReadOnly = true },
+            ],
+            List = new(AccountFields, Seed: new Dictionary<string, string>
+            {
+                ["name"] = "name",
+                ["display-name"] = "display-name",
+            }),
+        };
+
+    [Fact]
+    public async Task GetStatesAsync_SeededList_OpensOnOneRowOfWhatThisPcReads()
+    {
+        var setting = AnswerFileSeededAccounts("setup-accounts");
+        var readings = new Dictionary<string, object?> { ["USERNAME"] = "Marco", ["LastLoggedOnDisplayName"] = "Marco du Plessis" };
+
+        var state = await MapViaProvider(setting, new CatalogDetectionResult { Readings = readings });
+
+        var rows = Assert.IsType<ChoiceValue.List>(state.CurrentValue);
+        var row = Assert.Single(rows.Rows);
+        Assert.Equal("Marco", row.Values["name"]);
+        Assert.Equal("Marco du Plessis", row.Values["display-name"]);
+        Assert.False(rows.SavePasswords);
+    }
+
+    // The group default keeps the first row on Administrators: a fresh install's first account has to be one.
+    [Fact]
+    public async Task GetStatesAsync_SeededRow_FillsEveryUnseededFieldFromItsCatalogDefault()
+    {
+        var state = await MapViaProvider(
+            AnswerFileSeededAccounts("setup-accounts"),
+            new CatalogDetectionResult { Readings = new Dictionary<string, object?> { ["USERNAME"] = "Marco" } });
+
+        var row = Assert.Single(Assert.IsType<ChoiceValue.List>(state.CurrentValue).Rows);
+        Assert.Equal("0", row.Values["group"]);
+        Assert.Equal("true", row.Values["obscure"]);
+    }
+
+    [Fact]
+    public async Task GetStatesAsync_SeedThatReadsNothing_StillOpensOneRow()
+    {
+        var states = await Provider(DetectsNothing()).GetStatesAsync(new[] { AnswerFileSeededAccounts("setup-accounts") });
+
+        var row = Assert.Single(Assert.IsType<ChoiceValue.List>(states["setup-accounts"].CurrentValue).Rows);
+        Assert.False(row.Values.ContainsKey("name"), "a field with no reading and no default carries nothing");
+        Assert.Equal("0", row.Values["group"]);
+    }
+
+    private static Setting AnswerFileSeededText(string id) =>
+        AnswerFileOnly(id) with
+        {
+            Targets =
+            [
+                new AutounattendElement("K", "specialize", "Microsoft-Windows-Shell-Setup", "ComputerName"),
+                new RegTarget("this-pc", SeedPaths, "Hostname", RegistryValueKind.String) { ReadOnly = true },
+            ],
+            TextBox = new(new TextRule("^.+$", UpperCase: false, TestKeys.Of("Anything.")), Default: "PC", SeedKey: "this-pc"),
+        };
+
+    [Fact]
+    public async Task GetStatesAsync_SeededTextBox_OpensOnWhatThisPcReads()
+    {
+        var state = await MapViaProvider(
+            AnswerFileSeededText("setup-name"),
+            new CatalogDetectionResult { Readings = new Dictionary<string, object?> { ["Hostname"] = "Workshop-PC" } });
+
+        Assert.Equal("Workshop-PC", state.CurrentValue);
+    }
+
+    [Fact]
+    public async Task GetStatesAsync_TextSeedThatReadsNothing_FallsBackToCatalogDefault()
+    {
+        var state = await MapViaProvider(
+            AnswerFileSeededText("setup-name"),
+            new CatalogDetectionResult { Readings = new Dictionary<string, object?> { ["Hostname"] = "" } });
+
+        Assert.Equal("PC", state.CurrentValue);
+    }
+
+    [Fact]
+    public async Task GetStatesAsync_MixedAnswerFileSettings_SendsOnlyTheSeededOneToDetection()
+    {
+        var detection = DetectsNothing();
+        var seeded = AnswerFileSeededAccounts("setup-accounts");
+
+        await Provider(detection).GetStatesAsync(new[] { seeded, AnswerFileAccounts("plain-accounts") });
+
+        detection.Verify(d => d.DetectAsync(It.Is<IReadOnlyCollection<Setting>>(c => c.Count == 1 && c.Contains(seeded))), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetStatesAsync_LiveTextBox_SeedsFromItsOwnTargetsReading()
+    {
+        var setting = new Setting
+        {
+            Id = "album",
+            Display = new() { Name = TestKeys.Of("a"), Description = TestKeys.Of("a") },
+            Targets = new Target[] { new DesktopSlideshowTarget("album") },
+            TextBox = new(new TextRule("^.{1,}$", UpperCase: false, TestKeys.Of("a")), SeedKey: "album"),
+        };
+
+        var state = await MapViaProvider(setting, new CatalogDetectionResult
+        {
+            Readings = new Dictionary<string, object?> { ["album"] = @"D:\Pictures\Holiday" },
+        });
+
+        Assert.True(state.Success);
+        Assert.Equal(@"D:\Pictures\Holiday", state.CurrentValue);
+        Assert.False(state.IsEnabled, "a box has no Windows-default anchor to be modified from");
+    }
+
+    // An answer-file-only card is normally detected only for ReadOnly targets that seed it from this PC. A keyed
+    // one has no such target and still needs a list: its options come from the option provider, which answers for
+    // media this PC has never seen. Missing either half leaves the card on screen with an empty drop-down.
+    [Fact]
+    public async Task GetStatesAsync_AnswerFileKeyedSelection_IsDetectedForItsOptionsAndCarriesThemToTheCard()
+    {
+        var setting = Catalog["autounattend-setup-language"];
+        Assert.True(setting.IsAnswerFileOnly);
+        Assert.Equal(ControlKind.KeyedSelection, setting.Control);
+        Assert.DoesNotContain(setting.Targets.OfType<RegTarget>(), t => t.ReadOnly);
+
+        var offered = new List<DynamicOption> { new("English (United Kingdom)", "en-GB") };
+        IReadOnlyCollection<Setting>? asked = null;
+
+        var detection = new Mock<ICatalogDetectionService>();
+        detection
+            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .Callback<IReadOnlyCollection<Setting>>(input => asked = input)
+            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult>
+            {
+                [setting.Id] = new CatalogDetectionResult { Options = offered },
+            });
+
+        var version = new Mock<IWindowsVersionService>();
+        version.Setup(v => v.GetWindowsBuildNumber()).Returns(26200);
+        version.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
+        var provider = new CatalogSettingStateProvider(detection.Object, new ComboBoxResolver(version.Object), version.Object);
+
+        var states = await provider.GetStatesAsync(new[] { setting });
+
+        Assert.NotNull(asked);
+        Assert.Contains(asked!, s => s.Id == setting.Id);
+        Assert.Equal(offered, states[setting.Id].DynamicOptions);
+    }
+
+    private static async Task<Winhance.Core.Features.Common.Models.SettingStateResult> MapViaProvider(
+        Setting setting, CatalogDetectionResult result)
+    {
+        var detection = new Mock<ICatalogDetectionService>();
+        detection
+            .Setup(d => d.DetectAsync(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .ReturnsAsync(new Dictionary<string, CatalogDetectionResult> { [setting.Id] = result });
+
+        var version = new Mock<IWindowsVersionService>();
+        version.Setup(v => v.GetWindowsBuildNumber()).Returns(26200);
+        version.Setup(v => v.GetWindowsBuildRevision()).Returns(0);
+        var provider = new CatalogSettingStateProvider(detection.Object, new ComboBoxResolver(version.Object), version.Object);
+
+        var states = await provider.GetStatesAsync(new[] { setting });
+        return states[setting.Id];
+    }
+
+    // The provider must CARRY the engine's outcome, not re-infer it from "StateLabel is null" - that inference is
+    // what conflated an unrecognized value, a wrong stored type and a detection crash into one "Custom". Success
+    // stays true throughout: it is a transport-level flag.
+    [Fact]
+    public async Task GetStatesAsync_Toggle_CarriesTheDetectionOutcomeThrough()
+    {
+        var toggle = SettingCatalog.All.First(x => x.Control == ControlKind.Toggle && x.Detector is null);
+
+        var custom = await MapViaProvider(toggle, new CatalogDetectionResult
+        {
+            StateLabel = null,
+            Detected = false,
+            Outcome = SettingDetectionOutcome.Custom,
+        });
+        Assert.True(custom.Success);
+        Assert.Equal(SettingDetectionOutcome.Custom, custom.Outcome);
+
+        var malformed = await MapViaProvider(toggle, new CatalogDetectionResult
+        {
+            StateLabel = null,
+            Detected = false,
+            Outcome = SettingDetectionOutcome.Malformed,
+            OutcomeDetail = "expects Binary",
+        });
+        Assert.True(malformed.Success);
+        Assert.Equal(SettingDetectionOutcome.Malformed, malformed.Outcome);
+        Assert.Equal("expects Binary", malformed.OutcomeDetail);
+
+        // Undetermined must survive as itself. If it degraded to Custom the UI would offer an apply over a
+        // value we never read - the whole reason the outcome is not a bool.
+        var undetermined = await MapViaProvider(toggle, new CatalogDetectionResult
+        {
+            StateLabel = null,
+            Detected = false,
+            Outcome = SettingDetectionOutcome.Undetermined,
+            OutcomeDetail = "boom",
+        });
+        Assert.True(undetermined.Success);
+        Assert.Equal(SettingDetectionOutcome.Undetermined, undetermined.Outcome);
+
+        var enabled = await MapViaProvider(toggle, new CatalogDetectionResult
+        {
+            StateLabel = LocKey.Common.Enabled.Value,
+            Detected = true,
+            Outcome = SettingDetectionOutcome.Resolved,
+        });
+        Assert.Equal(SettingDetectionOutcome.Resolved, enabled.Outcome);
+    }
+
+    // Custom exactly when the RESOLVED index is the Custom index; a value-match recovery is Resolved, not Custom.
+    [Fact]
+    public async Task GetStatesAsync_Selection_ReportsCustomOnlyWhenResolutionLandsOnCustomIndex()
+    {
+        var sysmain = SettingCatalog.Find("gaming-sysmain-service");
+        Assert.NotNull(sysmain);
+
+        // No label, but Start=3 value-matches "Manual" (index 1) -> recovered, not Custom.
+        var recovered = await MapViaProvider(sysmain!, new CatalogDetectionResult
+        {
+            StateLabel = null,
+            Detected = false,
+            Outcome = SettingDetectionOutcome.Custom,
+            Readings = new Dictionary<string, object?> { ["Start"] = 3 },
+        });
+        Assert.Equal(1, recovered.CurrentValue);
+        Assert.Equal(SettingDetectionOutcome.Resolved, recovered.Outcome);
+
+        // No label and Start=999 matches no option (and no fallback state exists) -> Custom index -> Custom.
+        var custom = await MapViaProvider(sysmain!, new CatalogDetectionResult
+        {
+            StateLabel = null,
+            Detected = false,
+            Outcome = SettingDetectionOutcome.Custom,
+            Readings = new Dictionary<string, object?> { ["Start"] = 999 },
+        });
+        Assert.Equal(ComboBoxConstants.CustomStateIndex, custom.CurrentValue);
+        Assert.Equal(SettingDetectionOutcome.Custom, custom.Outcome);
+
+        // A resolved label -> that option's index, never Custom.
+        var resolved = await MapViaProvider(sysmain!, new CatalogDetectionResult
+        {
+            StateLabel = sysmain!.States[0].Label.Value,
+            Detected = true,
+            Outcome = SettingDetectionOutcome.Resolved,
+        });
+        Assert.Equal(0, resolved.CurrentValue);
+        Assert.Equal(SettingDetectionOutcome.Resolved, resolved.Outcome);
+    }
+
+    // No amount of index resolution can rescue a value we could not read, so Malformed/Undetermined must survive
+    // the value-match fallback.
+    [Fact]
+    public async Task GetStatesAsync_SelectionMalformedOrUndetermined_CarriesOutcomePastValueMatchFallback()
+    {
+        var sysmain = SettingCatalog.Find("gaming-sysmain-service");
+        Assert.NotNull(sysmain);
+
+        // Start=3 WOULD value-match "Manual". It must not: the outcome says the read is not trustworthy.
+        var malformed = await MapViaProvider(sysmain!, new CatalogDetectionResult
+        {
+            StateLabel = null,
+            Detected = false,
+            Outcome = SettingDetectionOutcome.Malformed,
+            Readings = new Dictionary<string, object?> { ["Start"] = 3 },
+        });
+        Assert.Equal(SettingDetectionOutcome.Malformed, malformed.Outcome);
+        Assert.Equal(ComboBoxConstants.CustomStateIndex, malformed.CurrentValue);
+
+        var undetermined = await MapViaProvider(sysmain!, new CatalogDetectionResult
+        {
+            StateLabel = null,
+            Detected = false,
+            Outcome = SettingDetectionOutcome.Undetermined,
+            Readings = new Dictionary<string, object?> { ["Start"] = 3 },
+        });
+        Assert.Equal(SettingDetectionOutcome.Undetermined, undetermined.Outcome);
+        Assert.Equal(ComboBoxConstants.CustomStateIndex, undetermined.CurrentValue);
+    }
+}

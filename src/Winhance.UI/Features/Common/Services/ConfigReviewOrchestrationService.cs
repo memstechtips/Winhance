@@ -1,9 +1,12 @@
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.WimUtil.Models;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -22,11 +25,16 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     private readonly IConfigAppSelectionService _configAppSelectionService;
     private readonly IConfigApplicationExecutionService _configExecutionService;
     private readonly IConfigLoadService _configLoadService;
-    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
     private readonly IEventBus _eventBus;
     private readonly IReviewModeViewModelCoordinator _vmCoordinator;
     private readonly IPolicyCleanupService _policyCleanupService;
     private readonly IChangeHistoryService _changeHistoryService;
+    private readonly IHardwareFilterService _hardwareFilter;
+    private readonly ITargetWindowsService _targetWindows;
+    private readonly WimUtilSession _wimUtilSession;
+    private readonly IInstallOptionsService _installOptions;
+    private readonly ICoverageSummaryService _coverageSummary;
+    private string? _reviewSourcePath;
 
     public ConfigReviewOrchestrationService(
         ILogService logService,
@@ -40,11 +48,15 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         IConfigAppSelectionService configAppSelectionService,
         IConfigApplicationExecutionService configExecutionService,
         IConfigLoadService configLoadService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry,
         IEventBus eventBus,
         IReviewModeViewModelCoordinator vmCoordinator,
         IPolicyCleanupService policyCleanupService,
-        IChangeHistoryService changeHistoryService)
+        IChangeHistoryService changeHistoryService,
+        IHardwareFilterService hardwareFilter,
+        ITargetWindowsService targetWindows,
+        WimUtilSession wimUtilSession,
+        IInstallOptionsService installOptions,
+        ICoverageSummaryService coverageSummary)
     {
         _logService = logService;
         _dialogService = dialogService;
@@ -57,16 +69,18 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _configAppSelectionService = configAppSelectionService;
         _configExecutionService = configExecutionService;
         _configLoadService = configLoadService;
-        _compatibleSettingsRegistry = compatibleSettingsRegistry;
         _eventBus = eventBus;
         _vmCoordinator = vmCoordinator;
         _policyCleanupService = policyCleanupService;
         _changeHistoryService = changeHistoryService;
+        _hardwareFilter = hardwareFilter;
+        _targetWindows = targetWindows;
+        _wimUtilSession = wimUtilSession;
+        _installOptions = installOptions;
+        _coverageSummary = coverageSummary;
 
-        // Listen for review mode exit to clear review state from all loaded settings
         _configReviewModeService.ReviewModeChanged += OnReviewModeChanged;
 
-        // Listen for Builder exit to reload settings that were authored without applying
         _previousMode = _applicationModeService.CurrentMode;
         _applicationModeService.ModeChanged += OnApplicationModeChanged;
     }
@@ -77,6 +91,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         _disposed = true;
         _configReviewModeService.ReviewModeChanged -= OnReviewModeChanged;
         _applicationModeService.ModeChanged -= OnApplicationModeChanged;
+        GC.SuppressFinalize(this);
     }
 
     private void OnApplicationModeChanged(object? sender, EventArgs e)
@@ -85,15 +100,30 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         var current = _applicationModeService.CurrentMode;
         _previousMode = current;
 
-        // Builder authors toggle/selection state into the shared settings VMs without
-        // applying it. Any transition out of Builder leaves those positions stale, so
-        // reload from live system state. This is safe during review entry too: the
-        // recreated ViewModels get their review decoration from SettingViewModelFactory,
-        // which applies the eagerly computed diffs against fresh discovery state.
-        if (previous == WinhanceMode.Builder && current != WinhanceMode.Builder)
+        // A mode that authors intent moves toggle/selection state on the shared settings VMs
+        // without applying it, so any transition out of one leaves those positions stale and the
+        // settings must be rebuilt from live system state. Safe during review entry too: the
+        // recreated ViewModels get their review decoration from SettingViewModelFactory, which
+        // applies the eagerly computed diffs against fresh discovery state.
+        //
+        // Asked as a capability rather than as "was that Builder?" so a second authoring mode
+        // inherits the rebuild by declaring its capabilities. Naming Builder here is how a future
+        // mode would silently keep showing values it never applied.
+        bool leftAnAuthoringMode =
+            ModeCapabilities.For(previous).AuthorsIntent && !ModeCapabilities.For(current).AuthorsIntent;
+
+        if (leftAnAuthoringMode)
         {
-            _eventBus.Publish(new BuilderModeExitedEvent());
-            _logService.Log(LogLevel.Info, "Published BuilderModeExitedEvent to reload settings from system state");
+            // Authoring for other hardware is Builder-only: outside it a setting this PC cannot have would
+            // read as applicable and apply to nothing. Reset AFTER publishing: the event only marks each loaded
+            // feature stale, so the FilterStateChangedEvent a reset raises then skips them, where a reset first
+            // would reconcile every loaded feature against the narrowed scope only to rebuild it anyway. Every
+            // rebuild runs later (the page on screen enqueues its own), so all of them read the reset scope.
+            _eventBus.Publish(new AuthoringModeExitedEvent());
+            _hardwareFilter.Reset();
+            _targetWindows.Reset();
+            _wimUtilSession.Reset();
+            _logService.Log(LogLevel.Info, "Published AuthoringModeExitedEvent to rebuild settings from system state");
         }
     }
 
@@ -101,23 +131,24 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     {
         if (_configReviewModeService.IsInReviewMode)
         {
-            // Entering review from Builder: skip the in-place reapply. The loaded VMs
-            // still show authored (un-applied) Builder positions, and the applier's
-            // fallback diff would read those as system truth and register false diffs.
-            // ReviewModeChanged fires before ModeChanged, so _previousMode still holds
-            // Builder here; the ModeChanged handler then publishes BuilderModeExitedEvent,
-            // and the reloaded ViewModels get review decoration from SettingViewModelFactory.
-            if (_previousMode == WinhanceMode.Builder)
+            // Entering review straight from a mode that authored intent: skip the in-place reapply.
+            // Those VMs still show authored, un-applied positions, and the applier's fallback diff
+            // would read them as system truth and register false diffs. ReviewModeChanged fires
+            // before ModeChanged, so _previousMode still holds the authoring mode here; the
+            // ModeChanged handler then publishes AuthoringModeExitedEvent, and the rebuilt
+            // ViewModels get their review decoration from SettingViewModelFactory.
+            //
+            // The capability, not the mode name: what makes the reapply wrong is that the values on
+            // screen were never applied, which is precisely what AuthorsIntent declares.
+            if (ModeCapabilities.For(_previousMode).AuthorsIntent)
             {
                 return;
             }
 
-            // Review mode was entered - reapply diffs to any already-loaded singleton VMs
             _vmCoordinator.ReapplyReviewDiffsToExistingSettings();
             return;
         }
 
-        // Review mode was exited - clear review state from all loaded SettingItemViewModels
         ClearReviewStateFromAllSettings();
     }
 
@@ -128,33 +159,32 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
     }
 
 
-    public async Task EnterReviewModeAsync(UnifiedConfigurationFile config, bool isWindowsDefaults = false)
+    public async Task EnterReviewModeAsync(WinhanceConfigFile config, bool isWindowsDefaults, string? sourcePath)
     {
+        _reviewSourcePath = sourcePath;
         try
         {
-            // Filter incompatible settings
-            var incompatibleSettings = _configLoadService.DetectIncompatibleSettings(config);
-            if (incompatibleSettings.Any())
+            var setAside = _configLoadService.DetectIncompatibleSettings(config);
+            if (setAside.Count > 0)
             {
                 config = _configLoadService.FilterConfigForCurrentSystem(config);
-                _logService.Log(LogLevel.Info, $"Silently filtered {incompatibleSettings.Count} incompatible settings from config");
+                _logService.Log(LogLevel.Info, $"Set aside {setAside.Count} settings this PC does not show: {string.Join(", ", setAside)}");
             }
 
-            // Force filter ON before computing diffs so version-filtered settings
-            // don't generate phantom diffs when the user had the filter toggled off
-            _compatibleSettingsRegistry.SetFilterEnabled(true);
+            // Review-entry filter forcing is carried solely by the async ForceFilterOn chain
+            // (MainWindowViewModel forces the filter on when the review bar flips). The brief
+            // mid-entry window before that chain lands is accepted and self-healing.
 
-            // Enter review mode on the service (eagerly computes diffs and fires events)
-            await _configReviewModeService.EnterReviewModeAsync(config, isWindowsDefaults);
+            await _configReviewModeService.EnterReviewModeAsync(config, isWindowsDefaults, setAside);
+            if (config.AppInstallOptions is { } carried)
+                _installOptions.BeginSession(carried);
 
-            // Pre-select Windows Apps from config
             if (config.WindowsApps.Items.Count > 0)
             {
                 await _configAppSelectionService.SelectWindowsAppsFromConfigAsync(config.WindowsApps);
                 _logService.Log(LogLevel.Info, $"Pre-selected {config.WindowsApps.Items.Count} Windows Apps for review");
             }
 
-            // Pre-select External Apps from config
             if (config.ExternalApps.Items.Count > 0)
             {
                 await _configAppSelectionService.SelectExternalAppsFromConfigAsync(config.ExternalApps);
@@ -166,8 +196,10 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error entering review mode: {ex.Message}");
+            _reviewSourcePath = null;
             _configReviewModeService.ExitReviewMode();
-            _dialogService.ShowMessage($"Error entering review mode: {ex.Message}", "Error");
+            _installOptions.EndSession();
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Config_Review_EnterError", ex.Message));
         }
     }
 
@@ -184,27 +216,23 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
 
         try
         {
-            // Build the list of sections that have approved changes
             var selectedSections = new List<string>();
 
-            // Check if any Windows Apps are selected and determine action
             bool hasWindowsApps = _vmCoordinator.HasSelectedWindowsApps;
             bool windowsAppsInstall = _vmCoordinator.IsWindowsAppsInstallAction;
             bool windowsAppsRemove = _vmCoordinator.IsWindowsAppsRemoveAction;
             if (hasWindowsApps && (windowsAppsInstall || windowsAppsRemove))
                 selectedSections.Add("WindowsApps");
 
-            // Check if any External Apps are selected and determine action
             bool hasExternalApps = _vmCoordinator.HasSelectedExternalApps;
             bool externalAppsInstall = _vmCoordinator.IsExternalAppsInstallAction;
             bool externalAppsRemove = _vmCoordinator.IsExternalAppsRemoveAction;
             if (hasExternalApps && (externalAppsInstall || externalAppsRemove))
                 selectedSections.Add("ExternalApps");
 
-            // Check approved Optimize/Customize diffs (including action settings)
-            var approvedSettingIds = new HashSet<string>(approvedDiffs.Select(d => d.SettingId));
-            var approvedActionSettingIds = new HashSet<string>(
-                approvedDiffs.Where(d => d.IsActionSetting).Select(d => d.SettingId));
+            // The file's own spelling of the id: a diff carries the catalog's, and the shipped Recommended config
+            // lists the merged This PC settings under both.
+            var approvedSettingIds = new HashSet<string>(approvedDiffs.Select(d => d.ConfigItem?.Id ?? d.SettingId));
 
             if (config.Optimize.Features.Any(f => f.Value.Items.Any(i => approvedSettingIds.Contains(i.Id))))
             {
@@ -226,60 +254,36 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 }
             }
 
-            // Build import options based on action choices
             var importOptions = new ImportOptions
             {
                 ProcessWindowsAppsRemoval = hasWindowsApps && windowsAppsRemove,
                 ProcessWindowsAppsInstallation = hasWindowsApps && windowsAppsInstall,
                 ProcessExternalAppsInstallation = hasExternalApps && externalAppsInstall,
                 ProcessExternalAppsRemoval = hasExternalApps && externalAppsRemove,
-                ApplyThemeWallpaper = approvedDiffs.Any(d => d.SettingId == SettingIds.ThemeModeWindows && d.IsActionApproved),
-                ApplyCleanTaskbar = approvedSettingIds.Contains("taskbar-clean"),
-                ApplyCleanStartMenu = approvedSettingIds.Contains("start-menu-clean-10") || approvedSettingIds.Contains("start-menu-clean-11"),
+                ApplyCleanTaskbar = approvedSettingIds.Contains(SettingIds.CleanTaskbar),
+                ApplyCleanStartMenu = approvedSettingIds.Contains(SettingIds.CleanStartMenu10) || approvedSettingIds.Contains(SettingIds.CleanStartMenu11),
             };
 
-            // Ensure action settings add their parent feature sections even if no regular settings approved
-            var actionOnlySubsections = new HashSet<string>();
-            if (importOptions.ApplyCleanTaskbar && !selectedSections.Contains($"Customize_{FeatureIds.Taskbar}"))
-            {
-                if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
-                selectedSections.Add($"Customize_{FeatureIds.Taskbar}");
-                actionOnlySubsections.Add($"Customize_{FeatureIds.Taskbar}");
-            }
-            if (importOptions.ApplyCleanStartMenu && !selectedSections.Contains($"Customize_{FeatureIds.StartMenu}"))
-            {
-                if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
-                selectedSections.Add($"Customize_{FeatureIds.StartMenu}");
-                actionOnlySubsections.Add($"Customize_{FeatureIds.StartMenu}");
-            }
-            if (importOptions.ApplyThemeWallpaper && !selectedSections.Contains($"Customize_{FeatureIds.WindowsTheme}"))
-            {
-                if (!selectedSections.Contains("Customize")) selectedSections.Add("Customize");
-                selectedSections.Add($"Customize_{FeatureIds.WindowsTheme}");
-                actionOnlySubsections.Add($"Customize_{FeatureIds.WindowsTheme}");
-            }
-            importOptions = importOptions with { ActionOnlySubsections = actionOnlySubsections };
+            importOptions = ConfigApplicationExecutionService.WithCleanActionSections(importOptions, selectedSections);
 
-            if (!selectedSections.Any())
+            if (selectedSections.Count == 0)
             {
-                _dialogService.ShowMessage(
-                    _localizationService.GetString("Config_Import_Error_NoSelection") ?? "No changes to apply.",
-                    _localizationService.GetString("Config_Import_Error_NoSelection_Title") ?? "No Changes");
+                await _dialogService.ShowInformationAsync(
+                    _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection", "There are no changes to apply."),
+                    _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection_Title", "Nothing to Apply"));
                 return;
             }
 
-            // Build a filtered config containing only approved settings
             var filteredConfig = BuildFilteredConfigFromApprovals(config, approvedSettingIds);
 
             // Capture current external app UI selections BEFORE exiting review mode
             // This preserves user's checkbox changes made during review
             List<string>? selectedExternalAppIds = null;
-            if (hasExternalApps)
+            if (hasExternalApps && (externalAppsInstall || externalAppsRemove))
             {
                 selectedExternalAppIds = _vmCoordinator.GetSelectedExternalAppIds();
             }
 
-            // Confirm Windows Apps removal if remove action is chosen
             bool saveRemovalScripts = true;
             if (hasWindowsApps && windowsAppsRemove)
             {
@@ -293,14 +297,12 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 }
             }
 
-            // Show overlay
-            var overlayStatus = _localizationService.GetString("Config_Import_Status_Applying")
-                ?? "Sit back, relax and watch while Winhance enhances Windows with your desired settings...";
+            var overlayStatus = _localizationService.GetStringOrDefault("Config_Import_Status_Applying", "Sit back, relax and watch while Winhance enhances Windows with your desired settings...");
             _overlayService.ShowOverlay(overlayStatus);
 
-            _configImportState.IsActive = true;
-            _configImportState.ImportSuppliesPowerValues = false;
+            var importScope = _configImportState.Begin();
             var changeBatch = _changeHistoryService.BeginBatch(BuildImportBatchHeader());
+            IReadOnlyList<string> notApplied;
 
             try
             {
@@ -320,38 +322,45 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             }
             finally
             {
-                _configImportState.IsActive = false;
-                _configImportState.ImportSuppliesPowerValues = false;
+                notApplied = _configImportState.TakeNotApplied();
+                importScope.Dispose();
                 changeBatch.Dispose();
                 _overlayService.HideOverlay();
             }
 
-            // Exit review mode after applying
             _configReviewModeService.ExitReviewMode();
+            var sourcePath = _reviewSourcePath;
+            _reviewSourcePath = null;
 
-            // Show success message and wait for user dismissal
-            await _dialogService.ShowInformationAsync(
-                _localizationService.GetString("Config_Import_Success_Message") ?? "Configuration imported successfully.",
-                _localizationService.GetString("Config_Import_Success_Title") ?? "Import Successful");
+            // Review mode already showed what was set aside when it opened.
+            await _coverageSummary.ShowImportSummaryAsync(filteredConfig, sourcePath, [], notApplied);
 
-            // Process External Apps installation AFTER success dialog dismissal (needs UI thread)
+            // Process External Apps AFTER success dialog dismissal (needs UI thread)
             // Use captured user selections instead of config section to honor user's review choices
             if (selectedExternalAppIds != null && selectedExternalAppIds.Count > 0)
             {
-                await _configAppSelectionService.ProcessExternalAppsFromUserSelectionAsync(selectedExternalAppIds);
+                await _configAppSelectionService.ProcessExternalAppsFromUserSelectionAsync(
+                    selectedExternalAppIds, remove: externalAppsRemove);
             }
         }
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error in ApplyReviewedConfigAsync: {ex.Message}");
             _overlayService.HideOverlay();
+            _reviewSourcePath = null;
             _configReviewModeService.ExitReviewMode();
-            _dialogService.ShowMessage($"Error applying configuration: {ex.Message}", "Error");
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Config_Apply_Error", ex.Message));
+        }
+        finally
+        {
+            // Not at ExitReviewMode: review is left before the apps install, and they install with the config's options.
+            _installOptions.EndSession();
         }
     }
 
     public async Task CancelReviewModeAsync()
     {
+        _reviewSourcePath = null;
         if (!_configReviewModeService.IsInReviewMode) return;
 
         // Preserve app selections on cancel — only exit review mode.
@@ -362,6 +371,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         // fired by ExitReviewMode() through OnReviewModeChanged.
 
         _configReviewModeService.ExitReviewMode();
+        _installOptions.EndSession();
         _logService.Log(LogLevel.Info, "Review mode cancelled - selections preserved");
     }
 
@@ -372,19 +382,19 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         return string.IsNullOrEmpty(source) ? label : $"{label} ({source})";
     }
 
-    private UnifiedConfigurationFile BuildFilteredConfigFromApprovals(
-        UnifiedConfigurationFile original,
+    private WinhanceConfigFile BuildFilteredConfigFromApprovals(
+        WinhanceConfigFile original,
         HashSet<string> approvedSettingIds)
     {
-        var filtered = new UnifiedConfigurationFile
+        var filtered = new WinhanceConfigFile
         {
             Version = original.Version,
             CreatedAt = original.CreatedAt,
             WindowsApps = original.WindowsApps,   // Apps are filtered by checkbox selection, not diffs
-            ExternalApps = original.ExternalApps,  // Same - filtered by checkbox selection
+            ExternalApps = original.ExternalApps,
+            AppInstallOptions = original.AppInstallOptions,
         };
 
-        // Filter Optimize features to only include approved settings
         filtered.Optimize = FilterFeatureGroupByApprovals(original.Optimize, approvedSettingIds);
         filtered.Customize = FilterFeatureGroupByApprovals(original.Customize, approvedSettingIds);
 
@@ -403,7 +413,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
                 .Where(item => approvedSettingIds.Contains(item.Id))
                 .ToList();
 
-            if (approvedItems.Any())
+            if (approvedItems.Count > 0)
             {
                 filteredFeatures[feature.Key] = new ConfigSection
                 {

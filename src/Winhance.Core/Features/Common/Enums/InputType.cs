@@ -7,4 +7,7 @@ public enum InputType
     NumericRange,
     Action,
     CheckBox,
+    TextBox,
+    List,
+    CheckList,
 }

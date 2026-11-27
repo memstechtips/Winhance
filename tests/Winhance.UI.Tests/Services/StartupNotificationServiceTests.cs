@@ -46,10 +46,6 @@ public class StartupNotificationServiceTests
             .Returns("Localized text");
     }
 
-    // -------------------------------------------------------
-    // Already offered - early return
-    // -------------------------------------------------------
-
     [Fact]
     public async Task ShowFirstLaunchRestoreOfferAsync_WhenAlreadyOffered_ReturnsImmediately()
     {
@@ -65,10 +61,6 @@ public class StartupNotificationServiceTests
             d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()),
             Times.Never);
     }
-
-    // -------------------------------------------------------
-    // First launch - dialog shown
-    // -------------------------------------------------------
 
     [Fact]
     public async Task ShowFirstLaunchRestoreOfferAsync_WhenFirstLaunch_ShowsConfirmationDialog()
@@ -91,10 +83,6 @@ public class StartupNotificationServiceTests
             Times.Once);
     }
 
-    // -------------------------------------------------------
-    // Sets preference before showing dialog
-    // -------------------------------------------------------
-
     [Fact]
     public async Task ShowFirstLaunchRestoreOfferAsync_SetsInitialRestorePointOfferedBeforeDialog()
     {
@@ -115,10 +103,6 @@ public class StartupNotificationServiceTests
             p => p.SetPreferenceAsync(UserPreferenceKeys.InitialRestorePointOffered, true),
             Times.Once);
     }
-
-    // -------------------------------------------------------
-    // User clicks Create - calls backup service
-    // -------------------------------------------------------
 
     [Fact]
     public async Task ShowFirstLaunchRestoreOfferAsync_WhenUserClicksCreate_CallsCreateRestorePointAsync()
@@ -151,10 +135,6 @@ public class StartupNotificationServiceTests
             Times.Once);
     }
 
-    // -------------------------------------------------------
-    // Restore point succeeds - shows success dialog
-    // -------------------------------------------------------
-
     [Fact]
     public async Task ShowFirstLaunchRestoreOfferAsync_WhenRestorePointSucceeds_ShowsInformationDialog()
     {
@@ -185,10 +165,6 @@ public class StartupNotificationServiceTests
                 It.IsAny<string>()),
             Times.Once);
     }
-
-    // -------------------------------------------------------
-    // Restore point fails - shows warning dialog
-    // -------------------------------------------------------
 
     [Fact]
     public async Task ShowFirstLaunchRestoreOfferAsync_WhenRestorePointFails_ShowsWarningDialog()
@@ -221,9 +197,64 @@ public class StartupNotificationServiceTests
             Times.Once);
     }
 
-    // -------------------------------------------------------
-    // User clicks Skip - does NOT call backup service
-    // -------------------------------------------------------
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ShowFirstLaunchRestoreOfferAsync_FailsAfterTurningProtectionOn_OneDialogAsksWhetherToKeepIt(bool turnOff)
+    {
+        _mockLocalizationService
+            .Setup(l => l.GetString(It.IsAny<string>()))
+            .Returns((string key) => key);
+        _mockPrefsService.Setup(p => p.GetPreference(
+            UserPreferenceKeys.InitialRestorePointOffered, false))
+            .Returns(false);
+        var asked = new List<ConfirmationRequest>();
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .Callback((ConfirmationRequest r) => asked.Add(r))
+            .ReturnsAsync(() => new ConfirmationResponse { Confirmed = asked.Count == 1 || turnOff });
+        _mockBackupService
+            .Setup(b => b.CreateRestorePointAsync(
+                It.IsAny<string?>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BackupResult.CreateFailure("disk full", turnedProtectionOn: true));
+
+        var service = CreateService();
+
+        await service.ShowFirstLaunchRestoreOfferAsync();
+
+        asked.Should().HaveCount(2);
+        asked[1].Title.Should().Be("Startup_Backup_Title_Fail");
+        asked[1].Message.Should().Contain("Startup_Backup_RestoreCreatedFail").And.Contain("RestorePoint_Fail_ProtectionTurnedOn");
+        asked[1].ConfirmButtonText.Should().Be("RestorePoint_Fail_Button_TurnOff");
+        _mockBackupService.Verify(b => b.TurnOffSystemRestoreAsync(), turnOff ? Times.Once() : Times.Never());
+        _mockDialogService.Verify(
+            d => d.ShowWarningAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ShowFirstLaunchRestoreOfferAsync_WhenCancelled_EndsTheTaskAsCancelledWithNoDialog()
+    {
+        SetupLocalizationDefaults();
+        _mockPrefsService.Setup(p => p.GetPreference(UserPreferenceKeys.InitialRestorePointOffered, false)).Returns(false);
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+        _mockBackupService
+            .Setup(b => b.CreateRestorePointAsync(
+                It.IsAny<string?>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+
+        await CreateService().ShowFirstLaunchRestoreOfferAsync();
+
+        _mockTaskProgressService.Verify(t => t.CancelTask(), Times.Once);
+        _mockTaskProgressService.Verify(t => t.FailTask(), Times.Never);
+        _mockDialogService.Verify(d => d.ShowWarningAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
 
     [Fact]
     public async Task ShowFirstLaunchRestoreOfferAsync_WhenUserClicksSkip_DoesNotCallBackupService()
@@ -266,13 +297,9 @@ public class StartupNotificationServiceTests
         await service.ShowFirstLaunchRestoreOfferAsync();
 
         _mockLogService.Verify(
-            l => l.Log(LogLevel.Info, It.Is<string>(s => s.Contains("skipped"))),
+            l => l.Log(LogLevel.Info, It.Is<string>(s => s.Contains("skipped")), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
-
-    // -------------------------------------------------------
-    // Localization keys usage
-    // -------------------------------------------------------
 
     [Fact]
     public async Task ShowFirstLaunchRestoreOfferAsync_UsesCorrectLocalizationKeys()
@@ -301,10 +328,6 @@ public class StartupNotificationServiceTests
         _mockLocalizationService.Verify(l => l.GetString("Startup_Backup_Button_Skip"), Times.Once);
     }
 
-    // -------------------------------------------------------
-    // Exception handling
-    // -------------------------------------------------------
-
     [Fact]
     public async Task ShowFirstLaunchRestoreOfferAsync_WhenDialogThrows_LogsErrorAndDoesNotRethrow()
     {
@@ -319,11 +342,10 @@ public class StartupNotificationServiceTests
 
         var service = CreateService();
 
-        // Should not throw
         await service.ShowFirstLaunchRestoreOfferAsync();
 
         _mockLogService.Verify(
-            l => l.Log(LogLevel.Error, It.Is<string>(s => s.Contains("Error showing first launch restore offer"))),
+            l => l.Log(LogLevel.Error, It.Is<string>(s => s.Contains("Error showing first launch restore offer")), It.IsAny<Exception?>(), It.IsAny<string>()),
             Times.Once);
     }
 }

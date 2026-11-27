@@ -1,24 +1,21 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class PolicyCleanupService : IPolicyCleanupService
+internal class PolicyCleanupService : IPolicyCleanupService
 {
-    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
+    private readonly ICatalogSettingsRegistry _catalogRegistry;
     private readonly IWindowsRegistryService _registryService;
     private readonly ILogService _logService;
 
     public PolicyCleanupService(
-        ICompatibleSettingsRegistry compatibleSettingsRegistry,
+        ICatalogSettingsRegistry catalogRegistry,
         IWindowsRegistryService registryService,
         ILogService logService)
     {
-        _compatibleSettingsRegistry = compatibleSettingsRegistry;
+        _catalogRegistry = catalogRegistry;
         _registryService = registryService;
         _logService = logService;
     }
@@ -27,7 +24,7 @@ public class PolicyCleanupService : IPolicyCleanupService
     {
         var policyKeyPaths = CollectPolicyKeyPaths();
 
-        _logService.Log(LogLevel.Info, $"[PolicyCleanup] Found {policyKeyPaths.Count} unique policy key paths to clean up");
+        _logService.Log(LogLevel.Info, $"Found {policyKeyPaths.Count} unique policy key paths to clean up");
 
         int deletedCount = 0;
         foreach (var keyPath in policyKeyPaths)
@@ -39,21 +36,21 @@ public class PolicyCleanupService : IPolicyCleanupService
                     if (_registryService.DeleteKey(keyPath))
                     {
                         deletedCount++;
-                        _logService.Log(LogLevel.Info, $"[PolicyCleanup] Deleted policy key: {keyPath}");
+                        _logService.Log(LogLevel.Info, $"Deleted policy key: {keyPath}");
                     }
                     else
                     {
-                        _logService.Log(LogLevel.Warning, $"[PolicyCleanup] Failed to delete policy key: {keyPath}");
+                        _logService.Log(LogLevel.Warning, $"Failed to delete policy key: {keyPath}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logService.Log(LogLevel.Warning, $"[PolicyCleanup] Error deleting policy key '{keyPath}': {ex.Message}");
+                _logService.Log(LogLevel.Warning, $"Error deleting policy key '{keyPath}': {ex.Message}");
             }
         }
 
-        _logService.Log(LogLevel.Info, $"[PolicyCleanup] Cleanup complete: {deletedCount} policy keys deleted");
+        _logService.Log(LogLevel.Info, $"Cleanup complete: {deletedCount} policy keys deleted");
         return deletedCount;
     }
 
@@ -61,22 +58,37 @@ public class PolicyCleanupService : IPolicyCleanupService
     {
         var policyPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        var allSettings = _compatibleSettingsRegistry.GetAllBypassedSettings();
+        // OS-build-relaxed scope (hardware + existence still apply): policy keys are cleaned up regardless of the
+        // current Windows version.
+        var allSettings = _catalogRegistry.GetAll(new CatalogScope(IncludeOtherOsVersions: true, IncludeOtherHardware: false));
 
         foreach (var featureSettings in allSettings.Values)
         {
             foreach (var setting in featureSettings)
             {
-                if (setting.RegistrySettings == null)
-                    continue;
-
-                foreach (var regSetting in setting.RegistrySettings)
+                // Group-policy registry keys live on RegTargets (toggles/selections; a mirror carries every
+                // Path) and on RegistryWriteEffects (an Action's registry writes are setting-level effects;
+                // per-state scanned defensively). The powercfg EnablementKey is a nested RegTarget on
+                // PowerCfgTarget, not a top-level Target, so OfType<RegTarget>() correctly excludes it. A mirror's
+                // CurrentVersion\Policies paths are Windows' own keys and are never deleted.
+                foreach (var target in setting.Targets.OfType<RegTarget>())
                 {
-                    if (!regSetting.IsGroupPolicy || string.IsNullOrEmpty(regSetting.KeyPath))
+                    if (!target.IsGroupPolicy)
                         continue;
 
-                    policyPaths.Add(regSetting.KeyPath);
+                    foreach (var path in target.Paths)
+                        if (RegTarget.IsPolicyPath(path))
+                            policyPaths.Add(path);
                 }
+
+                foreach (var effect in setting.Effects.OfType<RegistryWriteEffect>())
+                    if (effect.IsGroupPolicy && RegTarget.IsPolicyPath(effect.Path))
+                        policyPaths.Add(effect.Path);
+
+                foreach (var state in setting.States)
+                    foreach (var effect in state.Effects.OfType<RegistryWriteEffect>())
+                        if (effect.IsGroupPolicy && RegTarget.IsPolicyPath(effect.Path))
+                            policyPaths.Add(effect.Path);
             }
         }
 

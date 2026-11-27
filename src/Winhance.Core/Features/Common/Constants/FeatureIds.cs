@@ -17,5 +17,9 @@ public static class FeatureIds
     public const string WindowsTheme = "WindowsTheme";
     public const string StartMenu = "StartMenu";
     public const string Taskbar = "Taskbar";
-    public const string ExplorerCustomization = "ExplorerCustomization";
+    public const string Explorer = "Explorer";
+    public const string ContextMenu = "ContextMenu";
+    public const string TimeRegionLanguage = "TimeRegionLanguage";
+
+    public const string Autounattend = "Autounattend";
 }

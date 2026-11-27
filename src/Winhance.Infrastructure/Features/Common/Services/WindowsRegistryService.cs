@@ -1,33 +1,18 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using Microsoft.Win32;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
 [SupportedOSPlatform("windows")]
-public class WindowsRegistryService(ILogService logService, IInteractiveUserService interactiveUserService) : IWindowsRegistryService
+internal class WindowsRegistryService(ILogService logService, IInteractiveUserService interactiveUserService) : IWindowsRegistryService
 {
-    private static object? GetWriteValue(object?[]? values) => values?.FirstOrDefault(v => v != null);
 
-    /// <summary>
-    /// Gets the value to write when a parent cascades a disable to this setting.
-    /// If DisabledValue has a second element, use it (even if null, which means delete).
-    /// Otherwise, fall back to the normal first-non-null disabled value.
-    /// This allows settings to declare e.g. DisabledValue = [1, null] where:
-    ///   - Index 0 (1): written when the user explicitly disables the setting
-    ///   - Index 1 (null): written when the parent cascades a disable (deletes the value)
-    /// </summary>
-    private static object? GetParentDisableValue(object?[]? disabledValues) =>
-        disabledValues?.Length > 1 ? disabledValues[1] : GetWriteValue(disabledValues);
-
-    private bool CreateKey(string keyPath)
+    public bool CreateKey(string keyPath)
     {
         try
         {
@@ -40,7 +25,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to create key '{keyPath}': {ex.Message}");
+            logService.LogDebug($"Failed to create key '{keyPath}': {ex.Message}");
             return false;
         }
     }
@@ -62,9 +47,14 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
             targetKey.SetValue(valueName, value, valueKind);
             return true;
         }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            logService.LogWarning($"Windows refused the write to '{keyPath}\\{valueName}': {ex.Message}");
+            return false;
+        }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to set value '{keyPath}\\{valueName}': {ex.Message}");
+            logService.LogDebug($"Failed to set value '{keyPath}\\{valueName}': {ex.Message}");
             return false;
         }
     }
@@ -79,59 +69,112 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to get value '{keyPath}\\{valueName}': {ex.Message}");
+            logService.LogDebug($"Failed to get value '{keyPath}\\{valueName}': {ex.Message}");
             return null;
         }
     }
 
-    /// <summary>
-    /// Minimum number of path segments (backslash-separated) required in the
-    /// sub-key portion of a registry path before <see cref="DeleteSubKeyTree"/>
-    /// is allowed. This prevents accidental deletion of top-level hive branches
-    /// like <c>HKLM\SOFTWARE</c>.
-    /// </summary>
+    public string? GetUnexpandedString(string keyPath, string valueName)
+    {
+        try
+        {
+            var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
+            using var key = rootKey.OpenSubKey(subKeyPath, false);
+            return key?.GetValue(valueName, null, RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
+        }
+        catch (Exception ex)
+        {
+            logService.LogDebug($"Failed to get value '{keyPath}\\{valueName}': {ex.Message}");
+            return null;
+        }
+    }
+
+    public RegistryValueKind? GetValueKind(string keyPath, string valueName)
+    {
+        try
+        {
+            var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
+            using var key = rootKey.OpenSubKey(subKeyPath, false);
+            if (key is null)
+                return null;
+            // GetValueKind throws when the value does not exist, so check first rather than catching.
+            return key.GetValue(valueName) is null ? null : key.GetValueKind(valueName);
+        }
+        catch (Exception ex)
+        {
+            logService.LogDebug($"Failed to get value kind '{keyPath}\\{valueName}': {ex.Message}");
+            return null;
+        }
+    }
+
+    // Prevents accidental deletion of top-level hive branches like HKLM\SOFTWARE.
     private const int MinDeleteDepth = 2;
 
-    /// <summary>
-    /// Top-level registry branches that must never be deleted via
-    /// <see cref="DeleteKey"/>. Comparison is case-insensitive.
-    /// </summary>
-    internal static readonly HashSet<string> ProtectedSubKeyRoots = new(StringComparer.OrdinalIgnoreCase)
+    // A key directly under one of these is as critical as the branch (Windows NT\CurrentVersion). Policies is not one:
+    // a vendor's whole policy key sits there (Policies\WindowsNotepad) and the policy cleanup deletes it.
+    internal static readonly HashSet<string> ProtectedBranches = new(StringComparer.OrdinalIgnoreCase)
     {
+        @"SOFTWARE\Classes",
+        @"SOFTWARE\Microsoft",
         @"SOFTWARE\Microsoft\Windows",
+        @"SOFTWARE\Microsoft\Windows\CurrentVersion",
         @"SOFTWARE\Microsoft\Windows NT",
-        @"SOFTWARE\Policies",
+        @"SOFTWARE\Microsoft\Windows NT\CurrentVersion",
         @"SYSTEM\CurrentControlSet",
+        @"SYSTEM\CurrentControlSet\Control",
         @"SYSTEM\CurrentControlSet\Services",
     };
 
+    // Declared after ProtectedBranches: static initializers run in file order.
+    internal static readonly HashSet<string> ProtectedSubKeyRoots = new(ProtectedBranches, StringComparer.OrdinalIgnoreCase)
+    {
+        @"SOFTWARE\Policies",
+        @"SOFTWARE\Policies\Microsoft",
+        @"SOFTWARE\Policies\Microsoft\Windows",
+    };
+
+    private const string Wow64Software = @"SOFTWARE\WOW6432Node\";
+    private const string NumberedControlSet = @"SYSTEM\ControlSet";
+
+    internal static bool IsProtected(string subKeyPath)
+    {
+        var path = subKeyPath.Trim('\\');
+        if (path.StartsWith(Wow64Software, StringComparison.OrdinalIgnoreCase))
+            path = @"SOFTWARE\" + path[Wow64Software.Length..];
+        // ControlSet001 is what CurrentControlSet links to.
+        if (path.StartsWith(NumberedControlSet, StringComparison.OrdinalIgnoreCase)
+            && path.Length >= NumberedControlSet.Length + 3
+            && !path.AsSpan(NumberedControlSet.Length, 3).ContainsAnyExceptInRange('0', '9'))
+            path = @"SYSTEM\CurrentControlSet" + path[(NumberedControlSet.Length + 3)..];
+        var parent = path.LastIndexOf('\\') is var i and > 0 ? path[..i] : path;
+        return ProtectedSubKeyRoots.Contains(path) || ProtectedBranches.Contains(parent);
+    }
+
+    // An absent key or value is the state a delete asks for, so it succeeds. OpenSubKey returns null only when
+    // the key is missing; a refused open throws and still fails.
     public bool DeleteKey(string keyPath)
     {
         try
         {
-            if (!KeyExists(keyPath))
-                return true;
-
             var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
+            using (var existing = rootKey.OpenSubKey(subKeyPath, false))
+            {
+                if (existing == null)
+                    return true;
+            }
 
-            // Safeguard: reject paths that are too shallow (e.g. "SOFTWARE" or "SOFTWARE\Microsoft")
             var segments = subKeyPath.Split('\\', StringSplitOptions.RemoveEmptyEntries);
             if (segments.Length < MinDeleteDepth)
             {
                 logService.Log(LogLevel.Warning,
-                    $"[WindowsRegistryService] Refusing to delete shallow registry key '{keyPath}' (depth {segments.Length} < {MinDeleteDepth})");
+                    $"Refusing to delete shallow registry key '{keyPath}' (depth {segments.Length} < {MinDeleteDepth})");
                 return false;
             }
 
-            // Safeguard: reject paths that start with a protected root
-            foreach (var protectedRoot in ProtectedSubKeyRoots)
+            if (IsProtected(subKeyPath))
             {
-                if (subKeyPath.Equals(protectedRoot, StringComparison.OrdinalIgnoreCase))
-                {
-                    logService.Log(LogLevel.Warning,
-                        $"[WindowsRegistryService] Refusing to delete protected registry key '{keyPath}'");
-                    return false;
-                }
+                logService.Log(LogLevel.Warning, $"Refusing to delete protected registry key '{keyPath}'");
+                return false;
             }
 
             rootKey.DeleteSubKeyTree(subKeyPath, false);
@@ -139,7 +182,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to delete key '{keyPath}': {ex.Message}");
+            logService.LogDebug($"Failed to delete key '{keyPath}': {ex.Message}");
             return false;
         }
     }
@@ -151,14 +194,14 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
             var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
             using var key = rootKey.OpenSubKey(subKeyPath, true);
             if (key == null)
-                return false;
+                return true;
 
             key.DeleteValue(valueName, false);
             return true;
         }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to delete value '{keyPath}\\{valueName}': {ex.Message}");
+            logService.LogDebug($"Failed to delete value '{keyPath}\\{valueName}': {ex.Message}");
             return false;
         }
     }
@@ -173,7 +216,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to check key existence '{keyPath}': {ex.Message}");
+            logService.LogDebug($"Failed to check key existence '{keyPath}': {ex.Message}");
             return false;
         }
     }
@@ -191,7 +234,7 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to check value existence '{keyPath}\\{valueName}': {ex.Message}");
+            logService.LogDebug($"Failed to check value existence '{keyPath}\\{valueName}': {ex.Message}");
             return false;
         }
     }
@@ -206,197 +249,61 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to get subkey names for '{keyPath}': {ex.Message}");
+            logService.LogDebug($"Failed to get subkey names for '{keyPath}': {ex.Message}");
             return Array.Empty<string>();
         }
     }
 
-    public bool IsRegistryValueInEnabledState(RegistrySetting setting, object? currentValue, bool valueExists)
-    {
-        if (setting == null)
-            return false;
-
-        // ValueName == null settings encode enabled-state as key existence; the batched
-        // currentValue is a bool from __KEY_EXISTS__. Interpret it directly — the per-value
-        // EnabledValue/DisabledValue match loop below is meaningless for this case because
-        // the "value" being matched is key-presence, not a stored value.
-        if (setting.ValueName == null && currentValue is bool keyExists)
-        {
-            // Inverted shape: DisabledValue carries the null sentinel meaning
-            // "disabled when key present" (rare — standard shape is EnabledValue = [null]).
-            if (setting.EnabledValue?.Contains(null) != true
-                && setting.DisabledValue?.Contains(null) == true)
-            {
-                return !keyExists;
-            }
-            return keyExists;
-        }
-
-        // Handle CompositeStringKey — extract sub-value before comparing
-        if (setting.CompositeStringKey != null)
-        {
-            var compositeStr = currentValue?.ToString() ?? "";
-            var pairs = ParseCompositeString(compositeStr);
-
-            if (pairs.TryGetValue(setting.CompositeStringKey, out var subValue))
-            {
-                var enabledStr = GetWriteValue(setting.EnabledValue)?.ToString();
-                return string.Equals(subValue, enabledStr, StringComparison.OrdinalIgnoreCase);
-            }
-
-            // Sub-key absent — use DefaultValue to determine implied state
-            var defaultStr = setting.DefaultValue?.ToString();
-            var enabledStrFallback = GetWriteValue(setting.EnabledValue)?.ToString();
-            return string.Equals(defaultStr, enabledStrFallback, StringComparison.OrdinalIgnoreCase);
-        }
-
-        // No EnabledValue defined at all — can only check DisabledValue
-        if (setting.EnabledValue == null)
-        {
-            if (!valueExists)
-                return false;
-            // Check against DisabledValue array
-            if (setting.DisabledValue != null && setting.DisabledValue.Any(dv => dv != null && CompareValues(currentValue, dv)))
-                return false;
-            // Handle pre-processed BitMask booleans where false means "not enabled"
-            if (currentValue is false)
-                return false;
-            return true;
-        }
-
-        if (!valueExists)
-            return setting.EnabledValue.Contains(null);
-
-        // Check if current value matches any enabled value
-        foreach (var ev in setting.EnabledValue)
-        {
-            if (ev != null && CompareValues(currentValue, ev))
-                return true;
-        }
-
-        // Check if current value matches any disabled value
-        if (setting.DisabledValue != null && setting.DisabledValue.Any(dv => dv != null && CompareValues(currentValue, dv)))
-            return false;
-
-        return false;
-    }
-
-    public bool IsSettingApplied(RegistrySetting setting)
+    public string[] GetValueNames(string keyPath)
     {
         try
         {
-            if (setting == null)
-                return false;
-
-            if (setting.ApplyPerNetworkInterface)
-            {
-                var subKeys = GetSubKeyNames(setting.KeyPath);
-                if (subKeys.Length == 0)
-                    return false;
-
-                foreach (var subKey in subKeys)
-                {
-                    var expandedSetting = setting with
-                    {
-                        KeyPath = $@"{setting.KeyPath}\{subKey}",
-                        ApplyPerNetworkInterface = false
-                    };
-                    if (!IsSettingApplied(expandedSetting))
-                        return false;
-                }
-                return true;
-            }
-
-            if (setting.ApplyPerMonitor)
-            {
-                var subKeys = GetSubKeyNames(setting.KeyPath);
-                if (subKeys.Length == 0)
-                    return false;
-
-                foreach (var subKey in subKeys)
-                {
-                    var expandedSetting = setting with
-                    {
-                        KeyPath = $@"{setting.KeyPath}\{subKey}",
-                        ApplyPerMonitor = false
-                    };
-                    if (!IsSettingApplied(expandedSetting))
-                        return false;
-                }
-                return true;
-            }
-
-            // For settings that check the (Default) value with ValueName = null,
-            // we need to check if both EnabledValue and DisabledValue are null.
-            // If both are null, we're just checking key existence.
-            // If either has a value, we need to read and compare the default value.
-            if (setting.ValueName == null && setting.EnabledValue == null && setting.DisabledValue == null)
-            {
-                return KeyExists(setting.KeyPath);
-            }
-
-            if (!KeyExists(setting.KeyPath))
-            {
-                if (setting.CompositeStringKey != null)
-                    return IsRegistryValueInEnabledState(setting, null, false);
-                return setting.EnabledValue == null;
-            }
-
-            if (setting.CompositeStringKey != null)
-            {
-                var compositeStr = ValueExists(setting.KeyPath, setting.ValueName!)
-                    ? (GetValue(setting.KeyPath, setting.ValueName!)?.ToString() ?? "")
-                    : "";
-                return IsRegistryValueInEnabledState(setting, compositeStr, !string.IsNullOrEmpty(compositeStr));
-            }
-
-            if (!ValueExists(setting.KeyPath, setting.ValueName!))
-            {
-                return IsRegistryValueInEnabledState(setting, null, false);
-            }
-
-            if (setting.BitMask.HasValue && setting.BinaryByteIndex.HasValue)
-            {
-                return IsBitSet(setting.KeyPath, setting.ValueName!, setting.BinaryByteIndex.Value, setting.BitMask.Value);
-            }
-
-            if (setting.ModifyByteOnly && setting.BinaryByteIndex.HasValue)
-            {
-                var currentByte = GetBinaryByte(setting.KeyPath, setting.ValueName!, setting.BinaryByteIndex.Value);
-                if (currentByte == null)
-                    return false;
-
-                var enabledByte = GetWriteValue(setting.EnabledValue) switch
-                {
-                    byte b => b,
-                    int i => (byte)i,
-                    _ => (byte)0
-                };
-
-                return currentByte.Value == enabledByte;
-            }
-
-            var currentValue = GetValue(setting.KeyPath, setting.ValueName!);
-            return IsRegistryValueInEnabledState(setting, currentValue, true);
+            var (rootKey, subKeyPath) = ParseKeyPath(keyPath);
+            using var key = rootKey.OpenSubKey(subKeyPath, false);
+            return key?.GetValueNames() ?? Array.Empty<string>();
         }
         catch (Exception ex)
         {
-            logService.LogDebug($"[WindowsRegistryService] Failed to check if setting applied '{setting?.KeyPath}\\{setting?.ValueName}': {ex.Message}");
-            return false;
+            logService.LogDebug($"Failed to get value names for '{keyPath}': {ex.Message}");
+            return Array.Empty<string>();
         }
     }
 
-    private bool ModifyBinaryByte(string keyPath, string valueName, int byteIndex, byte newValue)
+    // Null when the caller must REFUSE the write rather than destroy the value.
+    private byte[]? ResolveBinaryEditBuffer(string keyPath, string valueName, object? currentValue, int byteIndex)
+    {
+        var buffer = BinaryValueRecovery.Resolve(currentValue, byteIndex);
+
+        if (buffer is null)
+        {
+            logService.Log(
+                LogLevel.Error,
+                $"Refusing to edit '{keyPath}\\{valueName}': expected REG_BINARY but "
+                    + $"found {currentValue?.GetType().Name ?? "null"}, which has no safe byte representation. "
+                    + "The value was left untouched.");
+            return null;
+        }
+
+        if (BinaryValueRecovery.IsRecoveredFromString(currentValue))
+        {
+            logService.Log(
+                LogLevel.Warning,
+                $"'{keyPath}\\{valueName}' is stored as a string but the catalog "
+                    + "expects REG_BINARY. Recovered its bytes from the UTF-16 content and rewriting the "
+                    + "value as REG_BINARY.");
+        }
+
+        return buffer;
+    }
+
+    public bool ModifyBinaryByte(string keyPath, string valueName, int byteIndex, byte newValue)
     {
         try
         {
             var currentValue = GetValue(keyPath, valueName);
-            if (currentValue is not byte[] currentBytes)
-            {
-                var defaultBinary = new byte[Math.Max(12, byteIndex + 1)];
-                defaultBinary[byteIndex] = newValue;
-                return SetValue(keyPath, valueName, defaultBinary, RegistryValueKind.Binary);
-            }
+            var currentBytes = ResolveBinaryEditBuffer(keyPath, valueName, currentValue, byteIndex);
+            if (currentBytes is null)
+                return false;
 
             if (currentBytes.Length <= byteIndex)
             {
@@ -413,40 +320,19 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Error, $"[WindowsRegistryService] Error modifying byte at index {byteIndex} in '{keyPath}\\{valueName}': {ex.Message}");
+            logService.Log(LogLevel.Error, $"Error modifying byte at index {byteIndex} in '{keyPath}\\{valueName}': {ex.Message}");
             return false;
         }
     }
 
-    private byte? GetBinaryByte(string keyPath, string valueName, int byteIndex)
+    public bool ModifyBinaryBit(string keyPath, string valueName, int byteIndex, byte bitMask, bool setBit)
     {
         try
         {
             var currentValue = GetValue(keyPath, valueName);
-            if (currentValue is byte[] currentBytes && currentBytes.Length > byteIndex)
-            {
-                return currentBytes[byteIndex];
-            }
-            return null;
-        }
-        catch (Exception ex)
-        {
-            logService.LogDebug($"[WindowsRegistryService] Failed to get binary byte at index {byteIndex} in '{keyPath}\\{valueName}': {ex.Message}");
-            return null;
-        }
-    }
-
-    private bool ModifyBinaryBit(string keyPath, string valueName, int byteIndex, byte bitMask, bool setBit)
-    {
-        try
-        {
-            var currentValue = GetValue(keyPath, valueName);
-            if (currentValue is not byte[] currentBytes)
-            {
-                var defaultBinary = new byte[Math.Max(12, byteIndex + 1)];
-                defaultBinary[byteIndex] = setBit ? bitMask : (byte)0;
-                return SetValue(keyPath, valueName, defaultBinary, RegistryValueKind.Binary);
-            }
+            var currentBytes = ResolveBinaryEditBuffer(keyPath, valueName, currentValue, byteIndex);
+            if (currentBytes is null)
+                return false;
 
             if (currentBytes.Length <= byteIndex)
             {
@@ -466,221 +352,14 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Error, $"[WindowsRegistryService] Error modifying bit mask 0x{bitMask:X2} at byte index {byteIndex} in '{keyPath}\\{valueName}': {ex.Message}");
+            logService.Log(LogLevel.Error, $"Error modifying bit mask 0x{bitMask:X2} at byte index {byteIndex} in '{keyPath}\\{valueName}': {ex.Message}");
             return false;
         }
     }
 
-    private bool IsBitSet(string keyPath, string valueName, int byteIndex, byte bitMask)
-    {
-        try
-        {
-            var currentByte = GetBinaryByte(keyPath, valueName, byteIndex);
-            if (!currentByte.HasValue)
-                return false;
-
-            return (currentByte.Value & bitMask) == bitMask;
-        }
-        catch (Exception ex)
-        {
-            logService.LogDebug($"[WindowsRegistryService] Failed to check bit in '{keyPath}\\{valueName}': {ex.Message}");
-            return false;
-        }
-    }
-
-    public bool ApplySetting(RegistrySetting setting, bool isEnabled, object? specificValue = null, bool useDefaultValue = false)
-    {
-        if (setting == null)
-            return false;
-
-        try
-        {
-            if (setting.ApplyPerNetworkInterface)
-            {
-                var subKeys = GetSubKeyNames(setting.KeyPath);
-                if (subKeys.Length == 0)
-                {
-                    logService.Log(LogLevel.Warning, $"[WindowsRegistryService] No subkeys found under '{setting.KeyPath}' for per-interface setting");
-                    return false;
-                }
-
-                var allSucceeded = true;
-                foreach (var subKey in subKeys)
-                {
-                    var expandedSetting = setting with
-                    {
-                        KeyPath = $@"{setting.KeyPath}\{subKey}",
-                        ApplyPerNetworkInterface = false
-                    };
-                    if (!ApplySetting(expandedSetting, isEnabled, specificValue))
-                        allSucceeded = false;
-                }
-                return allSucceeded;
-            }
-
-            if (setting.ApplyPerMonitor)
-            {
-                var subKeys = GetSubKeyNames(setting.KeyPath);
-                if (subKeys.Length == 0)
-                {
-                    logService.Log(LogLevel.Warning, $"[WindowsRegistryService] No subkeys found under '{setting.KeyPath}' for per-monitor setting");
-                    return false;
-                }
-
-                var allSucceeded = true;
-                foreach (var subKey in subKeys)
-                {
-                    var expandedSetting = setting with
-                    {
-                        KeyPath = $@"{setting.KeyPath}\{subKey}",
-                        ApplyPerMonitor = false
-                    };
-                    if (!ApplySetting(expandedSetting, isEnabled, specificValue))
-                        allSucceeded = false;
-                }
-                return allSucceeded;
-            }
-
-            logService.Log(LogLevel.Info, $"[WindowsRegistryService] Applying registry setting - Path: {setting.KeyPath}, Value: {setting.ValueName}, Enabled: {isEnabled}");
-
-            if (setting.ValueName == null)
-            {
-                var result = isEnabled ? CreateKey(setting.KeyPath) : DeleteKey(setting.KeyPath);
-                return result;
-            }
-
-            if (setting.CompositeStringKey != null)
-            {
-                if (!CreateKey(setting.KeyPath))
-                    return false;
-
-                var currentComposite = ValueExists(setting.KeyPath, setting.ValueName)
-                    ? (GetValue(setting.KeyPath, setting.ValueName)?.ToString() ?? "")
-                    : "";
-
-                var pairs = ParseCompositeString(currentComposite);
-                var newSubValue = specificValue?.ToString()
-                    ?? (isEnabled ? GetWriteValue(setting.EnabledValue)?.ToString() : GetWriteValue(setting.DisabledValue)?.ToString());
-
-                if (newSubValue != null)
-                    pairs[setting.CompositeStringKey] = newSubValue;
-                else
-                    pairs.Remove(setting.CompositeStringKey);
-
-                var mergedValue = BuildCompositeString(pairs);
-                var compositeResult = SetValue(setting.KeyPath, setting.ValueName, mergedValue, RegistryValueKind.String);
-
-                logService.Log(LogLevel.Info,
-                    $"[WindowsRegistryService] Updated composite key '{setting.CompositeStringKey}' to '{newSubValue}' in '{setting.KeyPath}\\{setting.ValueName}' - Full value: '{mergedValue}' - Success: {compositeResult}");
-                return compositeResult;
-            }
-
-            if (setting.BitMask.HasValue && setting.BinaryByteIndex.HasValue)
-            {
-                if (!CreateKey(setting.KeyPath))
-                    return false;
-
-                var setBit = specificValue switch
-                {
-                    bool b => b,
-                    int i => i != 0,
-                    byte b => b != 0,
-                    _ => isEnabled
-                };
-                var result = ModifyBinaryBit(setting.KeyPath, setting.ValueName, setting.BinaryByteIndex.Value, setting.BitMask.Value, setBit);
-                logService.Log(LogLevel.Info, $"[WindowsRegistryService] Modified bit mask 0x{setting.BitMask.Value:X2} at byte index {setting.BinaryByteIndex.Value} to {setBit} - Success: {result}");
-                return result;
-            }
-
-            if (setting.ModifyByteOnly && setting.BinaryByteIndex.HasValue)
-            {
-                var byteValue = specificValue switch
-                {
-                    byte b => b,
-                    int i => (byte)i,
-                    _ when isEnabled => GetWriteValue(setting.EnabledValue) switch
-                    {
-                        byte b => b,
-                        int i => (byte)i,
-                        _ => (byte)0
-                    },
-                    _ => GetWriteValue(setting.DisabledValue) switch
-                    {
-                        byte b => b,
-                        int i => (byte)i,
-                        _ => (byte)0
-                    }
-                };
-
-                if (!CreateKey(setting.KeyPath))
-                    return false;
-
-                var result = ModifyBinaryByte(setting.KeyPath, setting.ValueName, setting.BinaryByteIndex.Value, byteValue);
-                logService.Log(LogLevel.Info, $"[WindowsRegistryService] Modified byte at index {setting.BinaryByteIndex.Value} to {byteValue:X2} - Success: {result}");
-                return result;
-            }
-
-            // Unlock the key first if LockKeyAccess is set, so we can write to it
-            if (setting.LockKeyAccess)
-            {
-                UnlockRegistryKey(setting.KeyPath);
-            }
-
-            var oldValue = GetValue(setting.KeyPath, setting.ValueName);
-            var valueToSet = useDefaultValue
-                ? GetParentDisableValue(setting.DisabledValue)
-                : specificValue ?? (isEnabled
-                    ? GetWriteValue(setting.EnabledValue)
-                    : GetWriteValue(setting.DisabledValue));
-
-            logService.Log(LogLevel.Info, $"[WindowsRegistryService] Setting '{setting.KeyPath}\\{setting.ValueName}' - Old: {oldValue}, New: {valueToSet}{(useDefaultValue ? " (parent cascade disable)" : "")}");
-
-            if (valueToSet == null)
-            {
-                var result = DeleteValue(setting.KeyPath, setting.ValueName);
-                logService.Log(LogLevel.Info, $"[WindowsRegistryService] Deleted value '{setting.ValueName}' from '{setting.KeyPath}' - Success: {result}");
-                return result;
-            }
-
-            if (!CreateKey(setting.KeyPath))
-                return false;
-
-            var setResult = SetValue(setting.KeyPath, setting.ValueName, valueToSet, setting.ValueType);
-
-            logService.Log(LogLevel.Info, $"[WindowsRegistryService] Set value '{setting.ValueName}' = '{valueToSet}' in '{setting.KeyPath}' - Success: {setResult}");
-
-            if (setResult && setting.LockKeyAccess)
-            {
-                // Determine if the value being written means "disabled" (service Start = 4)
-                // Lock the key only when disabling; unlock was already done above for enabling
-                var writtenValue = useDefaultValue
-                    ? GetParentDisableValue(setting.DisabledValue)
-                    : specificValue ?? (isEnabled
-                        ? GetWriteValue(setting.EnabledValue)
-                        : GetWriteValue(setting.DisabledValue));
-
-                // Lock the key if the written value equals the disabled/locked state (e.g., Start = 4)
-                if (!isEnabled || (writtenValue is int intVal && intVal == 4))
-                {
-                    LockRegistryKey(setting.KeyPath);
-                }
-            }
-
-            return setResult;
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Error, $"[WindowsRegistryService] Error applying setting '{setting.KeyPath}\\{setting.ValueName}': {ex.Message}");
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Locks a registry key to read-only for SYSTEM and TrustedInstaller,
-    /// preventing Windows from resetting the value.
-    /// Administrators retain full control to allow Winhance to unlock later.
-    /// </summary>
-    private bool LockRegistryKey(string keyPath)
+    // SYSTEM and TrustedInstaller lose write so Windows cannot reset the value; Administrators keep full control so
+    // Winhance can unlock later.
+    public bool LockRegistryKey(string keyPath)
     {
         try
         {
@@ -692,26 +371,22 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
 
             if (key == null)
             {
-                logService.Log(LogLevel.Warning, $"[WindowsRegistryService] Cannot lock key '{keyPath}': key not found");
+                logService.Log(LogLevel.Warning, $"Cannot lock key '{keyPath}': key not found");
                 return false;
             }
 
             var security = key.GetAccessControl();
 
-            // Ensure Administrators own the key
             var adminsSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
             security.SetOwner(adminsSid);
 
-            // Disable inheritance and convert existing rules to explicit
             security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
 
-            // Remove all existing access rules
             foreach (RegistryAccessRule rule in security.GetAccessRules(true, true, typeof(SecurityIdentifier)))
             {
                 security.RemoveAccessRule(rule);
             }
 
-            // Grant Administrators full control (so Winhance can unlock later)
             security.AddAccessRule(new RegistryAccessRule(
                 adminsSid,
                 RegistryRights.FullControl,
@@ -719,7 +394,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                 PropagationFlags.None,
                 AccessControlType.Allow));
 
-            // Grant SYSTEM read-only (prevents Windows from writing)
             var systemSid = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
             security.AddAccessRule(new RegistryAccessRule(
                 systemSid,
@@ -730,21 +404,17 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
 
             key.SetAccessControl(security);
 
-            logService.Log(LogLevel.Info, $"[WindowsRegistryService] Locked registry key '{keyPath}' to read-only for SYSTEM");
+            logService.Log(LogLevel.Info, $"Locked registry key '{keyPath}' to read-only for SYSTEM");
             return true;
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Error, $"[WindowsRegistryService] Failed to lock registry key '{keyPath}': {ex.Message}");
+            logService.Log(LogLevel.Error, $"Failed to lock registry key '{keyPath}': {ex.Message}");
             return false;
         }
     }
 
-    /// <summary>
-    /// Restores default permissions on a registry key, re-enabling
-    /// inheritance and granting SYSTEM full control again.
-    /// </summary>
-    private bool UnlockRegistryKey(string keyPath)
+    public bool UnlockRegistryKey(string keyPath)
     {
         try
         {
@@ -756,26 +426,22 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
 
             if (key == null)
             {
-                logService.Log(LogLevel.Warning, $"[WindowsRegistryService] Cannot unlock key '{keyPath}': key not found");
+                logService.Log(LogLevel.Warning, $"Cannot unlock key '{keyPath}': key not found");
                 return false;
             }
 
             var security = key.GetAccessControl();
 
-            // Ensure Administrators own the key
             var adminsSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
             security.SetOwner(adminsSid);
 
-            // Remove all explicit rules
             foreach (RegistryAccessRule rule in security.GetAccessRules(true, false, typeof(SecurityIdentifier)))
             {
                 security.RemoveAccessRule(rule);
             }
 
-            // Re-enable inheritance
             security.SetAccessRuleProtection(isProtected: false, preserveInheritance: false);
 
-            // Grant SYSTEM full control
             var systemSid = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
             security.AddAccessRule(new RegistryAccessRule(
                 systemSid,
@@ -784,7 +450,6 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
                 PropagationFlags.None,
                 AccessControlType.Allow));
 
-            // Grant Administrators full control
             security.AddAccessRule(new RegistryAccessRule(
                 adminsSid,
                 RegistryRights.FullControl,
@@ -794,12 +459,12 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
 
             key.SetAccessControl(security);
 
-            logService.Log(LogLevel.Info, $"[WindowsRegistryService] Unlocked registry key '{keyPath}' - restored SYSTEM full control");
+            logService.Log(LogLevel.Info, $"Unlocked registry key '{keyPath}' - restored SYSTEM full control");
             return true;
         }
         catch (Exception ex)
         {
-            logService.Log(LogLevel.Error, $"[WindowsRegistryService] Failed to unlock registry key '{keyPath}': {ex.Message}");
+            logService.Log(LogLevel.Error, $"Failed to unlock registry key '{keyPath}': {ex.Message}");
             return false;
         }
     }
@@ -824,6 +489,38 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         if (pairs.Count == 0)
             return "";
         return string.Join(";", pairs.Select(p => $"{p.Key}={p.Value}")) + ";";
+    }
+
+    public bool SetCompositeSubValue(string keyPath, string valueName, string compositeKey, string? subValue)
+    {
+        try
+        {
+            if (!CreateKey(keyPath))
+                return false;
+
+            var currentComposite = ValueExists(keyPath, valueName)
+                ? (GetValue(keyPath, valueName)?.ToString() ?? "")
+                : "";
+
+            var pairs = ParseCompositeString(currentComposite);
+
+            if (subValue != null)
+                pairs[compositeKey] = subValue;
+            else
+                pairs.Remove(compositeKey);
+
+            var mergedValue = BuildCompositeString(pairs);
+            var compositeResult = SetValue(keyPath, valueName, mergedValue, RegistryValueKind.String);
+
+            logService.Log(LogLevel.Info,
+                $"Updated composite key '{compositeKey}' to '{subValue}' in '{keyPath}\\{valueName}' - Full value: '{mergedValue}' - Success: {compositeResult}");
+            return compositeResult;
+        }
+        catch (Exception ex)
+        {
+            logService.Log(LogLevel.Error, $"Error setting composite key '{compositeKey}' in '{keyPath}\\{valueName}': {ex.Message}");
+            return false;
+        }
     }
 
     private (RegistryKey rootKey, string subKeyPath) ParseKeyPath(string keyPath)
@@ -854,94 +551,5 @@ public class WindowsRegistryService(ILogService logService, IInteractiveUserServ
         };
 
         return (rootKey, parts[1]);
-    }
-
-    public Dictionary<string, object?> GetBatchValues(IEnumerable<(string keyPath, string? valueName)> queries)
-    {
-        var results = new Dictionary<string, object?>();
-        var queriesByHive = queries.GroupBy(q => GetHiveFromPath(q.keyPath));
-
-        foreach (var hiveGroup in queriesByHive)
-        {
-            var rootKey = hiveGroup.Key;
-
-            foreach (var (keyPath, valueName) in hiveGroup)
-            {
-                try
-                {
-                    var (_, subKeyPath) = ParseKeyPath(keyPath);
-                    using var subKey = rootKey.OpenSubKey(subKeyPath, false);
-
-                    var resultKey = valueName == null
-                        ? $"{keyPath}\\__KEY_EXISTS__"
-                        : $"{keyPath}\\{valueName}";
-
-                    if (valueName == null)
-                    {
-                        results[resultKey] = subKey != null;
-                    }
-                    else
-                    {
-                        results[resultKey] = subKey?.GetValue(valueName);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logService.LogDebug($"[WindowsRegistryService] Failed to get batch value for '{keyPath}\\{valueName}': {ex.Message}");
-                    var resultKey = valueName == null
-                        ? $"{keyPath}\\__KEY_EXISTS__"
-                        : $"{keyPath}\\{valueName}";
-                    results[resultKey] = null;
-                }
-            }
-        }
-
-        return results;
-    }
-
-    private RegistryKey GetHiveFromPath(string keyPath)
-    {
-        var parts = keyPath.Split('\\', 2);
-        var hive = parts[0].ToUpperInvariant();
-
-        // OTS: redirect HKCU to HKU
-        if ((hive == "HKEY_CURRENT_USER" || hive == "HKCU")
-            && interactiveUserService.IsOtsElevation
-            && interactiveUserService.InteractiveUserSid != null)
-        {
-            return Registry.Users;
-        }
-
-        return hive switch
-        {
-            "HKEY_CURRENT_USER" or "HKCU" => Registry.CurrentUser,
-            "HKEY_LOCAL_MACHINE" or "HKLM" => Registry.LocalMachine,
-            "HKEY_CLASSES_ROOT" or "HKCR" => Registry.ClassesRoot,
-            "HKEY_USERS" or "HKU" => Registry.Users,
-            "HKEY_CURRENT_CONFIG" or "HKCC" => Registry.CurrentConfig,
-            _ => throw new ArgumentException($"Unrecognized registry hive: '{hive}' in path '{keyPath}'"),
-        };
-    }
-
-    private static bool CompareValues(object? current, object? desired)
-    {
-        return current switch
-        {
-            null => desired == null,
-            bool b when desired is int d => (b ? 1 : 0) == d,
-            byte b when desired is int d => b == d,
-            byte b when desired is byte d => b == d,
-            int i when desired is int d => i == d,
-            int i when desired is long d => i == d,
-            int i when desired is byte d => i == d,
-            long l when desired is long d => l == d,
-            long l when desired is int d => l == d,
-            string s when desired is string ds => s.Equals(
-                ds,
-                StringComparison.OrdinalIgnoreCase
-            ),
-            byte[] ba when desired is byte[] dba => ba.SequenceEqual(dba),
-            _ => current.Equals(desired),
-        };
     }
 }

@@ -64,7 +64,19 @@ try {
 
 $repoRoot     = Split-Path -Parent $PSScriptRoot
 $csprojPath   = Join-Path $repoRoot 'src\Winhance.UI\Winhance.UI.csproj'
-$msbuild      = Join-Path ${env:ProgramFiles} 'Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe'
+# Same lookup as Find-MSBuild in run-winhance-tests.ps1, which the gates build with: vswhere
+# first, then the standard install folders (vswhere skips a VS without the C++ tools).
+$vswhere      = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+$msbuild      = if (Test-Path $vswhere) {
+    & $vswhere -latest -requires Microsoft.Component.MSBuild -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+}
+if (-not $msbuild -or -not (Test-Path $msbuild)) {
+    $msbuild = @(foreach ($ver in '18', '2022') {
+        foreach ($edition in 'Community', 'Professional', 'Enterprise') {
+            Join-Path ${env:ProgramFiles} "Microsoft Visual Studio\$ver\$edition\MSBuild\Current\Bin\MSBuild.exe"
+        }
+    }) | Where-Object { Test-Path $_ } | Select-Object -First 1
+}
 $buildLogDir  = Join-Path $env:LOCALAPPDATA 'Winhance-dev'
 $buildLog     = Join-Path $buildLogDir 'last-build.log'
 $null = New-Item -ItemType Directory -Path $buildLogDir -Force
@@ -96,7 +108,7 @@ else {
 }
 
 if (-not (Test-Path $csprojPath)) { throw "csproj not found: $csprojPath" }
-if (-not (Test-Path $msbuild))    { throw "MSBuild not found: $msbuild" }
+if (-not $msbuild -or -not (Test-Path $msbuild)) { throw "MSBuild not found: no Visual Studio 18 or 2022 install has MSBuild" }
 
 # --- Version bump ---------------------------------------------------------
 # Use .NET APIs for IO so we preserve UTF-8-no-BOM. Windows PowerShell 5.1's

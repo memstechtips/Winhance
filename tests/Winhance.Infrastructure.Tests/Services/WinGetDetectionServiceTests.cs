@@ -1,32 +1,22 @@
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet;
+using Winhance.TestSupport;
 using Xunit;
 
 namespace Winhance.Infrastructure.Tests.Services;
 
-/// <summary>
-/// Tests for <see cref="WinGetDetectionService"/>.
-///
-/// WinGetComSession is a concrete class that tries to initialize COM via
-/// WindowsPackageManagerStandardFactory. In a test environment, COM init
-/// will fail, which means methods that call _comSession.EnsureComInitialized()
-/// will take the CLI fallback path. The CLI fallback calls static methods on
-/// WinGetCliRunner which invoke actual processes.
-///
-/// Tests here focus on:
-/// - Verifying the service can be constructed and called without throwing
-/// - Null/empty input handling
-/// - Verifying logging behavior
-/// - Verifying the empty-result fallback when COM and CLI are both unavailable
-/// </summary>
+// COM init fails in a test environment, so methods take the CLI fallback path, which invokes real processes;
+// tests focus on construction, null handling, logging and the empty-result fallback.
 public class WinGetDetectionServiceTests
 {
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
+    private readonly ManualTimeProvider _clock = new();
+    private int _walks;
     private readonly WinGetComSession _comSession;
     private readonly WinGetDetectionService _sut;
 
@@ -38,13 +28,100 @@ public class WinGetDetectionServiceTests
             _comSession,
             _mockLogService.Object,
             _mockInteractiveUserService.Object,
-            _mockFileSystemService.Object);
+            _mockFileSystemService.Object,
+            _clock);
+    }
+
+    private Task<List<WinGetInstalledPackage>?> Walk()
+    {
+        _walks++;
+        return Task.FromResult<List<WinGetInstalledPackage>?>([new WinGetInstalledPackage("7zip.7zip", "7-Zip", "24.09", "winget", null)]);
+    }
+
+    [Fact]
+    public async Task GetOrWalkInstalledAsync_SecondCallSoonAfter_ReusesTheWalk()
+    {
+        var first = await _sut.GetOrWalkInstalledAsync(_ => Walk(), CancellationToken.None);
+        _clock.Advance(TimeSpan.FromSeconds(30));
+        var second = await _sut.GetOrWalkInstalledAsync(_ => Walk(), CancellationToken.None);
+
+        _walks.Should().Be(1);
+        second.Should().BeSameAs(first);
+    }
+
+    [Fact]
+    public void ReconnectIfRequested_AfterInvalidate_ResetsTheSessionOnce()
+    {
+        _comSession.ComInitTimedOut = true;
+        _sut.InvalidateInstalledPackages();
+
+        _sut.ReconnectIfRequested();
+        _comSession.ComInitTimedOut.Should().BeFalse();
+
+        _comSession.ComInitTimedOut = true;
+        _sut.ReconnectIfRequested();
+        _comSession.ComInitTimedOut.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ReconnectIfRequested_WithoutInvalidate_KeepsTheSession()
+    {
+        _comSession.ComInitTimedOut = true;
+
+        _sut.ReconnectIfRequested();
+
+        _comSession.ComInitTimedOut.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetOrWalkInstalledAsync_AfterInvalidate_WalksAgain()
+    {
+        await _sut.GetOrWalkInstalledAsync(_ => Walk(), CancellationToken.None);
+        _sut.InvalidateInstalledPackages();
+        await _sut.GetOrWalkInstalledAsync(_ => Walk(), CancellationToken.None);
+
+        _walks.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetOrWalkInstalledAsync_AfterAMinute_WalksAgain()
+    {
+        await _sut.GetOrWalkInstalledAsync(_ => Walk(), CancellationToken.None);
+        _clock.Advance(TimeSpan.FromSeconds(61));
+        await _sut.GetOrWalkInstalledAsync(_ => Walk(), CancellationToken.None);
+
+        _walks.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetOrWalkInstalledAsync_FailedWalk_IsNotKept()
+    {
+        var failed = await _sut.GetOrWalkInstalledAsync(_ => Task.FromResult<List<WinGetInstalledPackage>?>(null), CancellationToken.None);
+        await _sut.GetOrWalkInstalledAsync(_ => Walk(), CancellationToken.None);
+
+        failed.Should().BeNull();
+        _walks.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetOrWalkInstalledAsync_InvalidatedWhileWalking_DoesNotKeepThatWalk()
+    {
+        var running = new TaskCompletionSource<List<WinGetInstalledPackage>?>();
+        var stale = _sut.GetOrWalkInstalledAsync(_ => running.Task, CancellationToken.None);
+        _sut.InvalidateInstalledPackages();
+        running.SetResult([new WinGetInstalledPackage("Old.App", "Old", "1.0", "winget", null)]);
+        await stale;
+
+        var fresh = await _sut.GetOrWalkInstalledAsync(_ => Walk(), CancellationToken.None);
+
+        _walks.Should().Be(1);
+        fresh!.Single().Id.Should().Be("7zip.7zip");
     }
 
     [Fact]
     public async Task GetInstalledPackageIdsAsync_ReturnsHashSet()
     {
-        // Arrange: COM init will fail in test env, CLI fallback will also
+        // COM init will fail in test env, CLI fallback will also
         // likely fail since bundled winget isn't available. The service
         // should return an empty HashSet rather than null or throw.
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
@@ -60,10 +137,8 @@ public class WinGetDetectionServiceTests
             .Setup(f => f.FileExists(It.IsAny<string>()))
             .Returns(false);
 
-        // Act
         var result = await _sut.GetInstalledPackageIdsAsync();
 
-        // Assert
         result.Should().NotBeNull();
         result.Should().BeOfType<HashSet<string>>();
     }
@@ -71,7 +146,6 @@ public class WinGetDetectionServiceTests
     [Fact]
     public async Task GetInstalledPackageIdsAsync_ReturnsCaseInsensitiveHashSet()
     {
-        // Arrange
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
         _mockInteractiveUserService
             .Setup(s => s.GetInteractiveUserFolderPath(It.IsAny<Environment.SpecialFolder>()))
@@ -85,12 +159,9 @@ public class WinGetDetectionServiceTests
             .Setup(f => f.FileExists(It.IsAny<string>()))
             .Returns(false);
 
-        // Act
         var result = await _sut.GetInstalledPackageIdsAsync();
 
-        // Assert: the HashSet should use OrdinalIgnoreCase comparer
         result.Should().NotBeNull();
-        // Verify case-insensitivity by adding items and checking
         result.Add("Test.Package");
         result.Contains("test.package").Should().BeTrue();
         result.Contains("TEST.PACKAGE").Should().BeTrue();
@@ -99,7 +170,6 @@ public class WinGetDetectionServiceTests
     [Fact]
     public async Task GetInstalledPackageIdsAsync_WhenCancelled_ThrowsOperationCancelled()
     {
-        // Arrange
         using var cts = new CancellationTokenSource();
         cts.Cancel();
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
@@ -115,12 +185,11 @@ public class WinGetDetectionServiceTests
             .Setup(f => f.FileExists(It.IsAny<string>()))
             .Returns(false);
 
-        // Act & Assert: should either throw OperationCanceledException or return empty
+        // Should either throw OperationCanceledException or return empty
         // (depends on where cancellation is checked in the flow)
         try
         {
             var result = await _sut.GetInstalledPackageIdsAsync(cts.Token);
-            // If it doesn't throw, it should return an empty set
             result.Should().NotBeNull();
         }
         catch (OperationCanceledException)
@@ -135,46 +204,55 @@ public class WinGetDetectionServiceTests
     [InlineData("  ")]
     public async Task GetInstallerTypeAsync_WithNullOrEmptyPackageId_ReturnsNull(string? packageId)
     {
-        // Act
         var result = await _sut.GetInstallerTypeAsync(packageId!);
 
-        // Assert
         result.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task SearchPackagesAsync_WithBlankQuery_ReturnsEmpty(string query)
+    {
+        var result = await _sut.SearchPackagesAsync(query);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task SearchPackagesAsync_WhenComTimedOut_ReturnsEmpty()
+    {
+        _comSession.ComInitTimedOut = true;
+
+        var result = await _sut.SearchPackagesAsync("vlc");
+
+        result.Should().BeEmpty();
     }
 
     [Fact]
     public async Task GetInstallerTypeAsync_WithValidPackageId_DoesNotThrow()
     {
-        // Arrange: COM init will fail, CLI fallback will run "winget show"
+        // COM init will fail, CLI fallback will run "winget show"
         // which may or may not succeed depending on environment
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
 
-        // Act & Assert: just verify it doesn't throw
         var result = await _sut.GetInstallerTypeAsync("Some.NonExistent.Package");
-
-        // Result could be null (package not found) or a string (if somehow found)
-        // Just verify the method completes without throwing
     }
 
     [Fact]
     public async Task GetInstallerTypeAsync_WhenExceptionOccurs_ReturnsNull()
     {
-        // Arrange: force COM session to mark itself as timed out
         _comSession.ComInitTimedOut = true;
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
 
-        // Act: with COM timed out, it should try CLI fallback.
-        // If CLI also fails, should return null gracefully.
         var result = await _sut.GetInstallerTypeAsync("Test.Package");
 
-        // Assert: should return null, not throw
-        // (the actual result depends on whether winget.exe is on the system)
+        // The actual result depends on whether winget.exe is on the system, so nothing is asserted
     }
 
     [Fact]
     public async Task GetInstalledPackageIdsAsync_WhenComTimedOut_SkipsCom()
     {
-        // Arrange: mark COM as timed out so it returns false immediately
         _comSession.ComInitTimedOut = true;
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation).Returns(false);
         _mockInteractiveUserService
@@ -189,31 +267,26 @@ public class WinGetDetectionServiceTests
             .Setup(f => f.FileExists(It.IsAny<string>()))
             .Returns(false);
 
-        // Act
         var result = await _sut.GetInstalledPackageIdsAsync();
 
-        // Assert: should fall through to CLI fallback
         result.Should().NotBeNull();
         _mockLogService.Verify(
-            l => l.LogInformation(It.Is<string>(s => s.Contains("COM not available, falling back to CLI"))),
+            l => l.LogInformation(It.Is<string>(s => s.Contains("COM not available, falling back to CLI")), It.IsAny<string>()),
             Times.Once);
     }
 
     [Fact]
     public async Task GetInstallerTypeAsync_LogsWarningOnException()
     {
-        // Arrange: setup to force an exception in the GetInstallerTypeAsync path
         _comSession.ComInitTimedOut = true;
         _mockInteractiveUserService.Setup(s => s.IsOtsElevation)
             .Throws(new InvalidOperationException("Test exception"));
 
-        // Act
         var result = await _sut.GetInstallerTypeAsync("Test.Package");
 
-        // Assert
         result.Should().BeNull();
         _mockLogService.Verify(
-            l => l.LogWarning(It.Is<string>(s => s.Contains("Could not determine installer type"))),
+            l => l.LogWarning(It.Is<string>(s => s.Contains("Could not determine installer type")), It.IsAny<string>()),
             Times.Once);
     }
 }

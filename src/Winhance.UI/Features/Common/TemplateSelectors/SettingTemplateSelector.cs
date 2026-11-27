@@ -5,52 +5,53 @@ using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.TemplateSelectors;
 
-/// <summary>
-/// Selects the appropriate DataTemplate based on the setting's InputType.
-/// This ensures only the relevant control is created for each setting,
-/// rather than creating all controls and hiding the unused ones.
-/// </summary>
 public partial class SettingTemplateSelector : DataTemplateSelector
 {
     public DataTemplate? ToggleTemplate { get; set; }
+    public DataTemplate? CheckBoxTemplate { get; set; }
     public DataTemplate? SelectionTemplate { get; set; }
-    public DataTemplate? PowerPlanTemplate { get; set; }
     public DataTemplate? NumericTemplate { get; set; }
     public DataTemplate? ActionTemplate { get; set; }
-    public DataTemplate? CheckBoxTemplate { get; set; }
-    public DataTemplate? DualSelectionTemplate { get; set; }
-    public DataTemplate? SingleACSelectionTemplate { get; set; }
-    public DataTemplate? DualNumericTemplate { get; set; }
-    public DataTemplate? SingleACNumericTemplate { get; set; }
+    public DataTemplate? TextBoxTemplate { get; set; }
+    public DataTemplate? ListTemplate { get; set; }
+    public DataTemplate? CheckListTemplate { get; set; }
+    public DataTemplate? TileSelectionTemplate { get; set; }
+    // ONE template each: the on-battery column is bound to HasBattery inside the template rather than split into
+    // Dual/SingleAC variants, which is what let the two halves drift apart.
+    public DataTemplate? PowerSelectionTemplate { get; set; }
+    public DataTemplate? PowerNumericTemplate { get; set; }
 
     protected override DataTemplate? SelectTemplateCore(object item)
     {
         if (item is SettingItemViewModel vm)
         {
-            // Check for PowerPlan setting first (special case of Selection)
-            if (vm.IsPowerPlanSetting && PowerPlanTemplate != null)
-            {
-                return PowerPlanTemplate;
-            }
-
-            // Check for AC/DC dual controls (power settings with Separate mode)
             if (vm.SupportsSeparateACDC)
             {
                 if (vm.InputType == InputType.Selection)
-                    return vm.HasBattery ? DualSelectionTemplate : SingleACSelectionTemplate;
+                    return PowerSelectionTemplate;
                 if (vm.InputType == InputType.NumericRange)
-                    return vm.HasBattery ? DualNumericTemplate : SingleACNumericTemplate;
+                    return PowerNumericTemplate;
             }
 
-            return vm.InputType switch
+            if (vm.ShowsOptionTiles)
+                return TileSelectionTemplate
+                    ?? throw new InvalidOperationException($"No template is wired for the tiles of '{vm.SettingId}'.");
+
+            var template = vm.InputType switch
             {
                 InputType.Toggle => ToggleTemplate,
+                InputType.CheckBox => CheckBoxTemplate,
                 InputType.Selection => SelectionTemplate,
                 InputType.NumericRange => NumericTemplate,
                 InputType.Action => ActionTemplate,
-                InputType.CheckBox => CheckBoxTemplate,
-                _ => ToggleTemplate // Default fallback
+                InputType.TextBox => TextBoxTemplate,
+                InputType.List => ListTemplate,
+                InputType.CheckList => CheckListTemplate,
+                _ => throw new InvalidOperationException(
+                    $"Setting '{vm.SettingId}' is a {vm.InputType}, which the settings list has no card for."),
             };
+
+            return template ?? throw new InvalidOperationException($"No template is wired for {vm.InputType}.");
         }
 
         return base.SelectTemplateCore(item);

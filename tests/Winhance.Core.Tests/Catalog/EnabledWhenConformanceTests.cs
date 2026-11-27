@@ -1,0 +1,296 @@
+using FluentAssertions;
+using Winhance.Core.Features.Common.Catalog;
+using Xunit;
+
+namespace Winhance.Core.Tests.Catalog;
+
+// The gate is DECLARED, not inferred: nesting under a UiParentId only says where the card is drawn. The
+// index-against-zero comparison this replaced was right for gaming-sysmain-service by coincidence and wrong for
+// theme-mode-windows (index 0 is "Light Mode"), so every stock Windows 11 install opened the Windows Theme page
+// with both sub-toggles greyed out. These pin the AUTHORING: which nested settings claim a gate and which
+// deliberately do not.
+public class EnabledWhenConformanceTests
+{
+    private static Setting S(string id) => SettingCatalog.All.First(s => s.Id == id);
+
+    public static readonly Dictionary<string, (string Target, string[] States)> Expected = new()
+    {
+        // Hibernation genuinely owns these: with hiberfil.sys gone there is no hibernate timeout to set,
+        // no hybrid sleep, no fast startup, and nothing for the Start-menu entry to do.
+        ["power-hibernate-timeout"] = ("power-hibernation-enable", new[] { "Common_Enabled" }),
+        ["power-hybrid-sleep"] = ("power-hibernation-enable", new[] { "Common_Enabled" }),
+        ["power-fast-startup"] = ("power-hibernation-enable", new[] { "Common_Enabled" }),
+        ["start-power-hibernate-option"] = ("power-hibernation-enable", new[] { "Common_Enabled" }),
+
+        // HVCI runs ON the hypervisor VBS starts.
+        ["gaming-memory-integrity"] = ("gaming-virtualization-based-security", new[] { "Common_Enabled" }),
+
+        // The one non-toggle gate, and the reason the gate is keyed on labels: SysMain has THREE states
+        // and prefetching is its job, so the child is usable in the two where the service can run.
+        ["gaming-performance-prefetch"] =
+            ("gaming-sysmain-service", new[] { "ServiceOption_Manual", "Setting_gaming-sysmain-service_Option_2" }),
+
+        // Both children configure the SECONDARY taskbars, which do not exist when it is off.
+        ["taskbar-multi-display-apps"] = ("taskbar-multi-display", new[] { "Common_Enabled" }),
+        ["taskbar-combine-buttons-other"] = ("taskbar-multi-display", new[] { "Common_Enabled" }),
+
+        // The lock policies grey both choices in Windows Settings, so Winhance greys them the same way. The gate
+        // points down at the parent's own child, which sits on the same page.
+        ["taskbar-position"] = ("taskbar-lock-position-size", new[] { "Common_Disabled" }),
+        ["taskbar-size"] = ("taskbar-lock-position-size", new[] { "Common_Disabled" }),
+
+        // Windows Settings greys every snap option while Snap windows is off.
+        ["explorer-snap-suggestions"] = ("explorer-snap-windows", new[] { "Common_Enabled" }),
+        ["explorer-snap-layouts-maximize-button"] = ("explorer-snap-windows", new[] { "Common_Enabled" }),
+        ["explorer-snap-layouts-top-of-screen"] = ("explorer-snap-windows", new[] { "Common_Enabled" }),
+        ["explorer-snap-groups-in-switchers"] = ("explorer-snap-windows", new[] { "Common_Enabled" }),
+        ["explorer-snap-without-edge"] = ("explorer-snap-windows", new[] { "Common_Enabled" }),
+
+        // The cleanup schedule belongs to Storage Sense; the policy switching it off leaves nothing to schedule.
+        ["gaming-storage-sense-frequency"] = ("gaming-storage-sense", new[] { "Common_Enabled" }),
+        ["gaming-storage-sense-recycle-bin"] = ("gaming-storage-sense", new[] { "Common_Enabled" }),
+        ["gaming-storage-sense-downloads"] = ("gaming-storage-sense", new[] { "Common_Enabled" }),
+
+        // The Store Notepad ignores both values; measured in the 26H2 VM. Only legacy Notepad reads them.
+        ["explorer-customization-notepad-word-wrap"] = ("explorer-customization-legacy-notepad", new[] { "Common_Enabled" }),
+        ["explorer-customization-notepad-status-bar"] = ("explorer-customization-legacy-notepad", new[] { "Common_Enabled" }),
+
+        // Toast sounds and lock-screen toasts are properties OF a toast; no toasts, nothing to shape.
+        ["notifications-sound"] = ("windows-pushnotifications", new[] { "Common_Enabled" }),
+        ["notifications-toast-above-lock"] = ("windows-pushnotifications", new[] { "Common_Enabled" }),
+        ["notifications-critical-toast-above-lock"] = ("windows-pushnotifications", new[] { "Common_Enabled" }),
+
+        // A typed product key is written only when the edition dropdown defers to it, and Setup creates the
+        // accounts only when the user chose that over signing in.
+        ["autounattend-product-key"] = ("autounattend-edition", new[] { "Setting_autounattend-edition_Option_14" }),
+        ["autounattend-accounts"] = ("autounattend-account", new[] { "Setting_autounattend-account_Option_2" }),
+
+        // Whether Setup runs offline is the user's only when this file creates the accounts: a local account
+        // cannot be made online and a Microsoft account cannot be made offline. OobeNetworkWriter forces those
+        // two, so the card is greyed rather than obeyed.
+        ["autounattend-oobe-network"] = ("autounattend-account", new[] { "Setting_autounattend-account_Option_2" }),
+
+        // Winhance deletes the installers on the new PC, so the choice means nothing when Winhance is not put there.
+        ["autounattend-delete-installers"] = ("autounattend-desktop-shortcut",
+            new[] { "Setting_autounattend-desktop-shortcut_Option_1", "Setting_autounattend-desktop-shortcut_Option_2" }),
+
+        // Each box is a folder the one-time task clears, and there is no task while the cleanup is off.
+        ["autounattend-cleanup-old-components"] = ("autounattend-cleanup", new[] { "Common_Enabled" }),
+        ["autounattend-cleanup-update-downloads"] = ("autounattend-cleanup", new[] { "Common_Enabled" }),
+        ["autounattend-cleanup-servicing-logs"] = ("autounattend-cleanup", new[] { "Common_Enabled" }),
+        ["autounattend-cleanup-temp-files"] = ("autounattend-cleanup", new[] { "Common_Enabled" }),
+        ["autounattend-cleanup-crash-reports"] = ("autounattend-cleanup", new[] { "Common_Enabled" }),
+
+        // The three boxes describe a layout, and there is no layout while Setup is the one asking.
+        ["autounattend-disk-number"] =
+            ("autounattend-disk", new[] { "Setting_autounattend-disk_Option_1", "Setting_autounattend-disk_Option_2" }),
+        ["autounattend-disk-system-size"] =
+            ("autounattend-disk", new[] { "Setting_autounattend-disk_Option_1", "Setting_autounattend-disk_Option_2" }),
+        ["autounattend-disk-recovery-size"] =
+            ("autounattend-disk", new[] { "Setting_autounattend-disk_Option_1", "Setting_autounattend-disk_Option_2" }),
+
+        // These only matter once a drive is to be found.
+        ["autounattend-user-folders-blank"] = ("autounattend-user-folders", new[] { "Setting_autounattend-user-folders_Option_1", "Setting_autounattend-user-folders_Option_2", "Setting_autounattend-user-folders_Option_3" }),
+        ["autounattend-user-folders-letter"] = ("autounattend-user-folders", new[] { "Setting_autounattend-user-folders_Option_1", "Setting_autounattend-user-folders_Option_2", "Setting_autounattend-user-folders_Option_3" }),
+        ["autounattend-user-folders-folder"] = ("autounattend-user-folders", new[] { "Setting_autounattend-user-folders_Option_1", "Setting_autounattend-user-folders_Option_2", "Setting_autounattend-user-folders_Option_3" }),
+    };
+
+    // Not drawn at all rather than greyed: the background kind decides which of these mean anything.
+    public static readonly Dictionary<string, (string Target, string[] States)> Hidden = new()
+    {
+        ["theme-wallpaper-picture"] = ("theme-wallpaper", new[] { "Setting_theme-wallpaper_Option_0" }),
+        ["theme-wallpaper-fit"] = ("theme-wallpaper", new[] { "Setting_theme-wallpaper_Option_0", "Setting_theme-wallpaper_Option_2" }),
+        ["theme-wallpaper-color"] = ("theme-wallpaper", new[] { "Setting_theme-wallpaper_Option_1" }),
+        ["theme-wallpaper-album"] = ("theme-wallpaper", new[] { "Setting_theme-wallpaper_Option_2" }),
+        ["theme-wallpaper-interval"] = ("theme-wallpaper", new[] { "Setting_theme-wallpaper_Option_2" }),
+        ["theme-wallpaper-shuffle"] = ("theme-wallpaper", new[] { "Setting_theme-wallpaper_Option_2" }),
+        ["autounattend-media-editions-list"] = ("autounattend-media-editions", new[] { "Setting_autounattend-media-editions_Option_2" }),
+
+        // Each describes one way of finding the drive, so only its own mode draws it.
+        ["autounattend-user-folders-label"] = ("autounattend-user-folders", new[] { "Setting_autounattend-user-folders_Option_2" }),
+        ["autounattend-user-folders-label-typed"] = ("autounattend-user-folders", new[] { "Setting_autounattend-user-folders_Option_3" }),
+        ["autounattend-user-folders-min-size"] = ("autounattend-user-folders", new[] { "Setting_autounattend-user-folders_Option_1" }),
+        ["autounattend-user-folders-drive-type"] = ("autounattend-user-folders", new[] { "Setting_autounattend-user-folders_Option_1" }),
+    };
+
+    // The other half of the authoring, and the half a "children of an off parent are dead" instinct keeps re-adding.
+    public static readonly string[] DeliberatelyUngated =
+    {
+        // THE REPORTED BUG. The master is a preset over two independently meaningful facets; that they
+        // can disagree is exactly why it needed a "Mixed" state.
+        "theme-mode-apps",
+        "theme-mode-system",
+
+        // Six per-folder toggles under "show all folders": each writes its own NonEnum policy GUID,
+        // which Windows honours independently of NavPaneShowAllFolders.
+        "explorer-customization-nav-saf-desktop",
+        "explorer-customization-nav-saf-documents",
+        "explorer-customization-nav-saf-downloads",
+        "explorer-customization-nav-saf-music",
+        "explorer-customization-nav-saf-pictures",
+        "explorer-customization-nav-saf-videos",
+
+        // Spotlight images and the lock-screen overlay still render with lock-workstation policy set.
+        "privacy-rotating-lock-screen",
+        "privacy-lock-screen-overlay",
+
+        // This sets a cleanup preference; it does not run Storage Sense or change its schedule.
+        "gaming-storage-sense-temporary-files",
+
+        // A tray-icon preference Explorer honours whether or not toasts are on.
+        "notifications-show-bell-icon",
+
+        // Which editions stay on the media matters whatever edition Setup is told to install.
+        "autounattend-media-editions",
+
+        // The name card is a text box with no state to gate on; a typed name becomes the unique name's prefix.
+        "autounattend-computer-name-unique",
+
+        // Dropping the .NET files from the media is a size choice either way; the only case where setup still
+        // needs them depends on the WIM Util mode, which the page gates, not the catalog.
+        "autounattend-netfx3-remove-source",
+
+        // Turning a context-menu entry on turns its menu on, so an entry is never greyed behind its menu.
+        "context-menu-repair-windows",
+        "context-menu-sfc",
+        "context-menu-dism",
+        "context-menu-chkdsk",
+        "context-menu-restore-point",
+        "context-menu-disk-cleanup",
+        "context-menu-optimize-drives",
+        "context-menu-memory-diagnostic",
+        "context-menu-icon-cache",
+        "context-menu-restart-explorer",
+        "context-menu-restart-into",
+        "context-menu-network",
+        "context-menu-end-frozen-apps",
+        "context-menu-store-reset",
+        "context-menu-reliability-monitor",
+        "context-menu-battery-report",
+
+        // The lock is a policy of its own, usable whatever the position is.
+        "taskbar-lock-position-size",
+    };
+
+    [Fact]
+    public void EnabledWhen_Catalog_IsDeclaredOnExactlyTheVerifiedGates()
+    {
+        var declared = SettingCatalog.All
+            .Where(s => s.EnabledWhen is not null)
+            .Select(s => s.Id)
+            .OrderBy(id => id, System.StringComparer.Ordinal);
+
+        declared.Should().Equal(Expected.Keys.OrderBy(id => id, System.StringComparer.Ordinal));
+    }
+
+    [Theory]
+    [MemberData(nameof(GateCases))]
+    public void EnabledWhen_DeclaredGate_NamesItsTargetAndUsableStates(
+        string childId, string targetId, string[] states)
+    {
+        var gate = S(childId).EnabledWhen;
+
+        gate.Should().NotBeNull();
+        gate!.OtherId.Should().Be(targetId);
+        gate.States.Select(k => k.Value).Should().Equal(states);
+    }
+
+    [Theory]
+    [MemberData(nameof(GateCases))]
+    public void EnabledWhen_DeclaredGate_NamesStatesTheTargetHas(
+        string childId, string targetId, string[] states)
+    {
+        // The whole point of keying on the label: a key the target does not carry is a gate that can never
+        // open. CatalogValidator enforces this catalog-wide; this says it for the gates by name.
+        var labels = S(targetId).States.Select(st => st.Label.Value).ToList();
+
+        states.Should().BeSubsetOf(labels, $"'{childId}' is gated on them");
+    }
+
+    public static IEnumerable<object[]> GateCases() =>
+        Expected.Select(kv => new object[] { kv.Key, kv.Value.Target, kv.Value.States });
+
+    [Theory]
+    [MemberData(nameof(UngatedCases))]
+    public void EnabledWhen_NestedSettingWithoutGate_StaysUngated(string childId)
+    {
+        var setting = S(childId);
+
+        setting.UiParentId.Should().NotBeNullOrEmpty("this list is about settings that ARE nested");
+        setting.EnabledWhen.Should().BeNull();
+    }
+
+    public static IEnumerable<object[]> UngatedCases() =>
+        DeliberatelyUngated.Select(id => new object[] { id });
+
+    [Fact]
+    public void VisibleWhen_Catalog_IsDeclaredOnExactlyTheVerifiedGates()
+    {
+        var declared = SettingCatalog.All
+            .Where(s => s.VisibleWhen is not null)
+            .Select(s => s.Id)
+            .OrderBy(id => id, System.StringComparer.Ordinal);
+
+        declared.Should().Equal(Hidden.Keys.OrderBy(id => id, System.StringComparer.Ordinal));
+    }
+
+    [Theory]
+    [MemberData(nameof(HiddenCases))]
+    public void VisibleWhen_DeclaredGate_NamesItsTargetAndDrawnStates(
+        string childId, string targetId, string[] states)
+    {
+        var gate = S(childId).VisibleWhen;
+
+        gate.Should().NotBeNull();
+        gate!.OtherId.Should().Be(targetId);
+        gate.States.Select(k => k.Value).Should().Equal(states);
+        S(targetId).States.Select(st => st.Label.Value).Should().Contain(states);
+
+        // A hidden child is never also greyed: nothing needs both gates.
+        S(childId).EnabledWhen.Should().BeNull();
+    }
+
+    public static IEnumerable<object[]> HiddenCases() =>
+        Hidden.Select(kv => new object[] { kv.Key, kv.Value.Target, kv.Value.States });
+
+    [Fact]
+    public void UiParentId_NestedSetting_IsGatedOrDeliberatelyUngated()
+    {
+        // Non-vacuity for the three lists above: a NEW child of an existing parent has to be a decision,
+        // not a default. Whichever way it is authored, it belongs in one of the lists.
+        var nested = SettingCatalog.All
+            .Where(s => !string.IsNullOrEmpty(s.UiParentId))
+            .Select(s => s.Id)
+            .OrderBy(id => id, System.StringComparer.Ordinal);
+
+        nested.Should().Equal(Expected.Keys.Where(id => !string.IsNullOrEmpty(S(id).UiParentId)).Concat(Hidden.Keys).Concat(DeliberatelyUngated)
+            .OrderBy(id => id, System.StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void EnabledWhen_Gate_NamesASettingOnTheSamePage()
+    {
+        // A gate whose target lives on another PAGE cannot be read: the feature view-model only sees its own
+        // settings, and an unreadable gate stays open.
+        foreach (var s in SettingCatalog.All.Where(s => s.EnabledWhen is not null))
+            SettingCatalog.FeatureById[s.EnabledWhen!.OtherId].Should().Be(SettingCatalog.FeatureById[s.Id],
+                $"'{s.Id}' gates on a setting its page shows");
+    }
+
+    [Fact]
+    public void EnabledWhen_Gate_NeverNamesASeparateAcDcSelection()
+    {
+        // A gate reads its target's CurrentStateLabel, and a Separate PowerCfg selection does not have
+        // one: its live readings sit in the AC and DC indices, and its SelectedValue never resolves to a
+        // state. Such a gate would silently never close. No shipped gate targets one; this keeps it that
+        // way, because the failure is invisible - the card simply stays enabled forever.
+        foreach (var s in SettingCatalog.All.Where(s => s.EnabledWhen is not null))
+        {
+            var target = S(s.EnabledWhen!.OtherId);
+
+            target.Targets.OfType<PowerCfgTarget>()
+                .Any(t => t.Mode == PowerModeSupport.Separate)
+                .Should().BeFalse($"'{s.Id}' gates on '{target.Id}'");
+        }
+    }
+}

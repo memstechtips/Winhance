@@ -1,0 +1,44 @@
+using Microsoft.Win32;
+using Winhance.Core.Features.Common.Enums;
+
+namespace Winhance.Core.Features.Common.Catalog;
+
+// Fire-and-forget: NEVER participates in detection.
+public abstract record Effect
+{
+    public IReadOnlyList<BuildRange> AppliesTo { get; init; } = System.Array.Empty<BuildRange>();
+
+    // True when carrying the effect out launches a PROCESS and waits for it, as opposed to a blocking OS call.
+    // ApplyPlan routes these to IAsyncEffectRunner; this is the one place that classification lives.
+    public bool IsAsyncIo => this is ScriptEffect or RegContentEffect;
+}
+
+// Detection comes from an accompanying Target in the state's Set.
+public sealed record ScriptEffect(string Script, RunContext Run) : Effect
+{
+    // Answer file only: Some keeps the script out of a file that installs no apps, None out of one that does.
+    public AppsToInstall When { get; init; } = AppsToInstall.Either;
+
+    // Answer file only: the script logs its own SUCCESS or WARNING, so the file adds no SUCCESS line after it.
+    public bool LogsOwnOutcome { get; init; }
+}
+
+public sealed record RegContentEffect(string Content) : Effect;
+
+// Activates the scheme, importing a predefined one that is not installed.
+public sealed record PowerPlanEffect(string Guid) : Effect;
+
+// Sets the live value Windows holds in memory; the state's registry write is what persists it and what detection reads.
+// The answer file has nothing to apply live, so it emits nothing for this.
+public sealed record SystemParameterEffect(SystemParameter Parameter, bool On) : Effect;
+
+public sealed record RegistryWriteEffect(string Path, string ValueName, RegistryValueKind Kind, object Value) : Effect
+{
+    public bool IsGroupPolicy { get; init; }
+}
+
+// A RunSynchronous command in the answer file. Inert in the live apply engine.
+public sealed record AutounattendCommand(string Pass, string Component, string Command, string? Description = null) : Effect;
+
+// A FirstLogonCommands entry, which only oobeSystem Shell-Setup carries. Inert in the live apply engine.
+public sealed record AutounattendFirstLogonCommand(string Command, string? Description = null) : Effect;

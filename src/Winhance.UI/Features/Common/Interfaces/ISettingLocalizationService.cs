@@ -1,19 +1,8 @@
-using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 
 namespace Winhance.UI.Features.Common.Interfaces;
 
-/// <summary>
-/// Service for localizing setting definitions.
-/// </summary>
 public interface ISettingLocalizationService
 {
-    /// <summary>
-    /// Localizes a setting definition's properties.
-    /// </summary>
-    SettingDefinition LocalizeSetting(SettingDefinition setting);
-
-    /// <summary>
-    /// Builds a localized message showing cross-group child settings grouped by feature and group.
-    /// </summary>
-    string? BuildCrossGroupInfoMessage(SettingDefinition setting);
+    string? BuildCrossGroupInfoMessage(Setting setting);
 }

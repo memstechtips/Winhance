@@ -6,92 +6,85 @@
     xmlns:fluentIcons="using:FluentIcons.WinUI">
 
     <ResourceDictionary.ThemeDictionaries>
-
+        <!-- Pill colours alias WinUI's status pairs (Recommended = Success, Default = Neutral,
+             Custom = Caution, Preference = Attention, Danger = Critical), so they follow the
+             theme, the accent colour and High Contrast. Each theme repeats the aliases because a
+             StaticResource only re-resolves per theme dictionary. The lock icon is orange in Light and
+             Dark because WinUI's caution brush turns yellow in Dark. -->
         <ResourceDictionary x:Key="Dark">
-            <!-- Recommended: green -->
-            <SolidColorBrush x:Key="BadgeRecommendedBackground" Color="#223FB950"/>
-            <SolidColorBrush x:Key="BadgeRecommendedBorder"     Color="#403FB950"/>
-            <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF3FB950"/>
-
-            <!-- Default: subtle light grey -->
-            <SolidColorBrush x:Key="BadgeDefaultBackground" Color="#12FFFFFF"/>
-            <SolidColorBrush x:Key="BadgeDefaultBorder"     Color="#24FFFFFF"/>
-            <SolidColorBrush x:Key="BadgeDefaultForeground" Color="#99FFFFFF"/>
-
-            <!-- Custom: amber -->
-            <SolidColorBrush x:Key="BadgeCustomBackground" Color="#22F0A030"/>
-            <SolidColorBrush x:Key="BadgeCustomBorder"     Color="#40F0A030"/>
-            <SolidColorBrush x:Key="BadgeCustomForeground" Color="#FFF0A030"/>
-
-            <!-- Preference: blue -->
-            <SolidColorBrush x:Key="BadgePreferenceBackground" Color="#2280B3FF"/>
-            <SolidColorBrush x:Key="BadgePreferenceBorder"     Color="#4080B3FF"/>
-            <SolidColorBrush x:Key="BadgePreferenceForeground" Color="#FF80B3FF"/>
-
-            <!-- Danger: red -->
-            <SolidColorBrush x:Key="BadgeDangerBackground" Color="#22F25555"/>
-            <SolidColorBrush x:Key="BadgeDangerBorder"     Color="#40F25555"/>
-            <SolidColorBrush x:Key="BadgeDangerForeground" Color="#FFF25555"/>
-
+            <StaticResource x:Key="BadgeRecommendedBackground" ResourceKey="SystemFillColorSuccessBackgroundBrush"/>
+            <StaticResource x:Key="BadgeRecommendedBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeRecommendedForeground" ResourceKey="SystemFillColorSuccessBrush"/>
+            <StaticResource x:Key="BadgeDefaultBackground" ResourceKey="SystemFillColorNeutralBackgroundBrush"/>
+            <StaticResource x:Key="BadgeDefaultBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeDefaultForeground" ResourceKey="SystemFillColorNeutralBrush"/>
+            <StaticResource x:Key="BadgeCustomBackground" ResourceKey="SystemFillColorCautionBackgroundBrush"/>
+            <StaticResource x:Key="BadgeCustomBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeCustomForeground" ResourceKey="SystemFillColorCautionBrush"/>
+            <StaticResource x:Key="BadgePreferenceBackground" ResourceKey="SystemFillColorAttentionBackgroundBrush"/>
+            <StaticResource x:Key="BadgePreferenceBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgePreferenceForeground" ResourceKey="SystemFillColorAttentionBrush"/>
+            <StaticResource x:Key="BadgeDangerBackground" ResourceKey="SystemFillColorCriticalBackgroundBrush"/>
+            <StaticResource x:Key="BadgeDangerBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeDangerForeground" ResourceKey="SystemFillColorCriticalBrush"/>
+            <SolidColorBrush x:Key="LockedSettingIconBrush" Color="#FFA500"/>
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Light">
-            <!-- Recommended: darker green for legibility on white -->
-            <SolidColorBrush x:Key="BadgeRecommendedBackground" Color="#221A7F37"/>
-            <SolidColorBrush x:Key="BadgeRecommendedBorder"     Color="#401A7F37"/>
-            <SolidColorBrush x:Key="BadgeRecommendedForeground" Color="#FF1A7F37"/>
-
-            <!-- Default: dark on light — fixes pre-existing invisibility bug -->
-            <SolidColorBrush x:Key="BadgeDefaultBackground" Color="#10000000"/>
-            <SolidColorBrush x:Key="BadgeDefaultBorder"     Color="#33000000"/>
-            <SolidColorBrush x:Key="BadgeDefaultForeground" Color="#99000000"/>
-
-            <!-- Custom: darker amber -->
-            <SolidColorBrush x:Key="BadgeCustomBackground" Color="#22B36800"/>
-            <SolidColorBrush x:Key="BadgeCustomBorder"     Color="#40B36800"/>
-            <SolidColorBrush x:Key="BadgeCustomForeground" Color="#FFB36800"/>
-
-            <!-- Preference: darker blue -->
-            <SolidColorBrush x:Key="BadgePreferenceBackground" Color="#221E5FBF"/>
-            <SolidColorBrush x:Key="BadgePreferenceBorder"     Color="#401E5FBF"/>
-            <SolidColorBrush x:Key="BadgePreferenceForeground" Color="#FF1E5FBF"/>
-
-            <!-- Danger: darker red for legibility on white -->
-            <SolidColorBrush x:Key="BadgeDangerBackground" Color="#22C42B1C"/>
-            <SolidColorBrush x:Key="BadgeDangerBorder"     Color="#40C42B1C"/>
-            <SolidColorBrush x:Key="BadgeDangerForeground" Color="#FFC42B1C"/>
-
+            <StaticResource x:Key="BadgeRecommendedBackground" ResourceKey="SystemFillColorSuccessBackgroundBrush"/>
+            <StaticResource x:Key="BadgeRecommendedBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeRecommendedForeground" ResourceKey="SystemFillColorSuccessBrush"/>
+            <StaticResource x:Key="BadgeDefaultBackground" ResourceKey="SystemFillColorNeutralBackgroundBrush"/>
+            <StaticResource x:Key="BadgeDefaultBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeDefaultForeground" ResourceKey="SystemFillColorNeutralBrush"/>
+            <StaticResource x:Key="BadgeCustomBackground" ResourceKey="SystemFillColorCautionBackgroundBrush"/>
+            <StaticResource x:Key="BadgeCustomBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeCustomForeground" ResourceKey="SystemFillColorCautionBrush"/>
+            <StaticResource x:Key="BadgePreferenceBackground" ResourceKey="SystemFillColorAttentionBackgroundBrush"/>
+            <StaticResource x:Key="BadgePreferenceBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgePreferenceForeground" ResourceKey="SystemFillColorAttentionBrush"/>
+            <StaticResource x:Key="BadgeDangerBackground" ResourceKey="SystemFillColorCriticalBackgroundBrush"/>
+            <StaticResource x:Key="BadgeDangerBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeDangerForeground" ResourceKey="SystemFillColorCriticalBrush"/>
+            <SolidColorBrush x:Key="LockedSettingIconBrush" Color="#FFA500"/>
         </ResourceDictionary>
 
+        <ResourceDictionary x:Key="HighContrast">
+            <StaticResource x:Key="BadgeRecommendedBackground" ResourceKey="SystemFillColorSuccessBackgroundBrush"/>
+            <StaticResource x:Key="BadgeRecommendedBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeRecommendedForeground" ResourceKey="SystemFillColorSuccessBrush"/>
+            <StaticResource x:Key="BadgeDefaultBackground" ResourceKey="SystemFillColorNeutralBackgroundBrush"/>
+            <StaticResource x:Key="BadgeDefaultBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeDefaultForeground" ResourceKey="SystemFillColorNeutralBrush"/>
+            <StaticResource x:Key="BadgeCustomBackground" ResourceKey="SystemFillColorCautionBackgroundBrush"/>
+            <StaticResource x:Key="BadgeCustomBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeCustomForeground" ResourceKey="SystemFillColorCautionBrush"/>
+            <StaticResource x:Key="BadgePreferenceBackground" ResourceKey="SystemFillColorAttentionBackgroundBrush"/>
+            <StaticResource x:Key="BadgePreferenceBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgePreferenceForeground" ResourceKey="SystemFillColorAttentionBrush"/>
+            <StaticResource x:Key="BadgeDangerBackground" ResourceKey="SystemFillColorCriticalBackgroundBrush"/>
+            <StaticResource x:Key="BadgeDangerBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
+            <StaticResource x:Key="BadgeDangerForeground" ResourceKey="SystemFillColorCriticalBrush"/>
+            <SolidColorBrush x:Key="LockedSettingIconBrush" Color="{ThemeResource SystemColorWindowTextColor}"/>
+        </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 
-    <!--
-    BadgeStyles.xaml
-    Centralized visual definition for the SettingsCard InfoBadge pill.
-    Includes:
-      - Pill Border styles per state (Recommended / Default / Custom)
-      - Foreground brushes matching each pill style
-      - Shared text style
-      - The BadgeIconTemplateSelector resource with its three inline icon templates
-    -->
 
-    <!-- ==================== Pill Border Base ==================== -->
+    <!-- Pill Border Base -->
     <!--
-    Height is pinned so CornerRadius can match half of it and produce a true
-    capsule shape. WinUI 3 Border.CornerRadius does not always clamp large
-    values (e.g. 999) to half the rendered height — especially with a 1px
-    BorderThickness — so fixing both values explicitly is the reliable way
-    to guarantee a pill look.
+    MinHeight 20 with CornerRadius 10 is a true capsule at the default text size. WinUI 3 Border.CornerRadius does
+    not always clamp large values (e.g. 999) to half the rendered height, so the radius is half of 20 explicitly.
+    Larger Windows text grows the pill instead of cutting its text, and the ends stay round.
     -->
     <Style x:Key="BadgePillBase" TargetType="Border">
-        <Setter Property="Height" Value="24"/>
-        <Setter Property="CornerRadius" Value="12"/>
-        <Setter Property="Padding" Value="8,0,10,0"/>
+        <Setter Property="MinHeight" Value="20"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="7,0,9,0"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="BorderThickness" Value="1"/>
     </Style>
 
-    <!-- ==================== State-Specific Pill Styles ==================== -->
+    <!-- State-Specific Pill Styles -->
     <Style x:Key="BadgeRecommendedStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
         <Setter Property="Background"  Value="{ThemeResource BadgeRecommendedBackground}"/>
         <Setter Property="BorderBrush" Value="{ThemeResource BadgeRecommendedBorder}"/>
@@ -102,17 +95,13 @@
         <Setter Property="BorderBrush" Value="{ThemeResource BadgeDefaultBorder}"/>
     </Style>
 
-    <Style x:Key="BadgeCustomStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
-        <Setter Property="Background"  Value="{ThemeResource BadgeCustomBackground}"/>
-        <Setter Property="BorderBrush" Value="{ThemeResource BadgeCustomBorder}"/>
-    </Style>
-
     <Style x:Key="BadgePreferenceStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
         <Setter Property="Background"  Value="{ThemeResource BadgePreferenceBackground}"/>
         <Setter Property="BorderBrush" Value="{ThemeResource BadgePreferenceBorder}"/>
     </Style>
 
-    <!-- ==================== Software Apps Status Pill Styles ==================== -->
+
+    <!-- Software Apps Status Pill Styles -->
     <!-- Status badges on the Software Apps cards. Same BadgePillBase capsule as the
          settings badges so the two views share one visual vocabulary. -->
     <Style x:Key="BadgeInstalledStyle" TargetType="Border" BasedOn="{StaticResource BadgePillBase}">
@@ -130,23 +119,21 @@
         <Setter Property="BorderBrush" Value="{ThemeResource BadgeCustomBorder}"/>
     </Style>
 
-    <!-- ==================== NEW Badge Style ==================== -->
-    <!-- Small red badge used next to setting/feature names to indicate new additions.
-         NOT based on BadgePillBase — the NEW badge has its own compact shape. -->
+    <!-- NEW badge beside setting and section names, in the system accent colour. -->
     <Style x:Key="NewBadgeBorderStyle" TargetType="Border">
         <Setter Property="Padding" Value="5,1"/>
-        <Setter Property="CornerRadius" Value="3"/>
-        <Setter Property="Background" Value="#E81123"/>
+        <Setter Property="CornerRadius" Value="{StaticResource ControlCornerRadius}"/>
+        <Setter Property="Background" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
 
     <Style x:Key="NewBadgeTextStyle" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
         <Setter Property="FontSize" Value="10"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
 
-    <!-- ==================== Text Style ==================== -->
+    <!-- Text Style -->
     <Style x:Key="BadgeTextStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="11"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
@@ -154,55 +141,43 @@
         <Setter Property="Margin" Value="0,0,0,2"/>
     </Style>
 
-    <!-- ==================== Icon Template Selector ==================== -->
-    <!-- Each template is a single icon control with the correct foreground brush.
-         The 4px right margin separates the icon from the pill's text label. -->
-    <converters:BadgeIconTemplateSelector x:Key="BadgeIconTemplateSelector">
-        <converters:BadgeIconTemplateSelector.RecommendedTemplate>
-            <DataTemplate>
-                <FontIcon
-                    Glyph="&#xE735;"
-                    FontSize="16"
-                    VerticalAlignment="Center"
-                    Margin="0,4,4,0"
-                    Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-            </DataTemplate>
-        </converters:BadgeIconTemplateSelector.RecommendedTemplate>
-        <converters:BadgeIconTemplateSelector.DefaultTemplate>
-            <DataTemplate>
-                <PathIcon
-                    Data="{StaticResource BadgeDefaultIconPath}"
-                    VerticalAlignment="Center"
-                    Margin="0,4,4,0"
-                    Height="16"
-                    Width="16"
-                    Foreground="{ThemeResource BadgeDefaultForeground}"/>
-            </DataTemplate>
-        </converters:BadgeIconTemplateSelector.DefaultTemplate>
-        <converters:BadgeIconTemplateSelector.CustomTemplate>
-            <DataTemplate>
-                <fluentIcons:FluentIcon
-                    Icon="PersonWrench"
-                    IconVariant="Regular"
-                    FontSize="16"
-                    VerticalAlignment="Center"
-                    Margin="0,4,4,0"
-                    Foreground="{ThemeResource BadgeCustomForeground}"/>
-            </DataTemplate>
-        </converters:BadgeIconTemplateSelector.CustomTemplate>
-        <converters:BadgeIconTemplateSelector.PreferenceTemplate>
-            <DataTemplate>
-                <FontIcon
-                    Glyph="&#xE77B;"
-                    FontSize="16"
-                    VerticalAlignment="Center"
-                    Margin="0,4,4,0"
-                    Foreground="{ThemeResource BadgePreferenceForeground}"/>
-            </DataTemplate>
-        </converters:BadgeIconTemplateSelector.PreferenceTemplate>
-    </converters:BadgeIconTemplateSelector>
+    <!-- The pill icons, shared by every pill. The winhance.net docs read the Icon names from here. -->
+    <Style x:Key="BadgeRecommendedIcon" TargetType="fluentIcons:FluentIcon">
+        <Setter Property="Icon" Value="Star"/>
+        <Setter Property="FontSize" Value="{StaticResource CaptionIconFontSize}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{ThemeResource BadgeRecommendedForeground}"/>
+    </Style>
 
-    <!-- ==================== Quick-Set Buttons ==================== -->
+    <Style x:Key="BadgeDefaultIcon" TargetType="fluentIcons:FluentIcon">
+        <Setter Property="Icon" Value="Apps"/>
+        <Setter Property="FontSize" Value="{StaticResource CaptionIconFontSize}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{ThemeResource BadgeDefaultForeground}"/>
+    </Style>
+
+    <Style x:Key="BadgePreferenceIcon" TargetType="fluentIcons:FluentIcon">
+        <Setter Property="Icon" Value="Person"/>
+        <Setter Property="FontSize" Value="{StaticResource CaptionIconFontSize}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{ThemeResource BadgePreferenceForeground}"/>
+    </Style>
+
+    <!-- Technical Details table badges. Here rather than in TechnicalDetailsStyles.xaml
+         because they need the Badge*Foreground brushes and BadgeTextStyle defined above,
+         and that dictionary is merged into App.xaml before this one. -->
+
+    <Style x:Key="TechDetail.Table.BadgeRecommendedText" TargetType="TextBlock"
+           BasedOn="{StaticResource BadgeTextStyle}">
+        <Setter Property="Foreground" Value="{ThemeResource BadgeRecommendedForeground}"/>
+    </Style>
+
+    <Style x:Key="TechDetail.Table.BadgeDefaultText" TargetType="TextBlock"
+           BasedOn="{StaticResource BadgeTextStyle}">
+        <Setter Property="Foreground" Value="{ThemeResource BadgeDefaultForeground}"/>
+    </Style>
+
+    <!-- Quick-Set Buttons -->
     <!--
     Small borderless icon buttons placed in front of every setting's control. Visible
     only when UserPreferences.ShowInfoBadges is on. The green star matches the
@@ -224,6 +199,7 @@
         <Setter Property="MinWidth" Value="28"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}"/>
     </Style>
 
     <Style x:Key="QuickSetRecommendedButtonStyle" TargetType="Button"

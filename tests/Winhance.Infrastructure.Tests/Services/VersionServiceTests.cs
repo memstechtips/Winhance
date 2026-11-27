@@ -1,10 +1,10 @@
 using System.Net;
+using System.Security.Cryptography;
 using System.Text.Json;
 using FluentAssertions;
 using Moq;
 using Moq.Protected;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Models;
 using Winhance.Infrastructure.Features.Common.Services;
 using Xunit;
 
@@ -13,7 +13,6 @@ namespace Winhance.Infrastructure.Tests.Services;
 public class VersionServiceTests
 {
     private readonly Mock<ILogService> _mockLogService = new();
-    private readonly Mock<IProcessExecutor> _mockProcessExecutor = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
     private readonly Mock<HttpMessageHandler> _mockHttpHandler = new();
     private readonly HttpClient _httpClient;
@@ -24,20 +23,16 @@ public class VersionServiceTests
         _httpClient = new HttpClient(_mockHttpHandler.Object);
         _service = new VersionService(
             _mockLogService.Object,
-            _mockProcessExecutor.Object,
             _mockFileSystemService.Object,
             _httpClient);
     }
 
-    #region GetCurrentVersion
-
     [Fact]
     public void GetCurrentVersion_ReturnsNonNullVersionInfo()
     {
-        // Act
         var result = _service.GetCurrentVersion();
 
-        // Assert — the method always returns a non-null VersionInfo, even in a test runner
+        // The method always returns a non-null VersionInfo, even in a test runner
         // context where the assembly version may not be a valid date-based tag.
         // In such cases VersionInfo.FromTag may return a default record with Version = "".
         result.Should().NotBeNull();
@@ -46,23 +41,16 @@ public class VersionServiceTests
     [Fact]
     public void GetCurrentVersion_CalledTwice_ReturnsSameResult()
     {
-        // Act — calling multiple times should be deterministic
         var first = _service.GetCurrentVersion();
         var second = _service.GetCurrentVersion();
 
-        // Assert
         first.Version.Should().Be(second.Version);
         first.ReleaseDate.Should().Be(second.ReleaseDate);
     }
 
-    #endregion
-
-    #region CheckForUpdateAsync
-
     [Fact]
     public async Task CheckForUpdateAsync_NewerVersionAvailable_ReturnsUpdateAvailable()
     {
-        // Arrange — simulate a GitHub API response with a very new version
         var releaseJson = JsonSerializer.Serialize(new
         {
             tag_name = "v99.12.31",
@@ -72,10 +60,8 @@ public class VersionServiceTests
 
         SetupHttpResponse(HttpStatusCode.OK, releaseJson);
 
-        // Act
         var result = await _service.CheckForUpdateAsync(CancellationToken.None);
 
-        // Assert
         result.Should().NotBeNull();
         result.IsUpdateAvailable.Should().BeTrue();
         result.Version.Should().Be("v99.12.31");
@@ -84,7 +70,7 @@ public class VersionServiceTests
     [Fact]
     public async Task CheckForUpdateAsync_SameOrOlderVersion_ReturnsNoUpdate()
     {
-        // Arrange — In the test runner, GetCurrentVersion() returns a VersionInfo with
+        // In the test runner, GetCurrentVersion() returns a VersionInfo with
         // ReleaseDate = DateTime.MinValue (because the assembly version "0.0.0" doesn't
         // parse into a valid date). A version whose ReleaseDate is also DateTime.MinValue
         // (or any invalid date tag) will NOT be "newer", so IsUpdateAvailable = false.
@@ -98,12 +84,8 @@ public class VersionServiceTests
 
         SetupHttpResponse(HttpStatusCode.OK, releaseJson);
 
-        // Act
         var result = await _service.CheckForUpdateAsync(CancellationToken.None);
 
-        // Assert — v0.0.0 has month=0 which is an invalid DateTime, so FromTag returns
-        // a default VersionInfo. Both current and latest have the same (default) ReleaseDate,
-        // so IsNewerThan returns false, and IsUpdateAvailable is false.
         result.Should().NotBeNull();
         result.IsUpdateAvailable.Should().BeFalse();
     }
@@ -111,11 +93,9 @@ public class VersionServiceTests
     [Fact]
     public async Task CheckForUpdateAsync_CancellationRequested_ThrowsOperationCanceledException()
     {
-        // Arrange
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        // The handler will throw OperationCanceledException when the token is already cancelled
         _mockHttpHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -123,7 +103,6 @@ public class VersionServiceTests
                 ItExpr.IsAny<CancellationToken>())
             .ThrowsAsync(new OperationCanceledException(cts.Token));
 
-        // Act & Assert
         await Assert.ThrowsAsync<OperationCanceledException>(
             () => _service.CheckForUpdateAsync(cts.Token));
     }
@@ -131,13 +110,11 @@ public class VersionServiceTests
     [Fact]
     public async Task CheckForUpdateAsync_HttpError_ReturnsNoUpdate()
     {
-        // Arrange — simulate a non-transient HTTP error (404)
         SetupHttpResponse(HttpStatusCode.NotFound, "Not Found");
 
-        // Act
         var result = await _service.CheckForUpdateAsync(CancellationToken.None);
 
-        // Assert — on non-retryable error, service returns a default VersionInfo with no update
+        // 404 is non-retryable, so the service returns a default VersionInfo with no update
         result.Should().NotBeNull();
         result.IsUpdateAvailable.Should().BeFalse();
     }
@@ -145,7 +122,6 @@ public class VersionServiceTests
     [Fact]
     public async Task CheckForUpdateAsync_BetaVersion_ParsesCorrectly()
     {
-        // Arrange
         var releaseJson = JsonSerializer.Serialize(new
         {
             tag_name = "v99.06.15-beta",
@@ -155,67 +131,121 @@ public class VersionServiceTests
 
         SetupHttpResponse(HttpStatusCode.OK, releaseJson);
 
-        // Act
         var result = await _service.CheckForUpdateAsync(CancellationToken.None);
 
-        // Assert
         result.Should().NotBeNull();
         result.Version.Should().Be("v99.06.15-beta");
         result.IsBeta.Should().BeTrue();
         result.IsUpdateAvailable.Should().BeTrue();
     }
 
-    #endregion
-
-    #region DownloadAndInstallUpdateAsync
-
     [Fact]
-    public async Task DownloadAndInstallUpdateAsync_DownloadsAndLaunchesInstaller()
+    public async Task DownloadAndInstallUpdateAsync_MatchingDigest_KeepsVerifiedInstaller()
     {
-        // Arrange
-        _mockFileSystemService.Setup(f => f.GetTempPath()).Returns(@"C:\Temp");
-        _mockFileSystemService.Setup(f => f.CombinePath(It.IsAny<string[]>()))
-            .Returns((string[] parts) => string.Join(@"\", parts));
+        using var temp = new TempDirectory();
+        SetupTempPath(temp.Path);
+        var installer = new byte[] { 0x4D, 0x5A, 1, 2, 3 };
+        SetupDownload(ReleaseJson("sha256:" + Sha256Of(installer)), installer);
 
-        _mockHttpHandler.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new ByteArrayContent(new byte[] { 0x4D, 0x5A }) // Fake PE header
-            });
+        await _service.DownloadAndInstallUpdateAsync(CancellationToken.None);
 
-        _mockProcessExecutor.Setup(p => p.ShellExecuteAsync(
-                It.IsAny<string>(), It.IsAny<string>(), false, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(0);
-
-        // Act — this will throw because FileStream opens a real file path,
-        // but we can verify the setup calls were correct.
-        // In a real scenario this would need an IFileSystemService.CreateFileStream abstraction.
-        // For now, we verify the method at least calls GetTempPath and CombinePath.
-        try
-        {
-            await _service.DownloadAndInstallUpdateAsync(CancellationToken.None);
-        }
-        catch (DirectoryNotFoundException)
-        {
-            // Expected in test environment — the temp path doesn't exist on the test runner
-        }
-        catch (IOException)
-        {
-            // Also acceptable in test environment
-        }
-
-        // Assert — verify the service composed the correct temp path
-        _mockFileSystemService.Verify(f => f.GetTempPath(), Times.Once);
-        _mockFileSystemService.Verify(f => f.CombinePath(It.IsAny<string[]>()), Times.Once);
+        File.ReadAllBytes(InstallerPath(temp)).Should().Equal(installer);
+        _mockHttpHandler.Protected().Verify(
+            "SendAsync",
+            Times.Once(),
+            ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.AbsoluteUri == DownloadUrl),
+            ItExpr.IsAny<CancellationToken>());
     }
 
-    #endregion
+    [Fact]
+    public async Task DownloadAndInstallUpdateAsync_WrongDigest_DeletesFileAndThrows()
+    {
+        using var temp = new TempDirectory();
+        SetupTempPath(temp.Path);
+        SetupDownload(ReleaseJson("sha256:" + Sha256Of(new byte[] { 9, 9, 9 })), new byte[] { 0x4D, 0x5A, 1 });
 
-    #region BuildInstallerArgs (issue #649 — silent-mode install location)
+        var act = () => _service.DownloadAndInstallUpdateAsync(CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*did not match the checksum*");
+        File.Exists(InstallerPath(temp)).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("md5:abc")]
+    public async Task DownloadAndInstallUpdateAsync_MissingOrUnsupportedDigest_ThrowsWithoutDownloading(string? digest)
+    {
+        using var temp = new TempDirectory();
+        SetupTempPath(temp.Path);
+        SetupDownload(ReleaseJson(digest), new byte[] { 0x4D, 0x5A });
+
+        var act = () => _service.DownloadAndInstallUpdateAsync(CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*checksum*");
+        File.Exists(InstallerPath(temp)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task DownloadAndInstallUpdateAsync_NoInstallerAsset_Throws()
+    {
+        using var temp = new TempDirectory();
+        SetupTempPath(temp.Path);
+        SetupDownload(JsonSerializer.Serialize(new { tag_name = "v1", assets = Array.Empty<object>() }), new byte[] { 1 });
+
+        var act = () => _service.DownloadAndInstallUpdateAsync(CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void OpenVerifiedInstaller_MatchingHash_ReturnsStreamThatBlocksWritesAndDeletes()
+    {
+        using var temp = new TempDirectory();
+        string path = System.IO.Path.Combine(temp.Path, "Winhance.Installer.exe");
+        var installer = new byte[] { 1, 2, 3, 4 };
+        File.WriteAllBytes(path, installer);
+
+        using var held = VersionService.OpenVerifiedInstaller(path, Sha256Of(installer));
+
+        var write = () => File.WriteAllBytes(path, new byte[] { 9 });
+        var delete = () => File.Delete(path);
+        write.Should().Throw<IOException>();
+        delete.Should().Throw<IOException>();
+    }
+
+    [Fact]
+    public void OpenVerifiedInstaller_FileChangedAfterDownload_ThrowsAndReleasesFile()
+    {
+        using var temp = new TempDirectory();
+        string path = System.IO.Path.Combine(temp.Path, "Winhance.Installer.exe");
+        File.WriteAllBytes(path, new byte[] { 1, 2, 3, 4 });
+        string expected = Sha256Of(new byte[] { 1, 2, 3, 4 });
+        File.WriteAllBytes(path, new byte[] { 6, 6, 6 });
+
+        var act = () => VersionService.OpenVerifiedInstaller(path, expected);
+
+        act.Should().Throw<InvalidOperationException>();
+        File.Delete(path);
+        File.Exists(path).Should().BeFalse();
+    }
+
+    [Fact]
+    public void LaunchInstallerAndRestart_NothingDownloaded_Throws()
+    {
+        var act = () => _service.LaunchInstallerAndRestart();
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void LaunchInstallerOnExit_NothingDownloaded_Throws()
+    {
+        _service.IsUpdateDownloaded.Should().BeFalse();
+
+        var act = () => _service.LaunchInstallerOnExit();
+
+        act.Should().Throw<InvalidOperationException>();
+    }
 
     [Theory]
     [InlineData(@"D:\Winhance", false)]
@@ -225,10 +255,9 @@ public class VersionServiceTests
     [InlineData(@"D:\My Portable\Winhance\", true)]
     public void BuildInstallerArgs_AlwaysIncludesDirArgPinnedToAppDir(string appDir, bool isPortable)
     {
-        // Act
         var args = VersionService.BuildInstallerArgs(appDir, isPortable);
 
-        // Assert — /DIR= must be present, quoted, and equal to the appDir
+        // /DIR= must be present, quoted, and equal to the appDir
         // with any trailing path separator stripped. See issue #649: without
         // /DIR=, Inno's silent-install resolution lands {app} at Program Files
         // (regular) or ~\Desktop\Winhance (portable) regardless of where the
@@ -242,10 +271,8 @@ public class VersionServiceTests
     [Fact]
     public void BuildInstallerArgs_Portable_SelectsPortableInstallTaskOnly()
     {
-        // Act
         var args = VersionService.BuildInstallerArgs(@"D:\Portable\Winhance", isPortable: true);
 
-        // Assert
         args.Should().Contain(@"/MERGETASKS=""portableinstall""");
         args.Should().NotContain("regularinstall");
     }
@@ -253,10 +280,8 @@ public class VersionServiceTests
     [Fact]
     public void BuildInstallerArgs_Regular_SelectsRegularInstallTaskWithShortcuts()
     {
-        // Act
         var args = VersionService.BuildInstallerArgs(@"C:\Program Files\Winhance", isPortable: false);
 
-        // Assert
         args.Should().Contain(@"/MERGETASKS=""regularinstall\desktopicon,regularinstall\startmenuicon""");
         args.Should().NotContain("portableinstall");
     }
@@ -264,54 +289,63 @@ public class VersionServiceTests
     [Fact]
     public void BuildInstallerArgs_PathWithSpaces_QuotesDirArgCorrectly()
     {
-        // Arrange — the actual scenario from issue #649's reporter
+        // The actual scenario from issue #649's reporter
         var customPath = @"D:\Windows Tweaks\Winhance";
 
-        // Act
         var args = VersionService.BuildInstallerArgs(customPath, isPortable: false);
 
-        // Assert — the double-quotes around /DIR= must survive so Inno parses
+        // The double-quotes around /DIR= must survive so Inno parses
         // the path with its embedded space correctly
         args.Should().Contain($"/DIR=\"{customPath}\"");
     }
 
-    #endregion
+    private const string DownloadUrl = "https://github.com/memstechtips/Winhance/releases/download/v26.06.12/Winhance.Installer.exe";
 
-    #region Constructor Validation
+    private static string Sha256Of(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
-    [Fact]
-    public void Constructor_NullProcessExecutor_ThrowsArgumentNullException()
+    private static string InstallerPath(TempDirectory temp) => System.IO.Path.Combine(temp.Path, "Winhance.Installer.exe");
+
+    private static string ReleaseJson(string? digest) => JsonSerializer.Serialize(new
     {
-        var act = () => new VersionService(
-            _mockLogService.Object, null!, _mockFileSystemService.Object, _httpClient);
+        tag_name = "v26.06.12",
+        assets = new object[]
+        {
+            new { name = "Other.zip", digest = "sha256:00", browser_download_url = "https://example.invalid/Other.zip" },
+            new { name = "Winhance.Installer.exe", digest, browser_download_url = DownloadUrl },
+        },
+    });
 
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("processExecutor");
+    private void SetupTempPath(string tempPath)
+    {
+        _mockFileSystemService.Setup(f => f.GetTempPath()).Returns(tempPath);
+        _mockFileSystemService.Setup(f => f.CombinePath(It.IsAny<string[]>()))
+            .Returns((string[] parts) => System.IO.Path.Combine(parts));
     }
 
-    [Fact]
-    public void Constructor_NullFileSystemService_ThrowsArgumentNullException()
+    private void SetupDownload(string releaseJson, byte[] installerBytes)
     {
-        var act = () => new VersionService(
-            _mockLogService.Object, _mockProcessExecutor.Object, null!, _httpClient);
-
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("fileSystemService");
+        _mockHttpHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.Host == "api.github.com"),
+                ItExpr.IsAny<CancellationToken>())
+            .Returns(() => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(releaseJson) }));
+        _mockHttpHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.AbsoluteUri == DownloadUrl),
+                ItExpr.IsAny<CancellationToken>())
+            .Returns(() => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(installerBytes) }));
     }
 
-    [Fact]
-    public void Constructor_NullHttpClient_ThrowsArgumentNullException()
+    private sealed class TempDirectory : IDisposable
     {
-        var act = () => new VersionService(
-            _mockLogService.Object, _mockProcessExecutor.Object, _mockFileSystemService.Object, null!);
+        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "winhance-vs-" + Guid.NewGuid().ToString("N"));
 
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("httpClient");
+        public TempDirectory() => Directory.CreateDirectory(Path);
+
+        public void Dispose() => Directory.Delete(Path, recursive: true);
     }
-
-    #endregion
-
-    #region Helpers
 
     private void SetupHttpResponse(HttpStatusCode statusCode, string content)
     {
@@ -325,6 +359,4 @@ public class VersionServiceTests
                 Content = new StringContent(content)
             });
     }
-
-    #endregion
 }

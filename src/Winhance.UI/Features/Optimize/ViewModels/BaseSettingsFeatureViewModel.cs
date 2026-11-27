@@ -1,16 +1,19 @@
-using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
-using System.Threading;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using Winhance.Core.Features.Autounattend;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
 using Winhance.Core.Features.Common.Events.UI;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
+using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Common.ViewModels;
 using ISettingsLoadingService = Winhance.UI.Features.Common.Interfaces.ISettingsLoadingService;
 
@@ -18,6 +21,8 @@ namespace Winhance.UI.Features.Optimize.ViewModels;
 
 public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISettingsFeatureViewModel
 {
+    private static readonly string[] LocalizedProperties = [nameof(DisplayName)];
+
     protected readonly ISettingsLoadingService _settingsLoadingService;
     protected readonly ILogService _logService;
     protected readonly ILocalizationService _localizationService;
@@ -28,15 +33,26 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     private bool _settingsLoaded = false;
     private bool _isSubscribed = false;
     private readonly SemaphoreSlim _loadingSemaphore = new(1, 1);
-    private CancellationTokenSource? _searchDebounceTokenSource;
+    private const int SearchDebounceMs = 150;
+    private IDebounceTimer? _searchDebounceTimer;
     private ISubscriptionToken? _settingAppliedSubscription;
     private ISubscriptionToken? _filterStateChangedSubscription;
     private ISubscriptionToken? _reviewModeExitedSubscription;
-    private ISubscriptionToken? _builderModeExitedSubscription;
+    private ISubscriptionToken? _authoringModeExitedSubscription;
+    private ISubscriptionToken? _builderSeededSubscription;
     private volatile Dictionary<string, SettingItemViewModel> _settingsById = new();
     private volatile Dictionary<string, List<SettingItemViewModel>> _childrenByParentId = new();
+    private readonly List<SettingItemViewModel> _observedCards = [];
+
+    // Related-card refresh coalescing: a burst of relationship applies is drained once by a ~300ms
+    // UI-thread debounce timer. The pending set is guarded (mutated off the UI thread in QueueRelatedRefresh,
+    // drained on the UI thread in OnRelatedRefreshTick); the timer is created and driven only on the UI thread.
+    private readonly object _relatedRefreshLock = new();
+    private readonly HashSet<SettingItemViewModel> _pendingRelatedRefresh = new();
+    private IDebounceTimer? _relatedRefreshTimer;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasVisibleSettings), nameof(SettingsCount), nameof(GroupDescriptionText))]
     public partial ObservableCollection<SettingItemViewModel> Settings { get; set; }
 
     [ObservableProperty]
@@ -46,15 +62,13 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     public partial bool IsLoading { get; set; }
 
     [ObservableProperty]
-    public partial bool IsExpanded { get; set; }
-
-    [ObservableProperty]
     public partial string SearchText { get; set; }
+
+    public bool NeedsRebuild { get; private set; }
 
     public abstract string ModuleId { get; }
     public virtual string DisplayName => GetDisplayName();
-    public bool HasVisibleSettings => Settings.Any(s => s.IsVisible);
-    public bool IsVisibleInSearch => HasVisibleSettings;
+    public bool HasVisibleSettings => Settings.Any(s => s.EffectiveIsVisible);
     public int SettingsCount => Settings?.Count ?? 0;
 
     public string GroupDescriptionText
@@ -88,9 +102,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
     }
 
-    public IRelayCommand LoadSettingsCommand { get; }
-    public IRelayCommand ToggleExpandCommand { get; }
-
     protected BaseSettingsFeatureViewModel(
         ISettingsLoadingService settingsLoadingService,
         ILogService logService,
@@ -99,27 +110,20 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         IEventBus eventBus,
         IApplicationModeService applicationModeService)
     {
-        _settingsLoadingService = settingsLoadingService ?? throw new ArgumentNullException(nameof(settingsLoadingService));
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
-        _dispatcherService = dispatcherService ?? throw new ArgumentNullException(nameof(dispatcherService));
-        _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
-        _applicationModeService = applicationModeService ?? throw new ArgumentNullException(nameof(applicationModeService));
+        LiveInstanceTracker.Shared.Register(this);
+        _settingsLoadingService = settingsLoadingService;
+        _logService = logService;
+        _localizationService = localizationService;
+        _dispatcherService = dispatcherService;
+        _eventBus = eventBus;
+        _applicationModeService = applicationModeService;
 
-        // Initialize partial property defaults
         Settings = new ObservableCollection<SettingItemViewModel>();
         GroupedSettings = new ObservableCollection<SettingsGroup>();
-        IsExpanded = true;
         SearchText = string.Empty;
-
-        LoadSettingsCommand = new RelayCommand(() => LoadSettingsAsync().FireAndForget(_logService));
-        ToggleExpandCommand = new RelayCommand(() => IsExpanded = !IsExpanded);
     }
 
-    /// <summary>
-    /// Subscribes to external events. Called from <see cref="LoadSettingsAsync"/> on first load
-    /// to avoid triggering side effects during DI construction.
-    /// </summary>
+    // Called from LoadSettingsAsync on first load, not the constructor, to avoid side effects during DI construction.
     private void SubscribeToEvents()
     {
         if (_isSubscribed) return;
@@ -129,43 +133,155 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         _settingAppliedSubscription = _eventBus.Subscribe<SettingAppliedEvent>(OnSettingApplied);
         _filterStateChangedSubscription = _eventBus.SubscribeAsync<FilterStateChangedEvent>(OnFilterStateChangedAsync);
         _reviewModeExitedSubscription = _eventBus.Subscribe<ReviewModeExitedEvent>(OnReviewModeExited);
-        _builderModeExitedSubscription = _eventBus.SubscribeAsync<BuilderModeExitedEvent>(OnBuilderModeExitedAsync);
+        _authoringModeExitedSubscription = _eventBus.Subscribe<AuthoringModeExitedEvent>(OnAuthoringModeExited);
+        _builderSeededSubscription = _eventBus.Subscribe<BuilderSeededEvent>(OnBuilderSeeded);
+        _applicationModeService.ModeChanged += OnApplicationModeChanged;
     }
 
     private void OnSettingApplied(SettingAppliedEvent evt)
     {
-        if (!_settingsById.TryGetValue(evt.SettingId, out var setting))
+        // Exact-id verbatim path: when the applied setting lives on THIS feature, update its own card
+        // from the event payload without a re-read. The master-ads flow relies on this. The gate pass that
+        // follows is deliberately over the WHOLE list rather than this setting's children - the applied
+        // card may be the TARGET of a gate declared by something that is not nested under it at all.
+        if (_settingsById.TryGetValue(evt.SettingId, out var setting))
+        {
+            _dispatcherService.RunOnUIThread(() =>
+            {
+                setting.UpdateStateFromEvent(evt.IsEnabled, evt.Value);
+                RefreshDeclaredGates();
+            });
+        }
+
+        // Related-card refresh: re-detect any loaded VM that shares a registry surface with, or is in the UiParent
+        // family of, the applied setting - even when the applied setting lives on a DIFFERENT feature (so this runs
+        // regardless of the exact-id lookup above). Re-detection publishes no events, so there is no feedback loop.
+        QueueRelatedRefresh(evt.SettingId);
+    }
+
+    // Coalesces re-detection of the settings related to an applied one. The applied setting is resolved from the
+    // static catalog (alias-normalized like CatalogSettingsRegistry) so a cross-feature apply still finds its
+    // relations. A gesture can publish 1 root + N relationship-leaf events, so the pending VM set is drained once
+    // by the ~300ms debounce timer rather than per event.
+    private void QueueRelatedRefresh(string appliedSettingId)
+    {
+        var applied = SettingCatalog.ById.TryGetValue(SettingIdAliases.Normalize(appliedSettingId), out var a) ? a : null;
+        if (applied is null)
             return;
 
-        _dispatcherService.RunOnUIThread(() =>
+        var byId = _settingsById; // volatile snapshot; the dictionary is swapped wholesale, never mutated in place
+        var related = new List<SettingItemViewModel>();
+        foreach (var vm in byId.Values)
         {
-            setting.UpdateStateFromEvent(evt.IsEnabled, evt.Value);
+            var candidate = vm.Setting;
+            if (candidate is null || candidate.Id == applied.Id)
+                continue;
+            if (SharesRegistrySurface(applied, candidate) || IsUiParentFamily(applied, candidate))
+                related.Add(vm);
+        }
 
-            // Update children's ParentIsEnabled if this setting has any children
-            if (_childrenByParentId.TryGetValue(evt.SettingId, out var children))
-            {
-                bool parentEnabled = setting.InputType switch
-                {
-                    InputType.Toggle => setting.IsSelected,
-                    InputType.Selection => setting.SelectedValue is int index && index != 0,
-                    _ => setting.IsSelected
-                };
+        if (related.Count == 0)
+            return;
 
-                foreach (var child in children)
-                {
-                    child.ParentIsEnabled = parentEnabled;
-                }
-            }
-        });
+        lock (_relatedRefreshLock)
+        {
+            foreach (var vm in related)
+                _pendingRelatedRefresh.Add(vm);
+        }
+
+        _dispatcherService.RunOnUIThread(ArmRelatedRefreshTimer);
     }
 
-    protected abstract string GetDisplayNameKey();
-
-    private string GetDisplayName()
+    // UI thread. Restarting on every event means a burst of relationship-leaf applies re-detects the union once.
+    private void ArmRelatedRefreshTimer()
     {
-        var key = GetDisplayNameKey();
-        return _localizationService.GetString(key);
+        _relatedRefreshTimer ??= _dispatcherService.CreateDebounceTimer(TimeSpan.FromMilliseconds(300), OnRelatedRefreshTick);
+        _relatedRefreshTimer.Restart();
     }
+
+    // UI thread (timer Tick). Drains the pending set and re-detects it as one subset. Respects the same Builder-mode
+    // guard as RefreshSettingStatesAsync: Builder authors un-applied state, so a live re-read there would clobber it.
+    private void OnRelatedRefreshTick()
+    {
+        List<SettingItemViewModel> subset;
+        lock (_relatedRefreshLock)
+        {
+            subset = _pendingRelatedRefresh.ToList();
+            _pendingRelatedRefresh.Clear();
+        }
+
+        if (subset.Count == 0 || _applicationModeService.Capabilities().AuthorsIntent)
+            return;
+
+        RefreshRelatedStatesAsync(subset).FireAndForget(_logService);
+    }
+
+    private async Task RefreshRelatedStatesAsync(IReadOnlyList<SettingItemViewModel> subset)
+    {
+        try
+        {
+            var states = await _settingsLoadingService.RefreshSettingStatesAsync(subset);
+
+            _dispatcherService.RunOnUIThread(() =>
+            {
+                foreach (var vm in subset)
+                {
+                    if (states.TryGetValue(vm.SettingId, out var state))
+                        vm.UpdateStateFromSystemState(state);
+                }
+
+                RefreshDeclaredGates();
+            });
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Warning, $"Related-card refresh failed in {ModuleId}: {ex.Message}");
+        }
+    }
+
+    // The applied setting WROTE some (path, valueName) pairs and the candidate READS an overlapping one, so the
+    // candidate's card is stale. ApplyOnly targets count only on the written side (never read on detect) and
+    // ReadOnly targets only on the read side.
+    private static bool SharesRegistrySurface(Setting applied, Setting candidate)
+    {
+        var appliedPairs = RegistrySurfacePairs(applied, includeApplyOnly: true);
+        if (appliedPairs.Count == 0)
+            return false;
+        foreach (var pair in RegistrySurfacePairs(candidate, includeApplyOnly: false))
+            if (appliedPairs.Contains(pair))
+                return true;
+        return false;
+    }
+
+    // A null valueName (key-existence) is its own token so it only matches another null, never a named value.
+    private const string KeyExistenceToken = "\0__keyexists__";
+
+    private static HashSet<(string, string)> RegistrySurfacePairs(Setting setting, bool includeApplyOnly)
+    {
+        var pairs = new HashSet<(string, string)>();
+        foreach (var reg in setting.Targets.OfType<RegTarget>())
+        {
+            if (includeApplyOnly ? reg.ReadOnly : reg.ApplyOnly)
+                continue;
+            var value = reg.ValueName is null ? KeyExistenceToken : reg.ValueName.ToLowerInvariant();
+            foreach (var path in reg.Paths)
+                pairs.Add((path.ToLowerInvariant(), value));
+        }
+        return pairs;
+    }
+
+    private static bool IsUiParentFamily(Setting applied, Setting candidate)
+    {
+        if (!string.IsNullOrEmpty(applied.UiParentId)
+            && (candidate.UiParentId == applied.UiParentId || candidate.Id == applied.UiParentId))
+            return true;
+        if (!string.IsNullOrEmpty(candidate.UiParentId) && candidate.UiParentId == applied.Id)
+            return true;
+        return false;
+    }
+
+    // A feature's name key is its id: FeatureNameKeys_FollowTheirFeatureId fails the gate if one ever does not.
+    private string GetDisplayName() => _localizationService.GetStringOrDefault($"Feature_{ModuleId}_Name", ModuleId);
 
     private async void OnLanguageChanged(object? sender, EventArgs e)
     {
@@ -173,7 +289,8 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         {
             _settingsLoaded = false;
 
-            OnPropertyChanged(nameof(DisplayName));
+            foreach (var name in LocalizedProperties)
+                OnPropertyChanged(name);
             await LoadSettingsAsync();
 
             // Notify pages that settings were recreated so they can re-apply view state (badges, etc.)
@@ -181,13 +298,13 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
         catch (Exception ex)
         {
-            _logService.LogDebug($"[{DisplayName}] Error handling language change: {ex.Message}");
+            _logService.LogDebug($"Error handling language change for {DisplayName}: {ex.Message}");
         }
     }
 
     private async Task OnFilterStateChangedAsync(FilterStateChangedEvent e)
     {
-        await RefreshSettingsForFilterChangeAsync();
+        await ApplyFilterScopeChangeAsync();
     }
 
     private void OnReviewModeExited(ReviewModeExitedEvent e)
@@ -201,44 +318,125 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         });
     }
 
-    private async Task OnBuilderModeExitedAsync(BuilderModeExitedEvent e)
+    // The mode we just left moved the toggles to authored, un-applied positions on the shared VMs, so they are
+    // rebuilt from live system state before they are shown again. A total rebuild rather than a per-field reset,
+    // and that is why this side needs no overlay the way review state does: the ViewModels are disposed and
+    // recreated, so a newly added field cannot survive the transition. The rebuild runs on the feature's next
+    // navigation (RefreshOnNavigationAsync) rather than here, where rebuilding every loaded feature inside the
+    // publish blocks the UI thread; the page on screen rebuilds what it shows straight away. Only loaded features
+    // subscribe, and unopened ones read live state on first open.
+    private void OnAuthoringModeExited(AuthoringModeExitedEvent e) => NeedsRebuild = true;
+
+    // The seed records its edits after these cards were built from live state, so their toggles still show the
+    // machine. Cards built after the seed pick it up in SettingViewModelFactory instead.
+    private void OnApplicationModeChanged(object? sender, EventArgs e)
     {
-        // Builder moved the toggles to authored (un-applied) positions on the shared VMs.
-        // Reload from live system state so Normal mode shows the truth. Only touch features
-        // that are actually loaded — unopened ones read fresh system state on first open.
-        if (Settings?.Any() != true) return;
-        await RefreshSettingsForFilterChangeAsync();
+        if (_settingsById.ContainsKey(AutounattendInputService.SettingId))
+            _dispatcherService.RunOnUIThread(RefreshDeclaredGates);
     }
 
-    private async Task RefreshSettingsForFilterChangeAsync()
+    private void OnBuilderSeeded(BuilderSeededEvent e)
     {
+        _dispatcherService.RunOnUIThread(() =>
+        {
+            foreach (var setting in Settings)
+            {
+                setting.ApplyAuthoredOverlay();
+                setting.ComputeBadgeState();
+                setting.UpdateDetectionOutcomeBanner();
+                setting.RefreshTechnicalDetails();
+            }
+        });
+    }
+
+    // Changes only what the scope change actually moved. A hardware-gate flip alters membership for nine
+    // settings, all of them in Power, so nine of the ten features reconcile to "nothing moved" and never
+    // touch the visual tree - which is where the saving is, since the cost the user sees is the WinUI layout
+    // pass, not the managed work. Authoring exit deliberately does NOT come through here; see
+    // OnAuthoringModeExited for why that one still tears the feature down.
+    private async Task ApplyFilterScopeChangeAsync()
+    {
+        // An unopened feature reads fresh state when it is first opened, and a stale one is rebuilt against the
+        // scope current then, so neither has anything to reconcile.
+        if (!_settingsLoaded || NeedsRebuild || Settings is null || Settings.Count == 0)
+            return;
+
         try
         {
-            _logService.Log(LogLevel.Info, $"Refreshing settings for {DisplayName} due to filter change");
+            var membership = _settingsLoadingService.GetFeatureSettingIds(ModuleId);
+            var currentIds = new HashSet<string>(membership, StringComparer.Ordinal);
+            var byId = _settingsById; // volatile snapshot; the dictionary is swapped wholesale, never mutated in place
 
-            // Reset the loaded flag to allow reloading
-            _settingsLoaded = false;
-
-            // Clear and reload settings
-            if (Settings?.Any() == true)
+            var arrivedIds = new List<string>();
+            foreach (var id in membership)
             {
-                foreach (var setting in Settings.OfType<IDisposable>())
-                {
-                    setting?.Dispose();
-                }
-                Settings.Clear();
+                if (!byId.ContainsKey(id))
+                    arrivedIds.Add(id);
             }
 
-            await LoadSettingsAsync();
+            var departed = new List<SettingItemViewModel>();
+            var survivors = new List<SettingItemViewModel>();
+            foreach (var setting in Settings)
+            {
+                if (currentIds.Contains(setting.SettingId))
+                    survivors.Add(setting);
+                else
+                    departed.Add(setting);
+            }
 
-            _logService.Log(LogLevel.Info, $"Successfully refreshed {Settings!.Count} settings for {DisplayName}");
+            foreach (var setting in departed)
+            {
+                Settings.Remove(setting);
+                setting.Dispose();
+            }
 
-            // Notify pages that settings were recreated so they can re-apply view state (badges, etc.)
+            IReadOnlyList<SettingItemViewModel> arrived = arrivedIds.Count > 0
+                ? await _settingsLoadingService.LoadSettingsSubsetAsync(ModuleId, arrivedIds, this)
+                : Array.Empty<SettingItemViewModel>();
+
+            InsertInCatalogOrder(membership, arrived);
+
+            await _settingsLoadingService.RefreshScopeDerivedStateAsync(survivors);
+
+            RebuildSettingIndexes();
+
+            if (arrived.Count == 0 && departed.Count == 0)
+                return;
+
+            RebuildGroupedSettings();
+
+            OnPropertyChanged(nameof(HasVisibleSettings));
+            OnPropertyChanged(nameof(SettingsCount));
+            OnPropertyChanged(nameof(GroupDescriptionText));
+
+            _logService.Log(LogLevel.Info, $"Scope change moved {arrived.Count} in and {departed.Count} out of {DisplayName}");
+
+            // Fresh cards carry default badge/technical-details visibility, so the page has to re-apply the
+            // View-menu state the same way it does after a full rebuild.
             _eventBus.Publish(new SettingsRefreshedEvent(DisplayName));
         }
         catch (Exception ex)
         {
-            _logService.Log(LogLevel.Error, $"Error refreshing settings for filter change: {ex.Message}");
+            _logService.Log(LogLevel.Error, $"Error applying scope change for {DisplayName}: {ex.Message}");
+        }
+    }
+
+    // Settings holds the survivors in catalog order and membership is that same order with the arrivals back
+    // in, so walking the two together lands each new card exactly where a full load would have put it.
+    // RebuildGroupedSettings groups by first-seen order, so an insert in the wrong place reorders the groups.
+    private void InsertInCatalogOrder(IReadOnlyList<string> membership, IReadOnlyList<SettingItemViewModel> arrived)
+    {
+        if (arrived.Count == 0)
+            return;
+
+        var arrivedById = arrived.ToDictionary(setting => setting.SettingId, StringComparer.Ordinal);
+        int index = 0;
+        foreach (var id in membership)
+        {
+            if (index < Settings.Count && string.Equals(Settings[index].SettingId, id, StringComparison.Ordinal))
+                index++;
+            else if (arrivedById.TryGetValue(id, out var setting))
+                Settings.Insert(index++, setting);
         }
     }
 
@@ -249,66 +447,13 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     partial void OnSearchTextChanged(string value)
     {
-        var newCts = new CancellationTokenSource();
-        var oldCts = Interlocked.Exchange(ref _searchDebounceTokenSource, newCts);
-        oldCts?.Cancel();
-        oldCts?.Dispose();
-        var token = newCts.Token;
+        // Before the first load there is nothing to filter; the load applies SearchText itself.
+        if (Settings.Count == 0)
+            return;
 
-        Task.Run(async () =>
-        {
-            try
-            {
-                token.ThrowIfCancellationRequested();
-
-                bool featureMatches = string.IsNullOrWhiteSpace(value) ||
-                    DisplayName.Contains(value, StringComparison.OrdinalIgnoreCase);
-
-                _dispatcherService.RunOnUIThread(() =>
-                {
-                    if (featureMatches)
-                    {
-                        foreach (var setting in Settings)
-                        {
-                            setting.IsVisible = true;
-                        }
-                    }
-                    else
-                    {
-                        foreach (var setting in Settings)
-                        {
-                            setting.UpdateVisibility(value);
-                        }
-
-                        // If parent matches search, show all its children too
-                        foreach (var kvp in _childrenByParentId)
-                        {
-                            if (_settingsById.TryGetValue(kvp.Key, out var parent) && parent.IsVisible)
-                            {
-                                foreach (var child in kvp.Value)
-                                    child.IsVisible = true;
-                            }
-                        }
-
-                        // If any child matches search, ensure its parent is visible
-                        foreach (var kvp in _childrenByParentId)
-                        {
-                            if (kvp.Value.Any(c => c.IsVisible))
-                            {
-                                if (_settingsById.TryGetValue(kvp.Key, out var parent))
-                                    parent.IsVisible = true;
-                            }
-                        }
-                    }
-
-                    OnPropertyChanged(nameof(HasVisibleSettings));
-                    OnPropertyChanged(nameof(IsVisibleInSearch));
-                });
-            }
-            catch (OperationCanceledException)
-            {
-            }
-        });
+        // Filters once typing pauses, so a fast typist re-lays out the list once rather than per key.
+        _searchDebounceTimer ??= _dispatcherService.CreateDebounceTimer(TimeSpan.FromMilliseconds(SearchDebounceMs), ApplyVisibility);
+        _searchDebounceTimer.Restart();
     }
 
     public virtual async Task LoadSettingsAsync()
@@ -327,6 +472,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             IsLoading = true;
 
+            // Cleared before the read, so an authoring exit that lands while this load is in flight still counts.
+            NeedsRebuild = false;
+
             if (Settings?.Any() == true)
             {
                 foreach (var setting in Settings.OfType<IDisposable>())
@@ -344,59 +492,11 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             Settings = loadedSettings;
 
-            // Build new dictionaries and atomically swap references.
-            // Readers on other threads (OnSettingApplied) see either the old
-            // complete dictionary or the new complete one — never a partial build.
-            var newSettingsById = new Dictionary<string, SettingItemViewModel>();
-            var newChildrenByParentId = new Dictionary<string, List<SettingItemViewModel>>();
-            foreach (var setting in Settings)
-            {
-                if (!string.IsNullOrEmpty(setting.SettingId))
-                    newSettingsById[setting.SettingId] = setting;
-
-                // Index children by their parent ID for fast lookup when parent changes
-                var parentId = setting.SettingDefinition?.ParentSettingId;
-                if (!string.IsNullOrEmpty(parentId))
-                {
-                    if (!newChildrenByParentId.TryGetValue(parentId, out var children))
-                    {
-                        children = new List<SettingItemViewModel>();
-                        newChildrenByParentId[parentId] = children;
-                    }
-                    children.Add(setting);
-                }
-            }
-            _settingsById = newSettingsById;
-            _childrenByParentId = newChildrenByParentId;
-
-            // Populate Children collections on parent ViewModels for SettingsExpander rendering
-            foreach (var kvp in newChildrenByParentId)
-            {
-                if (newSettingsById.TryGetValue(kvp.Key, out var parentVm))
-                {
-                    var childList = kvp.Value;
-                    if (childList.Count > 0)
-                        childList[^1].IsLastChild = true;
-                    parentVm.Children = new ObservableCollection<SettingItemViewModel>(childList);
-                }
-            }
-
-            UpdateParentChildRelationships();
+            RebuildSettingIndexes();
             RebuildGroupedSettings();
 
-            OnPropertyChanged(nameof(HasVisibleSettings));
-            OnPropertyChanged(nameof(IsVisibleInSearch));
-            OnPropertyChanged(nameof(SettingsCount));
-            OnPropertyChanged(nameof(GroupDescriptionText));
-
             _settingsLoaded = true;
-            _logService.Log(LogLevel.Info, $"{GetType().Name}: Successfully loaded {Settings.Count} settings, HasVisibleSettings={HasVisibleSettings}");
-        }
-        catch (Exception ex)
-        {
-            _settingsLoaded = false;
-            _logService.Log(LogLevel.Error, $"Error loading {DisplayName} settings: {ex.Message}");
-            throw;
+            _logService.Log(LogLevel.Info, $"{ModuleId}: Successfully loaded {Settings.Count} settings, HasVisibleSettings={HasVisibleSettings}");
         }
         finally
         {
@@ -434,20 +534,23 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
         catch (Exception ex)
         {
-            _logService.Log(LogLevel.Error, $"Error refreshing settings: {ex.Message}");
+            _logService.Log(LogLevel.Error, $"Error refreshing {DisplayName} settings: {ex.Message}");
         }
     }
+
+    // Before the first load there is nothing to refresh: the page's own load reads live state, so a first open
+    // reads the system once.
+    public Task RefreshOnNavigationAsync() => NeedsRebuild ? RefreshSettingsAsync() : RefreshSettingStatesAsync();
 
     public virtual async Task RefreshSettingStatesAsync()
     {
         if (!_settingsLoaded || Settings == null || Settings.Count == 0)
             return;
 
-        // Builder mode authors un-applied state into these ViewModels. The section pages
-        // call this on every navigation to keep Normal mode truthful, but re-reading the
-        // system here would clobber the authored Builder values — skip until Builder exit,
-        // which reloads from live state anyway (BuilderModeExitedEvent).
-        if (_applicationModeService.CurrentMode == WinhanceMode.Builder)
+        // Builder mode authors un-applied state into these ViewModels. A navigation refresh
+        // keeps Normal mode truthful, but re-reading the system here would clobber the authored
+        // Builder values - skip until Builder exit, which has the feature rebuilt from live state.
+        if (_applicationModeService.Capabilities().AuthorsIntent)
             return;
 
         try
@@ -463,55 +566,284 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                         setting.UpdateStateFromSystemState(state);
                     }
                 }
-            });
 
-            // Publish tooltip updates from the already-read state data (no second registry read)
-            foreach (var kvp in states)
-            {
-                if (kvp.Value.TooltipData != null)
-                {
-                    _eventBus.Publish(new TooltipUpdatedEvent(kvp.Key, kvp.Value.TooltipData));
-                }
-            }
+                RefreshDeclaredGates();
+            });
         }
         catch (Exception ex)
         {
-            _logService.Log(LogLevel.Warning, $"[{GetType().Name}] Error refreshing setting states: {ex.Message}");
+            _logService.Log(LogLevel.Warning, $"Error refreshing setting states in {ModuleId}: {ex.Message}");
         }
     }
 
-    private void UpdateParentChildRelationships()
+    // THE PRESENTATION GATE - one implementation for every path.
+    //
+    // A card is greyed only when its catalog DECLARES an EnabledWhen and the setting that names is
+    // currently outside the declared states. Nesting under a UiParentId does not gate anything:
+    // "nested under" and "meaningless unless" are different facts, and only the setting's author knows
+    // the second one. Do not gate on the parent's selected INDEX being non-zero either - that greyed both
+    // Windows-theme sub-toggles on every stock Windows 11 install, because "Light Mode" happens to be state 0.
+    //
+    // In Builder mode the card's own state change (OnSettingStateChanged) is the only signal: an authored edit
+    // raises no SettingAppliedEvent and both refresh paths skip that mode. Recomputing the whole list is one
+    // pass over a few dozen cards, so nothing works out which cards could have changed.
+    protected void RefreshDeclaredGates()
     {
+        if (Settings is null)
+            return;
+
         foreach (var setting in Settings)
         {
-            if (!string.IsNullOrEmpty(setting.SettingDefinition?.ParentSettingId))
-            {
-                var parent = Settings.FirstOrDefault(s => s.SettingId == setting.SettingDefinition.ParentSettingId);
-                if (parent != null)
-                {
-                    bool parentEnabled = parent.InputType switch
-                    {
-                        InputType.Toggle => parent.IsSelected,
-                        InputType.Selection => parent.SelectedValue is int index && index != 0,
-                        _ => parent.IsSelected
-                    };
+            var decidedByPage = setting.IsAutounattendInputServiceRequired
+                ? AutounattendInputService.RequiredState
+                : DecidedByPage(setting);
+            bool gateOpen = decidedByPage is null && IsGateSatisfied(setting.Setting?.EnabledWhen);
+            setting.ParentIsEnabled = gateOpen;
+            setting.DisabledReason = gateOpen ? null : ReasonFor(setting, decidedByPage is not null);
+            setting.ParentIsVisible = IsShownOnPage(setting)
+                && (IsGateSatisfied(setting.Setting?.VisibleWhen) || ShownForReview(setting));
 
-                    setting.ParentIsEnabled = parentEnabled;
-                }
+            var decided = decidedByPage ?? DecidedState(setting, gateOpen);
+            if (setting.DecidedState != decided)
+            {
+                setting.DecidedState = decided;
+                if (decided is null)
+                    setting.ShowUndecided();
+                else
+                    setting.ApplyAuthoredOverlay();
             }
         }
+
+        RefreshLastChild();
+
+        OnPropertyChanged(nameof(HasVisibleSettings));
+    }
+
+    // A page can hide a card for something only the page knows, such as where its session started.
+    protected virtual bool IsShownOnPage(SettingItemViewModel setting) => true;
+
+    // A page can also decide a card from something outside the catalog's gates; the card then shows that state, greyed.
+    protected virtual LocKey? DecidedByPage(SettingItemViewModel setting) => null;
+
+    // The text a page shows on a card it decided, saying what made the decision.
+    protected virtual string? DisabledReasonFor(SettingItemViewModel setting) => null;
+
+    // A card gated on a card the page decided carries that card's reason, since changing the other card is no remedy.
+    private string? ReasonFor(SettingItemViewModel setting, bool decidedByPage)
+    {
+        if (setting.IsAutounattendInputServiceRequired)
+            return _localizationService.GetString(LocKey.Setting.GamingTouchKeyboardService.OptionWarning0);
+
+        if (decidedByPage)
+            return DisabledReasonFor(setting);
+
+        if (setting.Setting?.EnabledWhen is not { } gate || !_settingsById.TryGetValue(gate.OtherId, out var other))
+            return null;
+
+        if (DecidedByPage(other) is not null)
+            return DisabledReasonFor(other);
+
+        var key = gate.States is [var only] && only == LocKey.Common.Enabled ? "Setting_Disabled_TurnOn" : "Setting_Disabled_Change";
+        return string.Format(_localizationService.GetString(key), other.Name);
+    }
+
+    // On a page of several features, text inside a feature's name shows that whole feature.
+    protected virtual bool SearchMatchesFeatureName => true;
+
+    private SettingStateFilter _stateFilter;
+    private Func<string, bool>? _onlyChanges;
+    private bool _visibilityPending;
+
+    // Show Only Changes replaces the state filter rather than combining with it: a pending change is the
+    // question the review asks, and a card the import changes is rarely at the state it is filtered for.
+    public void SetViewFilter(SettingStateFilter stateFilter, Func<string, bool>? onlyChanges)
+    {
+        _stateFilter = stateFilter;
+        _onlyChanges = onlyChanges;
+        ApplyVisibility();
+    }
+
+    // The state filter never hides a card the review waits on, for the same reason the gates do not (ShownForReview).
+    private bool PassesViewFilter(SettingItemViewModel setting) =>
+        _onlyChanges is { } onlyChanges
+            ? onlyChanges(setting.SettingId)
+            : setting.MatchesStateFilter(_stateFilter) || ShownForReview(setting);
+
+    // The only writer of IsVisible. Search pulls a matched parent's children in with it; the view filter then
+    // applies to each card on its own, and a child that survives brings its parent back, because the parent's
+    // expander is where the child renders.
+    private void ApplyVisibility()
+    {
+        var search = SearchText ?? string.Empty;
+        bool featureMatches = string.IsNullOrWhiteSpace(search) ||
+            (SearchMatchesFeatureName && DisplayName.Contains(search, StringComparison.OrdinalIgnoreCase));
+
+        var shown = new HashSet<SettingItemViewModel>(Settings.Where(s => featureMatches || s.MatchesSearch(search)));
+
+        if (!featureMatches)
+        {
+            foreach (var (parentId, children) in _childrenByParentId)
+            {
+                if (_settingsById.TryGetValue(parentId, out var parent) && shown.Contains(parent))
+                    shown.UnionWith(children);
+            }
+        }
+
+        shown.RemoveWhere(s => !PassesViewFilter(s));
+
+        foreach (var (parentId, children) in _childrenByParentId)
+        {
+            if (children.Any(c => c.ParentIsVisible && shown.Contains(c))
+                && _settingsById.TryGetValue(parentId, out var parent))
+                shown.Add(parent);
+        }
+
+        foreach (var setting in Settings)
+            setting.IsVisible = shown.Contains(setting);
+
+        RefreshLastChild();
+
+        OnPropertyChanged(nameof(HasVisibleSettings));
+    }
+
+    private void RefreshLastChild()
+    {
+        foreach (var children in _childrenByParentId.Values)
+        {
+            var last = children.LastOrDefault(child => child.EffectiveIsVisible);
+            foreach (var child in children)
+                child.IsLastChild = ReferenceEquals(child, last);
+        }
+    }
+
+    // A gate reads this machine's value for the gating card, so a card the imported file wants to change can sit
+    // behind a gate the file's own value would open. The review counts every card it diffs, and Apply waits for
+    // each one to be reviewed, so a hidden card with a diff leaves the review uncompletable.
+    private static bool ShownForReview(SettingItemViewModel setting) =>
+        setting.IsInReviewMode && (setting.HasReviewDiff || setting.HasReviewAction);
+
+    // A greyed card is not the user's to answer, and when the card that greyed it also DECIDES it
+    // (Controls), that decision is what gets written - so it is what the card must show, instead of
+    // whatever the user last picked while the gate was open. Read through EnabledWhen rather than over every
+    // Controls in the catalog: a master's preset children (visual-effects-mode) stay independently editable
+    // and declare no gate, so they are untouched.
+    private LocKey? DecidedState(SettingItemViewModel setting, bool gateOpen)
+    {
+        if (gateOpen || setting.Setting?.EnabledWhen is not { } gate)
+            return null;
+
+        if (!_settingsById.TryGetValue(gate.OtherId, out var other)
+            || other.CurrentStateLabel is not { } label
+            || other.Setting?.States.FirstOrDefault(s => s.Label.Value == label)?.Controls is not { } controls)
+            return null;
+
+        return controls.TryGetValue(setting.SettingId, out var decided) ? decided : null;
+    }
+
+    // The two early "open" answers are deliberate: a setting this feature has not loaded, or one whose state
+    // does not resolve, is no evidence for taking a control away.
+    private bool IsGateSatisfied(StateGate? gate)
+    {
+        if (gate is null)
+            return true;
+
+        if (!_settingsById.TryGetValue(gate.OtherId, out var other))
+            return true;
+
+        if (other.CurrentStateLabel is not { } label)
+            return true;
+
+        return gate.States.Any(k => string.Equals(k.Value, label, StringComparison.Ordinal));
+    }
+
+    private void OnSettingStateChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        bool reviewChanged = e.PropertyName is nameof(SettingItemViewModel.HasReviewDiff)
+            or nameof(SettingItemViewModel.HasReviewAction);
+
+        if (reviewChanged
+            || e.PropertyName is nameof(SettingItemViewModel.IsSelected) or nameof(SettingItemViewModel.SelectedValue))
+        {
+            RefreshDeclaredGates();
+        }
+
+        if ((reviewChanged
+                || e.PropertyName is nameof(SettingItemViewModel.IsAtRecommended) or nameof(SettingItemViewModel.IsAtDefault))
+            && _stateFilter != SettingStateFilter.All && _onlyChanges is null)
+        {
+            QueueApplyVisibility();
+        }
+    }
+
+    // A bulk apply or refresh moves the badges one card at a time, so the filter runs once after the burst
+    // instead of once per card.
+    private void QueueApplyVisibility()
+    {
+        if (_visibilityPending)
+            return;
+
+        _visibilityPending = true;
+        _dispatcherService.Enqueue(() =>
+        {
+            _visibilityPending = false;
+            ApplyVisibility();
+        });
+    }
+
+    // Every per-card index this feature holds is derived from Settings, and nothing else holds per-card
+    // state - which is what lets the filter path mutate Settings in place and then just re-run this. The
+    // dictionaries are built whole and swapped by reference, so a reader on another thread
+    // (OnSettingApplied) sees either the old complete one or the new complete one, never a partial build.
+    private void RebuildSettingIndexes()
+    {
+        foreach (var observed in _observedCards)
+            observed.PropertyChanged -= OnSettingStateChanged;
+        _observedCards.Clear();
+
+        var newSettingsById = new Dictionary<string, SettingItemViewModel>();
+        var newChildrenByParentId = new Dictionary<string, List<SettingItemViewModel>>();
+        foreach (var setting in Settings)
+        {
+            setting.PropertyChanged += OnSettingStateChanged;
+            _observedCards.Add(setting);
+            if (!string.IsNullOrEmpty(setting.SettingId))
+                newSettingsById[setting.SettingId] = setting;
+
+            var parentId = setting.EffectiveUiParentId;
+            if (!string.IsNullOrEmpty(parentId))
+            {
+                if (!newChildrenByParentId.TryGetValue(parentId, out var children))
+                {
+                    children = new List<SettingItemViewModel>();
+                    newChildrenByParentId[parentId] = children;
+                }
+                children.Add(setting);
+            }
+        }
+        _settingsById = newSettingsById;
+        _childrenByParentId = newChildrenByParentId;
+
+        foreach (var kvp in newChildrenByParentId)
+        {
+            if (newSettingsById.TryGetValue(kvp.Key, out var parentVm))
+            {
+                var childList = kvp.Value;
+
+                // Replacing Children rebinds the parent's expander, so only do it when the child set moved.
+                if (parentVm.Children is null || !parentVm.Children.SequenceEqual(childList))
+                    parentVm.Children = new ObservableCollection<SettingItemViewModel>(childList);
+            }
+        }
+
+        RefreshDeclaredGates();
+        ApplyVisibility();
     }
 
     private void RebuildGroupedSettings()
     {
-        GroupedSettings.Clear();
-
-        if (Settings == null || Settings.Count == 0)
-            return;
-
-        var otherGroupName = _localizationService.GetString("SettingGroup_Other");
-        if (otherGroupName.StartsWith("[") && otherGroupName.EndsWith("]"))
-            otherGroupName = "Other";
+        var otherGroupName = _localizationService.TryGetString("SettingGroup_General", out var localizedOther)
+            ? localizedOther
+            : "General";
 
         var groupOrder = new List<string>();
         var groupedDict = new Dictionary<string, List<SettingItemViewModel>>();
@@ -524,20 +856,21 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             var groupName = string.IsNullOrEmpty(setting.GroupName) ? otherGroupName : setting.GroupName;
 
-            if (!groupedDict.ContainsKey(groupName))
+            if (!groupedDict.TryGetValue(groupName, out var groupSettings))
             {
                 groupOrder.Add(groupName);
-                groupedDict[groupName] = new List<SettingItemViewModel>();
+                groupSettings = new List<SettingItemViewModel>();
+                groupedDict[groupName] = groupSettings;
             }
 
-            groupedDict[groupName].Add(setting);
+            groupSettings.Add(setting);
         }
 
+        // Clear then Add, not ReplaceInPlace: the grouped CollectionViewSource over this takes Reset and Add, and an
+        // indexed Replace of a group crashes XAML natively (0xc000027b).
+        GroupedSettings.Clear();
         foreach (var groupName in groupOrder)
-        {
-            var group = new SettingsGroup(groupName, groupedDict[groupName]);
-            GroupedSettings.Add(group);
-        }
+            GroupedSettings.Add(new SettingsGroup(groupName, groupedDict[groupName]));
     }
 
     protected override void Dispose(bool disposing)
@@ -553,10 +886,17 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             _reviewModeExitedSubscription?.Dispose();
             _reviewModeExitedSubscription = null;
 
-            _builderModeExitedSubscription?.Dispose();
-            _builderModeExitedSubscription = null;
+            _authoringModeExitedSubscription?.Dispose();
+            _authoringModeExitedSubscription = null;
+
+            _builderSeededSubscription?.Dispose();
+            _builderSeededSubscription = null;
+            _applicationModeService.ModeChanged -= OnApplicationModeChanged;
 
             _localizationService.LanguageChanged -= OnLanguageChanged;
+
+            _relatedRefreshTimer?.Stop();
+            _relatedRefreshTimer = null;
 
             if (Settings != null)
             {
@@ -567,9 +907,8 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 Settings.Clear();
             }
 
-            var cts = Interlocked.Exchange(ref _searchDebounceTokenSource, null);
-            cts?.Cancel();
-            cts?.Dispose();
+            _searchDebounceTimer?.Stop();
+            _searchDebounceTimer = null;
 
             _settingsById = new Dictionary<string, SettingItemViewModel>();
             _childrenByParentId = new Dictionary<string, List<SettingItemViewModel>>();

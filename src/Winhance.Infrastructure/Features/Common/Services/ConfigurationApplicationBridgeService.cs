@@ -1,36 +1,37 @@
-using System;
-using System.Linq;
-using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.Infrastructure.Features.Common.Helpers;
+using Winhance.Core.Features.Common.Selections;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class ConfigurationApplicationBridgeService : IConfigurationApplicationBridgeService
+internal class ConfigurationApplicationBridgeService : IConfigurationApplicationBridgeService
 {
     private readonly ISettingApplicationService _settingApplicationService;
-    private readonly ICompatibleSettingsRegistry _compatibleSettingsRegistry;
+    private readonly ICatalogSettingsRegistry _catalogSettingsRegistry;
     private readonly ILogService _logService;
     private readonly IConfigImportState _configImportState;
+    private readonly IFileStore _fileStore;
 
     public ConfigurationApplicationBridgeService(
         ISettingApplicationService settingApplicationService,
-        ICompatibleSettingsRegistry compatibleSettingsRegistry,
+        ICatalogSettingsRegistry catalogSettingsRegistry,
         ILogService logService,
-        IConfigImportState configImportState)
+        IConfigImportState configImportState,
+        IFileStore fileStore)
     {
         _settingApplicationService = settingApplicationService;
-        _compatibleSettingsRegistry = compatibleSettingsRegistry;
+        _catalogSettingsRegistry = catalogSettingsRegistry;
         _logService = logService;
         _configImportState = configImportState;
+        _fileStore = fileStore;
     }
 
     public async Task<bool> ApplyConfigurationSectionAsync(
         ConfigSection section,
         string sectionName,
-        Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>>? confirmationHandler = null)
+        Func<string, object?, Task<(bool confirmed, bool checkboxResult)>>? confirmationHandler = null)
     {
         if (section?.Items == null || !section.Items.Any())
         {
@@ -40,14 +41,13 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
 
         _logService.Log(LogLevel.Info, $"Applying {section.Items.Count} settings from {sectionName} section");
 
-        // If this section carries individual PowerCfg-backed items alongside the power-plan
-        // selection, mark the import as the source of truth for power values. The power-plan
-        // special handler reads this flag and skips its recommended-settings re-apply, which
-        // would otherwise duplicate (and race with) these individual items in the same wave.
-        // Only set true here; the import orchestrators reset it (other sections run in parallel).
+        // Individual powercfg items in the file make the import the source of truth for power values, so the
+        // power-plan activation skips its recommended re-apply, which would race these items in the same wave.
+        // The flag lives on the import's Begin() scope and ends with it, so this only ever sets it (other
+        // sections run in parallel).
         if (section.Items.Any(i =>
                 !string.IsNullOrEmpty(i.Id) &&
-                i.Id != SettingIds.PowerPlanSelection &&
+                i.Id != "power-plan-selection" &&
                 i.PowerSettings != null))
         {
             _configImportState.ImportSuppliesPowerValues = true;
@@ -56,13 +56,17 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         var waves = BuildDependencyWaves(section.Items);
         _logService.Log(LogLevel.Info, $"Organized {section.Items.Count} settings into {waves.Count} parallel wave(s)");
 
+        var materialized = await MaterializeCarriedFilesAsync(waves.SelectMany(wave => wave).ToList())
+            .ConfigureAwait(false);
+
         int appliedCount = 0;
         int skippedOsCount = 0;
         int failCount = 0;
 
         foreach (var wave in waves)
         {
-            var tasks = wave.Select(tuple => ApplySettingItemAsync(tuple.item, tuple.setting, confirmationHandler));
+            var tasks = wave.Select(tuple =>
+                ApplySettingItemAsync(tuple.item, tuple.setting, materialized, confirmationHandler));
             var results = await Task.WhenAll(tasks).ConfigureAwait(false);
 
             foreach (var result in results)
@@ -98,119 +102,70 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         return failCount == 0;
     }
 
-    private object ResolveSelectionValue(SettingDefinition setting, ConfigurationItem item)
+    private async Task<IReadOnlyDictionary<string, ChoiceValue>> MaterializeCarriedFilesAsync(
+        IReadOnlyList<(ConfigurationItem item, Setting setting)> pairs)
     {
-        if (setting.Id == SettingIds.PowerPlanSelection)
+        // A config can list one id twice with a file each, which would write the same destination twice and
+        // land two choices under one id.
+        var carrying = pairs
+            .Where(pair => pair.item.File is { Base64.Length: > 0 })
+            .GroupBy(pair => pair.item.Id!, StringComparer.Ordinal)
+            .Select(group => group.Last())
+            .ToList();
+        if (carrying.Count == 0)
+            return new Dictionary<string, ChoiceValue>(StringComparer.Ordinal);
+
+        var choices = new List<SettingChoice>();
+        var files = new List<CarriedFile>();
+        foreach (var (item, setting) in carrying)
         {
-            return ResolvePowerPlanValue(setting, item);
+            if (ConfigFileMapper.DecodeValue(setting, item) is not { } value)
+                continue;
+            choices.Add(new SettingChoice(item.Id!, value));
+            files.Add(new CarriedFile(item.Id!, item.File!.Destination, item.File.Base64));
         }
 
-        if (item.CustomStateValues != null && item.CustomStateValues.Count > 0)
-        {
-            return item.CustomStateValues;
-        }
+        var landed = await _fileStore
+            .MaterializeAsync(SelectionSet.Empty with { Settings = choices, Files = files })
+            .ConfigureAwait(false);
 
-        if (item.PowerSettings != null &&
-            item.PowerSettings.ContainsKey("ACIndex") &&
-            item.PowerSettings.ContainsKey("DCIndex"))
-        {
-            var acIndex = Convert.ToInt32(UnwrapJsonElement(item.PowerSettings["ACIndex"]));
-            var dcIndex = Convert.ToInt32(UnwrapJsonElement(item.PowerSettings["DCIndex"]));
-            return (acIndex, dcIndex);
-        }
-
-        if (item.SelectedIndex.HasValue)
-        {
-            return item.SelectedIndex.Value;
-        }
-
-        return 0;
+        return landed.Settings.ToDictionary(choice => choice.SettingId, choice => choice.Value, StringComparer.Ordinal);
     }
 
-    private object ResolvePowerPlanValue(SettingDefinition setting, ConfigurationItem item)
+    private object ResolveSelectionValue(
+        Setting setting, ConfigurationItem item, IReadOnlyDictionary<string, ChoiceValue> materialized)
     {
-        if (!string.IsNullOrEmpty(item.PowerPlanGuid))
+        switch (Decoded(setting, item, materialized))
         {
-            return new Dictionary<string, object>
-            {
-                ["Guid"] = item.PowerPlanGuid,
-                ["Name"] = item.PowerPlanName ?? "Unknown"
-            };
-        }
-
-        _logService.Log(LogLevel.Error, "Config file is missing PowerPlanGuid for power-plan-selection.");
-        throw new InvalidOperationException("Configuration file is invalid or corrupted.");
-    }
-
-    private object? ResolveNumericRangeValue(SettingDefinition setting, ConfigurationItem item)
-    {
-        if (item.PowerSettings == null || item.PowerSettings.Count == 0)
-            return null;
-
-        // PowerCfg-backed NumericRange settings are exported in SYSTEM units (raw powercfg
-        // reads, e.g. seconds). PowerCfgApplier treats incoming dict/scalar values as DISPLAY
-        // units and converts display→system itself, so we must convert system→display here —
-        // exactly as RecommendedSettingsResolver.BuildPowerCfgApplyValue does for the manual
-        // quick-set path. Non-PowerCfg NumericRange settings carry no PowerCfgSettings and pass
-        // through unchanged.
-        bool isPowerCfg = setting.PowerCfgSettings?.Any() == true;
-        string? displayUnits = isPowerCfg ? RecommendedSettingsResolver.GetPowerCfgDisplayUnits(setting) : null;
-
-        var hasAcValue = item.PowerSettings.TryGetValue("ACValue", out var acVal);
-        var hasDcValue = item.PowerSettings.TryGetValue("DCValue", out var dcVal);
-
-        if (hasAcValue || hasDcValue)
-        {
-            return new Dictionary<string, object?>
-            {
-                ["ACValue"] = ConvertToDisplayIfPowerCfg(UnwrapJsonElement(acVal), isPowerCfg, displayUnits),
-                ["DCValue"] = ConvertToDisplayIfPowerCfg(UnwrapJsonElement(dcVal ?? acVal), isPowerCfg, displayUnits)
-            };
-        }
-
-        if (item.PowerSettings.TryGetValue("Value", out var singleVal))
-        {
-            return ConvertToDisplayIfPowerCfg(UnwrapJsonElement(singleVal), isPowerCfg, displayUnits);
-        }
-
-        return null;
-    }
-
-    // Converts a stored system-unit numeric value to display units for PowerCfg NumericRange
-    // settings, reusing RecommendedSettingsResolver's conversion table. Leaves the value
-    // untouched for non-PowerCfg settings or non-numeric values.
-    private static object? ConvertToDisplayIfPowerCfg(object? value, bool isPowerCfg, string? displayUnits)
-    {
-        if (!isPowerCfg || value == null)
-            return value;
-
-        try
-        {
-            int systemValue = Convert.ToInt32(value);
-            return RecommendedSettingsResolver.ConvertSystemToDisplayUnits(systemValue, displayUnits);
-        }
-        catch
-        {
-            return value;
+            case ChoiceValue.CustomValues c:
+                return new Dictionary<string, object>(c.Values);
+            case ChoiceValue.AcDcOption a:
+                return (a.AcIndex, a.DcIndex);
+            case ChoiceValue.Option o:
+                return o.Index;
+            case ChoiceValue.Keyed k:
+                return k.Key;
+            default:
+                _logService.Log(LogLevel.Warning,
+                    $"Config item '{item.Id}' is a selection but carries no resolvable value " +
+                    "(no SelectedIndex, PowerSettings, or CustomStateValues); defaulting to option index 0. " +
+                    "This usually means a stale toggle-era config entry for a setting that is now a selection.");
+                return 0;
         }
     }
 
-    private static object? UnwrapJsonElement(object? value)
+    // Decoding a carried file's item again would hand the apply the authoring PC's path.
+    private static ChoiceValue? Decoded(
+        Setting setting, ConfigurationItem item, IReadOnlyDictionary<string, ChoiceValue> materialized) =>
+        item.Id is { Length: > 0 } id && materialized.TryGetValue(id, out var value)
+            ? value
+            : ConfigFileMapper.DecodeValue(setting, item);
+
+    // Handed over in the file's system units; a round trip through display units would round 90 seconds to a minute.
+    private static ChoiceValue? ResolveNumericRangeValue(Setting setting, ConfigurationItem item)
     {
-        if (value is System.Text.Json.JsonElement je)
-        {
-            return je.ValueKind switch
-            {
-                System.Text.Json.JsonValueKind.Number when je.TryGetInt32(out var i) => i,
-                System.Text.Json.JsonValueKind.Number when je.TryGetInt64(out var l) => l,
-                System.Text.Json.JsonValueKind.Number when je.TryGetDouble(out var d) => d,
-                System.Text.Json.JsonValueKind.String => je.GetString(),
-                System.Text.Json.JsonValueKind.True => true,
-                System.Text.Json.JsonValueKind.False => false,
-                _ => value
-            };
-        }
-        return value;
+        var value = ConfigFileMapper.DecodeValue(setting, item);
+        return value is ChoiceValue.AcDcNumber or ChoiceValue.Number ? value : null;
     }
 
     private enum ApplyStatus
@@ -220,36 +175,33 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         Failed
     }
 
-    private List<List<(ConfigurationItem item, SettingDefinition setting)>> BuildDependencyWaves(IReadOnlyList<ConfigurationItem> items)
+    private List<List<(ConfigurationItem item, Setting setting)>> BuildDependencyWaves(IReadOnlyList<ConfigurationItem> items)
     {
-        var waves = new List<List<(ConfigurationItem, SettingDefinition)>>();
+        var waves = new List<List<(ConfigurationItem, Setting)>>();
         var processedIds = new HashSet<string>();
-        var remainingItems = new List<(ConfigurationItem item, SettingDefinition setting)>();
-
-        var allSettings = _compatibleSettingsRegistry.GetAllFilteredSettings();
+        var remainingItems = new List<(ConfigurationItem item, Setting setting)>();
 
         foreach (var item in items)
         {
             if (string.IsNullOrEmpty(item.Id))
                 continue;
 
-            var setting = FindSettingById(item.Id, allSettings);
+            // Pair via the registry (alias-normalized + current-OS/hardware/existence scoped). A miss
+            // drops silently.
+            var setting = _catalogSettingsRegistry.GetById(item.Id);
             if (setting != null)
             {
                 remainingItems.Add((item, setting));
             }
         }
 
-        while (remainingItems.Any())
+        while (remainingItems.Count > 0)
         {
-            var currentWave = new List<(ConfigurationItem, SettingDefinition)>();
+            var currentWave = new List<(ConfigurationItem, Setting)>();
 
             foreach (var (item, setting) in remainingItems.ToList())
             {
-                var dependencies = setting.Dependencies?
-                    .Where(d => d.DependencyType != SettingDependencyType.RequiresValueBeforeAnyChange)
-                    .Select(d => d.RequiredSettingId)
-                    .ToList() ?? new List<string>();
+                var dependencies = GetWaveDependencyIds(setting);
 
                 bool canProcess = dependencies.All(depId => processedIds.Contains(depId));
 
@@ -261,7 +213,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
                 }
             }
 
-            if (!currentWave.Any() && remainingItems.Any())
+            if (currentWave.Count == 0 && remainingItems.Count > 0)
             {
                 var circularSettingIds = string.Join(", ", remainingItems.Select(x => x.setting.Id));
                 _logService.Log(LogLevel.Warning, $"Circular dependency detected in settings: {circularSettingIds}. Processing anyway.");
@@ -269,7 +221,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
                 remainingItems.Clear();
             }
 
-            if (currentWave.Any())
+            if (currentWave.Count > 0)
             {
                 waves.Add(currentWave);
             }
@@ -278,10 +230,19 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         return waves;
     }
 
+    private static List<string> GetWaveDependencyIds(Setting setting)
+        => setting.States
+            .SelectMany(st => st.Links)
+            .Where(l => l.Kind == LinkKind.Requires)
+            .Select(l => l.OtherId)
+            .Distinct()
+            .ToList();
+
     private async Task<(ApplyStatus status, string itemName)> ApplySettingItemAsync(
         ConfigurationItem item,
-        SettingDefinition setting,
-        Func<string, object?, SettingDefinition, Task<(bool confirmed, bool checkboxResult)>>? confirmationHandler)
+        Setting setting,
+        IReadOnlyDictionary<string, ChoiceValue> materialized,
+        Func<string, object?, Task<(bool confirmed, bool checkboxResult)>>? confirmationHandler)
     {
         try
         {
@@ -297,14 +258,20 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
                 return (ApplyStatus.SkippedOsIncompatible, item.Name);
             }
 
+            bool requiresConfirmation = setting.Apply.RequiresConfirmation;
+            bool isSelection = setting.Control is ControlKind.Selection or ControlKind.KeyedSelection;
+            bool isNumericRange = setting.Control == ControlKind.Slider;
+            bool isAction = setting.Control == ControlKind.Action;
+            bool isText = setting.Control == ControlKind.TextBox;
+
             bool checkboxResult = false;
-            if (setting.RequiresConfirmation && confirmationHandler != null)
+            if (requiresConfirmation && confirmationHandler != null)
             {
-                var value = setting.InputType == InputType.Selection
-                    ? (object)ResolveSelectionValue(setting, item)
+                var value = isSelection
+                    ? (object)ResolveSelectionValue(setting, item, materialized)
                     : (object)(item.IsSelected ?? false);
 
-                var (confirmed, checkbox) = await confirmationHandler(item.Id, value, setting).ConfigureAwait(false);
+                var (confirmed, checkbox) = await confirmationHandler(item.Id, value).ConfigureAwait(false);
 
                 if (!confirmed)
                 {
@@ -317,16 +284,22 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
 
             object? valueToApply = null;
 
-            if (setting.InputType == InputType.Selection)
+            if (isSelection)
             {
-                valueToApply = ResolveSelectionValue(setting, item);
+                valueToApply = ResolveSelectionValue(setting, item, materialized);
             }
-            else if (setting.InputType == InputType.NumericRange)
+            else if (isNumericRange)
             {
                 valueToApply = ResolveNumericRangeValue(setting, item);
             }
+            else if (isText)
+            {
+                // An empty box is an answer (it clears the setting) and travels as ""; only a missing entry is null.
+                valueToApply = (Decoded(setting, item, materialized) as ChoiceValue.Text)?.Value;
+            }
 
-            if (setting.InputType == InputType.Action)
+            OperationResult result;
+            if (isAction)
             {
                 // Action settings only apply when explicitly selected. An unselected Action has
                 // no "reverse" semantic — falling through with Enable=false would write
@@ -337,9 +310,8 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
                     return (ApplyStatus.Applied, item.Name);
                 }
 
-                // Catalog path: operations declared directly on the SettingDefinition.
                 // Enable=true matches the runtime button-click flow (RunActionAsync).
-                await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                 {
                     SettingId = item.Id,
                     Enable = true,
@@ -349,7 +321,7 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
             }
             else
             {
-                await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
+                result = await _settingApplicationService.ApplySettingAsync(new ApplySettingRequest
                 {
                     SettingId = item.Id,
                     Enable = item.IsSelected ?? false,
@@ -357,6 +329,12 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
                     CheckboxResult = checkboxResult,
                     SkipValuePrerequisites = true
                 }).ConfigureAwait(false);
+            }
+
+            if (!result.Success)
+            {
+                _logService.Log(LogLevel.Warning, $"Setting '{item.Name}' was not applied: {result.ErrorMessage}");
+                return (ApplyStatus.Failed, item.Name);
             }
 
             _logService.Log(LogLevel.Debug, $"Applied setting: {item.Name}");
@@ -369,14 +347,4 @@ public class ConfigurationApplicationBridgeService : IConfigurationApplicationBr
         }
     }
 
-    private SettingDefinition? FindSettingById(string id, IReadOnlyDictionary<string, IEnumerable<SettingDefinition>> allSettings)
-    {
-        foreach (var featureSettings in allSettings.Values)
-        {
-            var setting = featureSettings.FirstOrDefault(s => s.Id == id);
-            if (setting != null)
-                return setting;
-        }
-        return null;
-    }
 }

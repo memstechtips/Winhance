@@ -1,0 +1,894 @@
+using FluentAssertions;
+using Microsoft.Win32;
+using Winhance.Core.Features.Autounattend.Catalogs;
+using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Selections;
+using Xunit;
+
+using Winhance.Core.Features.Common.Localization;
+namespace Winhance.Core.Tests.Catalog;
+
+public class AutounattendCatalogTests
+{
+    private const string InstallWinhanceScript = @"C:\ProgramData\Winhance\Unattend\Scripts\Install-Winhance.ps1";
+
+    private static readonly string[] PageOrder =
+    [
+        "autounattend-netfx3",
+        "autounattend-netfx3-remove-source",
+        "autounattend-keep-removed",
+        "autounattend-cleanup",
+        "autounattend-cleanup-old-components",
+        "autounattend-cleanup-update-downloads",
+        "autounattend-cleanup-servicing-logs",
+        "autounattend-cleanup-temp-files",
+        "autounattend-cleanup-crash-reports",
+        "autounattend-desktop-shortcut",
+        "autounattend-delete-installers",
+        "autounattend-stage-apps",
+        "autounattend-own-installers",
+        "autounattend-architecture-x64",
+        "autounattend-architecture-arm64",
+        "autounattend-architecture-x86",
+        "autounattend-edition",
+        "autounattend-product-key",
+        "autounattend-media-editions",
+        "autounattend-media-editions-list",
+        "autounattend-hardware-checks",
+        "autounattend-disk",
+        "autounattend-disk-number",
+        "autounattend-disk-system-size",
+        "autounattend-disk-recovery-size",
+        "autounattend-compact",
+        "autounattend-account",
+        "autounattend-accounts",
+        "autounattend-oobe-network",
+        "autounattend-user-folders",
+        "autounattend-user-folders-label",
+        "autounattend-user-folders-label-typed",
+        "autounattend-user-folders-min-size",
+        "autounattend-user-folders-drive-type",
+        "autounattend-user-folders-blank",
+        "autounattend-user-folders-letter",
+        "autounattend-user-folders-folder",
+        "autounattend-setup-language",
+        "autounattend-licence-page",
+        "autounattend-oem-registration-page",
+        "autounattend-network-page",
+        "autounattend-privacy",
+        "autounattend-computer-name",
+        "autounattend-computer-name-unique",
+        "autounattend-user-script-system",
+        "autounattend-user-script-user",
+    ];
+
+    private static readonly ControlKind[] ControlOrder =
+    [
+        ControlKind.Toggle,
+        ControlKind.Toggle,
+        ControlKind.Selection,
+        ControlKind.Toggle,
+        ControlKind.CheckBox,
+        ControlKind.CheckBox,
+        ControlKind.CheckBox,
+        ControlKind.CheckBox,
+        ControlKind.CheckBox,
+        ControlKind.Selection,
+        ControlKind.Toggle,
+        ControlKind.CheckBox,
+        ControlKind.List,
+        ControlKind.CheckBox,
+        ControlKind.CheckBox,
+        ControlKind.CheckBox,
+        ControlKind.Selection,
+        ControlKind.TextBox,
+        ControlKind.Selection,
+        ControlKind.CheckList,
+        ControlKind.Toggle,
+        ControlKind.Selection,
+        ControlKind.TextBox,
+        ControlKind.TextBox,
+        ControlKind.TextBox,
+        ControlKind.Toggle,
+        ControlKind.Selection,
+        ControlKind.List,
+        ControlKind.Selection,
+        ControlKind.Selection,
+        ControlKind.KeyedSelection,
+        ControlKind.TextBox,
+        ControlKind.TextBox,
+        ControlKind.Selection,
+        ControlKind.Toggle,
+        ControlKind.Selection,
+        ControlKind.TextBox,
+        ControlKind.KeyedSelection,
+        ControlKind.Toggle,
+        ControlKind.Toggle,
+        ControlKind.Toggle,
+        ControlKind.Selection,
+        ControlKind.TextBox,
+        ControlKind.Toggle,
+        ControlKind.List,
+        ControlKind.List,
+    ];
+
+    // Microsoft's generic RTM install keys, pinned as literals because the key text is what Setup reads.
+    private static readonly (string Label, string ProductKey)[] GenericEditions =
+    [
+        ("Windows 11 Home", "YTMG3-N6DKC-DKB77-7M9GH-8HVX7"),
+        ("Windows 11 Home N", "4CPRK-NM3K3-X6XXQ-RXX86-WXCHW"),
+        ("Windows 11 Home Single Language", "BT79Q-G7N6G-PGBYW-4YWX6-6F4BT"),
+        ("Windows 11 Pro", "VK7JG-NPHTM-C97JM-9MPGT-3V66T"),
+        ("Windows 11 Pro N", "2B87N-8KFHP-DKV6R-Y2C8J-PKCKT"),
+        ("Windows 11 Pro for Workstations", "DXG7C-N36C4-C4HTG-X4T3X-2YV77"),
+        ("Windows 11 Pro for Workstations N", "WYPNQ-8C467-V2W6J-TX4WX-WT2RQ"),
+        ("Windows 11 Pro Education", "8PTT6-RNW4C-6V7J2-C2D3X-MHBPB"),
+        ("Windows 11 Pro Education N", "GJTYN-HDMQY-FRR76-HVGC7-QPF8P"),
+        ("Windows 11 Education", "YNMGQ-8RYV3-4PGQ3-C8XTP-7CFBY"),
+        ("Windows 11 Education N", "84NGF-MHBT6-FXBX8-QWJK7-DRR8H"),
+        ("Windows 11 Enterprise", "XGVPP-NMH47-7TTHJ-W3FW7-8HV2C"),
+        ("Windows 11 Enterprise N", "WGGHN-J84D6-QYCPR-T7PJ7-X766F"),
+    ];
+
+    // A file with nothing to install keeps the shortcut that downloads Winhance, line for line.
+    private const string DownloadShortcutScript = @"$shortcutPath = ""C:\Users\Default\Desktop\Install Winhance.lnk""
+$WshShell = New-Object -ComObject WScript.Shell
+$shortcut = $WshShell.CreateShortcut($shortcutPath)
+$shortcut.TargetPath = ""C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe""
+$shortcut.Arguments = ""-ExecutionPolicy Bypass -NoProfile -Command `""irm 'https://get.winhance.net' | iex`""""
+$shortcut.IconLocation = ""C:\Windows\System32\appwiz.cpl,0""
+$shortcut.WorkingDirectory = ""C:\Windows\System32""
+$shortcut.Description = ""Download and install Winhance from GitHub""
+$shortcut.Save()
+$bytes = [System.IO.File]::ReadAllBytes($shortcutPath)
+$bytes[21] = 34
+[System.IO.File]::WriteAllBytes($shortcutPath, $bytes)";
+
+    private static readonly string[] LabConfigValues =
+    [
+        "BypassTPMCheck",
+        "BypassSecureBootCheck",
+        "BypassStorageCheck",
+        "BypassCPUCheck",
+        "BypassRAMCheck",
+        "BypassDiskCheck",
+    ];
+
+    private static Setting S(string id) => AutounattendCatalog.All.First(s => s.Id == id);
+
+    private static SettingState State(string id, LocKey label) => S(id).States.Single(st => st.Label == label);
+
+    private static object? Written(SettingState state, string key) => state.Set[key].WritePayload;
+
+    private static string InstallScriptBody(string script)
+    {
+        var start = script.IndexOf("@'", StringComparison.Ordinal) + 2;
+        return script[start..script.IndexOf("\n'@", start, StringComparison.Ordinal)];
+    }
+
+    [Fact]
+    public void All_Always_ListsSettingsInCardDrawOrder()
+    {
+        AutounattendCatalog.All.Select(s => s.Id).Should().Equal(PageOrder);
+    }
+
+    [Fact]
+    public void All_Always_AreAnswerFileOnly()
+    {
+        foreach (var setting in AutounattendCatalog.All)
+            setting.IsAnswerFileOnly.Should().BeTrue(setting.Id);
+    }
+
+    [Fact]
+    public void All_Always_PassCatalogValidator()
+    {
+        var errors = AutounattendCatalog.All
+            .SelectMany(CatalogValidator.Validate)
+            .Select(e => $"{e.SettingId}: {e.Message}")
+            .ToList();
+
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void All_Always_HaveRelationshipsThatResolveInsidePage()
+    {
+        var errors = CatalogValidator.ValidateCatalog(AutounattendCatalog.All)
+            .Select(e => $"{e.SettingId}: {e.Message}")
+            .ToList();
+
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void All_Always_DeriveControlKindFromMechanism()
+    {
+        AutounattendCatalog.All.Select(s => s.Control).Should().Equal(ControlOrder);
+    }
+
+    [Fact]
+    public void All_WithStates_HaveUnconditionalContextFreeRoles()
+    {
+        // A build-scoped role slips past the validator's one-per-context rule and is invisible to the seed.
+        // A file written before Windows exists has no build to scope to.
+        foreach (var setting in AutounattendCatalog.All.Where(s => s.States.Count > 0))
+        {
+            var roles = setting.States.SelectMany(st => st.Roles).ToList();
+
+            roles.Count(r => r.Kind == RoleKind.WindowsDefault).Should().Be(1, setting.Id);
+            roles.Count(r => r.Kind == RoleKind.Recommended).Should().BeLessThanOrEqualTo(1, setting.Id);
+            roles.Should().OnlyContain(r => r.AppliesTo.Count == 0 && r.Context == PowerContext.Always, setting.Id);
+        }
+    }
+
+    // Seed is the state a new file starts on, so the generated file depends on that column alone. WindowsDefault
+    // is what Windows Setup does when the file says nothing.
+    private static readonly (string Id, LocKey Seed, LocKey WindowsDefault)[] StartingStates =
+    [
+        ("autounattend-netfx3", LocKey.Common.Enabled, LocKey.Common.Disabled),
+        ("autounattend-netfx3-remove-source", LocKey.Common.Disabled, LocKey.Common.Disabled),
+        ("autounattend-keep-removed", LocKey.Setting.AutounattendKeepRemoved.Option1, LocKey.Setting.AutounattendKeepRemoved.Option1),
+        ("autounattend-cleanup", LocKey.Common.Enabled, LocKey.Common.Disabled),
+        ("autounattend-cleanup-old-components", LocKey.Common.Checked, LocKey.Common.Unchecked),
+        ("autounattend-cleanup-update-downloads", LocKey.Common.Checked, LocKey.Common.Unchecked),
+        ("autounattend-cleanup-servicing-logs", LocKey.Common.Checked, LocKey.Common.Unchecked),
+        ("autounattend-cleanup-temp-files", LocKey.Common.Checked, LocKey.Common.Unchecked),
+        ("autounattend-cleanup-crash-reports", LocKey.Common.Checked, LocKey.Common.Unchecked),
+        ("autounattend-desktop-shortcut", LocKey.Setting.AutounattendDesktopShortcut.Option1, LocKey.Setting.AutounattendDesktopShortcut.Option0),
+        ("autounattend-delete-installers", LocKey.Common.Enabled, LocKey.Common.Enabled),
+        ("autounattend-stage-apps", LocKey.Common.Checked, LocKey.Common.Checked),
+        ("autounattend-architecture-x64", LocKey.Common.Checked, LocKey.Common.Checked),
+        ("autounattend-architecture-arm64", LocKey.Common.Checked, LocKey.Common.Checked),
+        ("autounattend-architecture-x86", LocKey.Common.Checked, LocKey.Common.Checked),
+        ("autounattend-edition", LocKey.Setting.AutounattendEdition.Option0, LocKey.Setting.AutounattendEdition.Option0),
+        ("autounattend-media-editions", LocKey.Setting.AutounattendMediaEditions.Option0, LocKey.Setting.AutounattendMediaEditions.Option0),
+        ("autounattend-hardware-checks", LocKey.Common.Disabled, LocKey.Common.Enabled),
+        ("autounattend-disk", LocKey.Setting.AutounattendDisk.Option0, LocKey.Setting.AutounattendDisk.Option0),
+        ("autounattend-compact", LocKey.Common.Disabled, LocKey.Common.Disabled),
+        ("autounattend-account", LocKey.Setting.AutounattendAccount.Option0, LocKey.Setting.AutounattendAccount.Option1),
+        ("autounattend-oobe-network", LocKey.Setting.AutounattendOobeNetwork.Option1, LocKey.Setting.AutounattendOobeNetwork.Option0),
+        ("autounattend-user-folders", LocKey.Setting.AutounattendUserFolders.Option0, LocKey.Setting.AutounattendUserFolders.Option0),
+        ("autounattend-user-folders-drive-type", LocKey.Setting.AutounattendUserFoldersDriveType.Option0, LocKey.Setting.AutounattendUserFoldersDriveType.Option0),
+        ("autounattend-user-folders-blank", LocKey.Common.Disabled, LocKey.Common.Disabled),
+        ("autounattend-user-folders-letter", LocKey.Setting.AutounattendUserFoldersLetter.Option0, LocKey.Setting.AutounattendUserFoldersLetter.Option0),
+        ("autounattend-licence-page", LocKey.Common.Disabled, LocKey.Common.Enabled),
+        ("autounattend-oem-registration-page", LocKey.Common.Disabled, LocKey.Common.Enabled),
+        ("autounattend-network-page", LocKey.Common.Disabled, LocKey.Common.Enabled),
+        ("autounattend-privacy", LocKey.Setting.AutounattendPrivacy.Option0, LocKey.Setting.AutounattendPrivacy.Option2),
+        ("autounattend-computer-name-unique", LocKey.Common.Disabled, LocKey.Common.Disabled),
+    ];
+
+    [Fact]
+    public void All_WithStates_SeedNewFileOnSeedState()
+    {
+        SettingCatalog.All.Where(s => s.IsAnswerFileOnly).Should().BeSubsetOf(AutounattendCatalog.All);
+        var withStates = AutounattendCatalog.All.Where(s => s.States.Count > 0).ToList();
+
+        withStates.Select(s => (s.Id, s.SeedState!.Label))
+            .Should().Equal(StartingStates.Select(row => (row.Id, row.Seed)));
+        withStates.Select(s => (s.Id, SelectionSet.Empty.StateOf(s.Id)!.Label))
+            .Should().Equal(StartingStates.Select(row => (row.Id, row.Seed)), "a set that holds no choice renders the same state");
+    }
+
+    [Fact]
+    public void All_WithStates_MarkWindowsDefaultRoleAsSetupBehaviorWhenFileIsSilent()
+    {
+        AutounattendCatalog.All.Where(s => s.States.Count > 0)
+            .Select(s => (s.Id, s.States.Single(st => st.HasRole(RoleKind.WindowsDefault)).Label))
+            .Should().Equal(StartingStates.Select(row => (row.Id, row.WindowsDefault)));
+    }
+
+    // The architecture boxes start from this PC's processor, so no state of theirs is a recommendation.
+    [Fact]
+    public void All_WithStates_MakeRecommendedRoleTheSeedExceptOnArchitectureBoxes()
+    {
+        foreach (var setting in AutounattendCatalog.All.Where(s => s.States.Count > 0))
+        {
+            var recommended = setting.States.SingleOrDefault(st => st.HasRole(RoleKind.Recommended));
+
+            if (setting.SeedsFromThisPc)
+                recommended.Should().BeNull(setting.Id);
+            else
+                recommended.Should().BeSameAs(setting.SeedState, setting.Id);
+        }
+    }
+
+    [Theory]
+    [InlineData("autounattend-architecture-x64", "amd64", "AMD64")]
+    [InlineData("autounattend-architecture-arm64", "arm64", "ARM64")]
+    [InlineData("autounattend-architecture-x86", "x86", "x86")]
+    public void ArchitectureCard_PerArchitecture_IsCheckBoxCheckedOnMatchingPc(string id, string architecture, string thisPc)
+    {
+        var setting = S(id);
+
+        setting.Display.Name.Value.Should().Be($"Setting_{id}_Name");
+        setting.Control.Should().Be(ControlKind.CheckBox);
+        setting.Targets.OfType<AutounattendArchitecture>().Single().Architecture.Should().Be(architecture);
+        var processor = setting.Targets.OfType<RegTarget>().Single();
+        processor.ReadOnly.Should().BeTrue();
+        processor.Paths.Single().Should().Be(@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment");
+        processor.ValueName.Should().Be("PROCESSOR_ARCHITECTURE");
+
+        var checkedState = State(id, LocKey.Common.Checked);
+        Written(checkedState, "arch").Should().Be(architecture);
+        checkedState.Set[processor.Key].Matches(thisPc, present: true).Should().BeTrue();
+        checkedState.HasRole(RoleKind.WindowsDefault).Should().BeTrue();
+        State(id, LocKey.Common.Unchecked).Set["arch"].AcceptsAbsent.Should().BeTrue();
+        State(id, LocKey.Common.Unchecked).Set[processor.Key].AcceptsAnyPresent.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ArchitectureCards_Always_ClaimDistinctProcessors()
+    {
+        var accepted = AutounattendCatalog.All
+            .Where(s => s.Targets.OfType<AutounattendArchitecture>().Any())
+            .Select(s => State(s.Id, LocKey.Common.Checked).Set["this-pc"].AcceptedValues.Single())
+            .ToList();
+
+        accepted.Should().OnlyHaveUniqueItems();
+    }
+
+    [Fact]
+    public void EditionCard_Always_OffersGenericKeysAndTwoWithoutKey()
+    {
+        var states = S("autounattend-edition").States;
+
+        states.Should().HaveCount(16);
+
+        // WillShowUI is Setup's own key prompt: Always for the choice that defers to it, OnError where a key is
+        // given, Never where the key comes from elsewhere.
+        states[0].Label.Should().Be(LocKey.Setting.AutounattendEdition.Option0);
+        Written(states[0], "key").Should().Be("00000-00000-00000-00000-00000");
+        Written(states[0], "show").Should().Be("Always");
+        states[0].HasRole(RoleKind.Recommended).Should().BeTrue();
+
+        for (int i = 0; i < GenericEditions.Length; i++)
+        {
+            var state = states[i + 1];
+            state.Label.Value.Should().Be($"Setting_autounattend-edition_Option_{i + 1}");
+            Written(state, "key").Should().Be(GenericEditions[i].ProductKey);
+            Written(state, "show").Should().Be("OnError");
+        }
+
+        states[14].Label.Should().Be(LocKey.Setting.AutounattendEdition.Option14);
+        states[14].Set["key"].AcceptsAbsent.Should().BeTrue();
+        Written(states[14], "show").Should().Be("OnError");
+
+        states[15].Label.Should().Be(LocKey.Setting.AutounattendEdition.Option15);
+        states[15].Set["key"].AcceptsAbsent.Should().BeTrue();
+        Written(states[15], "show").Should().Be("Never");
+    }
+
+    [Fact]
+    public void ProductKeyCard_Always_EnablesOnlyWhenEditionDefersToIt()
+    {
+        var setting = S("autounattend-product-key");
+
+        setting.UiParentId.Should().Be("autounattend-edition");
+        setting.EnabledWhen!.OtherId.Should().Be("autounattend-edition");
+        setting.EnabledWhen.States.Should().Equal(LocKey.Setting.AutounattendEdition.Option14);
+        setting.TextBox!.Rule.Matches("VK7JG-NPHTM-C97JM-9MPGT-3V66T").Should().BeTrue();
+        setting.TextBox.Rule.Matches("not-a-key").Should().BeFalse();
+
+        var targets = setting.Targets.Cast<AutounattendElement>().ToList();
+        targets.Select(t => t.Key).Should().Equal("key", "activate");
+        targets[1].Pass.Should().Be("specialize");
+        targets[1].Path.Should().Be("ProductKey");
+    }
+
+    [Fact]
+    public void AccountsCard_Always_EnablesOnlyWhenSetupCreatesAccounts()
+    {
+        var setting = S("autounattend-accounts");
+
+        setting.UiParentId.Should().Be("autounattend-account");
+        setting.EnabledWhen!.OtherId.Should().Be("autounattend-account");
+        setting.EnabledWhen.States.Should().Equal(LocKey.Setting.AutounattendAccount.Option2);
+        var name = setting.List!.Fields.Single(f => f.Key == "name");
+        name.Rule!.Matches("Marco").Should().BeTrue();
+        name.Rule.Matches("a:b").Should().BeFalse();
+        setting.Targets.OfType<AutounattendElement>().Single().Path.Should().Be("UserAccounts/LocalAccounts");
+    }
+
+    [Fact]
+    public void AccountsCard_Always_DeclaresSevenAnswerFileFields()
+    {
+        var fields = S("autounattend-accounts").List!.Fields;
+
+        fields.Select(f => (f.Key, f.Kind)).Should().Equal(
+            ("name", FieldKind.Text),
+            ("display-name", FieldKind.Text),
+            ("group", FieldKind.Selection),
+            ("password", FieldKind.Password),
+            ("obscure", FieldKind.CheckBox),
+            ("auto-logon", FieldKind.CheckBox),
+            ("change-password", FieldKind.CheckBox));
+
+        // Administrators is index 0 because a fresh install's first account has to be one.
+        fields.Single(f => f.Key == "group").Options!.Should().Equal(
+            LocKey.AutounattendAccounts.GroupAdministrators, LocKey.AutounattendAccounts.GroupUsers);
+        fields.Single(f => f.Key == "group").Default.Should().Be("0");
+        fields.Single(f => f.Key == "obscure").Default.Should().Be("true");
+        fields.Single(f => f.Key == "change-password").Default.Should().Be("false");
+
+        var autoLogon = fields.Single(f => f.Key == "auto-logon");
+        autoLogon.OneRowOnly.Should().BeTrue();
+        autoLogon.OnlyWhen.Should().Be(new FieldCondition("group", 0));
+    }
+
+    [Fact]
+    public void AccountsCard_Always_SeedsFirstAccountFromLogonThroughReadOnlyRegistryTargets()
+    {
+        var setting = S("autounattend-accounts");
+        var seeds = setting.Targets.OfType<RegTarget>().ToList();
+
+        seeds.Should().OnlyContain(t => t.ReadOnly && t.Type == RegistryValueKind.String);
+        seeds.Select(t => (t.Key, t.Paths.Single(), t.ValueName)).Should().Equal(
+            ("name", @"HKEY_CURRENT_USER\Volatile Environment", "USERNAME"),
+            ("display-name", @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI", "LastLoggedOnDisplayName"));
+        setting.List!.Seed.Should().Equal(new Dictionary<string, string> { ["name"] = "name", ["display-name"] = "display-name" });
+        setting.IsAnswerFileOnly.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ComputerNameCard_Always_SeedsFromHostNameThroughReadOnlyRegistryTarget()
+    {
+        var setting = S("autounattend-computer-name");
+        var seed = setting.Targets.OfType<RegTarget>().Single();
+
+        seed.ReadOnly.Should().BeTrue();
+        seed.Type.Should().Be(RegistryValueKind.String);
+        (seed.Key, seed.Paths.Single(), seed.ValueName).Should().Be(("this-pc", @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters", "Hostname"));
+        setting.TextBox!.SeedKey.Should().Be("this-pc");
+        setting.IsAnswerFileOnly.Should().BeTrue();
+    }
+
+    [Fact]
+    public void AccountCard_OfflineChoices_HideOnlineSignInScreens()
+    {
+        Written(State("autounattend-account", LocKey.Setting.AutounattendAccount.Option0), "hide-online").Should().Be("true");
+        Written(State("autounattend-account", LocKey.Setting.AutounattendAccount.Option2), "hide-online").Should().Be("true");
+        State("autounattend-account", LocKey.Setting.AutounattendAccount.Option1).Set["hide-online"].AcceptsAbsent.Should().BeTrue();
+        State("autounattend-account", LocKey.Setting.AutounattendAccount.Option0).HasRole(RoleKind.Recommended).Should().BeTrue();
+    }
+
+    [Fact]
+    public void AccountCard_LocalAccount_RunsOnlyTheLocalAccountScreenCommand()
+    {
+        var local = S("autounattend-account").States.Single(s => s.Label == LocKey.Setting.AutounattendAccount.Option0);
+
+        var setup = local.Effects.OfType<AutounattendCommand>().ToList();
+        setup.Should().ContainSingle();
+        setup[0].Pass.Should().Be("specialize");
+        setup[0].Component.Should().Be("Microsoft-Windows-Deployment");
+        setup[0].Command.Should().Contain("BypassNRO");
+        // The adapter cut a local account also needs belongs to autounattend-oobe-network, so that one card
+        // decides it for all three account modes instead of two states carrying the same two commands.
+        local.Effects.OfType<AutounattendFirstLogonCommand>().Should().BeEmpty();
+        S("autounattend-account").States.Where(s => s.Label != LocKey.Setting.AutounattendAccount.Option0)
+            .Should().OnlyContain(s => s.Effects.Count == 0);
+    }
+
+    [Fact]
+    public void OobeNetworkCard_OfflineState_AuthorsAdapterCutOnce()
+    {
+        var card = S("autounattend-oobe-network");
+        var offline = card.States.Single(s => s.Label == LocKey.Setting.AutounattendOobeNetwork.Option1);
+
+        offline.HasRole(RoleKind.Recommended).Should().BeTrue("an install nobody configured should be the fast one");
+        offline.Effects.OfType<AutounattendCommand>().Should().ContainSingle()
+            .Which.Command.Should().Contain("Disable-NetAdapter");
+        offline.Effects.OfType<AutounattendFirstLogonCommand>().Should().ContainSingle()
+            .Which.Command.Should().Contain("Enable-NetAdapter");
+        card.States.Single(s => s.Label == LocKey.Setting.AutounattendOobeNetwork.Option0)
+            .Effects.Should().BeEmpty("staying connected is Setup's own behaviour");
+    }
+
+    // One declaration, two readers: OobeNetworkWriter writes the file from it and the page displays the card
+    // from it. Authoring the same decision twice is how a greyed card ends up promising one thing while the
+    // file carries the other.
+    [Fact]
+    public void AccountCard_ModesWithNoSay_ControlTheNetworkCard()
+    {
+        const string network = "autounattend-oobe-network";
+        var account = S("autounattend-account");
+
+        account.States.Single(s => s.Label == LocKey.Setting.AutounattendAccount.Option0)
+            .Controls.Should().Contain(network, LocKey.Setting.AutounattendOobeNetwork.Option1,
+                "a local account cannot be created while OOBE is online");
+        account.States.Single(s => s.Label == LocKey.Setting.AutounattendAccount.Option1)
+            .Controls.Should().Contain(network, LocKey.Setting.AutounattendOobeNetwork.Option0,
+                "a Microsoft account cannot be created while OOBE is offline");
+        account.States.Single(s => s.Label == LocKey.Setting.AutounattendAccount.Option2)
+            .Controls.Should().BeNull("the file creates the accounts, so OOBE never asks and the choice is the user's");
+    }
+
+    [Fact]
+    public void AccountsCard_Always_CarriesPasswordCleanupCommand()
+    {
+        var cleanup = S("autounattend-accounts").List!.PasswordCleanup;
+
+        cleanup!.Command.Should().Contain("C:\\Windows\\Panther\\unattend.xml");
+        cleanup.Description.Should().NotBeNullOrEmpty();
+    }
+
+    // The cards only record what to look for; the drive is found on the new PC, so no card names a letter to find it by.
+    [Fact]
+    public void UserFoldersCard_Default_StaysOnCAndRecordsHowToFindDrive()
+    {
+        var states = S("autounattend-user-folders").States;
+
+        states.Should().HaveCount(4);
+        states[0].Effects.Should().BeEmpty();
+        states[0].HasRole(RoleKind.Recommended).Should().BeTrue();
+        states[1].Effects.Cast<ScriptEffect>().Single().Script.Should().Contain("'Mode', 'Role'");
+        states[2].Effects.Cast<ScriptEffect>().Single().Script.Should().Contain("'Mode', 'Label'");
+        states[3].Effects.Cast<ScriptEffect>().Single().Script.Should().Contain("'Mode', 'Label'");
+        foreach (var record in states.SelectMany(st => st.Effects).Cast<ScriptEffect>())
+        {
+            record.Run.Should().Be(RunContext.System);
+            record.LogsOwnOutcome.Should().BeTrue("a record written is not a folder moved");
+        }
+    }
+
+    [Theory]
+    [InlineData("autounattend-user-folders-label", "2")]
+    [InlineData("autounattend-user-folders-label-typed", "3")]
+    [InlineData("autounattend-user-folders-min-size", "1")]
+    [InlineData("autounattend-user-folders-drive-type", "1")]
+    [InlineData("autounattend-user-folders-blank", "1,2,3")]
+    [InlineData("autounattend-user-folders-letter", "1,2,3")]
+    [InlineData("autounattend-user-folders-folder", "1,2,3")]
+    public void Each_user_folders_child_is_used_only_by_the_choices_it_belongs_to(string id, string options)
+    {
+        var parent = S("autounattend-user-folders");
+        var setting = S(id);
+
+        // A row for one way of finding the drive is hidden in the others; the rest are greyed while folders stay on C:.
+        var gate = setting.EnabledWhen ?? setting.VisibleWhen;
+        setting.UiParentId.Should().Be(parent.Id);
+        gate!.OtherId.Should().Be(parent.Id);
+        gate.States.Should().Equal(options.Split(',').Select(i => parent.States[i[0] - '0'].Label));
+    }
+
+    [Fact]
+    public void UserFoldersLabelCard_Always_OffersVolumeLabelsAndRecordsThePicked()
+    {
+        var setting = S("autounattend-user-folders-label");
+
+        setting.Options!.Source.Should().Be(OptionSource.VolumeLabels);
+        setting.Options.NoChoiceLabel.Should().Be(LocKey.Setting.AutounattendUserFoldersLabel.OptionNone);
+        setting.CustomStateScripts.Single().Script.Should().Contain("'Label', '{{value}}'");
+        S("autounattend-user-folders-label-typed").CustomStateScripts.Single().Script.Should().Contain("'Label', '{{value}}'");
+    }
+
+    [Fact]
+    public void UserFoldersFilters_Default_StartEmptyOnAnyDrive()
+    {
+        var size = S("autounattend-user-folders-min-size");
+        size.TextBox!.Default.Should().BeNull();
+        size.TextBox.Rule.Matches("").Should().BeTrue();
+        size.TextBox.Rule.Matches("500").Should().BeTrue();
+        size.TextBox.Rule.Matches("0").Should().BeFalse();
+
+        var type = S("autounattend-user-folders-drive-type").States;
+        type[0].Effects.Should().BeEmpty();
+        type[1].Effects.Cast<ScriptEffect>().Single().Script.Should().Contain("'MediaType', 'SSD'");
+        type[2].Effects.Cast<ScriptEffect>().Single().Script.Should().Contain("'MediaType', 'HDD'");
+    }
+
+    [Fact]
+    public void UserFoldersLetterCard_Always_OffersDToZStartingOnD()
+    {
+        var states = S("autounattend-user-folders-letter").States;
+
+        states.Should().HaveCount(23);
+        for (int i = 0; i < states.Count; i++)
+        {
+            var letter = (char)('D' + i);
+            states[i].Label.Value.Should().Be($"Setting_autounattend-user-folders-letter_Option_{i}");
+            states[i].Effects.Cast<ScriptEffect>().Single().Script.Should().Contain($"'Letter', '{letter}'");
+        }
+        states[0].HasRole(RoleKind.Recommended).Should().BeTrue();
+    }
+
+    [Fact]
+    public void UserFoldersFolderCard_Always_FindsDriveOnceAsSystemThenMovesSixFoldersPerAccount()
+    {
+        var setting = S("autounattend-user-folders-folder");
+
+        setting.Control.Should().Be(ControlKind.TextBox);
+        setting.TextBox!.Default.Should().Be(@"Users\%USERNAME%");
+        setting.TextBox.Rule.Matches(@"D:\Users").Should().BeFalse("the drive is found, never typed");
+        setting.Should().BeSameAs(AutounattendCatalog.All.Last(s => s.UiParentId == "autounattend-user-folders"),
+            "the records the other cards write are in place before its scripts read them");
+
+        var scripts = setting.CustomStateScripts;
+        scripts.Select(s => s.Run).Should().Equal(RunContext.System, RunContext.User);
+        scripts.Should().OnlyContain(s => s.LogsOwnOutcome);
+
+        var system = scripts[0].Script;
+        system.Should().Contain("$_.BusType -notin 'USB', 'SD', 'MMC'")
+            .And.Contain("-not $_.IsBoot -and -not $_.IsSystem")
+            .And.Contain("$_.PartitionStyle -eq 'RAW' -or $_.NumberOfPartitions -eq 0")
+            .And.Contain("$_.FileSystemLabel -eq $label")
+            .And.Contain("'Root'")
+            .And.Contain("\"WARNING\"")
+            .And.NotContain("\"SUCCESS\"");
+
+        var user = scripts[1].Script;
+        user.Should().Contain("ExpandEnvironmentVariables('{{value}}')")
+            .And.Contain(@"HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders")
+            .And.Contain("\"SUCCESS\"")
+            .And.Contain("\"WARNING\"")
+            .And.NotContain("Move-Item -Destination $target -Force");
+        foreach (var value in new[] { "'Desktop'", "'Personal'", "'{374DE290-123F-4565-9164-39C4925E467B}'", "'My Music'", "'My Pictures'", "'My Video'" })
+            user.Should().Contain(value);
+    }
+
+    [Fact]
+    public void HardwareChecksCard_Disabled_FiresSixLabConfigCommandsInOrder()
+    {
+        State("autounattend-hardware-checks", LocKey.Common.Enabled).Effects.Should().BeEmpty();
+        State("autounattend-hardware-checks", LocKey.Common.Disabled).HasRole(RoleKind.Recommended).Should().BeTrue(
+            "a fresh file skips the checks");
+
+        var commands = State("autounattend-hardware-checks", LocKey.Common.Disabled).Effects.Cast<AutounattendCommand>().ToList();
+
+        commands.Should().HaveCount(6);
+        for (int i = 0; i < LabConfigValues.Length; i++)
+        {
+            commands[i].Pass.Should().Be("windowsPE");
+            commands[i].Component.Should().Be("Microsoft-Windows-Setup");
+            commands[i].Command.Should().Contain($"/v {LabConfigValues[i]} ");
+        }
+
+        commands[0].Description.Should().Be("Order 1-6: Skip Windows 11 Hardware Requirement Checks");
+        commands.Skip(1).Should().OnlyContain(c => c.Description == null);
+    }
+
+    [Fact]
+    public void NetFx3Card_Enabled_EnablesFromMediaInSpecializePass()
+    {
+        var command = (AutounattendCommand)State("autounattend-netfx3", LocKey.Common.Enabled).Effects.Single();
+
+        command.Pass.Should().Be("specialize");
+        command.Component.Should().Be("Microsoft-Windows-Deployment");
+        command.Command.Should().Contain("/FeatureName:NetFx3").And.Contain("/LimitAccess");
+        command.Description.Should().Be("Enables .NET Framework 3.5 from Windows Installation Media");
+        State("autounattend-netfx3", LocKey.Common.Enabled).HasRole(RoleKind.Recommended).Should().BeTrue();
+        State("autounattend-netfx3", LocKey.Common.Disabled).Effects.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void DesktopShortcutCard_Always_OffersNoShortcutShortcutOrInstallAfterSetup()
+    {
+        var setting = S("autounattend-desktop-shortcut");
+
+        setting.IsAnswerFileOnly.Should().BeTrue();
+        setting.Control.Should().Be(ControlKind.Selection);
+        setting.States.Select(s => s.Label).Should().Equal(
+            LocKey.Setting.AutounattendDesktopShortcut.Option0,
+            LocKey.Setting.AutounattendDesktopShortcut.Option1,
+            LocKey.Setting.AutounattendDesktopShortcut.Option2);
+        setting.States[0].Effects.Should().BeEmpty();
+        setting.States[1].HasRole(RoleKind.Recommended).Should().BeTrue();
+
+        var shortcut = setting.States[1].Effects.Cast<ScriptEffect>().ToList();
+        shortcut.Select(s => (s.Run, s.When)).Should().Equal(
+            (RunContext.System, AppsToInstall.None),
+            (RunContext.System, AppsToInstall.Some));
+        shortcut[0].Script.ReplaceLineEndings("\n").Should().Be(DownloadShortcutScript.ReplaceLineEndings("\n"));
+        shortcut[1].Script.Should().Contain("Install Winhance.lnk")
+            .And.Contain("{{external-app-ids}}")
+            .And.Contain($"-File `\"{InstallWinhanceScript}`\"")
+            .And.Contain("--install-apps")
+            .And.Contain("--install-options")
+            .And.Contain("$bytes[21] = 34")
+            .And.NotContain("irm 'https://get.winhance.net'");
+
+        var automatic = setting.States[2].Effects.Cast<ScriptEffect>().ToList();
+        automatic.Select(s => (s.Run, s.When)).Should().Equal(
+            (RunContext.System, AppsToInstall.Either),
+            (RunContext.SignInAfterSetup, AppsToInstall.Either));
+        automatic[0].Script.Should().StartWith($"Set-Content -Path '{InstallWinhanceScript}'");
+        automatic[0].Script.TrimEnd().Should().EndWith("'@", "writing the script is all the system pass does");
+        automatic[1].Script.Should().StartWith($"if (Test-Path '{InstallWinhanceScript}')")
+            .And.Contain("Start-ProcessAsUser")
+            .And.Contain($"-File `\"{InstallWinhanceScript}`\"");
+    }
+
+    // The catalog spells the install script out in both states, so this keeps the two copies from drifting apart.
+    [Fact]
+    public void DesktopShortcutCard_ShortcutAndAutomaticStates_WriteSameInstallScript()
+    {
+        var shortcut = S("autounattend-desktop-shortcut").States[1].Effects.Cast<ScriptEffect>().Single(s => s.When == AppsToInstall.Some).Script;
+        var automatic = S("autounattend-desktop-shortcut").States[2].Effects.Cast<ScriptEffect>().Single(s => s.Run == RunContext.System).Script;
+
+        foreach (var script in new[] { shortcut, automatic })
+        {
+            script.Should().Contain(ScriptPaths.UnattendWinhanceInstallerPath)
+                .And.Contain(ScriptPaths.UnattendOwnInstallersDirectory)
+                .And.Contain(InstallWinhanceScript);
+        }
+
+        InstallScriptBody(shortcut).Should().Be(InstallScriptBody(automatic));
+    }
+
+    // The script deleting itself is what marks the install as done; there is no registry flag to set or clear.
+    [Fact]
+    public void AnswerFileScripts_Always_KeepNoRegistryFlagForInstall()
+    {
+        var scripts = AutounattendCatalog.All
+            .SelectMany(setting => setting.States)
+            .SelectMany(state => state.Effects)
+            .OfType<ScriptEffect>()
+            .ToList();
+
+        scripts.Should().NotBeEmpty();
+        scripts.Should().OnlyContain(script =>
+            !script.Script.Contains("InstallWinhanceAtSignIn") && !script.Script.Contains(@"HKLM:\SOFTWARE\Winhance\Unattend"));
+    }
+
+    [Theory]
+    [InlineData("autounattend-licence-page", "OOBE/HideEULAPage")]
+    [InlineData("autounattend-oem-registration-page", "OOBE/HideOEMRegistrationScreen")]
+    [InlineData("autounattend-network-page", "OOBE/HideWirelessSetupInOOBE")]
+    public void SetupPageToggle_PerPage_HidesItsPageByDefault(string id, string path)
+    {
+        var element = (AutounattendElement)S(id).Targets.Single();
+        element.Pass.Should().Be("oobeSystem");
+        element.Component.Should().Be("Microsoft-Windows-Shell-Setup");
+        element.Path.Should().Be(path);
+
+        var off = State(id, LocKey.Common.Disabled);
+        Written(off, "hide").Should().Be("true");
+        off.HasRole(RoleKind.Recommended).Should().BeTrue();
+        State(id, LocKey.Common.Enabled).Set["hide"].AcceptsAbsent.Should().BeTrue();
+    }
+
+    [Fact]
+    public void PrivacyCard_States_WriteThreeThenOneThenNothing()
+    {
+        var states = S("autounattend-privacy").States;
+
+        Written(states[0], "protect").Should().Be("3");
+        states[0].HasRole(RoleKind.Recommended).Should().BeTrue();
+        Written(states[1], "protect").Should().Be("1");
+        states[2].Set["protect"].AcceptsAbsent.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("autounattend-user-script-system", RunContext.System)]
+    [InlineData("autounattend-user-script-user", RunContext.User)]
+    public void UserScriptCard_PerSection_IsTypedScriptListNamingItsSection(string id, RunContext run)
+    {
+        var setting = SettingCatalog.Find(id)!;
+
+        setting.Control.Should().Be(ControlKind.List);
+        setting.List!.Fields.Select(f => (f.Key, f.Kind, f.MultiLine)).Should().Equal(
+            ("type", FieldKind.Selection, false),
+            ("script", FieldKind.Text, true));
+        setting.Targets.Should().ContainSingle()
+            .Which.Should().BeOfType<AutounattendScript>()
+            .Which.Run.Should().Be(run);
+    }
+
+    [Fact]
+    public void InstallerCards_Always_AreStagingTickAndPickedFileListThatChangeMedia()
+    {
+        var stage = SettingCatalog.Find("autounattend-stage-apps")!;
+        stage.Control.Should().Be(ControlKind.CheckBox);
+        stage.States.Single(s => s.HasRole(RoleKind.WindowsDefault)).Label.Should().Be(LocKey.Common.Checked);
+        stage.Targets.Should().ContainSingle().Which.Should().BeOfType<AutounattendMedia>();
+
+        var installers = SettingCatalog.Find("autounattend-own-installers")!;
+        installers.Control.Should().Be(ControlKind.List);
+        installers.List!.CanBeEmpty.Should().BeTrue();
+        installers.List.Fields.Select(f => (f.Key, f.Kind, f.Filter?.Pattern)).Should().Equal(
+            ("file", FieldKind.File, "*.exe;*.msi"),
+            ("switches", FieldKind.Text, (string?)null));
+        installers.Targets.Should().ContainSingle().Which.Should().BeOfType<AutounattendMedia>();
+    }
+
+    // The card's own buttons read "Add a script", not the accounts card's "Add an account".
+    [Fact]
+    public void ListCards_Always_NameTheirOwnAddAndRemoveButtons()
+    {
+        SettingCatalog.All.Where(s => s.List is not null)
+            .Should().NotBeEmpty()
+            .And.OnlyContain(s => s.List!.Add != null && s.List.Remove != null);
+    }
+
+    [Fact]
+    public void KeepRemovedSetting_Always_OffersThreeWaysAndStartsOnScriptsAndTasks()
+    {
+        var setting = S("autounattend-keep-removed");
+
+        setting.States.Select(st => st.Label).Should().Equal(
+            LocKey.Setting.AutounattendKeepRemoved.Option0,
+            LocKey.Setting.AutounattendKeepRemoved.Option1,
+            LocKey.Setting.AutounattendKeepRemoved.Option2);
+        setting.Targets.Should().BeEmpty();
+        State(setting.Id, LocKey.Setting.AutounattendKeepRemoved.Option1).HasRole(RoleKind.Recommended).Should().BeTrue();
+        State(setting.Id, LocKey.Setting.AutounattendKeepRemoved.Option1).HasRole(RoleKind.WindowsDefault).Should().BeTrue();
+        State(setting.Id, LocKey.Setting.AutounattendKeepRemoved.Option0).Effects.Should().BeEmpty();
+        State(setting.Id, LocKey.Setting.AutounattendKeepRemoved.Option1).Effects.Should().BeEmpty();
+        // The mode is written by the removal section, which only exists when apps are removed.
+        State(setting.Id, LocKey.Setting.AutounattendKeepRemoved.Option2).Effects.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CompactSetting_Always_WritesCompactTrueInWindowsPEAndOtherwiseLeavesItToSetup()
+    {
+        var setting = S("autounattend-compact");
+
+        var target = setting.Targets.Should().ContainSingle().Which.Should().BeOfType<AutounattendElement>().Subject;
+        (target.Pass, target.Component, target.Path).Should().Be(("windowsPE", "Microsoft-Windows-Setup", "ImageInstall/OSImage/Compact"));
+        Written(State(setting.Id, LocKey.Common.Enabled), "compact").Should().Be("true");
+        State(setting.Id, LocKey.Common.Disabled).Set["compact"].AcceptsAbsent.Should().BeTrue();
+        State(setting.Id, LocKey.Common.Disabled).HasRole(RoleKind.WindowsDefault).Should().BeTrue();
+    }
+
+    [Fact]
+    public void NetFx3RemoveSourceSetting_Always_IsAMediaOnlyChildOfTheDotNetCardThatStartsOff()
+    {
+        var setting = S("autounattend-netfx3-remove-source");
+
+        setting.UiParentId.Should().Be("autounattend-netfx3");
+        setting.Targets.Should().ContainSingle().Which.Should().Be(new AutounattendMedia("remove-sxs"));
+        setting.EnabledWhen.Should().BeNull();
+        State(setting.Id, LocKey.Common.Disabled).HasRole(RoleKind.WindowsDefault).Should().BeTrue();
+        State(setting.Id, LocKey.Common.Disabled).HasRole(RoleKind.Recommended).Should().BeTrue();
+        setting.States.SelectMany(st => st.Effects).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AutounattendCatalog_Always_IsWiredIntoLiveCatalogUnderItsOwnFeature()
+    {
+        AutounattendCatalog.FeatureId.Should().Be(FeatureIds.Autounattend);
+        SettingCatalog.ByFeature[FeatureIds.Autounattend].Should().Equal(AutounattendCatalog.All);
+        FeatureDefinitions.AutounattendFeatures.Should().Contain(FeatureIds.Autounattend);
+
+        foreach (var id in PageOrder)
+            SettingCatalog.Find(id).Should().NotBeNull(id);
+    }
+
+    [Fact]
+    public void LiveSettings_Always_NeverPointRelationshipAtAnswerFileSetting()
+    {
+        // Answer-file settings are filtered out of SettingCatalog.All on Live System, so a live setting naming one
+        // would send the relationship cascade's GetById after a setting that is not there.
+        var answerFileIds = AutounattendCatalog.All.Select(s => s.Id).ToHashSet(StringComparer.Ordinal);
+
+        answerFileIds.Should().HaveCount(PageOrder.Length);
+
+        var offenders = SettingCatalog.All
+            .Where(s => !s.IsAnswerFileOnly)
+            .SelectMany(s => Relationships(s)
+                .Where(answerFileIds.Contains)
+                .Select(other => $"{s.Id} -> {other}"))
+            .ToList();
+
+        offenders.Should().BeEmpty();
+    }
+
+    private static IEnumerable<string> Relationships(Setting setting)
+    {
+        foreach (var link in setting.States.SelectMany(st => st.Links))
+            yield return link.OtherId;
+
+        foreach (var state in setting.States)
+            if (state.Controls is { } controls)
+                foreach (var childId in controls.Keys)
+                    yield return childId;
+
+        if (setting.EnabledWhen is { } gate)
+            yield return gate.OtherId;
+
+        if (setting.UiParentId is { } parent)
+            yield return parent;
+    }
+}

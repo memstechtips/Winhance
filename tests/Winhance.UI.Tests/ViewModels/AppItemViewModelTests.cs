@@ -1,8 +1,9 @@
-using System.IO;
 using FluentAssertions;
+using FluentIcons.Common;
 using Microsoft.UI.Xaml;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
@@ -19,7 +20,6 @@ public class AppItemViewModelTests
 
     public AppItemViewModelTests()
     {
-        // Set up dispatcher to execute actions synchronously
         _mockDispatcher
             .Setup(d => d.RunOnUIThread(It.IsAny<Action>()))
             .Callback<Action>(action => action());
@@ -53,10 +53,6 @@ public class AppItemViewModelTests
             _mockThemeService.Object);
     }
 
-    // -------------------------------------------------------
-    // Constructor / property passthrough
-    // -------------------------------------------------------
-
     [Fact]
     public void Constructor_SetsPropertiesFromDefinition()
     {
@@ -72,10 +68,8 @@ public class AppItemViewModelTests
     [Fact]
     public void Constructor_SubscribesToLanguageChanged()
     {
-        // Arrange & Act
         var vm = CreateViewModel();
 
-        // Raise the event and verify property changed notifications fire
         var changedProperties = new List<string>();
         vm.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName!);
 
@@ -83,6 +77,22 @@ public class AppItemViewModelTests
 
         changedProperties.Should().Contain(nameof(vm.InstalledStatusText));
         changedProperties.Should().Contain(nameof(vm.ReinstallableStatusText));
+    }
+
+    [Fact]
+    public void CategoryDisplayName_UsesTheTranslatedGroupName()
+    {
+        var translated = "Navigateurs";
+        _mockLocalization.Setup(l => l.TryGetString("ExternalApps_Category_Browsers", out translated)).Returns(true);
+
+        CreateViewModel(_defaultDefinition with { GroupName = "Browsers" }).CategoryDisplayName.Should().Be("Navigateurs");
+    }
+
+    [Fact]
+    public void CategoryDisplayName_WithoutATranslation_ShowsTheGroupName()
+    {
+        CreateViewModel(_defaultDefinition with { GroupName = "3D/Mixed Reality" })
+            .CategoryDisplayName.Should().Be("3D/Mixed Reality");
     }
 
     [Fact]
@@ -100,10 +110,6 @@ public class AppItemViewModelTests
 
         vm.GroupName.Should().BeEmpty();
     }
-
-    // -------------------------------------------------------
-    // IsSelected
-    // -------------------------------------------------------
 
     [Fact]
     public void IsSelected_DefaultIsFalse()
@@ -130,10 +136,6 @@ public class AppItemViewModelTests
         raised.Should().BeTrue();
     }
 
-    // -------------------------------------------------------
-    // IsInstalled
-    // -------------------------------------------------------
-
     [Fact]
     public void IsInstalled_SetToNewValue_UpdatesDefinitionAndRaisesPropertyChanged()
     {
@@ -156,24 +158,24 @@ public class AppItemViewModelTests
         var changedProperties = new List<string>();
         vm.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName!);
 
-        vm.IsInstalled = false; // same value
+        vm.IsInstalled = false;
 
         changedProperties.Should().BeEmpty();
     }
 
     [Fact]
-    public void IsInstalled_SetTrue_DispatchesToUIThread()
+    public void IsInstalled_SetTrue_RaisesEveryStatusProperty()
     {
         var vm = CreateViewModel();
+        var changedProperties = new List<string>();
+        vm.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName!);
 
         vm.IsInstalled = true;
 
-        _mockDispatcher.Verify(d => d.RunOnUIThread(It.IsAny<Action>()), Times.Once);
+        changedProperties.Should().BeEquivalentTo(
+            nameof(vm.IsInstalled), nameof(vm.InstalledStatusText), nameof(vm.InstalledStatusTooltip), nameof(vm.HasUpdate),
+            nameof(vm.IsInstalledUpToDate), nameof(vm.StatusColumnText), nameof(vm.StatusIcon), nameof(vm.StatusTooltip));
     }
-
-    // -------------------------------------------------------
-    // InstalledStatusText / ReinstallableStatusText
-    // -------------------------------------------------------
 
     [Fact]
     public void InstalledStatusText_WhenInstalled_ReturnsInstalledKey()
@@ -254,89 +256,25 @@ public class AppItemViewModelTests
         vm.ReinstallableStatusText.Should().Be("Cannot Reinstall");
     }
 
-    // -------------------------------------------------------
-    // ItemTypeDescription
-    // -------------------------------------------------------
-
-    [Fact]
-    public void ItemTypeDescription_WithCapabilityName_ReturnsLegacyCapability()
+    [Theory]
+    [InlineData(WindowsAppKind.AppxPackage, "SoftwareApps_Type_AppxPackage")]
+    [InlineData(WindowsAppKind.Capability, "SoftwareApps_Type_LegacyCapability")]
+    [InlineData(WindowsAppKind.OptionalFeature, "SoftwareApps_Type_OptionalFeature")]
+    [InlineData(WindowsAppKind.DesktopApp, "SoftwareApps_Type_DesktopApp")]
+    public void ItemTypeDescription_ShowsTheCatalogKind(WindowsAppKind kind, string key)
     {
-        var def = new ItemDefinition
-        {
-            Id = "x",
-            Name = "x",
-            Description = "x",
-            CapabilityName = "SomeCapability",
-        };
-        var vm = CreateViewModel(def);
+        var vm = CreateViewModel(new ItemDefinition { Id = "x", Name = "x", Description = "x", Kind = kind });
 
-        vm.ItemTypeDescription.Should().Be("Legacy Capability");
+        vm.ItemTypeDescription.Should().Be(key);
     }
 
     [Fact]
-    public void ItemTypeDescription_WithOptionalFeatureName_ReturnsOptionalFeature()
+    public void ItemTypeDescription_WithoutAKind_IsEmpty()
     {
-        var def = new ItemDefinition
-        {
-            Id = "x",
-            Name = "x",
-            Description = "x",
-            OptionalFeatureName = "SomeFeature",
-        };
-        var vm = CreateViewModel(def);
-
-        vm.ItemTypeDescription.Should().Be("Optional Feature");
-    }
-
-    [Fact]
-    public void ItemTypeDescription_WithAppxPackageName_ReturnsAppXPackage()
-    {
-        var def = new ItemDefinition
-        {
-            Id = "x",
-            Name = "x",
-            Description = "x",
-            AppxPackageName = new[] { "SomePackage" },
-        };
-        var vm = CreateViewModel(def);
-
-        vm.ItemTypeDescription.Should().Be("AppX Package");
-    }
-
-    [Fact]
-    public void ItemTypeDescription_WithNoSpecialNames_ReturnsEmpty()
-    {
-        var def = new ItemDefinition
-        {
-            Id = "x",
-            Name = "x",
-            Description = "x",
-        };
-        var vm = CreateViewModel(def);
+        var vm = CreateViewModel(new ItemDefinition { Id = "x", Name = "x", Description = "x" });
 
         vm.ItemTypeDescription.Should().BeEmpty();
     }
-
-    [Fact]
-    public void ItemTypeDescription_CapabilityTakesPriorityOverOptionalFeature()
-    {
-        var def = new ItemDefinition
-        {
-            Id = "x",
-            Name = "x",
-            Description = "x",
-            CapabilityName = "Cap",
-            OptionalFeatureName = "Feat",
-            AppxPackageName = new[] { "Pkg" },
-        };
-        var vm = CreateViewModel(def);
-
-        vm.ItemTypeDescription.Should().Be("Legacy Capability");
-    }
-
-    // -------------------------------------------------------
-    // WebsiteUrl
-    // -------------------------------------------------------
 
     [Fact]
     public void WebsiteUrl_ReflectsDefinition()
@@ -361,9 +299,19 @@ public class AppItemViewModelTests
         vm.WebsiteUrl.Should().BeNull();
     }
 
-    // -------------------------------------------------------
-    // IDisposable
-    // -------------------------------------------------------
+    [Theory]
+    [InlineData("https://example.com", true)]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    [InlineData("   ", false)]
+    [InlineData("example.com", false)]
+    public void HasWebsite_OnlyForAnAbsoluteUrl(string? url, bool expected)
+    {
+        var vm = CreateViewModel(new ItemDefinition { Id = "x", Name = "x", Description = "x", WebsiteUrl = url });
+
+        vm.HasWebsite.Should().Be(expected);
+        (vm.WebsiteUri is not null).Should().Be(expected);
+    }
 
     [Fact]
     public void Dispose_UnsubscribesFromLanguageChanged()
@@ -371,7 +319,6 @@ public class AppItemViewModelTests
         var vm = CreateViewModel();
         vm.Dispose();
 
-        // After dispose, raising LanguageChanged should not trigger PropertyChanged
         var changedProperties = new List<string>();
         vm.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName!);
 
@@ -394,10 +341,6 @@ public class AppItemViewModelTests
         act.Should().NotThrow();
     }
 
-    // -------------------------------------------------------
-    // CanBeReinstalled
-    // -------------------------------------------------------
-
     [Fact]
     public void CanBeReinstalled_ReflectsDefinition()
     {
@@ -413,74 +356,27 @@ public class AppItemViewModelTests
         vm.CanBeReinstalled.Should().BeFalse();
     }
 
-    // -------------------------------------------------------
-    // Fallback category booleans (drive XAML icon visibility)
-    // -------------------------------------------------------
-
-    [Fact]
-    public void IsAppXFallback_WhenAppxAndNoIcon_IsTrue()
+    [Theory]
+    [InlineData(null, null, Icon.Apps)]
+    [InlineData("App.Support.IE.Mode", null, Icon.PuzzlePiece)]
+    [InlineData(null, "Containers-DisposableClientVM", Icon.StarSettings)]
+    public void FallbackIcon_FollowsTheItemKind(string? capability, string? optionalFeature, Icon expected)
     {
-        var def = new ItemDefinition
+        var vm = CreateViewModel(new ItemDefinition
         {
-            Id = "app1",
-            Name = "App 1",
+            Id = "x",
+            Name = "X",
             Description = "",
-            AppxPackageName = new[] { "Microsoft.App1" },
-        };
-        var vm = CreateViewModel(def);
+            CapabilityName = capability,
+            OptionalFeatureName = optionalFeature,
+        });
 
-        vm.IsAppXFallback.Should().BeTrue();
-        vm.IsCapabilityFallback.Should().BeFalse();
-        vm.IsOptionalFeatureFallback.Should().BeFalse();
+        vm.FallbackIcon.Should().Be(expected);
+        vm.NeedsFallbackIcon.Should().BeTrue();
     }
 
     [Fact]
-    public void IsCapabilityFallback_WhenCapabilityAndNoIcon_IsTrue()
-    {
-        var def = new ItemDefinition
-        {
-            Id = "cap1",
-            Name = "Cap 1",
-            Description = "",
-            CapabilityName = "App.Support.IE.Mode",
-        };
-        var vm = CreateViewModel(def);
-
-        vm.IsCapabilityFallback.Should().BeTrue();
-        vm.IsAppXFallback.Should().BeFalse();
-        vm.IsOptionalFeatureFallback.Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsOptionalFeatureFallback_WhenOptionalFeatureAndNoIcon_IsTrue()
-    {
-        var def = new ItemDefinition
-        {
-            Id = "feat1",
-            Name = "Feat 1",
-            Description = "",
-            OptionalFeatureName = "Containers-DisposableClientVM",
-        };
-        var vm = CreateViewModel(def);
-
-        vm.IsOptionalFeatureFallback.Should().BeTrue();
-        vm.IsAppXFallback.Should().BeFalse();
-        vm.IsCapabilityFallback.Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsAppXFallback_DefaultsToTrueWhenNoCategoryMatches()
-    {
-        var def = new ItemDefinition { Id = "x", Name = "X", Description = "" };
-        var vm = CreateViewModel(def);
-
-        vm.IsAppXFallback.Should().BeTrue();
-        vm.IsCapabilityFallback.Should().BeFalse();
-        vm.IsOptionalFeatureFallback.Should().BeFalse();
-    }
-
-    [Fact]
-    public void AllFallbacks_AreFalse_WhenIconResolved()
+    public void NeedsFallbackIcon_IsFalse_WhenIconResolved()
     {
         var def = new ItemDefinition
         {
@@ -492,14 +388,8 @@ public class AppItemViewModelTests
         };
         var vm = CreateViewModel(def);
 
-        vm.IsAppXFallback.Should().BeFalse();
-        vm.IsCapabilityFallback.Should().BeFalse();
-        vm.IsOptionalFeatureFallback.Should().BeFalse();
+        vm.NeedsFallbackIcon.Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // HasDescription / HasWebsiteUrl / HasInstabilityWarning / ShowNonReinstallableChip
-    // -------------------------------------------------------
 
     [Fact]
     public void HasDescription_IsTrue_WhenDescriptionPresent()
@@ -549,6 +439,37 @@ public class AppItemViewModelTests
         vm.HasInstabilityWarning.Should().BeTrue();
     }
 
+    [Theory]
+    [InlineData(null, "Card_Pill_InstabilityWarning_Tooltip")]
+    [InlineData("Card_Pill_X3DGameBarWarning_Tooltip", "Card_Pill_X3DGameBarWarning_Tooltip")]
+    public void InstabilityWarningTooltip_Always_IsMachineWarningTextWhenAppHasOne(string? machineKey, string shownKey)
+    {
+        var def = new ItemDefinition
+        {
+            Id = "a", Name = "A", Description = "", HasInstabilityWarning = true,
+            MachineWarning = machineKey is null ? null : new(@"HKEY_LOCAL_MACHINE\SOFTWARE\X", machineKey),
+        };
+        _mockLocalization.Setup(l => l.GetString(shownKey)).Returns("shown");
+
+        CreateViewModel(def).InstabilityWarningTooltip.Should().Be("shown");
+    }
+
+    [Theory]
+    [InlineData(null, null, "Card_Pill_InstalledUpToDate_Tooltip")]
+    [InlineData("SomeCapability", null, "Card_Pill_Installed_Tooltip")]
+    [InlineData(null, "SomeFeature", "Card_Pill_Installed_Tooltip")]
+    public void InstalledStatusTooltip_Always_ClaimsUpToDateOnlyForItemsThatCanBeUpdated(
+        string? capability, string? feature, string expectedKey)
+    {
+        var def = new ItemDefinition
+        {
+            Id = "a", Name = "A", Description = "", IsInstalled = true,
+            CapabilityName = capability, OptionalFeatureName = feature,
+        };
+
+        CreateViewModel(def).InstalledStatusTooltip.Should().Be(expectedKey);
+    }
+
     [Fact]
     public void HasInstabilityWarning_IsFalse_WhenUnset()
     {
@@ -589,24 +510,115 @@ public class AppItemViewModelTests
     }
 
     [Fact]
-    public void ShowNonReinstallableChip_IsTrue_WhenCannotBeReinstalled()
+    public void DescriptionTooltip_AddsTheReinstallStatus_WhenCannotBeReinstalled()
     {
-        var def = new ItemDefinition { Id = "a", Name = "A", Description = "", CanBeReinstalled = false };
+        _mockLocalization.Setup(l => l.GetString("Status_CannotReinstall")).Returns("Cannot reinstall");
+        var def = new ItemDefinition { Id = "a", Name = "A", Description = "Desc", CanBeReinstalled = false };
         var vm = CreateViewModel(def);
-        vm.ShowNonReinstallableChip.Should().BeTrue();
+        vm.DescriptionTooltip.Should().Be("Desc" + Environment.NewLine + "Cannot reinstall");
     }
 
     [Fact]
-    public void ShowNonReinstallableChip_IsFalse_WhenCanBeReinstalled()
+    public void DescriptionTooltip_IsTheDescription_WhenCanBeReinstalled()
+    {
+        var def = new ItemDefinition { Id = "a", Name = "A", Description = "Desc", CanBeReinstalled = true };
+        var vm = CreateViewModel(def);
+        vm.DescriptionTooltip.Should().Be("Desc");
+    }
+
+    [Fact]
+    public void DescriptionTooltip_IsNull_WhenNothingToShow()
     {
         var def = new ItemDefinition { Id = "a", Name = "A", Description = "", CanBeReinstalled = true };
         var vm = CreateViewModel(def);
-        vm.ShowNonReinstallableChip.Should().BeFalse();
+        vm.DescriptionTooltip.Should().BeNull();
     }
 
-    // -------------------------------------------------------
-    // HasIcon
-    // -------------------------------------------------------
+    private AppItemViewModel CreateInstalledWithUpdate(bool hasUpdate)
+    {
+        var def = new ItemDefinition { Id = "a", Name = "A", Description = "", IsInstalled = true };
+        return CreateViewModel(def, new InstalledApp("a", "A", InstalledAppKind.Program)
+        {
+            Version = "1.0",
+            AvailableVersion = hasUpdate ? "2.0" : null,
+            UpdateVia = hasUpdate ? PackageSources.WinGet : PackageSources.None,
+        });
+    }
+
+    private AppItemViewModel CreateViewModel(ItemDefinition definition, InstalledApp installed)
+    {
+        var vm = CreateViewModel(definition);
+        vm.Installed = installed;
+        return vm;
+    }
+
+    [Fact]
+    public void IsInstalledUpToDate_IsTrue_WhenInstalledWithoutUpdate()
+    {
+        var vm = CreateInstalledWithUpdate(hasUpdate: false);
+        vm.IsInstalledUpToDate.Should().BeTrue();
+        vm.HasUpdate.Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsInstalledUpToDate_IsFalse_WhenInstalledWithUpdate()
+    {
+        var vm = CreateInstalledWithUpdate(hasUpdate: true);
+        vm.IsInstalledUpToDate.Should().BeFalse();
+        vm.HasUpdate.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsInstalledUpToDate_IsFalse_WhenNotInstalled()
+    {
+        var vm = CreateViewModel();
+        vm.IsInstalledUpToDate.Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsInstalledUpToDate_Notifies_WhenInstalledOrScanChanges()
+    {
+        var vm = CreateViewModel();
+        var changed = new List<string>();
+        vm.PropertyChanged += (_, e) => changed.Add(e.PropertyName!);
+
+        vm.IsInstalled = true;
+        vm.Installed = new InstalledApp("a", "A", InstalledAppKind.Program) { UpdateVia = PackageSources.WinGet };
+
+        changed.Count(n => n == nameof(vm.IsInstalledUpToDate)).Should().Be(2);
+    }
+
+    [Fact]
+    public void StatusIcon_ShowsOneOfInstalledUpdateOrNotInstalled()
+    {
+        CreateInstalledWithUpdate(hasUpdate: true).StatusIcon.Should().Be(Icon.Clock);
+        CreateInstalledWithUpdate(hasUpdate: false).StatusIcon.Should().Be(Icon.CheckmarkCircle);
+        CreateViewModel().StatusIcon.Should().Be(Icon.DismissCircle);
+        var withUpdate = CreateInstalledWithUpdate(hasUpdate: true);
+        withUpdate.StatusTooltip.Should().Be(withUpdate.UpdateAvailableTooltip);
+        CreateViewModel().StatusTooltip.Should().Be("Card_Pill_NotInstalled_Tooltip");
+    }
+
+    [Fact]
+    public void StatusIcon_Notifies_WhenInstalledOrScanChanges()
+    {
+        var vm = CreateViewModel();
+        var changed = new List<string>();
+        vm.PropertyChanged += (_, e) => changed.Add(e.PropertyName!);
+
+        vm.IsInstalled = true;
+        vm.Installed = new InstalledApp("a", "A", InstalledAppKind.Program) { UpdateVia = PackageSources.WinGet };
+
+        changed.Count(n => n == nameof(vm.StatusIcon)).Should().Be(2);
+        changed.Count(n => n == nameof(vm.StatusTooltip)).Should().Be(2);
+    }
+
+    [Fact]
+    public void StatusColumnText_ShowsUpdateAvailable_OnlyWhenThereIsAnUpdate()
+    {
+        CreateInstalledWithUpdate(hasUpdate: true).StatusColumnText.Should().Be("Card_Pill_UpdateAvailable");
+        CreateInstalledWithUpdate(hasUpdate: false).StatusColumnText.Should().Be("Status_Installed");
+    }
 
     [Fact]
     public void HasIcon_NullIconPath_IsFalse()
@@ -640,12 +652,8 @@ public class AppItemViewModelTests
         vm.HasIcon.Should().BeTrue();
     }
 
-    // -------------------------------------------------------
-    // Theme-aware icon path resolution
-    // -------------------------------------------------------
-
     [Fact]
-    public void IconSource_LightTheme_WithLightSibling_DecodesFromLightPath()
+    public void IconSource_LightTheme_WithLightSibling_ResolvesLightPath()
     {
         var tmpDir = Path.Combine(Path.GetTempPath(), "WinhanceTest_" + Path.GetRandomFileName());
         Directory.CreateDirectory(tmpDir);
@@ -660,10 +668,8 @@ public class AppItemViewModelTests
             _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Light);
 
             var vm = CreateViewModel(def);
-            var bmp = vm.IconSource;
 
-            bmp.Should().NotBeNull();
-            bmp!.UriSource.LocalPath.Should().Be(lightPath);
+            vm.ResolvedIconPath.Should().Be(lightPath);
         }
         finally
         {
@@ -685,7 +691,7 @@ public class AppItemViewModelTests
             _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Light);
 
             var vm = CreateViewModel(def);
-            vm.IconSource!.UriSource.LocalPath.Should().Be(primaryPath);
+            vm.ResolvedIconPath.Should().Be(primaryPath);
         }
         finally
         {
@@ -711,7 +717,7 @@ public class AppItemViewModelTests
             _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Dark);
 
             var vm = CreateViewModel(def);
-            vm.IconSource!.UriSource.LocalPath.Should().Be(primaryPath);
+            vm.ResolvedIconPath.Should().Be(primaryPath);
         }
         finally
         {
@@ -720,7 +726,7 @@ public class AppItemViewModelTests
     }
 
     [Fact]
-    public void IconSource_DarkTheme_WithDarkSibling_DecodesFromDarkPath()
+    public void IconSource_DarkTheme_WithDarkSibling_ResolvesDarkPath()
     {
         // Mono-dark source (e.g. Xbox Game Bar #333): synthesizer wrote a
         // .dark.png; the VM must prefer it in dark mode.
@@ -739,12 +745,60 @@ public class AppItemViewModelTests
             _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Dark);
 
             var vm = CreateViewModel(def);
-            vm.IconSource!.UriSource.LocalPath.Should().Be(darkPath);
+            vm.ResolvedIconPath.Should().Be(darkPath);
         }
         finally
         {
             Directory.Delete(tmpDir, recursive: true);
         }
+    }
+
+    [Fact]
+    public void ResolvedIconPath_IsCachedUntilThemeOrIconChanges()
+    {
+        var tmpDir = Path.Combine(Path.GetTempPath(), "WinhanceTest_" + Path.GetRandomFileName());
+        Directory.CreateDirectory(tmpDir);
+        try
+        {
+            var primaryPath = Path.Combine(tmpDir, "icon.png");
+            var lightPath = Path.Combine(tmpDir, "icon.light.png");
+            var darkPath = Path.Combine(tmpDir, "icon.dark.png");
+            File.WriteAllBytes(primaryPath, MinimalPng());
+            File.WriteAllBytes(lightPath, MinimalPng());
+
+            var def = new ItemDefinition { Id = "x", Name = "X", Description = "X", IconPath = primaryPath };
+            _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Dark);
+            var vm = CreateViewModel(def);
+            vm.ResolvedIconPath.Should().Be(primaryPath);
+
+            File.WriteAllBytes(darkPath, MinimalPng());
+            vm.ResolvedIconPath.Should().Be(primaryPath);
+            _mockThemeService.Verify(t => t.GetEffectiveTheme(), Times.Once);
+
+            vm.NotifyIconChanged();
+            vm.ResolvedIconPath.Should().Be(darkPath);
+
+            _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Light);
+            _mockThemeService.Raise(t => t.ThemeChanged += null, this, WinhanceTheme.LightNative);
+            vm.ResolvedIconPath.Should().Be(lightPath);
+        }
+        finally
+        {
+            Directory.Delete(tmpDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ResolvedIconPath_FollowsANewIconPath()
+    {
+        var def = new ItemDefinition { Id = "x", Name = "X", Description = "X", IconPath = "C:\\fake\\a.png" };
+        _mockThemeService.Setup(t => t.GetEffectiveTheme()).Returns(ElementTheme.Dark);
+        var vm = CreateViewModel(def);
+        vm.ResolvedIconPath.Should().Be("C:\\fake\\a.png");
+
+        def.IconPath = "C:\\fake\\b.png";
+
+        vm.ResolvedIconPath.Should().Be("C:\\fake\\b.png");
     }
 
     [Fact]
@@ -780,12 +834,7 @@ public class AppItemViewModelTests
         raised.Should().NotContain(nameof(AppItemViewModel.IconSource));
     }
 
-    /// <summary>
-    /// PNG-ish junk bytes — sufficient for File.Exists checks and lazy
-    /// BitmapImage URI assignment. The tests in this file only inspect
-    /// `BitmapImage.UriSource.LocalPath`, so the decoder never runs over
-    /// these bytes and their malformed CRC/payload doesn't matter.
-    /// </summary>
+    // PNG-ish junk: the tests only inspect BitmapImage.UriSource.LocalPath, so the decoder never runs over these bytes.
     private static byte[] MinimalPng() => new byte[]
     {
         0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A,

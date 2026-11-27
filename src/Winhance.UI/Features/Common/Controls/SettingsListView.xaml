@@ -21,66 +21,77 @@
     -->
 
     <Grid>
-        <!-- Loading State -->
-        <ProgressRing
-            IsActive="{x:Bind IsLoading, Mode=OneWay}"
-            Visibility="{x:Bind IsLoading, Mode=OneWay}"
-            Width="48"
-            Height="48"
+        <local:RocketLoader
+            x:Name="LoadingRocket"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"/>
 
-        <!-- Main Content -->
-        <ScrollView x:Name="ContentScrollView" Visibility="{x:Bind IsNotLoading, Mode=OneWay}">
-            <!-- Wrap StackPanel in Grid to avoid visual glitches with MaxWidth -->
-            <Grid>
-                <StackPanel Spacing="{StaticResource SettingsCardSpacing}" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch" Padding="0,12,0,24">
+        <!-- The ListView is the page's only scroller: an ItemsStackPanel builds just the cards on screen, and a second
+             scroller around it fights this one over touchpad input (#439). Width is capped per container rather than
+             on the list, so the scrollbar stays at the window edge. -->
+        <ListView
+            x:Name="SettingsListViewControl"
+            ItemContainerStyle="{StaticResource SettingsListViewItemContainerStyle}"
+            SelectionMode="None"
+            IsItemClickEnabled="False"
+            IsTabStop="False"
+            Background="Transparent"
+            Padding="0,12,0,24"
+            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+            ScrollViewer.HorizontalScrollMode="Disabled">
 
-                    <ListView
-                        x:Name="SettingsListViewControl"
-                        ItemContainerStyle="{StaticResource SettingsListViewItemContainerStyle}"
-                        SelectionMode="None"
-                        IsItemClickEnabled="False"
-                        IsTabStop="False"
-                        Background="Transparent"
-                        Padding="0"
-                        ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                        ScrollViewer.VerticalScrollMode="Disabled"
-                        ScrollViewer.HorizontalScrollMode="Disabled">
+            <ListView.Header>
+                <ContentPresenter
+                    Content="{x:Bind Header, Mode=OneWay}"
+                    MaxWidth="{StaticResource SettingsContentMaxWidth}"
+                    Margin="{StaticResource SettingsContentMargin}"/>
+            </ListView.Header>
 
-                        <ListView.ItemTemplateSelector>
-                            <selectors:SettingItemTemplateSelector
-                                RegularTemplate="{StaticResource SettingItemTemplate}"
-                                ExpanderTemplate="{StaticResource SettingExpanderItemTemplate}"/>
-                        </ListView.ItemTemplateSelector>
-
-                        <ListView.KeyboardAccelerators>
-                            <KeyboardAccelerator Key="D" Modifiers="Control"
-                                                 Invoked="TechnicalDetailsAccelerator_Invoked"/>
-                        </ListView.KeyboardAccelerators>
-
-                        <ListView.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Spacing="{StaticResource SettingsCardSpacing}"/>
-                            </ItemsPanelTemplate>
-                        </ListView.ItemsPanel>
-
-                        <ListView.GroupStyle>
-                            <GroupStyle HeaderTemplate="{StaticResource SettingsGroupHeaderTemplate}"/>
-                        </ListView.GroupStyle>
-                    </ListView>
-
-                    <!-- No Results Message -->
+            <ListView.Footer>
+                <StackPanel
+                    MaxWidth="{StaticResource SettingsContentMaxWidth}"
+                    Margin="{StaticResource SettingsContentMargin}">
                     <TextBlock
-                        Text="No settings match your search."
+                        x:Name="NoResultsMessage"
+                        x:Load="{x:Bind HasNoSearchResults, Mode=OneWay}"
+                        Text="{x:Bind NoResultsText, Mode=OneWay}"
                         Style="{StaticResource BodyTextBlockStyle}"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                         HorizontalAlignment="Center"
-                        Margin="0,40,0,0"
-                        Visibility="{x:Bind HasNoSearchResults, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        Margin="0,40,0,0"/>
+                    <HyperlinkButton
+                        x:Name="ShowAllLink"
+                        x:Load="{x:Bind IsShowAllVisible, Mode=OneWay}"
+                        Content="{x:Bind ShowAllText, Mode=OneWay}"
+                        Command="{x:Bind ShowAllCommand, Mode=OneWay}"
+                        HorizontalAlignment="Center"
+                        Margin="0,8,0,0"/>
                 </StackPanel>
-            </Grid>
-        </ScrollView>
+            </ListView.Footer>
+
+            <ListView.ItemTemplateSelector>
+                <selectors:SettingItemTemplateSelector
+                    RegularTemplate="{StaticResource SettingItemTemplate}"
+                    ExpanderTemplate="{StaticResource SettingExpanderItemTemplate}"/>
+            </ListView.ItemTemplateSelector>
+
+            <ListView.KeyboardAccelerators>
+                <KeyboardAccelerator Key="D" Modifiers="Control"
+                                     Invoked="TechnicalDetailsAccelerator_Invoked"/>
+            </ListView.KeyboardAccelerators>
+
+            <ListView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <!-- A quarter screen of cards each side instead of the default two: the extra screens held about 40 MB. -->
+                    <ItemsStackPanel AreStickyGroupHeadersEnabled="False" CacheLength="0.5"/>
+                </ItemsPanelTemplate>
+            </ListView.ItemsPanel>
+
+            <ListView.GroupStyle>
+                <GroupStyle
+                    HeaderTemplate="{StaticResource SettingsGroupHeaderTemplate}"
+                    HeaderContainerStyle="{StaticResource SettingsListViewHeaderItemContainerStyle}"/>
+            </ListView.GroupStyle>
+        </ListView>
     </Grid>
 </UserControl>

@@ -1,15 +1,7 @@
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Winhance.Core.Features.Common.Interfaces;
 
-/// <summary>
-/// Abstracts file system operations for testability.
-/// Wraps System.IO.File, System.IO.Directory, and System.IO.Path static calls.
-/// </summary>
 public interface IFileSystemService
 {
-    // File operations
     bool FileExists(string path);
     string ReadAllText(string path);
     Task<string> ReadAllTextAsync(string path, CancellationToken ct = default);
@@ -19,21 +11,30 @@ public interface IFileSystemService
     Task<byte[]> ReadAllBytesAsync(string path, CancellationToken ct = default);
     Task WriteAllBytesAsync(string path, byte[] bytes, CancellationToken ct = default);
     void DeleteFile(string path);
+    // Makes Administrators the owner with full control, for a file only TrustedInstaller may change.
+    void TakeOwnership(string path);
     void CopyFile(string source, string destination, bool overwrite = false);
     void MoveFile(string source, string destination);
+    void MoveFileReplacing(string source, string destination);
+    void MoveDirectory(string source, string destination);
+    void ExtractZip(string zipPath, string folder);
+    void CreateSymbolicLink(string link, string target);
     string ReadAllText(string path, System.Text.Encoding encoding);
     long GetFileSize(string path);
+    DateTime GetLastWriteTimeUtc(string path);
+    System.IO.Stream OpenRead(string path);
     void SetFileAttributes(string path, System.IO.FileAttributes attributes);
-    DateTime GetLastWriteTime(string path);
+    System.IO.FileAttributes GetFileAttributes(string path);
 
-    // Directory operations
     bool DirectoryExists(string path);
     void CreateDirectory(string path);
+    // Creates the folder writable only by SYSTEM and Administrators, replacing a junction or a user-owned one; false when it cannot.
+    bool CreatePrivateDirectory(string path);
+    bool EnsureProtectedPictureDestination(string path);
     void DeleteDirectory(string path, bool recursive = false);
     string[] GetFiles(string path, string searchPattern = "*", System.IO.SearchOption searchOption = System.IO.SearchOption.TopDirectoryOnly);
     string[] GetDirectories(string path, string searchPattern = "*", System.IO.SearchOption searchOption = System.IO.SearchOption.TopDirectoryOnly);
 
-    // Path operations
     string GetTempPath();
     string CombinePath(params string[] paths);
     string GetFileName(string path);
@@ -41,4 +42,8 @@ public interface IFileSystemService
     string GetExtension(string path);
     string GetFileNameWithoutExtension(string path);
     string GetPathRoot(string path);
+
+    (string Root, long FreeBytes)[] GetFixedNtfsDrives();
+    // Null when the path has no local drive behind it (a network share) or the drive cannot be read.
+    long? GetAvailableFreeSpace(string path);
 }

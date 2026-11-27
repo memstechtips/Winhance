@@ -1,25 +1,26 @@
-using System.IO;
 using FluentAssertions;
 using Moq;
-using Winhance.Core.Features.AdvancedTools.Interfaces;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
-using Winhance.UI.Features.AdvancedTools.ViewModels;
+using Winhance.Core.Features.WimUtil.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.WimUtil.ViewModels;
 using Xunit;
 
 namespace Winhance.UI.Tests.ViewModels;
 
-public class WimStep3DriversViewModelTests : IDisposable
+public class WimStep3DriversViewModelTests
 {
+    private const string WorkDir = "C:\\WorkDir";
+    private const string Folder = "C:\\Drivers";
+
     private readonly Mock<IWimCustomizationService> _mockWimCustomizationService = new();
-    private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
     private readonly Mock<IFileSystemService> _mockFileSystemService = new();
     private readonly Mock<IFilePickerService> _mockFilePickerService = new();
     private readonly Mock<ILogService> _mockLogService = new();
-    private readonly Mock<IResourceService> _mockResourceService = new();
+    private bool _driversOnMedia;
 
     private readonly WimStep3DriversViewModel _sut;
 
@@ -28,392 +29,267 @@ public class WimStep3DriversViewModelTests : IDisposable
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
-
-        _mockTaskProgressService
-            .Setup(t => t.StartTask(It.IsAny<string>(), It.IsAny<bool>()))
-            .Returns(new CancellationTokenSource());
-
-        _mockTaskProgressService
-            .Setup(t => t.CurrentTaskCancellationSource)
-            .Returns(new CancellationTokenSource());
-
-        _mockTaskProgressService
-            .Setup(t => t.CreatePowerShellProgress())
-            .Returns(new Progress<TaskProgressDetail>());
+        _mockLocalizationService
+            .Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Returns((string key, object[] _) => key);
+        _mockWimCustomizationService
+            .Setup(s => s.AreDriversOnMedia(WorkDir))
+            .Returns(() => _driversOnMedia);
+        _mockWimCustomizationService
+            .Setup(s => s.AddDriversAsync(It.IsAny<string>(), It.IsAny<string?>(),
+                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _mockFileSystemService.Setup(f => f.DirectoryExists(Folder)).Returns(true);
+        _mockFileSystemService
+            .Setup(f => f.GetFiles(Folder, "*.inf", SearchOption.AllDirectories))
+            .Returns(["C:\\Drivers\\a.inf"]);
 
         _sut = new WimStep3DriversViewModel(
             _mockWimCustomizationService.Object,
-            _mockTaskProgressService.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object,
             _mockFileSystemService.Object,
             _mockFilePickerService.Object,
-            _mockLogService.Object,
-            _mockResourceService.Object);
-    }
-
-    public void Dispose()
-    {
-        _sut.Dispose();
-    }
-
-    // ── Constructor ──
-
-    [Fact]
-    public void Constructor_InitializesAreDriversAddedToFalse()
-    {
-        _sut.AreDriversAdded.Should().BeFalse();
-    }
-
-    [Fact]
-    public void Constructor_InitializesActionCards()
-    {
-        _sut.ExtractSystemDriversCard.Should().NotBeNull();
-        _sut.SelectCustomDriversCard.Should().NotBeNull();
-    }
-
-    [Fact]
-    public void Constructor_BothActionCardsAreEnabled()
-    {
-        _sut.ExtractSystemDriversCard.IsEnabled.Should().BeTrue();
-        _sut.SelectCustomDriversCard.IsEnabled.Should().BeTrue();
-    }
-
-    [Fact]
-    public void Constructor_WorkingDirectoryDefaultsToEmpty()
-    {
-        _sut.WorkingDirectory.Should().BeEmpty();
-    }
-
-    // ── Empty WorkingDirectory guard ──
-
-    [Fact]
-    public async Task ExtractAndAddSystemDriversCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
-    {
-        await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
-
-        _mockDialogService.Verify(d => d.ShowWarningAsync(
-            "WIMUtil_Msg_WorkingDirectoryRequired",
-            It.IsAny<string>()), Times.Once);
-        _mockWimCustomizationService.Verify(s => s.AddDriversAsync(
-            It.IsAny<string>(), It.IsAny<string?>(),
-            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
-        _sut.AreDriversAdded.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task SelectAndAddCustomDriversCommand_WhenWorkingDirectoryEmpty_ShowsWarningAndReturns()
-    {
-        await _sut.SelectAndAddCustomDriversCommand.ExecuteAsync(null);
-
-        _mockDialogService.Verify(d => d.ShowWarningAsync(
-            "WIMUtil_Msg_WorkingDirectoryRequired",
-            It.IsAny<string>()), Times.Once);
-        _mockWimCustomizationService.Verify(s => s.AddDriversAsync(
-            It.IsAny<string>(), It.IsAny<string?>(),
-            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
-        _sut.AreDriversAdded.Should().BeFalse();
-    }
-
-    // ── ExtractAndAddSystemDrivers command ──
-
-    [Fact]
-    public async Task ExtractAndAddSystemDriversCommand_WhenUserCancels_DoesNotExtract()
-    {
-        _sut.WorkingDirectory = "C:\\WorkDir";
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
-
-        await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
-
-        _mockWimCustomizationService.Verify(s => s.AddDriversAsync(
-            It.IsAny<string>(), It.IsAny<string?>(),
-            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
-        _sut.AreDriversAdded.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task ExtractAndAddSystemDriversCommand_OnSuccess_SetsAreDriversAdded()
-    {
-        _sut.WorkingDirectory = "C:\\WorkDir";
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
-
-        _mockWimCustomizationService
-            .Setup(s => s.AddDriversAsync(
-                "C:\\WorkDir", null,
-                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
-
-        _sut.AreDriversAdded.Should().BeTrue();
-        _sut.ExtractSystemDriversCard.IsComplete.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task ExtractAndAddSystemDriversCommand_OnFailure_SetsHasFailed()
-    {
-        _sut.WorkingDirectory = "C:\\WorkDir";
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
-
-        _mockWimCustomizationService
-            .Setup(s => s.AddDriversAsync(
-                "C:\\WorkDir", null,
-                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-
-        await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
-
-        _sut.ExtractSystemDriversCard.HasFailed.Should().BeTrue();
-        _sut.AreDriversAdded.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task ExtractAndAddSystemDriversCommand_OnException_SetsHasFailed()
-    {
-        _sut.WorkingDirectory = "C:\\WorkDir";
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
-
-        _mockWimCustomizationService
-            .Setup(s => s.AddDriversAsync(
-                It.IsAny<string>(), It.IsAny<string?>(),
-                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new Exception("Driver extraction error"));
-
-        await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
-
-        _sut.ExtractSystemDriversCard.HasFailed.Should().BeTrue();
-        _sut.ExtractSystemDriversCard.IsProcessing.Should().BeFalse();
-        _sut.ExtractSystemDriversCard.IsEnabled.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task ExtractAndAddSystemDriversCommand_DisablesCardWhileProcessing()
-    {
-        _sut.WorkingDirectory = "C:\\WorkDir";
-        bool wasProcessing = false;
-        bool wasDisabled = false;
-
-        _mockDialogService
-            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
-            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
-
-        _mockWimCustomizationService
-            .Setup(s => s.AddDriversAsync(
-                It.IsAny<string>(), It.IsAny<string?>(),
-                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
-            .Returns(() =>
-            {
-                wasProcessing = _sut.ExtractSystemDriversCard.IsProcessing;
-                wasDisabled = !_sut.ExtractSystemDriversCard.IsEnabled;
-                return Task.FromResult(true);
-            });
-
-        await _sut.ExtractAndAddSystemDriversCommand.ExecuteAsync(null);
-
-        wasProcessing.Should().BeTrue();
-        wasDisabled.Should().BeTrue();
-    }
-
-    // ── SelectAndAddCustomDrivers command ──
-
-    [Fact]
-    public async Task SelectAndAddCustomDriversCommand_WhenCancelled_DoesNothing()
-    {
-        _sut.WorkingDirectory = "C:\\WorkDir";
-        _mockFilePickerService
-            .Setup(f => f.PickFolder(It.IsAny<string?>()))
-            .Returns((string?)null);
-
-        await _sut.SelectAndAddCustomDriversCommand.ExecuteAsync(null);
-
-        _sut.AreDriversAdded.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task SelectAndAddCustomDriversCommand_WhenEmptyString_DoesNothing()
-    {
-        _sut.WorkingDirectory = "C:\\WorkDir";
-        _mockFilePickerService
-            .Setup(f => f.PickFolder(It.IsAny<string?>()))
-            .Returns(string.Empty);
-
-        await _sut.SelectAndAddCustomDriversCommand.ExecuteAsync(null);
-
-        _sut.AreDriversAdded.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task SelectAndAddCustomDriversCommand_DirectoryDoesNotExist_SetsHasFailed()
-    {
-        _sut.WorkingDirectory = "C:\\WorkDir";
-        _mockFilePickerService
-            .Setup(f => f.PickFolder(It.IsAny<string?>()))
-            .Returns("C:\\DriverDir");
-
-        _mockFileSystemService
-            .Setup(f => f.DirectoryExists("C:\\DriverDir"))
-            .Returns(false);
-
-        await _sut.SelectAndAddCustomDriversCommand.ExecuteAsync(null);
-
-        _sut.SelectCustomDriversCard.HasFailed.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task SelectAndAddCustomDriversCommand_EmptyDirectory_SetsHasFailed()
-    {
-        _sut.WorkingDirectory = "C:\\WorkDir";
-        _mockFilePickerService
-            .Setup(f => f.PickFolder(It.IsAny<string?>()))
-            .Returns("C:\\DriverDir");
-
-        _mockFileSystemService
-            .Setup(f => f.DirectoryExists("C:\\DriverDir"))
-            .Returns(true);
-
-        _mockFileSystemService
-            .Setup(f => f.GetFiles("C:\\DriverDir", "*", SearchOption.AllDirectories))
-            .Returns(Array.Empty<string>());
-
-        _mockFileSystemService
-            .Setup(f => f.GetDirectories("C:\\DriverDir", "*", SearchOption.AllDirectories))
-            .Returns(Array.Empty<string>());
-
-        await _sut.SelectAndAddCustomDriversCommand.ExecuteAsync(null);
-
-        _sut.SelectCustomDriversCard.HasFailed.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task SelectAndAddCustomDriversCommand_OnSuccess_SetsAreDriversAdded()
-    {
-        _sut.WorkingDirectory = "C:\\WorkDir";
-        _mockFilePickerService
-            .Setup(f => f.PickFolder(It.IsAny<string?>()))
-            .Returns("C:\\DriverDir");
-
-        _mockFileSystemService
-            .Setup(f => f.DirectoryExists("C:\\DriverDir"))
-            .Returns(true);
-
-        _mockFileSystemService
-            .Setup(f => f.GetFiles("C:\\DriverDir", "*", SearchOption.AllDirectories))
-            .Returns(new[] { "C:\\DriverDir\\driver.inf" });
-
-        _mockWimCustomizationService
-            .Setup(s => s.AddDriversAsync(
-                "C:\\WorkDir", "C:\\DriverDir",
-                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        await _sut.SelectAndAddCustomDriversCommand.ExecuteAsync(null);
-
-        _sut.AreDriversAdded.Should().BeTrue();
-        _sut.SelectCustomDriversCard.IsComplete.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task SelectAndAddCustomDriversCommand_OnFailure_SetsHasFailed()
-    {
-        _sut.WorkingDirectory = "C:\\WorkDir";
-        _mockFilePickerService
-            .Setup(f => f.PickFolder(It.IsAny<string?>()))
-            .Returns("C:\\DriverDir");
-
-        _mockFileSystemService
-            .Setup(f => f.DirectoryExists("C:\\DriverDir"))
-            .Returns(true);
-
-        _mockFileSystemService
-            .Setup(f => f.GetFiles("C:\\DriverDir", "*", SearchOption.AllDirectories))
-            .Returns(new[] { "C:\\DriverDir\\driver.inf" });
-
-        _mockWimCustomizationService
-            .Setup(s => s.AddDriversAsync(
-                "C:\\WorkDir", "C:\\DriverDir",
-                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-
-        await _sut.SelectAndAddCustomDriversCommand.ExecuteAsync(null);
-
-        _sut.SelectCustomDriversCard.HasFailed.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task SelectAndAddCustomDriversCommand_OnException_SetsHasFailed()
-    {
-        _sut.WorkingDirectory = "C:\\WorkDir";
-        _mockFilePickerService
-            .Setup(f => f.PickFolder(It.IsAny<string?>()))
-            .Returns("C:\\DriverDir");
-
-        _mockFileSystemService
-            .Setup(f => f.DirectoryExists("C:\\DriverDir"))
-            .Returns(true);
-
-        _mockFileSystemService
-            .Setup(f => f.GetFiles("C:\\DriverDir", "*", SearchOption.AllDirectories))
-            .Returns(new[] { "C:\\DriverDir\\driver.inf" });
-
-        _mockWimCustomizationService
-            .Setup(s => s.AddDriversAsync(
-                It.IsAny<string>(), It.IsAny<string?>(),
-                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new Exception("Error adding drivers"));
-
-        await _sut.SelectAndAddCustomDriversCommand.ExecuteAsync(null);
-
-        _sut.SelectCustomDriversCard.HasFailed.Should().BeTrue();
-        _sut.SelectCustomDriversCard.IsProcessing.Should().BeFalse();
-        _sut.SelectCustomDriversCard.IsEnabled.Should().BeTrue();
-    }
-
-    // ── IDisposable ──
-
-    [Fact]
-    public void Dispose_CanBeCalledMultipleTimes()
-    {
-        var vm = new WimStep3DriversViewModel(
-            _mockWimCustomizationService.Object,
-            _mockTaskProgressService.Object,
-            _mockDialogService.Object,
-            _mockLocalizationService.Object,
-            _mockFileSystemService.Object,
-            _mockFilePickerService.Object,
-            _mockLogService.Object,
-            _mockResourceService.Object);
-
-        var act = () =>
+            _mockLogService.Object)
         {
-            vm.Dispose();
-            vm.Dispose();
+            WorkingDirectory = WorkDir,
         };
-
-        act.Should().NotThrow();
     }
 
-    // ── Property change notifications ──
+    private static IProgress<TaskProgressDetail> Progress => new Progress<TaskProgressDetail>();
 
     [Fact]
-    public void SettingAreDriversAdded_RaisesPropertyChanged()
+    public void Constructor_StartsWithNothingChosen()
     {
-        var raised = false;
-        _sut.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(WimStep3DriversViewModel.AreDriversAdded))
-                raised = true;
-        };
+        _sut.AddSystemDrivers.Should().BeFalse();
+        _sut.AddFolderDrivers.Should().BeFalse();
+        _sut.HasDriverChoice.Should().BeFalse();
+        _sut.NeedsApply.Should().BeFalse();
+    }
 
-        _sut.AreDriversAdded = true;
+    [Fact]
+    public void ApplyTitleKey_NamesTheDriversPhase()
+    {
+        _sut.ApplyTitleKey.Should().Be("WIMUtil_Build_PrepareDrivers");
+    }
 
-        raised.Should().BeTrue();
+    [Fact]
+    public void WorkingDirectory_WhenEmpty_StartsEmpty()
+    {
+        new WimStep3DriversViewModel(
+            _mockWimCustomizationService.Object, _mockDialogService.Object, _mockLocalizationService.Object,
+            _mockFileSystemService.Object, _mockFilePickerService.Object, _mockLogService.Object)
+            .WorkingDirectory.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void TickingSystemDrivers_ChoosesThemWithoutTouchingTheFolder()
+    {
+        _sut.AddSystemDrivers = true;
+
+        _sut.HasDriverChoice.Should().BeTrue();
+        _sut.NeedsApply.Should().BeTrue();
+        _mockWimCustomizationService.Verify(s => s.AddDriversAsync(
+            It.IsAny<string>(), It.IsAny<string?>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ChooseDriversFolder_RecordsTheFolderAndTicksTheBox()
+    {
+        _mockFilePickerService.Setup(p => p.PickFolder(It.IsAny<string>())).Returns(Folder);
+
+        await _sut.ChooseDriversFolderCommand.ExecuteAsync(null);
+
+        _sut.CustomDriversFolder.Should().Be(Folder);
+        _sut.AddFolderDrivers.Should().BeTrue();
+        _sut.NeedsApply.Should().BeTrue();
+        _mockWimCustomizationService.Verify(s => s.AddDriversAsync(
+            It.IsAny<string>(), It.IsAny<string?>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ChooseDriversFolder_WhenPickerCancelled_ChoosesNothing()
+    {
+        _mockFilePickerService.Setup(p => p.PickFolder(It.IsAny<string>())).Returns((string?)null);
+
+        await _sut.ChooseDriversFolderCommand.ExecuteAsync(null);
+
+        _sut.AddFolderDrivers.Should().BeFalse();
+        _sut.CustomDriversFolder.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ChooseDriversFolder_WhenFolderMissing_ShowsErrorAndChoosesNothing()
+    {
+        _mockFilePickerService.Setup(p => p.PickFolder(It.IsAny<string>())).Returns("C:\\Gone");
+
+        await _sut.ChooseDriversFolderCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowErrorAsync("WIMUtil_Msg_InvalidFolder"), Times.Once);
+        _sut.AddFolderDrivers.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ChooseDriversFolder_WhenFolderHasNoDrivers_WarnsAndChoosesNothing()
+    {
+        _mockFilePickerService.Setup(p => p.PickFolder(It.IsAny<string>())).Returns("C:\\Photos");
+        _mockFileSystemService.Setup(f => f.DirectoryExists("C:\\Photos")).Returns(true);
+        _mockFileSystemService.Setup(f => f.GetFiles("C:\\Photos", "*.inf", SearchOption.AllDirectories)).Returns([]);
+
+        await _sut.ChooseDriversFolderCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowWarningAsync("WIMUtil_Msg_NoCustomDrivers", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _sut.AddFolderDrivers.Should().BeFalse();
+        _sut.CustomDriversFolder.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ClearDriversFolder_DropsTheFolderAndItsChoice()
+    {
+        _mockFilePickerService.Setup(p => p.PickFolder(It.IsAny<string>())).Returns(Folder);
+        await _sut.ChooseDriversFolderCommand.ExecuteAsync(null);
+
+        _sut.ClearDriversFolderCommand.Execute(null);
+
+        _sut.AddFolderDrivers.Should().BeFalse();
+        _sut.CustomDriversFolder.Should().BeEmpty();
+        _sut.NeedsApply.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ApplyAsync_StagesSystemDriversOnceAndClearsNeedsApply()
+    {
+        _sut.AddSystemDrivers = true;
+
+        var failure = await _sut.ApplyAsync(Progress, CancellationToken.None);
+
+        failure.Should().BeNull();
+        _mockWimCustomizationService.Verify(s => s.AddDriversAsync(
+            WorkDir, null, It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _sut.NeedsApply.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ApplyAsync_AddsSystemAndFolderDriversInTurn()
+    {
+        _mockFilePickerService.Setup(p => p.PickFolder(It.IsAny<string>())).Returns(Folder);
+        _sut.AddSystemDrivers = true;
+        await _sut.ChooseDriversFolderCommand.ExecuteAsync(null);
+
+        var failure = await _sut.ApplyAsync(Progress, CancellationToken.None);
+
+        failure.Should().BeNull();
+        _mockWimCustomizationService.Verify(s => s.AddDriversAsync(
+            WorkDir, null, It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mockWimCustomizationService.Verify(s => s.AddDriversAsync(
+            WorkDir, Folder, It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplyAsync_WhenNoSystemDriversFound_ReturnsTheMessage()
+    {
+        _mockWimCustomizationService
+            .Setup(s => s.AddDriversAsync(WorkDir, null, It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _sut.AddSystemDrivers = true;
+
+        var failure = await _sut.ApplyAsync(Progress, CancellationToken.None);
+
+        failure.Should().Be("WIMUtil_Msg_NoDriversFound");
+        _sut.NeedsApply.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ApplyAsync_WhenServiceThrows_ReturnsTheErrorMessage()
+    {
+        _mockWimCustomizationService
+            .Setup(s => s.AddDriversAsync(WorkDir, null, It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+        _sut.AddSystemDrivers = true;
+
+        var failure = await _sut.ApplyAsync(Progress, CancellationToken.None);
+
+        failure.Should().Be("WIMUtil_Msg_DriverExtractionError");
+    }
+
+    [Fact]
+    public async Task ApplyAsync_WhenCancelled_Rethrows()
+    {
+        _mockWimCustomizationService
+            .Setup(s => s.AddDriversAsync(WorkDir, null, It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+        _sut.AddSystemDrivers = true;
+
+        var act = () => _sut.ApplyAsync(Progress, CancellationToken.None);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public void PickUpMedia_WhenMediaHoldsDrivers_ShowsThemAsChosenWithNothingToApply()
+    {
+        _driversOnMedia = true;
+
+        _sut.PickUpMedia();
+
+        _sut.AddSystemDrivers.Should().BeTrue();
+        _sut.NeedsApply.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task PickUpMedia_WhenServicingMovedTheDrivers_ClearsTheChoice()
+    {
+        _sut.AddSystemDrivers = true;
+        await _sut.ApplyAsync(Progress, CancellationToken.None);
+        _driversOnMedia = false;
+
+        _sut.PickUpMedia();
+
+        _sut.HasDriverChoice.Should().BeFalse();
+    }
+
+    [Fact]
+    public void WorkingDirectory_WhenChanged_ClearsTheChoices()
+    {
+        _sut.AddSystemDrivers = true;
+
+        _sut.WorkingDirectory = "C:\\Other";
+
+        _sut.HasDriverChoice.Should().BeFalse();
+        _sut.CustomDriversFolder.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(false, "WIMUtil_Card_ExtractDrivers_Description")]
+    [InlineData(true, "WIMUtil_Card_ExtractDrivers_Description_Image")]
+    public void SystemDriversDescription_FollowsTheMode(bool inImage, string expected)
+    {
+        _sut.IsBuiltIntoImage = inImage;
+
+        _sut.SystemDriversDescription.Should().Be(expected);
+    }
+
+    [Fact]
+    public void IsBuiltIntoImage_RaisesBothDescriptions()
+    {
+        var raised = new List<string?>();
+        _sut.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        _sut.IsBuiltIntoImage = true;
+
+        raised.Should().Contain(nameof(WimStep3DriversViewModel.SystemDriversDescription))
+            .And.Contain(nameof(WimStep3DriversViewModel.FolderDriversDescription));
+    }
+
+    [Fact]
+    public async Task FolderDriversDescription_NamesTheChosenFolder()
+    {
+        _mockFilePickerService.Setup(p => p.PickFolder(It.IsAny<string>())).Returns(Folder);
+
+        await _sut.ChooseDriversFolderCommand.ExecuteAsync(null);
+
+        _sut.FolderDriversDescription.Should().Contain(Folder);
     }
 }

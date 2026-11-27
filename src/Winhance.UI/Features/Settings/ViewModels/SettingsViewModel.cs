@@ -1,19 +1,42 @@
 using System.Collections.ObjectModel;
-using System.Linq;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Extensions;
+using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Enums;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
 
 namespace Winhance.UI.Features.Settings.ViewModels;
 
-/// <summary>
-/// ViewModel for the Settings page.
-/// </summary>
 public partial class SettingsViewModel : ObservableObject, IDisposable
 {
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(BackgroundLabel), nameof(TrayHeader), nameof(TrayDescription), nameof(CloseToTrayHeader),
+        nameof(CloseToTrayDescription), nameof(MinimizeToTrayHeader), nameof(MinimizeToTrayDescription),
+        nameof(StartInTrayHeader), nameof(StartInTrayDescription), nameof(UpdateCheckHeader),
+        nameof(UpdateCheckDescription), nameof(UpdateActionHeader), nameof(UpdateActionDescription),
+        nameof(WinhanceUpdateActionHeader), nameof(WinhanceUpdateActionDescription), nameof(PageTitle),
+        nameof(PageDescription), nameof(GeneralLabel), nameof(LanguageHeader), nameof(LanguageDescription),
+        nameof(ThemeHeader), nameof(ThemeDescription), nameof(ConfigsProfilesLabel), nameof(ConfigFileHeader),
+        nameof(ConfigFileDescription), nameof(ImportButtonText), nameof(ExportButtonText),
+        nameof(SystemProtectionLabel), nameof(SystemProtectionHeader), nameof(SystemProtectionDescription),
+        nameof(CreateRestorePointButtonText), nameof(ProfilesHeader), nameof(ProfilesDescription),
+        nameof(SaveProfileHeader), nameof(SaveProfileDescription), nameof(ProfileNamePlaceholder),
+        nameof(SaveProfileButtonText), nameof(AddProfileFromFileButtonText), nameof(ReapplyHeader),
+        nameof(ReapplyDescription), nameof(ReapplyWarning), nameof(BackgroundTasksLabel), nameof(KeepRemovedHeader),
+        nameof(KeepRemovedDescription), nameof(ModeHeader), nameof(ModeDescription),
+    ];
+
     private bool _disposed;
     private readonly ILocalizationService _localizationService;
     private readonly IThemeService _themeService;
@@ -23,66 +46,91 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     private readonly ILogService _logService;
     private readonly ISystemBackupService _backupService;
     private readonly ITaskProgressService _taskProgressService;
+    private readonly IScheduledTaskService _scheduledTaskService;
+    private readonly IInteractiveUserService _interactiveUserService;
+    private readonly IProfileService _profiles;
+    private readonly IBuilderModeEntry _builderEntry;
+    private readonly ICoverageSummaryService _coverageSummary;
+    private readonly IProcessExecutor _processExecutor;
+    private readonly IFilePickerService _filePicker;
+    private readonly IBackgroundTaskService _backgroundTasks;
+    private readonly IExplorerWindowManager _explorerWindowManager;
+    private readonly IDispatcherService _dispatcherService;
+    private readonly IEventBus _eventBus;
+    private readonly IAppIconResolver _appIcons;
 
     [ObservableProperty]
     public partial bool IsCreatingRestorePoint { get; set; }
 
-    private ObservableCollection<ComboBoxDisplayOption> _languages = new();
-    public ObservableCollection<ComboBoxDisplayOption> Languages
-    {
-        get => _languages;
-        set => SetProperty(ref _languages, value);
-    }
+    public ObservableCollection<ComboBoxDisplayOption> Languages { get; } = new();
 
-    private string _selectedLanguage = "en";
-    public string SelectedLanguage
-    {
-        get => _selectedLanguage;
-        set
-        {
-            if (SetProperty(ref _selectedLanguage, value))
-            {
-                OnSelectedLanguageChanged(value);
-            }
-        }
-    }
+    [ObservableProperty]
+    public partial string SelectedLanguage { get; set; } = "en";
 
-    private ObservableCollection<ThemeOption> _themes = new();
-    public ObservableCollection<ThemeOption> Themes
-    {
-        get => _themes;
-        set => SetProperty(ref _themes, value);
-    }
+    public ObservableCollection<ThemeOption> Themes { get; } = new();
 
-    private WinhanceTheme _selectedTheme;
-    public WinhanceTheme SelectedTheme
-    {
-        get => _selectedTheme;
-        set
-        {
-            if (SetProperty(ref _selectedTheme, value))
-            {
-                OnSelectedThemeChanged(value);
-            }
-        }
-    }
+    [ObservableProperty]
+    public partial WinhanceTheme SelectedTheme { get; set; }
 
-    private ThemeOption? _selectedThemeOption;
-    public ThemeOption? SelectedThemeOption
-    {
-        get => _selectedThemeOption;
-        set
-        {
-            if (SetProperty(ref _selectedThemeOption, value) && value != null)
-            {
-                SelectedTheme = value.Theme;
-            }
-        }
-    }
+    [ObservableProperty]
+    public partial ThemeOption? SelectedThemeOption { get; set; }
 
-    /// <summary>
-    /// Creates a new instance of the SettingsViewModel.
-    /// </summary>
+    [ObservableProperty]
+    public partial bool CloseToTray { get; set; }
+
+    [ObservableProperty]
+    public partial bool MinimizeToTray { get; set; }
+
+    private bool _startInTrayChosen;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanStartInTrayAtSignIn))]
+    public partial bool StartInTrayAtSignIn { get; set; }
+
+    // The sign-in task runs as the account that registered it. Under another account's administrator rights that is
+    // the administrator, and Windows starts nothing elevated for the person who signs in without a credential prompt.
+    // So there the switch only turns off a task this user already has. A portable copy never gets the task.
+    public bool CanStartInTrayAtSignIn => !AppDataPaths.IsPortable && (!_interactiveUserService.IsOtsElevation || StartInTrayAtSignIn);
+
+    public ObservableCollection<ProfileRow> Profiles { get; } = new();
+
+    public bool IsProfileBusy => _profiles.IsBusy;
+
+    public int ProfileNameMaxLength => ProfileService.MaxNameLength;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SaveProfileCommand))]
+    public partial string NewProfileName { get; set; } = string.Empty;
+
+    private bool _reapplyChosen;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanReapplyAtSignIn))]
+    public partial bool ReapplyAtSignIn { get; set; }
+
+    // Same account rule as the tray task.
+    public bool CanReapplyAtSignIn => !AppDataPaths.IsPortable && (!_interactiveUserService.IsOtsElevation || ReapplyAtSignIn);
+
+    public ObservableCollection<ComboBoxDisplayOption> UpdateCheckOptions { get; } = new();
+
+    public ObservableCollection<ComboBoxDisplayOption> UpdateActionOptions { get; } = new();
+
+    public ObservableCollection<ComboBoxDisplayOption> WinhanceUpdateActionOptions { get; } = new();
+
+    // The option objects themselves, like the theme picker: a .NET enum is not a WinRT type, so the ComboBox cannot
+    // match a boxed enum SelectedValue against its items and shows nothing selected.
+    [ObservableProperty]
+    public partial ComboBoxDisplayOption? SelectedUpdateCheckOption { get; set; }
+
+    [ObservableProperty]
+    public partial ComboBoxDisplayOption? SelectedUpdateActionOption { get; set; }
+
+    [ObservableProperty]
+    public partial ComboBoxDisplayOption? SelectedWinhanceUpdateActionOption { get; set; }
+
+    // Set while a property is assigned to show state that already holds, so its changed handler does not act on it.
+    private bool _isShowingState;
+
     public SettingsViewModel(
         ILocalizationService localizationService,
         IThemeService themeService,
@@ -91,8 +139,21 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         IConfigurationService configurationService,
         ILogService logService,
         ISystemBackupService backupService,
-        ITaskProgressService taskProgressService)
+        ITaskProgressService taskProgressService,
+        IScheduledTaskService scheduledTaskService,
+        IInteractiveUserService interactiveUserService,
+        IProfileService profiles,
+        IProcessExecutor processExecutor,
+        IFilePickerService filePicker,
+        IBuilderModeEntry builderEntry,
+        ICoverageSummaryService coverageSummary,
+        IBackgroundTaskService backgroundTasks,
+        IExplorerWindowManager explorerWindowManager,
+        IDispatcherService dispatcherService,
+        IEventBus eventBus,
+        IAppIconResolver appIcons)
     {
+        LiveInstanceTracker.Shared.Register(this);
         _localizationService = localizationService;
         _themeService = themeService;
         _preferencesService = preferencesService;
@@ -101,20 +162,45 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _logService = logService;
         _backupService = backupService;
         _taskProgressService = taskProgressService;
+        _scheduledTaskService = scheduledTaskService;
+        _interactiveUserService = interactiveUserService;
+        _profiles = profiles;
+        _processExecutor = processExecutor;
+        _filePicker = filePicker;
+        _builderEntry = builderEntry;
+        _coverageSummary = coverageSummary;
+        _backgroundTasks = backgroundTasks;
+        _explorerWindowManager = explorerWindowManager;
+        _dispatcherService = dispatcherService;
+        _eventBus = eventBus;
+        _appIcons = appIcons;
 
-        // Initialize languages from the localization service
         InitializeLanguages();
 
-        // Initialize themes
         InitializeThemes();
 
-        // Load current selections
-        _selectedLanguage = _localizationService.CurrentLanguage ?? "en";
-        _selectedTheme = _themeService.CurrentTheme;
-        _selectedThemeOption = Themes.FirstOrDefault(t => t.Theme == _selectedTheme);
+        InitializeUpdateOptions();
+        var frequency = _preferencesService.GetPreference(UserPreferenceKeys.AppUpdateCheckFrequency, AppUpdateCheckFrequency.Daily);
+        var action = _preferencesService.GetPreference(UserPreferenceKeys.AppUpdateAction, AppUpdateAction.Notify);
+        var winhanceAction = _preferencesService.GetPreference(UserPreferenceKeys.WinhanceUpdateAction, AppUpdateAction.Notify);
+        ShowState(() =>
+        {
+            SelectedLanguage = _localizationService.CurrentLanguage ?? "en";
+            SelectedTheme = _themeService.CurrentTheme;
+            SelectedThemeOption = Themes.FirstOrDefault(t => t.Theme == SelectedTheme);
+            CloseToTray = _preferencesService.GetPreference(UserPreferenceKeys.CloseToTray, false);
+            MinimizeToTray = _preferencesService.GetPreference(UserPreferenceKeys.MinimizeToTray, false);
+            SelectedUpdateCheckOption = UpdateCheckOptions.FirstOrDefault(o => Equals(o.Value, frequency));
+            SelectedUpdateActionOption = UpdateActionOptions.FirstOrDefault(o => Equals(o.Value, action));
+            SelectedWinhanceUpdateActionOption = WinhanceUpdateActionOptions.FirstOrDefault(o => Equals(o.Value, winhanceAction));
+        });
 
-        // Subscribe to language changes to update theme display names
         _localizationService.LanguageChanged += OnLanguageChanged;
+        _profiles.Changed += OnProfilesChanged;
+        _backgroundTasks.Maintained += OnMaintained;
+        RefreshProfilesAsync().FireAndForget(_logService);
+        BackgroundTasksReady = RefreshBackgroundTasksAsync();
+        BackgroundTasksReady.FireAndForget(_logService);
     }
 
     public void Dispose()
@@ -122,23 +208,19 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         if (_disposed) return;
         _disposed = true;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        _profiles.Changed -= OnProfilesChanged;
+        _backgroundTasks.Maintained -= OnMaintained;
+        GC.SuppressFinalize(this);
     }
 
-    /// <summary>
-    /// Initializes the language options from the available locale files via the localization service.
-    /// </summary>
     private void InitializeLanguages()
     {
-        Languages.Clear();
         foreach (var opt in _localizationService.GetAvailableLanguages())
         {
             Languages.Add(new ComboBoxDisplayOption(opt.DisplayName, opt.Code));
         }
     }
 
-    /// <summary>
-    /// Initializes the theme options.
-    /// </summary>
     private void InitializeThemes()
     {
         Themes.Clear();
@@ -147,69 +229,352 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         Themes.Add(new ThemeOption(WinhanceTheme.DarkNative, GetThemeDisplayName(WinhanceTheme.DarkNative)));
     }
 
-    /// <summary>
-    /// Gets the localized display name for a theme.
-    /// </summary>
     private string GetThemeDisplayName(WinhanceTheme theme) => theme switch
     {
-        WinhanceTheme.System => _localizationService.GetString("Theme_System") ?? "System",
-        WinhanceTheme.LightNative => _localizationService.GetString("Theme_LightNative") ?? "Light",
-        WinhanceTheme.DarkNative => _localizationService.GetString("Theme_DarkNative") ?? "Dark",
+        WinhanceTheme.System => _localizationService.GetStringOrDefault("Theme_System", "System"),
+        WinhanceTheme.LightNative => _localizationService.GetStringOrDefault("Theme_LightNative", "Light"),
+        WinhanceTheme.DarkNative => _localizationService.GetStringOrDefault("Theme_DarkNative", "Dark"),
         _ => theme.ToString()
     };
 
-    /// <summary>
-    /// Called when the language changes to update all localized strings.
-    /// </summary>
+    private void InitializeUpdateOptions()
+    {
+        foreach (var frequency in Enum.GetValues<AppUpdateCheckFrequency>())
+            UpdateCheckOptions.Add(new ComboBoxDisplayOption(UpdateCheckText(frequency), frequency));
+        foreach (var action in Enum.GetValues<AppUpdateAction>())
+        {
+            UpdateActionOptions.Add(new ComboBoxDisplayOption(UpdateActionText(action), action));
+            WinhanceUpdateActionOptions.Add(new ComboBoxDisplayOption(UpdateActionText(action), action));
+        }
+    }
+
+    private string UpdateCheckText(AppUpdateCheckFrequency frequency)
+    {
+        var key = "Settings_UpdateCheck_" + frequency;
+        return _localizationService.GetString(key);
+    }
+
+    private string UpdateActionText(AppUpdateAction action)
+    {
+        var key = "Settings_UpdateAction_" + action;
+        return _localizationService.GetString(key);
+    }
+
+    private void ShowState(Action assign)
+    {
+        var wasShowing = _isShowingState;
+        _isShowingState = true;
+        try
+        {
+            assign();
+        }
+        finally
+        {
+            _isShowingState = wasShowing;
+        }
+    }
+
+    // The task itself is the state, so the switches are right after the task is deleted outside Winhance. Shown, not
+    // set: setting would register or remove the task. A switch the user already flipped wins over a late answer.
+    private void ShowSignInOptions(SignInOptions options)
+    {
+        SignIn = options;
+        if (!_startInTrayChosen)
+            ShowStartInTray(options.StartInTray);
+
+        if (!_reapplyChosen)
+            ShowReapply(options.Reapply);
+    }
+
+    private void ShowStartInTray(bool on) => ShowState(() => StartInTrayAtSignIn = on);
+
+    private void ShowReapply(bool on) => ShowState(() => ReapplyAtSignIn = on);
+
+    partial void OnCloseToTrayChanged(bool value)
+    {
+        if (!_isShowingState)
+            _preferencesService.SetPreferenceAsync(UserPreferenceKeys.CloseToTray, value).FireAndForget(_logService);
+    }
+
+    partial void OnMinimizeToTrayChanged(bool value)
+    {
+        if (!_isShowingState)
+            _preferencesService.SetPreferenceAsync(UserPreferenceKeys.MinimizeToTray, value).FireAndForget(_logService);
+    }
+
+    partial void OnStartInTrayAtSignInChanged(bool value)
+    {
+        if (_isShowingState)
+            return;
+
+        _startInTrayChosen = true;
+        ApplySignInOptionAsync(SignInTask.TrayFlag, value, ShowStartInTray).FireAndForget(_logService);
+    }
+
+    partial void OnReapplyAtSignInChanged(bool value)
+    {
+        if (_isShowingState)
+            return;
+
+        _reapplyChosen = true;
+        ApplySignInOptionAsync(SignInTask.ReapplyFlag, value, ShowReapply).FireAndForget(_logService);
+    }
+
+    // A ComboBox can push null back through its two-way binding; the picker keeps the saved choice instead.
+    partial void OnSelectedUpdateCheckOptionChanged(ComboBoxDisplayOption? oldValue, ComboBoxDisplayOption? newValue)
+    {
+        if (_isShowingState)
+            return;
+
+        if (newValue?.Value is AppUpdateCheckFrequency frequency)
+            _preferencesService.SetPreferenceAsync(UserPreferenceKeys.AppUpdateCheckFrequency, frequency).FireAndForget(_logService);
+        else
+            ShowState(() => SelectedUpdateCheckOption = oldValue);
+    }
+
+    partial void OnSelectedUpdateActionOptionChanged(ComboBoxDisplayOption? oldValue, ComboBoxDisplayOption? newValue)
+    {
+        if (_isShowingState)
+            return;
+
+        if (newValue?.Value is AppUpdateAction action)
+            _preferencesService.SetPreferenceAsync(UserPreferenceKeys.AppUpdateAction, action).FireAndForget(_logService);
+        else
+            ShowState(() => SelectedUpdateActionOption = oldValue);
+    }
+
+    partial void OnSelectedWinhanceUpdateActionOptionChanged(ComboBoxDisplayOption? oldValue, ComboBoxDisplayOption? newValue)
+    {
+        if (_isShowingState)
+            return;
+
+        if (newValue?.Value is AppUpdateAction action)
+            _preferencesService.SetPreferenceAsync(UserPreferenceKeys.WinhanceUpdateAction, action).FireAndForget(_logService);
+        else
+            ShowState(() => SelectedWinhanceUpdateActionOption = oldValue);
+    }
+
+    // The task starts Winhance elevated without a UAC prompt; a failed registration puts the switch back.
+    private async Task ApplySignInOptionAsync(string flag, bool enabled, Action<bool> showSwitch)
+    {
+        var result = await _backgroundTasks.SetSignInOptionAsync(flag, enabled);
+        if (!result.Success)
+        {
+            _logService.LogWarning($"Could not change the sign-in task: {result.ErrorMessage}");
+            showSwitch(!enabled);
+            if (result.ErrorMessage == SignInTask.UnsafeFolderError)
+                await _dialogService.ShowWarningAsync(_localizationService.GetString("Settings_SignIn_UnsafeFolder_Message"));
+        }
+
+        SignIn = await _backgroundTasks.GetSignInOptionsAsync();
+    }
+
+    private void OnProfilesChanged(object? sender, EventArgs e) => RefreshProfilesAsync().FireAndForget(_logService);
+
+    private bool CanSwitchProfile() => !_profiles.IsBusy;
+
+    // Drift is read only for the active profile, and not mid-switch, when every setting is on its way to changing.
+    private async Task RefreshProfilesAsync()
+    {
+        OnPropertyChanged(nameof(IsProfileBusy));
+        var activeId = _profiles.ActiveProfileId;
+        IReadOnlyList<string> drift = activeId is not null && !_profiles.IsBusy && !_profiles.LastSwitchFailed
+            ? await _profiles.DriftAsync()
+            : [];
+
+        var rows = new List<ProfileRow>();
+        foreach (var profile in _profiles.GetProfiles())
+        {
+            var isActive = profile.Id == activeId;
+            rows.Add(new ProfileRow(
+                profile,
+                profile.Name,
+                profile.Description ?? string.Empty,
+                isActive && !_profiles.LastSwitchFailed ? ActiveBadge(drift.Count) : string.Empty,
+                isActive && (drift.Count > 0 || _profiles.PendingReboot.Count > 0),
+                isActive && _profiles.LastSwitchFailed ? _localizationService.GetString("Profiles_Status_Failed") : string.Empty,
+                profile.Kind == ProfileKind.User,
+                _localizationService.GetString("Button_Apply"),
+                _localizationService.GetString("Profiles_EditInBuilder"),
+                _localizationService.GetString("Button_Export"),
+                _localizationService.GetString("Button_Delete"),
+                SwitchProfileCommand,
+                EditProfileCommand,
+                ExportProfileCommand,
+                DeleteProfileCommand));
+        }
+
+        Profiles.ReplaceInPlace(rows);
+        SwitchProfileCommand.NotifyCanExecuteChanged();
+    }
+
+    private string ActiveBadge(int drifted) =>
+        _profiles.PendingReboot.Count > 0 ? _localizationService.GetString("Profiles_Status_RestartNeeded")
+        : drifted == 1 ? _localizationService.GetString("Profiles_Status_ChangedOne")
+        : drifted > 0 ? _localizationService.GetString("Profiles_Status_Changed", drifted)
+        : _localizationService.GetString("Profiles_Status_Active");
+
+    [RelayCommand(CanExecute = nameof(CanSwitchProfile))]
+    private async Task SwitchProfileAsync(SettingsProfile profile)
+    {
+        var result = await _profiles.SwitchAsync(profile);
+        if (result is null)
+            return;
+
+        if (!result.Success)
+        {
+            var message = result.NotApplied.Count == 1
+                ? _localizationService.GetString("Profiles_Failed_MessageOne", profile.Name)
+                : _localizationService.GetString("Profiles_Failed_Message", profile.Name, result.NotApplied.Count);
+            await _dialogService.ShowWarningAsync(message + "\n\n" + string.Join("\n", result.NotApplied), _localizationService.GetString("Profiles_Failed_Title"));
+        }
+
+        var edit = await _profiles.LoadAsync(profile) is { } config && await _coverageSummary.ShowProfileReminderAsync(profile, config);
+
+        if (result.Success && result.NeedsRestart.Count > 0)
+        {
+            var response = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+            {
+                Title = _localizationService.GetString("Profiles_RestartNeeded_Title"),
+                Message = _localizationService.GetString("Profiles_RestartNeeded_Dialog"),
+                Items = result.NeedsRestart,
+                ConfirmButtonText = _localizationService.GetString("Profiles_RestartNow"),
+                CancelButtonText = _localizationService.GetString("Profiles_RestartLater"),
+            });
+            if (response.Confirmed)
+            {
+                await _processExecutor.ShellExecuteAsync("shutdown.exe", "/r /t 0");
+                return;
+            }
+        }
+
+        if (edit)
+            await _builderEntry.EnterFromProfileAsync(profile);
+    }
+
+    [RelayCommand]
+    private Task EditProfileAsync(SettingsProfile profile) => _builderEntry.EnterFromProfileAsync(profile);
+
+    [RelayCommand]
+    private async Task ExportProfileAsync(SettingsProfile profile)
+    {
+        var path = _filePicker.PickSavePath(
+            _localizationService.GetString("Config_FileDialog_SaveConfig"),
+            ConfigFileConstants.FileFilter,
+            ConfigFileConstants.FilePattern,
+            profile.Name + ConfigFileConstants.FileExtension,
+            "winhance");
+        if (path is not null && !await _profiles.ExportAsync(profile, path))
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Profiles_Export_Failed"));
+    }
+
+    [RelayCommand]
+    private async Task DeleteProfileAsync(SettingsProfile profile)
+    {
+        var response = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+        {
+            Title = _localizationService.GetString("Profiles_Delete_Title"),
+            Message = _localizationService.GetString("Profiles_Delete_Message", profile.Name),
+            ConfirmButtonText = _localizationService.GetString("Button_Delete"),
+        });
+        if (response.Confirmed)
+            await _profiles.DeleteAsync(profile);
+    }
+
+    private bool CanSaveProfile() => _profiles.IsNameAvailable(NewProfileName);
+
+    [RelayCommand(CanExecute = nameof(CanSaveProfile))]
+    private async Task SaveProfileAsync()
+    {
+        if (await _profiles.SaveCurrentAsync(NewProfileName) is null)
+        {
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Profiles_Save_Failed"));
+            return;
+        }
+
+        NewProfileName = string.Empty;
+    }
+
+    // The file's own name becomes the profile's, numbered when a profile already has it.
+    [RelayCommand]
+    private async Task AddProfileFromFileAsync()
+    {
+        if (_filePicker.PickFile([ConfigFileConstants.FileFilter, ConfigFileConstants.FilePattern], _localizationService.GetString("Profiles_AddFromFile_Title")) is not { } path)
+            return;
+
+        var baseName = Path.GetFileNameWithoutExtension(path);
+        var name = Enumerable.Range(1, 99).Select(n => n == 1 ? baseName : $"{baseName} ({n})").FirstOrDefault(_profiles.IsNameAvailable);
+        if (name is null || await _profiles.AddFromFileAsync(path, name) is null)
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Profiles_AddFromFile_Failed"));
+    }
+
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        // Update theme display names
         foreach (var theme in Themes)
         {
             theme.DisplayText = GetThemeDisplayName(theme.Theme);
         }
 
-        // Notify UI to refresh all localized strings
-        OnPropertyChanged(nameof(PageTitle));
-        OnPropertyChanged(nameof(PageDescription));
-        OnPropertyChanged(nameof(GeneralLabel));
-        OnPropertyChanged(nameof(LanguageHeader));
-        OnPropertyChanged(nameof(LanguageDescription));
-        OnPropertyChanged(nameof(ThemeHeader));
-        OnPropertyChanged(nameof(ThemeDescription));
-        OnPropertyChanged(nameof(ConfigurationLabel));
-        OnPropertyChanged(nameof(BackupRestoreHeader));
-        OnPropertyChanged(nameof(BackupRestoreDescription));
-        OnPropertyChanged(nameof(ImportButtonText));
-        OnPropertyChanged(nameof(ExportButtonText));
-        OnPropertyChanged(nameof(SystemProtectionLabel));
-        OnPropertyChanged(nameof(SystemProtectionHeader));
-        OnPropertyChanged(nameof(SystemProtectionDescription));
-        OnPropertyChanged(nameof(CreateRestorePointButtonText));
+        foreach (var option in UpdateCheckOptions)
+            option.DisplayText = UpdateCheckText((AppUpdateCheckFrequency)option.Value);
+        foreach (var option in UpdateActionOptions.Concat(WinhanceUpdateActionOptions))
+            option.DisplayText = UpdateActionText((AppUpdateAction)option.Value);
+
+        OnBackgroundLanguageChanged();
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
+        RefreshProfilesAsync().FireAndForget(_logService);
     }
 
-    // Localized string properties for x:Bind
-    public string PageTitle => _localizationService.GetString("Settings_Title") ?? "Settings";
-    public string PageDescription => _localizationService.GetString("Settings_Description") ?? "Configure Winhance Application Preferences";
-    public string GeneralLabel => _localizationService.GetString("Category_General") ?? "General";
-    public string LanguageHeader => _localizationService.GetString("Settings_Menu_Language") ?? "Language";
-    public string LanguageDescription => _localizationService.GetString("Settings_Language_Description") ?? "Select your preferred language";
-    public string ThemeHeader => _localizationService.GetString("Settings_Theme_Title") ?? "Theme";
-    public string ThemeDescription => _localizationService.GetString("Tooltip_ToggleTheme") ?? "Choose your preferred theme";
-    public string ConfigurationLabel => _localizationService.GetString("Category_Configuration") ?? "Configuration";
-    public string BackupRestoreHeader => _localizationService.GetString("Settings_BackupRestore_Title") ?? "Backup & Restore";
-    public string BackupRestoreDescription => _localizationService.GetString("Settings_BackupRestore_Description") ?? "Import or export your settings configuration";
-    public string ImportButtonText => _localizationService.GetString("Button_Import") ?? "Import";
-    public string ExportButtonText => _localizationService.GetString("Button_Export") ?? "Export";
-    public string SystemProtectionLabel => _localizationService.GetString("Category_SystemProtection") ?? "System Protection";
-    public string SystemProtectionHeader => _localizationService.GetString("Settings_SystemProtection_Title") ?? "System Restore Point";
-    public string SystemProtectionDescription => _localizationService.GetString("Settings_SystemProtection_Description") ?? "Create a Windows System Restore point to allow rolling back system changes";
-    public string CreateRestorePointButtonText => _localizationService.GetString("Settings_CreateRestorePoint_Button") ?? "Create Restore Point";
+    public string PageTitle => _localizationService.GetStringOrDefault("Settings_Title", "Winhance Settings");
+    public string PageDescription => _localizationService.GetStringOrDefault("Settings_Description", "Configure Winhance Application Preferences");
+    public string GeneralLabel => _localizationService.GetStringOrDefault("Category_General", "General");
+    public string LanguageHeader => _localizationService.GetStringOrDefault("Settings_Menu_Language", "Language");
+    public string LanguageDescription => _localizationService.GetStringOrDefault("Settings_Language_Description", "Select the application display language");
+    public string ThemeHeader => _localizationService.GetStringOrDefault("Settings_Theme_Title", "Winhance Theme");
+    public string ThemeDescription => _localizationService.GetString("Settings_Theme_Description");
+    public string BackgroundLabel => _localizationService.GetString("Settings_Background_Label");
+    public string TrayHeader => _localizationService.GetString("Settings_Tray_Title");
+    public string TrayDescription => _localizationService.GetString("Settings_Tray_Description");
+    public string CloseToTrayHeader => _localizationService.GetString("Settings_CloseToTray_Title");
+    public string CloseToTrayDescription => _localizationService.GetString("Settings_CloseToTray_Description");
+    public string MinimizeToTrayHeader => _localizationService.GetString("Settings_MinimizeToTray_Title");
+    public string MinimizeToTrayDescription => _localizationService.GetString("Settings_MinimizeToTray_Description");
+    public string StartInTrayHeader => _localizationService.GetString("Settings_StartInTray_Title");
+    public string StartInTrayDescription => _localizationService.GetString(
+        AppDataPaths.IsPortable ? "Settings_SignIn_PortableUnavailable"
+        : _interactiveUserService.IsOtsElevation ? "Settings_StartInTray_OtsUnavailable"
+        : "Settings_StartInTray_Description");
+    public string UpdateCheckHeader => _localizationService.GetString("Settings_UpdateCheck_Title");
+    public string UpdateCheckDescription => _localizationService.GetString("Settings_UpdateCheck_Description");
+    public string UpdateActionHeader => _localizationService.GetString("Settings_UpdateAction_Title");
+    public string UpdateActionDescription => _localizationService.GetString("Settings_UpdateAction_Description");
+    public string WinhanceUpdateActionHeader => _localizationService.GetString("Settings_WinhanceUpdateAction_Title");
+    public string WinhanceUpdateActionDescription => _localizationService.GetString("Settings_WinhanceUpdateAction_Description");
+    public string ConfigsProfilesLabel => _localizationService.GetString("Settings_ConfigsProfiles_Label");
+    public string ConfigFileHeader => _localizationService.GetString("Settings_ConfigFile_Title");
+    public string ConfigFileDescription => _localizationService.GetString("Settings_ConfigFile_Description");
+    public string ImportButtonText => _localizationService.GetStringOrDefault("Button_Import", "Import");
+    public string ExportButtonText => _localizationService.GetStringOrDefault("Button_Export", "Export");
+    public string SystemProtectionLabel => _localizationService.GetStringOrDefault("Category_SystemProtection", "System Protection");
+    public string SystemProtectionHeader => _localizationService.GetStringOrDefault("Settings_SystemProtection_Title", "System Restore Point");
+    public string SystemProtectionDescription => _localizationService.GetStringOrDefault("Settings_SystemProtection_Description", "Create a Windows System Restore point to allow rolling back system changes");
+    public string ProfilesHeader => _localizationService.GetString("Profiles_Title");
+    public string ProfilesDescription => _localizationService.GetString("Profiles_Description");
+    public string SaveProfileHeader => _localizationService.GetString("Profiles_Save_Title");
+    public string SaveProfileDescription => _localizationService.GetString("Profiles_Save_Description");
+    public string ProfileNamePlaceholder => _localizationService.GetString("Profiles_Save_Placeholder");
+    public string SaveProfileButtonText => _localizationService.GetString("Profiles_Save_Button");
+    public string AddProfileFromFileButtonText => _localizationService.GetString("Profiles_AddFromFile_Button");
+    public string ReapplyHeader => _localizationService.GetString("Profiles_Reapply_Title");
+    public string ReapplyDescription => _localizationService.GetString(
+        AppDataPaths.IsPortable ? "Settings_SignIn_PortableUnavailable"
+        : _interactiveUserService.IsOtsElevation ? "Settings_StartInTray_OtsUnavailable"
+        : "Profiles_Reapply_Description");
+    public string ReapplyWarning => _localizationService.GetString("Profiles_Reapply_Warning");
+    public string CreateRestorePointButtonText => _localizationService.GetStringOrDefault("Settings_CreateRestorePoint_Button", "Create Restore Point");
 
-    /// <summary>
-    /// Called when the selected theme changes.
-    /// </summary>
-    private void OnSelectedThemeChanged(WinhanceTheme value)
+    partial void OnSelectedThemeChanged(WinhanceTheme value)
     {
         if (_themeService.CurrentTheme != value)
         {
@@ -217,79 +582,71 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Called when the selected language changes.
-    /// </summary>
-    private void OnSelectedLanguageChanged(string value)
+    partial void OnSelectedThemeOptionChanged(ThemeOption? value)
+    {
+        if (value != null)
+            SelectedTheme = value.Theme;
+    }
+
+    partial void OnSelectedLanguageChanged(string value)
     {
         if (string.IsNullOrEmpty(value) || value == _localizationService.CurrentLanguage)
             return;
 
         if (_localizationService.SetLanguage(value))
         {
-            _preferencesService.SetPreferenceAsync("Language", value).FireAndForget(_logService);
+            _preferencesService.SetPreferenceAsync(UserPreferenceKeys.Language, value).FireAndForget(_logService);
         }
     }
 
-    /// <summary>
-    /// Command to import configuration.
-    /// </summary>
     [RelayCommand]
     private async Task ImportConfigAsync()
     {
         await _configurationService.ImportConfigurationAsync();
     }
 
-    /// <summary>
-    /// Command to export configuration.
-    /// </summary>
     [RelayCommand]
     private async Task ExportConfigAsync()
     {
         await _configurationService.ExportConfigurationAsync();
     }
 
-    /// <summary>
-    /// Command to create a system restore point.
-    /// </summary>
     [RelayCommand]
     private async Task CreateRestorePointAsync()
     {
         IsCreatingRestorePoint = true;
         var cts = _taskProgressService.StartTask(
-            _localizationService.GetString("Progress_CreatingRestorePoint") ?? "Creating system restore point...",
+            _localizationService.GetStringOrDefault("Progress_CreatingRestorePoint", "Creating system restore point..."),
             isIndeterminate: true);
         var progress = _taskProgressService.CreateDetailedProgress();
+        var failMsg = _localizationService.GetStringOrDefault("Settings_RestorePoint_Fail", "Failed to create System Restore point.");
 
         try
         {
-            var result = await _backupService.CreateRestorePointAsync(
-                progress: progress, cancellationToken: cts.Token);
-
-            _taskProgressService.CompleteTask();
-
-            if (result.Success && result.RestorePointCreated)
+            var finished = await _dialogService.RunOrShowErrorAsync(_logService, async () =>
             {
-                var successMsg = _localizationService.GetString("Settings_RestorePoint_Success")
-                    ?? "System Restore point created successfully.";
-                await _dialogService.ShowInformationAsync(successMsg);
-            }
+                var result = await _backupService.CreateRestorePointAsync(
+                    progress: progress, cancellationToken: cts.Token);
+
+                if (result.Success && result.RestorePointCreated)
+                {
+                    _taskProgressService.CompleteTask();
+                    var successMsg = _localizationService.GetStringOrDefault("Settings_RestorePoint_Success", "System Restore point created successfully.");
+                    await _dialogService.ShowInformationAsync(successMsg);
+                }
+                else
+                {
+                    _taskProgressService.FailTask();
+                    await _dialogService.ShowRestorePointFailureAsync(_localizationService, _backupService, result, failMsg);
+                }
+            }, _ => failMsg);
+            if (finished)
+                return;
+
+            if (cts.IsCancellationRequested)
+                _taskProgressService.CancelTask();
             else
-            {
-                var failMsg = _localizationService.GetString("Settings_RestorePoint_Fail")
-                    ?? "Failed to create System Restore point.";
-                if (!string.IsNullOrEmpty(result.ErrorMessage))
-                    failMsg += $"\n\n{result.ErrorMessage}";
-                await _dialogService.ShowWarningAsync(failMsg);
-            }
-        }
-        catch (Exception ex)
-        {
-            _taskProgressService.CompleteTask();
-            _logService.LogWarning($"Failed to create restore point from Settings: {ex.Message}");
-            await _dialogService.ShowErrorAsync(
-                _localizationService.GetString("Settings_RestorePoint_Fail")
-                    ?? "Failed to create System Restore point.");
+                _taskProgressService.FailTask();
         }
         finally
         {
@@ -298,23 +655,39 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     }
 }
 
-/// <summary>
-/// Represents a theme option for the ComboBox.
-/// </summary>
+public sealed record ProfileRow(
+    SettingsProfile Profile,
+    string Name,
+    string Description,
+    string Badge,
+    bool BadgeNeedsAttention,
+    string FailedText,
+    bool CanDelete,
+    string ApplyText,
+    string EditText,
+    string ExportText,
+    string DeleteText,
+    ICommand Apply,
+    ICommand Edit,
+    ICommand Export,
+    ICommand Delete)
+{
+    public bool ShowCleanBadge => Badge.Length > 0 && !BadgeNeedsAttention;
+    public bool ShowAttentionBadge => Badge.Length > 0 && BadgeNeedsAttention;
+    public bool HasDescription => Description.Length > 0;
+    public bool HasFailed => FailedText.Length > 0;
+}
+
 public partial class ThemeOption : ObservableObject
 {
-    private string _displayText = string.Empty;
-    public string DisplayText
-    {
-        get => _displayText;
-        set => SetProperty(ref _displayText, value);
-    }
+    [ObservableProperty]
+    public partial string DisplayText { get; set; }
 
     public WinhanceTheme Theme { get; }
 
     public ThemeOption(WinhanceTheme theme, string displayText)
     {
         Theme = theme;
-        _displayText = displayText;
+        DisplayText = displayText;
     }
 }

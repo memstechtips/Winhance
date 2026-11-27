@@ -1,5 +1,3 @@
-using System;
-
 namespace Winhance.Core.Features.Common.Models;
 
 public sealed record VersionInfo
@@ -12,16 +10,15 @@ public sealed record VersionInfo
     public static VersionInfo FromTag(string tag)
     {
         // Parse version tag in format v25.05.02 or v25.05.02-beta
-        if (string.IsNullOrEmpty(tag) || !tag.StartsWith("v"))
+        if (string.IsNullOrEmpty(tag) || !tag.StartsWith('v'))
             return new VersionInfo();
 
-        string versionString = tag.Substring(1); // Remove 'v' prefix
+        string versionString = tag.Substring(1);
 
-        // Check if it's a beta version and extract the base version
         bool isBeta = versionString.Contains("-beta");
         if (isBeta)
         {
-            versionString = versionString.Split('-')[0]; // Get the part before -beta
+            versionString = versionString.Split('-')[0];
         }
 
         string[] parts = versionString.Split('.');
@@ -34,7 +31,6 @@ public sealed record VersionInfo
             !int.TryParse(parts[2], out int day))
             return new VersionInfo();
 
-        // Construct a date from the version components
         DateTime releaseDate;
         try
         {
@@ -52,6 +48,16 @@ public sealed record VersionInfo
             ReleaseDate = releaseDate,
             IsBeta = isBeta
         };
+    }
+
+    // A file's ProductVersion carries no 'v' and may end in '+<commit hash>'.
+    public static VersionInfo FromProductVersion(string productVersion)
+    {
+        int plusIndex = productVersion.IndexOf('+');
+        if (plusIndex > 0)
+            productVersion = productVersion[..plusIndex];
+
+        return FromTag(productVersion.StartsWith('v') ? productVersion : $"v{productVersion}");
     }
 
     public bool IsNewerThan(VersionInfo other)

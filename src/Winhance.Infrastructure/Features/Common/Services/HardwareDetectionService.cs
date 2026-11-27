@@ -1,145 +1,87 @@
-using System;
-using System.Linq;
-using System.Management;
-using System.Threading.Tasks;
+using Windows.Win32;
+using Windows.Win32.System.Power;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.Core.Features.Common.Native;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-public class HardwareDetectionService : IHardwareDetectionService
+internal class HardwareDetectionService : IHardwareDetectionService
 {
+    // SYSTEM_POWER_STATUS.BatteryFlag values. Unknown is 0xFF, which carries the NoBattery bit as
+    // well, so it has to be tested for equality before the bit test runs.
+    private const byte BatteryFlagNoBattery = 128;
+    private const byte BatteryFlagUnknown = 255;
+
     private readonly ILogService _logService;
 
-    private static readonly int[] LaptopChassisTypes = new int[]
-    {
-        3, 8, 9, 10, 11, 14, 30, 31, 32
-    };
+    // ExecutionAndPublication so a second caller arriving mid-query waits rather than starting its own
+    // lookup.
+    private readonly Lazy<bool?> _hasBattery;
+    private readonly Lazy<bool> _supportsHybridSleep;
 
     public HardwareDetectionService(ILogService logService)
     {
-        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _logService = logService;
+        _hasBattery = new Lazy<bool?>(QueryHasBattery, LazyThreadSafetyMode.ExecutionAndPublication);
+        _supportsHybridSleep = new Lazy<bool>(QuerySupportsHybridSleep, LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
-    public Task<bool> HasBatteryAsync()
+    public bool? HasBattery() => _hasBattery.Value;
+
+    private bool? QueryHasBattery()
     {
-        return Task.Run(() =>
+        try
         {
-            try
+            // null, not false, on every "could not tell" branch: "no battery" and "could not tell"
+            // lead callers to different defaults.
+            if (!PInvoke.GetSystemPowerStatus(out SYSTEM_POWER_STATUS status))
             {
-                using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Battery");
-                using var collection = searcher.Get();
-                return collection.Count > 0;
+                _logService.Log(LogLevel.Warning, "GetSystemPowerStatus call failed");
+                return null;
             }
-            catch (Exception ex)
+
+            var hasBattery = InterpretBatteryFlag(status.BatteryFlag);
+            if (hasBattery is null)
             {
-                _logService.Log(LogLevel.Error, $"Error detecting battery: {ex.Message}");
-                return false;
+                _logService.Log(LogLevel.Warning, "GetSystemPowerStatus reported an unknown battery state");
             }
-        });
+
+            return hasBattery;
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Error detecting battery: {ex.Message}");
+            return null;
+        }
     }
 
-    public async Task<bool> HasLidAsync()
+    // Split out from the P/Invoke so the whole decision is testable without one: the flag byte is all
+    // there is to it.
+    internal static bool? InterpretBatteryFlag(byte batteryFlag) =>
+        batteryFlag == BatteryFlagUnknown
+            ? null
+            : (batteryFlag & BatteryFlagNoBattery) == 0;
+
+    public bool SupportsHybridSleep() => _supportsHybridSleep.Value;
+
+    private bool QuerySupportsHybridSleep()
     {
-        return await Task.Run(() =>
+        try
         {
-            try
+            if (!PInvoke.GetPwrCapabilities(out SYSTEM_POWER_CAPABILITIES caps))
             {
-                using (var searcher = new ManagementObjectSearcher("SELECT PCSystemType FROM Win32_ComputerSystem"))
-                using (var collection = searcher.Get())
-                {
-                    foreach (ManagementObject system in collection)
-                    {
-                        using (system)
-                        {
-                            if (system["PCSystemType"] != null)
-                            {
-                                int pcSystemType = Convert.ToInt32(system["PCSystemType"]);
-                                if (pcSystemType == 2)
-                                    return true;
-                                else if (pcSystemType == 1)
-                                    return false;
-                            }
-                        }
-                    }
-                }
-
-                using (var searcher = new ManagementObjectSearcher("SELECT ChassisTypes FROM Win32_SystemEnclosure"))
-                using (var collection = searcher.Get())
-                {
-                    foreach (ManagementObject enclosure in collection)
-                    {
-                        using (enclosure)
-                        {
-                            if (enclosure["ChassisTypes"] is Array chassisTypes && chassisTypes.Length > 0)
-                            {
-                                foreach (var chassisType in chassisTypes)
-                                {
-                                    int type = Convert.ToInt32(chassisType);
-                                    if (LaptopChassisTypes.Contains(type))
-                                        return true;
-                                }
-                            }
-                        }
-                    }
-                }
-
+                _logService.Log(LogLevel.Warning, "GetPwrCapabilities call failed");
                 return false;
             }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error detecting if device has a lid: {ex.Message}");
-                return true;
-            }
-        }).ConfigureAwait(false);
-    }
 
-    public async Task<bool> SupportsBrightnessControlAsync()
-    {
-        return await Task.Run(async () =>
+            bool supported = caps.FastSystemS4;
+            _logService.Log(LogLevel.Info, $"Hybrid sleep supported (FastSystemS4): {supported}");
+            return supported;
+        }
+        catch (Exception ex)
         {
-            try
-            {
-                var hasBattery = await HasBatteryAsync().ConfigureAwait(false);
-                var hasLid = await HasLidAsync().ConfigureAwait(false);
-
-                if (hasBattery && hasLid)
-                    return true;
-
-                using var searcher = new ManagementObjectSearcher("SELECT * FROM WmiMonitorBrightness");
-                using var collection = searcher.Get();
-                return collection.Count > 0;
-            }
-            catch (Exception)
-            {
-                // Don't log the expected error, it means brightness is not supported
-                return false;
-            }
-        }).ConfigureAwait(false);
-    }
-
-    public Task<bool> SupportsHybridSleepAsync()
-    {
-        return Task.Run(() =>
-        {
-            try
-            {
-                if (!PowerProf.GetPwrCapabilities(out var caps))
-                {
-                    _logService.Log(LogLevel.Warning, "GetPwrCapabilities call failed");
-                    return false;
-                }
-
-                bool supported = caps.FastSystemS4;
-                _logService.Log(LogLevel.Info, $"Hybrid sleep supported (FastSystemS4): {supported}");
-                return supported;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Error, $"Error detecting hybrid sleep support: {ex.Message}");
-                return false;
-            }
-        });
+            _logService.Log(LogLevel.Error, $"Error detecting hybrid sleep support: {ex.Message}");
+            return false;
+        }
     }
 }

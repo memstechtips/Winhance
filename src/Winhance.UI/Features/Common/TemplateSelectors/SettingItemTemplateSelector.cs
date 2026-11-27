@@ -4,10 +4,6 @@ using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.TemplateSelectors;
 
-/// <summary>
-/// Selects between the regular SettingItemTemplate and the SettingExpanderItemTemplate
-/// based on whether the setting has children.
-/// </summary>
 public partial class SettingItemTemplateSelector : DataTemplateSelector
 {
     public DataTemplate? RegularTemplate { get; set; }
@@ -15,7 +11,7 @@ public partial class SettingItemTemplateSelector : DataTemplateSelector
 
     protected override DataTemplate? SelectTemplateCore(object item)
     {
-        if (item is SettingItemViewModel vm && vm.IsParentSetting)
+        if (item is SettingItemViewModel { IsParentSetting: true })
             return ExpanderTemplate;
         return RegularTemplate;
     }

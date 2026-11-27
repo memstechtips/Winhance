@@ -1,46 +1,33 @@
-using System.Collections.Generic;
-
 namespace Winhance.Core.Features.Common.Models;
 
-/// <summary>
-/// Represents a request for user confirmation with optional context data.
-/// This generic model can be used across all features that require user confirmation.
-/// </summary>
 public sealed record ConfirmationRequest
 {
-    /// <summary>
-    /// Gets the confirmation message to display to the user.
-    /// </summary>
     public string Message { get; init; } = string.Empty;
 
-    /// <summary>
-    /// Gets the title of the confirmation dialog.
-    /// </summary>
     public string Title { get; init; } = string.Empty;
 
-    /// <summary>
-    /// Gets the optional checkbox text. If null, no checkbox is shown.
-    /// </summary>
     public string? CheckboxText { get; init; }
 
-    /// <summary>
-    /// Gets the optional list of items to render in a scrollable list inside the dialog.
-    /// When null or empty, no list is rendered.
-    /// </summary>
+    // A smaller line under the checkbox.
+    public string? CheckboxDescription { get; init; }
+
     public IReadOnlyList<string>? Items { get; init; } = null;
 
-    /// <summary>
-    /// Gets whether the optional checkbox starts checked. Defaults to true.
-    /// </summary>
+    // When set, the list shows these rows with their icons instead of the plain Items.
+    public IReadOnlyList<ConfirmationItem>? ItemDetails { get; init; }
+
+    // One legend line per icon type present in ItemDetails; null hides it.
+    public string? InstabilityLegend { get; init; }
+
+    public string? NoReinstallLegend { get; init; }
+
     public bool CheckboxInitiallyChecked { get; init; } = true;
 
-    /// <summary>
-    /// Gets the text for the confirm (primary) button. Defaults to "OK".
-    /// </summary>
-    public string ConfirmButtonText { get; init; } = "OK";
+    // Empty means DialogService supplies the localized OK / Cancel.
+    public string ConfirmButtonText { get; init; } = string.Empty;
 
-    /// <summary>
-    /// Gets the text for the cancel (close) button. Defaults to "Cancel".
-    /// </summary>
-    public string CancelButtonText { get; init; } = "Cancel";
+    public string CancelButtonText { get; init; } = string.Empty;
+
+    // When set, a third button appears and Enter defaults to Cancel (the safe choice) instead of the primary button.
+    public string? SecondaryButtonText { get; init; }
 }

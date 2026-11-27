@@ -1,4 +1,4 @@
-# run-winhance-tests.ps1
+﻿# run-winhance-tests.ps1
 # Runs all Winhance test suites and reports results.
 #
 # SYNOPSIS:
@@ -14,19 +14,55 @@
 #
 # # Run only integration tests
 # .\run-winhance-tests.ps1 -IntegrationOnly
+#
+# # Build (and try to run) ONLY the WinUI test project - the `winhance-uitest` SSH verb's entry point
+# .\run-winhance-tests.ps1 -UIOnly
 param (
     [switch]$SkipUITests = $false,
-    [switch]$IntegrationOnly = $false
+    [switch]$IntegrationOnly = $false,
+    # Build and run ONLY tests\Winhance.UI.Tests, then exit. Building that project compiles
+    # src\Winhance.UI as a project reference, so this is the only gate that sees a compile error in
+    # UI code - no other runner builds either project. Writes extras\uitest-results.txt so the full
+    # MSBuild output is readable off the share.
+    [switch]$UIOnly = $false,
+    # When set, dotnet test build output goes under this dir instead of each project's bin/.
+    # Needed when the source lives on a network share that blocks launching testhost.exe from it
+    # (run the build output on a local disk). Empty = default behaviour (output stays in bin/).
+    [string]$OutputDir = ""
 )
 
 $ErrorActionPreference = "Stop"
 $solutionDir = Resolve-Path "$PSScriptRoot\.."
+
+# MSBuild otherwise keeps one worker per core alive for about 15 minutes after the build, in case another
+# build follows. These runs share the PC with other work, so the workers exit with the build instead.
+$env:MSBUILDDISABLENODEREUSE = "1"
+
+# Redirect build outputs to a local disk when the repo is on a network share (otherwise a project can
+# silently link a stale prebuilt dll and ignore source edits, or the build fails writing the share's
+# obj\). No-op on a local repo.
+. "$PSScriptRoot\Use-LocalBuildOutputs.ps1" -RepoRoot $solutionDir
 
 # Track results
 $totalPassed = 0
 $totalFailed = 0
 $totalSkipped = 0
 $failedProjects = @()
+
+# Mirror the full output into a log file. The repo is an SMB share, so the agent reads the log
+# without needing the SSH stdout to survive intact - same trick run-catalog-harness.ps1 uses. It has
+# to, because SSH drops every xUnit failure message: the agent otherwise sees only "[FAIL]" and the
+# test name. docs\ is the gitignored side of the tree, which is where a run artefact belongs.
+$logFile = if ($UIOnly) { Join-Path $PSScriptRoot "uitest-results.txt" } else { Join-Path $solutionDir "docs\test-results.txt" }
+function Add-Log($text) {
+    if ($text) { $text | Out-File -FilePath $logFile -Append -Encoding utf8 }
+}
+
+# A count off one of the "Test Run Successful." block's own lines; absent means zero (it omits a zero row).
+function Get-SummaryCount($text, $label) {
+    $m = [regex]::Match($text, "(?m)^\s*${label}:\s+(\d+)\s*$")
+    if ($m.Success) { [int]$m.Groups[1].Value } else { 0 }
+}
 
 function Run-TestProject {
     param (
@@ -40,14 +76,37 @@ function Run-TestProject {
     Write-Host "  Running $Name..." -ForegroundColor Cyan
     Write-Host ("=" * 60) -ForegroundColor DarkGray
 
-    $cmd = "dotnet test `"$ProjectPath`" --verbosity quiet $ExtraArgs"
-    $output = Invoke-Expression $cmd 2>&1 | Out-String
+    $outArg = ""
+    if ($OutputDir) {
+        $projOut = Join-Path $OutputDir ($Name -replace '[^A-Za-z0-9]', '_')
+        $outArg = "--output `"$projOut`""
+    }
 
-    # Parse results from output
+    # The console logger is what prints a failed test's assertion message; --verbosity only controls
+    # MSBuild, so without it the log records "Failed: 1" and not one word about which test or why.
+    # Without --blame-hang one hung test stalls the gate forever and unnamed. It kills the test host after 5 minutes
+    # with no test finishing and names the test that was running; no single test here needs that long.
+    $cmd = "dotnet test `"$ProjectPath`" --verbosity quiet --logger `"console;verbosity=normal`" --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none $outArg $ExtraArgs"
+    # $ErrorActionPreference is Stop for the script, which turns a native command's stderr into a
+    # TERMINATING error, which would kill the runner before it could parse, print or log anything.
+    # Scope Continue to the call so stderr is just more output.
+    $output = & { $ErrorActionPreference = "Continue"; Invoke-Expression $cmd 2>&1 } | Out-String
+    $exitCode = $LASTEXITCODE
+    Add-Log "### $Name"
+    Add-Log $output
+
+    # Parse results from output. The console logger prints a "Test Run Successful." block instead of the
+    # one-line "Passed! - Failed: 0, ..." summary, so read that block first and keep the line as a fallback.
+    $totalMatch  = [regex]::Match($output, '(?m)^Total tests:\s+(\d+)\s*$')
     $resultMatch = [regex]::Match($output, 'Failed:\s+(\d+),\s+Passed:\s+(\d+),\s+Skipped:\s+(\d+)')
     $passedMatch = [regex]::Match($output, 'Passed!\s+-\s+Failed:\s+(\d+),\s+Passed:\s+(\d+),\s+Skipped:\s+(\d+)')
 
-    if ($passedMatch.Success) {
+    if ($totalMatch.Success) {
+        $failed  = Get-SummaryCount $output "Failed"
+        $passed  = Get-SummaryCount $output "Passed"
+        $skipped = Get-SummaryCount $output "Skipped"
+    }
+    elseif ($passedMatch.Success) {
         $failed  = [int]$passedMatch.Groups[1].Value
         $passed  = [int]$passedMatch.Groups[2].Value
         $skipped = [int]$passedMatch.Groups[3].Value
@@ -61,6 +120,15 @@ function Run-TestProject {
         # Could not parse - treat as failure
         Write-Host $output
         $failed = 1; $passed = 0; $skipped = 0
+    }
+
+    # An aborted run (a crashed test host) can still print a zero failed-count, so the marker and the exit code
+    # outrank the numbers.
+    if ($failed -eq 0 -and ($exitCode -ne 0 -or $output -match 'Test Run Aborted\.')) {
+        Write-Host "  FAILED: dotnet test exited with $exitCode or the run aborted, despite a zero failed-count" -ForegroundColor Red
+        [regex]::Matches($output, '(?m)^.*(?:inactivity time|active test|were not completed|Blame).*$') |
+            ForEach-Object { Write-Host "    $($_.Value.Trim())" -ForegroundColor Red }
+        $failed = 1
     }
 
     $script:totalPassed  += $passed
@@ -78,6 +146,302 @@ function Run-TestProject {
     }
 }
 
+# The compiler servers (the SDK's and Visual Studio's) also idle on after a build; shut them so the memory
+# comes back as soon as the run ends.
+function Stop-BuildServers {
+    try { dotnet build-server shutdown 2>&1 | Out-Null } catch { }
+    $msbuild = Find-MSBuild
+    $vbcs = if ($msbuild) { Join-Path (Split-Path $msbuild) "Roslyn\VBCSCompiler.exe" }
+    if ($vbcs -and (Test-Path $vbcs)) {
+        try { & $vbcs -shutdown 2>&1 | Out-Null } catch { }
+    }
+}
+
+function Find-MSBuild {
+    # WinUI3/WindowsAppSDK projects cannot be built by the .NET SDK alone - the XAML compiler needs
+    # the MSVC toolset - so require BOTH components, same as build-and-package.ps1 does.
+    $vswherePath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path $vswherePath) {
+        # The installer dir is shared across side-by-side VS versions, so -latest finds VS 18 too.
+        $found = & $vswherePath -latest -requires Microsoft.Component.MSBuild -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
+        if ($found -and (Test-Path $found)) { return $found }
+    }
+    # Fallback for a machine whose vswhere is missing or too old to know the newer install.
+    foreach ($ver in @("18", "2022")) {
+        foreach ($edition in @("Community", "Professional", "Enterprise")) {
+            $path = "${env:ProgramFiles}\Microsoft Visual Studio\$ver\$edition\MSBuild\Current\Bin\MSBuild.exe"
+            if (Test-Path $path) { return $path }
+        }
+    }
+    return $null
+}
+
+function Invoke-UITestProject {
+    # Builds tests\Winhance.UI.Tests with MSBuild, then TRIES to run it.
+    #
+    # The build is the point: Winhance.UI.Tests project-references src\Winhance.UI, so a CS error in
+    # UI code fails here. Nothing else in the automated reach compiles either project.
+    #
+    # Running is a bonus. A WinUI test project needs the WindowsAppSDK native runtime, which the
+    # command-line test host does not bootstrap, so the run has historically not worked headless.
+    # A test host that produces NO result summary is therefore reported as build-verified, NOT as a
+    # failure - otherwise this gate would sit permanently red for a reason that is not a regression.
+    # If the run DOES work, real test failures are fatal: that is what catches stale expectations.
+    #
+    # Returns one of: nomsbuild | buildfailed | warnings | buildonly | pass | fail
+    #
+    # Function-scoped so native tools writing to stderr under 2>&1 don't become terminating errors
+    # (PowerShell 5.1 turns a redirected stderr line into a NativeCommandError when EAP is Stop).
+    $ErrorActionPreference = "Continue"
+
+    $uiProjectPath = "$solutionDir\tests\Winhance.UI.Tests\Winhance.UI.Tests.csproj"
+    $msbuildPath = Find-MSBuild
+    if (-not $msbuildPath) { return "nomsbuild" }
+
+    Write-Host ""
+    Write-Host ("=" * 60) -ForegroundColor DarkGray
+    Write-Host "  Building UI Tests with MSBuild..." -ForegroundColor Cyan
+    Write-Host ("=" * 60) -ForegroundColor DarkGray
+    Write-Host "  msbuild: $msbuildPath" -ForegroundColor DarkGray
+    Add-Log "msbuild: $msbuildPath"
+    Add-Log "project: $uiProjectPath"
+
+    $buildOutput = & $msbuildPath $uiProjectPath /p:Configuration=Debug /p:Platform=x64 /verbosity:minimal -restore 2>&1 | Out-String
+    $buildCode = $LASTEXITCODE
+    Add-Log $buildOutput
+    if ($buildCode -ne 0) {
+        Write-Host "  BUILD FAILED - Winhance.UI or Winhance.UI.Tests does not compile" -ForegroundColor Red
+        Write-Host $buildOutput -ForegroundColor DarkGray
+        return "buildfailed"
+    }
+    Write-Host "  Build succeeded (Winhance.UI compiled)" -ForegroundColor Green
+    # An environment problem, not a code one: VS 2022 MSBuild builds .NET 10 but Microsoft does not
+    # support it. The fix is installing Visual Studio 2026 on the build machine.
+    if ($buildOutput -match 'NETSDK1233') {
+        Write-Host "  WARNING NETSDK1233: built with VS 2022 MSBuild, which does not support .NET 10. Install Visual Studio 2026." -ForegroundColor Yellow
+        Add-Log "WARNING NETSDK1233: $msbuildPath does not support .NET 10"
+    }
+    # The XAML compiler's WMC warnings show in a Visual Studio build but never in lint-solution.ps1's `dotnet build`,
+    # so this build is the only gate that sees them. Any warning but NETSDK1233 fails the gate.
+    $warnings = [regex]::Matches($buildOutput, '(?m)^.*\b(warning|error) (?!NETSDK1233)[A-Za-z]+[0-9]+:.*$') |
+        ForEach-Object { $_.Value.Trim() } | Sort-Object -Unique
+    if ($warnings) {
+        Write-Host "  BUILD WARNINGS - Winhance.UI compiles with warnings:" -ForegroundColor Red
+        $warnings | ForEach-Object { Write-Host "    $_" -ForegroundColor Yellow }
+        return "warnings"
+    }
+
+    # Locate the built assembly. When the repo is on a share, Use-LocalBuildOutputs.ps1 has
+    # redirected bin\ to WINHANCE_LOCAL_BUILD_ROOT, so the in-tree path does not exist.
+    $dllRoots = @()
+    if ($env:WINHANCE_LOCAL_BUILD_ROOT) {
+        $dllRoots += (Join-Path $env:WINHANCE_LOCAL_BUILD_ROOT "Winhance.UI.Tests\bin")
+    }
+    $dllRoots += "$solutionDir\tests\Winhance.UI.Tests\bin"
+
+    # Constrain to the x64\Debug output we just built. Without this, a Release build left behind by
+    # Visual Studio can be NEWER than an up-to-date (so not rewritten) Debug dll and win the sort -
+    # which would run tests from an assembly this gate did not just verify.
+    $uiTestDll = $null
+    foreach ($root in $dllRoots) {
+        if (-not (Test-Path $root)) { continue }
+        $hit = Get-ChildItem -Path $root -Recurse -Filter "Winhance.UI.Tests.dll" -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -like "*\x64\Debug\*" } |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        if ($hit) { $uiTestDll = $hit.FullName; break }
+    }
+    if (-not $uiTestDll) {
+        Write-Host "  UI Tests: build verified (test assembly not located; not run)" -ForegroundColor Green
+        Add-Log "test assembly not found under: $($dllRoots -join '; ')"
+        return "buildonly"
+    }
+
+    # Derive the VS install root from the MSBuild path (...\<VSRoot>\MSBuild\Current\Bin\MSBuild.exe).
+    $vsInstallPath = (Get-Item $msbuildPath).Directory.Parent.Parent.Parent.FullName
+    $vstestConsolePath = Join-Path $vsInstallPath "Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe"
+    if (-not (Test-Path $vstestConsolePath)) {
+        Write-Host "  UI Tests: build verified (vstest.console.exe not found; not run)" -ForegroundColor Green
+        Add-Log "vstest.console.exe not found at $vstestConsolePath"
+        return "buildonly"
+    }
+
+    Write-Host "  Attempting to run UI tests..." -ForegroundColor Cyan
+    # Same hang guard as the dotnet suites: a test that runs 5 minutes is killed and named.
+    $runOutput = & $vstestConsolePath $uiTestDll /Platform:x64 "/Blame:CollectHangDump;TestTimeout=5m;HangDumpType=None" 2>&1 | Out-String
+    Add-Log $runOutput
+    if ($runOutput -match 'Test Run Aborted\.') { [regex]::Matches($runOutput, '(?m)^.*(?:inactivity time|active test|were not completed|Blame).*$') |
+        ForEach-Object { Write-Host "    $($_.Value.Trim())" -ForegroundColor Red } }
+
+    # Two summary shapes, because two runners emit them:
+    #   vstest.console.exe : "Test Run Failed." / "Total tests: N" / "Passed: N" / "Failed: N"
+    #                        on SEPARATE lines, Skipped omitted when zero.
+    #   dotnet test        : "Passed! - Failed: 0, Passed: 3, Skipped: 0" on ONE comma-joined line.
+    # Only the dotnet shape was matched originally, so a real vstest run of 1625 tests with 21
+    # failures fell through to the "could not run" branch and was reported GREEN. Parse both.
+    $failed = -1; $passed = 0; $skipped = 0
+    $oneLine = [regex]::Match($runOutput, 'Failed:\s+(\d+),\s+Passed:\s+(\d+),\s+Skipped:\s+(\d+)')
+    if ($oneLine.Success) {
+        $failed  = [int]$oneLine.Groups[1].Value
+        $passed  = [int]$oneLine.Groups[2].Value
+        $skipped = [int]$oneLine.Groups[3].Value
+    }
+    else {
+        $mFailed  = [regex]::Match($runOutput, '(?m)^\s*Failed:\s*(\d+)\s*$')
+        $mPassed  = [regex]::Match($runOutput, '(?m)^\s*Passed:\s*(\d+)\s*$')
+        $mSkipped = [regex]::Match($runOutput, '(?m)^\s*Skipped:\s*(\d+)\s*$')
+        if ($mPassed.Success -or $mFailed.Success) {
+            # vstest prints "Failed:" only when there ARE failures, "Passed:" only when there are passes.
+            $failed  = if ($mFailed.Success)  { [int]$mFailed.Groups[1].Value }  else { 0 }
+            $passed  = if ($mPassed.Success)  { [int]$mPassed.Groups[1].Value }  else { 0 }
+            $skipped = if ($mSkipped.Success) { [int]$mSkipped.Groups[1].Value } else { 0 }
+        }
+    }
+
+    # Decisive markers beat count-parsing: honour them even if the numbers were unreadable.
+    $ranFailed = $runOutput -match 'Test Run Failed\.' -or $runOutput -match 'Test Run Aborted\.'
+    $ranOk     = $runOutput -match 'Test Run Successful\.'
+    # Individual result lines prove the host DID execute tests, whatever the summary looked like.
+    $sawTests  = [regex]::IsMatch($runOutput, '(?m)^\s*(Passed|Failed|Skipped)\s+\S+\.\S+')
+
+    if ($failed -lt 0) {
+        # No parseable summary. Green is only honest when there is no evidence any test ran -
+        # otherwise the run happened and we simply cannot read the verdict, which must not pass.
+        if ($ranFailed -or $sawTests) {
+            Write-Host "  FAILED: UI tests ran but the result summary could not be parsed" -ForegroundColor Red
+            Write-Host "          Read extras\uitest-results.txt - do NOT treat this as a pass." -ForegroundColor Red
+            return "fail"
+        }
+        # Reaching here is now UNEXPECTED: these tests were confirmed to run headless (1625 of them,
+        # 2026-07-28). Treat it as "investigate", not as the documented normal state it once was.
+        Write-Host "  UI Tests: build verified, but the run produced no results - see extras\uitest-results.txt" -ForegroundColor Yellow
+        return "buildonly"
+    }
+
+    if ($ranFailed -and $failed -eq 0) {
+        # Marker and counts disagree (an aborted run can report zero failures). Trust the marker.
+        Write-Host "  FAILED: test run reported failure/abort despite a zero failed-count" -ForegroundColor Red
+        Write-Host $runOutput -ForegroundColor DarkGray
+        return "fail"
+    }
+    if ($ranOk -and $failed -gt 0) { Write-Host "  (marker said success but $failed failed - trusting the count)" -ForegroundColor Yellow }
+    $script:totalPassed  += $passed
+    $script:totalFailed  += $failed
+    $script:totalSkipped += $skipped
+
+    if ($failed -gt 0) {
+        Write-Host "  FAILED: $passed passed, $failed failed, $skipped skipped" -ForegroundColor Red
+        Write-Host $runOutput -ForegroundColor DarkGray
+        return "fail"
+    }
+    Write-Host "  PASSED: $passed passed, $skipped skipped" -ForegroundColor Green
+    return "pass"
+}
+
+function Test-VulnerablePackages {
+    # NuGet audit only warns (NU1901-NU1904) and the test output is quiet, so a vulnerable transitive
+    # slips through every green run. Asking NuGet directly makes it a gate failure instead.
+    # Returns $true when clean, $false when a package is flagged, $null when the check could not run.
+    $ErrorActionPreference = "Continue"
+    $sln = Join-Path $solutionDir "Winhance.sln"
+    Write-Host ""
+    Write-Host "  Checking NuGet packages for known vulnerabilities..." -ForegroundColor Cyan
+    $restore = & dotnet restore $sln --verbosity quiet 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  Vulnerability check NOT RUN: restore failed (see the log)" -ForegroundColor Yellow
+        Add-Log "### Vulnerability check: restore failed"; Add-Log $restore
+        return $null
+    }
+    $raw = & dotnet list $sln package --vulnerable --include-transitive --format json 2>$null | Out-String
+    try { $report = $raw | ConvertFrom-Json }
+    catch {
+        Write-Host "  Vulnerability check NOT RUN: unreadable output (see the log)" -ForegroundColor Yellow
+        Add-Log "### Vulnerability check: unreadable output"; Add-Log $raw
+        return $null
+    }
+    $hits = @()
+    foreach ($project in $report.projects) {
+        foreach ($framework in $project.frameworks) {
+            foreach ($package in @($framework.topLevelPackages) + @($framework.transitivePackages)) {
+                foreach ($vuln in $package.vulnerabilities) {
+                    $hits += "{0} {1} ({2}) {3}" -f $package.id, $package.resolvedVersion, $vuln.severity, $vuln.advisoryurl
+                }
+            }
+        }
+    }
+    $hits = @($hits | Sort-Object -Unique)
+    Add-Log "### Vulnerability check"
+    if ($hits.Count -eq 0) {
+        Write-Host "  No vulnerable packages" -ForegroundColor Green
+        Add-Log "clean"
+        return $true
+    }
+    Write-Host "  VULNERABLE PACKAGES - pin a patched version in the csproj:" -ForegroundColor Red
+    foreach ($hit in $hits) { Write-Host "    $hit" -ForegroundColor Red; Add-Log $hit }
+    return $false
+}
+
+function Resolve-UIResult {
+    # Turns Invoke-UITestProject's status into a console line + the shared failure tally.
+    # Returns $true when the UI gate passed.
+    #
+    # $MSBuildRequired distinguishes the two callers: with -UIOnly, a missing MSBuild means the gate
+    # cannot do the one thing it exists for, so it FAILS loudly rather than reporting a silent green.
+    # In a normal full run it stays the historical soft skip, for anyone without Visual Studio.
+    param (
+        [string]$Result,
+        [bool]$MSBuildRequired
+    )
+
+    switch ($Result) {
+        "pass" {
+            return $true
+        }
+        "buildonly" {
+            return $true
+        }
+        "buildfailed" {
+            Write-Host "  FAILED: UI Tests - compile error (see the MSBuild output above)" -ForegroundColor Red
+            $script:totalFailed += 1
+            $script:failedProjects += "UI Tests (build)"
+            return $false
+        }
+        "warnings" {
+            Write-Host "  FAILED: UI Tests - build warnings (listed above); tests not run" -ForegroundColor Red
+            $script:totalFailed += 1
+            $script:failedProjects += "UI Tests (build warnings)"
+            return $false
+        }
+        "fail" {
+            $script:failedProjects += "UI Tests"
+            return $false
+        }
+        "nomsbuild" {
+            if ($MSBuildRequired) {
+                Write-Host ""
+                Write-Host "  FAILED: MSBuild not found - install Visual Studio with the '.NET desktop" -ForegroundColor Red
+                Write-Host "          development' workload AND the MSVC x64 build tools." -ForegroundColor Red
+                Write-Host "          The WinUI test project cannot be built by the .NET SDK alone." -ForegroundColor Red
+                Add-Log "MSBuild not found - Visual Studio with the MSVC toolset is required."
+                $script:totalFailed += 1
+                $script:failedProjects += "UI Tests (no MSBuild)"
+                return $false
+            }
+            Write-Host ""
+            Write-Host "  SKIPPED: UI Tests - MSBuild not found (Visual Studio required)" -ForegroundColor Yellow
+            Write-Host "  Use -SkipUITests to suppress this warning" -ForegroundColor DarkGray
+            return $true
+        }
+    }
+
+    # Unreachable today - the five cases above cover every status Invoke-UITestProject returns.
+    # It records a failed project anyway so that a sixth status added later fails BOTH callers:
+    # -UIOnly reads the return value, but a normal run only reads $failedProjects.
+    Write-Host "  FAILED: UI Tests - unrecognised status '$Result'" -ForegroundColor Red
+    $script:totalFailed += 1
+    $script:failedProjects += "UI Tests (unknown status: $Result)"
+    return $false
+}
+
 # Header
 Write-Host ""
 Write-Host ("=" * 60) -ForegroundColor Cyan
@@ -85,6 +449,34 @@ Write-Host "  Winhance Test Runner" -ForegroundColor Cyan
 Write-Host ("=" * 60) -ForegroundColor Cyan
 
 $startTime = Get-Date
+
+"# Winhance test gate: $(Get-Date -Format o)" | Out-File -FilePath $logFile -Encoding utf8
+Write-Host "  log:     $logFile" -ForegroundColor Cyan
+
+if ($UIOnly) {
+    Write-Host "  mode:    UI only (build Winhance.UI.Tests -> compiles Winhance.UI)" -ForegroundColor Cyan
+
+    $uiOk = Resolve-UIResult -Result (Invoke-UITestProject) -MSBuildRequired $true
+    if ((Test-VulnerablePackages) -eq $false) { $uiOk = $false }
+
+    Write-Host ""
+    Write-Host ("=" * 60) -ForegroundColor Cyan
+    if ($uiOk) {
+        Write-Host "  UI gate: PASS" -ForegroundColor Green
+        if ($totalPassed -gt 0) { Write-Host "  Tests:   $totalPassed passed, $totalSkipped skipped" -ForegroundColor Green }
+        Write-Host ("  Time:    {0}s" -f ((Get-Date) - $startTime).TotalSeconds.ToString('F1')) -ForegroundColor White
+        Write-Host ("=" * 60) -ForegroundColor Cyan
+        Write-Host ""
+        Stop-BuildServers
+        exit 0
+    }
+    Write-Host "  UI gate: FAIL" -ForegroundColor Red
+    Write-Host ("  Time:    {0}s" -f ((Get-Date) - $startTime).TotalSeconds.ToString('F1')) -ForegroundColor White
+    Write-Host ("=" * 60) -ForegroundColor Cyan
+    Write-Host ""
+    Stop-BuildServers
+    exit 1
+}
 
 if (-not $IntegrationOnly) {
     # Unit Tests - Core
@@ -97,62 +489,11 @@ if (-not $IntegrationOnly) {
         -Name "Infrastructure Unit Tests" `
         -ProjectPath "$solutionDir\tests\Winhance.Infrastructure.Tests\Winhance.Infrastructure.Tests.csproj"
 
-    # Unit Tests - UI (requires Visual Studio / WinUI SDK, built with MSBuild)
+    # Unit Tests - UI (requires Visual Studio / WinUI SDK, built with MSBuild).
+    # A build failure here used to print "SKIPPED" and leave the exit code at 0, so a compile error
+    # in Winhance.UI passed as green. Resolve-UIResult now counts it as a real failure.
     if (-not $SkipUITests) {
-        $uiProjectPath = "$solutionDir\tests\Winhance.UI.Tests\Winhance.UI.Tests.csproj"
-
-        # Find MSBuild via vswhere, then fall back to well-known paths
-        $msbuildPath = $null
-        $vswherePath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-        if (Test-Path $vswherePath) {
-            $msbuildPath = & $vswherePath -latest -requires Microsoft.Component.MSBuild -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
-        }
-        if (-not $msbuildPath -or -not (Test-Path $msbuildPath)) {
-            $fallbackPaths = @(
-                "${env:ProgramFiles}\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe",
-                "${env:ProgramFiles}\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\MSBuild.exe",
-                "${env:ProgramFiles}\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
-            )
-            foreach ($path in $fallbackPaths) {
-                if (Test-Path $path) {
-                    $msbuildPath = $path
-                    break
-                }
-            }
-        }
-
-        if (-not $msbuildPath -or -not (Test-Path $msbuildPath)) {
-            Write-Host ""
-            Write-Host "  SKIPPED: UI Tests - MSBuild not found (Visual Studio required)" -ForegroundColor Yellow
-            Write-Host "  Use -SkipUITests to suppress this warning" -ForegroundColor DarkGray
-        }
-        else {
-            Write-Host ""
-            Write-Host ("=" * 60) -ForegroundColor DarkGray
-            Write-Host "  Building UI Tests with MSBuild..." -ForegroundColor Cyan
-            Write-Host ("=" * 60) -ForegroundColor DarkGray
-
-            $buildOutput = & $msbuildPath $uiProjectPath /p:Configuration=Debug /p:Platform=x64 /verbosity:quiet -restore 2>&1 | Out-String
-            if ($LASTEXITCODE -ne 0) {
-                Write-Host "  SKIPPED: UI Tests failed to build" -ForegroundColor Yellow
-                Write-Host $buildOutput -ForegroundColor DarkGray
-            }
-            else {
-                Write-Host "  Build succeeded" -ForegroundColor Green
-
-                # Derive VS install path from MSBuild path (e.g. ...\2022\Community\MSBuild\Current\Bin\MSBuild.exe)
-                $vsInstallPath = (Get-Item $msbuildPath).Directory.Parent.Parent.Parent.FullName
-                $vstestConsolePath = Join-Path $vsInstallPath "Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe"
-
-                $uiTestDll = "$solutionDir\tests\Winhance.UI.Tests\bin\x64\Debug\net10.0-windows10.0.19041.0\Winhance.UI.Tests.dll"
-
-                # WinUI test projects require Visual Studio Test Explorer to run.
-                # The native Windows App SDK runtime DLLs cannot be loaded by
-                # the command-line test host (dotnet test or vstest.console.exe).
-                # The build-only check above confirms the tests still compile.
-                Write-Host "  UI Tests: Build verified (run via VS Test Explorer)" -ForegroundColor Green
-            }
-        }
+        $null = Resolve-UIResult -Result (Invoke-UITestProject) -MSBuildRequired $false
     }
     else {
         Write-Host ""
@@ -164,6 +505,8 @@ if (-not $IntegrationOnly) {
 Run-TestProject `
     -Name "Integration Tests" `
     -ProjectPath "$solutionDir\tests\Winhance.IntegrationTests\Winhance.IntegrationTests.csproj"
+
+if ((Test-VulnerablePackages) -eq $false) { $failedProjects += "Vulnerable NuGet packages" }
 
 # Summary
 $elapsed = (Get-Date) - $startTime
@@ -187,6 +530,21 @@ if ($totalSkipped -gt 0) {
 Write-Host "  Time:    $($elapsed.TotalSeconds.ToString('F1'))s" -ForegroundColor White
 Write-Host ("=" * 60) -ForegroundColor Cyan
 
+# Analyzer summary. Written to docs\ (gitignored) rather than streamed to the console,
+# so the agent reads a file instead of a wall of build output, and so we keep a record
+# of the last run to work through. Wrapped in try/catch and never allowed to change the
+# exit code: this is reporting, not a gate.
+#
+# The linter lives in docs\tools\ - gitignored, so it is NOT on the remote. extras\ is for
+# build and release tooling that ships; local dev/agent tooling does not belong there. That
+# is why this call is Test-Path-guarded: on a fresh clone the script is simply absent and
+# the test run carries on unchanged.
+try {
+    $lintScript = Join-Path $PSScriptRoot '..\docs\tools\lint-solution.ps1'
+    if (Test-Path $lintScript) { & $lintScript }
+}
+catch { Write-Host "  (analyzer summary skipped: $_)" -ForegroundColor DarkGray }
+
 if ($failedProjects.Count -gt 0) {
     Write-Host ""
     Write-Host "  Failed projects:" -ForegroundColor Red
@@ -194,11 +552,13 @@ if ($failedProjects.Count -gt 0) {
         Write-Host "    - $proj" -ForegroundColor Red
     }
     Write-Host ""
+    Stop-BuildServers
     exit 1
 }
 else {
     Write-Host ""
     Write-Host "  All tests passed." -ForegroundColor Green
     Write-Host ""
+    Stop-BuildServers
     exit 0
 }

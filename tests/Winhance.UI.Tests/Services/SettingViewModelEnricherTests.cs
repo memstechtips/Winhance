@@ -3,21 +3,22 @@ using Moq;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Xunit;
+using Winhance.TestSupport;
 
 namespace Winhance.UI.Tests.Services;
 
 public class SettingViewModelEnricherTests
 {
     private readonly Mock<IHardwareDetectionService> _mockHardwareDetectionService = new();
-    private readonly Mock<ISettingLocalizationService> _mockSettingLocalizationService = new();
     private readonly Mock<ISettingReviewDiffApplier> _mockReviewDiffApplier = new();
+    private readonly Mock<ICatalogScopeProvider> _mockScopeProvider = new();
 
-    // Dependencies for constructing SettingItemViewModel
     private readonly Mock<ISettingApplicationService> _mockSettingApplicationService = new();
     private readonly Mock<ILogService> _mockLogService = new();
     private readonly Mock<IDispatcherService> _mockDispatcher = new();
@@ -37,30 +38,27 @@ public class SettingViewModelEnricherTests
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+        // Mirrors the stub above onto TryGetString - an unstubbed Moq answers "missing" for every key.
+        _mockLocalizationService.MirrorTryGetString();
+
+        _mockScopeProvider.Setup(p => p.Current).Returns(CatalogScope.CurrentMachine);
     }
 
     private SettingViewModelEnricher CreateService()
     {
         return new SettingViewModelEnricher(
             _mockHardwareDetectionService.Object,
-            _mockSettingLocalizationService.Object,
-            _mockReviewDiffApplier.Object);
+            _mockReviewDiffApplier.Object,
+            _mockScopeProvider.Object);
     }
 
     private SettingItemViewModel CreateSettingViewModel(
         string settingId = "test-setting",
         string name = "Test Setting")
     {
-        var settingDef = new SettingDefinition
-        {
-            Id = settingId,
-            Name = name,
-            Description = "Test Description"
-        };
-
         var config = new SettingItemViewModelConfig
         {
-            SettingDefinition = settingDef,
+            Setting = new Setting { Id = settingId, Display = new() { Name = TestKeys.Of(name), Description = TestKeys.Of("Test Description") } },
             SettingId = settingId,
             Name = name,
             Description = "Test Description",
@@ -70,26 +68,39 @@ public class SettingViewModelEnricherTests
 
         return new SettingItemViewModel(
             config,
-            _mockSettingApplicationService.Object,
+            SettingWriteStrategies.Selector(
+                _mockSettingApplicationService.Object, _mockDialogService.Object, _mockLocalizationService.Object, _mockLogService.Object),
             _mockLogService.Object,
             _mockDispatcher.Object,
             _mockDialogService.Object,
             _mockLocalizationService.Object);
     }
 
-    // -------------------------------------------------------
-    // DetectBatteryAsync
-    // -------------------------------------------------------
-
     [Fact]
     public async Task DetectBatteryAsync_WhenHasBattery_SetsHasBatteryToTrue()
     {
         _mockHardwareDetectionService
-            .Setup(h => h.HasBatteryAsync())
-            .ReturnsAsync(true);
+            .Setup(h => h.HasBattery())
+            .Returns(true);
 
         var vm = CreateSettingViewModel();
-        vm.HasBattery.Should().BeFalse(); // default state
+        vm.HasBattery.Should().BeFalse();
+
+        var service = CreateService();
+        await service.DetectBatteryAsync(vm);
+
+        vm.HasBattery.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task DetectBatteryAsync_WhenDetectionFails_ShowsBothAcAndDc()
+    {
+        // null = the WMI probe could not answer. A card shows both halves rather than hiding DC.
+        _mockHardwareDetectionService
+            .Setup(h => h.HasBattery())
+            .Returns((bool?)null);
+
+        var vm = CreateSettingViewModel();
 
         var service = CreateService();
         await service.DetectBatteryAsync(vm);
@@ -101,8 +112,8 @@ public class SettingViewModelEnricherTests
     public async Task DetectBatteryAsync_WhenNoBattery_SetsHasBatteryToFalse()
     {
         _mockHardwareDetectionService
-            .Setup(h => h.HasBatteryAsync())
-            .ReturnsAsync(false);
+            .Setup(h => h.HasBattery())
+            .Returns(false);
 
         var vm = CreateSettingViewModel();
 
@@ -113,11 +124,31 @@ public class SettingViewModelEnricherTests
     }
 
     [Fact]
+    public async Task DetectBatteryAsync_WhenAuthoringForOtherHardware_ShowsBatteryOnADesktop()
+    {
+        // Builder authoring a config for a laptop: the DC half has to stay on screen even though this
+        // machine has no battery to read.
+        _mockHardwareDetectionService
+            .Setup(h => h.HasBattery())
+            .Returns(false);
+        _mockScopeProvider
+            .Setup(p => p.Current)
+            .Returns(new CatalogScope(IncludeOtherOsVersions: false, IncludeOtherHardware: true));
+
+        var vm = CreateSettingViewModel();
+
+        var service = CreateService();
+        await service.DetectBatteryAsync(vm);
+
+        vm.HasBattery.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task DetectBatteryAsync_CallsHardwareDetectionService()
     {
         _mockHardwareDetectionService
-            .Setup(h => h.HasBatteryAsync())
-            .ReturnsAsync(true);
+            .Setup(h => h.HasBattery())
+            .Returns(true);
 
         var vm = CreateSettingViewModel();
 
@@ -125,7 +156,7 @@ public class SettingViewModelEnricherTests
         await service.DetectBatteryAsync(vm);
 
         _mockHardwareDetectionService.Verify(
-            h => h.HasBatteryAsync(),
+            h => h.HasBattery(),
             Times.Once);
     }
 
@@ -133,8 +164,8 @@ public class SettingViewModelEnricherTests
     public async Task DetectBatteryAsync_UpdatesSpecificViewModel()
     {
         _mockHardwareDetectionService
-            .Setup(h => h.HasBatteryAsync())
-            .ReturnsAsync(true);
+            .Setup(h => h.HasBattery())
+            .Returns(true);
 
         var vm1 = CreateSettingViewModel(settingId: "setting-1", name: "Setting 1");
         var vm2 = CreateSettingViewModel(settingId: "setting-2", name: "Setting 2");
@@ -145,115 +176,6 @@ public class SettingViewModelEnricherTests
         vm1.HasBattery.Should().BeTrue();
         vm2.HasBattery.Should().BeFalse();
     }
-
-    // -------------------------------------------------------
-    // SetCrossGroupInfoMessage
-    // -------------------------------------------------------
-
-    [Fact]
-    public void SetCrossGroupInfoMessage_SetsMessageOnViewModel()
-    {
-        var setting = new SettingDefinition
-        {
-            Id = "cross-group-setting",
-            Name = "Cross Group",
-            Description = "Desc"
-        };
-
-        _mockSettingLocalizationService
-            .Setup(l => l.BuildCrossGroupInfoMessage(setting))
-            .Returns("This setting also affects: Gaming > Performance");
-
-        var vm = CreateSettingViewModel();
-
-        var service = CreateService();
-        service.SetCrossGroupInfoMessage(vm, setting);
-
-        vm.CrossGroupInfoMessage.Should().Be("This setting also affects: Gaming > Performance");
-    }
-
-    [Fact]
-    public void SetCrossGroupInfoMessage_WhenNullMessage_SetsNullOnViewModel()
-    {
-        var setting = new SettingDefinition
-        {
-            Id = "no-cross-group",
-            Name = "No Cross Group",
-            Description = "Desc"
-        };
-
-        _mockSettingLocalizationService
-            .Setup(l => l.BuildCrossGroupInfoMessage(setting))
-            .Returns((string?)null);
-
-        var vm = CreateSettingViewModel();
-
-        var service = CreateService();
-        service.SetCrossGroupInfoMessage(vm, setting);
-
-        vm.CrossGroupInfoMessage.Should().BeNull();
-    }
-
-    [Fact]
-    public void SetCrossGroupInfoMessage_CallsLocalizationServiceWithCorrectSetting()
-    {
-        var setting = new SettingDefinition
-        {
-            Id = "my-setting",
-            Name = "My Setting",
-            Description = "Desc"
-        };
-
-        _mockSettingLocalizationService
-            .Setup(l => l.BuildCrossGroupInfoMessage(It.IsAny<SettingDefinition>()))
-            .Returns("msg");
-
-        var vm = CreateSettingViewModel();
-
-        var service = CreateService();
-        service.SetCrossGroupInfoMessage(vm, setting);
-
-        _mockSettingLocalizationService.Verify(
-            l => l.BuildCrossGroupInfoMessage(setting),
-            Times.Once);
-    }
-
-    [Fact]
-    public void SetCrossGroupInfoMessage_OverwritesPreviousMessage()
-    {
-        var setting1 = new SettingDefinition
-        {
-            Id = "setting-1",
-            Name = "Setting 1",
-            Description = "Desc"
-        };
-        var setting2 = new SettingDefinition
-        {
-            Id = "setting-2",
-            Name = "Setting 2",
-            Description = "Desc"
-        };
-
-        _mockSettingLocalizationService
-            .Setup(l => l.BuildCrossGroupInfoMessage(setting1))
-            .Returns("First message");
-        _mockSettingLocalizationService
-            .Setup(l => l.BuildCrossGroupInfoMessage(setting2))
-            .Returns("Second message");
-
-        var vm = CreateSettingViewModel();
-
-        var service = CreateService();
-        service.SetCrossGroupInfoMessage(vm, setting1);
-        vm.CrossGroupInfoMessage.Should().Be("First message");
-
-        service.SetCrossGroupInfoMessage(vm, setting2);
-        vm.CrossGroupInfoMessage.Should().Be("Second message");
-    }
-
-    // -------------------------------------------------------
-    // ApplyReviewDiff
-    // -------------------------------------------------------
 
     [Fact]
     public void ApplyReviewDiff_DelegatesToReviewDiffApplier()

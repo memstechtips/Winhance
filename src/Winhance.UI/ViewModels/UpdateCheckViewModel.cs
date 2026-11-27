@@ -2,13 +2,13 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Extensions;
+using Winhance.Core.Features.SoftwareApps.Enums;
 
 namespace Winhance.UI.ViewModels;
 
-/// <summary>
-/// Tracks the current state of the update InfoBar for language-change re-rendering.
-/// </summary>
 internal enum UpdateInfoBarState
 {
     None,
@@ -19,15 +19,17 @@ internal enum UpdateInfoBarState
     UpdateDownloaded
 }
 
-/// <summary>
-/// Child ViewModel for update checking in the main window.
-/// Manages update InfoBar state, check/install commands.
-/// </summary>
 public partial class UpdateCheckViewModel : ObservableObject, IDisposable
 {
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(InstallNowButtonText), nameof(RelaunchButtonText),
+    ];
+
     private bool _disposed;
     private readonly IVersionService _versionService;
     private readonly ILocalizationService _localizationService;
+    private readonly IUserPreferencesService _preferences;
     private readonly ILogService _logService;
 
     [ObservableProperty]
@@ -58,18 +60,20 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
     public partial bool IsRelaunchButtonVisible { get; set; }
 
     public string InstallNowButtonText =>
-        _localizationService.GetString("Dialog_Update_Button_InstallNow") ?? "Install Now";
+        _localizationService.GetStringOrDefault("Dialog_Update_Button_InstallNow", "Install Now");
 
     public string RelaunchButtonText =>
-        _localizationService.GetString("Dialog_Update_Button_Relaunch") ?? "Relaunch";
+        _localizationService.GetStringOrDefault("Dialog_Update_Button_Relaunch", "Relaunch");
 
     public UpdateCheckViewModel(
         IVersionService versionService,
         ILocalizationService localizationService,
+        IUserPreferencesService preferences,
         ILogService logService)
     {
         _versionService = versionService;
         _localizationService = localizationService;
+        _preferences = preferences;
         _logService = logService;
 
         UpdateInfoBarTitle = string.Empty;
@@ -83,12 +87,13 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
         if (_disposed) return;
         _disposed = true;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        GC.SuppressFinalize(this);
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        OnPropertyChanged(nameof(InstallNowButtonText));
-        OnPropertyChanged(nameof(RelaunchButtonText));
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
         if (IsUpdateInfoBarOpen)
         {
             RefreshUpdateInfoBarText();
@@ -169,7 +174,7 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
         {
             _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Error installing update: {ex.Message}");
 
-            var errorMessageTemplate = _localizationService.GetString("Dialog_Update_Status_Error") ?? "Error downloading update: {0}";
+            var errorMessageTemplate = _localizationService.GetStringOrDefault("Dialog_Update_Status_Error", "Error downloading update: {0}");
             var errorMessage = string.Format(errorMessageTemplate, ex.Message);
 
             UpdateInfoBarMessage = errorMessage;
@@ -182,23 +187,18 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void Relaunch()
     {
-        try
-        {
-            _versionService.LaunchInstallerAndRestart();
-            Application.Current.Exit();
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Error relaunching: {ex.Message}");
-        }
+        _versionService.LaunchInstallerAndRestart();
+        Application.Current.Exit();
     }
 
-    /// <summary>
-    /// Silently checks for updates on startup. Only shows the InfoBar if an update is available.
-    /// No-update and error scenarios are logged but not shown to the user.
-    /// </summary>
-    public async Task CheckForUpdatesOnStartupAsync()
+    // No-update and error scenarios are logged but not shown to the user. Set to install automatically, a shown window
+    // downloads the update straight away and offers Relaunch, so nothing closes under the user; a hidden one leaves it
+    // to the tray, which installs while nothing is open.
+    public async Task CheckForUpdatesOnStartupAsync(bool windowShown = true)
     {
+        if (_updateInfoBarState is UpdateInfoBarState.Downloading or UpdateInfoBarState.UpdateDownloaded)
+            return;
+
         try
         {
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Startup: Checking for updates...");
@@ -217,6 +217,8 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
                 UpdateInfoBarSeverity = InfoBarSeverity.Success;
                 IsUpdateActionButtonVisible = true;
                 IsUpdateInfoBarOpen = true;
+                if (windowShown && _preferences.GetPreference(UserPreferenceKeys.WinhanceUpdateAction, AppUpdateAction.Notify) == AppUpdateAction.Install)
+                    await InstallUpdateAsync();
             }
             else
             {
@@ -229,50 +231,43 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Dismisses the update InfoBar (called from code-behind on InfoBar.Closed).
-    /// </summary>
     public void DismissUpdateInfoBar()
     {
         IsUpdateInfoBarOpen = false;
         _updateInfoBarState = UpdateInfoBarState.None;
     }
 
-    /// <summary>
-    /// Re-resolves InfoBar title/message from localization based on the current state.
-    /// Called when the InfoBar state is first set and on language change.
-    /// </summary>
     private void RefreshUpdateInfoBarText()
     {
         switch (_updateInfoBarState)
         {
             case UpdateInfoBarState.UpdateAvailable:
-                var message = _localizationService.GetString("Dialog_Update_Message") ?? "Good News! A New Version of Winhance is available.";
-                var currentVersionLabel = _localizationService.GetString("Dialog_Update_CurrentVersion") ?? "Current Version:";
-                var latestVersionLabel = _localizationService.GetString("Dialog_Update_LatestVersion") ?? "Latest Version:";
-                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_Title") ?? "Update Available";
+                var message = _localizationService.GetStringOrDefault("Dialog_Update_Message", "Good News! A New Version of Winhance is available.");
+                var currentVersionLabel = _localizationService.GetStringOrDefault("Dialog_Update_CurrentVersion", "Current Version:");
+                var latestVersionLabel = _localizationService.GetStringOrDefault("Dialog_Update_LatestVersion", "Latest Version:");
+                UpdateInfoBarTitle = _localizationService.GetStringOrDefault("Dialog_Update_Title", "Update Available");
                 UpdateInfoBarMessage = $"{message}  {currentVersionLabel} {_cachedCurrentVersion}  →  {latestVersionLabel} {_cachedLatestVersion}";
                 break;
 
             case UpdateInfoBarState.NoUpdates:
-                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_NoUpdates_Title") ?? "No Updates Available";
-                UpdateInfoBarMessage = _localizationService.GetString("Dialog_Update_NoUpdates_Message") ?? "You have the latest version of Winhance.";
+                UpdateInfoBarTitle = _localizationService.GetStringOrDefault("Dialog_Update_NoUpdates_Title", "No Updates Available");
+                UpdateInfoBarMessage = _localizationService.GetStringOrDefault("Dialog_Update_NoUpdates_Message", "You have the latest version of Winhance.");
                 break;
 
             case UpdateInfoBarState.CheckError:
-                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_CheckError_Title") ?? "Update Check Error";
-                var errorTemplate = _localizationService.GetString("Dialog_Update_CheckError_Message") ?? "An error occurred while checking for updates: {0}";
+                UpdateInfoBarTitle = _localizationService.GetStringOrDefault("Dialog_Update_CheckError_Title", "Update Check Error");
+                var errorTemplate = _localizationService.GetStringOrDefault("Dialog_Update_CheckError_Message", "An error occurred while checking for updates: {0}");
                 UpdateInfoBarMessage = string.Format(errorTemplate, _cachedErrorMessage);
                 break;
 
             case UpdateInfoBarState.Downloading:
-                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_Status_Downloading") ?? "Downloading update...";
+                UpdateInfoBarTitle = _localizationService.GetStringOrDefault("Dialog_Update_Status_Downloading", "Downloading update...");
                 UpdateInfoBarMessage = string.Empty;
                 break;
 
             case UpdateInfoBarState.UpdateDownloaded:
-                UpdateInfoBarTitle = _localizationService.GetString("Dialog_Update_Installed_Title") ?? "Update Ready";
-                UpdateInfoBarMessage = _localizationService.GetString("Dialog_Update_Installed_Message") ?? "The update has been downloaded. Click Relaunch to install and restart Winhance.";
+                UpdateInfoBarTitle = _localizationService.GetStringOrDefault("Dialog_Update_Installed_Title", "Update Ready");
+                UpdateInfoBarMessage = _localizationService.GetStringOrDefault("Dialog_Update_Installed_Message", "The update has been downloaded. Click Relaunch to install and restart Winhance.");
                 break;
         }
     }

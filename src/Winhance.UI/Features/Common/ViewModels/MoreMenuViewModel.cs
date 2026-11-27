@@ -1,16 +1,23 @@
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.Common.Extensions;
+using Winhance.Core.Features.Common.Helpers;
+using Winhance.UI.Helpers;
 
 namespace Winhance.UI.Features.Common.ViewModels;
 
-/// <summary>
-/// ViewModel for the More menu flyout, providing localized strings and commands.
-/// </summary>
 public partial class MoreMenuViewModel : ObservableObject, IDisposable
 {
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(MenuDocumentation), nameof(MenuReportBug), nameof(MenuCheckForUpdates), nameof(MenuWinhanceLogs),
+        nameof(MenuChangeHistory), nameof(MenuWinhanceScripts), nameof(MenuSupportWinhance), nameof(MenuCloseWinhance),
+    ];
+
     private bool _disposed;
     private readonly ILocalizationService _localizationService;
     private readonly IVersionService _versionService;
@@ -47,7 +54,6 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         _dialogService = dialogService;
         VersionInfo = "Winhance";
 
-        // Subscribe to language changes
         _localizationService.LanguageChanged += OnLanguageChanged;
 
         InitializeVersionInfo();
@@ -58,21 +64,13 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         if (_disposed) return;
         _disposed = true;
         _localizationService.LanguageChanged -= OnLanguageChanged;
+        GC.SuppressFinalize(this);
     }
 
-    /// <summary>
-    /// Handles language changes to update localized strings.
-    /// </summary>
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        OnPropertyChanged(nameof(MenuDocumentation));
-        OnPropertyChanged(nameof(MenuReportBug));
-        OnPropertyChanged(nameof(MenuCheckForUpdates));
-        OnPropertyChanged(nameof(MenuWinhanceLogs));
-        OnPropertyChanged(nameof(MenuChangeHistory));
-        OnPropertyChanged(nameof(MenuWinhanceScripts));
-        OnPropertyChanged(nameof(MenuSupportWinhance));
-        OnPropertyChanged(nameof(MenuCloseWinhance));
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
     }
 
     private void InitializeVersionInfo()
@@ -84,152 +82,74 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
-            _logService.LogDebug($"[MoreMenuViewModel] Failed to get version info: {ex.Message}");
+            _logService.LogDebug($"Failed to get version info: {ex.Message}");
             VersionInfo = "Winhance";
         }
     }
 
-    #region Localized Strings
-
     public string MenuDocumentation =>
-        _localizationService.GetString("Tooltip_Documentation") ?? "Documentation";
+        _localizationService.GetStringOrDefault("Tooltip_Documentation", "Documentation");
 
     public string MenuReportBug =>
-        _localizationService.GetString("Tooltip_ReportBug") ?? "Report a Bug";
+        _localizationService.GetStringOrDefault("Tooltip_ReportBug", "Report a Bug");
 
     public string MenuCheckForUpdates =>
-        _localizationService.GetString("Menu_CheckForUpdates") ?? "Check for Updates";
+        _localizationService.GetStringOrDefault("Menu_CheckForUpdates", "Check for Updates");
 
     public string MenuWinhanceLogs =>
-        _localizationService.GetString("Menu_WinhanceLogs") ?? "Winhance Logs";
+        _localizationService.GetStringOrDefault("Menu_WinhanceLogs", "Winhance Logs");
 
     public string MenuChangeHistory =>
-        _localizationService.GetString("Menu_ChangeHistory") ?? "Change History";
+        _localizationService.GetStringOrDefault("Menu_ChangeHistory", "Change History");
 
     public string MenuWinhanceScripts =>
-        _localizationService.GetString("Menu_WinhanceScripts") ?? "Winhance Scripts";
+        _localizationService.GetStringOrDefault("Menu_WinhanceScripts", "Winhance Scripts");
 
     public string MenuSupportWinhance =>
-        _localizationService.GetString("Menu_SupportWinhance") ?? "Support Winhance";
+        _localizationService.GetStringOrDefault("Menu_SupportWinhance", "Support Winhance");
 
     public string MenuCloseWinhance =>
-        _localizationService.GetString("Menu_CloseWinhance") ?? "Close Winhance";
-
-    #endregion
-
-    #region Commands
+        _localizationService.GetStringOrDefault("Menu_CloseWinhance", "Close Winhance");
 
     [RelayCommand]
-    private async Task OpenDocsAsync()
-    {
-        try
-        {
-            await Windows.System.Launcher.LaunchUriAsync(
-                new Uri("https://winhance.net/docs/index.html"));
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Failed to open documentation page: {ex.Message}", ex);
-        }
-    }
+    private Task OpenDocsAsync(string? pageTag) =>
+        RunAsync(async () => await Windows.System.Launcher.LaunchUriAsync(HelpLinks.DocsFor(pageTag)));
 
     [RelayCommand]
-    private async Task ReportBugAsync()
-    {
-        try
-        {
-            await Windows.System.Launcher.LaunchUriAsync(
-                new Uri("https://github.com/memstechtips/Winhance/issues"));
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Failed to open bug report page: {ex.Message}", ex);
-        }
-    }
+    private Task ReportBugAsync() =>
+        RunAsync(async () => await Windows.System.Launcher.LaunchUriAsync(HelpLinks.BugReport));
 
     [RelayCommand]
-    private async Task OpenLogsAsync()
-    {
-        try
-        {
-            string logsFolder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "Winhance",
-                "Logs");
-
-            if (!_fileSystemService.DirectoryExists(logsFolder))
-            {
-                _fileSystemService.CreateDirectory(logsFolder);
-            }
-
-            await _explorerWindowManager.OpenFolderAsync(logsFolder);
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error opening logs folder: {ex.Message}", ex);
-        }
-    }
+    private Task OpenLogsAsync() => RunAsync(() => OpenFolderAsync(Path.Combine(AppDataPaths.MachineRoot, "Logs")));
 
     [RelayCommand]
-    private async Task OpenChangeHistoryAsync()
-    {
-        try
-        {
-            var path = _changeHistoryService.GetFilePath();
-            await _processExecutor.ShellExecuteAsync(path);
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Failed to open change history file: {ex.Message}", ex);
-        }
-    }
+    private Task OpenChangeHistoryAsync() =>
+        RunAsync(() => _processExecutor.ShellExecuteAsync(_changeHistoryService.GetFilePath()));
 
     [RelayCommand]
-    private async Task OpenScriptsAsync()
-    {
-        try
-        {
-            string scriptsFolder = ScriptPaths.ScriptsDirectory;
-
-            if (!_fileSystemService.DirectoryExists(scriptsFolder))
-            {
-                _fileSystemService.CreateDirectory(scriptsFolder);
-            }
-
-            await _explorerWindowManager.OpenFolderAsync(scriptsFolder);
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error opening scripts folder: {ex.Message}", ex);
-        }
-    }
+    private Task OpenScriptsAsync() => RunAsync(() => OpenFolderAsync(ScriptPaths.ScriptsDirectory));
 
     [RelayCommand]
-    private async Task SupportWinhanceAsync()
-    {
-        try
-        {
-            await _dialogService.ShowSponsorsDialogAsync(SponsorsDialogMode.Normal);
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Failed to open sponsors dialog: {ex.Message}", ex);
-        }
-    }
+    private Task SupportWinhanceAsync() =>
+        RunAsync(() => _dialogService.ShowSponsorsDialogAsync(SponsorsDialogMode.Normal));
 
     [RelayCommand]
-    private async Task CloseApplicationAsync()
-    {
-        try
+    private Task CloseApplicationAsync() =>
+        RunAsync(() =>
         {
             _logService.LogInformation("User requested application close from More menu");
-            await _applicationCloseService.CheckOperationsAndCloseAsync();
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error closing application: {ex.Message}", ex);
-        }
+            return _applicationCloseService.CheckOperationsAndCloseAsync();
+        });
+
+    private async Task OpenFolderAsync(string folder)
+    {
+        if (!_fileSystemService.DirectoryExists(folder))
+            _fileSystemService.CreateDirectory(folder);
+
+        await _explorerWindowManager.OpenFolderAsync(folder);
     }
 
-    #endregion
+    private Task RunAsync(Func<Task> action, [CallerMemberName] string callerName = "") =>
+        _dialogService.RunOrShowErrorAsync(_logService, action,
+            ex => _localizationService.GetString("Common_ActionFailed", ex.Message), callerName);
 }

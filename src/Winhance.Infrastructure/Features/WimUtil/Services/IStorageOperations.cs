@@ -1,0 +1,33 @@
+using Winhance.Core.Features.WimUtil.Models;
+
+namespace Winhance.Infrastructure.Features.WimUtil.Services;
+
+// The Windows Storage Management API (WMI, root\Microsoft\Windows\Storage), NOT VDS: Microsoft's
+// own VDS page opens with "superseded by the Windows Storage Management API" and adds "we strongly
+// recommend using the Storage Management API".
+internal interface IStorageOperations
+{
+    IReadOnlyList<RemovableDrive> GetDisks();
+
+    // The letters currently mounted from the disk's partitions; Clear takes them away, so the
+    // writer reads them first to catch a working folder that lives on the target.
+    IReadOnlyList<char> GetDriveLetters(int diskNumber);
+
+    // Refuses before wiping when the disk now at this number carries a different UniqueId than the one picked.
+    void Clear(int diskNumber, string uniqueId);
+    void VerifyDisk(int diskNumber, string uniqueId);
+
+    void EnsureMbr(int diskNumber, string uniqueId);
+
+    // Both return the new partition's number. Its drive letter comes last, after the format, the
+    // way the diskpart recipe does it: a RAW volume with a letter is what Explorer greets with
+    // its "you need to format the disk" prompt.
+    int CreateBootPartition(int diskNumber, string uniqueId, long sizeBytes);
+
+    // Takes the rest of the disk.
+    int CreateInstallPartition(int diskNumber, string uniqueId);
+
+    void Format(int diskNumber, string uniqueId, int partitionNumber, string fileSystem, string label);
+
+    char AssignDriveLetter(int diskNumber, string uniqueId, int partitionNumber);
+}

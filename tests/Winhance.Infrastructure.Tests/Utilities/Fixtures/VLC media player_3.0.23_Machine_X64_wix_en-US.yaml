@@ -1,0 +1,240 @@
+PackageIdentifier: VideoLAN.VLC
+PackageVersion: 3.0.23
+Moniker: vlc
+Tags:
+- audio-player
+- audioplayer
+- cross-platform
+- dvd
+- foss
+- media-player
+- multimedia
+- video-player
+PackageLocale: en-US
+Author: VideoLAN
+Description: "VLC is a free and open source cross-platform multimedia player and framework\nthat
+  plays most multimedia files as well as DVDs, Audio CDs, VCDs, and various\nstreaming
+  protocols.\n\nSimple, fast and powerful\n  Plays everything - Files, Discs, Webcams,
+  Devices and Streams.\n  Plays most codecs with no codec packs needed - MPEG-2, MPEG-4,
+  H.264, MKV, WebM,\n    WMV, MP3...\n  Completely Free - no spyware, no ads and no
+  user tracking."
+ShortDescription: VLC is a free and open source cross-platform multimedia player and
+  framework that plays most multimedia files, and various streaming protocols.
+License: GPL-2.0
+LicenseUrl: https://code.videolan.org/videolan/vlc/-/blob/HEAD/COPYING
+PackageName: VLC media player
+PackageUrl: https://www.videolan.org/vlc/
+Publisher: VideoLAN
+PublisherSupportUrl: https://www.videolan.org/support/
+PublisherUrl: https://www.videolan.org/
+Installers:
+- Architecture: x64
+  InstallerType: wix
+  InstallerSha256: bc4b902a480b98a4a5479327a7f210f06369a59bf727649e320faba5b4ef1f5e
+  InstallerUrl: https://download.videolan.org/pub/videolan/vlc/3.0.23/win64/vlc-3.0.23-win64.msi
+  Scope: machine
+  ElevationRequirement: elevatesSelf
+  ReleaseDate: 2025-12-31
+  InstallerAbortsTerminal: false
+  InstallLocationRequired: false
+  RequireExplicitUpgrade: false
+  DisplayInstallWarnings: false
+  DownloadCommandProhibited: false
+  ArchiveBinariesDependOnPath: false
+  MinimumOSVersion: 6.1.7600.0
+  ProductCode: '{5DFCA3BF-178E-42E2-9CEF-37A44B9FF90A}'
+  UpgradeBehavior: install
+  Commands:
+  - vlc
+  FileExtensions:
+  - 264
+  - 3g2
+  - 3ga
+  - 3gp
+  - 3gp2
+  - 3gpp
+  - 669
+  - a52
+  - aac
+  - ac3
+  - adt
+  - adts
+  - aif
+  - aifc
+  - aiff
+  - amb
+  - amr
+  - amv
+  - aob
+  - ape
+  - asf
+  - asx
+  - au
+  - avi
+  - awb
+  - b4s
+  - bik
+  - bin
+  - caf
+  - cda
+  - crf
+  - cue
+  - dash
+  - dav
+  - divx
+  - drc
+  - dts
+  - dv
+  - dvr
+  - dvr-ms
+  - evo
+  - f4v
+  - flac
+  - flv
+  - gvi
+  - gxf
+  - ifo
+  - iso
+  - it
+  - kar
+  - m1v
+  - m2t
+  - m2ts
+  - m2v
+  - m3u
+  - m3u8
+  - m4a
+  - m4b
+  - m4p
+  - m4v
+  - m5p
+  - mid
+  - mka
+  - mkv
+  - mod
+  - mov
+  - mp1
+  - mp2
+  - mp2v
+  - mp3
+  - mp4
+  - mp4v
+  - mpa
+  - mpc
+  - mpe
+  - mpeg
+  - mpeg1
+  - mpeg2
+  - mpeg4
+  - mpg
+  - mpga
+  - mpv2
+  - mts
+  - mtv
+  - mus
+  - mxf
+  - nsv
+  - nuv
+  - oga
+  - ogg
+  - ogm
+  - ogv
+  - ogx
+  - oma
+  - opus
+  - pls
+  - ps
+  - qcp
+  - ra
+  - ram
+  - rec
+  - rm
+  - rmi
+  - rmvb
+  - rpl
+  - s3m
+  - sdp
+  - sid
+  - snd
+  - spx
+  - sub
+  - tak
+  - thd
+  - thp
+  - tod
+  - tp
+  - ts
+  - tta
+  - tts
+  - txd
+  - vlc
+  - vob
+  - voc
+  - vqf
+  - vro
+  - w64
+  - wav
+  - wax
+  - webm
+  - wm
+  - wma
+  - wmv
+  - wtv
+  - wv
+  - wvx
+  - xa
+  - xesc
+  - xm
+  - xspf
+  - zab
+  AppsAndFeaturesEntries:
+  - ProductCode: '{5DFCA3BF-178E-42E2-9CEF-37A44B9FF90A}'
+    UpgradeCode: '{D2E0205B-0D3A-46E2-ADF7-0504FF48CF04}'
+  ExpectedReturnCodes:
+  - InstallerReturnCode: 87
+    ReturnResponse: invalidParameter
+  - InstallerReturnCode: 112
+    ReturnResponse: diskFull
+  - InstallerReturnCode: 1601
+    ReturnResponse: contactSupport
+  - InstallerReturnCode: 1602
+    ReturnResponse: cancelledByUser
+  - InstallerReturnCode: 1618
+    ReturnResponse: installInProgress
+  - InstallerReturnCode: 1623
+    ReturnResponse: systemNotSupported
+  - InstallerReturnCode: 1625
+    ReturnResponse: blockedByPolicy
+  - InstallerReturnCode: 1628
+    ReturnResponse: invalidParameter
+  - InstallerReturnCode: 1633
+    ReturnResponse: systemNotSupported
+  - InstallerReturnCode: 1638
+    ReturnResponse: alreadyInstalled
+  - InstallerReturnCode: 1639
+    ReturnResponse: invalidParameter
+  - InstallerReturnCode: 1640
+    ReturnResponse: blockedByPolicy
+  - InstallerReturnCode: 1641
+    ReturnResponse: rebootInitiated
+  - InstallerReturnCode: 1643
+    ReturnResponse: blockedByPolicy
+  - InstallerReturnCode: 1644
+    ReturnResponse: blockedByPolicy
+  - InstallerReturnCode: 1649
+    ReturnResponse: blockedByPolicy
+  - InstallerReturnCode: 1650
+    ReturnResponse: invalidParameter
+  - InstallerReturnCode: 1654
+    ReturnResponse: systemNotSupported
+  - InstallerReturnCode: 3010
+    ReturnResponse: rebootRequiredToFinish
+  InstallerSwitches:
+    Silent: /quiet /norestart
+    SilentWithProgress: /passive /norestart
+    Log: /log "<LOGPATH>"
+    InstallLocation: TARGETDIR="<INSTALLPATH>"
+  InstallationMetadata:
+    DefaultInstallLocation: '%ProgramFiles%/VideoLAN/VLC'
+ManifestVersion: 1.12.0
+ManifestType: merged
