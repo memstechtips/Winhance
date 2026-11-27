@@ -6,7 +6,7 @@
       "name": "Windows 11 24H2",
       "updates": [
         {
-          "catalogId": "8d5353b2-7db6-451a-a42c-2dc9c486372d",
+          "catalogId": "d8619910-6bb9-4563-9797-9f753c736522",
           "files": [
             {
               "fileName": "windows11.0-kb5043080-x64_953449672073f8fb99badb4cc6d5d7849b9c83e8.msu",
@@ -18,19 +18,19 @@
               "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/d8b7f92b-bd35-4b4c-96e5-46ce984b31e0/public/windows11.0-kb5043080-x64_953449672073f8fb99badb4cc6d5d7849b9c83e8.msu"
             },
             {
-              "fileName": "windows11.0-kb5127648-x64_2b88d2d308adc938fcd4d2876a68ee0b2a3c4c09.msu",
-              "kb": "KB5127648",
+              "fileName": "windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu",
+              "kb": "KB5132061",
               "role": "target",
-              "sha1": "2b88d2d308adc938fcd4d2876a68ee0b2a3c4c09",
-              "sha256": "8a1067c763121953876e2e0dcbf5e2c5832545a44ef6baba362938287e05fcfb",
-              "size": 4775050195,
-              "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/4225b261-8248-43e5-a808-34f3faafe3f6/public/windows11.0-kb5127648-x64_2b88d2d308adc938fcd4d2876a68ee0b2a3c4c09.msu"
+              "sha1": "aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc",
+              "sha256": "8966a4ea203519c0e082dc1193580b723ec86e21bd72009ac9781e8014ae798b",
+              "size": 4730812571,
+              "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/5775e69a-9a06-44b1-9b51-4bb89c81f212/public/windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu"
             }
           ],
-          "kb": "KB5127648",
-          "releaseDate": "2026-10-13",
-          "targetUbr": 9711,
-          "title": "2026-10 Cumulative Update for Windows 11, version 24H2 for x64-based Systems (KB5127648) (26100.9711)"
+          "kb": "KB5132061",
+          "releaseDate": "2026-11-10",
+          "targetUbr": 9974,
+          "title": "2026-11 Cumulative Update for Windows 11, version 24H2 for x64-based Systems (KB5132061) (26100.9974)"
         }
       ]
     },
@@ -40,7 +40,7 @@
       "name": "Windows 11 24H2",
       "updates": [
         {
-          "catalogId": "c5d48552-b81f-4fe0-a2dc-483dd78aeaf6",
+          "catalogId": "5757e997-5b33-438a-9fc6-62887c650851",
           "files": [
             {
               "fileName": "windows11.0-kb5043080-arm64_df540a05f9b118e339c5520f4090bb5d450f090b.msu",
@@ -52,19 +52,19 @@
               "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/f263aa64-f367-42f0-9cad-328f342b93f7/public/windows11.0-kb5043080-arm64_df540a05f9b118e339c5520f4090bb5d450f090b.msu"
             },
             {
-              "fileName": "windows11.0-kb5127648-arm64_630ff4173d7728e4123461cba51b63a6ec53df40.msu",
-              "kb": "KB5127648",
+              "fileName": "windows11.0-kb5132061-arm64_60ca6095fa14ce86f340e9b42b0d90a3ef48cde0.msu",
+              "kb": "KB5132061",
               "role": "target",
-              "sha1": "630ff4173d7728e4123461cba51b63a6ec53df40",
-              "sha256": "964fb595dc32c4cd4ed5819e15e87be80e1145ae20cf54e10a08a440cc90b9e5",
-              "size": 4533656052,
-              "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/037a7452-6152-4e16-a6bc-e495dbb16e50/public/windows11.0-kb5127648-arm64_630ff4173d7728e4123461cba51b63a6ec53df40.msu"
+              "sha1": "60ca6095fa14ce86f340e9b42b0d90a3ef48cde0",
+              "sha256": "c3bc1f183a29f5216be6138954915a3e724c4f4ead5b5eac8aa86488633f6497",
+              "size": 4470255732,
+              "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/b8337591-9ca0-4bbf-82ab-98e2aca4b70c/public/windows11.0-kb5132061-arm64_60ca6095fa14ce86f340e9b42b0d90a3ef48cde0.msu"
             }
           ],
-          "kb": "KB5127648",
-          "releaseDate": "2026-10-13",
-          "targetUbr": 9711,
-          "title": "2026-10 Cumulative Update for Windows 11, version 24H2 for arm64-based Systems (KB5127648) (26100.9711)"
+          "kb": "KB5132061",
+          "releaseDate": "2026-11-10",
+          "targetUbr": 9974,
+          "title": "2026-11 Cumulative Update for Windows 11, version 24H2 for arm64-based Systems (KB5132061) (26100.9974)"
         }
       ]
     },
@@ -74,7 +74,7 @@
       "name": "Windows 11 25H2",
       "updates": [
         {
-          "catalogId": "b9a50e37-4f50-4f50-bc24-9e7b1e1d4b70",
+          "catalogId": "950b2422-28ad-4493-a96c-03725fd0d8c2",
           "files": [
             {
               "fileName": "windows11.0-kb5043080-x64_953449672073f8fb99badb4cc6d5d7849b9c83e8.msu",
@@ -86,19 +86,19 @@
               "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/d8b7f92b-bd35-4b4c-96e5-46ce984b31e0/public/windows11.0-kb5043080-x64_953449672073f8fb99badb4cc6d5d7849b9c83e8.msu"
             },
             {
-              "fileName": "windows11.0-kb5127648-x64_2b88d2d308adc938fcd4d2876a68ee0b2a3c4c09.msu",
-              "kb": "KB5127648",
+              "fileName": "windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu",
+              "kb": "KB5132061",
               "role": "target",
-              "sha1": "2b88d2d308adc938fcd4d2876a68ee0b2a3c4c09",
-              "sha256": "8a1067c763121953876e2e0dcbf5e2c5832545a44ef6baba362938287e05fcfb",
-              "size": 4775050195,
-              "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/4225b261-8248-43e5-a808-34f3faafe3f6/public/windows11.0-kb5127648-x64_2b88d2d308adc938fcd4d2876a68ee0b2a3c4c09.msu"
+              "sha1": "aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc",
+              "sha256": "8966a4ea203519c0e082dc1193580b723ec86e21bd72009ac9781e8014ae798b",
+              "size": 4730812571,
+              "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/5775e69a-9a06-44b1-9b51-4bb89c81f212/public/windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu"
             }
           ],
-          "kb": "KB5127648",
-          "releaseDate": "2026-10-13",
-          "targetUbr": 9711,
-          "title": "2026-10 Cumulative Update for Windows 11, version 25H2 for x64-based Systems (KB5127648) (26200.9711)"
+          "kb": "KB5132061",
+          "releaseDate": "2026-11-10",
+          "targetUbr": 9974,
+          "title": "2026-11 Cumulative Update for Windows 11, version 25H2 for x64-based Systems (KB5132061) (26200.9974)"
         }
       ]
     },
@@ -108,7 +108,7 @@
       "name": "Windows 11 25H2",
       "updates": [
         {
-          "catalogId": "d053f495-78e6-48d8-9405-8c60ebd75a0b",
+          "catalogId": "42ed69d5-18ef-4071-a136-4ffcf105e069",
           "files": [
             {
               "fileName": "windows11.0-kb5043080-arm64_df540a05f9b118e339c5520f4090bb5d450f090b.msu",
@@ -120,19 +120,19 @@
               "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/f263aa64-f367-42f0-9cad-328f342b93f7/public/windows11.0-kb5043080-arm64_df540a05f9b118e339c5520f4090bb5d450f090b.msu"
             },
             {
-              "fileName": "windows11.0-kb5127648-arm64_630ff4173d7728e4123461cba51b63a6ec53df40.msu",
-              "kb": "KB5127648",
+              "fileName": "windows11.0-kb5132061-arm64_60ca6095fa14ce86f340e9b42b0d90a3ef48cde0.msu",
+              "kb": "KB5132061",
               "role": "target",
-              "sha1": "630ff4173d7728e4123461cba51b63a6ec53df40",
-              "sha256": "964fb595dc32c4cd4ed5819e15e87be80e1145ae20cf54e10a08a440cc90b9e5",
-              "size": 4533656052,
-              "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/037a7452-6152-4e16-a6bc-e495dbb16e50/public/windows11.0-kb5127648-arm64_630ff4173d7728e4123461cba51b63a6ec53df40.msu"
+              "sha1": "60ca6095fa14ce86f340e9b42b0d90a3ef48cde0",
+              "sha256": "c3bc1f183a29f5216be6138954915a3e724c4f4ead5b5eac8aa86488633f6497",
+              "size": 4470255732,
+              "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/b8337591-9ca0-4bbf-82ab-98e2aca4b70c/public/windows11.0-kb5132061-arm64_60ca6095fa14ce86f340e9b42b0d90a3ef48cde0.msu"
             }
           ],
-          "kb": "KB5127648",
-          "releaseDate": "2026-10-13",
-          "targetUbr": 9711,
-          "title": "2026-10 Cumulative Update for Windows 11, version 25H2 for arm64-based Systems (KB5127648) (26200.9711)"
+          "kb": "KB5132061",
+          "releaseDate": "2026-11-10",
+          "targetUbr": 9974,
+          "title": "2026-11 Cumulative Update for Windows 11, version 25H2 for arm64-based Systems (KB5132061) (26200.9974)"
         }
       ]
     },
@@ -142,7 +142,7 @@
       "name": "Windows 11 26H2",
       "updates": [
         {
-          "catalogId": "3aa52c0d-45db-47a4-be28-4b0042c5ac78",
+          "catalogId": "dc390c68-90c7-4f1f-b4ac-989d1f7279f8",
           "files": [
             {
               "fileName": "windows11.0-kb5043080-x64_953449672073f8fb99badb4cc6d5d7849b9c83e8.msu",
@@ -154,19 +154,19 @@
               "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/d8b7f92b-bd35-4b4c-96e5-46ce984b31e0/public/windows11.0-kb5043080-x64_953449672073f8fb99badb4cc6d5d7849b9c83e8.msu"
             },
             {
-              "fileName": "windows11.0-kb5127648-x64_2b88d2d308adc938fcd4d2876a68ee0b2a3c4c09.msu",
-              "kb": "KB5127648",
+              "fileName": "windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu",
+              "kb": "KB5132061",
               "role": "target",
-              "sha1": "2b88d2d308adc938fcd4d2876a68ee0b2a3c4c09",
-              "sha256": "8a1067c763121953876e2e0dcbf5e2c5832545a44ef6baba362938287e05fcfb",
-              "size": 4775050195,
-              "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/4225b261-8248-43e5-a808-34f3faafe3f6/public/windows11.0-kb5127648-x64_2b88d2d308adc938fcd4d2876a68ee0b2a3c4c09.msu"
+              "sha1": "aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc",
+              "sha256": "8966a4ea203519c0e082dc1193580b723ec86e21bd72009ac9781e8014ae798b",
+              "size": 4730812571,
+              "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/5775e69a-9a06-44b1-9b51-4bb89c81f212/public/windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu"
             }
           ],
-          "kb": "KB5127648",
-          "releaseDate": "2026-10-13",
-          "targetUbr": 9711,
-          "title": "2026-10 Cumulative Update for Windows 11, version 26H2 for x64-based Systems (KB5127648) (26300.9711)"
+          "kb": "KB5132061",
+          "releaseDate": "2026-11-10",
+          "targetUbr": 9974,
+          "title": "2026-11 Cumulative Update for Windows 11, version 26H2 for x64-based Systems (KB5132061) (26300.9974)"
         }
       ]
     },
@@ -176,7 +176,7 @@
       "name": "Windows 11 26H2",
       "updates": [
         {
-          "catalogId": "4f3c5ba7-5f2d-4d4a-b752-fda01fcf7e5f",
+          "catalogId": "4f044344-b664-451b-a2c3-ae6d19f37a84",
           "files": [
             {
               "fileName": "windows11.0-kb5043080-arm64_df540a05f9b118e339c5520f4090bb5d450f090b.msu",
@@ -188,23 +188,23 @@
               "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/f263aa64-f367-42f0-9cad-328f342b93f7/public/windows11.0-kb5043080-arm64_df540a05f9b118e339c5520f4090bb5d450f090b.msu"
             },
             {
-              "fileName": "windows11.0-kb5127648-arm64_630ff4173d7728e4123461cba51b63a6ec53df40.msu",
-              "kb": "KB5127648",
+              "fileName": "windows11.0-kb5132061-arm64_60ca6095fa14ce86f340e9b42b0d90a3ef48cde0.msu",
+              "kb": "KB5132061",
               "role": "target",
-              "sha1": "630ff4173d7728e4123461cba51b63a6ec53df40",
-              "sha256": "964fb595dc32c4cd4ed5819e15e87be80e1145ae20cf54e10a08a440cc90b9e5",
-              "size": 4533656052,
-              "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/037a7452-6152-4e16-a6bc-e495dbb16e50/public/windows11.0-kb5127648-arm64_630ff4173d7728e4123461cba51b63a6ec53df40.msu"
+              "sha1": "60ca6095fa14ce86f340e9b42b0d90a3ef48cde0",
+              "sha256": "c3bc1f183a29f5216be6138954915a3e724c4f4ead5b5eac8aa86488633f6497",
+              "size": 4470255732,
+              "url": "https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/b8337591-9ca0-4bbf-82ab-98e2aca4b70c/public/windows11.0-kb5132061-arm64_60ca6095fa14ce86f340e9b42b0d90a3ef48cde0.msu"
             }
           ],
-          "kb": "KB5127648",
-          "releaseDate": "2026-10-13",
-          "targetUbr": 9711,
-          "title": "2026-10 Cumulative Update for Windows 11, version 26H2 for arm64-based Systems (KB5127648) (26300.9711)"
+          "kb": "KB5132061",
+          "releaseDate": "2026-11-10",
+          "targetUbr": 9974,
+          "title": "2026-11 Cumulative Update for Windows 11, version 26H2 for arm64-based Systems (KB5132061) (26300.9974)"
         }
       ]
     }
   ],
-  "generatedAt": "2026-10-26T15:02:26Z",
+  "generatedAt": "2026-11-27T14:24:40Z",
   "schema": 1
 }
