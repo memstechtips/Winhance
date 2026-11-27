@@ -32,7 +32,6 @@ public sealed class ProfileService(
     internal const string BeforeWinhanceId = "builtin:before-winhance";
 
     private const string FocusFile = "focus";
-    private const string EverydayFile = "everyday";
     private const string EverydayDefaultsFile = "everyday-defaults";
     private const string BeforeWinhanceFile = "before-winhance";
 
@@ -74,7 +73,6 @@ public sealed class ProfileService(
 
     private static string BuiltinFolderIn(IFileSystemService fileSystem, string folder) => fileSystem.CombinePath(folder, "Builtin");
 
-    // Everyday names its file even before the first switch into Focus writes it, so it is a defaults profile until then.
     internal static IReadOnlyList<SettingsProfile> List(ILocalizationService localization, IFileSystemService fileSystem, string folder)
     {
         var builtin = BuiltinFolderIn(fileSystem, folder);
@@ -82,8 +80,7 @@ public sealed class ProfileService(
         {
             new(FocusId, localization.GetString("Profiles_Builtin_Focus"), ProfileKind.Focus, null,
                 localization.GetString("Profiles_Builtin_Focus_Description")),
-            new(EverydayId, localization.GetString("Profiles_Builtin_Everyday"), ProfileKind.Everyday,
-                fileSystem.CombinePath(builtin, EverydayFile + ConfigFileConstants.FileExtension),
+            new(EverydayId, localization.GetString("Profiles_Builtin_Everyday"), ProfileKind.Everyday, null,
                 localization.GetString("Profiles_Builtin_Everyday_Description")),
         };
         var beforeWinhance = fileSystem.CombinePath(builtin, BeforeWinhanceFile + ConfigFileConstants.FileExtension);
@@ -310,9 +307,7 @@ public sealed class ProfileService(
     // Usable is false when the profile could not be loaded, so it must not become the active one.
     private async Task<(ProfileSwitchResult Result, bool Usable)> ApplyCoreAsync(SettingsProfile profile, bool reapply)
     {
-        var loaded = !HasFile(profile) && profile.Kind == ProfileKind.Focus
-            ? await FocusAsync(snapshotEveryday: !reapply && ActiveProfileId != FocusId && (!LastSwitchFailed || !fileSystem.FileExists(BuiltinPath(EverydayFile))))
-            : await LoadAsync(profile);
+        var loaded = await LoadAsync(profile);
 
         if (loaded is null)
             return (new ProfileSwitchResult(false, [localization.GetString("Profiles_Error_Load")], []), false);
@@ -422,7 +417,7 @@ public sealed class ProfileService(
         HasFile(profile) ? Parse(await ReadFileAsync(profile), profile.FilePath!)
         : profile.Kind switch
         {
-            ProfileKind.Focus => await FocusAsync(snapshotEveryday: false),
+            ProfileKind.Focus => await FocusAsync(),
             ProfileKind.Everyday => await EverydayDefaultsAsync(),
             _ => null,
         };
@@ -431,24 +426,19 @@ public sealed class ProfileService(
     private bool HasFile(SettingsProfile profile) =>
         profile.Kind == ProfileKind.User || (profile.FilePath is { } path && fileSystem.FileExists(path));
 
-    // Made from the machine at each use, so the power settings keep the DC this PC reads now. The values Focus is about
-    // to change are kept as Everyday when the switch comes from another profile, so Everyday puts them back. After a
-    // failed switch the machine may still hold Focus values, so the snapshot already on disk is kept.
-    private async Task<WinhanceConfigFile?> FocusAsync(bool snapshotEveryday)
+    // Read the machine each time so the power settings preserve its battery values.
+    private async Task<WinhanceConfigFile?> FocusAsync()
     {
         await registry.InitializeAsync();
         var current = (await snapshot.CaptureAsync(CatalogScope.CurrentMachine))
             .Where(c => FocusProfile.Ids.Contains(c.SettingId))
             .ToList();
         fileSystem.CreateDirectory(BuiltinFolder);
-        if (snapshotEveryday)
-            await WriteChoicesAsync(current, BuiltinPath(EverydayFile));
         var path = BuiltinPath(FocusFile);
         return Parse(await WriteChoicesAsync(FocusProfile.Overlay(current), path), path);
     }
 
-    // Everyday before the first switch into Focus: Windows' defaults for what Focus changes. Written to its own file so
-    // Everyday stays a defaults profile until there is a snapshot to go back to.
+    // Everyday restores Windows defaults only for the settings Focus changes.
     private async Task<WinhanceConfigFile?> EverydayDefaultsAsync()
     {
         if (await configLoad.ReadEmbeddedConfigurationAsync(windowsDefaults: true) is not { } defaults)

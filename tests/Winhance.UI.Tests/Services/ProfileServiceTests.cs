@@ -458,66 +458,34 @@ public class ProfileServiceTests
             ? [ProfileService.FocusId, ProfileService.EverydayId, ProfileService.BeforeWinhanceId, "Gaming"]
             : [ProfileService.FocusId, ProfileService.EverydayId, "Gaming"];
         profiles.Select(p => p.Id).Should().Equal(expected);
+        var menu = TrayController.BuildMenu(_localization.Object, profiles, activeId: null, busy: false, new TrayStatus());
+        menu.Single(i => i.Children is not null).Children!.Select(i => i.Text).Should().Equal(profiles.Select(p => p.Name));
         profiles[0].Description.Should().Be("Profiles_Builtin_Focus_Description");
         profiles[^1].Description.Should().BeNull();
     }
 
     private static SettingsProfile Builtin(ProfileService service, string id) => service.FindById(id)!;
 
-    private void VerifyEverydaySnapshots(int times)
-    {
-        _configFiles.Verify(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.Is<string>(p => IsBuiltinFile(p, "everyday"))), Times.Exactly(times));
-    }
-
-    // Only a switch into Focus from another profile keeps Everyday; Focus to Focus would snapshot Focus's own values.
     [Theory]
-    [InlineData("", false, 1)]
-    [InlineData("Gaming", false, 1)]
-    [InlineData(ProfileService.FocusId, false, 0)]
-    [InlineData(ProfileService.FocusId, true, 0)]
-    [InlineData("Gaming", true, 0)]
-    public async Task SwitchAsync_IntoFocus_SnapshotsEverydayOnlyWhenComingFromAnotherProfile(string active, bool reapply, int snapshots)
+    [InlineData("")]
+    [InlineData("Gaming")]
+    [InlineData(ProfileService.EverydayId)]
+    [InlineData(ProfileService.FocusId)]
+    public async Task SwitchAsync_IntoFocus_DoesNotWriteEverydayOrOriginalBackup(string active)
     {
         GivenTheMachineHas(new SettingChoice("gaming-game-mode", new ChoiceValue.Toggle(false)));
         _preferences.Setup(p => p.GetPreference(UserPreferenceKeys.ActiveProfile, string.Empty)).Returns(active);
         var service = CreateService();
-        var focus = Builtin(service, ProfileService.FocusId);
 
-        var result = reapply ? await service.ReapplyAsync(focus) : await service.SwitchAsync(focus);
+        var result = await service.SwitchAsync(Builtin(service, ProfileService.FocusId));
 
         result!.Success.Should().BeTrue();
-        VerifyEverydaySnapshots(snapshots);
+        IsBuiltinFile(_written.Keys.Should().ContainSingle().Which, "focus").Should().BeTrue();
+        VerifyBeforeWinhanceNotWritten();
     }
 
     [Fact]
-    public async Task SwitchAsync_AfterAFailedSwitchWithEverydaySnapshotOnDisk_KeepsTheSnapshot()
-    {
-        GivenTheMachineHas(new SettingChoice("gaming-game-mode", new ChoiceValue.Toggle(false)));
-        _preferences.Setup(p => p.GetPreference(UserPreferenceKeys.ActiveProfile, string.Empty)).Returns(ProfileService.EverydayId);
-        _preferences.Setup(p => p.GetPreference(UserPreferenceKeys.ActiveProfileFailed, false)).Returns(true);
-        _fileSystem.Setup(f => f.FileExists(It.Is<string>(p => IsBuiltinFile(p, "everyday")))).Returns(true);
-        var service = CreateService();
-
-        await service.SwitchAsync(Builtin(service, ProfileService.FocusId));
-
-        VerifyEverydaySnapshots(0);
-    }
-
-    [Fact]
-    public async Task SwitchAsync_AfterAFailedSwitchWithNoEverydaySnapshotOnDisk_SnapshotsEveryday()
-    {
-        GivenTheMachineHas(new SettingChoice("gaming-game-mode", new ChoiceValue.Toggle(false)));
-        _preferences.Setup(p => p.GetPreference(UserPreferenceKeys.ActiveProfile, string.Empty)).Returns(ProfileService.EverydayId);
-        _preferences.Setup(p => p.GetPreference(UserPreferenceKeys.ActiveProfileFailed, false)).Returns(true);
-        var service = CreateService();
-
-        await service.SwitchAsync(Builtin(service, ProfileService.FocusId));
-
-        VerifyEverydaySnapshots(1);
-    }
-
-    [Fact]
-    public async Task SwitchAsync_IntoFocus_WritesFocusWithMachineDcAndKeepsOnlyChangedSettingsAsEveryday()
+    public async Task SwitchAsync_IntoFocus_WritesFocusWithMachineDc()
     {
         GivenTheMachineHas(
             new SettingChoice("gaming-game-mode", new ChoiceValue.Toggle(false)),
@@ -528,7 +496,7 @@ public class ProfileServiceTests
 
         await service.SwitchAsync(Builtin(service, ProfileService.FocusId));
 
-        WrittenTo("everyday").Settings.Select(c => c.SettingId).Should().BeEquivalentTo("gaming-game-mode", "processor-min-state", "usb-selective-suspend");
+        IsBuiltinFile(_written.Keys.Should().ContainSingle().Which, "focus").Should().BeTrue();
         var focus = WrittenTo("focus").Settings.ToDictionary(c => c.SettingId, c => c.Value);
         focus["gaming-game-mode"].Should().Be(new ChoiceValue.Toggle(true));
         focus["processor-min-state"].Should().Be(new ChoiceValue.AcDcNumber(100, 30));
@@ -537,10 +505,18 @@ public class ProfileServiceTests
         VerifyAppliedWithoutThePolicyCleanup();
     }
 
-    [Fact]
-    public async Task SwitchAsync_ToEverydayBeforeAnyFocusSwitch_UsesWindowsDefaultsForWhatFocusChanges()
+    [Theory]
+    [InlineData("", false)]
+    [InlineData(ProfileService.FocusId, true)]
+    [InlineData("Gaming", true)]
+    public async Task SwitchAsync_ToEveryday_UsesWindowsDefaultsEvenWithOldSnapshot(string active, bool oldSnapshot)
     {
-        GivenTheMachineHas(new SettingChoice("processor-min-state", new ChoiceValue.AcDcNumber(100, 30)));
+        GivenTheMachineHas(
+            new SettingChoice("processor-min-state", new ChoiceValue.AcDcNumber(100, 30)),
+            new SettingChoice("windows-pushnotifications", new ChoiceValue.Toggle(false)),
+            new SettingChoice("notifications-sound", new ChoiceValue.Toggle(false)));
+        _preferences.Setup(p => p.GetPreference(UserPreferenceKeys.ActiveProfile, string.Empty)).Returns(active);
+        _fileSystem.Setup(f => f.FileExists(It.Is<string>(p => IsBuiltinFile(p, "everyday")))).Returns(oldSnapshot);
         _registry.Setup(r => r.GetById(It.Is<string>(id => FocusProfile.Ids.Contains(id)), CatalogScope.CurrentMachine))
             .Returns((string id, CatalogScope _) => SettingCatalog.Find(id));
         _configLoad.Setup(c => c.ReadEmbeddedConfigurationAsync(true)).ReturnsAsync(new WinhanceConfigFile
@@ -557,6 +533,8 @@ public class ProfileServiceTests
                         [
                             new ConfigurationItem { Id = "processor-min-state", PowerSettings = new() { ["ACValue"] = 5, ["DCValue"] = 5 } },
                             new ConfigurationItem { Id = "gaming-game-mode", IsSelected = false },
+                            new ConfigurationItem { Id = "windows-pushnotifications", IsSelected = true },
+                            new ConfigurationItem { Id = "notifications-sound", IsSelected = true },
                             new ConfigurationItem { Id = "a", IsSelected = true },
                         ],
                     },
@@ -570,8 +548,11 @@ public class ProfileServiceTests
         result!.Success.Should().BeTrue();
         WrittenTo("everyday-defaults").Settings.Should().Equal(
             new SettingChoice("processor-min-state", new ChoiceValue.AcDcNumber(5, 30)),
-            new SettingChoice("gaming-game-mode", new ChoiceValue.Toggle(false)));
-        VerifyEverydaySnapshots(0);
+            new SettingChoice("gaming-game-mode", new ChoiceValue.Toggle(false)),
+            new SettingChoice("windows-pushnotifications", new ChoiceValue.Toggle(true)),
+            new SettingChoice("notifications-sound", new ChoiceValue.Toggle(true)));
+        _fileSystem.Verify(f => f.ReadAllBytesAsync(It.Is<string>(p => IsBuiltinFile(p, "everyday")), It.IsAny<CancellationToken>()), Times.Never);
+        IsBuiltinFile(_written.Keys.Should().ContainSingle().Which, "everyday-defaults").Should().BeTrue();
         VerifyAppliedWithoutThePolicyCleanup();
     }
 
@@ -608,6 +589,24 @@ public class ProfileServiceTests
         var times = becomesActive ? Times.Once() : Times.Never();
         _preferences.Verify(p => p.SetPreferenceAsync(UserPreferenceKeys.ActiveProfile, ProfileService.BeforeWinhanceId), times);
         _preferences.Verify(p => p.SetPreferenceAsync(UserPreferenceKeys.ActiveProfileFailed, false), times);
+    }
+
+    [Fact]
+    public async Task SwitchAsync_ToBeforeWinhance_ReadsOriginalFileAndDoesNotRewriteIt()
+    {
+        _fileSystem.Setup(f => f.FileExists(It.Is<string>(p => IsBuiltinFile(p, "before-winhance")))).Returns(true);
+        _configLoad.Setup(c => c.ParseConfiguration(It.IsAny<byte[]>(), It.Is<string>(p => IsBuiltinFile(p, "before-winhance"))))
+            .Returns(() => Config("a", "b"));
+        _preferences.Setup(p => p.GetPreference(UserPreferenceKeys.ActiveProfile, string.Empty)).Returns(ProfileService.FocusId);
+        GivenTheMachineReads(("a", SettingMatch.Differs), ("b", SettingMatch.Differs));
+        var service = CreateService();
+
+        var result = await service.SwitchAsync(Builtin(service, ProfileService.BeforeWinhanceId));
+
+        result!.Success.Should().BeTrue();
+        AppliedIds().Should().BeEquivalentTo("a", "b");
+        _preferences.Verify(p => p.SetPreferenceAsync(UserPreferenceKeys.ActiveProfile, ProfileService.BeforeWinhanceId), Times.Once);
+        VerifyBeforeWinhanceNotWritten();
     }
 
     [Fact]
