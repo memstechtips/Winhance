@@ -7,7 +7,8 @@
 > [!NOTE]
 > Winhance is an independent, open-source project and is **not affiliated with, endorsed by, or associated with Microsoft** in any way. "Windows" is a registered trademark of Microsoft Corporation. Any similarities to Windows Settings or other Microsoft interfaces are a natural result of building a Windows enhancement tool using native Windows UI frameworks.
 
-<img width="1920" height="1080" alt="Winhance-UI" src="https://github.com/user-attachments/assets/6adedef9-6587-4f29-9bb2-d907965b7a03" />
+<img width="1715" height="1072" alt="image" src="https://github.com/user-attachments/assets/61e4a905-7e1d-4300-9f22-f01f31685329" />
+
 
 ## Requirements 💻
 - Windows 10/11
@@ -30,7 +31,7 @@ The `Winhance.Installer.exe` includes both Installable and Portable versions dur
 
 > [!NOTE]
 > This tool is currently in development. Any issues can be reported using the Issues tab.<br>
-> Also, I'm not a developer, I'm just enjoying learning more about scripting/programming and learning as I go.<br><br>
+> Also, I'm not a developer, I'm just enjoying learning developing this with the use of frontier AI models.<br><br>
 > Please also understand that I prefer to develop and work on these projects independently.<br>I do value other people's insights and appreciate any feedback, but don't take it personally if a pull request is not accepted.
 
 ## Support the developer
