@@ -58,6 +58,8 @@ public sealed class SelectionSetBuilder(
         {
             InstallOptions = installOptions.Current,
         };
-        return mode.CurrentBuilderTarget == BuilderTarget.Autounattend ? WinhanceOnNewPc.Enforce(set) : set;
+        return mode.CurrentBuilderTarget == BuilderTarget.Autounattend
+            ? AutounattendInputService.Enforce(WinhanceOnNewPc.Enforce(set))
+            : set;
     }
 }

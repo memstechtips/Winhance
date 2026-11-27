@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "winhanceVersion": "26.11.27",
-  "catalogHash": "a2bc019a89552907a6802a5a4816879fd80e63851caf7ffafde764140d879844",
+  "catalogHash": "569e363816c1d23921afd100727584250e838c2cbdbcb1d6702132621aa09dc0",
   "settingCount": 539,
   "referenceBuilds": {
     "win10": 19045,
@@ -6698,7 +6698,7 @@
                 "chips": [
                   {
                     "text": "Requires: Touch Keyboard and Handwriting Panel Service (set automatically)",
-                    "tooltip": "Touch Keyboard and Handwriting Panel Service = ServiceOption_ManualRecommended",
+                    "tooltip": "Touch Keyboard and Handwriting Panel Service = ServiceOption_AutomaticRecommended",
                     "linkSettingId": "gaming-touch-keyboard-service",
                     "linkText": "Touch Keyboard and Handwriting Panel Service",
                     "hasLink": true
@@ -49277,7 +49277,7 @@
         {
           "id": "gaming-touch-keyboard-service",
           "name": "Touch Keyboard and Handwriting Panel Service",
-          "description": "Manages the Windows Input Experience: touch keyboard, pen and handwriting input, the emoji panel (Win\u002B.), clipboard history (Win\u002BV), voice typing, and IME candidate windows. If you use none of those - a desktop or gaming PC with no touchscreen or pen - set this to Disabled to stop the background input host and free the memory it uses.",
+          "description": "Manages the Windows Input Experience: touch keyboard, pen and handwriting input, the emoji panel (Win\u002B.), clipboard history (Win\u002BV), voice typing, and IME candidate windows.",
           "group": "System Services",
           "icon": {
             "pack": "Fluent",
@@ -49299,7 +49299,7 @@
           "optionWarnings": [
             {
               "option": "Disabled",
-              "text": "Disabling this removes the Windows Input Experience host, which also provides the emoji panel (Win\u002B.), clipboard history (Win\u002BV), voice typing and handwriting. Do not disable it if you use a touchscreen, a pen, or a Chinese, Japanese or Korean input method.",
+              "text": "Keep this service set to Automatic when creating Windows 11 installation media. Windows needs it to type the user account name during initial setup (OOBE). Manual or Disabled can prevent typing the account name. Disabling this removes the Windows Input Experience host, which also provides the emoji panel (Win\u002B.), clipboard history (Win\u002BV), voice typing and handwriting. Do not disable it if you use a touchscreen, a pen, or a Chinese, Japanese or Korean input method.",
               "always": true
             }
           ],
@@ -49466,7 +49466,7 @@
                 "defaultContext": ""
               },
               {
-                "label": "Manual (Recommended)",
+                "label": "Manual",
                 "cells": [
                   {
                     "text": "3 (or not set)",
@@ -49474,7 +49474,38 @@
                     "hasText": true
                   },
                   {
-                    "text": "3 (or not set)",
+                    "text": "3",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "1",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "",
+                    "isCheck": true,
+                    "hasText": false
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "Automatic (Recommended)",
+                "cells": [
+                  {
+                    "text": "2",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "2 (or not set)",
                     "isCheck": false,
                     "hasText": true
                   },
@@ -49495,17 +49526,231 @@
                 "currentContext": "",
                 "recommendedContext": "",
                 "defaultContext": ""
+              }
+            ],
+            "optionHeader": "Option",
+            "roleHeader": "Role",
+            "pathLabel": "Path",
+            "valueNameLabel": "Value name",
+            "valueTypeLabel": "Value type",
+            "taskLabel": "Task",
+            "settingLabel": "Options",
+            "settingDescription": "Selecting an option makes the changes shown to the right.",
+            "requirements": [],
+            "optionLinks": [],
+            "optionLinksHeading": "Also sets",
+            "hasOptionLinks": false,
+            "notes": [],
+            "notesHeading": "Also happens when you apply",
+            "notesDetailHeader": "Details",
+            "hasNotes": false,
+            "codeBlocks": [
+              {
+                "heading": "PowerShell Scripts",
+                "label": "When set to Disabled",
+                "body": "if([Environment]::OSVersion.Version.Build -ge 22000 -and -not(Get-WinUserLanguageList|?{$_.LanguageTag-match\u0027^(zh|ja|ko)\u0027})){$f=\u0027C:\\Windows\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\TextInputHost.exe\u0027; $o=$f-replace\u0027\\.exe$\u0027,\u0027.old.exe\u0027; if(Test-Path $f){takeown /f $f /a | Out-Null; icacls $f /grant Administrators:F | Out-Null; if(Test-Path $o){Remove-Item $o -Force}; Rename-Item $f $o -Force}; Stop-Process -Name TextInputHost -Force -ErrorAction SilentlyContinue}",
+                "kind": "PowerShell",
+                "description": "Winhance runs this script when you apply the matching option."
               },
               {
-                "label": "Automatic",
+                "heading": "PowerShell Scripts",
+                "label": "When set to Manual",
+                "body": "$f=\u0027C:\\Windows\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\TextInputHost.exe\u0027; $o=$f-replace\u0027\\.exe$\u0027,\u0027.old.exe\u0027; if(Test-Path $o){if(Test-Path $f){Remove-Item $f -Force}; Rename-Item $o $f -Force}; Start-Process $f -ErrorAction SilentlyContinue",
+                "kind": "PowerShell",
+                "description": "Winhance runs this script when you apply the matching option."
+              },
+              {
+                "heading": "PowerShell Scripts",
+                "label": "When set to Automatic (Recommended)",
+                "body": "$f=\u0027C:\\Windows\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\TextInputHost.exe\u0027; $o=$f-replace\u0027\\.exe$\u0027,\u0027.old.exe\u0027; if(Test-Path $o){if(Test-Path $f){Remove-Item $f -Force}; Rename-Item $o $f -Force}; Start-Process $f -ErrorAction SilentlyContinue",
+                "kind": "PowerShell",
+                "description": "Winhance runs this script when you apply the matching option."
+              }
+            ],
+            "hasCode": true,
+            "readingLabel": "",
+            "readingCells": [],
+            "hasReading": false,
+            "currentLabel": "Current",
+            "recommendedLabel": "Recommended",
+            "defaultLabel": "Default",
+            "recommendedTooltip": "What Winhance suggests for most people",
+            "defaultTooltip": "How Windows ships out of the box",
+            "currentTooltip": "This is what your system is set to now",
+            "accessibleSummary": "Disabled: Start 4, Start 4, IsInputAppPreloadEnabled 0, Script Current. Manual: Start 3 (or not set), Start 3, IsInputAppPreloadEnabled 1, Script Current. Automatic (Recommended): Start 2, Start 2 (or not set), IsInputAppPreloadEnabled 1, Script Current (Recommended, Default). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\TabletInputService. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\TextInputManagementService. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\input."
+          },
+          "matrixWin10": {
+            "groups": [
+              {
+                "label": "Registry",
+                "kind": "Registry",
+                "description": "Read to determine which option is active, and written when you apply one.",
+                "paths": [
+                  {
+                    "full": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\TabletInputService",
+                    "label": "Path",
+                    "hasLabel": true,
+                    "display": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\TabletInputService"
+                  }
+                ],
+                "startColumn": 0,
+                "columnSpan": 1,
+                "openRegeditTooltip": "Open in Registry Editor",
+                "hasPaths": true,
+                "canOpenRegedit": true
+              },
+              {
+                "label": "Registry",
+                "kind": "Registry",
+                "description": "Read to determine which option is active, and written when you apply one.",
+                "paths": [
+                  {
+                    "full": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\TextInputManagementService",
+                    "label": "Path",
+                    "hasLabel": true,
+                    "display": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\TextInputManagementService"
+                  }
+                ],
+                "startColumn": 1,
+                "columnSpan": 1,
+                "openRegeditTooltip": "Open in Registry Editor",
+                "hasPaths": true,
+                "canOpenRegedit": true
+              },
+              {
+                "label": "Registry",
+                "kind": "Registry",
+                "description": "Read to determine which option is active, and written when you apply one.",
+                "paths": [
+                  {
+                    "full": "HKEY_CURRENT_USER\\Software\\Microsoft\\input",
+                    "label": "Path",
+                    "hasLabel": true,
+                    "display": "HKCU\\Software\\Microsoft\\input"
+                  }
+                ],
+                "startColumn": 2,
+                "columnSpan": 1,
+                "openRegeditTooltip": "Open in Registry Editor",
+                "hasPaths": true,
+                "canOpenRegedit": true
+              },
+              {
+                "label": "Also runs",
+                "kind": "AlsoRuns",
+                "description": "",
+                "paths": [],
+                "startColumn": 3,
+                "columnSpan": 1,
+                "openRegeditTooltip": "",
+                "hasPaths": false,
+                "canOpenRegedit": false
+              }
+            ],
+            "columns": [
+              {
+                "header": "Start",
+                "typeName": "DWord",
+                "kind": "Value",
+                "chips": [
+                  {
+                    "text": "version-specific",
+                    "tooltip": "Only used on certain Windows versions. On others this value is left alone.",
+                    "linkSettingId": "",
+                    "linkText": "",
+                    "hasLink": false
+                  }
+                ],
+                "headerTooltip": "",
+                "hasType": true,
+                "hasChips": true
+              },
+              {
+                "header": "Start",
+                "typeName": "DWord",
+                "kind": "Value",
+                "chips": [
+                  {
+                    "text": "version-specific",
+                    "tooltip": "Only used on certain Windows versions. On others this value is left alone.",
+                    "linkSettingId": "",
+                    "linkText": "",
+                    "hasLink": false
+                  }
+                ],
+                "headerTooltip": "",
+                "hasType": true,
+                "hasChips": true
+              },
+              {
+                "header": "IsInputAppPreloadEnabled",
+                "typeName": "DWord",
+                "kind": "Value",
+                "chips": [
+                  {
+                    "text": "written, not read",
+                    "tooltip": "Winhance writes this value when you apply, but does not read it back to decide the current state.",
+                    "linkSettingId": "",
+                    "linkText": "",
+                    "hasLink": false
+                  }
+                ],
+                "headerTooltip": "",
+                "hasType": true,
+                "hasChips": true
+              },
+              {
+                "header": "Script",
+                "typeName": "",
+                "kind": "Script",
+                "chips": [],
+                "headerTooltip": "",
+                "hasType": false,
+                "hasChips": false
+              }
+            ],
+            "options": [
+              {
+                "label": "Disabled",
                 "cells": [
                   {
-                    "text": "2",
+                    "text": "4",
                     "isCheck": false,
                     "hasText": true
                   },
                   {
-                    "text": "2",
+                    "text": "4",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "0",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "",
+                    "isCheck": true,
+                    "hasText": false
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": false,
+                "isWindowsDefault": false,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "Manual",
+                "cells": [
+                  {
+                    "text": "3 (or not set)",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "3",
                     "isCheck": false,
                     "hasText": true
                   },
@@ -49522,6 +49767,37 @@
                 ],
                 "isCurrent": false,
                 "isRecommended": false,
+                "isWindowsDefault": true,
+                "currentContext": "",
+                "recommendedContext": "",
+                "defaultContext": ""
+              },
+              {
+                "label": "Automatic (Recommended)",
+                "cells": [
+                  {
+                    "text": "2",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "2 (or not set)",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "1",
+                    "isCheck": false,
+                    "hasText": true
+                  },
+                  {
+                    "text": "",
+                    "isCheck": true,
+                    "hasText": false
+                  }
+                ],
+                "isCurrent": false,
+                "isRecommended": true,
                 "isWindowsDefault": false,
                 "currentContext": "",
                 "recommendedContext": "",
@@ -49554,14 +49830,14 @@
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Manual (Recommended)",
+                "label": "When set to Manual",
                 "body": "$f=\u0027C:\\Windows\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\TextInputHost.exe\u0027; $o=$f-replace\u0027\\.exe$\u0027,\u0027.old.exe\u0027; if(Test-Path $o){if(Test-Path $f){Remove-Item $f -Force}; Rename-Item $o $f -Force}; Start-Process $f -ErrorAction SilentlyContinue",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
               },
               {
                 "heading": "PowerShell Scripts",
-                "label": "When set to Automatic",
+                "label": "When set to Automatic (Recommended)",
                 "body": "$f=\u0027C:\\Windows\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\TextInputHost.exe\u0027; $o=$f-replace\u0027\\.exe$\u0027,\u0027.old.exe\u0027; if(Test-Path $o){if(Test-Path $f){Remove-Item $f -Force}; Rename-Item $o $f -Force}; Start-Process $f -ErrorAction SilentlyContinue",
                 "kind": "PowerShell",
                 "description": "Winhance runs this script when you apply the matching option."
@@ -49577,9 +49853,8 @@
             "recommendedTooltip": "What Winhance suggests for most people",
             "defaultTooltip": "How Windows ships out of the box",
             "currentTooltip": "This is what your system is set to now",
-            "accessibleSummary": "Disabled: Start 4, Start 4, IsInputAppPreloadEnabled 0, Script Current. Manual (Recommended): Start 3 (or not set), Start 3 (or not set), IsInputAppPreloadEnabled 1, Script Current (Recommended, Default). Automatic: Start 2, Start 2, IsInputAppPreloadEnabled 1, Script Current. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\TabletInputService. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\TextInputManagementService. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\input."
-          },
-          "matrixWin10": null
+            "accessibleSummary": "Disabled: Start 4, Start 4, IsInputAppPreloadEnabled 0, Script Current. Manual: Start 3 (or not set), Start 3, IsInputAppPreloadEnabled 1, Script Current (Default). Automatic (Recommended): Start 2, Start 2 (or not set), IsInputAppPreloadEnabled 1, Script Current (Recommended). Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\TabletInputService. Registry: HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\TextInputManagementService. Registry: HKEY_CURRENT_USER\\Software\\Microsoft\\input."
+          }
         },
         {
           "id": "gaming-telephony-service",

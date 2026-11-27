@@ -1904,7 +1904,7 @@
             "Id": "gaming-touch-keyboard-service",
             "Name": "Touch Keyboard and Handwriting Panel Service",
             "InputType": 1,
-            "SelectedIndex": 1
+            "SelectedIndex": 2
           },
           {
             "Id": "gaming-sensor-monitoring-service",

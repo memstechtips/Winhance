@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "catalogHash": "75fc76686f655fdd60bfc62f19910da5bf4af6b9e63faf7271598bd7cda17f5a",
+  "catalogHash": "f1395fb7c13357c367c634ab90748fed3930325174c4dce074ba612ff00d836d",
   "settingCount": 492,
   "settings": [
     {
@@ -34557,18 +34557,20 @@
           "resetSet": null
         },
         {
-          "label": "ServiceOption_ManualRecommended",
+          "label": "ServiceOption_Manual",
           "isFallback": false,
           "roles": [
             {
               "kind": "WindowsDefault",
               "context": "Always",
-              "appliesTo": []
-            },
-            {
-              "kind": "Recommended",
-              "context": "Always",
-              "appliesTo": []
+              "appliesTo": [
+                {
+                  "minBuild": 0,
+                  "minRevision": 0,
+                  "maxBuild": 21999,
+                  "maxRevision": 2147483647
+                }
+              ]
             }
           ],
           "set": {
@@ -34591,7 +34593,7 @@
               "writePayload": 3
             },
             "TextInputStart": {
-              "acceptsAbsent": true,
+              "acceptsAbsent": false,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -34603,9 +34605,27 @@
           "resetSet": null
         },
         {
-          "label": "ServiceOption_Automatic",
+          "label": "ServiceOption_AutomaticRecommended",
           "isFallback": false,
-          "roles": [],
+          "roles": [
+            {
+              "kind": "Recommended",
+              "context": "Always",
+              "appliesTo": []
+            },
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": [
+                {
+                  "minBuild": 22000,
+                  "minRevision": 0,
+                  "maxBuild": 2147483647,
+                  "maxRevision": 2147483647
+                }
+              ]
+            }
+          ],
           "set": {
             "IsInputAppPreloadEnabled": {
               "acceptsAbsent": false,
@@ -34626,7 +34646,7 @@
               "writePayload": 2
             },
             "TextInputStart": {
-              "acceptsAbsent": false,
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [

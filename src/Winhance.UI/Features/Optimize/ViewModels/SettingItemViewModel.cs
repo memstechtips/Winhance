@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Globalization.NumberFormatting;
 
+using Winhance.Core.Features.Autounattend;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
@@ -604,7 +605,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         get
         {
             if (!IsInfoBadgeGloballyVisible) return false;
-            if (InputType != InputType.Selection) return false;
+            if (InputType != InputType.Selection || IsAutounattendInputServiceRequired) return false;
             if (SupportsSeparateACDC) return false; // Dual AC/DC selection uses per-mode buttons
             return SelectionRecommendedIndex.HasValue || SelectionDefaultIndex.HasValue;
         }
@@ -613,14 +614,14 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     [RelayCommand]
     private void SetSelectionToRecommended()
     {
-        if (SelectionRecommendedIndex is int i)
+        if (!IsAutounattendInputServiceRequired && SelectionRecommendedIndex is int i)
             HandleValueChangedAsync(i).FireAndForget(_logService);
     }
 
     [RelayCommand]
     private void SetSelectionToDefault()
     {
-        if (SelectionDefaultIndex is int i)
+        if (!IsAutounattendInputServiceRequired && SelectionDefaultIndex is int i)
             HandleValueChangedAsync(i, resetToDefault: true).FireAndForget(_logService);
     }
 
@@ -726,7 +727,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public partial bool IsAtDefault { get; private set; }
 
     public bool WouldQuickSetChange(bool recommended) =>
-        HasQuickSetTarget(recommended) && !(recommended ? IsAtRecommended : IsAtDefault);
+        !IsAutounattendInputServiceRequired && HasQuickSetTarget(recommended) && !(recommended ? IsAtRecommended : IsAtDefault);
 
     // ComputeBadgeState leaves a toggle with no Recommended state "at Recommended" (there is nothing to miss), so each
     // side also needs a target. Custom needs a state to differ from, so a card without badge data (an action) shows
@@ -769,7 +770,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     private bool TryExecuteQuickSet(bool recommended)
     {
-        if (!HasQuickSetTarget(recommended)) return false;
+        if (IsAutounattendInputServiceRequired || !HasQuickSetTarget(recommended)) return false;
 
         switch (InputType)
         {
@@ -1086,7 +1087,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // card that declares no gate - including every card merely NESTED under another. One bool because that is all
     // the view binds to; the decision is made in BaseSettingsFeatureViewModel, the only place that can see the other card.
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EffectiveIsEnabled))]
+    [NotifyPropertyChangedFor(nameof(EffectiveIsEnabled), nameof(ShowSelectionQuickSetButtons))]
     public partial bool ParentIsEnabled { get; set; }
 
     // Why the gate is closed, shown as the card's tooltip; null whenever ParentIsEnabled is true.
@@ -1131,6 +1132,9 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // capability rather than the mode so the write path asks what it is allowed to do, not who it is.
     private bool AuthorsIntent => _applicationModeService.Capabilities().AuthorsIntent;
 
+    internal bool IsAutounattendInputServiceRequired => _applicationModeService is { } mode
+        && AutounattendInputService.IsRequired(SettingId, mode.CurrentMode, mode.CurrentBuilderTarget);
+
     private bool SettingRequiresConfirmation => Setting?.Apply.RequiresConfirmation ?? false;
 
     // The state another card's current state DECIDES for this one, set by the feature's gate refresh. It outranks
@@ -1151,7 +1155,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
 
         // Before the edit lookup, which returns early for a setting that was excluded without ever being edited.
-        SetIncludedFromSession(_applicationModeService?.IsIncluded(SettingId) ?? true);
+        SetIncludedFromSession(IsAutounattendInputServiceRequired || (_applicationModeService?.IsIncluded(SettingId) ?? true));
 
         // Honoured here rather than pushed in afterwards: every live-state writer ends by re-applying this
         // overlay, so a value set outside it would be wiped by the next detection pass.
@@ -1361,7 +1365,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     }
 
     // An answer file cannot leave a setting out: an absent choice renders the file's default.
-    public bool ShowIncludeCheckbox => AuthorsIntent && Setting?.IsAnswerFileOnly != true;
+    public bool ShowIncludeCheckbox => AuthorsIntent && Setting?.IsAnswerFileOnly != true && !IsAutounattendInputServiceRequired;
 
     // Authoring decides an Action by its include tick, so the button that RUNS it is not offered there.
     // Leaving it would read as "clean this PC now" on a card whose tick already means "clean the new one".
@@ -1506,6 +1510,10 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         if (!AuthorsIntent)
         {
             SetIncludedFromSession(true);
+        }
+        else if (SettingId == AutounattendInputService.SettingId)
+        {
+            SetIncludedFromSession(IsAutounattendInputServiceRequired || (_applicationModeService?.IsIncluded(SettingId) ?? true));
         }
 
         OnPropertyChanged(nameof(ShowIncludeCheckbox));

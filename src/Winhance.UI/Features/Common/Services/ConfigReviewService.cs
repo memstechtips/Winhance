@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Winhance.Core.Features.Autounattend;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
@@ -225,14 +226,16 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             return true;
         }
 
-        return !_excluded.Contains(settingId);
+        return AutounattendInputService.IsRequired(settingId, CurrentMode, CurrentBuilderTarget)
+            || !_excluded.Contains(settingId);
     }
 
     // An answer file has no way to leave one of its own settings out, so those are never excluded.
     public void SetIncluded(string settingId, bool included)
     {
         if (string.IsNullOrEmpty(settingId) || !ModeCapabilities.For(CurrentMode).AuthorsIntent
-            || SettingCatalog.Find(settingId)?.IsAnswerFileOnly == true)
+            || SettingCatalog.Find(settingId)?.IsAnswerFileOnly == true
+            || AutounattendInputService.IsRequired(settingId, CurrentMode, CurrentBuilderTarget))
         {
             return;
         }

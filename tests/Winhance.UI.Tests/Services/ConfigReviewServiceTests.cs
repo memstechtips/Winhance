@@ -2387,6 +2387,24 @@ public class ConfigReviewServiceTests : IDisposable
     }
 
     [Fact]
+    public void InputService_CannotBeExcludedFromAnswerFile_ButConfigExclusionSurvivesTargetSwitch()
+    {
+        const string id = "gaming-touch-keyboard-service";
+        var service = CreateService();
+        service.EnterBuilderMode(BuilderTarget.Config);
+        service.SetIncluded(id, false);
+        service.IsIncluded(id).Should().BeFalse();
+
+        service.SetBuilderTarget(BuilderTarget.Autounattend);
+        service.IsIncluded(id).Should().BeTrue();
+        service.SetIncluded(id, false);
+        service.IsIncluded(id).Should().BeTrue();
+
+        service.SetBuilderTarget(BuilderTarget.Config);
+        service.IsIncluded(id).Should().BeFalse();
+    }
+
+    [Fact]
     public void IsIncluded_UntouchedSetting_IsTrue()
     {
         var service = CreateService();

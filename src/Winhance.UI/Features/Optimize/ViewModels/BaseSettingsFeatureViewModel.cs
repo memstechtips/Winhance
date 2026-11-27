@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Winhance.Core.Features.Autounattend;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
@@ -134,6 +135,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         _reviewModeExitedSubscription = _eventBus.Subscribe<ReviewModeExitedEvent>(OnReviewModeExited);
         _authoringModeExitedSubscription = _eventBus.Subscribe<AuthoringModeExitedEvent>(OnAuthoringModeExited);
         _builderSeededSubscription = _eventBus.Subscribe<BuilderSeededEvent>(OnBuilderSeeded);
+        _applicationModeService.ModeChanged += OnApplicationModeChanged;
     }
 
     private void OnSettingApplied(SettingAppliedEvent evt)
@@ -327,6 +329,12 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     // The seed records its edits after these cards were built from live state, so their toggles still show the
     // machine. Cards built after the seed pick it up in SettingViewModelFactory instead.
+    private void OnApplicationModeChanged(object? sender, EventArgs e)
+    {
+        if (_settingsById.ContainsKey(AutounattendInputService.SettingId))
+            _dispatcherService.RunOnUIThread(RefreshDeclaredGates);
+    }
+
     private void OnBuilderSeeded(BuilderSeededEvent e)
     {
         _dispatcherService.RunOnUIThread(() =>
@@ -586,7 +594,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
         foreach (var setting in Settings)
         {
-            var decidedByPage = DecidedByPage(setting);
+            var decidedByPage = setting.IsAutounattendInputServiceRequired
+                ? AutounattendInputService.RequiredState
+                : DecidedByPage(setting);
             bool gateOpen = decidedByPage is null && IsGateSatisfied(setting.Setting?.EnabledWhen);
             setting.ParentIsEnabled = gateOpen;
             setting.DisabledReason = gateOpen ? null : ReasonFor(setting, decidedByPage is not null);
@@ -621,6 +631,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     // A card gated on a card the page decided carries that card's reason, since changing the other card is no remedy.
     private string? ReasonFor(SettingItemViewModel setting, bool decidedByPage)
     {
+        if (setting.IsAutounattendInputServiceRequired)
+            return _localizationService.GetString(LocKey.Setting.GamingTouchKeyboardService.OptionWarning0);
+
         if (decidedByPage)
             return DisabledReasonFor(setting);
 
@@ -878,6 +891,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
             _builderSeededSubscription?.Dispose();
             _builderSeededSubscription = null;
+            _applicationModeService.ModeChanged -= OnApplicationModeChanged;
 
             _localizationService.LanguageChanged -= OnLanguageChanged;
 

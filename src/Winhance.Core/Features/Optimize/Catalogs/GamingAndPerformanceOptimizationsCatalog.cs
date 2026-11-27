@@ -2687,24 +2687,25 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 },
                 new SettingState
                 {
-                    Label = LocKey.ServiceOption.ManualRecommended,
-                    Roles = new[] { StateRole.WindowsDefault, StateRole.Recommended },
+                    Label = LocKey.ServiceOption.Manual,
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
                     Effects = new Effect[] { new ScriptEffect(@"$f='C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe'; $o=$f-replace'\.exe$','.old.exe'; if(Test-Path $o){if(Test-Path $f){Remove-Item $f -Force}; Rename-Item $o $f -Force}; Start-Process $f -ErrorAction SilentlyContinue", RunContext.System) },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["Start"] = Of(3).OrAbsent(),
-                        ["TextInputStart"] = Of(3).OrAbsent(),
+                        ["TextInputStart"] = Of(3),
                         ["IsInputAppPreloadEnabled"] = Of(1),
                     },
                 },
                 new SettingState
                 {
-                    Label = LocKey.ServiceOption.Automatic,
+                    Label = LocKey.ServiceOption.AutomaticRecommended,
+                    Roles = new[] { StateRole.Recommended, new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
                     Effects = new Effect[] { new ScriptEffect(@"$f='C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe'; $o=$f-replace'\.exe$','.old.exe'; if(Test-Path $o){if(Test-Path $f){Remove-Item $f -Force}; Rename-Item $o $f -Force}; Start-Process $f -ErrorAction SilentlyContinue", RunContext.System) },
                     Set = new Dictionary<string, StateValue>
                     {
                         ["Start"] = Of(2),
-                        ["TextInputStart"] = Of(2),
+                        ["TextInputStart"] = Of(2).OrAbsent(),
                         ["IsInputAppPreloadEnabled"] = Of(1),
                     },
                 },

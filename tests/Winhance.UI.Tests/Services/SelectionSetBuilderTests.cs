@@ -142,6 +142,35 @@ public class SelectionSetBuilderTests
         (set.StateOf(WinhanceOnNewPc.SettingId)!.Label == WinhanceOnNewPc.InstallsAutomatically).Should().Be(installs);
     }
 
+    [Theory]
+    [InlineData(BuilderTarget.Autounattend, 0, null, true, 2)]
+    [InlineData(BuilderTarget.Autounattend, 1, null, true, 2)]
+    [InlineData(BuilderTarget.Autounattend, 1, 0, true, 2)]
+    [InlineData(BuilderTarget.Autounattend, null, 1, true, 2)]
+    [InlineData(BuilderTarget.Autounattend, null, null, false, 2)]
+    [InlineData(BuilderTarget.Config, 1, null, true, 1)]
+    [InlineData(BuilderTarget.Config, 1, 0, true, 0)]
+    [InlineData(BuilderTarget.Config, 1, null, false, null)]
+    public async Task FromBuilderSession_RequiresAutomaticInputForAnswerFiles(
+        BuilderTarget target, int? liveIndex, int? authoredIndex, bool included, int? expected)
+    {
+        const string id = AutounattendInputService.SettingId;
+        _mode.Setup(m => m.CurrentBuilderTarget).Returns(target);
+        _mode.Setup(m => m.IsIncluded(id)).Returns(included);
+        if (liveIndex is int live)
+            _snapshot.Setup(s => s.CaptureAsync(It.IsAny<CatalogScope>()))
+                .ReturnsAsync([new SettingChoice(id, new ChoiceValue.Option(live))]);
+        if (authoredIndex is int authored)
+            _mode.Setup(m => m.GetBuilderEdits()).Returns([new SettingChoice(id, new ChoiceValue.Option(authored))]);
+
+        var set = await CreateSut().FromBuilderSessionAsync();
+
+        if (expected is int index)
+            set.Settings.Where(c => c.SettingId == id).Should().Equal(new SettingChoice(id, new ChoiceValue.Option(index)));
+        else
+            set.Settings.Should().NotContain(c => c.SettingId == id);
+    }
+
     // Clean Start Menu and Clean Taskbar. An Action has no value to capture off this PC and none to leave out,
     // so the include tick is the whole choice: ticked means the answer file runs it on the new install.
     private const string CleanStartMenu = "start-menu-clean-11";

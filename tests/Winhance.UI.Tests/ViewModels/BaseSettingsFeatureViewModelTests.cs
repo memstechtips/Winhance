@@ -1,3 +1,4 @@
+using Winhance.Core.Features.Autounattend;
 using Winhance.Core.Features.Common.Localization;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -1491,6 +1492,41 @@ public class BaseSettingsFeatureViewModelTests
     // names is outside the listed states. Nesting alone gates nothing. What this replaced compared the
     // parent's selected INDEX against zero, which greyed both Windows-theme sub-toggles on every stock
     // Windows 11 install because "Light Mode" is state 0.
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task InputService_IsLockedAutomaticOnlyWhileAuthoringAnswerFile(int index)
+    {
+        const string id = AutounattendInputService.SettingId;
+        var setting = SettingCatalog.Find(id)!;
+        var card = CreateSettingItem(id, "Input service", inputType: InputType.Selection,
+            selectedValue: index, stateLabels: setting.States.Select(state => state.Label.Value).ToArray());
+        card.Setting = setting;
+        _mockApplicationModeService.Setup(m => m.GetBuilderEdit(id))
+            .Returns(new SettingChoice(id, new ChoiceValue.Option(index)));
+        var vm = CreateViewModel();
+        SetupLoad(new ObservableCollection<SettingItemViewModel> { card });
+        await vm.LoadSettingsAsync();
+        card.ParentIsEnabled.Should().BeTrue();
+
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _mockApplicationModeService.Setup(m => m.CurrentBuilderTarget).Returns(BuilderTarget.Autounattend);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+        card.ParentIsEnabled.Should().BeFalse();
+        card.DisabledReason.Should().Be(LocKey.Setting.GamingTouchKeyboardService.OptionWarning0.Value);
+        card.SelectedValue.Should().Be(2);
+        card.ShowIncludeCheckbox.Should().BeFalse();
+        card.TrySetToDefault().Should().BeFalse();
+
+        _mockApplicationModeService.Setup(m => m.CurrentBuilderTarget).Returns(BuilderTarget.Config);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+        card.ParentIsEnabled.Should().BeTrue();
+        card.DisabledReason.Should().BeNull();
+        card.SelectedValue.Should().Be(index);
+        card.ShowIncludeCheckbox.Should().BeTrue();
+    }
 
     [Fact]
     public async Task LoadSettingsAsync_NestedChildWithNoDeclaredGate_IsNotDisabledByAnOffParent()

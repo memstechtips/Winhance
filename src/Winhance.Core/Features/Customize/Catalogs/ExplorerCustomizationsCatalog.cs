@@ -864,8 +864,8 @@ if (-not (Test-Path $icoPath)) {
                 {
                     Label = LocKey.Common.Enabled,
                     // Win+V is drawn by the text input host, so the panel never opens while the touch keyboard service is disabled.
-                    // No reverse cascade: Automatic serves Win+V as well as Manual does, so moving the service there must not switch history off.
-                    Links = new[] { new Link("gaming-touch-keyboard-service", LinkKind.Requires, LocKey.ServiceOption.ManualRecommended) { ReverseCascade = false } },
+                    // No reverse cascade: Manual serves Win+V as well as Automatic does, so moving the service there must not switch history off.
+                    Links = new[] { new Link("gaming-touch-keyboard-service", LinkKind.Requires, LocKey.ServiceOption.AutomaticRecommended) { ReverseCascade = false } },
                     Set = new Dictionary<string, StateValue> { ["EnableClipboardHistory"] = Of(1) },
                 },
                 new SettingState

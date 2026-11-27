@@ -1800,7 +1800,7 @@
             "Id": "gaming-touch-keyboard-service",
             "Name": "Setting_gaming-touch-keyboard-service_Name",
             "InputType": 1,
-            "SelectedIndex": 1
+            "SelectedIndex": 2
           },
           {
             "Id": "gaming-telephony-service",

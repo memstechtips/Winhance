@@ -127,10 +127,10 @@ public class CatalogDetectionModelConformanceTests
     [Fact]
     public void Detect_TouchKeyboardService_ReadsStartType() // IsInputAppPreloadEnabled is an apply-only secondary
     {
-        Assert.Equal("ServiceOption_ManualRecommended", Detect("gaming-touch-keyboard-service"));                        // absent -> default (Manual)
+        Assert.Equal("ServiceOption_AutomaticRecommended", Detect("gaming-touch-keyboard-service"));                        // absent -> default (Automatic)
         Assert.Equal("ServiceOption_Disabled", Detect("gaming-touch-keyboard-service", (TextInputSvc, "Start", 4)));
-        Assert.Equal("ServiceOption_ManualRecommended", Detect("gaming-touch-keyboard-service", (TextInputSvc, "Start", 3)));
-        Assert.Equal("ServiceOption_Automatic", Detect("gaming-touch-keyboard-service", (TextInputSvc, "Start", 2)));
+        Assert.Equal("ServiceOption_Manual", Detect("gaming-touch-keyboard-service", (TextInputSvc, "Start", 3)));
+        Assert.Equal("ServiceOption_AutomaticRecommended", Detect("gaming-touch-keyboard-service", (TextInputSvc, "Start", 2)));
         Assert.Null(Detect("gaming-touch-keyboard-service", (TextInputSvc, "Start", 1)));                        // unrecognised -> Custom
     }
 
@@ -139,9 +139,37 @@ public class CatalogDetectionModelConformanceTests
     {
         Assert.Equal("ServiceOption_Disabled", DetectOn(19045, "gaming-touch-keyboard-service", (TabletSvc, "Start", 4)));
         Assert.Equal("ServiceOption_Disabled", DetectOn(22000, "gaming-touch-keyboard-service", (TabletSvc, "Start", 4)));
-        Assert.Equal("ServiceOption_ManualRecommended", DetectOn(19045, "gaming-touch-keyboard-service", (TextInputSvc, "Start", 4)));
-        Assert.Equal("ServiceOption_ManualRecommended", DetectOn(26200, "gaming-touch-keyboard-service", (TabletSvc, "Start", 4)));
+        Assert.Equal("ServiceOption_Manual", DetectOn(19045, "gaming-touch-keyboard-service", (TextInputSvc, "Start", 4)));
+        Assert.Equal("ServiceOption_AutomaticRecommended", DetectOn(26200, "gaming-touch-keyboard-service", (TabletSvc, "Start", 4)));
         Assert.Equal("ServiceOption_Disabled", DetectOn(26200, "gaming-touch-keyboard-service", (TextInputSvc, "Start", 4)));
+    }
+
+    [Theory]
+    [InlineData(19045, 3)]
+    [InlineData(22000, 2)]
+    [InlineData(26200, 2)]
+    public void TouchKeyboardService_DefaultAndRecommendedStartTypes(int buildNumber, int defaultStart)
+    {
+        var setting = Catalog["gaming-touch-keyboard-service"];
+        var build = new WinBuild(buildNumber);
+        string targetKey = buildNumber < 22471 ? "Start" : "TextInputStart";
+
+        var defaultState = Assert.Single(setting.States.Where(s => s.HasRole(RoleKind.WindowsDefault, build)));
+        Assert.Equal(defaultStart, defaultState.Set[targetKey].WritePayload);
+        var recommended = Assert.Single(setting.States.Where(s => s.HasRole(RoleKind.Recommended, build)));
+        Assert.Equal(2, recommended.Set[targetKey].WritePayload);
+    }
+
+    [Fact]
+    public void ClipboardHistory_RequiresAutomaticInputService()
+    {
+        var setting = Catalog["explorer-clipboard-history"];
+        var actions = RelationshipResolver.ResolveForward(setting, LocKey.Common.Enabled,
+            _ => LocKey.ServiceOption.AutomaticRecommended);
+        Assert.Empty(actions);
+        var action = Assert.Single(RelationshipResolver.ResolveForward(setting, LocKey.Common.Enabled,
+            _ => LocKey.ServiceOption.Disabled));
+        Assert.Equal(LocKey.ServiceOption.AutomaticRecommended, action.StateLabel);
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Win32;
 using Moq;
+using Winhance.Core.Features.Autounattend;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
@@ -77,6 +78,23 @@ public class OfflineSettingsApplierTests
         outcome.Applied.Should().Be(1);
         _written.Should().NotBeEmpty().And.OnlyContain(p => p.StartsWith(@"HKEY_LOCAL_MACHINE\WH_SOFTWARE_t\"));
         _session.Disposed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ApplyAsync_AnswerFileInputServiceWritesAutomaticToWindows11Image()
+    {
+        _live.Setup(r => r.GetValue(BuildKey, "CurrentBuildNumber")).Returns("26200");
+        _live.Setup(r => r.UnlockRegistryKey(@"HKEY_LOCAL_MACHINE\WH_SYSTEM_t\ControlSet001\Services\TextInputManagementService")).Returns(true);
+        var set = AutounattendInputService.Enforce(Chosen(new SettingChoice(
+            AutounattendInputService.SettingId, new ChoiceValue.Option(1))));
+
+        var outcome = await Applier().ApplyAsync(@"D:\mount", set, null, CancellationToken.None);
+
+        outcome.Succeeded.Should().BeTrue();
+        _live.Verify(r => r.SetValue(@"HKEY_LOCAL_MACHINE\WH_SYSTEM_t\ControlSet001\Services\TextInputManagementService",
+            "Start", 2, RegistryValueKind.DWord), Times.Once);
+        _live.Verify(r => r.SetValue(It.Is<string>(p => p.EndsWith(@"\Services\TabletInputService")),
+            "Start", It.IsAny<object>(), RegistryValueKind.DWord), Times.Never);
     }
 
     [Fact]
