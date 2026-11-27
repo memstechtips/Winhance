@@ -21,7 +21,7 @@ public static class WindowsThemeCustomizationsCatalog
                 Name = LocKey.Setting.ThemeModeWindows.Name,
                 Description = LocKey.Setting.ThemeModeWindows.Description,
                 GroupName = LocKey.SettingGroup.ThemeMode,
-                Icon = MaterialIcons.BrushVariant,
+                Icon = FluentIcons.PaintBrush,
                 IsSubjectivePreference = true,
             },
             // No Restart: the Appearance broadcast alone applies a theme switch live (verified on Windows
@@ -74,7 +74,7 @@ public static class WindowsThemeCustomizationsCatalog
                 Name = LocKey.Setting.ThemeModeApps.Name,
                 Description = LocKey.Setting.ThemeModeApps.Description,
                 GroupName = LocKey.SettingGroup.ThemeMode,
-                Icon = MaterialIcons.Apps,
+                Icon = FluentIcons.Apps,
                 IsSubjectivePreference = true,
                 AddedInVersion = "26.07.22",
             },
@@ -115,7 +115,7 @@ public static class WindowsThemeCustomizationsCatalog
                 Name = LocKey.Setting.ThemeModeSystem.Name,
                 Description = LocKey.Setting.ThemeModeSystem.Description,
                 GroupName = LocKey.SettingGroup.ThemeMode,
-                Icon = MaterialIcons.Monitor,
+                Icon = FluentIcons.Desktop,
                 IsSubjectivePreference = true,
                 AddedInVersion = "26.07.22",
             },
@@ -150,13 +150,78 @@ public static class WindowsThemeCustomizationsCatalog
         },
         new()
         {
+            Id = "theme-accent-color-start-taskbar",
+            Display = new()
+            {
+                Name = LocKey.Setting.ThemeAccentColorStartTaskbar.Name,
+                Description = LocKey.Setting.ThemeAccentColorStartTaskbar.Description,
+                GroupName = LocKey.SettingGroup.ThemeMode,
+                Icon = FluentIcons.PaintBrush,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            Apply = new() { NotifyWindows = WindowsChange.Appearance },
+            Targets = new Target[]
+            {
+                new RegTarget("ColorPrevalence", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" }, "ColorPrevalence", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue> { ["ColorPrevalence"] = Of(1) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["ColorPrevalence"] = Of(0).OrAbsent() },
+                },
+            },
+        },
+        new()
+        {
+            Id = "theme-accent-color-title-bars",
+            Display = new()
+            {
+                Name = LocKey.Setting.ThemeAccentColorTitleBars.Name,
+                Description = LocKey.Setting.ThemeAccentColorTitleBars.Description,
+                GroupName = LocKey.SettingGroup.ThemeMode,
+                Icon = FluentIcons.Window,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            Targets = new Target[]
+            {
+                new RegTarget("ColorPrevalence", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM" }, "ColorPrevalence", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue> { ["ColorPrevalence"] = Of(1) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["ColorPrevalence"] = Of(0).OrAbsent() },
+                },
+            },
+        },
+        new()
+        {
             Id = "theme-transparency",
             Display = new()
             {
                 Name = LocKey.Setting.ThemeTransparency.Name,
                 Description = LocKey.Setting.ThemeTransparency.Description,
                 GroupName = LocKey.SettingGroup.Transparency,
-                Icon = MaterialIcons.Opacity,
+                Icon = FluentIcons.TransparencySquare,
                 IsSubjectivePreference = true,
             },
             // No Restart: the notice is not a restart - it is the true statement that applying this changes
@@ -191,7 +256,7 @@ public static class WindowsThemeCustomizationsCatalog
                 Name = LocKey.Setting.ThemeWallpaper.Name,
                 Description = LocKey.Setting.ThemeWallpaper.Description,
                 GroupName = LocKey.SettingGroup.Background,
-                Icon = MaterialIcons.ImageOutline,
+                Icon = FluentIcons.Image,
                 IsSubjectivePreference = true,
                 AddedInVersion = "26.09.10",
                 CompactChildren = true,
@@ -234,7 +299,7 @@ public static class WindowsThemeCustomizationsCatalog
                 {
                     Label = LocKey.Setting.ThemeWallpaper.Option3,
                     IsDetectOnly = true,
-                    Warning = LocKey.Setting.ThemeWallpaper.OptionWarning3,
+                    RiskWarning = LocKey.Setting.ThemeWallpaper.OptionWarning3,
                     Set = new Dictionary<string, StateValue> { ["BackgroundType"] = Of(3), ["WallPaper"] = Exists.OrAbsent(), ["SpotlightEnabled"] = Of(1) },
                 },
             },
@@ -247,7 +312,7 @@ public static class WindowsThemeCustomizationsCatalog
                 Name = LocKey.Setting.ThemeWallpaperPicture.Name,
                 Description = LocKey.Setting.ThemeWallpaperPicture.Description,
                 GroupName = LocKey.SettingGroup.Background,
-                Icon = MaterialIcons.ImageOutline,
+                Icon = FluentIcons.Image,
                 IsSubjectivePreference = true,
                 AddedInVersion = "26.09.14",
                 Tiles = OptionTiles.Pictures,
@@ -299,7 +364,7 @@ public static class WindowsThemeCustomizationsCatalog
                 Name = LocKey.Setting.ThemeWallpaperFit.Name,
                 Description = LocKey.Setting.ThemeWallpaperFit.Description,
                 GroupName = LocKey.SettingGroup.Background,
-                Icon = MaterialIcons.ImageOutline,
+                Icon = FluentIcons.Image,
                 IsSubjectivePreference = true,
                 AddedInVersion = "26.09.14",
             },
@@ -358,7 +423,7 @@ public static class WindowsThemeCustomizationsCatalog
                 Name = LocKey.Setting.ThemeWallpaperColor.Name,
                 Description = LocKey.Setting.ThemeWallpaperColor.Description,
                 GroupName = LocKey.SettingGroup.Background,
-                Icon = MaterialIcons.ImageOutline,
+                Icon = FluentIcons.Image,
                 IsSubjectivePreference = true,
                 AddedInVersion = "26.09.14",
                 Tiles = OptionTiles.Colors,
@@ -390,7 +455,7 @@ public static class WindowsThemeCustomizationsCatalog
                 Name = LocKey.Setting.ThemeWallpaperAlbum.Name,
                 Description = LocKey.Setting.ThemeWallpaperAlbum.Description,
                 GroupName = LocKey.SettingGroup.Background,
-                Icon = MaterialIcons.ImageOutline,
+                Icon = FluentIcons.Image,
                 IsSubjectivePreference = true,
                 AddedInVersion = "26.09.14",
             },
@@ -455,7 +520,7 @@ try {
                 Name = LocKey.Setting.ThemeWallpaperInterval.Name,
                 Description = LocKey.Setting.ThemeWallpaperInterval.Description,
                 GroupName = LocKey.SettingGroup.Background,
-                Icon = MaterialIcons.ImageOutline,
+                Icon = FluentIcons.Image,
                 IsSubjectivePreference = true,
                 AddedInVersion = "26.09.14",
             },
@@ -511,7 +576,7 @@ try {
                 Name = LocKey.Setting.ThemeWallpaperShuffle.Name,
                 Description = LocKey.Setting.ThemeWallpaperShuffle.Description,
                 GroupName = LocKey.SettingGroup.Background,
-                Icon = MaterialIcons.ImageOutline,
+                Icon = FluentIcons.Image,
                 IsSubjectivePreference = true,
                 AddedInVersion = "26.09.14",
             },

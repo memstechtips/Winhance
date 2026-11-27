@@ -407,6 +407,28 @@ public class ProfileServiceTests
         (await CreateService().DriftAsync()).Should().Equal("b");
     }
 
+    // Settings checks drift on every visit, and a profile that carries a picture holds megabytes of base64.
+    [Fact]
+    public async Task DriftAsync_ProfileFileUnchanged_IsReadAndParsedOnce()
+    {
+        GivenGamingIsActive();
+        GivenTheMachineReads([("a", SettingMatch.Differs)], [("a", SettingMatch.Differs)]);
+        var sut = CreateService();
+        var path = sut.GetProfiles().Single(p => p.Id == Gaming.Id).FilePath!;
+        var written = new DateTime(2026, 11, 15, 0, 0, 0, DateTimeKind.Utc);
+        _fileSystem.Setup(f => f.FileExists(path)).Returns(true);
+        _fileSystem.Setup(f => f.GetFileSize(path)).Returns(3);
+        _fileSystem.Setup(f => f.GetLastWriteTimeUtc(path)).Returns(() => written);
+
+        await sut.DriftAsync();
+        (await sut.DriftAsync()).Should().Equal("a");
+        _fileSystem.Verify(f => f.ReadAllBytesAsync(path, It.IsAny<CancellationToken>()), Times.Once);
+
+        written = written.AddSeconds(1);
+        await sut.DriftAsync();
+        _fileSystem.Verify(f => f.ReadAllBytesAsync(path, It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
     [Fact]
     public async Task SaveAsync_ProfileFromBuilder_KeepsOnlyThisPcsSettings()
     {

@@ -1,10 +1,10 @@
-using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Media;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Utilities;
 using Winhance.Core.Features.Common.Extensions;
 
@@ -119,7 +119,7 @@ internal class TaskOutputDialogBuilder
     }
 
     // Call after ConfigureDialog and before ShowAsync when the task is running.
-    public void StartLiveUpdates(DispatcherQueue dispatcherQueue)
+    public void StartLiveUpdates(IDispatcherService dispatcherService)
     {
         if (!_taskProgressService.IsTaskRunning)
             return;
@@ -134,7 +134,7 @@ internal class TaskOutputDialogBuilder
             var line = detail.TerminalOutput;
             var isProgress = detail.IsProgressIndicator;
 
-            dispatcherQueue.TryEnqueue(() =>
+            dispatcherService.Enqueue(() =>
             {
                 // Always remove the last progress line
                 // before adding ANY new line. This handles:

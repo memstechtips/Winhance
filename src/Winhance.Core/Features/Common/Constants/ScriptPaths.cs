@@ -24,8 +24,10 @@ public static class ScriptPaths
 
     public const string UnattendUpdatesDirectory = @"C:\ProgramData\Winhance\Unattend\Updates";
 
-    // Written into the image when the offline build removed the chosen apps; setup then skips the removal run.
-    public const string UnattendAppsRemovedMarker = @"C:\ProgramData\Winhance\Unattend\AppsRemovedInImage";
+    // The offline build records the exact removal plan in SOFTWARE; setup skips only the matching work.
+    public const string UnattendAppsRemovedValue = "AppsRemovedInImage";
+
+    public const string LegacyUnattendAppsRemovedMarker = @"C:\ProgramData\Winhance\Unattend\AppsRemovedInImage";
 
     // DISM finds a target update's checkpoints in the folder it sits in, so the folder holds that update's .msu files and nothing else.
     public const string UnattendUpdatesMediaDirectory = @"sources\$OEM$\$1\ProgramData\Winhance\Unattend\Updates";

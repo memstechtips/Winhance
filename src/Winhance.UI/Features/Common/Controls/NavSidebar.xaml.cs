@@ -3,33 +3,31 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
 
-public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
+public sealed partial class NavSidebar : UserControl
 {
     // Sidebar dimensions (matching NavigationView defaults)
     private const double ExpandedWidth = 80;
     private const double CompactWidth = 48;
 
-    public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler<NavButtonClickedEventArgs>? ItemClicked;
     public event EventHandler? MoreMenuClosed;
 
     private Dictionary<string, NavButton>? _navButtons;
-    private MoreMenuViewModel? _moreMenuViewModel;
-    private ILogService? _logService;
+    private readonly MoreMenuViewModel _moreMenuViewModel = App.Services.GetRequiredService<MoreMenuViewModel>();
+    private readonly ILogService _logService = App.Services.GetRequiredService<ILogService>();
 
     public static readonly DependencyProperty IsPaneOpenProperty =
         DependencyProperty.Register(
             nameof(IsPaneOpen),
             typeof(bool),
             typeof(NavSidebar),
-            new PropertyMetadata(true, OnIsPaneOpenChanged));
+            new PropertyMetadata(true));
 
     public static readonly DependencyProperty SelectedTagProperty =
         DependencyProperty.Register(
@@ -67,11 +65,9 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         set => SetValue(ViewModelProperty, value);
     }
 
-    public bool IsCompact => !IsPaneOpen;
+    public static double SidebarWidth(bool isPaneOpen) => isPaneOpen ? ExpandedWidth : CompactWidth;
 
-    public double ActualSidebarWidth => IsPaneOpen ? ExpandedWidth : CompactWidth;
-
-    public Thickness NavPanelPadding => IsPaneOpen ? new Thickness(5, 0, 5, 0) : new Thickness(4, 0, 4, 0);
+    public static Thickness PanelPadding(bool isPaneOpen) => isPaneOpen ? new Thickness(5, 0, 5, 0) : new Thickness(4, 0, 4, 0);
 
     public NavSidebar()
     {
@@ -79,23 +75,29 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         InitializeNavButtonDictionary();
 
         this.Loaded += NavSidebar_Loaded;
+        this.Unloaded += NavSidebar_Unloaded;
     }
 
     private void NavSidebar_Loaded(object sender, RoutedEventArgs e)
     {
-        _moreMenuViewModel = App.Services.GetService<MoreMenuViewModel>();
-        _logService = App.Services.GetService<ILogService>();
-
         ApplyMoreMenuLocalizedText();
 
-        if (_moreMenuViewModel != null)
-        {
-            _moreMenuViewModel.PropertyChanged += OnMoreMenuViewModelPropertyChanged;
-        }
+        _moreMenuViewModel.PropertyChanged += OnMoreMenuViewModelPropertyChanged;
 
         if (MoreMenuFlyout != null)
         {
             MoreMenuFlyout.Closed += MoreMenuFlyout_Closed;
+        }
+    }
+
+    // MoreMenuViewModel is a singleton that outlives the sidebar.
+    private void NavSidebar_Unloaded(object sender, RoutedEventArgs e)
+    {
+        _moreMenuViewModel.PropertyChanged -= OnMoreMenuViewModelPropertyChanged;
+
+        if (MoreMenuFlyout != null)
+        {
+            MoreMenuFlyout.Closed -= MoreMenuFlyout_Closed;
         }
     }
 
@@ -120,7 +122,7 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
 
     private void ApplyMoreMenuLocalizedText()
     {
-        if (_moreMenuViewModel == null || MoreMenuFlyout == null) return;
+        if (MoreMenuFlyout == null) return;
 
         foreach (var item in MoreMenuFlyout.Items)
         {
@@ -157,19 +159,20 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            _logService?.LogDebug($"Error showing More menu flyout: {ex.Message}");
+            _logService.LogDebug($"Error showing More menu flyout: {ex.Message}");
         }
     }
 
     private void MoreMenuFlyout_Closed(object? sender, object e)
     {
-        // Raise event so MainWindow can restore selection based on current page
+        // The flyout's dismiss layer covered the button, so it never saw the pointer leave.
+        MoreButton.ClearPointerOver();
         MoreMenuClosed?.Invoke(this, EventArgs.Empty);
     }
 
     private void MoreMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is MenuFlyoutItem menuItem && menuItem.Tag is string tag && _moreMenuViewModel != null)
+        if (sender is MenuFlyoutItem menuItem && menuItem.Tag is string tag)
         {
             switch (tag)
             {
@@ -198,16 +201,6 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
                     _moreMenuViewModel.CloseApplicationCommand.Execute(null);
                     break;
             }
-        }
-    }
-
-    private static void OnIsPaneOpenChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        if (d is NavSidebar sidebar)
-        {
-            sidebar.NotifyPropertyChanged(nameof(IsCompact));
-            sidebar.NotifyPropertyChanged(nameof(ActualSidebarWidth));
-            sidebar.NotifyPropertyChanged(nameof(NavPanelPadding));
         }
     }
 
@@ -271,10 +264,5 @@ public sealed partial class NavSidebar : UserControl, INotifyPropertyChanged
             button.BadgeValue = -1;
             button.BadgeStatus = string.Empty;
         }
-    }
-
-    private void NotifyPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

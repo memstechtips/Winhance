@@ -2,8 +2,10 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Extensions;
+using Winhance.Core.Features.SoftwareApps.Enums;
 
 namespace Winhance.UI.ViewModels;
 
@@ -19,9 +21,15 @@ internal enum UpdateInfoBarState
 
 public partial class UpdateCheckViewModel : ObservableObject, IDisposable
 {
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(InstallNowButtonText), nameof(RelaunchButtonText),
+    ];
+
     private bool _disposed;
     private readonly IVersionService _versionService;
     private readonly ILocalizationService _localizationService;
+    private readonly IUserPreferencesService _preferences;
     private readonly ILogService _logService;
 
     [ObservableProperty]
@@ -60,10 +68,12 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
     public UpdateCheckViewModel(
         IVersionService versionService,
         ILocalizationService localizationService,
+        IUserPreferencesService preferences,
         ILogService logService)
     {
         _versionService = versionService;
         _localizationService = localizationService;
+        _preferences = preferences;
         _logService = logService;
 
         UpdateInfoBarTitle = string.Empty;
@@ -82,8 +92,8 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        OnPropertyChanged(nameof(InstallNowButtonText));
-        OnPropertyChanged(nameof(RelaunchButtonText));
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
         if (IsUpdateInfoBarOpen)
         {
             RefreshUpdateInfoBarText();
@@ -177,20 +187,18 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void Relaunch()
     {
-        try
-        {
-            _versionService.LaunchInstallerAndRestart();
-            Application.Current.Exit();
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Error relaunching: {ex.Message}");
-        }
+        _versionService.LaunchInstallerAndRestart();
+        Application.Current.Exit();
     }
 
-    // No-update and error scenarios are logged but not shown to the user.
-    public async Task CheckForUpdatesOnStartupAsync()
+    // No-update and error scenarios are logged but not shown to the user. Set to install automatically, a shown window
+    // downloads the update straight away and offers Relaunch, so nothing closes under the user; a hidden one leaves it
+    // to the tray, which installs while nothing is open.
+    public async Task CheckForUpdatesOnStartupAsync(bool windowShown = true)
     {
+        if (_updateInfoBarState is UpdateInfoBarState.Downloading or UpdateInfoBarState.UpdateDownloaded)
+            return;
+
         try
         {
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info, "Startup: Checking for updates...");
@@ -209,6 +217,8 @@ public partial class UpdateCheckViewModel : ObservableObject, IDisposable
                 UpdateInfoBarSeverity = InfoBarSeverity.Success;
                 IsUpdateActionButtonVisible = true;
                 IsUpdateInfoBarOpen = true;
+                if (windowShown && _preferences.GetPreference(UserPreferenceKeys.WinhanceUpdateAction, AppUpdateAction.Notify) == AppUpdateAction.Install)
+                    await InstallUpdateAsync();
             }
             else
             {

@@ -13,21 +13,21 @@
          grid's scrollbar down below the code where it could not be seen while reading the grid. -->
     <Border BorderBrush="{ThemeResource TechDetail.Table.StrokeBrush}"
             BorderThickness="1"
-            CornerRadius="4">
+            CornerRadius="{StaticResource CardCornerRadius}">
         <StackPanel>
             <!-- Sizes to its content height; only the value columns move sideways, and the pinned
                  cells are held in place inside the same layout pass. -->
             <controls:TechnicalDetailsTable x:Name="Table" FrozenColumnCount="2"/>
 
             <!-- Its own scrollbar rather than a ScrollViewer: the table is not a scrolling control,
-                 it just reads an offset. Hidden entirely when everything fits. Margin is set in
+                 it just reads an offset. Built only when something overflows. Margin is set in
                  code, to start where the scrolling columns start rather than under the frozen ones. -->
             <ScrollBar x:Name="HorizontalScroll"
+                       x:Load="False"
                        Orientation="Horizontal"
                        Minimum="0"
                        SmallChange="24"
                        IndicatorMode="MouseIndicator"
-                       Visibility="Collapsed"
                        Scroll="OnScroll"/>
 
             <!-- Which other settings each option changes, built in code. Outside the table on purpose:

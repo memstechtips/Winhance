@@ -53,7 +53,7 @@ public class BackgroundCatalogTests
         spotlight.IsDetectOnly.Should().BeTrue("Windows gives apps no supported way to select Spotlight");
         spotlight.Set["BackgroundType"].WritePayload.Should().Be(3);
         spotlight.Set["SpotlightEnabled"].WritePayload.Should().Be(1);
-        spotlight.Warning.Should().NotBeNull("the card has to explain why the option is missing");
+        spotlight.RiskWarning.Should().NotBeNull("the card has to explain why the option is missing");
         spotlight.Links.Should().BeEmpty("a state that cannot be applied can never fire a Requires");
         wallpaper.States.Should().NotContain(s => s.IsFallback);
     }
@@ -89,7 +89,7 @@ public class BackgroundCatalogTests
         var spotlight = SettingCatalog.Find("theme-wallpaper")!
             .States.Single(s => s.Label == LocKey.Setting.ThemeWallpaper.Option3);
 
-        var text = en[spotlight.Warning!.Value.Value];
+        var text = en[spotlight.RiskWarning!.Value.Value];
 
         text.Should().Contain(en["Setting_privacy-content-delivery-allowed_Name"]);
         text.Should().Contain(en["Setting_privacy-subscribed-content_Name"]);

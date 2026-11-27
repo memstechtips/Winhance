@@ -12,6 +12,7 @@ namespace Winhance.Infrastructure.Features.Autounattend.ScriptSections;
 internal class AppRemovalScriptSection
 {
     internal const string AfterUpdateName = "WinhanceRemoveAppsAfterUpdate";
+    internal const string AfterLogonName = "WinhanceRemoveAppsAfterLogon";
 
     public void AppendScriptsDirectorySetup(StringBuilder sb, string indent = "")
     {
@@ -57,7 +58,7 @@ internal class AppRemovalScriptSection
         {
             // The image build removes packages, capabilities and features; a registry-uninstall app such as OneNote
             // only goes on the installed system.
-            var bloatAfterImage = plan.SpecialApps.Count > 0 ? "; AfterImage = $true" : "";
+            var bloatAfterImage = plan.SpecialApps.Count > 0 || PhotosRemovalScript.Includes(plan.Packages) || CopilotRemovalScript.Includes(plan.Packages) ? "; AfterImage = $true" : "";
             scriptNames.Add(BloatRemovalScriptGenerator.ScriptName);
             sb.AppendLine($"{indent}$scriptsToExecute += @{{Path = \"$scriptsDir\\{BloatRemovalScriptGenerator.ScriptName}.ps1\"; Name = \"{BloatRemovalScriptGenerator.ScriptName}\"; TriggerType = \"Logon\"{bloatAfterImage}}}");
         }
@@ -74,7 +75,10 @@ internal class AppRemovalScriptSection
         }
 
         sb.AppendLine();
-        sb.AppendLine($"{indent}$appsRemovedInImage = Test-Path '{ScriptPaths.UnattendAppsRemovedMarker}'");
+        sb.AppendLine($"{indent}$imageRemovalState = (Get-ItemProperty -LiteralPath 'Registry::{ScriptPaths.UnattendSettingsKey}' -Name '{ScriptPaths.UnattendAppsRemovedValue}' -ErrorAction SilentlyContinue).{ScriptPaths.UnattendAppsRemovedValue}");
+        sb.AppendLine($"{indent}$appsRemovedInImage = if ($null -eq $imageRemovalState) {{ Test-Path '{ScriptPaths.LegacyUnattendAppsRemovedMarker}' }} else {{ $imageRemovalState -eq '{plan.ImageFingerprint()}' }}");
+        sb.AppendLine($"{indent}Remove-ItemProperty -LiteralPath 'Registry::{ScriptPaths.UnattendSettingsKey}' -Name '{ScriptPaths.UnattendAppsRemovedValue}' -ErrorAction SilentlyContinue");
+        sb.AppendLine($"{indent}Remove-Item -LiteralPath '{ScriptPaths.LegacyUnattendAppsRemovedMarker}' -Force -ErrorAction SilentlyContinue");
         sb.AppendLine($"{indent}if ($appsRemovedInImage) {{");
         sb.AppendLine($"{indent}    Write-Log \"Windows apps were already removed in the image, running only the clean-up the image could not do\" \"INFO\"");
         sb.AppendLine($"{indent}}}");
@@ -84,7 +88,8 @@ internal class AppRemovalScriptSection
         sb.AppendLine($"{indent}        if (-not $appsRemovedInImage -or $script.AfterImage) {{");
         sb.AppendLine($"{indent}            Write-Log \"Executing $($script.Name) script...\" \"INFO\"");
         sb.AppendLine($"{indent}            try {{");
-        sb.AppendLine($"{indent}                Start-Process powershell.exe -ArgumentList \"-ExecutionPolicy Bypass -NoProfile -File `\"$($script.Path)`\"\" -Wait -NoNewWindow");
+        sb.AppendLine($"{indent}                $process = Start-Process powershell.exe -ArgumentList \"-ExecutionPolicy Bypass -NoProfile -File `\"$($script.Path)`\"\" -Wait -NoNewWindow -PassThru");
+        sb.AppendLine($"{indent}                if ($process.ExitCode -ne 0) {{ throw \"Removal script returned $($process.ExitCode)\" }}");
         sb.AppendLine($"{indent}                Write-Log \"$($script.Name) execution completed\" \"SUCCESS\"");
         sb.AppendLine($"{indent}            }} catch {{");
         sb.AppendLine($"{indent}                Write-Log \"$($script.Name) execution failed: $($_.Exception.Message)\" \"WARNING\"");
@@ -98,12 +103,79 @@ internal class AppRemovalScriptSection
         sb.AppendLine($"{indent}}}");
         sb.AppendLine();
 
+        // Setup's system pass runs before the first user's OneDrive install. Give the companion a bounded
+        // owner-context cleanup after sign-in, even when the selected mode leaves no recurring scripts.
+        if (mode != AppRemovalMode.Scripts && (PhotosRemovalScript.Includes(plan.Packages) || CopilotRemovalScript.Includes(plan.Packages)))
+            AppendAfterLogonCleanup(sb, plan, indent);
+
         if (mode == AppRemovalMode.Once)
             AppendRemoveOnceCleanup(sb, scriptNames, indent);
         else if (mode == AppRemovalMode.Winhance)
             AppendKeptList(sb, selectedApps, indent);
 
         sb.AppendLine($"{indent}Write-Log \"Windows Apps removal configuration completed\" \"SUCCESS\"");
+    }
+
+    private static void AppendAfterLogonCleanup(StringBuilder sb, AppRemovalPlan plan, string indent)
+    {
+        var hybrid = new StringBuilder();
+        if (PhotosRemovalScript.Includes(plan.Packages))
+            AppendHybridAttempt(hybrid, "Photos", PhotosRemovalScript.GetScript());
+        if (CopilotRemovalScript.Includes(plan.Packages))
+        {
+            var packages = "$packages = @(" + string.Join(", ", plan.Packages.Select(p => "'" + p.Replace("'", "''", StringComparison.Ordinal) + "'")) + ")";
+            AppendHybridAttempt(hybrid, "Copilot", packages + "\n" + CopilotRemovalScript.GetScript());
+        }
+        var cleanup = """
+            # Remove selected hybrid apps after their first-sign-in installers have had time to run.
+            $ErrorActionPreference = 'Stop'
+            $ProgressPreference = 'SilentlyContinue'
+            """ + "\n" + $$"""
+            New-Item -ItemType Directory -Path '{{ScriptPaths.LogsDirectoryLiteral}}' -Force | Out-Null
+            $log = '{{ScriptPaths.LogsDirectoryLiteral}}\AppsAfterLogon.txt'
+            $deadline = (Get-Date).AddMinutes(3)
+            while ((Test-Path '{{ScriptPaths.UnattendUpdatesDirectory}}') -or
+                   (Get-ScheduledTask -TaskPath '\Winhance\' -TaskName '{{AfterUpdateName}}' -ErrorAction SilentlyContinue)) {
+                if ((Get-Date) -ge $deadline) {
+                    'Staged update cleanup did not finish; first-sign-in app cleanup was not run.' | Out-File -FilePath $log -Append
+                    Unregister-ScheduledTask -TaskName '{{AfterLogonName}}' -TaskPath '\Winhance\' -Confirm:$false
+                    exit 1
+                }
+                Start-Sleep -Seconds 15
+            }
+            $succeeded = $false
+            Start-Sleep -Seconds 45
+            foreach ($attempt in 1..3) {
+                $succeeded = $true
+            """ + "\n" + hybrid.ToString() + "\n" + $$"""
+                # A second successful pass catches OneDrive starting later in the same sign-in.
+                if ($attempt -gt 1 -and $succeeded) { break }
+                Start-Sleep -Seconds 30
+            }
+            Unregister-ScheduledTask -TaskName '{{AfterLogonName}}' -TaskPath '\Winhance\' -Confirm:$false
+            if (-not $succeeded) { throw 'First-sign-in app cleanup incomplete; see AppsAfterLogon.txt.' }
+            Remove-Item -LiteralPath $PSCommandPath -Force
+            """;
+        AppendEmbeddedScript(sb, AfterLogonName, cleanup, indent);
+        sb.AppendLine($"{indent}$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -ExecutionPolicy Bypass -File \"{ScriptPaths.ScriptsDirectoryLiteral}\\{AfterLogonName}.ps1\"'");
+        sb.AppendLine($"{indent}$trigger = New-ScheduledTaskTrigger -AtLogon");
+        sb.AppendLine($"{indent}$principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest");
+        sb.AppendLine($"{indent}$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 20)");
+        sb.AppendLine($"{indent}Register-ScheduledTask -TaskName '{AfterLogonName}' -TaskPath '\\Winhance\\' -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force | Out-Null");
+    }
+
+    private static void AppendHybridAttempt(StringBuilder sb, string name, string script)
+    {
+        sb.AppendLine($$"""
+                try {
+                    & {
+            {{script}}
+                    } *>&1 | Out-File -FilePath $log -Append
+                } catch {
+                    $succeeded = $false
+                    "{{name}} cleanup failed: $($_.Exception.Message)" | Out-File -FilePath $log -Append
+                }
+            """);
     }
 
     private static void AppendTaskRegistration(StringBuilder sb, string indent)

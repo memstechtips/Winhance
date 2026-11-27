@@ -71,6 +71,23 @@ public class AppRemovalPlanTests
     }
 
     [Fact]
+    public void For_OlderPhotosChoice_IncludesCompanionWithoutOneDriveSync()
+    {
+        var plan = AppRemovalPlan.For([Choice("windows-app-photos", ["Microsoft.Windows.Photos"])]);
+        plan.Packages.Should().Equal("Microsoft.Windows.Photos", "Microsoft.OneDrive.Photos");
+        plan.Dedicated.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ImageFingerprint_ChangesWithWorkButNotOrderOrCase()
+    {
+        var first = AppRemovalPlan.For([Choice("a", ["A", "B"]), Choice("cap", capability: "C")]);
+        var reordered = AppRemovalPlan.For([Choice("cap", capability: "c"), Choice("a", ["b", "a"])]);
+        var changed = AppRemovalPlan.For([Choice("a", ["A"]), Choice("cap", capability: "C")]);
+        first.ImageFingerprint().Should().Be(reordered.ImageFingerprint()).And.NotBe(changed.ImageFingerprint());
+    }
+
+    [Fact]
     public void For_NoApps_IsEmpty()
     {
         var plan = AppRemovalPlan.For([]);

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "catalogHash": "7ed18d241cf67389888a0cf6c105f85a2fd105db520224a6bc1ac96ba412d0a3",
-  "settingCount": 460,
+  "catalogHash": "75fc76686f655fdd60bfc62f19910da5bf4af6b9e63faf7271598bd7cda17f5a",
+  "settingCount": 492,
   "settings": [
     {
       "id": "theme-mode-windows",
@@ -335,6 +335,174 @@
           "set": {
             "SystemUsesLightTheme": {
               "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "theme-accent-color-start-taskbar",
+      "feature": "WindowsTheme",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "ColorPrevalence",
+          "joinKey": "ColorPrevalence",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"
+          ],
+          "valueName": "ColorPrevalence",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "ColorPrevalence": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "ColorPrevalence": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "theme-accent-color-title-bars",
+      "feature": "WindowsTheme",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "ColorPrevalence",
+          "joinKey": "ColorPrevalence",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\DWM"
+          ],
+          "valueName": "ColorPrevalence",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "ColorPrevalence": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "ColorPrevalence": {
+              "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
@@ -1548,6 +1716,218 @@
       ]
     },
     {
+      "id": "explorer-taskbar-all-desktops",
+      "feature": "Explorer",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "VirtualDesktopTaskbarFilter",
+          "joinKey": "VirtualDesktopTaskbarFilter",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
+          ],
+          "valueName": "VirtualDesktopTaskbarFilter",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "VirtualDesktopTaskbarFilter": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": [
+                {
+                  "minBuild": 26300,
+                  "minRevision": 0,
+                  "maxBuild": 26300,
+                  "maxRevision": 2147483647
+                }
+              ]
+            }
+          ],
+          "set": {
+            "VirtualDesktopTaskbarFilter": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": {
+            "VirtualDesktopTaskbarFilter": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "explorer-alt-tab-all-desktops",
+      "feature": "Explorer",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "VirtualDesktopAltTabFilter",
+          "joinKey": "VirtualDesktopAltTabFilter",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
+          ],
+          "valueName": "VirtualDesktopAltTabFilter",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "VirtualDesktopAltTabFilter": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": [
+                {
+                  "minBuild": 26300,
+                  "minRevision": 0,
+                  "maxBuild": 26300,
+                  "maxRevision": 2147483647
+                }
+              ]
+            }
+          ],
+          "set": {
+            "VirtualDesktopAltTabFilter": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": {
+            "VirtualDesktopAltTabFilter": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
+        }
+      ]
+    },
+    {
       "id": "explorer-customization-shortcut-suffix",
       "feature": "Explorer",
       "control": "Selection",
@@ -2709,6 +3089,207 @@
       ]
     },
     {
+      "id": "devices-nearby-sharing",
+      "feature": "Explorer",
+      "control": "Selection",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "NearShareChannelUserAuthzPolicy",
+          "joinKey": "NearShareChannelUserAuthzPolicy",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\CDP"
+          ],
+          "valueName": "NearShareChannelUserAuthzPolicy",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "SettingsPageNearShare",
+          "joinKey": "SettingsPageNearShare",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\CDP\\SettingsPage"
+          ],
+          "valueName": "NearShareChannelUserAuthzPolicy",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": true,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "CdpSessionUserAuthzPolicy",
+          "joinKey": "CdpSessionUserAuthzPolicy",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\CDP"
+          ],
+          "valueName": "CdpSessionUserAuthzPolicy",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": true,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Setting_devices-nearby-sharing_Option_0",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "CdpSessionUserAuthzPolicy": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            },
+            "NearShareChannelUserAuthzPolicy": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            },
+            "SettingsPageNearShare": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_devices-nearby-sharing_Option_1",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "CdpSessionUserAuthzPolicy": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            },
+            "NearShareChannelUserAuthzPolicy": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            },
+            "SettingsPageNearShare": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_devices-nearby-sharing_Option_2",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "CdpSessionUserAuthzPolicy": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                2
+              ],
+              "writePayload": 2
+            },
+            "NearShareChannelUserAuthzPolicy": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                2
+              ],
+              "writePayload": 2
+            },
+            "SettingsPageNearShare": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                2
+              ],
+              "writePayload": 2
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
       "id": "explorer-snap-windows",
       "feature": "Explorer",
       "control": "Toggle",
@@ -3241,6 +3822,284 @@
       ]
     },
     {
+      "id": "explorer-open-apps-maximized",
+      "feature": "Explorer",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26100,
+            "minRevision": 9711,
+            "maxBuild": 26100,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26200,
+            "minRevision": 9711,
+            "maxBuild": 26200,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "MaximizeWindowsByDefault",
+          "joinKey": "MaximizeWindowsByDefault",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Accessibility"
+          ],
+          "valueName": "MaximizeWindowsByDefault",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "MaximizeWindowsByDefault": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "MaximizeWindowsByDefault": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "explorer-title-bar-window-shake",
+      "feature": "Explorer",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 22621,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "DisallowShaking",
+          "joinKey": "DisallowShaking",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
+          ],
+          "valueName": "DisallowShaking",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "DisallowShaking": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "DisallowShaking": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "explorer-clipboard-history",
+      "feature": "Explorer",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "EnableClipboardHistory",
+          "joinKey": "EnableClipboardHistory",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Clipboard"
+          ],
+          "valueName": "EnableClipboardHistory",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "EnableClipboardHistory": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "EnableClipboardHistory": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
       "id": "explorer-customization-launch-to",
       "feature": "Explorer",
       "control": "Selection",
@@ -3358,6 +4217,148 @@
                 4
               ],
               "writePayload": 4
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "explorer-customization-prelaunch",
+      "feature": "Explorer",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26100,
+            "minRevision": 9445,
+            "maxBuild": 26100,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26200,
+            "minRevision": 9445,
+            "maxBuild": 26200,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "ShouldPrelaunchFileExplorer",
+          "joinKey": "ShouldPrelaunchFileExplorer",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
+          ],
+          "valueName": "ShouldPrelaunchFileExplorer",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "DisableFileExplorerPrelaunch",
+          "joinKey": "DisableFileExplorerPrelaunch",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer"
+          ],
+          "valueName": "DisableFileExplorerPrelaunch",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": true,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "DisableFileExplorerPrelaunch": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "ShouldPrelaunchFileExplorer": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [],
+          "set": {
+            "DisableFileExplorerPrelaunch": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            },
+            "ShouldPrelaunchFileExplorer": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
             }
           },
           "resetSet": null
@@ -10100,6 +11101,29 @@
           "compositeStringKey": null,
           "perNetworkInterface": false,
           "perMonitor": false
+        },
+        {
+          "key": "Redesigned",
+          "joinKey": "Redesigned",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Classes\\CLSID\\{51668040-5e31-4023-bbe3-149163bd80f1}\\InprocServer32"
+          ],
+          "valueName": "",
+          "keyExistenceOnly": false,
+          "type": "String",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
         }
       ],
       "states": [
@@ -10115,6 +11139,15 @@
           ],
           "set": {
             "(target:default-value)": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                ""
+              ],
+              "writePayload": ""
+            },
+            "Redesigned": {
               "acceptsAbsent": false,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
@@ -10138,6 +11171,13 @@
           ],
           "set": {
             "(target:default-value)": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "Redesigned": {
               "acceptsAbsent": true,
               "acceptsAnyPresent": false,
               "deleteOnWrite": true,
@@ -13378,6 +14418,376 @@
       ]
     },
     {
+      "id": "taskbar-position",
+      "feature": "Taskbar",
+      "control": "Selection",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26100,
+            "minRevision": 9445,
+            "maxBuild": 26100,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26200,
+            "minRevision": 9445,
+            "maxBuild": 26200,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "TaskbarLocation",
+          "joinKey": "TaskbarLocation",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
+          ],
+          "valueName": "TaskbarLocation",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Setting_taskbar-position_Option_0",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "TaskbarLocation": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                3
+              ],
+              "writePayload": 3
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_taskbar-position_Option_1",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "TaskbarLocation": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_taskbar-position_Option_2",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "TaskbarLocation": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_taskbar-position_Option_3",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "TaskbarLocation": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                2
+              ],
+              "writePayload": 2
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "taskbar-size",
+      "feature": "Taskbar",
+      "control": "Selection",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26100,
+            "minRevision": 9445,
+            "maxBuild": 26100,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26200,
+            "minRevision": 9445,
+            "maxBuild": 26200,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "TaskbarSize",
+          "joinKey": "TaskbarSize",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
+          ],
+          "valueName": "TaskbarSize",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Setting_taskbar-size_Option_0",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "TaskbarSize": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_taskbar-size_Option_1",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "TaskbarSize": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "taskbar-lock-position-size",
+      "feature": "Taskbar",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "DisableTaskbarPosition",
+          "joinKey": "DisableTaskbarPosition",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Policies\\Microsoft\\Windows\\Explorer",
+            "HKEY_LOCAL_MACHINE\\Software\\Policies\\Microsoft\\Windows\\Explorer"
+          ],
+          "valueName": "DisableTaskbarPosition",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": true,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "DisableTaskbarSize",
+          "joinKey": "DisableTaskbarSize",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Policies\\Microsoft\\Windows\\Explorer",
+            "HKEY_LOCAL_MACHINE\\Software\\Policies\\Microsoft\\Windows\\Explorer"
+          ],
+          "valueName": "DisableTaskbarSize",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": true,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "DisableTaskbarPosition": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            },
+            "DisableTaskbarSize": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "DisableTaskbarPosition": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            },
+            "DisableTaskbarSize": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
       "id": "taskbar-auto-hide",
       "feature": "Taskbar",
       "control": "Toggle",
@@ -15488,6 +16898,538 @@
       ]
     },
     {
+      "id": "start-menu-size",
+      "feature": "StartMenu",
+      "control": "Selection",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26100,
+            "minRevision": 9445,
+            "maxBuild": 26100,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26200,
+            "minRevision": 9445,
+            "maxBuild": 26200,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "StartMenuSize",
+          "joinKey": "StartMenuSize",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Start"
+          ],
+          "valueName": "StartMenuSize",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Setting_start-menu-size_Option_0",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "StartMenuSize": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_start-menu-size_Option_1",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "StartMenuSize": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_start-menu-size_Option_2",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "StartMenuSize": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                2
+              ],
+              "writePayload": 2
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "start-show-pinned-section",
+      "feature": "StartMenu",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26100,
+            "minRevision": 9445,
+            "maxBuild": 26100,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26200,
+            "minRevision": 9445,
+            "maxBuild": 26200,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "ShowPinnedSection",
+          "joinKey": "ShowPinnedSection",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Start"
+          ],
+          "valueName": "ShowPinnedSection",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "ShowPinnedSection": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [],
+          "set": {
+            "ShowPinnedSection": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "start-show-recent-section",
+      "feature": "StartMenu",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26100,
+            "minRevision": 9445,
+            "maxBuild": 26100,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26200,
+            "minRevision": 9445,
+            "maxBuild": 26200,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "ShowRecentSection",
+          "joinKey": "ShowRecentSection",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Start"
+          ],
+          "valueName": "ShowRecentSection",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "ShowRecentSection": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [],
+          "set": {
+            "ShowRecentSection": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "start-show-all-apps-section",
+      "feature": "StartMenu",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26100,
+            "minRevision": 9445,
+            "maxBuild": 26100,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26200,
+            "minRevision": 9445,
+            "maxBuild": 26200,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "ShowAllAppsSection",
+          "joinKey": "ShowAllAppsSection",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Start"
+          ],
+          "valueName": "ShowAllAppsSection",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "ShowAllAppsSection": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [],
+          "set": {
+            "ShowAllAppsSection": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "start-show-user-info",
+      "feature": "StartMenu",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26100,
+            "minRevision": 9445,
+            "maxBuild": 26100,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26200,
+            "minRevision": 9445,
+            "maxBuild": 26200,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "HideUserInformation",
+          "joinKey": "HideUserInformation",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Start"
+          ],
+          "valueName": "HideUserInformation",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "HideUserInformation": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [],
+          "set": {
+            "HideUserInformation": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
       "id": "start-show-recently-added-apps",
       "feature": "StartMenu",
       "control": "Toggle",
@@ -15887,6 +17829,194 @@
         {
           "key": "Start_TrackDocs",
           "joinKey": "Start_TrackDocs",
+          "appliesTo": [
+            {
+              "minBuild": 0,
+              "minRevision": 0,
+              "maxBuild": 26100,
+              "maxRevision": 9444
+            },
+            {
+              "minBuild": 26101,
+              "minRevision": 0,
+              "maxBuild": 26200,
+              "maxRevision": 9444
+            },
+            {
+              "minBuild": 26201,
+              "minRevision": 0,
+              "maxBuild": 26299,
+              "maxRevision": 2147483647
+            }
+          ],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
+          ],
+          "valueName": "Start_TrackDocs",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "ShowSuggestedFiles",
+          "joinKey": "ShowSuggestedFiles",
+          "appliesTo": [
+            {
+              "minBuild": 26100,
+              "minRevision": 9445,
+              "maxBuild": 26100,
+              "maxRevision": 2147483647
+            },
+            {
+              "minBuild": 26200,
+              "minRevision": 9445,
+              "maxBuild": 26200,
+              "maxRevision": 2147483647
+            },
+            {
+              "minBuild": 26300,
+              "minRevision": 0,
+              "maxBuild": 2147483647,
+              "maxRevision": 2147483647
+            }
+          ],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Start"
+          ],
+          "valueName": "ShowSuggestedFiles",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "ShowSuggestedFiles": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            },
+            "Start_TrackDocs": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "Recommended",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "ShowSuggestedFiles": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            },
+            "Start_TrackDocs": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "start-jump-list-recent-items",
+      "feature": "StartMenu",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26100,
+            "minRevision": 9445,
+            "maxBuild": 26100,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26200,
+            "minRevision": 9445,
+            "maxBuild": 26200,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "Start_TrackDocs",
+          "joinKey": "Start_TrackDocs",
           "appliesTo": [],
           "kind": "Registry",
           "paths": [
@@ -15935,13 +18065,7 @@
         {
           "label": "Common_Disabled",
           "isFallback": true,
-          "roles": [
-            {
-              "kind": "Recommended",
-              "context": "Always",
-              "appliesTo": []
-            }
-          ],
+          "roles": [],
           "set": {
             "Start_TrackDocs": {
               "acceptsAbsent": false,
@@ -16214,6 +18338,48 @@
           "compositeStringKey": null,
           "perNetworkInterface": false,
           "perMonitor": false
+        },
+        {
+          "key": "IsWebSuggestionsEnabled",
+          "joinKey": "IsWebSuggestionsEnabled",
+          "appliesTo": [
+            {
+              "minBuild": 26100,
+              "minRevision": 9445,
+              "maxBuild": 26100,
+              "maxRevision": 2147483647
+            },
+            {
+              "minBuild": 26200,
+              "minRevision": 9445,
+              "maxBuild": 26200,
+              "maxRevision": 2147483647
+            },
+            {
+              "minBuild": 26300,
+              "minRevision": 0,
+              "maxBuild": 2147483647,
+              "maxRevision": 2147483647
+            }
+          ],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings"
+          ],
+          "valueName": "IsWebSuggestionsEnabled",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
         }
       ],
       "states": [
@@ -16243,6 +18409,15 @@
               "deleteOnWrite": true,
               "values": [],
               "writePayload": null
+            },
+            "IsWebSuggestionsEnabled": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
             }
           },
           "resetSet": null
@@ -16275,6 +18450,15 @@
                 1
               ],
               "writePayload": 1
+            },
+            "IsWebSuggestionsEnabled": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
             }
           },
           "resetSet": null
@@ -16464,6 +18648,218 @@
         }
       ],
       "states": []
+    },
+    {
+      "id": "region-set-time-automatically",
+      "feature": "TimeRegionLanguage",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "Type",
+          "joinKey": "Type",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\W32Time\\Parameters"
+          ],
+          "valueName": "Type",
+          "keyExistenceOnly": false,
+          "type": "String",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "Start",
+          "joinKey": "Start",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\W32Time"
+          ],
+          "valueName": "Start",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "Start": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                3,
+                2
+              ],
+              "writePayload": 3
+            },
+            "Type": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "NTP",
+                "NT5DS",
+                "AllSync"
+              ],
+              "writePayload": "NTP"
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [],
+          "set": {
+            "Start": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                4
+              ],
+              "writePayload": 4
+            },
+            "Type": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "NoSync"
+              ],
+              "writePayload": "NoSync"
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "region-set-time-zone-automatically",
+      "feature": "TimeRegionLanguage",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "Start",
+          "joinKey": "Start",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\tzautoupdate"
+          ],
+          "valueName": "Start",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "Start": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                3
+              ],
+              "writePayload": 3
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "Start": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                4
+              ],
+              "writePayload": 4
+            }
+          },
+          "resetSet": null
+        }
+      ]
     },
     {
       "id": "region-format",
@@ -22447,6 +24843,265 @@
       ]
     },
     {
+      "id": "notifications-banner-duration",
+      "feature": "Notifications",
+      "control": "Selection",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "MessageDuration",
+          "joinKey": "MessageDuration",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Control Panel\\Accessibility"
+          ],
+          "valueName": "MessageDuration",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Setting_notifications-banner-duration_Option_0",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "MessageDuration": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                5
+              ],
+              "writePayload": 5
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_notifications-banner-duration_Option_1",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "MessageDuration": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                7
+              ],
+              "writePayload": 7
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_notifications-banner-duration_Option_2",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "MessageDuration": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                15
+              ],
+              "writePayload": 15
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_notifications-banner-duration_Option_3",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "MessageDuration": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                30
+              ],
+              "writePayload": 30
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_notifications-banner-duration_Option_4",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "MessageDuration": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                60
+              ],
+              "writePayload": 60
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_notifications-banner-duration_Option_5",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "MessageDuration": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                300
+              ],
+              "writePayload": 300
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "notifications-usb-errors",
+      "feature": "Notifications",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "NotifyOnUsbErrors",
+          "joinKey": "NotifyOnUsbErrors",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Shell\\USB"
+          ],
+          "valueName": "NotifyOnUsbErrors",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": [
+                {
+                  "minBuild": 26300,
+                  "minRevision": 0,
+                  "maxBuild": 26300,
+                  "maxRevision": 2147483647
+                }
+              ]
+            }
+          ],
+          "set": {
+            "NotifyOnUsbErrors": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": {
+            "NotifyOnUsbErrors": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "NotifyOnUsbErrors": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
       "id": "notifications-capability-access",
       "feature": "Notifications",
       "control": "Toggle",
@@ -23658,6 +26313,704 @@
       ]
     },
     {
+      "id": "gaming-storage-sense-temporary-files",
+      "feature": "GamingPerformance",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "TemporaryFiles",
+          "joinKey": "TemporaryFiles",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy"
+          ],
+          "valueName": "04",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "TemporaryFiles": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "TemporaryFiles": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "gaming-storage-sense-frequency",
+      "feature": "GamingPerformance",
+      "control": "Selection",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "Cadence",
+          "joinKey": "Cadence",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy"
+          ],
+          "valueName": "2048",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Setting_gaming-storage-sense-frequency_Option_0",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "Cadence": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_gaming-storage-sense-frequency_Option_1",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "Cadence": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                7
+              ],
+              "writePayload": 7
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_gaming-storage-sense-frequency_Option_2",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "Cadence": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                30
+              ],
+              "writePayload": 30
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_gaming-storage-sense-frequency_Option_3",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "Cadence": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "gaming-storage-sense-recycle-bin",
+      "feature": "GamingPerformance",
+      "control": "Selection",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "Enable",
+          "joinKey": "Enable",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy"
+          ],
+          "valueName": "08",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "Days",
+          "joinKey": "Days",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy"
+          ],
+          "valueName": "256",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Setting_gaming-storage-sense-recycle-bin_Option_0",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "Days": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            },
+            "Enable": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_gaming-storage-sense-recycle-bin_Option_1",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "Days": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            },
+            "Enable": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_gaming-storage-sense-recycle-bin_Option_2",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "Days": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                14
+              ],
+              "writePayload": 14
+            },
+            "Enable": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_gaming-storage-sense-recycle-bin_Option_3",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "Days": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                30
+              ],
+              "writePayload": 30
+            },
+            "Enable": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_gaming-storage-sense-recycle-bin_Option_4",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "Days": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                60
+              ],
+              "writePayload": 60
+            },
+            "Enable": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "gaming-storage-sense-downloads",
+      "feature": "GamingPerformance",
+      "control": "Selection",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "Enable",
+          "joinKey": "Enable",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy"
+          ],
+          "valueName": "32",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
+          "key": "Days",
+          "joinKey": "Days",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy"
+          ],
+          "valueName": "512",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Setting_gaming-storage-sense-downloads_Option_0",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "Days": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            },
+            "Enable": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_gaming-storage-sense-downloads_Option_1",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "Days": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            },
+            "Enable": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_gaming-storage-sense-downloads_Option_2",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "Days": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                14
+              ],
+              "writePayload": 14
+            },
+            "Enable": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_gaming-storage-sense-downloads_Option_3",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "Days": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                30
+              ],
+              "writePayload": 30
+            },
+            "Enable": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_gaming-storage-sense-downloads_Option_4",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "Days": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                60
+              ],
+              "writePayload": 60
+            },
+            "Enable": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "gaming-archive-apps",
+      "feature": "GamingPerformance",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 22000,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "AllowAutomaticAppArchiving",
+          "joinKey": "AllowAutomaticAppArchiving",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\Appx"
+          ],
+          "valueName": "AllowAutomaticAppArchiving",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": true,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "AllowAutomaticAppArchiving": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "AllowAutomaticAppArchiving": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
       "id": "gaming-performance-explorer-search",
       "feature": "GamingPerformance",
       "control": "Toggle",
@@ -24191,7 +27544,7 @@
     {
       "id": "gaming-explorer-alt-tab-filter",
       "feature": "GamingPerformance",
-      "control": "Toggle",
+      "control": "Selection",
       "contexts": [
         "Always"
       ],
@@ -24206,9 +27559,46 @@
       "numeric": null,
       "targets": [
         {
+          "key": "MultiTaskingAltTabFilter10",
+          "joinKey": "MultiTaskingAltTabFilter10",
+          "appliesTo": [
+            {
+              "minBuild": 0,
+              "minRevision": 0,
+              "maxBuild": 21999,
+              "maxRevision": 2147483647
+            }
+          ],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
+          ],
+          "valueName": "MultiTaskingAltTabFilter",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        },
+        {
           "key": "MultiTaskingAltTabFilter",
           "joinKey": "MultiTaskingAltTabFilter",
-          "appliesTo": [],
+          "appliesTo": [
+            {
+              "minBuild": 22000,
+              "minRevision": 0,
+              "maxBuild": 2147483647,
+              "maxRevision": 2147483647
+            }
+          ],
           "kind": "Registry",
           "paths": [
             "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
@@ -24231,7 +27621,127 @@
       ],
       "states": [
         {
-          "label": "Common_Enabled",
+          "label": "Setting_gaming-explorer-alt-tab-filter_Option_0",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "MultiTaskingAltTabFilter": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            },
+            "MultiTaskingAltTabFilter10": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_gaming-explorer-alt-tab-filter_Option_1",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": [
+                {
+                  "minBuild": 0,
+                  "minRevision": 0,
+                  "maxBuild": 21999,
+                  "maxRevision": 2147483647
+                }
+              ]
+            }
+          ],
+          "set": {
+            "MultiTaskingAltTabFilter": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            },
+            "MultiTaskingAltTabFilter10": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": {
+            "MultiTaskingAltTabFilter10": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
+        },
+        {
+          "label": "Setting_gaming-explorer-alt-tab-filter_Option_2",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": [
+                {
+                  "minBuild": 22000,
+                  "minRevision": 0,
+                  "maxBuild": 2147483647,
+                  "maxRevision": 2147483647
+                }
+              ]
+            }
+          ],
+          "set": {
+            "MultiTaskingAltTabFilter": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                2
+              ],
+              "writePayload": 2
+            },
+            "MultiTaskingAltTabFilter10": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                2
+              ],
+              "writePayload": 2
+            }
+          },
+          "resetSet": {
+            "MultiTaskingAltTabFilter": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
+        },
+        {
+          "label": "Setting_gaming-explorer-alt-tab-filter_Option_3",
           "isFallback": false,
           "roles": [
             {
@@ -24249,29 +27759,15 @@
                 3
               ],
               "writePayload": 3
-            }
-          },
-          "resetSet": null
-        },
-        {
-          "label": "Common_Disabled",
-          "isFallback": true,
-          "roles": [
-            {
-              "kind": "WindowsDefault",
-              "context": "Always",
-              "appliesTo": []
-            }
-          ],
-          "set": {
-            "MultiTaskingAltTabFilter": {
-              "acceptsAbsent": true,
+            },
+            "MultiTaskingAltTabFilter10": {
+              "acceptsAbsent": false,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,
               "values": [
-                0
+                3
               ],
-              "writePayload": 0
+              "writePayload": 3
             }
           },
           "resetSet": null
@@ -34512,6 +38008,112 @@
       ]
     },
     {
+      "id": "explorer-always-show-scrollbars",
+      "feature": "GamingPerformance",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "DynamicScrollbars",
+          "joinKey": "DynamicScrollbars",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Control Panel\\Accessibility"
+          ],
+          "valueName": "DynamicScrollbars",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "DynamicScrollbars": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": [
+                {
+                  "minBuild": 26300,
+                  "minRevision": 0,
+                  "maxBuild": 26300,
+                  "maxRevision": 2147483647
+                }
+              ]
+            }
+          ],
+          "set": {
+            "DynamicScrollbars": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": {
+            "DynamicScrollbars": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          }
+        }
+      ]
+    },
+    {
       "id": "gaming-narrator-hotkey",
       "feature": "GamingPerformance",
       "control": "Toggle",
@@ -36242,6 +39844,124 @@
       ]
     },
     {
+      "id": "security-app-install-source",
+      "feature": "Privacy",
+      "control": "Selection",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "AicEnabled",
+          "joinKey": "AicEnabled",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer"
+          ],
+          "valueName": "AicEnabled",
+          "keyExistenceOnly": false,
+          "type": "String",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Setting_security-app-install-source_Option_0",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "AicEnabled": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "Anywhere"
+              ],
+              "writePayload": "Anywhere"
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_security-app-install-source_Option_1",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "AicEnabled": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "Recommendations"
+              ],
+              "writePayload": "Recommendations"
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_security-app-install-source_Option_2",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "AicEnabled": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "PreferStore"
+              ],
+              "writePayload": "PreferStore"
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Setting_security-app-install-source_Option_3",
+          "isFallback": false,
+          "roles": [],
+          "set": {
+            "AicEnabled": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                "StoreOnly"
+              ],
+              "writePayload": "StoreOnly"
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
       "id": "privacy-ads-promotional-master",
       "feature": "Privacy",
       "control": "Selection",
@@ -37059,6 +40779,210 @@
                 0
               ],
               "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "privacy-share-suggested-apps",
+      "feature": "Privacy",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26100,
+            "minRevision": 9445,
+            "maxBuild": 26100,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26200,
+            "minRevision": 9445,
+            "maxBuild": 26200,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "EnablePromotionalAppsForShare",
+          "joinKey": "EnablePromotionalAppsForShare",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\CDP"
+          ],
+          "valueName": "EnablePromotionalAppsForShare",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "EnablePromotionalAppsForShare": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "Recommended",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "EnablePromotionalAppsForShare": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "privacy-get-started",
+      "feature": "Privacy",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 22000,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "DisableGetStarted",
+          "joinKey": "DisableGetStarted",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent"
+          ],
+          "valueName": "DisableGetStarted",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": true,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "DisableGetStarted": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": true,
+              "values": [],
+              "writePayload": null
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "Recommended",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "DisableGetStarted": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
             }
           },
           "resetSet": null
@@ -39608,6 +43532,115 @@
           ],
           "set": {
             "IsDynamicSearchBoxEnabled": {
+              "acceptsAbsent": false,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                0
+              ],
+              "writePayload": 0
+            }
+          },
+          "resetSet": null
+        }
+      ]
+    },
+    {
+      "id": "privacy-search-store-suggestions",
+      "feature": "Privacy",
+      "control": "Toggle",
+      "contexts": [
+        "Always"
+      ],
+      "detector": null,
+      "optionSource": null,
+      "availability": {
+        "builds": [
+          {
+            "minBuild": 26100,
+            "minRevision": 9445,
+            "maxBuild": 26100,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26200,
+            "minRevision": 9445,
+            "maxBuild": 26200,
+            "maxRevision": 2147483647
+          },
+          {
+            "minBuild": 26300,
+            "minRevision": 0,
+            "maxBuild": 2147483647,
+            "maxRevision": 2147483647
+          }
+        ],
+        "hardware": [],
+        "validatesExistence": false,
+        "requiresAdvancedUnlock": false
+      },
+      "numeric": null,
+      "targets": [
+        {
+          "key": "IsStoreSuggestionsEnabled",
+          "joinKey": "IsStoreSuggestionsEnabled",
+          "appliesTo": [],
+          "kind": "Registry",
+          "paths": [
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings"
+          ],
+          "valueName": "IsStoreSuggestionsEnabled",
+          "keyExistenceOnly": false,
+          "type": "DWord",
+          "isGroupPolicy": false,
+          "applyOnly": false,
+          "lockWhenValue": null,
+          "byteIndex": null,
+          "bitMask": null,
+          "stringFlagMask": null,
+          "stringFlagAbsentBase": 0,
+          "byteOnly": false,
+          "compositeStringKey": null,
+          "perNetworkInterface": false,
+          "perMonitor": false
+        }
+      ],
+      "states": [
+        {
+          "label": "Common_Enabled",
+          "isFallback": false,
+          "roles": [
+            {
+              "kind": "WindowsDefault",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "IsStoreSuggestionsEnabled": {
+              "acceptsAbsent": true,
+              "acceptsAnyPresent": false,
+              "deleteOnWrite": false,
+              "values": [
+                1
+              ],
+              "writePayload": 1
+            }
+          },
+          "resetSet": null
+        },
+        {
+          "label": "Common_Disabled",
+          "isFallback": true,
+          "roles": [
+            {
+              "kind": "Recommended",
+              "context": "Always",
+              "appliesTo": []
+            }
+          ],
+          "set": {
+            "IsStoreSuggestionsEnabled": {
               "acceptsAbsent": false,
               "acceptsAnyPresent": false,
               "deleteOnWrite": false,

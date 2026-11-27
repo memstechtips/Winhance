@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using FluentIcons.Common;
+using FluentIcons.WinUI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -8,6 +10,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.UI;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Services;
@@ -15,6 +18,7 @@ using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Pages;
+using Winhance.UI.Features.Common.Utilities;
 using Winhance.UI.Features.Common.ViewModels;
 using Winhance.UI.Features.Optimize.ViewModels;
 
@@ -25,20 +29,15 @@ namespace Winhance.UI.Features.Common.Controls;
 // block to read, one place a page can fail to supply something. OverviewScroller is also where the
 // PageUp/PageDown handling is attached.
 public sealed record SectionPageChrome(
-    ScrollView OverviewScroller,
-    UIElement OverviewContent,
+    Func<ScrollViewer?> OverviewScroller,
     bool HasSectionContent,
     Frame ContentFrame,
     AutoSuggestBox SearchBox,
     Button BreadcrumbRoot,
-    UIElement BreadcrumbSeparator,
-    UIElement BreadcrumbSection,
-    TextBlock BreadcrumbSectionText,
-    Flyout BreadcrumbFlyout,
     TextBlock QuickActionsLabel,
     DropDownButton QuickActionsButton,
     MenuFlyoutItem ApplyRecommendedItem,
-    FontIcon ApplyRecommendedIcon,
+    FluentIcon ApplyRecommendedIcon,
     MenuFlyoutItem ResetDefaultsItem,
     TextBlock ViewMenuLabel,
     DropDownButton ViewMenuButton,
@@ -61,19 +60,23 @@ public sealed record SectionPageChrome(
 // element tag, so a page's XAML root must name this type literally and it cannot take a type parameter -
 // ISectionPageViewModel does that job. Handlers are protected rather than private because the generated Connect
 // method wires XAML events as this.Handler, which reaches an inherited protected member.
-public abstract class SectionPage : Page
+public abstract class SectionPage : Page, IPageReadiness
 {
     private SectionPageChrome _chrome = null!;
 
-    private IConfigReviewService? _configReviewService;
-    private IUserPreferencesService? _userPreferencesService;
-    private ILocalizationService? _localizationService;
-    private IBulkSettingsActionService? _bulkSettingsActionService;
-    private IApplicationModeService? _applicationModeService;
-    private IDialogService? _dialogService;
+    private readonly IConfigReviewService _configReviewService = App.Services.GetRequiredService<IConfigReviewService>();
+    private readonly IUserPreferencesService _userPreferencesService = App.Services.GetRequiredService<IUserPreferencesService>();
+    private readonly ILocalizationService _localizationService = App.Services.GetRequiredService<ILocalizationService>();
+    private readonly IBulkSettingsActionService _bulkSettingsActionService = App.Services.GetRequiredService<IBulkSettingsActionService>();
+    private readonly IApplicationModeService _applicationModeService = App.Services.GetRequiredService<IApplicationModeService>();
+    private readonly IDialogService _dialogService = App.Services.GetRequiredService<IDialogService>();
+    private readonly IEventBus _eventBus = App.Services.GetRequiredService<IEventBus>();
+    private readonly IDispatcherService _dispatcherService = App.Services.GetRequiredService<IDispatcherService>();
+    private readonly ILogService _logService = App.Services.GetRequiredService<ILogService>();
 
     private ISubscriptionToken? _settingsRefreshedSubscription;
     private ISubscriptionToken? _settingLinkSubscription;
+    private ISubscriptionToken? _authoringModeExitedSubscription;
 
     private bool _isTechnicalDetailsVisible;
     private bool _isInfoBadgesVisible;
@@ -81,6 +84,7 @@ public abstract class SectionPage : Page
     private bool _showOnlyChanges;
     private SettingStateFilter _stateFilter;
     private (RadioMenuFlyoutItem Item, SettingStateFilter Filter)[] _stateFilterItems = [];
+    private TaskCompletionSource _navigatedTo = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     // x:Bind in the XAML still resolves against each page's concrete property, so bindings are unaffected by this indirection.
     protected abstract ISectionPageViewModel PageViewModel { get; }
@@ -137,25 +141,18 @@ public abstract class SectionPage : Page
         // PageUp/PageDown fast-scroll + Home/End jump for the overview scroller (issue #581).
         PageScrollHelper.Attach(this, chrome.OverviewScroller);
 
-        _configReviewService = App.Services.GetService<IConfigReviewService>();
-        if (_configReviewService != null)
-        {
-            _configReviewService.ReviewModeChanged += OnReviewModeChanged;
-        }
-
-        _userPreferencesService = App.Services.GetService<IUserPreferencesService>();
-        _localizationService = App.Services.GetService<ILocalizationService>();
-        _bulkSettingsActionService = App.Services.GetService<IBulkSettingsActionService>();
-        _applicationModeService = App.Services.GetService<IApplicationModeService>();
-        _dialogService = App.Services.GetService<IDialogService>();
-        if (_applicationModeService != null)
-        {
-            _applicationModeService.ModeChanged += OnApplicationModeChanged;
-        }
+        _configReviewService.ReviewModeChanged += OnReviewModeChanged;
+        _applicationModeService.ModeChanged += OnApplicationModeChanged;
     }
 
-    protected override async void OnNavigatedTo(NavigationEventArgs e)
+    public virtual Task WhenReadyAsync() => _navigatedTo.Task;
+
+    protected override void OnNavigatedTo(NavigationEventArgs e) => NavigatedToAsync(e).FireAndForget(_logService);
+
+    private async Task NavigatedToAsync(NavigationEventArgs e)
     {
+        if (_navigatedTo.Task.IsCompleted)
+            _navigatedTo = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         try
         {
             LogStartup("OnNavigatedTo starting...");
@@ -165,45 +162,35 @@ public abstract class SectionPage : Page
             // subscription left behind keeps an uncached page and its whole visual tree alive after it is gone.
             PageViewModel.PropertyChanged -= OnPageViewModelPropertyChanged;
             PageViewModel.PropertyChanged += OnPageViewModelPropertyChanged;
-            if (_configReviewService != null)
-            {
-                _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
-                _configReviewService.ReviewModeChanged += OnReviewModeChanged;
-            }
+            _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
+            _configReviewService.ReviewModeChanged += OnReviewModeChanged;
+            _applicationModeService.ModeChanged -= OnApplicationModeChanged;
+            _applicationModeService.ModeChanged += OnApplicationModeChanged;
 
-            if (_applicationModeService != null)
-            {
-                _applicationModeService.ModeChanged -= OnApplicationModeChanged;
-                _applicationModeService.ModeChanged += OnApplicationModeChanged;
-            }
-
-            var eventBus = App.Services.GetService<IEventBus>();
-            if (eventBus != null)
-            {
-                // A Technical Details requirement chip naming another setting was clicked. Only
-                // this page knows which of its sections holds it, so resolution happens here.
-                _settingLinkSubscription?.Dispose();
-                _settingLinkSubscription = eventBus.Subscribe<SettingLinkRequestedEvent>(evt =>
-                {
-                    DispatcherQueue.TryEnqueue(() => GoToLinkedSetting(evt.SettingId, evt.SettingName));
-                });
-                _settingsRefreshedSubscription?.Dispose();
-                _settingsRefreshedSubscription = eventBus.Subscribe<SettingsRefreshedEvent>(_ =>
-                {
-                    DispatcherQueue.TryEnqueue(SyncViewStateToSettings);
-                });
-                // No SettingAppliedEvent subscription: the overview cards derive their own state
-                // from the settings they observe, so an apply reaches them without this page.
-            }
+            // A Technical Details requirement chip naming another setting was clicked. Only
+            // this page knows which of its sections holds it, so resolution happens here.
+            _settingLinkSubscription?.Dispose();
+            _settingLinkSubscription = _eventBus.Subscribe<SettingLinkRequestedEvent>(evt =>
+                _dispatcherService.Enqueue(() => GoToLinkedSetting(evt.SettingId, evt.SettingName)));
+            _settingsRefreshedSubscription?.Dispose();
+            _settingsRefreshedSubscription = _eventBus.Subscribe<SettingsRefreshedEvent>(_ =>
+                _dispatcherService.Enqueue(SyncViewStateToSettings));
+            // Every loaded feature marks itself stale on this event; only what is on screen rebuilds now, the
+            // rest on their next navigation. Enqueued so the rebuild runs after the publish has returned.
+            _authoringModeExitedSubscription?.Dispose();
+            _authoringModeExitedSubscription = _eventBus.Subscribe<AuthoringModeExitedEvent>(_ =>
+                _dispatcherService.Enqueue(() =>
+                    PageViewModel.RefreshOnNavigationAsync(PageViewModel.CurrentSectionItem?.Feature).FireAndForget(_logService)));
+            // No SettingAppliedEvent subscription: the overview cards derive their own state
+            // from the settings they observe, so an apply reaches them without this page.
 
             PageViewModel.CurrentSectionKey = "Overview";
-            UpdateContentVisibility();
 
             LogStartup("Calling ViewModel.InitializeAsync...");
             await PageViewModel.InitializeAsync();
 
             SetDropdownLabels();
-            await InitializeViewTogglesAsync();
+            InitializeViewToggles();
 
             LogStartup("OnNavigatedTo complete");
         }
@@ -211,25 +198,30 @@ public abstract class SectionPage : Page
         {
             LogStartup($"OnNavigatedTo EXCEPTION: {ex}");
         }
+        finally
+        {
+            _navigatedTo.TrySetResult();
+        }
     }
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
         base.OnNavigatedFrom(e);
-        if (_configReviewService != null)
-        {
-            _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
-        }
-        if (_applicationModeService != null)
-        {
-            _applicationModeService.ModeChanged -= OnApplicationModeChanged;
-        }
+        _configReviewService.ReviewModeChanged -= OnReviewModeChanged;
+        _applicationModeService.ModeChanged -= OnApplicationModeChanged;
         _settingsRefreshedSubscription?.Dispose();
         _settingsRefreshedSubscription = null;
         _settingLinkSubscription?.Dispose();
         _settingLinkSubscription = null;
+        _authoringModeExitedSubscription?.Dispose();
+        _authoringModeExitedSubscription = null;
         PageViewModel.PropertyChanged -= OnPageViewModelPropertyChanged;
         PageViewModel.OnNavigatedFrom();
+
+        // The page itself is cached, and an open section would stay parked in the hidden frame with its whole
+        // settings list. Coming back always shows the overview, so nothing reads it again.
+        _chrome.ContentFrame.Content = null;
+        _chrome.ContentFrame.BackStack.Clear();
     }
 
     // Falls back to the section currently open when this page does not hold the setting - it is on the other page,
@@ -265,7 +257,7 @@ public abstract class SectionPage : Page
             typeof(SectionDetailPage),
             new SectionDetailNavigation(sectionKey, searchText, PageViewModel, item.Feature));
 
-        if (_configReviewService?.IsInReviewMode == true && FeatureIdFor(sectionKey) is { } featureId)
+        if (_configReviewService.IsInReviewMode && FeatureIdFor(sectionKey) is { } featureId)
         {
             _configReviewService.MarkFeatureVisited(featureId);
         }
@@ -275,7 +267,8 @@ public abstract class SectionPage : Page
     {
         PageViewModel.CurrentSectionKey = "Overview";
         _chrome.ContentFrame.Content = null;
-        UpdateContentVisibility();
+        PageViewModel.RefreshOnNavigationAsync(null).FireAndForget(_logService);
+        NativeHeaps.ReleaseDroppedMemoryLater(_dispatcherService, _logService);
     }
 
     private string? FeatureIdFor(string sectionKey) =>
@@ -287,24 +280,7 @@ public abstract class SectionPage : Page
         PageViewModel.CurrentSectionKey = e.Parameter is SectionDetailNavigation nav
             ? nav.SectionKey
             : "Overview";
-        UpdateContentVisibility();
-    }
-
-    private void UpdateContentVisibility()
-    {
-        var isInDetailPage = PageViewModel.IsInDetailPage;
-
-        _chrome.OverviewContent.Visibility = isInDetailPage ? Visibility.Collapsed : Visibility.Visible;
-        _chrome.ContentFrame.Visibility = isInDetailPage ? Visibility.Visible : Visibility.Collapsed;
-        _chrome.BreadcrumbSeparator.Visibility = isInDetailPage ? Visibility.Visible : Visibility.Collapsed;
-        _chrome.BreadcrumbSection.Visibility = isInDetailPage ? Visibility.Visible : Visibility.Collapsed;
-
-        if (isInDetailPage)
-        {
-            // The icon and review badge beside this are bound to ViewModel.CurrentSectionItem.
-            _chrome.BreadcrumbSectionText.Text = PageViewModel.CurrentSectionName;
-            AutomationProperties.SetName(_chrome.BreadcrumbSection, PageViewModel.CurrentSectionName);
-        }
+        NativeHeaps.ReleaseDroppedMemoryLater(_dispatcherService, _logService);
     }
 
     protected void SectionCard_Click(object sender, RoutedEventArgs e)
@@ -315,7 +291,6 @@ public abstract class SectionPage : Page
 
     protected void SectionFlyoutItem_Click(object sender, RoutedEventArgs e)
     {
-        _chrome.BreadcrumbFlyout.Hide();
         if (sender is FrameworkElement { Tag: string sectionKey })
             NavigateToSection(sectionKey);
     }
@@ -327,12 +302,12 @@ public abstract class SectionPage : Page
 
     private void OnReviewModeChanged(object? sender, EventArgs e)
     {
-        DispatcherQueue.TryEnqueue(UpdateQuickActionsForReviewMode);
+        _dispatcherService.Enqueue(UpdateQuickActionsForReviewMode);
     }
 
     private void OnApplicationModeChanged(object? sender, EventArgs e)
     {
-        DispatcherQueue.TryEnqueue(UpdateQuickActionsForReviewMode);
+        _dispatcherService.Enqueue(UpdateQuickActionsForReviewMode);
     }
 
     // Suggestions carry the section that holds the setting, so this resolves without consulting the ViewModel.
@@ -352,35 +327,32 @@ public abstract class SectionPage : Page
             NavigateToSection(suggestion.SectionKey, suggestion.SettingName);
     }
 
-    private string Localized(string key, string fallback) =>
-        _localizationService?.TryGetString(key, out var value) == true ? value : fallback;
-
     private void SetDropdownLabels()
     {
-        _chrome.QuickActionsLabel.Text = Localized("QuickActions_Menu", "Quick Actions");
+        _chrome.QuickActionsLabel.Text = _localizationService.GetStringOrDefault("QuickActions_Menu", "Quick Actions");
         AutomationProperties.SetName(_chrome.QuickActionsButton, _chrome.QuickActionsLabel.Text);
-        _chrome.ViewMenuLabel.Text = Localized("View_Menu", "View");
+        _chrome.ViewMenuLabel.Text = _localizationService.GetStringOrDefault("View_Menu", "View");
         AutomationProperties.SetName(_chrome.ViewMenuButton, _chrome.ViewMenuLabel.Text);
 
-        _chrome.TechnicalDetailsToggle.Text = Localized("View_TechnicalDetails", "Technical Details");
+        _chrome.TechnicalDetailsToggle.Text = _localizationService.GetStringOrDefault("View_TechnicalDetails", "Technical Details");
         ToolTipService.SetToolTip(_chrome.TechnicalDetailsToggle,
-            Localized("View_TechnicalDetails_Tooltip", "Show or hide technical details for each setting"));
-        _chrome.InfoBadgesToggle.Text = Localized("View_InfoBadges", "InfoBadges");
+            _localizationService.GetStringOrDefault("View_TechnicalDetails_Tooltip", "Show or hide technical details for each setting"));
+        _chrome.InfoBadgesToggle.Text = _localizationService.GetStringOrDefault("View_InfoBadges", "InfoBadges");
         ToolTipService.SetToolTip(_chrome.InfoBadgesToggle,
-            Localized("View_InfoBadges_Tooltip", "Show or hide status badges on settings cards"));
-        _chrome.NewBadgesToggle.Text = Localized("View_NewBadges", "NEW Badges");
+            _localizationService.GetStringOrDefault("View_InfoBadges_Tooltip", "Show or hide status badges on settings cards"));
+        _chrome.NewBadgesToggle.Text = _localizationService.GetStringOrDefault("View_NewBadges", "NEW Badges");
         ToolTipService.SetToolTip(_chrome.NewBadgesToggle,
-            Localized("View_NewBadges_Tooltip", "Show or hide NEW badges on settings added in this release"));
-        _chrome.ShowOnlyChangesToggle.Text = Localized("View_ShowOnlyChanges", "Show Only Changes");
+            _localizationService.GetStringOrDefault("View_NewBadges_Tooltip", "Show or hide NEW badges on settings added in this release"));
+        _chrome.ShowOnlyChangesToggle.Text = _localizationService.GetStringOrDefault("View_ShowOnlyChanges", "Show Only Changes");
         ToolTipService.SetToolTip(_chrome.ShowOnlyChangesToggle,
-            Localized("View_ShowOnlyChanges_Tooltip", "Show only settings with pending changes from the imported config"));
-        _chrome.StateFilterAllItem.Text = Localized("View_StateFilter_All", "All settings");
-        _chrome.StateFilterRecommendedItem.Text = Localized("InfoBadge_Recommended", "Recommended");
-        _chrome.StateFilterWindowsDefaultItem.Text = Localized("View_StateFilter_WindowsDefault", "Windows default");
-        _chrome.StateFilterCustomItem.Text = Localized("View_StateFilter_Custom", "Custom");
+            _localizationService.GetStringOrDefault("View_ShowOnlyChanges_Tooltip", "Show only settings with pending changes from the imported config"));
+        _chrome.StateFilterAllItem.Text = _localizationService.GetStringOrDefault("View_StateFilter_All", "All settings");
+        _chrome.StateFilterRecommendedItem.Text = _localizationService.GetStringOrDefault("InfoBadge_Recommended", "Recommended");
+        _chrome.StateFilterWindowsDefaultItem.Text = _localizationService.GetStringOrDefault("View_StateFilter_WindowsDefault", "Windows default");
+        _chrome.StateFilterCustomItem.Text = _localizationService.GetStringOrDefault("View_StateFilter_Custom", "Custom");
 
-        _chrome.IncludeAllItem.Text = Localized("QuickActions_IncludeAll", "Include All Settings");
-        _chrome.ExcludeAllItem.Text = Localized("QuickActions_ExcludeAll", "Exclude All Settings");
+        _chrome.IncludeAllItem.Text = _localizationService.GetStringOrDefault("QuickActions_IncludeAll", "Include All Settings");
+        _chrome.ExcludeAllItem.Text = _localizationService.GetStringOrDefault("QuickActions_ExcludeAll", "Exclude All Settings");
 
         UpdateQuickActionsForReviewMode();
     }
@@ -388,24 +360,18 @@ public abstract class SectionPage : Page
     private IEnumerable<SettingItemViewModel> AllSettings() =>
         PageViewModel.OverviewItems.SelectMany(item => item.Feature.Settings);
 
-    private async Task InitializeViewTogglesAsync()
+    private void InitializeViewToggles()
     {
-        if (_userPreferencesService != null)
+        _isTechnicalDetailsVisible = _userPreferencesService.GetPreference(UserPreferenceKeys.ShowTechnicalDetails, false);
+        _isInfoBadgesVisible = _userPreferencesService.GetPreference(UserPreferenceKeys.ShowInfoBadges, false);
+        _isNewBadgesVisible = _userPreferencesService.GetPreference(UserPreferenceKeys.ShowNewBadges, true);
+        if (!IsAnswerFilePage)
         {
-            _isTechnicalDetailsVisible = await _userPreferencesService.GetPreferenceAsync(
-                UserPreferenceKeys.ShowTechnicalDetails, false);
-            _isInfoBadgesVisible = await _userPreferencesService.GetPreferenceAsync(
-                UserPreferenceKeys.ShowInfoBadges, false);
-            _isNewBadgesVisible = await _userPreferencesService.GetPreferenceAsync(
-                UserPreferenceKeys.ShowNewBadges, true);
-            if (!IsAnswerFilePage)
-            {
-                var savedStateFilter = await _userPreferencesService.GetPreferenceAsync(
-                    UserPreferenceKeys.SettingsStateFilter, nameof(SettingStateFilter.All));
-                _stateFilter = Enum.TryParse<SettingStateFilter>(savedStateFilter, out var stateFilter) && Enum.IsDefined(stateFilter)
-                    ? stateFilter
-                    : SettingStateFilter.All;
-            }
+            var savedStateFilter = _userPreferencesService.GetPreference(
+                UserPreferenceKeys.SettingsStateFilter, nameof(SettingStateFilter.All));
+            _stateFilter = Enum.TryParse<SettingStateFilter>(savedStateFilter, out var stateFilter) && Enum.IsDefined(stateFilter)
+                ? stateFilter
+                : SettingStateFilter.All;
         }
 
         _chrome.TechnicalDetailsToggle.IsChecked = _isTechnicalDetailsVisible;
@@ -434,42 +400,39 @@ public abstract class SectionPage : Page
         }
     }
 
-    protected async void ViewTechnicalDetails_Click(object sender, RoutedEventArgs e)
+    protected void ViewTechnicalDetails_Click(object sender, RoutedEventArgs e)
     {
         _isTechnicalDetailsVisible = _chrome.TechnicalDetailsToggle.IsChecked;
         SyncViewStateToSettings();
-        await SavePreferenceAsync(UserPreferenceKeys.ShowTechnicalDetails, _isTechnicalDetailsVisible);
+        SavePreference(UserPreferenceKeys.ShowTechnicalDetails, _isTechnicalDetailsVisible);
     }
 
-    protected async void ViewInfoBadges_Click(object sender, RoutedEventArgs e)
+    protected void ViewInfoBadges_Click(object sender, RoutedEventArgs e)
     {
         _isInfoBadgesVisible = _chrome.InfoBadgesToggle.IsChecked;
         SyncViewStateToSettings();
-        await SavePreferenceAsync(UserPreferenceKeys.ShowInfoBadges, _isInfoBadgesVisible);
+        SavePreference(UserPreferenceKeys.ShowInfoBadges, _isInfoBadgesVisible);
     }
 
-    protected async void ViewNewBadges_Click(object sender, RoutedEventArgs e)
+    protected void ViewNewBadges_Click(object sender, RoutedEventArgs e)
     {
         _isNewBadgesVisible = _chrome.NewBadgesToggle.IsChecked;
         SyncViewStateToSettings();
-        await SavePreferenceAsync(UserPreferenceKeys.ShowNewBadges, _isNewBadgesVisible);
+        SavePreference(UserPreferenceKeys.ShowNewBadges, _isNewBadgesVisible);
     }
 
-    private async Task SavePreferenceAsync<T>(string key, T value)
-    {
-        if (_userPreferencesService != null)
-            await _userPreferencesService.SetPreferenceAsync(key, value);
-    }
+    private void SavePreference<T>(string key, T value) =>
+        _userPreferencesService.SetPreferenceAsync(key, value).FireAndForget(_logService);
 
-    protected async void ViewStateFilter_Click(object sender, RoutedEventArgs e)
+    protected void ViewStateFilter_Click(object sender, RoutedEventArgs e)
     {
         _stateFilter = _stateFilterItems.First(pair => ReferenceEquals(pair.Item, sender)).Filter;
         ApplyViewFilter();
-        await SavePreferenceAsync(UserPreferenceKeys.SettingsStateFilter, _stateFilter.ToString());
+        SavePreference(UserPreferenceKeys.SettingsStateFilter, _stateFilter.ToString());
     }
 
     // The filter button and the empty-list link clear the filter through the ViewModel.
-    private async void OnPageViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    private void OnPageViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(ISectionPageViewModel.StateFilter) || PageViewModel.StateFilter == _stateFilter)
             return;
@@ -478,7 +441,7 @@ public abstract class SectionPage : Page
         foreach (var (item, filter) in _stateFilterItems)
             item.IsChecked = filter == _stateFilter;
         ApplyViewFilter();
-        await SavePreferenceAsync(UserPreferenceKeys.SettingsStateFilter, _stateFilter.ToString());
+        SavePreference(UserPreferenceKeys.SettingsStateFilter, _stateFilter.ToString());
     }
 
     protected void ViewShowOnlyChanges_Click(object sender, RoutedEventArgs e)
@@ -521,7 +484,7 @@ public abstract class SectionPage : Page
     {
         try
         {
-            if (_configReviewService?.IsInReviewMode == true)
+            if (_configReviewService.IsInReviewMode)
                 await ExecuteReviewBulkActionAsync(approved: true);
             else if (_applicationModeService.Capabilities().AuthorsIntent)
                 await ExecuteBuilderBulkActionAsync(BulkActionType.ApplyRecommended);
@@ -538,7 +501,7 @@ public abstract class SectionPage : Page
     {
         try
         {
-            if (_configReviewService?.IsInReviewMode == true)
+            if (_configReviewService.IsInReviewMode)
                 await ExecuteReviewBulkActionAsync(approved: false);
             else if (_applicationModeService.Capabilities().AuthorsIntent)
                 await ExecuteBuilderBulkActionAsync(BulkActionType.ResetToDefaults);
@@ -553,23 +516,17 @@ public abstract class SectionPage : Page
 
     private async Task<bool> ConfirmAsync(string message)
     {
-        var dialog = new ContentDialog
+        var response = await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
         {
-            Title = Localized("QuickActions_ConfirmTitle", "Confirm Action"),
-            Content = message,
-            PrimaryButtonText = Localized("Button_OK", "OK"),
-            CloseButtonText = Localized("Button_Cancel", "Cancel"),
-            XamlRoot = this.XamlRoot
-        };
-
-        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+            Title = _localizationService.GetStringOrDefault("QuickActions_ConfirmTitle", "Confirm Action"),
+            Message = message,
+        });
+        return response.Confirmed;
     }
 
     // Lists every setting that will change under its section, with its value now and after.
     private async Task<bool> ConfirmChangesAsync(IReadOnlyList<SettingItemViewModel> settings, bool recommended)
     {
-        if (_dialogService == null) return false;
-
         var changing = settings.ToHashSet();
         var groups = new List<SummaryTableGroup>();
         foreach (var section in SectionsInScope())
@@ -590,24 +547,24 @@ public abstract class SectionPage : Page
         return await _dialogService.ShowSummaryAsync(new SummaryRequest
         {
             Title = recommended
-                ? Localized("QuickActions_ApplyRecommended", "Apply Recommended Settings")
-                : Localized("QuickActions_ResetDefaults", "Reset to Windows Defaults"),
+                ? _localizationService.GetStringOrDefault("QuickActions_ApplyRecommended", "Apply Recommended Settings")
+                : _localizationService.GetStringOrDefault("QuickActions_ResetDefaults", "Reset to Windows Defaults"),
             Message = string.Format(
                 settings.Count == 1
-                    ? Localized("QuickActions_ConfirmMessage_One", "This will change {0} setting on this page. Continue?")
-                    : Localized("QuickActions_ConfirmMessage", "This will change {0} settings on this page. Continue?"),
+                    ? _localizationService.GetStringOrDefault("QuickActions_ConfirmMessage_One", "This will change {0} setting on this page. Continue?")
+                    : _localizationService.GetStringOrDefault("QuickActions_ConfirmMessage", "This will change {0} settings on this page. Continue?"),
                 settings.Count),
             Table = new SummaryTable(
                 [
-                    Localized("QuickActions_Column_Setting", "Setting"),
-                    Localized("QuickActions_Column_Now", "Now"),
-                    Localized("QuickActions_Column_After", "After"),
+                    _localizationService.GetStringOrDefault("QuickActions_Column_Setting", "Setting"),
+                    _localizationService.GetStringOrDefault("QuickActions_Column_Now", "Now"),
+                    _localizationService.GetStringOrDefault("QuickActions_Column_After", "After"),
                 ],
                 groups),
             ConfirmButtonText = string.Format(
                 settings.Count == 1
-                    ? Localized("QuickActions_ApplyChanges_One", "Apply {0} change")
-                    : Localized("QuickActions_ApplyChanges", "Apply {0} changes"),
+                    ? _localizationService.GetStringOrDefault("QuickActions_ApplyChanges_One", "Apply {0} change")
+                    : _localizationService.GetStringOrDefault("QuickActions_ApplyChanges", "Apply {0} changes"),
                 settings.Count),
         });
     }
@@ -634,8 +591,6 @@ public abstract class SectionPage : Page
 
     private async Task ExecuteBulkActionAsync(BulkActionType actionType)
     {
-        if (_bulkSettingsActionService == null) return;
-
         // Cards already at the target are left out, so the list is what changes. The service then drops any
         // the PC cannot take (another Windows version shown with the version filter off, other hardware).
         bool recommended = actionType == BulkActionType.ApplyRecommended;
@@ -654,8 +609,6 @@ public abstract class SectionPage : Page
 
     private async Task ExecuteReviewBulkActionAsync(bool approved)
     {
-        if (_configReviewService == null) return;
-
         var settingIds = SettingIdsInScope();
         int diffCount = settingIds.Count(id => _configReviewService.GetDiffForSetting(id) != null);
         if (diffCount == 0) return;
@@ -665,7 +618,7 @@ public abstract class SectionPage : Page
             ? "This will accept {0} changes on this page. Continue?"
             : "This will reject {0} changes on this page. Continue?";
 
-        if (!await ConfirmAsync(string.Format(Localized(messageKey, fallback), diffCount)))
+        if (!await ConfirmAsync(string.Format(_localizationService.GetStringOrDefault(messageKey, fallback), diffCount)))
             return;
 
         foreach (var id in settingIds)
@@ -710,25 +663,21 @@ public abstract class SectionPage : Page
 
     private void UpdateQuickActionsForReviewMode()
     {
-        if (_configReviewService?.IsInReviewMode == true)
+        if (_configReviewService.IsInReviewMode)
         {
-            _chrome.ApplyRecommendedItem.Text = Localized("QuickActions_AcceptAll", "Accept All Changes");
-            _chrome.ResetDefaultsItem.Text = Localized("QuickActions_RejectAll", "Reject All Changes");
-            // Swap icons: Accept = checkmark (E73E), Reject = dismiss (E711)
-            _chrome.ApplyRecommendedIcon.Glyph = "";
-            _chrome.ResetDefaultsItem.Icon = new FontIcon { Glyph = "", FontSize = 14 };
+            _chrome.ApplyRecommendedItem.Text = _localizationService.GetStringOrDefault("QuickActions_AcceptAll", "Accept All Changes");
+            _chrome.ResetDefaultsItem.Text = _localizationService.GetStringOrDefault("QuickActions_RejectAll", "Reject All Changes");
+            _chrome.ApplyRecommendedIcon.Icon = Icon.Checkmark;
+            _chrome.ResetDefaultsItem.Icon = new FluentIcon { Icon = Icon.Dismiss, FontSize = 14 };
             _chrome.ShowOnlyChangesSeparator.Visibility = Visibility.Visible;
             _chrome.ShowOnlyChangesToggle.Visibility = Visibility.Visible;
         }
         else
         {
-            _chrome.ApplyRecommendedItem.Text = Localized("QuickActions_ApplyRecommended", "Apply Recommended Settings");
-            _chrome.ResetDefaultsItem.Text = Localized("QuickActions_ResetDefaults", "Reset to Windows Defaults");
-            _chrome.ApplyRecommendedIcon.Glyph = "";
-            _chrome.ResetDefaultsItem.Icon = new PathIcon
-            {
-                Data = GeometryHelper.FromResource("WindowsLogoIconPath")
-            };
+            _chrome.ApplyRecommendedItem.Text = _localizationService.GetStringOrDefault("QuickActions_ApplyRecommended", "Apply Recommended Settings");
+            _chrome.ResetDefaultsItem.Text = _localizationService.GetStringOrDefault("QuickActions_ResetDefaults", "Reset to Windows Defaults");
+            _chrome.ApplyRecommendedIcon.Icon = Icon.Star;
+            _chrome.ResetDefaultsItem.Icon = new FluentIcon { Icon = Icon.Apps, FontSize = 14 };
             _chrome.ShowOnlyChangesSeparator.Visibility = Visibility.Collapsed;
             _chrome.ShowOnlyChangesToggle.Visibility = Visibility.Collapsed;
             _chrome.ShowOnlyChangesToggle.IsChecked = false;

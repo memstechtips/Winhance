@@ -18,8 +18,8 @@ public class SupportAskScheduleTests
     public SupportAskScheduleTests()
     {
         var prefs = new Mock<IUserPreferencesService>();
-        prefs.Setup(p => p.GetPreferenceAsync(It.IsAny<string>(), It.IsAny<string>()))
-             .ReturnsAsync((string key, string fallback) => _stored.TryGetValue(key, out var value) ? value : fallback);
+        prefs.Setup(p => p.GetPreference(It.IsAny<string>(), It.IsAny<string>()))
+             .Returns((string key, string fallback) => _stored.TryGetValue(key, out var value) ? value : fallback);
         prefs.Setup(p => p.SetPreferenceAsync(It.IsAny<string>(), It.IsAny<string>()))
              .ReturnsAsync((string key, string value) =>
              {

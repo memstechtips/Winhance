@@ -6,25 +6,26 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:fluentIcons="using:FluentIcons.WinUI"
+    xmlns:helpers="using:Winhance.UI.Features.Common.Helpers"
     mc:Ignorable="d"
     d:DesignHeight="44"
     d:DesignWidth="400">
 
-    <!-- Bound through DataContext (the ViewModel is an ObservableObject), matching the pattern used by
-         the other views. Deliberately has NO close button: the pending state is real, and letting
-         the user dismiss it would leave them believing their settings already took effect. -->
-    <Grid Visibility="{Binding IsBarVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
-          AutomationProperties.LiveSetting="Polite">
+    <!-- Deliberately has NO close button: the pending state is real, and letting the user dismiss it
+         would leave them believing their settings already took effect. -->
+    <Grid AutomationProperties.LiveSetting="Polite">
         <!-- Amber, matching a WinUI InfoBar with Severity="Warning". Applied as a ThemeResource on a
              plain Border rather than by using a real InfoBar, so the bar keeps its own icon and
              layout - the same technique SettingTemplates.xaml already uses with the Informational
              brush from this family, and it tracks light/dark theme automatically. -->
-        <Border Background="{ThemeResource InfoBarWarningSeverityBackgroundBrush}"
+        <Border x:Name="RestartCard"
+                x:Load="{x:Bind ViewModel.IsBarVisible, Mode=OneWay, FallbackValue=False}"
+                Background="{ThemeResource InfoBarWarningSeverityBackgroundBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1"
-                CornerRadius="4"
+                CornerRadius="{StaticResource CardCornerRadius}"
                 Padding="12,8"
-                ToolTipService.ToolTip="{Binding TooltipText}">
+                ToolTipService.ToolTip="{x:Bind ViewModel.TooltipText, Mode=OneWay}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>  <!-- Icon -->
@@ -35,37 +36,39 @@
                 <fluentIcons:FluentIcon Grid.Column="0"
                                         Icon="ArrowClockwiseDashesSettings"
                                         IconVariant="Color"
-                                        FontSize="20"
+                                        FontSize="{StaticResource StatusIconFontSize}"
                                         VerticalAlignment="Center"
-                                        Margin="0,0,10,0"/>
+                                        Margin="{StaticResource BarIconMargin}"/>
 
                 <TextBlock Grid.Column="1"
-                           Text="{Binding Message}"
-                           FontSize="13"
+                           Text="{x:Bind ViewModel.Message, Mode=OneWay}"
+                           FontSize="{StaticResource BarTextFontSize}"
                            Foreground="{ThemeResource TextFillColorPrimaryBrush}"
                            VerticalAlignment="Center"
                            TextWrapping="Wrap"
-                           Margin="0,0,12,0"/>
+                           Margin="{StaticResource ColumnGapMargin}"/>
 
                 <Button Grid.Column="2"
-                        Command="{Binding RestartCommand}"
-                        IsEnabled="{Binding CanRestart}"
-                        AutomationProperties.Name="{Binding ButtonText}"
+                        Command="{x:Bind ViewModel.RestartCommand, Mode=OneWay}"
+                        IsEnabled="{x:Bind ViewModel.CanRestart, Mode=OneWay}"
+                        AutomationProperties.Name="{x:Bind ViewModel.ButtonText, Mode=OneWay}"
                         VerticalAlignment="Center"
                         Padding="12,6">
                     <Grid>
                         <!-- Idle: the label. In flight: a ring plus the in-progress text. -->
-                        <TextBlock Text="{Binding ButtonText}"
-                                   FontSize="13"
-                                   Visibility="{Binding IsRestarting, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
-                        <StackPanel Orientation="Horizontal"
-                                    Spacing="8"
-                                    Visibility="{Binding IsRestarting, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <ProgressRing IsActive="{Binding IsRestarting}"
+                        <TextBlock x:Name="RestartLabel"
+                                   x:Load="{x:Bind helpers:LoadWhen.Not(ViewModel.IsRestarting), Mode=OneWay}"
+                                   Text="{x:Bind ViewModel.ButtonText, Mode=OneWay}"
+                                   FontSize="{StaticResource BarTextFontSize}"/>
+                        <StackPanel x:Name="RestartingPanel"
+                                    x:Load="{x:Bind ViewModel.IsRestarting, Mode=OneWay}"
+                                    Orientation="Horizontal"
+                                    Spacing="{StaticResource IconLabelSpacing}">
+                            <ProgressRing IsActive="{x:Bind ViewModel.IsRestarting, Mode=OneWay}"
                                           Width="14"
                                           Height="14"/>
-                            <TextBlock Text="{Binding RestartingText}"
-                                       FontSize="13"/>
+                            <TextBlock Text="{x:Bind ViewModel.RestartingText, Mode=OneWay}"
+                                       FontSize="{StaticResource BarTextFontSize}"/>
                         </StackPanel>
                     </Grid>
                 </Button>

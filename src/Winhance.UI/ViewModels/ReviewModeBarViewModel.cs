@@ -10,6 +10,12 @@ namespace Winhance.UI.ViewModels;
 
 public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
 {
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(ReviewModeTitleText), nameof(ReviewModeDescriptionText), nameof(ReviewModeApplyButtonText),
+        nameof(ReviewModeAcceptAllRemainingText), nameof(ReviewModeCancelButtonText),
+    ];
+
     private bool _disposed;
     private readonly IConfigReviewModeService _configReviewModeService;
     private readonly IConfigReviewDiffService _configReviewDiffService;
@@ -100,11 +106,8 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
     {
         if (IsInReviewMode)
         {
-            OnPropertyChanged(nameof(ReviewModeTitleText));
-            OnPropertyChanged(nameof(ReviewModeDescriptionText));
-            OnPropertyChanged(nameof(ReviewModeApplyButtonText));
-            OnPropertyChanged(nameof(ReviewModeAcceptAllRemainingText));
-            OnPropertyChanged(nameof(ReviewModeCancelButtonText));
+            foreach (var name in LocalizedProperties)
+                OnPropertyChanged(name);
             UpdateReviewModeStatus();
             UpdateCanApplyReviewedConfig();
         }
@@ -164,27 +167,25 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
         {
             if (AppListOpen(FeatureIds.WindowsApps, _vmCoordinator.HasSelectedWindowsApps,
                     _vmCoordinator.IsWindowsAppsInstallAction || _vmCoordinator.IsWindowsAppsRemoveAction))
-                open.Add(Localized("SoftwareApps_Tab_WindowsApps", "Windows Apps & Features"));
+                open.Add(_localizationService.GetStringOrDefault("SoftwareApps_Tab_WindowsApps", "Windows Apps & Features"));
             if (AppListOpen(FeatureIds.ExternalApps, _vmCoordinator.HasSelectedExternalApps,
                     _vmCoordinator.IsExternalAppsInstallAction || _vmCoordinator.IsExternalAppsRemoveAction))
-                open.Add(Localized("SoftwareApps_Tab_ExternalApps", "External Software"));
+                open.Add(_localizationService.GetStringOrDefault("SoftwareApps_Tab_ExternalApps", "External Software"));
             if (open.Count == 0)
-                open.Add(Localized("Category_SoftwareApps_Title", "Software & Apps"));
+                open.Add(_localizationService.GetStringOrDefault("Category_SoftwareApps_Title", "Software & Apps"));
         }
         if (!optimizeReviewed)
-            open.Add(Localized("Nav_Optimize", "Optimize"));
+            open.Add(_localizationService.GetStringOrDefault("Nav_Optimize", "Optimize"));
         if (!customizeReviewed)
-            open.Add(Localized("Nav_Customize", "Customize"));
+            open.Add(_localizationService.GetStringOrDefault("Nav_Customize", "Customize"));
 
         ReviewModeApplyBlockedTooltip = CanApplyReviewedConfig || open.Count == 0
             ? null
-            : string.Format(Localized("Review_Mode_Apply_Blocked_Tooltip", "Still to review: {0}"), string.Join(", ", open));
+            : string.Format(_localizationService.GetStringOrDefault("Review_Mode_Apply_Blocked_Tooltip", "Still to review: {0}"), string.Join(", ", open));
     }
 
     private bool AppListOpen(string featureId, bool anySelected, bool actionChosen) =>
         _configReviewBadgeService.IsFeatureInConfig(featureId) && anySelected && !actionChosen;
-
-    private string Localized(string key, string fallback) => _localizationService.GetStringOrDefault(key, fallback);
 
     private void UpdateReviewModeStatus()
     {
@@ -228,17 +229,9 @@ public partial class ReviewModeBarViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private async Task ApplyReviewedConfigAsync()
-    {
-        try
-        {
-            await _configurationService.ApplyReviewedConfigAsync();
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(Core.Features.Common.Enums.LogLevel.Error, $"Failed to apply reviewed config: {ex.Message}");
-        }
-    }
+    private Task ApplyReviewedConfigAsync() =>
+        _dialogService.RunOrShowErrorAsync(_logService, _configurationService.ApplyReviewedConfigAsync,
+            ex => _localizationService.GetStringOrDefault("Config_Apply_Error", "Error applying configuration: {0}", ex.Message));
 
     [RelayCommand]
     private Task AcceptAllRemainingAsync()

@@ -495,7 +495,7 @@ internal class SettingApplicationService(
             // cannot disagree; unknown renders both components.
             var hasBattery = hardwareDetectionService.HasBattery() ?? true;
             var after = FormatStateDisplay(setting, enable, value, hasBattery, keyedOptions);
-            var before = beforeDisplay ?? ResolveLocalized(LocKey.Common.CustomState.Value) ?? "?";
+            var before = beforeDisplay ?? localizationService.GetStringOrDefault(LocKey.Common.CustomState.Value, "?");
             if (before == after)
                 return; // not a change — no receipt entry
 
@@ -507,16 +507,13 @@ internal class SettingApplicationService(
         }
     }
 
-    private string? ResolveLocalized(string key) =>
-        localizationService.TryGetString(key, out var value) ? value : null;
-
     private string GetOptionLabel(Setting setting, int index)
     {
         if (index < 0 || index >= setting.States.Count)
-            return ResolveLocalized(LocKey.Common.CustomState.Value) ?? "Custom";
+            return localizationService.GetStringOrDefault(LocKey.Common.CustomState.Value, "Custom");
 
         var label = setting.States[index].Label;
-        return ResolveLocalized(label.Value) ?? label.Value;
+        return localizationService.GetStringOrDefault(label.Value, label.Value);
     }
 
     // A JSON-sourced numeric may box as long or double.
@@ -534,7 +531,7 @@ internal class SettingApplicationService(
             case ControlKind.KeyedSelection:
                 return value is string key
                     ? options?.FirstOrDefault(option => option.Value == key)?.Label ?? key
-                    : ResolveLocalized(LocKey.Common.CustomState.Value) ?? "?";
+                    : localizationService.GetStringOrDefault(LocKey.Common.CustomState.Value, "?");
 
             case ControlKind.Selection:
                 // UI / recommended path: a single selected option index.
@@ -559,7 +556,7 @@ internal class SettingApplicationService(
 
                     return string.Join(", ", dict.Select(kv => $"{kv.Key}={kv.Value}"));
                 }
-                return value?.ToString() ?? ResolveLocalized(LocKey.Common.CustomState.Value) ?? "?";
+                return value?.ToString() ?? localizationService.GetStringOrDefault(LocKey.Common.CustomState.Value, "?");
 
             case ControlKind.Slider:
                 // A dictionary from the UI or recommended path is in display units; a ChoiceValue from config import
@@ -588,7 +585,7 @@ internal class SettingApplicationService(
                     && acdcNumPlain.TryGetValue("ACValue", out var acNumPlain)
                     && acdcNumPlain.TryGetValue("DCValue", out var dcNumPlain))
                     return ComposeAcDc(acNumPlain?.ToString() ?? "", dcNumPlain?.ToString() ?? "", hasBattery);
-                return value?.ToString() ?? ResolveLocalized(LocKey.Common.CustomState.Value) ?? "?";
+                return value?.ToString() ?? localizationService.GetStringOrDefault(LocKey.Common.CustomState.Value, "?");
 
             case ControlKind.CheckBox:
                 return localizationService.GetString(
@@ -664,10 +661,10 @@ internal class SettingApplicationService(
             "Milliseconds" => "Common_Unit_Milliseconds",
             _              => null,
         };
-        return key != null ? (ResolveLocalized(key) ?? units) : units;
+        return key != null ? localizationService.GetStringOrDefault(key, units) : units;
     }
 
     private string? ResolveLocalizedGroup(LocKey? groupName) =>
-        groupName is { } key ? ResolveLocalized(key.Value) ?? key.Value : null;
+        groupName is { } key ? localizationService.GetStringOrDefault(key.Value, key.Value) : null;
 
 }

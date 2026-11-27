@@ -1,6 +1,7 @@
 using Microsoft.Win32;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Enums;
 using static Winhance.Core.Features.Common.Catalog.StateValue;
 using Winhance.Core.Features.Common.Localization;
 
@@ -21,7 +22,7 @@ public static class TimeRegionLanguageCatalog
                 Name = LocKey.Setting.RegionTimeZone.Name,
                 Description = LocKey.Setting.RegionTimeZone.Description,
                 GroupName = LocKey.SettingGroup.Time,
-                Icon = MaterialIcons.ClockStart,
+                Icon = FluentIcons.GlobeClock,
                 AddedInVersion = "26.09.05",
                 IsSubjectivePreference = true,
             },
@@ -35,13 +36,92 @@ public static class TimeRegionLanguageCatalog
         },
         new()
         {
+            Id = "region-set-time-automatically",
+            Display = new()
+            {
+                Name = LocKey.Setting.RegionSetTimeAutomatically.Name,
+                Description = LocKey.Setting.RegionSetTimeAutomatically.Description,
+                GroupName = LocKey.SettingGroup.Time,
+                Icon = FluentIcons.CalendarClock,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            Targets = new Target[]
+            {
+                new RegTarget("Type", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\W32Time\Parameters" }, "Type", RegistryValueKind.String),
+                new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\W32Time" }, "Start", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Effects = new Effect[] { new ScriptEffect("Start-Service w32time -ErrorAction SilentlyContinue; w32tm /resync /nowait | Out-Null", RunContext.System) },
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["Type"] = OneOf("NTP", "NT5DS", "AllSync"),
+                        ["Start"] = OneOf(3, 2),
+                    },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    IsFallback = true,
+                    Effects = new Effect[] { new ScriptEffect("Stop-Service w32time -Force -ErrorAction SilentlyContinue", RunContext.System) },
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["Type"] = Of("NoSync"),
+                        ["Start"] = Of(4),
+                    },
+                },
+            },
+        },
+        new()
+        {
+            Id = "region-set-time-zone-automatically",
+            Display = new()
+            {
+                Name = LocKey.Setting.RegionSetTimeZoneAutomatically.Name,
+                Description = LocKey.Setting.RegionSetTimeZoneAutomatically.Description,
+                GroupName = LocKey.SettingGroup.Time,
+                Icon = FluentIcons.GlobeClock,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            Targets = new Target[]
+            {
+                new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\tzautoupdate" }, "Start", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    // The time zone comes from the device's location, so the updater does nothing while location is off.
+                    Links = new[] { new Link("privacy-location-services", LinkKind.Requires, LocKey.Common.Enabled) },
+                    Effects = new Effect[] { new ScriptEffect("Start-Service tzautoupdate -ErrorAction SilentlyContinue", RunContext.System) },
+                    Set = new Dictionary<string, StateValue> { ["Start"] = Of(3) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Effects = new Effect[] { new ScriptEffect("Stop-Service tzautoupdate -Force -ErrorAction SilentlyContinue", RunContext.System) },
+                    Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
+                },
+            },
+        },
+        new()
+        {
             Id = "region-format",
             Display = new()
             {
                 Name = LocKey.Setting.RegionFormat.Name,
                 Description = LocKey.Setting.RegionFormat.Description,
                 GroupName = LocKey.SettingGroup.Region,
-                Icon = MaterialIcons.Wan,
+                Icon = FluentIcons.LocalLanguageGlobe,
                 AddedInVersion = "26.09.05",
                 IsSubjectivePreference = true,
             },
@@ -100,7 +180,7 @@ public static class TimeRegionLanguageCatalog
                 Name = LocKey.Setting.RegionHomeLocation.Name,
                 Description = LocKey.Setting.RegionHomeLocation.Description,
                 GroupName = LocKey.SettingGroup.Region,
-                Icon = MaterialIcons.MapMarker,
+                Icon = FluentIcons.Location,
                 AddedInVersion = "26.09.05",
                 IsSubjectivePreference = true,
             },
@@ -120,7 +200,7 @@ public static class TimeRegionLanguageCatalog
                 Name = LocKey.Setting.RegionDisplayLanguage.Name,
                 Description = LocKey.Setting.RegionDisplayLanguage.Description,
                 GroupName = LocKey.SettingGroup.LanguageAndKeyboard,
-                Icon = MaterialIcons.FormatSize,
+                Icon = FluentIcons.LocalLanguage,
                 AddedInVersion = "26.09.22",
                 IsSubjectivePreference = true,
             },
@@ -146,7 +226,7 @@ public static class TimeRegionLanguageCatalog
                 Name = LocKey.Setting.RegionKeyboardLayout.Name,
                 Description = LocKey.Setting.RegionKeyboardLayout.Description,
                 GroupName = LocKey.SettingGroup.LanguageAndKeyboard,
-                Icon = MaterialIcons.Keyboard,
+                Icon = FluentIcons.Keyboard,
                 AddedInVersion = "26.09.05",
                 IsSubjectivePreference = true,
             },
@@ -166,7 +246,7 @@ public static class TimeRegionLanguageCatalog
                 Name = LocKey.Setting.RegionSystemLocale.Name,
                 Description = LocKey.Setting.RegionSystemLocale.Description,
                 GroupName = LocKey.SettingGroup.LanguageAndKeyboard,
-                Icon = MaterialIcons.Translate,
+                Icon = FluentIcons.Translate,
                 AddedInVersion = "26.09.05",
                 IsSubjectivePreference = true,
             },
@@ -189,7 +269,7 @@ public static class TimeRegionLanguageCatalog
                 Name = LocKey.Setting.RegionShortDate.Name,
                 Description = LocKey.Setting.RegionShortDate.Description,
                 GroupName = LocKey.SettingGroup.Formats,
-                Icon = MaterialIcons.CalendarMonth,
+                Icon = FluentIcons.CalendarMonth,
                 AddedInVersion = "26.04.10",
                 IsSubjectivePreference = true,
             },
@@ -215,7 +295,7 @@ public static class TimeRegionLanguageCatalog
                 Name = LocKey.Setting.RegionFirstDayOfWeek.Name,
                 Description = LocKey.Setting.RegionFirstDayOfWeek.Description,
                 GroupName = LocKey.SettingGroup.Formats,
-                Icon = MaterialIcons.CalendarWeekBegin,
+                Icon = FluentIcons.CalendarWeekStart,
                 AddedInVersion = "26.04.10",
                 IsSubjectivePreference = true,
             },
@@ -271,7 +351,7 @@ public static class TimeRegionLanguageCatalog
                 Name = LocKey.Setting.RegionNumberDecimal.Name,
                 Description = LocKey.Setting.RegionNumberDecimal.Description,
                 GroupName = LocKey.SettingGroup.Formats,
-                Icon = MaterialIcons.Numeric,
+                Icon = FluentIcons.Keyboard123,
                 AddedInVersion = "26.04.10",
                 IsSubjectivePreference = true,
             },
@@ -312,7 +392,7 @@ public static class TimeRegionLanguageCatalog
                 Name = LocKey.Setting.RegionListSeparator.Name,
                 Description = LocKey.Setting.RegionListSeparator.Description,
                 GroupName = LocKey.SettingGroup.Formats,
-                Icon = MaterialIcons.FormatListBulleted,
+                Icon = FluentIcons.TextBulletList,
                 AddedInVersion = "26.04.10",
                 IsSubjectivePreference = true,
             },
@@ -343,7 +423,7 @@ public static class TimeRegionLanguageCatalog
                 Name = LocKey.Setting.RegionMeasurementSystem.Name,
                 Description = LocKey.Setting.RegionMeasurementSystem.Description,
                 GroupName = LocKey.SettingGroup.Formats,
-                Icon = MaterialIcons.RulerSquare,
+                Icon = FluentIcons.Ruler,
                 AddedInVersion = "26.04.10",
                 IsSubjectivePreference = true,
             },
@@ -374,7 +454,7 @@ public static class TimeRegionLanguageCatalog
                 Name = LocKey.Setting.RegionCurrencyDecimal.Name,
                 Description = LocKey.Setting.RegionCurrencyDecimal.Description,
                 GroupName = LocKey.SettingGroup.Formats,
-                Icon = MaterialIcons.CurrencySign,
+                Icon = FluentIcons.CurrencyDollarEuro,
                 AddedInVersion = "26.04.10",
                 IsSubjectivePreference = true,
             },

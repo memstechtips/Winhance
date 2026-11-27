@@ -18,8 +18,6 @@ public class TrayStatusTests
 
         public Task<OperationResult> SavePreferencesAsync(Dictionary<string, object> preferences) => Task.FromResult(OperationResult.Succeeded());
 
-        public Task<T> GetPreferenceAsync<T>(string key, T defaultValue) => Task.FromResult(GetPreference(key, defaultValue));
-
         public Task<OperationResult> SetPreferenceAsync<T>(string key, T value)
         {
             Values[key] = value!;

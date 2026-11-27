@@ -66,6 +66,9 @@ public class WindowsAppsViewModelTests
         IsInstalled = isInstalled
     };
 
+    private static IEnumerable<string> AppIds(WindowsAppsViewModel sut) =>
+        sut.Sections.SingleOrDefault(s => s.GroupName == "Apps")?.Apps.Select(a => a.Id) ?? [];
+
     [Fact]
     public void Constructor_SetsDefaultValues()
     {
@@ -169,13 +172,13 @@ public class WindowsAppsViewModelTests
             .ReturnsAsync(new List<ItemDefinition> { CreateTestItem("a", "Alpha"), CreateTestItem("z", "Zulu") });
         var sut = CreateSut();
         _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.Windows, It.IsAny<CancellationToken>()))
-            .Callback(() => listedMidLoad = sut.WindowsAppsFiltered.Select(a => a.Definition.Id).ToList())
+            .Callback(() => listedMidLoad = AppIds(sut).ToList())
             .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["a"] = false, ["z"] = true }));
 
         await sut.LoadAppsAndCheckInstallationStatusAsync();
 
         listedMidLoad.Should().BeEmpty();
-        sut.WindowsAppsFiltered.Select(a => a.Definition.Id).Should().Equal("z", "a");
+        AppIds(sut).Should().Equal("z", "a");
     }
 
     [Fact]
@@ -278,6 +281,39 @@ public class WindowsAppsViewModelTests
         await sut.RecheckInstallationStatusAsync();
 
         sut.StatusText.Should().Be("Progress_WaitForInitialLoad");
+    }
+
+    [Fact]
+    public async Task StatusText_OnALanguageSwitch_IsReadAgainInTheNewLanguage()
+    {
+        var sut = CreateSut();
+        await sut.RecheckInstallationStatusAsync();
+        var changed = new List<string?>();
+        sut.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+        _localizationService.Setup(l => l.GetString(It.IsAny<string>())).Returns<string>(k => $"fr:{k}");
+
+        _localizationService.Raise(l => l.LanguageChanged += null, EventArgs.Empty);
+
+        changed.Should().Contain(nameof(sut.StatusText));
+        sut.StatusText.Should().Be("fr:Progress_WaitForInitialLoad");
+    }
+
+    [Fact]
+    public async Task RecheckInstallationStatusAsync_AfterALanguageSwitch_ShowsTheLoaderInTheNewLanguage()
+    {
+        _windowsAppsService.Setup(s => s.GetAppsAsync()).ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        string? loaderText = null;
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>()))
+            .Callback(() => loaderText = sut.StatusText)
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
+        _localizationService.Setup(l => l.GetString(It.IsAny<string>())).Returns<string>(k => $"fr:{k}");
+        _localizationService.Raise(l => l.LanguageChanged += null, EventArgs.Empty);
+
+        await sut.RecheckInstallationStatusAsync();
+
+        loaderText.Should().Be("fr:Progress_LoadingWindowsApps");
     }
 
     [Fact]
@@ -407,6 +443,25 @@ public class WindowsAppsViewModelTests
     }
 
     [Fact]
+    public async Task ToggleSelectAll_NotifiesOnceForTheWholeList()
+    {
+        _windowsAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(new[] { CreateTestItem("app1"), CreateTestItem("app2"), CreateTestItem("app3") });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.Windows, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = false, ["app2"] = false, ["app3"] = false }));
+
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        int raised = 0;
+        sut.SelectedItemsChanged += (_, _) => raised++;
+
+        sut.ToggleSelectAllCommand.Execute(null);
+
+        raised.Should().Be(1);
+        sut.Items.Should().OnlyContain(i => i.IsSelected);
+    }
+
+    [Fact]
     public async Task ToggleSelectAll_SelectsAllItems()
     {
         _windowsAppsService.Setup(s => s.GetAppsAsync())
@@ -496,6 +551,56 @@ public class WindowsAppsViewModelTests
 
         installedItem.IsSelected.Should().BeFalse();
         notInstalledItem.IsSelected.Should().BeTrue();
+    }
+
+    private async Task<WindowsAppsViewModel> LoadedCalculatorAndPaintAsync()
+    {
+        _windowsAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(new[] { CreateTestItem("app1", "Calculator", isInstalled: true), CreateTestItem("app2", "Paint") });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.Windows, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = true, ["app2"] = false }));
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        return sut;
+    }
+
+    [Fact]
+    public async Task SelectAllInstalled_WhenTheSearchShowsNoTickedInstalledApp_IsUnticked()
+    {
+        var sut = await LoadedCalculatorAndPaintAsync();
+        var boxes = new SelectAllBoxes(sut);
+        sut.Items.Single(i => i.Id == "app1").IsSelected = true;
+
+        sut.SearchText = "Pai";
+
+        sut.IsAllSelectedInstalled.Should().BeFalse();
+        boxes.ShouldShowWhatTheRowsSay();
+    }
+
+    [Fact]
+    public async Task ToggleSelectAll_WhileSearching_TicksOnlyTheShownRows()
+    {
+        var sut = await LoadedCalculatorAndPaintAsync();
+        sut.SearchText = "Pai";
+
+        sut.ToggleSelectAllCommand.Execute(null);
+
+        sut.Items.Single(i => i.Id == "app2").IsSelected.Should().BeTrue();
+        sut.Items.Single(i => i.Id == "app1").IsSelected.Should().BeFalse();
+        sut.IsAllSelected.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SelectAllBoxes_WhenAnUntickedRowTurnsOutInstalled_FollowTheRows()
+    {
+        var sut = await LoadedCalculatorAndPaintAsync();
+        sut.Items.Single(i => i.Id == "app1").IsSelected = true;
+        var boxes = new SelectAllBoxes(sut);
+
+        sut.Items.Single(i => i.Id == "app2").IsInstalled = true;
+
+        sut.IsAllSelectedInstalled.Should().BeFalse();
+        boxes.ShouldShowWhatTheRowsSay();
     }
 
     [Fact]
@@ -654,11 +759,61 @@ public class WindowsAppsViewModelTests
 
         sut.Filter = AppFilter.Installed;
 
-        sut.WindowsAppsFiltered.Select(a => a.Id).Should().Equal("z");
+        AppIds(sut).Should().Equal("z");
 
         sut.Filter = AppFilter.All;
 
-        sut.WindowsAppsFiltered.Select(a => a.Id).Should().Equal("z", "a");
+        AppIds(sut).Should().Equal("z", "a");
+    }
+
+    [Fact]
+    public async Task Sections_SplitAppsCapabilitiesAndOptionalFeatures_UnderLocalizedHeaders()
+    {
+        _windowsAppsService.Setup(s => s.GetAppsAsync()).ReturnsAsync(new List<ItemDefinition>
+        {
+            CreateTestItem("app", "App"),
+            CreateTestItem("cap", "Capability", appxPackageName: []) with { CapabilityName = "Cap~~~~" },
+            CreateTestItem("feature", "Feature", appxPackageName: []) with { OptionalFeatureName = "Feature" },
+        });
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+
+        sut.Sections.Select(s => s.DisplayName).Should().Equal(
+            "WindowsApps_Section_Apps", "WindowsApps_Section_Capabilities", "WindowsApps_Section_OptionalFeatures");
+        sut.Sections.Select(s => s.Apps.Single().Id).Should().Equal("app", "cap", "feature");
+    }
+
+    [Fact]
+    public async Task Sections_KeepTheirListWhenNoRowCameWentOrMoved()
+    {
+        _windowsAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(new List<ItemDefinition> { CreateTestItem("a", "Alpha"), CreateTestItem("z", "Zulu") });
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        var loaded = sut.Sections;
+
+        sut.Filter = AppFilter.UpdatesAvailable;
+        sut.SortMode = AppSortMode.NameAsc;
+        await sut.RecheckInstallationStatusAsync();
+
+        sut.Sections.Should().BeSameAs(loaded);
+        sut.SearchText = "Zulu";
+        sut.Sections.Should().NotBeSameAs(loaded);
+        AppIds(sut).Should().Equal("z");
+    }
+
+    [Fact]
+    public async Task Sections_RebuildWithTheNewHeadersOnLanguageChange()
+    {
+        _windowsAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(new List<ItemDefinition> { CreateTestItem("a", "Alpha") });
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        _localizationService.Setup(l => l.GetString("WindowsApps_Section_Apps")).Returns("Apps (de)");
+
+        _localizationService.Raise(l => l.LanguageChanged += null, EventArgs.Empty);
+
+        sut.Sections[0].DisplayName.Should().Be("Apps (de)");
     }
 
     [Fact]
@@ -744,6 +899,63 @@ public class WindowsAppsViewModelTests
         _dialogService.Verify(d => d.ShowWarningAsync(
             It.Is<string>(m => m.Contains("WindowsApps_InstallFailed") && m.Contains("Beta") && m.Contains("Gamma") && !m.Contains("Alpha")),
             It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task InstallAppsAsync_WhenAnInstallThrows_ShowsTheErrorAndFailsTheTask()
+    {
+        var sut = await LoadedWithScanAsync([CreateTestItem("a", "Alpha")]);
+        _progressService.Setup(p => p.StartTask(It.IsAny<string>(), It.IsAny<bool>())).Returns(new CancellationTokenSource());
+        _progressService.Setup(p => p.CreateDetailedProgress()).Returns(new Progress<TaskProgressDetail>());
+        _localizationService.Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Returns<string, object[]>((key, args) => $"{key}: {string.Join(", ", args)}");
+        _dialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+        _appInstallationService.Setup(s => s.InstallAppAsync(
+                It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<bool>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+        sut.Items[0].IsSelected = true;
+
+        await sut.InstallAppsAsync();
+
+        _dialogService.Verify(d => d.ShowErrorAsync(
+            It.Is<string>(m => m.StartsWith("Progress_WinGet_InstallationError") && m.Contains("Alpha") && m.Contains("boom")),
+            It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _progressService.Verify(p => p.FailTask(), Times.Once);
+        sut.IsTaskRunning.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RemoveAppsAsync_WhenTheRemovalThrows_ShowsTheErrorAndClearsBusy()
+    {
+        var sut = await LoadedWithScanAsync([CreateTestItem("a", "Alpha")]);
+        _localizationService.Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Returns<string, object[]>((key, args) => $"{key}: {string.Join(", ", args)}");
+        _dialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+        _windowsAppUninstallService.Setup(s => s.UninstallAppsInParallelAsync(It.IsAny<List<ItemDefinition>>(), It.IsAny<bool>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+        sut.Items[0].IsSelected = true;
+
+        await sut.RemoveAppsAsync();
+
+        _dialogService.Verify(d => d.ShowErrorAsync(
+            It.Is<string>(m => m.StartsWith("Progress_WinGet_UninstallationError") && m.Contains("Alpha") && m.Contains("boom")),
+            It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        sut.IsTaskRunning.Should().BeFalse();
+        sut.Items[0].IsInstalled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RecheckInstallationStatusAsync_WhenTheRecheckThrows_ThrowsAndClearsLoading()
+    {
+        var sut = await LoadedWithScanAsync([CreateTestItem("a", "Alpha")]);
+        _installedAppsService.Setup(s => s.Invalidate()).Throws(new InvalidOperationException("boom"));
+
+        var recheck = () => sut.RecheckInstallationStatusAsync();
+
+        await recheck.Should().ThrowAsync<InvalidOperationException>();
+        sut.IsLoading.Should().BeFalse();
     }
 
     [Fact]

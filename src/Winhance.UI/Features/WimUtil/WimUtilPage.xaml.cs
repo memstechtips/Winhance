@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
 using Windows.Foundation;
 using Winhance.UI.Features.WimUtil.Controls;
@@ -27,10 +28,13 @@ public sealed partial class WimUtilPage : Page
     // column and 720 for the steps, under which the Step 1 card rows wrap word by word.
     private const double RailMinPageWidth = 2 * 24 + RailColumnWidth + 720;
 
-    private readonly ILocalizationService? _localizationService;
+    private readonly ILocalizationService _localizationService;
     private readonly List<WizardActionCard> _subscribedCards = new();
     private readonly List<WizardActionCard> _buildCards = new();
     private readonly Action _stopScrollRestore;
+
+    // Notches that land while the last one is still animating add to its target instead of restarting from mid-way.
+    private double? _railWheelTarget;
 
     public WimUtilViewModel ViewModel { get; }
 
@@ -38,11 +42,22 @@ public sealed partial class WimUtilPage : Page
     {
         this.InitializeComponent();
         ViewModel = App.Services.GetRequiredService<WimUtilViewModel>();
-        _localizationService = App.Services.GetService<ILocalizationService>();
+        _localizationService = App.Services.GetRequiredService<ILocalizationService>();
 
         // PageUp/PageDown fast-scroll + Home/End jump (issue #581).
-        PageScrollHelper.Attach(this, PageScrollView);
-        _stopScrollRestore = ScrollMemory.Keep(nameof(WimUtilPage), PageScrollView);
+        PageScrollHelper.Attach(this, PageScrollViewer);
+        _stopScrollRestore = ScrollMemory.Keep(nameof(WimUtilPage), PageScrollViewer);
+    }
+
+    private void OnRailWheelChanged(object sender, PointerRoutedEventArgs e)
+    {
+        var point = e.GetCurrentPoint(StepRail);
+        if (point.Properties.IsHorizontalMouseWheel) return;
+
+        var from = _railWheelTarget ?? PageScrollViewer.VerticalOffset;
+        _railWheelTarget = Math.Clamp(from - point.Properties.MouseWheelDelta, 0, PageScrollViewer.ScrollableHeight);
+        PageScrollViewer.ChangeView(null, _railWheelTarget, null);
+        e.Handled = true;
     }
 
     private void OnRailStepInvoked(object? sender, int step)
@@ -56,8 +71,7 @@ public sealed partial class WimUtilPage : Page
             var top = StepTop(step);
             if (top is null) return;
 
-            PageScrollView.ScrollTo(PageScrollView.HorizontalOffset, Math.Max(0, top.Value - StepScrollMargin),
-                new ScrollingScrollOptions(ScrollingAnimationMode.Auto));
+            PageScrollViewer.ChangeView(null, Math.Max(0, top.Value - StepScrollMargin), null);
         });
     }
 
@@ -65,7 +79,14 @@ public sealed partial class WimUtilPage : Page
 
     private void OnOwnXmlInvoked(object sender, RoutedEventArgs e) => ViewModel.Step2.ChooseOwnXmlCommand.Execute(null);
 
-    private void OnPageScrollChanged(ScrollView sender, object args) => TrackCurrentStep();
+    private void OnPageScrollChanged(object sender, ScrollViewerViewChangedEventArgs e)
+    {
+        if (!e.IsIntermediate)
+            _railWheelTarget = null;
+        TrackCurrentStep();
+    }
+
+    private void OnStepsSizeChanged(object sender, SizeChangedEventArgs e) => TrackCurrentStep();
 
     private void OnPageScrollSizeChanged(object sender, SizeChangedEventArgs e)
     {
@@ -79,7 +100,19 @@ public sealed partial class WimUtilPage : Page
         var width = new GridLength(show ? RailColumnWidth : 0);
         StepsRailColumn.Width = width;
         RailColumn.Width = width;
-        StepRail.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        if (!show)
+        {
+            if (StepRail is { } built)
+                UnloadObject(built);
+            return;
+        }
+
+        if (StepRail is not null)
+            return;
+
+        // The rail is drawn over the scroller, not inside it, so a wheel over it would otherwise move nothing.
+        var rail = (WizardStepRail)FindName(nameof(StepRail));
+        rail.AddHandler(PointerWheelChangedEvent, new PointerEventHandler(OnRailWheelChanged), handledEventsToo: true);
     }
 
     private void TrackCurrentStep()
@@ -92,12 +125,12 @@ public sealed partial class WimUtilPage : Page
         }
 
         ViewModel.SetCurrentStep(WizardStepTracker.CurrentStep(
-            tops, PageScrollView.VerticalOffset, PageScrollView.ViewportHeight, PageScrollView.ScrollableHeight));
+            tops, PageScrollViewer.VerticalOffset, PageScrollViewer.ViewportHeight, PageScrollViewer.ScrollableHeight));
     }
 
     private WizardStep[] StepViews => [Step1View, Step2View, Step3View, Step4View];
 
-    // Null until the step is in the tree: ScrollView's ViewChanged also fires during the first layout.
+    // Null until the step is in the tree: the scroller's view and size events also fire during the first layout.
     private double? StepTop(int step)
     {
         var view = StepViews[step - 1];
@@ -129,8 +162,8 @@ public sealed partial class WimUtilPage : Page
         // Every card the user can see a spinner/checkmark/X on.
         WizardActionCard?[] cards =
         {
-            ViewModel.SelectIsoCard, ViewModel.SelectDirectoryCard,
-            ViewModel.SelectOutputCard, ViewModel.SelectUsbCard,
+            ViewModel.Step1.SelectIsoCard, ViewModel.Step1.SelectDirectoryCard,
+            ViewModel.Step5.SelectOutputCard, ViewModel.Step5.SelectUsbCard,
         };
 
         foreach (var card in cards)
@@ -141,7 +174,7 @@ public sealed partial class WimUtilPage : Page
         }
 
         // The build cards are rebuilt on every Create, so they follow the collection.
-        ViewModel.BuildCards.CollectionChanged += OnBuildCardsChanged;
+        ViewModel.Step5.BuildCards.CollectionChanged += OnBuildCardsChanged;
         SubscribeToBuildCards();
     }
 
@@ -150,7 +183,7 @@ public sealed partial class WimUtilPage : Page
         SubscribeToBuildCards();
 
         // A run clears the list and adds its first card, which is when the user needs to see the progress below the button.
-        if (e.Action == NotifyCollectionChangedAction.Add && ViewModel.BuildCards.Count == 1)
+        if (e.Action == NotifyCollectionChangedAction.Add && ViewModel.Step5.BuildCards.Count == 1)
             ScrollToBuildProgress();
     }
 
@@ -161,17 +194,16 @@ public sealed partial class WimUtilPage : Page
         // The list only takes its place once layout has run with the new card in it.
         DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
         {
-            if (!BuildCardsList.IsLoaded) return;
+            if (BuildCardsList is not { IsLoaded: true }) return;
             var top = BuildCardsList.TransformToVisual(StepsHost).TransformPoint(new Point(0, 0)).Y;
-            PageScrollView.ScrollTo(PageScrollView.HorizontalOffset, Math.Max(0, top - StepScrollMargin),
-                new ScrollingScrollOptions(ScrollingAnimationMode.Auto));
+            PageScrollViewer.ChangeView(null, Math.Max(0, top - StepScrollMargin), null);
         });
     }
 
     private void SubscribeToBuildCards()
     {
         UnsubscribeFromBuildCards();
-        foreach (var card in ViewModel.BuildCards)
+        foreach (var card in ViewModel.Step5.BuildCards)
         {
             card.PropertyChanged += OnCardPropertyChanged;
             _buildCards.Add(card);
@@ -193,7 +225,7 @@ public sealed partial class WimUtilPage : Page
         }
         _subscribedCards.Clear();
 
-        ViewModel.BuildCards.CollectionChanged -= OnBuildCardsChanged;
+        ViewModel.Step5.BuildCards.CollectionChanged -= OnBuildCardsChanged;
         UnsubscribeFromBuildCards();
     }
 

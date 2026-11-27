@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
@@ -30,6 +31,8 @@ public class SettingViewModelFactoryTests
     private readonly Mock<ISettingViewModelEnricher> _mockEnricher = new();
     private readonly Mock<IApplicationModeService> _mockApplicationModeService = new();
     private readonly Mock<IFilePickerService> _mockFilePickerService = new();
+    private readonly Mock<IAppIconResolver> _mockAppIcons = new();
+    private readonly Mock<IThemeService> _mockThemeService = new();
 
     private readonly SettingViewModelDependencies _deps;
     private readonly SettingViewModelFactory _sut;
@@ -76,7 +79,9 @@ public class SettingViewModelFactoryTests
             _mockUserPreferencesService.Object,
             _mockNewBadgeService.Object,
             _mockEnricher.Object,
-            _mockPower.Object);
+            _mockPower.Object,
+            _mockAppIcons.Object,
+            _mockThemeService.Object);
     }
 
     [Fact]
@@ -88,6 +93,29 @@ public class SettingViewModelFactoryTests
         var result = await _sut.CreateAsync(setting, state, null, null, null);
 
         result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task CreateAsync_AppIconCached_ShowsTheAppLogo()
+    {
+        _mockAppIcons.Setup(a => a.CachedIconPath("windows-app-xbox", It.IsAny<bool>())).Returns(@"C:\cache\windows-app-xbox.1a2b3c4d.png");
+        var setting = WithIcon(CreateToggleSetting("TestSetting"), new Icon(IconPack.App, "windows-app-xbox", new Icon(IconPack.Fluent, "Games")));
+
+        var result = await _sut.CreateAsync(setting, new SettingStateResult { Success = true }, null, null, null);
+
+        result.Icon.Should().Be(@"C:\cache\windows-app-xbox.1a2b3c4d.png");
+        result.IconPack.Should().Be("AppFile");
+    }
+
+    [Fact]
+    public async Task CreateAsync_AppIconNotCached_ShowsTheFluentFallback()
+    {
+        var setting = WithIcon(CreateToggleSetting("TestSetting"), new Icon(IconPack.App, "windows-app-xbox", new Icon(IconPack.Fluent, "Games")));
+
+        var result = await _sut.CreateAsync(setting, new SettingStateResult { Success = true }, null, null, null);
+
+        result.Icon.Should().Be("Games");
+        result.IconPack.Should().Be("Fluent");
     }
 
     // The two Clean Start Menu actions share a name, so the label is the only way to tell them apart.
@@ -170,8 +198,8 @@ public class SettingViewModelFactoryTests
         var state = new SettingStateResult { Success = true };
 
         _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync("AdvancedPowerSettingsUnlocked", false))
-            .ReturnsAsync(false);
+            .Setup(u => u.GetPreference("AdvancedPowerSettingsUnlocked", false))
+            .Returns(false);
 
         var result = await _sut.CreateAsync(setting, state, null, null, null);
 
@@ -185,8 +213,8 @@ public class SettingViewModelFactoryTests
         var state = new SettingStateResult { Success = true };
 
         _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync("AdvancedPowerSettingsUnlocked", false))
-            .ReturnsAsync(true);
+            .Setup(u => u.GetPreference("AdvancedPowerSettingsUnlocked", false))
+            .Returns(true);
 
         var result = await _sut.CreateAsync(setting, state, null, null, null);
 
@@ -251,6 +279,43 @@ public class SettingViewModelFactoryTests
 
         result.ComboBoxOptions.Should().HaveCount(2);
         result.ComboBoxOptions.Select(o => o.DisplayText).Should().NotContain("Setting_DetectOnlySetting_Option_1");
+    }
+
+    [Fact]
+    public async Task CreateAsync_RiskWarningsOnSeveralStates_ListsEachTextOnce()
+    {
+        var setting = new Setting
+        {
+            Id = "RiskySetting",
+            Display = new() { Name = TestKeys.Of("Risky"), Description = TestKeys.Of("Risky setting"), GroupName = TestKeys.Of("") },
+            States = new[]
+            {
+                new SettingState { Label = TestKeys.Of("Automatic") },
+                new SettingState { Label = TestKeys.Of("Manual"), RiskWarning = TestKeys.Of("Breaks it") },
+                new SettingState { Label = TestKeys.Of("Disabled"), RiskWarning = TestKeys.Of("Breaks it") },
+                new SettingState { Label = TestKeys.Of("Paused"), RiskWarning = TestKeys.Of("Delays it") },
+            },
+        };
+
+        var result = await _sut.CreateAsync(setting, new SettingStateResult { CurrentValue = 0, Success = true }, null, null, null);
+
+        result.OptionWarnings.Should().Equal("Breaks it", "Delays it");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task CreateAsync_DiagTrackWarning_ShowsForEverySelectedState(int selectedState)
+    {
+        var setting = SettingCatalog.All.Single(s => s.Id == "gaming-telemetry-service");
+        var state = new SettingStateResult { CurrentValue = selectedState, Success = true };
+
+        var result = await _sut.CreateAsync(setting, state, null, null, null);
+
+        result.OptionWarnings.Should().Equal(LocKey.Setting.GamingTelemetryService.OptionWarning0.Value);
+        var recommended = Assert.Single(result.ComboBoxOptions, option => option.IsRecommended);
+        recommended.DisplayText.Should().Be(LocKey.ServiceOption.DisabledRecommended.Value);
     }
 
     [Fact]
@@ -442,6 +507,9 @@ public class SettingViewModelFactoryTests
                 new SettingState { Label = LocKey.Common.Disabled },
             },
         };
+
+    private static Setting WithIcon(Setting setting, Icon icon) =>
+        setting with { Display = setting.Display with { Icon = icon } };
 
     private static Setting CreateNumericRangeSetting(string id, int min, int max, string units) =>
         new Setting

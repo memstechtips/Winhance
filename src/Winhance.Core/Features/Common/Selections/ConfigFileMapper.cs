@@ -173,7 +173,7 @@ public static class ConfigFileMapper
         var file = new WinhanceConfigFile();
         var choicesById = set.Settings.ToDictionary(c => c.SettingId, c => c.Value);
         var filesById = new Dictionary<string, CarriedFile>(StringComparer.Ordinal);
-        foreach (var carried in set.Files)
+        foreach (var carried in set.WithOnlySelectedPicture().Files)
             filesById[carried.SettingId] = carried;
         var optimize = new Dictionary<string, ConfigSection>();
         var customize = new Dictionary<string, ConfigSection>();
@@ -213,7 +213,7 @@ public static class ConfigFileMapper
     {
         var settingsById = byFeature.Values.SelectMany(s => s).ToDictionary(s => s.Id, s => s);
         var choices = new List<SettingChoice>();
-        var files = new List<CarriedFile>();
+        var files = new List<CarriedFile>(file.CarriedAlbumFiles);
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var (_, _, _, items) in file.SettingSections().Concat(file.AutounattendSections()))
         {

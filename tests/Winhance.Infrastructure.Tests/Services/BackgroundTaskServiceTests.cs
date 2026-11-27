@@ -20,6 +20,7 @@ public class BackgroundTaskServiceTests : IDisposable
 {
     private readonly Mock<ILogService> _log = new();
     private readonly Mock<IScheduledTaskService> _tasks = new();
+    private readonly Mock<IScheduledTaskStateService> _taskState = new();
     private readonly Mock<IWindowsRegistryService> _registry = new();
     private readonly Mock<IFileSystemService> _files = new();
     private readonly Mock<IBloatRemovalService> _bloat = new();
@@ -39,7 +40,7 @@ public class BackgroundTaskServiceTests : IDisposable
         _tasks.Setup(t => t.RegisterSignInTaskAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(OperationResult.Succeeded());
         _tasks.Setup(t => t.UnregisterScheduledTaskAsync(It.IsAny<string>())).ReturnsAsync(OperationResult.Succeeded());
         _service = new BackgroundTaskService(
-            _log.Object, _tasks.Object, _registry.Object,
+            _log.Object, _tasks.Object, _taskState.Object, _registry.Object,
             _installed.Object, _bloat.Object, _files.Object, _user.Object, _lockRoot, _protectedExe, isPortable: false);
     }
 
@@ -53,7 +54,7 @@ public class BackgroundTaskServiceTests : IDisposable
     }
 
     private BackgroundTaskService ServiceRunningFrom(string exePath, bool isPortable = false) => new(
-        _log.Object, _tasks.Object, _registry.Object,
+        _log.Object, _tasks.Object, _taskState.Object, _registry.Object,
         _installed.Object, _bloat.Object, _files.Object, _user.Object, _lockRoot, exePath, isPortable);
 
     // A folder every user can write to, with a Winhance.exe in it.
@@ -91,6 +92,16 @@ public class BackgroundTaskServiceTests : IDisposable
 
     private void VerifyResult(string result, Times times) =>
         _registry.Verify(r => r.SetValue(BackgroundTaskService.StatusKey, "LastResult", result, RegistryValueKind.String), times);
+
+    [Fact]
+    public async Task IsTaskSafetyOkAsync_UnrecognizedRegisteredAction_IsUnsafe()
+    {
+        _registry.Setup(r => r.GetValue(BackgroundTaskService.KeptKey, KeepRemovedModeStore.ModeValue)).Returns("Scripts");
+        _tasks.Setup(t => t.GetWinhanceTasksAsync()).ReturnsAsync(
+            [new WinhanceTaskInfo("EdgeRemoval", "powershell.exe", "-File unexpected.ps1", "SYSTEM", true)]);
+
+        (await _service.IsTaskSafetyOkAsync()).Should().BeFalse();
+    }
 
     [Fact]
     public async Task AddKeptAppsAsync_KnownId_WritesTodaysDate()
@@ -217,28 +228,28 @@ public class BackgroundTaskServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetEdgeRedirectAsync_NoTaskAndNoFolder_IsNull()
+    public async Task GetEdgeRedirectAsync_NoTaskOrRepairScript_IsNull()
     {
         (await _service.GetEdgeRedirectAsync()).Should().BeNull();
     }
 
     [Fact]
-    public async Task GetEdgeRedirectAsync_TaskAndFolder_IsActive()
+    public async Task GetEdgeRedirectAsync_TaskAndRepairScript_IsActive()
     {
         _tasks.Setup(t => t.GetWinhanceTasksAsync()).ReturnsAsync(new[]
         {
             new WinhanceTaskInfo(ScriptPaths.OpenWebSearchTaskName, "powershell.exe", "-File x.ps1", "SYSTEM", true),
         });
-        _files.Setup(f => f.DirectoryExists(ScriptPaths.OpenWebSearchDirectoryLiteral)).Returns(true);
+        _files.Setup(f => f.FileExists(RedirectRepairScript)).Returns(true);
 
         var state = await _service.GetEdgeRedirectAsync();
 
         state!.Health.Should().Be(RemovalTaskHealth.Active);
-        state.ScriptPath.Should().Be(ScriptPaths.OpenWebSearchDirectoryLiteral);
+        state.ScriptPath.Should().Be(RedirectRepairScript);
     }
 
     [Fact]
-    public async Task GetEdgeRedirectAsync_TaskButNoFolder_IsScriptMissing()
+    public async Task GetEdgeRedirectAsync_TaskButNoRepairScript_IsScriptMissing()
     {
         _tasks.Setup(t => t.GetWinhanceTasksAsync()).ReturnsAsync(new[]
         {
@@ -249,9 +260,9 @@ public class BackgroundTaskServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetEdgeRedirectAsync_FolderButNoTask_IsNoTask()
+    public async Task GetEdgeRedirectAsync_RepairScriptButNoTask_IsNoTask()
     {
-        _files.Setup(f => f.DirectoryExists(ScriptPaths.OpenWebSearchDirectoryLiteral)).Returns(true);
+        _files.Setup(f => f.FileExists(RedirectRepairScript)).Returns(true);
 
         (await _service.GetEdgeRedirectAsync())!.Health.Should().Be(RemovalTaskHealth.NoTask);
     }
@@ -263,9 +274,140 @@ public class BackgroundTaskServiceTests : IDisposable
         {
             new WinhanceTaskInfo(ScriptPaths.OpenWebSearchTaskName, "powershell.exe", "-File x.ps1", "SYSTEM", false),
         });
-        _files.Setup(f => f.DirectoryExists(ScriptPaths.OpenWebSearchDirectoryLiteral)).Returns(true);
+        _files.Setup(f => f.FileExists(RedirectRepairScript)).Returns(true);
 
         (await _service.GetEdgeRedirectAsync())!.Health.Should().Be(RemovalTaskHealth.TaskDisabled);
+    }
+
+    private static string RedirectRepairScript => Path.Combine(ScriptPaths.OpenWebSearchDirectoryLiteral, "OpenWebSearchRepair.ps1");
+
+    [Fact]
+    public async Task GetEdgeRedirectAsync_RuntimeFilesWithoutRepairTaskOrScript_HasNoTaskRow()
+    {
+        _files.Setup(f => f.DirectoryExists(ScriptPaths.OpenWebSearchDirectoryLiteral)).Returns(true);
+        _files.Setup(f => f.FileExists(Path.Combine(ScriptPaths.OpenWebSearchDirectoryLiteral, "OpenWebSearch.cmd"))).Returns(true);
+
+        (await _service.GetEdgeRedirectAsync()).Should().BeNull();
+    }
+
+    private void GivenManagedEdgeRedirect()
+    {
+        var stub = Path.Combine(ScriptPaths.OpenWebSearchDirectoryLiteral, EdgeRemovalScript.RedirectStubName);
+        _registry.Setup(r => r.GetValue(EdgeRemovalScript.RedirectFilterKey, "FilterFullPath")).Returns(stub);
+        _files.Setup(f => f.FileExists(stub)).Returns(true);
+        _files.Setup(f => f.FileExists(Path.Combine(ScriptPaths.OpenWebSearchDirectoryLiteral, EdgeRemovalScript.RedirectCommandName))).Returns(true);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_RestoresRepairWithoutAnEdgeRemovalTask()
+    {
+        GivenManagedEdgeRedirect();
+        _tasks.Setup(t => t.RegisterScheduledTaskAsync(It.IsAny<RemovalScript>())).ReturnsAsync(OperationResult.Succeeded());
+
+        await _service.InitializeAsync();
+
+        _files.Verify(f => f.WriteAllTextAsync(RedirectRepairScript, EdgeRemovalScript.GetRepairScript(), It.IsAny<CancellationToken>()), Times.Once);
+        _tasks.Verify(t => t.RegisterScheduledTaskAsync(It.Is<RemovalScript>(script =>
+            script.Name == ScriptPaths.OpenWebSearchTaskName && script.ActualScriptPath == RedirectRepairScript && !script.RunOnStartup)), Times.Once);
+    }
+
+    [Fact]
+    public async Task EnsureEdgeRedirectRepairAsync_StubAndCommandMissing_DoesNotInstallRepair()
+    {
+        var stub = Path.Combine(ScriptPaths.OpenWebSearchDirectoryLiteral, EdgeRemovalScript.RedirectStubName);
+        _registry.Setup(r => r.GetValue(EdgeRemovalScript.RedirectFilterKey, "FilterFullPath")).Returns(stub);
+
+        await _service.EnsureEdgeRedirectRepairAsync();
+
+        _tasks.Verify(t => t.RegisterScheduledTaskAsync(It.IsAny<RemovalScript>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task EnsureEdgeRedirectRepairAsync_RepairsOnlyUnhealthyArtifacts(bool enabled, bool scriptExists)
+    {
+        GivenManagedEdgeRedirect();
+        _files.Setup(f => f.FileExists(RedirectRepairScript)).Returns(scriptExists);
+        var name = ScriptPaths.OpenWebSearchTaskName;
+        _tasks.Setup(t => t.GetWinhanceTasksAsync()).ReturnsAsync(
+            [new WinhanceTaskInfo(name, "powershell.exe", $"-Command ReadAllText('{RedirectRepairScript}')", "SYSTEM", enabled)]);
+        _tasks.Setup(t => t.RegisterScheduledTaskAsync(It.IsAny<RemovalScript>())).ReturnsAsync(OperationResult.Succeeded());
+        _taskState.Setup(t => t.SetTaskEnabled($@"\Winhance\{name}", true)).Returns(OperationResult.Succeeded());
+
+        await _service.EnsureEdgeRedirectRepairAsync();
+
+        _tasks.Verify(t => t.RegisterScheduledTaskAsync(It.IsAny<RemovalScript>()), enabled && scriptExists ? Times.Never() : Times.Once());
+        _taskState.Verify(t => t.SetTaskEnabled($@"\Winhance\{name}", true), enabled ? Times.Never() : Times.Once());
+    }
+
+    [Fact]
+    public async Task GetEdgeRedirectAsync_ManagedRedirectWithoutRepair_ReportsBothMissing()
+    {
+        GivenManagedEdgeRedirect();
+
+        var state = await _service.GetEdgeRedirectAsync();
+
+        state.Should().NotBeNull();
+        state!.TaskExists.Should().BeFalse();
+        state.ScriptExists.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SetBackgroundTaskEnabledAsync_RepairTaskCannotBeDisabledIndependently()
+    {
+        (await _service.SetBackgroundTaskEnabledAsync(ScriptPaths.OpenWebSearchTaskName, false)).Success.Should().BeFalse();
+        _taskState.Verify(t => t.SetTaskEnabled(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SetBackgroundTaskEnabledAsync_Disable_PreservesTheTaskAndScript()
+    {
+        const string name = "EdgeRemoval";
+        var path = $@"\Winhance\{name}";
+        _taskState.Setup(t => t.SetTaskEnabled(path, false)).Returns(OperationResult.Succeeded());
+
+        (await _service.SetBackgroundTaskEnabledAsync(name, false)).Success.Should().BeTrue();
+
+        _taskState.Verify(t => t.SetTaskEnabled(path, false), Times.Once);
+        _tasks.Verify(t => t.UnregisterScheduledTaskAsync(It.IsAny<string>()), Times.Never);
+        _files.Verify(f => f.DeleteFile(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SetBackgroundTaskEnabledAsync_EnableWithoutAScript_LeavesTheTaskDisabled()
+    {
+        _tasks.Setup(t => t.GetWinhanceTasksAsync()).ReturnsAsync(
+            [new WinhanceTaskInfo("EdgeRemoval", "powershell.exe", "-File x.ps1", "SYSTEM", false)]);
+
+        (await _service.SetBackgroundTaskEnabledAsync("EdgeRemoval", true)).Success.Should().BeFalse();
+        _taskState.Verify(t => t.SetTaskEnabled(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SetBackgroundTaskEnabledAsync_EnableWithUnrecognizedAction_LeavesTheTaskDisabled()
+    {
+        _tasks.Setup(t => t.GetWinhanceTasksAsync()).ReturnsAsync(
+            [new WinhanceTaskInfo("EdgeRemoval", "powershell.exe", "-File unexpected.ps1", "SYSTEM", false)]);
+        _files.Setup(f => f.FileExists(It.Is<string>(path => path.EndsWith("EdgeRemoval.ps1")))).Returns(true);
+
+        var result = await _service.SetBackgroundTaskEnabledAsync("EdgeRemoval", true);
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("must use its Winhance script");
+        _taskState.Verify(t => t.SetTaskEnabled(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RemoveRemovalTaskAsync_UnregisterFailure_PreservesTheScriptAndKeptList()
+    {
+        _tasks.Setup(t => t.UnregisterScheduledTaskAsync("EdgeRemoval")).ReturnsAsync(OperationResult.Failed("busy"));
+
+        (await _service.RemoveRemovalTaskAsync("EdgeRemoval")).Success.Should().BeFalse();
+
+        _files.Verify(f => f.DeleteFile(It.IsAny<string>()), Times.Never);
+        _registry.Verify(r => r.DeleteValue(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -521,6 +663,114 @@ public class BackgroundTaskServiceTests : IDisposable
         _registry.Verify(r => r.SetValue(BackgroundTaskService.KeptKey, KeepRemovedModeStore.ModeValue, "Scripts", RegistryValueKind.String), Times.Once);
         _registry.Verify(r => r.SetValue(BackgroundTaskService.KeptKey, "windows-app-onedrive", It.IsAny<object>(), RegistryValueKind.String), Times.Once);
     }
+
+    [Fact]
+    public async Task InitializeAsync_WinhanceModeWithRemovalTasksOnThePc_SwitchesToScriptsAndImportsThem()
+    {
+        _registry.Setup(r => r.GetValue(BackgroundTaskService.KeptKey, KeepRemovedModeStore.ModeValue)).Returns("Winhance");
+        _files.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
+        _files.Setup(f => f.ReadAllTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
+        _tasks.Setup(t => t.GetWinhanceTasksAsync()).ReturnsAsync(new[]
+        {
+            new WinhanceTaskInfo("OneDriveRemoval", "powershell.exe", "-File x.ps1", "SYSTEM", true),
+        });
+
+        await _service.InitializeAsync();
+
+        _registry.Verify(r => r.SetValue(BackgroundTaskService.KeptKey, KeepRemovedModeStore.ModeValue, "Scripts", RegistryValueKind.String), Times.Once);
+        _registry.Verify(r => r.SetValue(BackgroundTaskService.KeptKey, "windows-app-onedrive", It.IsAny<object>(), RegistryValueKind.String), Times.Once);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_WinhanceModeWithNoRemovalTasks_KeepsTheMode()
+    {
+        _registry.Setup(r => r.GetValue(BackgroundTaskService.KeptKey, KeepRemovedModeStore.ModeValue)).Returns("Winhance");
+
+        await _service.InitializeAsync();
+
+        _registry.Verify(r => r.SetValue(BackgroundTaskService.KeptKey, KeepRemovedModeStore.ModeValue, It.IsAny<object>(), It.IsAny<RegistryValueKind>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_WinhanceModeWithALegacyTask_SwitchesToScripts()
+    {
+        _registry.Setup(r => r.GetValue(BackgroundTaskService.KeptKey, KeepRemovedModeStore.ModeValue)).Returns("Winhance");
+        _tasks.Setup(t => t.GetWinhanceTasksAsync()).ReturnsAsync(new[]
+        {
+            new WinhanceTaskInfo("Remove_Microsoft_BingWeather", "powershell.exe", "-File x.ps1", "SYSTEM", true),
+        });
+
+        await _service.InitializeAsync();
+
+        _registry.Verify(r => r.SetValue(BackgroundTaskService.KeptKey, KeepRemovedModeStore.ModeValue, "Scripts", RegistryValueKind.String), Times.Once);
+        _registry.Verify(r => r.SetValue(BackgroundTaskService.KeptKey, "windows-app-msn-weather", It.IsAny<object>(), RegistryValueKind.String), Times.Once);
+        _registry.Verify(r => r.SetValue(BackgroundTaskService.KeptKey, "windows-app-edge", It.IsAny<object>(), It.IsAny<RegistryValueKind>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task IsKeepRemovedOnAsync_ScriptsModeWithOnlyALegacyTask_IsOn()
+    {
+        _registry.Setup(r => r.GetValue(BackgroundTaskService.KeptKey, KeepRemovedModeStore.ModeValue)).Returns("Scripts");
+        _registry.Setup(r => r.GetValueNames(BackgroundTaskService.KeptKey)).Returns(["windows-app-onenote"]);
+        _tasks.Setup(t => t.GetWinhanceTasksAsync()).ReturnsAsync(new[]
+        {
+            new WinhanceTaskInfo("OneNoteRemoval", "powershell.exe", "-File x.ps1", "SYSTEM", true),
+        });
+
+        (await _service.IsKeepRemovedOnAsync()).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SetModeAsync_ToWinhance_WithOnlyTheBloatScript_DoesNotKeepEdgeOrOneDrive()
+    {
+        _registry.Setup(r => r.GetValue(BackgroundTaskService.KeptKey, KeepRemovedModeStore.ModeValue)).Returns("Scripts");
+        _files.Setup(f => f.FileExists(It.Is<string>(path => path.EndsWith("BloatRemoval.ps1")))).Returns(true);
+        _files.Setup(f => f.ReadAllTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
+
+        await _service.SetModeAsync(KeepRemovedMode.Winhance);
+
+        _registry.Verify(r => r.SetValue(BackgroundTaskService.KeptKey, "windows-app-edge", It.IsAny<object>(), It.IsAny<RegistryValueKind>()), Times.Never);
+        _registry.Verify(r => r.SetValue(BackgroundTaskService.KeptKey, "windows-app-onedrive", It.IsAny<object>(), It.IsAny<RegistryValueKind>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SetModeAsync_ToWinhance_DeletesLegacyTasksAndKeepsTheirApps()
+    {
+        _registry.Setup(r => r.GetValue(BackgroundTaskService.KeptKey, KeepRemovedModeStore.ModeValue)).Returns("Scripts");
+        _tasks.Setup(t => t.GetWinhanceTasksAsync()).ReturnsAsync(new[]
+        {
+            new WinhanceTaskInfo("OneNoteRemoval", "powershell.exe", "-File x.ps1", "SYSTEM", true),
+            new WinhanceTaskInfo("Remove_Microsoft_BingWeather", "powershell.exe", "-File y.ps1", "SYSTEM", true),
+            new WinhanceTaskInfo(SignInTask.Name, "Winhance.exe", SignInTask.TrayFlag, "S-1-5-21-1", true),
+        });
+
+        var result = await _service.SetModeAsync(KeepRemovedMode.Winhance);
+
+        result.Success.Should().BeTrue();
+        _tasks.Verify(t => t.UnregisterScheduledTaskAsync("OneNoteRemoval"), Times.Once);
+        _tasks.Verify(t => t.UnregisterScheduledTaskAsync("Remove_Microsoft_BingWeather"), Times.Once);
+        _tasks.Verify(t => t.UnregisterScheduledTaskAsync(SignInTask.Name), Times.Never);
+        _registry.Verify(r => r.SetValue(BackgroundTaskService.KeptKey, "windows-app-onenote", It.IsAny<object>(), RegistryValueKind.String), Times.Once);
+        _registry.Verify(r => r.SetValue(BackgroundTaskService.KeptKey, "windows-app-msn-weather", It.IsAny<object>(), RegistryValueKind.String), Times.Once);
+        _registry.Verify(r => r.SetValue(BackgroundTaskService.KeptKey, KeepRemovedModeStore.EnabledValue, 1, RegistryValueKind.DWord), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("OneNoteRemoval", "windows-app-onenote")]
+    [InlineData("Remove_Microsoft_BingWeather", "windows-app-msn-weather")]
+    [InlineData("Remove_Not_A_Catalog_Package", "")]
+    public void LegacyTaskIds_MapsTheWpfTaskNamesToCatalogIds(string taskName, string id)
+    {
+        string[] expected = id.Length == 0 ? [] : [id];
+        BackgroundTaskService.LegacyTaskIds(taskName).Should().Equal(expected);
+    }
+
+    [Theory]
+    [InlineData("BloatRemoval")]
+    [InlineData("OpenWebSearchRepair")]
+    [InlineData("WinhanceUserCustomizations")]
+    public void LegacyTaskIds_AnyOtherName_IsNotLegacy(string taskName) =>
+        BackgroundTaskService.LegacyTaskIds(taskName).Should().BeNull();
 
     [Fact]
     public async Task MaintainAsync_ScriptsMode_DoesNothing()

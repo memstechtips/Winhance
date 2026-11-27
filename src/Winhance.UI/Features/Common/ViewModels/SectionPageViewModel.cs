@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.Core.Features.Common.Extensions;
@@ -16,6 +17,12 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
     : ObservableObject, ISectionPageViewModel, IDisposable
     where TSectionInfo : ISectionInfo
 {
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(PageTitle), nameof(PageDescription), nameof(BreadcrumbRootText), nameof(SearchPlaceholder),
+        nameof(NoResultsText), nameof(ActiveStateFilterText), nameof(ClearStateFilterTooltip), nameof(ShowAllText),
+    ];
+
     private bool _disposed;
     private readonly ILogService _logService;
     private readonly ILocalizationService _localizationService;
@@ -35,12 +42,21 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         Array.Empty<SectionOverviewItemViewModel>();
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNotLoading))]
     public partial bool IsLoading { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNoSearchResults))]
+    [NotifyPropertyChangedFor(nameof(IsShowAllVisible))]
+    [NotifyPropertyChangedFor(nameof(NoResultsText))]
     public partial string SearchText { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsInDetailPage))]
+    [NotifyPropertyChangedFor(nameof(CurrentSectionName))]
+    [NotifyPropertyChangedFor(nameof(CurrentSectionItem))]
+    [NotifyPropertyChangedFor(nameof(HasNoSearchResults))]
+    [NotifyPropertyChangedFor(nameof(IsShowAllVisible))]
     public partial string CurrentSectionKey { get; set; }
 
     [ObservableProperty]
@@ -201,33 +217,28 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        OnPropertyChanged(nameof(PageTitle));
-        OnPropertyChanged(nameof(PageDescription));
-        OnPropertyChanged(nameof(BreadcrumbRootText));
-        OnPropertyChanged(nameof(SearchPlaceholder));
-        OnPropertyChanged(nameof(NoResultsText));
-        OnPropertyChanged(nameof(ActiveStateFilterText));
-        OnPropertyChanged(nameof(ClearStateFilterTooltip));
-        OnPropertyChanged(nameof(ShowAllText));
-    }
-
-    private void RaiseNoResultsChanged()
-    {
-        OnPropertyChanged(nameof(HasNoSearchResults));
-        OnPropertyChanged(nameof(IsShowAllVisible));
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
     }
 
     // A feature filters its cards on a later dispatcher turn, so the answer here changes after SearchText has raised.
     private void OnFeaturePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(ISettingsFeatureViewModel.HasVisibleSettings))
-            RaiseNoResultsChanged();
+        {
+            OnPropertyChanged(nameof(HasNoSearchResults));
+            OnPropertyChanged(nameof(IsShowAllVisible));
+        }
     }
 
+    // A later visit is a fresh navigation too, so it refreshes what the overview shows instead of loading again.
     public virtual async Task InitializeAsync()
     {
         if (_isInitialized)
+        {
+            await RefreshOnNavigationAsync(null);
             return;
+        }
 
         try
         {
@@ -260,7 +271,27 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
         finally
         {
             IsLoading = false;
-            OnPropertyChanged(nameof(IsNotLoading));
+        }
+    }
+
+    // A section shows one feature; the overview summarises every one, so it refreshes them all. Only a rebuild
+    // raises the loader: a state re-read changes values in place and would just flash it.
+    public async Task RefreshOnNavigationAsync(ISettingsFeatureViewModel? section)
+    {
+        IReadOnlyList<ISettingsFeatureViewModel> shown = section is null ? _featureViewModels : [section];
+        bool rebuilds = shown.Any(feature => feature.NeedsRebuild);
+        if (rebuilds)
+            IsLoading = true;
+
+        try
+        {
+            foreach (var feature in shown)
+                await feature.RefreshOnNavigationAsync();
+        }
+        finally
+        {
+            if (rebuilds)
+                IsLoading = false;
         }
     }
 
@@ -310,12 +341,11 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
     private string GetSectionDisplayName(string sectionKey) =>
         GetSectionViewModel(sectionKey)?.DisplayName ?? "Overview";
 
-    private void UpdateSearchSuggestions(string searchText)
+    private List<SearchSuggestionItem> FindSearchSuggestions(string searchText)
     {
-        SearchSuggestions.Clear();
-
+        var suggestions = new List<SearchSuggestionItem>();
         if (string.IsNullOrWhiteSpace(searchText) || searchText.Length < 2)
-            return;
+            return suggestions;
 
         var currentViewModel = SectionOnScreen;
 
@@ -330,30 +360,22 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
                 if (setting.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true ||
                     setting.Description?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true)
                 {
-                    SearchSuggestions.Add(new SearchSuggestionItem(
+                    suggestions.Add(new SearchSuggestionItem(
                         setting.Name ?? "Unknown",
                         section.Key,
                         viewModel.DisplayName));
 
-                    if (SearchSuggestions.Count >= 5)
-                        return;
+                    if (suggestions.Count >= 5)
+                        return suggestions;
                 }
             }
         }
-    }
 
-    partial void OnIsLoadingChanged(bool value)
-    {
-        OnPropertyChanged(nameof(IsNotLoading));
+        return suggestions;
     }
 
     partial void OnCurrentSectionKeyChanged(string value)
     {
-        OnPropertyChanged(nameof(IsInDetailPage));
-        OnPropertyChanged(nameof(CurrentSectionName));
-        OnPropertyChanged(nameof(CurrentSectionItem));
-        RaiseNoResultsChanged();
-
         if (!string.IsNullOrEmpty(SearchText))
         {
             SearchText = string.Empty;
@@ -380,8 +402,6 @@ public abstract partial class SectionPageViewModel<TSectionInfo>
             }
         }
 
-        UpdateSearchSuggestions(value);
-        RaiseNoResultsChanged();
-        OnPropertyChanged(nameof(NoResultsText));
+        SearchSuggestions.ReplaceInPlace(FindSearchSuggestions(value));
     }
 }

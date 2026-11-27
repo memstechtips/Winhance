@@ -3,9 +3,11 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
+using Winhance.Infrastructure.Features.Autounattend.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.WimUtil.Interfaces;
 using Winhance.Core.Features.WimUtil.Models;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Infrastructure.Features.Autounattend;
 
 namespace Winhance.Infrastructure.Features.WimUtil.Services;
@@ -130,10 +132,30 @@ internal sealed class AnswerFileValidator(IFileSystemService files, IPowerShellR
         }
 
         var scripts = new Dictionary<string, string>(StringComparer.Ordinal);
-        var carriedPaths = CarriedFiles(root).Select(f => (string?)f.Attribute("path") ?? string.Empty).ToList();
+        var ownExtensions = root.Elements(AutounattendDocument.WinhanceExtensions + "Extensions").ToList();
+        var staged = ownExtensions.SelectMany(MediaPayloads.List).ToList();
+        bool isWinhanceGenerated = staged.Count > 0 || ownExtensions.Any(extension =>
+            extension.Element(AutounattendDocument.WinhanceExtensions + "Generator") is not null);
+        var carriedPaths = CarriedFiles(root).Concat(staged).Select(f => (string?)f.Attribute("path") ?? string.Empty).ToList();
         CheckSettings(root, findings, scripts, carriedPaths);
         CheckProductKeys(root, findings);
         CheckExtensions(root, findings, scripts);
+        foreach (var entry in staged)
+        {
+            string destination = (string?)entry.Attribute("path") ?? string.Empty;
+            try
+            {
+                var payloadBytes = await MediaPayloads.ReadAsync(files, Path.GetDirectoryName(Path.GetFullPath(xmlPath))!, entry, cancellationToken).ConfigureAwait(false);
+                if ((string?)entry.Attribute("encoding") != "base64")
+                    CheckFileContent(destination, MediaPayloads.DecodeText(destination, payloadBytes), Location(entry), findings, scripts);
+                else if (payloadBytes.Length == 0)
+                    findings.Error(AnswerFileRule.FileEmpty, Location(entry), destination);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+            {
+                findings.Error(AnswerFileRule.FileUnreadable, Location(entry), ex.Message);
+            }
+        }
 
         if (scripts.Count > 0)
         {
@@ -158,7 +180,7 @@ internal sealed class AnswerFileValidator(IFileSystemService files, IPowerShellR
             }
         }
 
-        return new AnswerFileReport(findings.Items);
+        return new AnswerFileReport(findings.Items) { IsWinhanceGenerated = isWinhanceGenerated };
     }
 
     // Parsed from the raw bytes on purpose: a declaration that disagrees with the bytes (utf-16
@@ -384,43 +406,75 @@ internal sealed class AnswerFileValidator(IFileSystemService files, IPowerShellR
             if (!IsAbsolute(path))
                 findings.Error(AnswerFileRule.FilePathNotAbsolute, location, path);
 
-            var content = file.Value.ReplaceLineEndings("\n").Trim();
-            if (content.Length == 0)
+            // A base64 payload is bytes, so only the text path needs script parsing.
+            if ((string?)file.Attribute("encoding") == "base64")
             {
-                findings.Error(AnswerFileRule.FileEmpty, location, path);
+                if (string.IsNullOrWhiteSpace(file.Value))
+                    findings.Error(AnswerFileRule.FileEmpty, location, path);
                 continue;
             }
+            CheckFileContent(path, file.Value, location, findings, scripts);
+        }
+    }
 
-            // A base64 payload is bytes (an embedded picture), so the text checks do not apply.
-            if ((string?)file.Attribute("encoding") == "base64")
-                continue;
+    private static void CheckFileContent(string path, string text, string location, Findings findings, Dictionary<string, string> scripts)
+    {
+        var content = text.ReplaceLineEndings("\n").Trim();
+        if (content.Length == 0)
+        {
+            findings.Error(AnswerFileRule.FileEmpty, location, path);
+            return;
+        }
 
-            switch (Extension(path))
+        switch (Extension(path))
+        {
+            case ".ps1":
+                AddScript(scripts, location, content);
+                if (string.Equals(path, ScriptPaths.AutounattendScriptPath, StringComparison.OrdinalIgnoreCase))
+                    CheckEmbeddedChildren(content, location, findings, scripts);
+                break;
+            case ".xml":
+                CheckCarriedXml(content, location, findings);
+                break;
+            case ".reg":
+                CheckRegFile(content, location, findings);
+                break;
+            case ".cmd" or ".bat":
+                var lossy = content.Split('\n').Select((line, i) => (line, i)).FirstOrDefault(l => l.line.Any(c => c > 127));
+                if (lossy.line is not null)
+                    findings.Warning(AnswerFileRule.AnsiLossy, location, "line " + (lossy.i + 1).ToString(CultureInfo.InvariantCulture) + ": " + lossy.line);
+                break;
+            case ".vbs":
+                findings.Warning(AnswerFileRule.VbScriptDeprecated, location, path);
+                break;
+            case ".js":
+                break;
+            default:
+                findings.Warning(AnswerFileRule.UnknownFileType, location, path);
+                break;
+        }
+    }
+
+    // The generator's child-script assignments are data, not code to execute on the authoring PC.
+    private static void CheckEmbeddedChildren(string content, string location, Findings findings, Dictionary<string, string> scripts)
+    {
+        foreach (Match child in Regex.Matches(content, @"(?m)^\s*\$(?<name>\w+)Content = \[Convert\]::FromBase64String\('(?<data>[^']*)'\)\s*$"))
+        {
+            string childLocation = location + " / " + child.Groups["name"].Value;
+            try
             {
-                case ".ps1":
-                    AddScript(scripts, location, content);
-                    break;
-                case ".xml":
-                    CheckCarriedXml(content, location, findings);
-                    break;
-                case ".reg":
-                    CheckRegFile(content, location, findings);
-                    break;
-                case ".cmd" or ".bat":
-                    var lossy = content.Split('\n').Select((line, i) => (line, i)).FirstOrDefault(l => l.line.Any(c => c > 127));
-                    if (lossy.line is not null)
-                        findings.Warning(AnswerFileRule.AnsiLossy, location, "line " + (lossy.i + 1).ToString(CultureInfo.InvariantCulture) + ": " + lossy.line);
-                    break;
-                case ".vbs":
-                    findings.Warning(AnswerFileRule.VbScriptDeprecated, location, path);
-                    break;
-                case ".js":
-                    break;
-                default:
-                    findings.Warning(AnswerFileRule.UnknownFileType, location, path);
-                    break;
+                var bytes = Convert.FromBase64String(child.Groups["data"].Value);
+                AddScript(scripts, childLocation, MediaPayloads.DecodeText("child.ps1", bytes));
+            }
+            catch (FormatException)
+            {
+                findings.Error(AnswerFileRule.PowerShellParse, childLocation, "Invalid embedded script payload");
             }
         }
+        foreach (Match child in Regex.Matches(content, @"(?ms)^\s*\$(?<name>\w+)Content = @'\n(?<data>.*?)^'@\s*$"))
+            AddScript(scripts, location + " / " + child.Groups["name"].Value, child.Groups["data"].Value);
+        foreach (Match child in Regex.Matches(content, @"(?ms)^\s*Set-Content -Path '(?<name>[^']+\.ps1)' -Encoding UTF8 -Value @'\n(?<data>.*?)^'@\s*$"))
+            AddScript(scripts, location + " / " + child.Groups["name"].Value, child.Groups["data"].Value);
     }
 
     private static void CheckCarriedXml(string content, string location, Findings findings)
@@ -516,7 +570,7 @@ internal sealed class AnswerFileValidator(IFileSystemService files, IPowerShellR
         "component" => "component[" + (string?)e.Attribute("name") + " " + (string?)e.Attribute("processorArchitecture") + "]",
         "RunSynchronousCommand" or "RunAsynchronousCommand" or "SynchronousCommand" or "AsynchronousCommand" =>
             e.Name.LocalName + "[Order " + (string?)e.Element(Unattend + "Order") + "]",
-        "File" => "File[" + (string?)e.Attribute("path") + "]",
+        "File" or "StagedFile" => e.Name.LocalName + "[" + (string?)e.Attribute("path") + "]",
         _ => e.Name.LocalName,
     };
 }

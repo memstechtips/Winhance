@@ -133,7 +133,7 @@ internal sealed class CatalogDetectionService : ICatalogDetectionService
             {
                 object? value = target.ValueName is null
                     ? context.KeyExists(path)
-                    : Reduce(target, context.GetValue(path, target.ValueName));
+                    : Reduce(target, RegTargetReader.ReadValue(target, path, context));
 
                 if (value != null || !found)
                 {

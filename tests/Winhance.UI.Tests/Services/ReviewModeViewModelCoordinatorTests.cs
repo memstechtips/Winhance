@@ -132,6 +132,7 @@ public class ReviewModeViewModelCoordinatorTests
             _userPreferencesService.Object,
             _softLocalizationService.Object,
             new Mock<IVersionService>().Object,
+            TimeProvider.System,
             _softLogService.Object));
 
     private (ReviewModeViewModelCoordinator Sut, WindowsAppsViewModel WinVm,

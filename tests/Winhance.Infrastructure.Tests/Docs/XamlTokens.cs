@@ -7,15 +7,13 @@ internal sealed record ThemeExport(
     int SchemaVersion,
     IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> Themes,
     IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> Aliases,
-    IReadOnlyDictionary<string, StyleExport> Styles,
-    IReadOnlyDictionary<string, GeometryExport> Geometries);
+    IReadOnlyDictionary<string, string> Sizes,
+    IReadOnlyDictionary<string, StyleExport> Styles);
 
 internal sealed record StyleExport(string Target, string? BasedOn, IReadOnlyDictionary<string, string> Setters);
 
-internal sealed record GeometryExport(string Data, int ViewBox);
-
 // Parses the app's own WinUI resource dictionaries so the winhance.net docs can render Winhance's actual
-// colours, table metrics and pill geometries instead of website-authored approximations. Exports everything
+// colours, table metrics and pill icons instead of website-authored approximations. Exports everything
 // the three dictionaries contain rather than a whitelist - the website picks what it needs.
 internal static class XamlTokens
 {
@@ -24,22 +22,12 @@ internal static class XamlTokens
     private static readonly XNamespace Presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
-    // The XAML declares no viewbox - PathIcon centres the geometry in its 12x12 box. These are the
-    // coordinate spaces the paths were drawn in: the two Fluent icons are 12x12 upstream, the Windows
-    // logo is redrawn at 11x11. A geometry with no entry here fails the test rather than being guessed at.
-    private static readonly Dictionary<string, int> ViewBoxes = new(StringComparer.Ordinal)
-    {
-        ["BadgeRecommendedIconPath"] = 12,
-        ["BadgeDefaultIconPath"] = 11,
-        ["BadgePreferenceIconPath"] = 12,
-    };
-
     public static ThemeExport Extract(string solutionDir)
     {
         var dir = Path.Combine(solutionDir, "src", "Winhance.UI", "Features", "Common", "Resources");
         var badge = XDocument.Load(Path.Combine(dir, "BadgeStyles.xaml")).Root!;
         var techDetails = XDocument.Load(Path.Combine(dir, "TechnicalDetailsStyles.xaml")).Root!;
-        var featureIcons = XDocument.Load(Path.Combine(dir, "FeatureIcons.xaml")).Root!;
+        var iconSizes = XDocument.Load(Path.Combine(dir, "IconSizes.xaml")).Root!;
 
         var themes = new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal)
         {
@@ -55,6 +43,11 @@ internal static class XamlTokens
         ReadThemeDictionaries(badge, themes, aliases);
         ReadThemeDictionaries(techDetails, themes, aliases);
 
+        // Style setters point at these by {StaticResource} (BadgeRecommendedIcon's FontSize), so the website
+        // needs the values to resolve them.
+        var sizes = iconSizes.Elements(Xaml + "Double").ToDictionary(
+            el => (string)el.Attribute(Xaml + "Key")!, el => el.Value, StringComparer.Ordinal);
+
         var styles = new Dictionary<string, StyleExport>(StringComparer.Ordinal);
         ReadStyles(badge, styles);
         ReadStyles(techDetails, styles);
@@ -63,8 +56,8 @@ internal static class XamlTokens
             SchemaVersion,
             themes.ToDictionary(kv => kv.Key, kv => (IReadOnlyDictionary<string, string>)kv.Value, StringComparer.Ordinal),
             aliases.ToDictionary(kv => kv.Key, kv => (IReadOnlyDictionary<string, string>)kv.Value, StringComparer.Ordinal),
-            styles,
-            ReadGeometries(featureIcons));
+            sizes,
+            styles);
     }
 
     private static void ReadThemeDictionaries(
@@ -133,21 +126,4 @@ internal static class XamlTokens
     // "{ThemeResource X}" string stays exactly that, because the website resolves it, not this parser.
     private static string? StripStaticResource(string? value) =>
         value is null ? null : Regex.Match(value, @"^\{StaticResource\s+(.+)\}$").Groups[1].Value;
-
-    private static Dictionary<string, GeometryExport> ReadGeometries(XElement root)
-    {
-        var geometries = new Dictionary<string, GeometryExport>(StringComparer.Ordinal);
-
-        foreach (var el in root.Elements(Xaml + "String"))
-        {
-            var key = (string)el.Attribute(Xaml + "Key")!;
-            if (!key.StartsWith("Badge", StringComparison.Ordinal) || !key.EndsWith("IconPath", StringComparison.Ordinal))
-                continue;
-
-            // Missing ViewBoxes entry throws here rather than guessing a box for a geometry nobody sized yet.
-            geometries[key] = new GeometryExport(el.Value, ViewBoxes[key]);
-        }
-
-        return geometries;
-    }
 }

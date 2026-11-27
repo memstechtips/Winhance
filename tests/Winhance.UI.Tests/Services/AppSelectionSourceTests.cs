@@ -41,6 +41,8 @@ public class AppSelectionSourceTests
         _windowsApps.Setup(p => p.Items).Returns(new ObservableCollection<AppItemViewModel>());
         _externalApps.Setup(p => p.IsInitialized).Returns(true);
         _externalApps.Setup(p => p.Items).Returns(new ObservableCollection<AppItemViewModel>());
+        _windowsApps.Setup(p => p.ChangeSelection(It.IsAny<Action>())).Callback<Action>(change => change());
+        _externalApps.Setup(p => p.ChangeSelection(It.IsAny<Action>())).Callback<Action>(change => change());
     }
 
     private AppSelectionSource CreateSut() => new(_windowsApps.Object, _externalApps.Object);

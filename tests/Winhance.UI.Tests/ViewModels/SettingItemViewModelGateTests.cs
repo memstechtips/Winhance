@@ -38,7 +38,7 @@ public class SettingItemViewModelGateTests
             .Returns(new Mock<ISubscriptionToken>().Object);
         _eventBus.Setup(e => e.SubscribeAsync(It.IsAny<Func<FilterStateChangedEvent, Task>>()))
             .Returns(new Mock<ISubscriptionToken>().Object);
-        _eventBus.Setup(e => e.SubscribeAsync(It.IsAny<Func<AuthoringModeExitedEvent, Task>>()))
+        _eventBus.Setup(e => e.Subscribe(It.IsAny<Action<AuthoringModeExitedEvent>>()))
             .Returns(new Mock<ISubscriptionToken>().Object);
         _eventBus.Setup(e => e.Subscribe(It.IsAny<Action<ReviewModeExitedEvent>>()))
             .Returns(new Mock<ISubscriptionToken>().Object);
@@ -214,6 +214,41 @@ public class SettingItemViewModelGateTests
         parent.HasVisibleChildren.Should().BeTrue();
         parent.ParentCornerRadius.TopLeft.Should().Be(4d);
         parent.ParentCornerRadius.BottomLeft.Should().Be(0d);
+    }
+
+    [Fact]
+    public void HasVisibleChildren_WhenItsOnlyChildIsHidden_IsFalseAndTheCardDoesNotExpand()
+    {
+        var parent = Card(ParentId);
+        var child = Card("gate-child");
+        parent.Children = new ObservableCollection<SettingItemViewModel> { child };
+        parent.IsExpanderExpanded = false;
+        var raised = new List<string?>();
+        parent.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        child.ParentIsVisible = false;
+        parent.ToggleExpander();
+
+        parent.HasVisibleChildren.Should().BeFalse();
+        raised.Should().Contain(nameof(SettingItemViewModel.HasVisibleChildren),
+            because: "the chevron and click-to-expand bind to it");
+        parent.IsExpanderExpanded.Should().BeFalse(because: "an empty expander has nothing to open");
+    }
+
+    [Fact]
+    public void HasVisibleChildren_WhenAHiddenChildReturns_IsTrueAndTheCardExpands()
+    {
+        var parent = Card(ParentId);
+        var child = Card("gate-child");
+        parent.Children = new ObservableCollection<SettingItemViewModel> { child };
+        child.IsVisible = false;
+        parent.IsExpanderExpanded = false;
+
+        child.IsVisible = true;
+        parent.ToggleExpander();
+
+        parent.HasVisibleChildren.Should().BeTrue();
+        parent.IsExpanderExpanded.Should().BeTrue();
     }
 
     [Fact]

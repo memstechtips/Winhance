@@ -9,13 +9,33 @@ internal static class EmbeddedScriptSection
     {
         var varPrefix = VariableNameOf(scriptName);
         sb.AppendLine($"{indent}# Create {scriptName}.ps1 script");
-        sb.AppendLine($"{indent}${varPrefix}Content = @'");
-        sb.Append(scriptContent);
-        sb.AppendLine("'@");
+        // A child here-string terminator would close the containing here-string. Carry those scripts as bytes.
+        bool encoded = scriptContent.Contains("'@", StringComparison.Ordinal)
+            || scriptContent.Contains("\u2018@", StringComparison.Ordinal)
+            || scriptContent.Contains("\u2019@", StringComparison.Ordinal)
+            || scriptContent.Contains("\u201a@", StringComparison.Ordinal)
+            || scriptContent.Contains("\u201b@", StringComparison.Ordinal);
+        if (encoded)
+        {
+            var utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+            var payload = Convert.ToBase64String(utf8.GetPreamble().Concat(utf8.GetBytes(scriptContent)).ToArray());
+            sb.AppendLine($"{indent}${varPrefix}Content = [Convert]::FromBase64String('{payload}')");
+        }
+        else
+        {
+            sb.AppendLine($"{indent}${varPrefix}Content = @'");
+            sb.Append(scriptContent);
+            if (!scriptContent.EndsWith('\n'))
+                sb.AppendLine();
+            sb.AppendLine("'@");
+        }
         sb.AppendLine();
         sb.AppendLine($"{indent}${varPrefix}Path = Join-Path $scriptsDir \"{scriptName}.ps1\"");
         sb.AppendLine($"{indent}try {{");
-        sb.AppendLine($"{indent}    ${varPrefix}Content | Out-File -FilePath ${varPrefix}Path -Encoding UTF8 -Force");
+        if (encoded)
+            sb.AppendLine($"{indent}    [IO.File]::WriteAllBytes(${varPrefix}Path, ${varPrefix}Content)");
+        else
+            sb.AppendLine($"{indent}    ${varPrefix}Content | Out-File -FilePath ${varPrefix}Path -Encoding UTF8 -Force");
         sb.AppendLine($"{indent}    Write-Log \"Created: {scriptName}.ps1\" \"SUCCESS\"");
         sb.AppendLine($"{indent}}} catch {{");
         sb.AppendLine($"{indent}    Write-Log \"Failed to create {scriptName}.ps1: $($_.Exception.Message)\" \"ERROR\"");

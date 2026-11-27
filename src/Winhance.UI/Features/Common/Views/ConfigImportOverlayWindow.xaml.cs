@@ -26,7 +26,7 @@ public sealed partial class ConfigImportOverlayWindow : Window
     private const uint LWA_ALPHA = 0x2;
 
     private bool _configured;
-    private ILogService? _logService;
+    private readonly ILogService _logService = App.Services.GetRequiredService<ILogService>();
 
     public ConfigImportOverlayWindow(string statusText, string? detailText = null)
     {
@@ -35,17 +35,9 @@ public sealed partial class ConfigImportOverlayWindow : Window
         OverlayStatusText.Text = statusText;
         OverlayDetailText.Text = detailText ?? string.Empty;
 
-        try
-        {
-            var localizationService = App.Services.GetService<ILocalizationService>();
-            OverlayTitleText.Text = localizationService.GetStringOrDefault("App_Title", "Winhance");
-            OverlayTaglineText.Text = localizationService.GetStringOrDefault("App_Tagline", "Enhance Your Windows Experience");
-        }
-        catch
-        {
-            OverlayTitleText.Text = "Winhance";
-            OverlayTaglineText.Text = "";
-        }
+        var localizationService = App.Services.GetRequiredService<ILocalizationService>();
+        OverlayTitleText.Text = localizationService.GetStringOrDefault("App_Title", "Winhance");
+        OverlayTaglineText.Text = localizationService.GetStringOrDefault("App_Tagline", "Enhance Your Windows Experience");
 
         this.Activated += OnActivated;
     }
@@ -54,8 +46,6 @@ public sealed partial class ConfigImportOverlayWindow : Window
     {
         if (_configured) return;
         _configured = true;
-        _logService = App.Services.GetService<ILogService>();
-
         try
         {
             ExtendsContentIntoTitleBar = true;
@@ -78,7 +68,7 @@ public sealed partial class ConfigImportOverlayWindow : Window
         }
         catch (Exception ex)
         {
-            _logService?.LogDebug($"Failed to configure overlay window: {ex.Message}");
+            _logService.LogDebug($"Failed to configure overlay window: {ex.Message}");
         }
 
         AnnounceStatus(OverlayStatusText.Text);
@@ -86,12 +76,9 @@ public sealed partial class ConfigImportOverlayWindow : Window
 
     public void UpdateStatus(string status, string? detail = null)
     {
-        DispatcherQueue.TryEnqueue(() =>
-        {
-            OverlayStatusText.Text = status;
-            OverlayDetailText.Text = detail ?? string.Empty;
-            AnnounceStatus(status);
-        });
+        OverlayStatusText.Text = status;
+        OverlayDetailText.Text = detail ?? string.Empty;
+        AnnounceStatus(status);
     }
 
     private void AnnounceStatus(string text)

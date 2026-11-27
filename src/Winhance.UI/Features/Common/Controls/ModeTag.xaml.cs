@@ -29,7 +29,21 @@ public sealed partial class ModeTag : UserControl
     {
         var tag = (ModeTag)d;
         var text = (string?)e.NewValue ?? string.Empty;
+        if (text.Length == 0)
+        {
+            if (tag.Pill is not null)
+            {
+                tag.UnloadObject(tag.Pill);
+            }
+
+            return;
+        }
+
+        if (tag.Pill is null)
+        {
+            tag.FindName(nameof(Pill));
+        }
+
         tag.Label.Text = text;
-        tag.Pill.Visibility = text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 }

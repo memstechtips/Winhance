@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using FluentIcons.Common;
 using Microsoft.UI.Xaml;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
@@ -14,6 +15,22 @@ namespace Winhance.UI.ViewModels;
 
 public partial class MainWindowViewModel : ObservableObject, IDisposable
 {
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(AppTitle), nameof(AppSubtitle), nameof(WinhanceModeLabel), nameof(ModeNormalLabel),
+        nameof(ModeBuilderLabel), nameof(ModeConfigReviewLabel), nameof(ModeNormalTooltip), nameof(ModeBuilderTooltip),
+        nameof(ModeConfigReviewTooltip), nameof(WindowsFilterTooltip), nameof(ToggleNavigationTooltip),
+        nameof(BackTooltip), nameof(DonateTooltip), nameof(SupportButtonText), nameof(BugReportTooltip),
+        nameof(DocsTooltip), nameof(NavSoftwareAppsText), nameof(NavOptimizeText), nameof(NavCustomizeText),
+        nameof(NavAutounattendText), nameof(NavWimUtilText), nameof(NavSettingsText), nameof(NavMoreText),
+    ];
+
+    private static readonly string[] ModeProperties =
+    [
+        nameof(CurrentMode), nameof(IsNormalMode), nameof(IsBuilderModeActive), nameof(IsConfigReviewModeActive),
+        nameof(IsWindowsFilterButtonEnabled),
+    ];
+
     private bool _disposed;
     private readonly IThemeService _themeService;
     private readonly IConfigurationService _configurationService;
@@ -132,30 +149,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        OnPropertyChanged(nameof(AppTitle));
-        OnPropertyChanged(nameof(AppSubtitle));
-        OnPropertyChanged(nameof(WinhanceModeLabel));
-        OnPropertyChanged(nameof(ModeNormalLabel));
-        OnPropertyChanged(nameof(ModeBuilderLabel));
-        OnPropertyChanged(nameof(ModeConfigReviewLabel));
-        OnPropertyChanged(nameof(ModeNormalTooltip));
-        OnPropertyChanged(nameof(ModeBuilderTooltip));
-        OnPropertyChanged(nameof(ModeConfigReviewTooltip));
-        OnPropertyChanged(nameof(WindowsFilterTooltip));
-        OnPropertyChanged(nameof(ToggleNavigationTooltip));
-        OnPropertyChanged(nameof(BackTooltip));
-        OnPropertyChanged(nameof(DonateTooltip));
-        OnPropertyChanged(nameof(SupportButtonText));
-        OnPropertyChanged(nameof(BugReportTooltip));
-        OnPropertyChanged(nameof(DocsTooltip));
-
-        OnPropertyChanged(nameof(NavSoftwareAppsText));
-        OnPropertyChanged(nameof(NavOptimizeText));
-        OnPropertyChanged(nameof(NavCustomizeText));
-        OnPropertyChanged(nameof(NavAutounattendText));
-        OnPropertyChanged(nameof(NavWimUtilText));
-        OnPropertyChanged(nameof(NavSettingsText));
-        OnPropertyChanged(nameof(NavMoreText));
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
 
         if (IsOtsInfoBarOpen)
         {
@@ -207,10 +202,10 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public string WinhanceModeLabel => _localizationService.GetStringOrDefault("Mode_Switcher_Label", "Winhance Mode");
     public string ModeNormalLabel => _localizationService.GetStringOrDefault("Mode_Normal", "Normal");
     public string ModeBuilderLabel => _localizationService.GetStringOrDefault("Mode_Builder", "Builder");
-    public string ModeConfigReviewLabel => _localizationService.GetStringOrDefault("Mode_ConfigReview", "Config Review");
+    public string ModeConfigReviewLabel => _localizationService.GetStringOrDefault("Mode_ConfigReview", "Config Import");
     public string ModeNormalTooltip => _localizationService.GetStringOrDefault("Mode_Normal_Tooltip", "Normal mode — changes apply to this PC immediately.");
     public string ModeBuilderTooltip => _localizationService.GetStringOrDefault("Mode_Builder_Tooltip", "Builder mode — create a config or autounattend file without changing this PC.");
-    public string ModeConfigReviewTooltip => _localizationService.GetStringOrDefault("Mode_ConfigReview_Tooltip", "Config Review — review an imported config before applying it.");
+    public string ModeConfigReviewTooltip => _localizationService.GetStringOrDefault("Mode_ConfigReview_Tooltip", "Config Import. Choose a config to review or apply immediately.");
 
     public string WindowsFilterTooltip
     {
@@ -231,14 +226,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    public string WindowsFilterIcon
-    {
-        get
-        {
-            var resourceKey = IsWindowsVersionFilterEnabled ? "FilterCheckIconPath" : "FilterOffIconPath";
-            return Application.Current.Resources[resourceKey] as string ?? string.Empty;
-        }
-    }
+    public Icon WindowsFilterIcon => IsWindowsVersionFilterEnabled ? Icon.Filter : Icon.FilterDismiss;
 
     public string ToggleNavigationTooltip =>
         _localizationService.GetStringOrDefault("Tooltip_ToggleNavigation", "Toggle Navigation");
@@ -289,7 +277,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        // Builder and Config Review warn inside their own entry dialog, so only Normal asks here.
+        // The mode buttons have already moved to the target, so they are put back.
+        if (_dialogService.IsDialogOpen)
+        {
+            RaiseModeProperties();
+            return;
+        }
+
+        // Builder and Config Import warn inside their own entry dialog, so only Normal asks here.
         if (target == WinhanceMode.Normal
             && !await ModeSwitchConfirmation.ConfirmLeavingAsync(_applicationModeService, _dialogService, _localizationService))
         {
@@ -331,6 +326,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     // True once the mode lets the page open; false when the user stays where they are.
     public async Task<bool> RequestPageAsync(string tag)
     {
+        // UI Automation's Invoke (Narrator, Voice Access) reaches a nav button past an open dialog; a second dialog
+        // queued behind it would ask about the mode as it was before the first one closed.
+        if (_dialogService.IsDialogOpen)
+            return false;
+
         var wimUtil = tag == "WimUtil";
         switch (NavLockPolicy.GateFor(tag, _applicationModeService.CurrentMode, _applicationModeService.CurrentBuilderTarget))
         {
@@ -371,11 +371,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private void RaiseModeProperties()
     {
-        OnPropertyChanged(nameof(CurrentMode));
-        OnPropertyChanged(nameof(IsNormalMode));
-        OnPropertyChanged(nameof(IsBuilderModeActive));
-        OnPropertyChanged(nameof(IsConfigReviewModeActive));
-        OnPropertyChanged(nameof(IsWindowsFilterButtonEnabled));
+        foreach (var property in ModeProperties)
+            OnPropertyChanged(property);
     }
 
     [RelayCommand]
@@ -384,48 +381,25 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         await _windowsVersionFilterService.ToggleFilterAsync(ReviewModeBar.IsInReviewMode);
     }
 
-    public async Task LoadFilterPreferenceAsync()
-    {
-        await _windowsVersionFilterService.LoadFilterPreferenceAsync();
-    }
+    public void LoadFilterPreference() => _windowsVersionFilterService.LoadFilterPreference();
 
     [RelayCommand]
     private async Task DonateAsync()
     {
-        try
-        {
+        if (!_dialogService.IsDialogOpen)
             await _dialogService.ShowSponsorsDialogAsync(SponsorsDialogMode.Normal);
-        }
-        catch (Exception ex)
-        {
-            _logService.LogDebug($"Failed to open sponsors dialog: {ex.Message}");
-        }
     }
 
     [RelayCommand]
     private async Task BugReportAsync()
     {
-        try
-        {
-            await Windows.System.Launcher.LaunchUriAsync(HelpLinks.BugReport);
-        }
-        catch (Exception ex)
-        {
-            _logService.LogDebug($"Failed to open bug report page: {ex.Message}");
-        }
+        await Windows.System.Launcher.LaunchUriAsync(HelpLinks.BugReport);
     }
 
     [RelayCommand]
     private async Task DocsAsync(string? pageTag)
     {
-        try
-        {
-            await Windows.System.Launcher.LaunchUriAsync(HelpLinks.DocsFor(pageTag));
-        }
-        catch (Exception ex)
-        {
-            _logService.LogDebug($"Failed to open documentation page: {ex.Message}");
-        }
+        await Windows.System.Launcher.LaunchUriAsync(HelpLinks.DocsFor(pageTag));
     }
 
     private void OnReviewModeBarPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -445,7 +419,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
         else
         {
-            _ = _windowsVersionFilterService.RestoreFilterPreferenceAsync();
+            _windowsVersionFilterService.RestoreFilterPreference();
         }
     }
 

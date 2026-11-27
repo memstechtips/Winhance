@@ -59,8 +59,11 @@ public interface ISectionPageViewModel : INotifyPropertyChanged
 
     SectionOverviewItemViewModel? CurrentSectionItem { get; }
 
-    // Idempotent.
+    // Loads on the first visit and refreshes from the system on every later one.
     Task InitializeAsync();
+
+    // Null refreshes every feature the overview summarises.
+    Task RefreshOnNavigationAsync(ISettingsFeatureViewModel? section);
 
     void OnNavigatedFrom();
 

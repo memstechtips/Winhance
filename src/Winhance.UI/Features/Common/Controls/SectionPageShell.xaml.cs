@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Controls;
@@ -43,7 +44,7 @@ public sealed partial class SectionPageShell : UserControl
         nameof(SectionContent),
         typeof(object),
         typeof(SectionPageShell),
-        new PropertyMetadata(null, OnSectionContentChanged));
+        new PropertyMetadata(null));
 
     public object? SectionContent
     {
@@ -51,8 +52,7 @@ public sealed partial class SectionPageShell : UserControl
         set => SetValue(SectionContentProperty, value);
     }
 
-    private static void OnSectionContentChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
-        ((SectionPageShell)d).OverviewCards.Visibility = e.NewValue is null ? Visibility.Visible : Visibility.Collapsed;
+    public bool HasNoSectionContent(object? content) => content is null;
 
     // Sender is the card; its Tag is the section key.
     public event RoutedEventHandler? SectionCardClicked;
@@ -70,16 +70,11 @@ public sealed partial class SectionPageShell : UserControl
     // Bundled once so the base does not reach into this control's generated fields; built on demand because it is
     // asked for once, during page construction.
     public SectionPageChrome Chrome => new(
-        OverviewScroller: OverviewScrollView,
-        OverviewContent: OverviewContent,
+        OverviewScroller: () => OverviewScrollViewer,
         HasSectionContent: SectionContent is not null,
         ContentFrame: InnerContentFrame,
         SearchBox: SearchBox,
         BreadcrumbRoot: BreadcrumbRoot,
-        BreadcrumbSeparator: BreadcrumbSeparator,
-        BreadcrumbSection: BreadcrumbSection,
-        BreadcrumbSectionText: BreadcrumbSectionText,
-        BreadcrumbFlyout: BreadcrumbFlyout,
         QuickActionsLabel: QuickActionsLabel,
         QuickActionsButton: QuickActionsButton,
         ApplyRecommendedItem: ApplyRecommendedItem,
@@ -101,6 +96,16 @@ public sealed partial class SectionPageShell : UserControl
         ExcludeAllItem: ExcludeAllItem,
         IncludeActionsSeparator: IncludeActionsSeparator);
 
+    // The overview is built again each time a section closes, so each new scroller is handed the page's kept place.
+    // Keep follows the scroller's own later loads, so it is called once per scroller.
+    private void OverviewScrollViewer_Loaded(object sender, RoutedEventArgs e)
+    {
+        var viewer = (ScrollViewer)sender;
+        viewer.Loaded -= OverviewScrollViewer_Loaded;
+        if (ViewModel is { } viewModel)
+            ScrollMemory.Keep(viewModel.GetType().Name, viewer);
+    }
+
     // The three template-scoped handlers. Their instances are created per item as the ItemsControl
     // realizes them, so the base cannot subscribe to them element-by-element the way it does for the
     // chrome; the control forwards instead. Sender and args pass through untouched - the base reads
@@ -109,8 +114,10 @@ public sealed partial class SectionPageShell : UserControl
     private void SectionCard_Click(object sender, RoutedEventArgs e) =>
         SectionCardClicked?.Invoke(sender, e);
 
-    private void SectionFlyoutItem_Click(object sender, RoutedEventArgs e) =>
+    private void SectionFlyoutItem_Click(object sender, RoutedEventArgs e)
+    {
         SectionFlyoutItemClicked?.Invoke(sender, e);
+    }
 
     private void OnOutcomeBannerNavigationRequested(object? sender, FeatureOutcomeNavigationEventArgs e) =>
         OutcomeBannerNavigationRequested?.Invoke(sender, e);

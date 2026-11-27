@@ -122,8 +122,42 @@ public class IsoServiceTests
 
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*output.iso*");
         _mockIsoImageWriter.Verify(
-            w => w.Write(@"C:\work", @"C:\output\output.iso", BootFileReplacements.None, It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()),
+            w => w.Write(@"C:\work", It.Is<string>(path => path.StartsWith(@"C:\output\output.iso.") && path.EndsWith(".tmp")), BootFileReplacements.None, It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CreateIsoAsync_ExistingOutput_ReplacesOnlyAfterWriterSucceeds(bool fail)
+    {
+        GivenEnoughRoomToWrite();
+        const string output = @"C:\output\output.iso";
+        string? temporary = null;
+        var existing = new HashSet<string> { output };
+        _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns((string path) => existing.Contains(path));
+        _mockIsoImageWriter.Setup(w => w.Write(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .Callback<string, string, BootFileReplacements, IProgress<TaskProgressDetail>, CancellationToken>((_, path, _, _, _) =>
+            {
+                existing.Should().Contain(output);
+                path.Should().NotBe(output);
+                temporary = path;
+                existing.Add(path);
+                if (fail) throw new IOException("Interrupted write");
+            });
+        _mockFileSystem.Setup(fs => fs.DeleteFile(It.IsAny<string>())).Callback<string>(path => existing.Remove(path));
+        _mockFileSystem.Setup(fs => fs.MoveFileReplacing(It.IsAny<string>(), output)).Callback<string, string>((path, _) => existing.Remove(path));
+
+        Func<Task> create = () => _service.CreateIsoAsync(@"C:\work", output, BootFileReplacements.None);
+        if (fail)
+            await create.Should().ThrowAsync<IOException>();
+        else
+            await create.Should().NotThrowAsync();
+
+        temporary.Should().NotBeNull();
+        existing.Should().BeEquivalentTo(new[] { output });
+        _mockFileSystem.Verify(fs => fs.DeleteFile(output), Times.Never);
+        _mockFileSystem.Verify(fs => fs.MoveFileReplacing(It.IsAny<string>(), output), fail ? Times.Never() : Times.Once());
     }
 
     [Fact]

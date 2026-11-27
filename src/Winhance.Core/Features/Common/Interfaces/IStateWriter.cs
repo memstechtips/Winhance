@@ -5,6 +5,7 @@ namespace Winhance.Core.Features.Common.Interfaces;
 public interface IStateWriter
 {
     bool WriteRegistry(RegTarget target, string path, object value);
+    bool SetMessageDuration(MessageDurationTarget target, int seconds) => WriteRegistry(target, target.Paths[0], seconds);
     bool DeleteRegistry(RegTarget target, string path);
     bool EnsureRegistryKey(RegTarget target, string path);
 

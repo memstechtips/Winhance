@@ -33,6 +33,8 @@ public static class UserPreferenceKeys
     public const string TrayAttention = "TrayAttention";
     public const string LastWinhanceUpdateCheck = "LastWinhanceUpdateCheck";
     public const string LastNotifiedWinhanceUpdate = "LastNotifiedWinhanceUpdate";
+    public const string WinhanceUpdateAction = "WinhanceUpdateAction";
+    public const string LastWinhanceAutoInstall = "LastWinhanceAutoInstall";
     public const string SoftwareAppsViewMode = "SoftwareAppsViewMode";
     public const string SoftwareAppsSortMode = "SoftwareAppsSortMode";
     public const string SoftwareAppsFilter = "SoftwareAppsFilter";

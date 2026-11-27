@@ -3,7 +3,6 @@ using Microsoft.UI.Xaml.Controls;
 using Moq;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
 using Xunit;
 
@@ -52,86 +51,24 @@ public class SettingStatusBannerManagerTests
         result.Should().BeNull();
     }
 
-    [Fact]
-    public void ComputeBannerForValue_WithMatchingOptionWarning_ReturnsErrorBanner()
-    {
-        var optionWarnings = new OptionWarning?[] { null, new("Security risk!", false) };
-
-        var result = _manager.ComputeBannerForValue(1, optionWarnings, null, 2, null);
-
-        result.Should().NotBeNull();
-        result!.Value.Message.Should().Be("Security risk!");
-        result.Value.Severity.Should().Be(InfoBarSeverity.Error);
-    }
-
-    [Fact]
-    public void ComputeBannerForValue_WithAdvisoryOptionWarning_ReturnsWarningBanner()
-    {
-        var optionWarnings = new OptionWarning?[] { null, new("Windows only offers this in its own Settings.", true) };
-
-        var result = _manager.ComputeBannerForValue(1, optionWarnings, null, 2, null);
-
-        result.Should().NotBeNull();
-        result!.Value.Message.Should().Be("Windows only offers this in its own Settings.");
-        result.Value.Severity.Should().Be(InfoBarSeverity.Warning);
-    }
-
-    [Fact]
-    public void ComputeBannerForValue_WithNonMatchingOptionWarning_ReturnsClear()
-    {
-        var optionWarnings = new OptionWarning?[] { null, new("Security risk!", false) };
-
-        var result = _manager.ComputeBannerForValue(0, optionWarnings, null, 2, null);
-
-        result.Should().NotBeNull();
-        result!.Value.Message.Should().BeNull();
-    }
-
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(ComboBoxConstants.CustomStateIndex)]
-    public void ComputeBannerForValue_WithRiskWarning_ShowsItWhateverIsSelected(int selected)
+    public void ComputeBannerForValue_WithOptionWarning_ShowsItWhateverIsSelected(int selected)
     {
-        var optionWarnings = new OptionWarning?[] { null, new("Disabling breaks it.", true, Always: true) };
-
-        var result = _manager.ComputeBannerForValue(selected, optionWarnings, null, 2, null);
+        var result = _manager.ComputeBannerForValue(selected, ["Disabling breaks it."], null, 2, null);
 
         result!.Value.Message.Should().Be("Disabling breaks it.");
         result.Value.Severity.Should().Be(InfoBarSeverity.Warning);
     }
 
     [Fact]
-    public void ComputeBannerForValue_WithRiskWarningRepeatedOnTwoOptions_ShowsItOnce()
+    public void ComputeBannerForValue_WithTwoOptionWarnings_ShowsBothOnSeparateLines()
     {
-        var risk = new OptionWarning("Manual or Disabled breaks Night Light.", true, Always: true);
-
-        var result = _manager.ComputeBannerForValue(2, new OptionWarning?[] { risk, risk, null }, null, 3, null);
-
-        result!.Value.Message.Should().Be("Manual or Disabled breaks Night Light.");
-    }
-
-    [Fact]
-    public void ComputeBannerForValue_WithTwoRiskWarnings_ShowsBothOnSeparateLines()
-    {
-        var optionWarnings = new OptionWarning?[]
-        {
-            null, new("Pausing is risky.", true, Always: true), new("Disabling is riskier.", true, Always: true),
-        };
-
-        var result = _manager.ComputeBannerForValue(0, optionWarnings, null, 3, null);
+        var result = _manager.ComputeBannerForValue(0, ["Pausing is risky.", "Disabling is riskier."], null, 3, null);
 
         result!.Value.Message.Should().Be("Pausing is risky.\nDisabling is riskier.");
-    }
-
-    [Fact]
-    public void ComputeBannerForValue_WithOutcomeNoteOnSelectedOption_ShowsTheNoteNotTheRisk()
-    {
-        var optionWarnings = new OptionWarning?[] { new("Risk.", true, Always: true), new("Outcome.", true) };
-
-        var result = _manager.ComputeBannerForValue(1, optionWarnings, null, 2, null);
-
-        result!.Value.Message.Should().Be("Outcome.");
     }
 
     [Fact]

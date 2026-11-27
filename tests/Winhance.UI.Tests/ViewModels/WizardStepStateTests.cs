@@ -191,18 +191,6 @@ public class WizardStepStateTests
         raised.Should().BeFalse();
     }
 
-    [Theory]
-    [InlineData(null, false)]
-    [InlineData("", false)]
-    [InlineData("\uE958", true)]
-    public void HasGlyph_ForGlyph_ShowsGlyphInsteadOfFluentIcon(string? glyph, bool hasGlyph)
-    {
-        var state = new WizardStepState { Glyph = glyph };
-
-        state.HasGlyph.Should().Be(hasGlyph);
-        state.UsesFluentIcon.Should().Be(!hasGlyph);
-    }
-
     [Fact]
     public void TransitionFromLockedToAvailable_UnlocksTheStep()
     {

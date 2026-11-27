@@ -172,25 +172,15 @@ public class WimImageFormatViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task SafeDetectImageFormatAsync_SwallowsExceptions()
-    {
-        _mockWimImageService
-            .Setup(s => s.DetectAllImageFormatsAsync(It.IsAny<string>()))
-            .ThrowsAsync(new Exception("Unhandled error"));
-
-        var act = () => _sut.SafeDetectImageFormatAsync();
-
-        await act.Should().NotThrowAsync();
-    }
-
-    [Fact]
-    public async Task SafeDetectImageFormatAsync_LogsError()
+    public async Task DetectImageFormatAsync_WhenExceptionThrown_LogsAndDoesNotThrow()
     {
         _mockWimImageService
             .Setup(s => s.DetectAllImageFormatsAsync(It.IsAny<string>()))
             .ThrowsAsync(new Exception("Test error"));
 
-        await _sut.SafeDetectImageFormatAsync();
+        var act = () => _sut.DetectImageFormatAsync();
+
+        await act.Should().NotThrowAsync();
 
         _mockLogService.Verify(l => l.LogError(It.Is<string>(s => s.Contains("Test error")), It.IsAny<Exception>(), It.IsAny<string>()), Times.AtLeastOnce);
     }
@@ -231,6 +221,29 @@ public class WimImageFormatViewModelTests : IDisposable
         await _sut.DeleteWimCommand.ExecuteAsync(null);
 
         _mockWimImageService.Verify(s => s.DetectAllImageFormatsAsync(It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteWimCommand_WhenTheDeleteThrows_LogsAndShowsTheError()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+        _mockWimImageService
+            .Setup(s => s.DeleteImageFileAsync(
+                It.IsAny<string>(), ImageFormat.Wim,
+                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new IOException("in use"));
+        _mockLocalizationService
+            .Setup(l => l.GetString("WIMUtil_Msg_DeleteError", It.IsAny<object[]>()))
+            .Returns("Could not delete");
+
+        var act = () => _sut.DeleteWimCommand.ExecuteAsync(null);
+
+        await act.Should().NotThrowAsync();
+        _mockLogService.Verify(l => l.LogError(It.Is<string>(m => m.Contains("in use")), It.IsAny<IOException>(), It.IsAny<string>()), Times.Once);
+        _mockDialogService.Verify(d => d.ShowErrorAsync("Could not delete", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

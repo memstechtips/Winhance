@@ -6,9 +6,8 @@ public interface IUserPreferencesService
 {
     Task<Dictionary<string, object>> GetPreferencesAsync();
     Task<OperationResult> SavePreferencesAsync(Dictionary<string, object> preferences);
-    Task<T> GetPreferenceAsync<T>(string key, T defaultValue);
     Task<OperationResult> SetPreferenceAsync<T>(string key, T value);
 
-    // Synchronous, for startup, to avoid async deadlocks.
+    // Synchronous: callers read on the UI thread, where an await on the file read deadlocks.
     T GetPreference<T>(string key, T defaultValue);
 }

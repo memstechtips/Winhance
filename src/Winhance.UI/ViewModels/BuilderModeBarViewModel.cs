@@ -11,6 +11,15 @@ namespace Winhance.UI.ViewModels;
 
 public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
 {
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(BuilderModeTitleText), nameof(BuilderModeDescriptionText), nameof(BuilderConfigTargetText),
+        nameof(BuilderAutounattendTargetText), nameof(BuilderSaveButtonText), nameof(SaveAsConfigText),
+        nameof(SaveAsProfileText), nameof(BuilderCancelButtonText), nameof(ShowOtherHardwareText),
+        nameof(ShowOtherHardwareTooltip), nameof(TargetWindowsText), nameof(TargetWindowsTooltip),
+        nameof(AllVersionsText),
+    ];
+
     private bool _disposed;
     private readonly IApplicationModeService _applicationModeService;
     private readonly IBuilderSaveService _builderSave;
@@ -26,8 +35,14 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial bool IsBuilderActive { get; set; }
 
-    public bool IsConfigTarget => _applicationModeService.CurrentBuilderTarget == BuilderTarget.Config;
-    public bool IsAutounattendTarget => _applicationModeService.CurrentBuilderTarget == BuilderTarget.Autounattend;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsConfigTarget))]
+    [NotifyPropertyChangedFor(nameof(IsAutounattendTarget))]
+    [NotifyPropertyChangedFor(nameof(BuilderSaveButtonText))]
+    public partial BuilderTarget Target { get; private set; }
+
+    public bool IsConfigTarget => Target == BuilderTarget.Config;
+    public bool IsAutounattendTarget => Target == BuilderTarget.Autounattend;
 
     public string BuilderModeTitleText =>
         _localizationService.GetStringOrDefault("Builder_Mode_Title", "Builder Mode");
@@ -91,6 +106,7 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         _scope = scope;
         _catalogSettingsRegistry = catalogSettingsRegistry;
         _logService = logService;
+        Target = _applicationModeService.CurrentBuilderTarget;
 
         _applicationModeService.ModeChanged += OnModeChanged;
         _localizationService.LanguageChanged += OnLanguageChanged;
@@ -114,9 +130,7 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
         _dispatcherService.RunOnUIThreadAsync(() =>
         {
             IsBuilderActive = _applicationModeService.CurrentMode == WinhanceMode.Builder;
-            OnPropertyChanged(nameof(IsConfigTarget));
-            OnPropertyChanged(nameof(IsAutounattendTarget));
-            OnPropertyChanged(nameof(BuilderSaveButtonText));
+            Target = _applicationModeService.CurrentBuilderTarget;
             return Task.CompletedTask;
         }).FireAndForget(_logService);
     }
@@ -142,19 +156,8 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        OnPropertyChanged(nameof(BuilderModeTitleText));
-        OnPropertyChanged(nameof(BuilderModeDescriptionText));
-        OnPropertyChanged(nameof(BuilderConfigTargetText));
-        OnPropertyChanged(nameof(BuilderAutounattendTargetText));
-        OnPropertyChanged(nameof(BuilderSaveButtonText));
-        OnPropertyChanged(nameof(SaveAsConfigText));
-        OnPropertyChanged(nameof(SaveAsProfileText));
-        OnPropertyChanged(nameof(BuilderCancelButtonText));
-        OnPropertyChanged(nameof(ShowOtherHardwareText));
-        OnPropertyChanged(nameof(ShowOtherHardwareTooltip));
-        OnPropertyChanged(nameof(TargetWindowsText));
-        OnPropertyChanged(nameof(TargetWindowsTooltip));
-        OnPropertyChanged(nameof(AllVersionsText));
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
     }
 
     public async Task SetShowOtherHardwareAsync(bool show)
@@ -213,31 +216,17 @@ public partial class BuilderModeBarViewModel : ObservableObject, IDisposable
     public void SelectConfigTarget()
     {
         _applicationModeService.SetBuilderTarget(BuilderTarget.Config);
-        OnPropertyChanged(nameof(IsConfigTarget));
-        OnPropertyChanged(nameof(IsAutounattendTarget));
-        OnPropertyChanged(nameof(BuilderSaveButtonText));
+        Target = _applicationModeService.CurrentBuilderTarget;
     }
 
     public void SelectAutounattendTarget()
     {
         _applicationModeService.SetBuilderTarget(BuilderTarget.Autounattend);
-        OnPropertyChanged(nameof(IsConfigTarget));
-        OnPropertyChanged(nameof(IsAutounattendTarget));
-        OnPropertyChanged(nameof(BuilderSaveButtonText));
+        Target = _applicationModeService.CurrentBuilderTarget;
     }
 
     [RelayCommand]
-    private async Task SaveAsync()
-    {
-        try
-        {
-            await _builderSave.SaveAsync(_applicationModeService.CurrentBuilderTarget);
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"Builder Save failed: {ex.Message}");
-        }
-    }
+    private Task SaveAsync() => _builderSave.SaveAsync(_applicationModeService.CurrentBuilderTarget);
 
     [RelayCommand]
     private Task SaveAsConfigAsync() => _builderSave.SaveAsync(BuilderTarget.Config);

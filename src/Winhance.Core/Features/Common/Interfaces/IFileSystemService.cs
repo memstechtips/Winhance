@@ -15,11 +15,14 @@ public interface IFileSystemService
     void TakeOwnership(string path);
     void CopyFile(string source, string destination, bool overwrite = false);
     void MoveFile(string source, string destination);
+    void MoveFileReplacing(string source, string destination);
     void MoveDirectory(string source, string destination);
     void ExtractZip(string zipPath, string folder);
     void CreateSymbolicLink(string link, string target);
     string ReadAllText(string path, System.Text.Encoding encoding);
     long GetFileSize(string path);
+    DateTime GetLastWriteTimeUtc(string path);
+    System.IO.Stream OpenRead(string path);
     void SetFileAttributes(string path, System.IO.FileAttributes attributes);
     System.IO.FileAttributes GetFileAttributes(string path);
 
@@ -27,6 +30,7 @@ public interface IFileSystemService
     void CreateDirectory(string path);
     // Creates the folder writable only by SYSTEM and Administrators, replacing a junction or a user-owned one; false when it cannot.
     bool CreatePrivateDirectory(string path);
+    bool EnsureProtectedPictureDestination(string path);
     void DeleteDirectory(string path, bool recursive = false);
     string[] GetFiles(string path, string searchPattern = "*", System.IO.SearchOption searchOption = System.IO.SearchOption.TopDirectoryOnly);
     string[] GetDirectories(string path, string searchPattern = "*", System.IO.SearchOption searchOption = System.IO.SearchOption.TopDirectoryOnly);

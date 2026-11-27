@@ -393,6 +393,31 @@ internal class AppIconResolver : IAppIconResolver
         File.Move(tmpPath, path, overwrite: true);
     }
 
+    public string? CachedIconPath(string appId, bool lightTheme)
+    {
+        try
+        {
+            if (!Directory.Exists(_cacheRoot))
+                return null;
+
+            var primary = new DirectoryInfo(_cacheRoot)
+                .EnumerateFiles(CacheStem(appId) + ".*" + CacheFileExtension)
+                .Where(file => !file.Name.EndsWith(".light" + CacheFileExtension, StringComparison.OrdinalIgnoreCase)
+                    && !file.Name.EndsWith(".dark" + CacheFileExtension, StringComparison.OrdinalIgnoreCase))
+                .MaxBy(file => file.LastWriteTimeUtc)?.FullName;
+            if (primary is null)
+                return null;
+
+            var variant = lightTheme ? LightVariantPath(primary) : DarkVariantPath(primary);
+            return File.Exists(variant) ? variant : primary;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logService.LogWarning($"Could not read the icon cache for {appId}: {ex.Message}");
+            return null;
+        }
+    }
+
     internal static string LightVariantPath(string primaryPath) =>
         Path.ChangeExtension(primaryPath, null) + ".light.png";
 

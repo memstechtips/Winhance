@@ -1,9 +1,13 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
+using Winhance.Core.Features.Common.Extensions;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Models;
+using Winhance.UI.Features.Common.Services;
 
 namespace Winhance.UI.Features.Common.Pages;
 
@@ -14,6 +18,8 @@ public sealed partial class SectionDetailPage : Page
 {
     private SectionDetailNavigation? _navigation;
     private CollectionViewSource? _groupedSource;
+    private readonly MemoryDiagnostics _memoryDiagnostics = App.Services.GetRequiredService<MemoryDiagnostics>();
+    private readonly ILogService _logService = App.Services.GetRequiredService<ILogService>();
 
     public SectionDetailPage()
     {
@@ -30,6 +36,10 @@ public sealed partial class SectionDetailPage : Page
             return;
 
         _navigation = navigation;
+        // Set before the list loads, which is when it tracks and restores. A search opens the section on its match,
+        // so it neither restores the user's place nor overwrites it.
+        if (string.IsNullOrWhiteSpace(navigation.SearchText))
+            SettingsList.ScrollMemoryKey = navigation.Feature.ModuleId;
         Connect();
 
         if (!string.IsNullOrWhiteSpace(navigation.SearchText))
@@ -37,9 +47,16 @@ public sealed partial class SectionDetailPage : Page
             navigation.PageViewModel.SearchText = navigation.SearchText;
         }
 
-        // Lightweight refresh: re-read setting states from the system. Guarded inside the feature
-        // ViewModel for Builder mode, which must not have its authored values overwritten.
-        _ = navigation.Feature.RefreshSettingStatesAsync();
+        RefreshAsync(navigation).FireAndForget(_logService);
+    }
+
+    private async Task RefreshAsync(SectionDetailNavigation navigation)
+    {
+        // Through the page so its loader covers a feature left stale by an authoring exit.
+        await navigation.PageViewModel.RefreshOnNavigationAsync(navigation.Feature);
+        // The list keeps realizing its cache pages for a second or so after the first frames.
+        await Task.Delay(TimeSpan.FromSeconds(2));
+        _memoryDiagnostics.LogSection(navigation.SectionKey);
     }
 
     // The feature and page view models outlive this page, and the view and bindings subscribe to them. Leaving

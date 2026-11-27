@@ -66,7 +66,7 @@ public class ConfigApplicationExecutionService(
 
             if (selectedSections.Count == 0)
             {
-                dialogService.ShowMessage(
+                await dialogService.ShowInformationAsync(
                     localizationService.GetStringOrDefault("Config_Import_Error_NoSelection", "There are no changes to apply."),
                     localizationService.GetStringOrDefault("Config_Import_Error_NoSelection_Title", "Nothing to Apply"));
                 return;
@@ -168,7 +168,7 @@ public class ConfigApplicationExecutionService(
         {
             logService.Log(LogLevel.Error, $"Error importing configuration: {ex.Message}");
             overlayService.HideOverlay();
-            dialogService.ShowMessage(localizationService.GetString("Config_Import_Error", ex.Message), localizationService.GetString("Dialog_Error"));
+            await dialogService.ShowErrorAsync(localizationService.GetString("Config_Import_Error", ex.Message));
         }
     }
 

@@ -537,6 +537,22 @@ public class WimStep2XmlViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task ChooseOwnXmlCommand_WhenPickingThrows_ShowsTheErrorOnTheCardAndInADialog()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _mockFilePickerService
+            .Setup(f => f.PickFile(It.IsAny<string[]>(), It.IsAny<string?>()))
+            .Throws(new InvalidOperationException("boom"));
+
+        await _sut.ChooseOwnXmlCommand.ExecuteAsync(null);
+
+        _sut.XmlStatus.Should().Be("WIMUtil_Status_ErrorPrefix");
+        _mockDialogService.Verify(d => d.ShowErrorAsync("WIMUtil_Msg_XmlSelectError", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _mockLogService.Verify(l => l.LogError(It.Is<string>(s => s.Contains("boom")), It.IsAny<Exception>(), It.IsAny<string>()), Times.Once);
+        _sut.Choice.Should().Be(AnswerFileChoice.None);
+    }
+
+    [Fact]
     public async Task ChooseOwnXmlCommand_WhenEmptyString_DoesNothing()
     {
         _sut.WorkingDirectory = "C:\\WorkDir";
@@ -934,6 +950,21 @@ public class WimStep2XmlViewModelTests : IDisposable
         _sut.Choice.Should().Be(AnswerFileChoice.None);
         _sut.SelectedXmlPath.Should().BeEmpty();
         _checkState.Subject.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DeleteMediaAnswerFileCommand_WhenTheMediaCannotBeReadAfter_ShowsTheError()
+    {
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        var onMedia = true;
+        _mockFileSystemService.Setup(f => f.FileExists(GeneratedXmlPath)).Returns(() => onMedia);
+        _mockFileSystemService.Setup(f => f.DeleteFile(GeneratedXmlPath)).Callback(() => onMedia = false);
+        await _sut.PickUpMediaAnswerFileAsync();
+        _mockFileSystemService.Setup(f => f.FileExists(GeneratedXmlPath)).Throws(new IOException("boom"));
+
+        await _sut.DeleteMediaAnswerFileCommand.ExecuteAsync(null);
+
+        _mockDialogService.Verify(d => d.ShowErrorAsync("Common_ActionFailed", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

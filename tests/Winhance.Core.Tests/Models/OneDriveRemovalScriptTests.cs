@@ -40,7 +40,18 @@ public class OneDriveRemovalScriptTests
         script.Should().Contain("if ($remaining -and -not $Offline) {");
         script.Should().Contain("if (-not $Offline -and (Test-Path $folder)) {");
         script.Should().Contain("Remove-OneDriveUserKeys $UserRoot");
-        script.Should().Contain("$defaultUser = if ($Offline) { $UserRoot } else { 'HKU\\Default' }");
+        script.Should().Contain("$defaultUser = if ($Offline) { $UserRoot } else { 'HKU\\WinhanceDefault_'");
+    }
+
+    [Fact]
+    public void GetScript_DefaultHive_IsOwnedAndOnlyMarkedAfterSuccessfulConfiguration()
+    {
+        var script = OneDriveRemovalScript.GetScript();
+        var cleanup = script[script.IndexOf("# 3.6:", StringComparison.Ordinal)..];
+        cleanup.Should().Contain("[Guid]::NewGuid().ToString('N')");
+        cleanup.Should().Contain("if ($loaded)").And.Contain("reg.exe unload $defaultUser");
+        cleanup.Should().Contain("if ($configured)").And.Contain("if ($LASTEXITCODE -eq 0)");
+        cleanup.Should().NotContain("Stop-Process -Name regedit");
     }
 
     [Fact]
@@ -51,6 +62,15 @@ public class OneDriveRemovalScriptTests
         script.Should().Contain("MoveFileEx($Path, [NullString]::Value, 4)");
         script.IndexOf("Schedule-DeleteOnReboot $_.FullName", StringComparison.Ordinal)
             .Should().BeGreaterThan(script.IndexOf("Remove-Item $folder -Recurse -Force", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GetScript_RemovesOnlyTheOneDrivePhotosCompanion()
+    {
+        var script = OneDriveRemovalScript.GetScript();
+        script.Should().Contain("Microsoft.OneDrive.Photos").And.Contain("ODPhotosOneDriveSetup.exe");
+        script.Should().NotContain("Microsoft.Windows.Photos");
+        script.Should().Contain("Global\\WinhanceOneDriveRemoval");
     }
 
     [Fact]

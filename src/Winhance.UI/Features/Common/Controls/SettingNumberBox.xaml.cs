@@ -14,7 +14,7 @@ public sealed partial class SettingNumberBox : SettingBoundControl
 
     public static readonly DependencyProperty ModeProperty = DependencyProperty.Register(
         nameof(Mode), typeof(SettingInputMode), typeof(SettingNumberBox),
-        new PropertyMetadata(SettingInputMode.Single, RefreshOnChange));
+        new PropertyMetadata(SettingInputMode.Single));
 
     public SettingInputMode Mode
     {
@@ -22,44 +22,18 @@ public sealed partial class SettingNumberBox : SettingBoundControl
         set => SetValue(ModeProperty, value);
     }
 
-    public double NumericValue { get; private set; }
-    public double Minimum { get; private set; }
-    public double Maximum { get; private set; }
-    public string InputAutomationName { get; private set; } = string.Empty;
+    public static double ValueFor(SettingItemViewModel? setting, SettingInputMode mode, int _1, int _2, int _3)
+        => setting?.NumericValueForMode(mode) ?? 0d;
 
-    // Only Undetermined covers a numeric - any number the user types is legitimate, so there is no "unrecognized value" here.
-    public Visibility OverlayVisibility { get; private set; } = Visibility.Collapsed;
+    public static double AsDouble(int value) => value;
+
+    // Only Undetermined covers a numeric - any number the user types is legitimate, so there is no "unrecognized
+    // value" here. Undetermined is setting-wide, so the setting's own outcome decides it for every mode.
+    public static bool IsUndetermined(SettingDetectionOutcome outcome) => outcome == SettingDetectionOutcome.Undetermined;
 
     // On the covering Border, which is what the pointer hits.
-    public string? OutcomeTooltip { get; private set; }
-
-    protected override bool RefreshesOn(string propertyName)
-        => propertyName is nameof(SettingItemViewModel.NumericValue)
-            or nameof(SettingItemViewModel.AcNumericValue)
-            or nameof(SettingItemViewModel.DcNumericValue)
-            or nameof(SettingItemViewModel.Outcome)
-            or nameof(SettingItemViewModel.MinValue)
-            or nameof(SettingItemViewModel.MaxValue)
-            or nameof(SettingItemViewModel.Name);
-
-    protected override void Refresh()
-    {
-        if (Setting is not { } vm)
-            return;
-
-        NumericValue = vm.NumericValueForMode(Mode);
-        Minimum = vm.MinValue;
-        Maximum = vm.MaxValue;
-        InputAutomationName = vm.InputAutomationNameForMode(Mode);
-        OverlayVisibility = vm.OutcomeForMode(Mode) == SettingDetectionOutcome.Undetermined
-            ? Visibility.Visible
-            : Visibility.Collapsed;
-        OutcomeTooltip = OverlayVisibility == Visibility.Visible
-            ? vm.OverlayTooltipForMode(Mode, isTwoState: false)
-            : null;
-        Notify(nameof(NumericValue), nameof(Minimum), nameof(Maximum),
-               nameof(InputAutomationName), nameof(OverlayVisibility), nameof(OutcomeTooltip));
-    }
+    public static string? OutcomeTooltip(SettingItemViewModel? setting, SettingInputMode mode, SettingDetectionOutcome outcome)
+        => IsUndetermined(outcome) ? setting?.OverlayTooltipForMode(mode, isTwoState: false) : null;
 
     private void OnLoaded(object sender, RoutedEventArgs e) => Setting?.OnNumberBoxLoaded(sender);
 

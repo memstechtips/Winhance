@@ -276,6 +276,8 @@ internal class WindowsUIManagementService : IWindowsUIManagementService
         Anonymous = { ki = new KEYBDINPUT { wVk = VIRTUAL_KEY.VK_NUMLOCK, wScan = 0x45, dwFlags = KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY | flags } },
     };
 
+    public void BroadcastAccessibilitySettingChange() => BroadcastSettingChange("Accessibility");
+
     public void BroadcastRegionalSettingChange() => BroadcastSettingChange("intl");
 
     public void BroadcastEnvironmentChange() => BroadcastSettingChange("Environment");

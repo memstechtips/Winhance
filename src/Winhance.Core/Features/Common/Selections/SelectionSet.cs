@@ -14,6 +14,18 @@ public sealed record SelectionSet(
 
     public InstallOptionsStore? InstallOptions { get; init; }
 
+    // A file export carries only the chosen picture; media may stage an entire slideshow separately.
+    public SelectionSet WithOnlySelectedPicture()
+    {
+        const string pictureId = "theme-wallpaper-picture";
+        var picture = Value(pictureId) is ChoiceValue.Keyed keyed
+            ? Files.LastOrDefault(file => file.SettingId == pictureId && string.Equals(file.Destination, keyed.Key, StringComparison.OrdinalIgnoreCase))
+            : null;
+        if (Files.Count == (picture is null ? 0 : 1))
+            return this;
+        return this with { Files = picture is null ? [] : [picture] };
+    }
+
     public static readonly SelectionSet Empty =
         new(Array.Empty<SettingChoice>(), Array.Empty<AppChoice>(), Array.Empty<AppChoice>());
 

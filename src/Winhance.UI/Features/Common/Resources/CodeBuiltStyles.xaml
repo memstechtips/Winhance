@@ -109,6 +109,13 @@
         <Setter Property="BorderThickness" Value="1"/>
     </Style>
 
+    <!-- ContentDialog's own content band: the layer fill over the window backdrop, a separator above the buttons. -->
+    <Style x:Key="CodeBuilt.DialogBody" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource LayerFillColorAltBrush}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    </Style>
+
     <Style x:Key="CodeBuilt.LogoTile" TargetType="Border">
         <Setter Property="Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}"/>
         <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>

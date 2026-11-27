@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.OtsElevationBanner"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <InfoBar x:Name="OtsElevationInfoBar"
+             Severity="Warning"
+             IsOpen="True"
+             Title="{x:Bind ViewModel.OtsInfoBarTitle, Mode=OneWay}"
+             Message="{x:Bind ViewModel.OtsInfoBarMessage, Mode=OneWay}"
+             IsClosable="True"
+             Closed="OtsElevationInfoBar_Closed"/>
+</UserControl>

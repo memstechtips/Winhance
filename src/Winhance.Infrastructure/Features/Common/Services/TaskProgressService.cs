@@ -196,11 +196,6 @@ internal class TaskProgressService : ITaskProgressService, IMultiScriptProgressS
         }
 
         _logService.Log(LogLevel.Warning, $"Task failed: {_currentStatusText}");
-
-        // Progress 0 with a status while the task still counts as running is how
-        // TaskProgressViewModel learns of a failure; it then keeps the bar up with its
-        // "click to see details" line instead of hiding it as finished.
-        OnProgressChanged(new TaskProgressDetail { Progress = 0, StatusText = _currentStatusText });
         EndTask(0, "Task failed");
     }
 

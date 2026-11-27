@@ -63,6 +63,7 @@ MSIOPENPACKAGEFLAGS
 // System restore points (srrestoreptapi.h). MAX_DESC_W caps szDescription. The generated
 // import binds sfc.dll, which forwards through sfc_os.dll to the documented srclient.dll.
 SRSetRestorePoint
+SRRemoveRestorePoint
 RESTOREPOINTINFOW
 STATEMGRSTATUS
 RESTOREPOINTINFO_EVENT_TYPE

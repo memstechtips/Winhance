@@ -6,6 +6,7 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.SoftwareApps.Catalogs;
 using Winhance.Infrastructure.Features.Autounattend.ScriptSections;
 using Winhance.Infrastructure.Features.Autounattend.Services;
 using Winhance.Infrastructure.Features.Common.Services;
@@ -95,6 +96,58 @@ public class GeneratedPowerShellTests
         script.Should().Contain("Set-RegistryCompositeValue -Path").And.Contain("Set-RegistryStringFlag -Path").And.Contain("Lock-RegistryKey -Path");
         var errors = await Runner().FindParseErrorsAsync(new Dictionary<string, string> { ["Winhancements.ps1"] = script });
         errors.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task WindowsAppRemoval_ParsesWithEveryKeepRemovedMode(int keepMode)
+    {
+        var apps = WindowsAppDefinitions.GetWindowsApps().Items;
+        var chosen = apps.Select(a => new AppChoice(a.Id, a.Name, a.AppxPackageName, a.CapabilityName, a.OptionalFeatureName, null)).ToList();
+        var seed = LiveCatalogChoices(2);
+        var set = seed with
+        {
+            WindowsApps = chosen,
+            Settings = [.. seed.Settings.Where(c => c.SettingId != "autounattend-keep-removed"),
+                new SettingChoice("autounattend-keep-removed", new ChoiceValue.Option(keepMode))],
+        };
+        var script = await Builder().BuildAsync(set, SettingCatalog.ByFeature);
+        script.Should().Contain("EdgeRemoval.ps1").And.Contain("OneDriveRemoval.ps1").And.Contain("BloatRemoval.ps1");
+        var scripts = apps.Where(a => a.RemovalScript is not null)
+            .ToDictionary(a => a.Id, a => a.RemovalScript!());
+        scripts["Winhancements.ps1"] = script;
+
+        var errors = await Runner().FindParseErrorsAsync(scripts);
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task EmbeddedScript_WithNestedHereStrings_WritesTheExactUtf8Payload()
+    {
+        const string child = "$a = @'\r\nMom\u2019s photos, $literal\r\n'@\r\n$b = @\"\r\n$(1 + 2)\r\n\"@\r\n";
+        var dir = Directory.CreateTempSubdirectory("winhance-script-test-");
+        try
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("function Write-Log { param($Message, $Level) }");
+            sb.AppendLine($"$scriptsDir = '{dir.FullName.Replace("'", "''", StringComparison.Ordinal)}'");
+            EmbeddedScriptSection.AppendEmbeddedScript(sb, "Nested", child, "");
+            var wrapper = sb.ToString();
+            var errors = await Runner().FindParseErrorsAsync(new Dictionary<string, string> { ["wrapper"] = wrapper, ["child"] = child });
+            errors.Should().BeEmpty();
+
+            await Runner().RunScriptAsync(wrapper);
+
+            var utf8 = new UTF8Encoding(true);
+            File.ReadAllBytes(Path.Combine(dir.FullName, "Nested.ps1")).Should()
+                .Equal(utf8.GetPreamble().Concat(utf8.GetBytes(child)));
+        }
+        finally
+        {
+            dir.Delete(recursive: true);
+        }
     }
 
     [Fact]

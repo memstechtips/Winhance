@@ -102,7 +102,7 @@ internal class ScheduledTaskService(ILogService logService, IFileSystemService f
                         logService.LogInformation($"Unregistered task: {taskName}");
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (IsTaskNotFound(ex))
                 {
                     logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"Task '{taskName}' not found: {ex.Message}");
                 }
@@ -333,10 +333,10 @@ internal class ScheduledTaskService(ILogService logService, IFileSystemService f
         dynamic taskService = Connect(com);
         dynamic folder = GetOrCreateWinhanceFolder(com, taskService);
 
-
+        bool enabled = ReadTaskEnabled(com, taskService, $@"\Winhance\{taskName}") ?? true;
         await RemoveExistingTask(com, folder, taskName).ConfigureAwait(false);
 
-        dynamic taskDefinition = CreateTaskDefinition(com, taskService, scriptPath, triggerType);
+        dynamic taskDefinition = CreateTaskDefinition(com, taskService, scriptPath, triggerType, enabled);
 
         folder.RegisterTaskDefinition(
             taskName,
@@ -373,7 +373,7 @@ internal class ScheduledTaskService(ILogService logService, IFileSystemService f
             dynamic rootFolder = com.Keep((object)taskService.GetFolder("\\"));
             return com.Keep((object)rootFolder.GetFolder("Winhance"));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (IsTaskNotFound(ex))
         {
             logService.Log(Core.Features.Common.Enums.LogLevel.Debug, $"Winhance folder not found: {ex.Message}");
             return null;
@@ -400,12 +400,12 @@ internal class ScheduledTaskService(ILogService logService, IFileSystemService f
         }
     }
 
-    private static dynamic CreateTaskDefinition(ComScope com, dynamic taskService, string scriptPath, TaskTriggerType triggerType)
+    private static dynamic CreateTaskDefinition(ComScope com, dynamic taskService, string scriptPath, TaskTriggerType triggerType, bool enabled)
     {
         dynamic taskDefinition = com.Keep((object)taskService.NewTask(0));
 
         dynamic settings = com.Keep((object)taskDefinition.Settings);
-        settings.Enabled = true;
+        settings.Enabled = enabled;
         settings.DisallowStartIfOnBatteries = false;
         settings.StopIfGoingOnBatteries = false;
         settings.AllowDemandStart = true;

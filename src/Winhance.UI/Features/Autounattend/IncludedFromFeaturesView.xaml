@@ -19,10 +19,10 @@
                 IsTabStop="False"
                 AutomationProperties.LocalizedControlType="setting"
                 Description="{x:Bind Description, Mode=OneWay}"
-                HeaderIcon="{x:Bind IconResourceKey, Converter={StaticResource SectionIconConverter}, ConverterParameter=Color}"
-                Padding="16,12,16,12">
+                HeaderIcon="{x:Bind IconResourceKey, Converter={StaticResource IconConverter}, ConverterParameter=FeatureIconColor}"
+                Padding="{StaticResource SettingsCardPadding}">
                 <controls:SettingsCard.Header>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource HeaderTagSpacing}">
                         <TextBlock Text="{x:Bind Header, Mode=OneWay}" VerticalAlignment="Center"/>
                         <commonControls:ModeTag Text="{x:Bind Tag, Mode=OneWay}"/>
                     </StackPanel>
@@ -34,7 +34,6 @@
         <!-- MinHeight is local because the toolkit sets the card floor from a Style setter. -->
         <DataTemplate x:Key="IncludedNamesCardTemplate" x:DataType="viewModels:IncludedAppsCardViewModel">
             <controls:SettingsCard
-                Visibility="{x:Bind ShowsList, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                 IsTabStop="False"
                 ContentAlignment="Vertical"
                 HorizontalContentAlignment="Stretch"
@@ -53,12 +52,12 @@
             <controls:SettingsCard
                 IsTabStop="False"
                 AutomationProperties.LocalizedControlType="setting"
-                HeaderIcon="{x:Bind IconResourceKey, Converter={StaticResource SectionIconConverter}}"
+                HeaderIcon="{x:Bind IconResourceKey, Converter={StaticResource IconConverter}, ConverterParameter=FeatureIcon}"
                 Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
                 CornerRadius="{x:Bind CornerRadius, Mode=OneWay}"
-                Padding="16,12,16,12">
+                Padding="{StaticResource SettingsCardPadding}">
                 <controls:SettingsCard.Header>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource HeaderTagSpacing}">
                         <TextBlock Text="{x:Bind Header, Mode=OneWay}" VerticalAlignment="Center"/>
                         <commonControls:ModeTag Text="{x:Bind Tag, Mode=OneWay}"/>
                     </StackPanel>
@@ -69,9 +68,10 @@
                         TextWrapping="Wrap"
                         Style="{StaticResource CaptionTextBlockStyle}"/>
                 </controls:SettingsCard.Description>
-                <StackPanel Orientation="Horizontal" Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="{StaticResource ControlRowSpacing}">
                     <HyperlinkButton
-                        Visibility="{x:Bind HasList, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        x:Name="ListToggle"
+                        x:Load="{x:Bind HasList, Mode=OneWay}"
                         Content="{x:Bind ListToggleLabel, Mode=OneWay}"
                         Click="{x:Bind ToggleList}"/>
                     <HyperlinkButton Content="{x:Bind OpenPageLabel, Mode=OneWay}" Click="{x:Bind OpenPage}"/>
@@ -83,12 +83,13 @@
 
     <StackPanel Spacing="{StaticResource SettingsCardSpacing}">
         <controls:SettingsCard
-            Visibility="{x:Bind ViewModel.ShowsStartedFrom, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+            x:Name="StartedFromCard"
+            x:Load="{x:Bind ViewModel.ShowsStartedFrom, Mode=OneWay}"
             IsTabStop="False"
             AutomationProperties.LocalizedControlType="setting"
             Header="{x:Bind ViewModel.StartedFromHeader, Mode=OneWay}"
             Description="{x:Bind ViewModel.StartedFromDescription, Mode=OneWay}"
-            Padding="16,12,16,12">
+            Padding="{StaticResource SettingsCardPadding}">
             <ComboBox
                 MinWidth="200"
                 ItemsSource="{x:Bind ViewModel.StartSeedOptions, Mode=OneWay}"
@@ -103,6 +104,8 @@
                 HorizontalContentAlignment="Stretch"
                 IsTabStop="False"/>
             <ContentControl
+                x:Name="RemovedAppNames"
+                x:Load="{x:Bind ViewModel.RemovedApps.ShowsList, Mode=OneWay}"
                 Content="{x:Bind ViewModel.RemovedApps}"
                 ContentTemplate="{StaticResource IncludedNamesCardTemplate}"
                 HorizontalContentAlignment="Stretch"
@@ -117,11 +120,13 @@
                 HorizontalContentAlignment="Stretch"
                 IsTabStop="False"/>
             <ContentControl
+                x:Name="InstalledAppNames"
+                x:Load="{x:Bind ViewModel.InstalledApps.ShowsList, Mode=OneWay}"
                 Content="{x:Bind ViewModel.InstalledApps}"
                 ContentTemplate="{StaticResource IncludedNamesCardTemplate}"
                 HorizontalContentAlignment="Stretch"
                 IsTabStop="False"/>
-            <StackPanel Visibility="{x:Bind ViewModel.InstalledApps.HasInstallerCards, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel x:Name="InstallerCards" x:Load="{x:Bind ViewModel.InstalledApps.HasInstallerCards, Mode=OneWay}">
                 <controls:SettingsCard
                     IsTabStop="False"
                     ContentAlignment="Vertical"
@@ -152,21 +157,23 @@
                         Click="{x:Bind ViewModel.InstalledApps.AddOwnInstaller}"/>
                 </controls:SettingsCard>
                 <controls:SettingsCard
-                    Visibility="{x:Bind ViewModel.InstalledApps.HasOwnInstallers, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    x:Name="OwnInstallersList"
+                    x:Load="{x:Bind ViewModel.InstalledApps.HasOwnInstallers, Mode=OneWay}"
                     IsTabStop="False"
                     ContentAlignment="Vertical"
                     HorizontalContentAlignment="Stretch"
                     BorderThickness="1,0,1,1"
                     Padding="{StaticResource SettingsChildCardPadding}"
                     MinHeight="0"
-                    CornerRadius="0,0,4,4">
+                    CornerRadius="{StaticResource JoinedCardCornerRadius}">
+                    <!-- Nested: the Autounattend SettingsListView header -->
                     <ItemsControl
                         ItemsSource="{x:Bind ViewModel.InstalledApps.OwnInstallerRows, Mode=OneWay}"
                         ItemTemplate="{StaticResource ListRowTemplate}"
                         IsTabStop="False">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <StackPanel Spacing="8"/>
+                                <StackPanel Spacing="{StaticResource ItemStackSpacing}"/>
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                     </ItemsControl>

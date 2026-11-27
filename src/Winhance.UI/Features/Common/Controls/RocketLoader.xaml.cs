@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Animation;
 using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.Common.Controls;
@@ -15,33 +16,26 @@ public sealed partial class RocketLoader : UserControl
             nameof(IsActive),
             typeof(bool),
             typeof(RocketLoader),
-            new PropertyMetadata(false, (d, _) => ((RocketLoader)d).Update()));
+            new PropertyMetadata(false));
 
     public RocketLoader()
     {
         InitializeComponent();
-        Visibility = Visibility.Collapsed;
         AutomationProperties.SetName(this, App.Services.GetRequiredService<ILocalizationService>().GetString("Common_Loading"));
-        Loaded += (_, _) => Update();
-        Unloaded += (_, _) => FlightStoryboard.Stop();
     }
 
-    // Shows and hides the control as well, so a caller binds this alone.
+    // Builds the flight while true and drops it while false, so a caller binds this alone.
     public bool IsActive
     {
         get => (bool)GetValue(IsActiveProperty);
         set => SetValue(IsActiveProperty, value);
     }
 
-    private void Update()
-    {
-        Visibility = IsActive ? Visibility.Visible : Visibility.Collapsed;
+    // Not gated on Windows' animation effects: Winhance's own performance settings turn them off, which would
+    // freeze the loader on the very machines that wait longest.
+    private void RocketFlight_Loaded(object sender, RoutedEventArgs e) => Flight(sender).Begin();
 
-        // Not gated on Windows' animation effects: Winhance's own performance settings turn them off, which would
-        // freeze the loader on the very machines that wait longest.
-        if (IsActive && IsLoaded)
-            FlightStoryboard.Begin();
-        else
-            FlightStoryboard.Stop();
-    }
+    private void RocketFlight_Unloaded(object sender, RoutedEventArgs e) => Flight(sender).Stop();
+
+    private static Storyboard Flight(object rocketFlight) => (Storyboard)((Grid)rocketFlight).Resources["FlightStoryboard"];
 }

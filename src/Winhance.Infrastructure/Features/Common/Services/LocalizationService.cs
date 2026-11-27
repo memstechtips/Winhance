@@ -13,6 +13,10 @@ internal class LocalizationService : ILocalizationService
     private readonly string _localizationPath;
     private readonly IFileSystemService _fileSystemService;
     private string _currentLanguageCode;
+    private IReadOnlyList<LanguageOption>? _availableLanguages;
+    private string[]? _keptPrefixes;
+
+    private const string DisplayNameKey = "_Meta_LanguageDisplayName";
 
     public event EventHandler? LanguageChanged;
 
@@ -24,8 +28,9 @@ internal class LocalizationService : ILocalizationService
 
         _currentCulture = CultureInfo.CurrentUICulture;
         _fallbackStrings = LoadLanguageFile("en");
-        _currentLanguageCode = ResolveLanguageCode(_currentCulture);
-        _currentStrings = LoadLanguageFile(_currentLanguageCode);
+        var languageCode = ResolveLanguageCode(_currentCulture);
+        _currentStrings = languageCode == "en" ? _fallbackStrings : LoadLanguageFile(languageCode);
+        _currentLanguageCode = languageCode;
     }
 
     public string CurrentLanguage => _currentLanguageCode;
@@ -66,15 +71,26 @@ internal class LocalizationService : ILocalizationService
         }
     }
 
+    public void KeepOnly(params string[] keyPrefixes)
+    {
+        _keptPrefixes = keyPrefixes;
+        var english = Kept(_fallbackStrings);
+        _currentStrings = _currentStrings == _fallbackStrings ? english : Kept(_currentStrings);
+        _fallbackStrings = english;
+    }
+
+    private Dictionary<string, string> Kept(Dictionary<string, string> strings) =>
+        _keptPrefixes is not { } prefixes ? strings
+        : strings.Where(pair => prefixes.Any(prefix => pair.Key.StartsWith(prefix, StringComparison.Ordinal))).ToDictionary();
+
     public bool SetLanguage(string languageCode)
     {
         try
         {
             var culture = CultureInfo.GetCultureInfo(languageCode);
             _currentCulture = culture;
+            _currentStrings = StringsFor(languageCode);
             _currentLanguageCode = languageCode;
-
-            _currentStrings = LoadLanguageFile(languageCode);
 
             // Only update the UI culture for resource-loading purposes.
             // Deliberately do NOT change CultureInfo.CurrentCulture — keeping it at
@@ -141,7 +157,10 @@ internal class LocalizationService : ILocalizationService
         }
     }
 
-    public IReadOnlyList<LanguageOption> GetAvailableLanguages()
+    // The files do not change while the app runs, and Settings asks on every visit.
+    public IReadOnlyList<LanguageOption> GetAvailableLanguages() => _availableLanguages ??= ReadAvailableLanguages();
+
+    private IReadOnlyList<LanguageOption> ReadAvailableLanguages()
     {
         try
         {
@@ -150,27 +169,7 @@ internal class LocalizationService : ILocalizationService
             var options = new List<LanguageOption>();
             foreach (var code in codes)
             {
-                var strings = LoadLanguageFile(code);
-                string displayName;
-
-                if (strings.TryGetValue("_Meta_LanguageDisplayName", out var metaName) &&
-                    !string.IsNullOrWhiteSpace(metaName))
-                {
-                    displayName = metaName;
-                }
-                else
-                {
-                    try
-                    {
-                        displayName = CultureInfo.GetCultureInfo(code).NativeName;
-                    }
-                    catch
-                    {
-                        displayName = code;
-                    }
-                }
-
-                options.Add(new LanguageOption(code, displayName));
+                options.Add(new LanguageOption(code, DisplayNameOf(code)));
             }
 
             var enOption = options.FirstOrDefault(o => o.Code == "en");
@@ -192,6 +191,81 @@ internal class LocalizationService : ILocalizationService
         }
     }
 
+    // The file's own name keeps the English beside the native one ("Deutsch (German)"), which NativeName ("Deutsch")
+    // drops, so it is read; a culture Windows knows stands in for a file without one.
+    private string DisplayNameOf(string code)
+    {
+        if (ReadDisplayName(code) is { } name && !string.IsNullOrWhiteSpace(name))
+            return name;
+
+        try
+        {
+            return CultureInfo.GetCultureInfo(code).NativeName;
+        }
+        catch (CultureNotFoundException)
+        {
+            return code;
+        }
+    }
+
+    // The name is near the top of each file, so this reads up to it and no further: a language's strings are parsed
+    // only once it is the one shown.
+    private string? ReadDisplayName(string code)
+    {
+        var path = _fileSystemService.CombinePath(_localizationPath, $"{code}.json");
+        if (!_fileSystemService.FileExists(path))
+            return null;
+
+        try
+        {
+            using var stream = _fileSystemService.OpenRead(path);
+            return ReadDisplayName(stream);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static string? ReadDisplayName(Stream stream)
+    {
+        var buffer = new byte[4096];
+        int filled = stream.ReadAtLeast(buffer, 3, throwOnEndOfStream: false);
+        int start = buffer.AsSpan(0, filled).StartsWith("\uFEFF"u8) ? 3 : 0;
+        var state = default(JsonReaderState);
+        bool atName = false;
+        int read = filled;
+        while (true)
+        {
+            var reader = new Utf8JsonReader(buffer.AsSpan(start, filled - start), isFinalBlock: read == 0, state);
+            while (reader.Read())
+            {
+                if (atName)
+                    return reader.TokenType == JsonTokenType.String ? reader.GetString() : null;
+                atName = reader.TokenType == JsonTokenType.PropertyName && reader.CurrentDepth == 1 && reader.ValueTextEquals(DisplayNameKey);
+            }
+            if (read == 0)
+                return null;
+
+            state = reader.CurrentState;
+            start += (int)reader.BytesConsumed;
+            buffer.AsSpan(start, filled - start).CopyTo(buffer);
+            filled -= start;
+            start = 0;
+            if (filled == buffer.Length)
+                Array.Resize(ref buffer, buffer.Length * 2);
+            read = stream.Read(buffer, filled, buffer.Length - filled);
+            filled += read;
+        }
+    }
+
+    // A language file is about 250 KB of JSON and startup asks for English three times; the loaded
+    // dictionaries are never changed, so they are shared rather than parsed again.
+    private Dictionary<string, string> StringsFor(string languageCode) =>
+        languageCode == "en" ? _fallbackStrings
+        : languageCode == _currentLanguageCode ? _currentStrings
+        : LoadLanguageFile(languageCode);
+
     private Dictionary<string, string> LoadLanguageFile(string languageCode)
     {
         try
@@ -206,7 +280,7 @@ internal class LocalizationService : ILocalizationService
             var json = _fileSystemService.ReadAllText(filePath);
             var dictionary = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
 
-            return dictionary ?? new Dictionary<string, string>();
+            return Kept(dictionary ?? new Dictionary<string, string>());
         }
         catch
         {

@@ -264,4 +264,24 @@ public class SettingItemViewModelReviewStateTests
         sut.EffectiveIsEnabled.Should().BeFalse(
             because: "in review the pending decision is accept or reject, not edit");
     }
+
+    [Fact]
+    public void HasReviewBanners_FollowsEitherBanner()
+    {
+        var sut = CreateSut();
+        sut.IsInReviewMode = true;
+        var notified = new List<string>();
+        sut.PropertyChanged += (_, e) => notified.Add(e.PropertyName ?? string.Empty);
+
+        sut.HasReviewAction = true;
+        sut.HasReviewBanners.Should().BeTrue();
+
+        sut.HasReviewAction = false;
+        sut.HasReviewDiff = true;
+        sut.HasReviewBanners.Should().BeTrue();
+
+        sut.HasReviewDiff = false;
+        sut.HasReviewBanners.Should().BeFalse();
+        notified.Count(n => n == nameof(SettingItemViewModel.HasReviewBanners)).Should().Be(4);
+    }
 }

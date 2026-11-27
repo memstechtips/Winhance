@@ -9,7 +9,7 @@ using Winhance.UI.Features.Common.Interfaces;
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
 // Marshals the build onto the UI thread; the documentation rules live in TechnicalDetailsBuilder, which is pure and unit-tested.
-internal sealed class TechnicalDetailsManager
+internal sealed partial class TechnicalDetailsManager
 {
     private readonly Func<string> _getSettingId;
     private readonly Action<OptionMatrix?> _setMatrix;
@@ -18,8 +18,6 @@ internal sealed class TechnicalDetailsManager
     private readonly IRegeditLauncher? _regeditLauncher;
     private readonly ILocalizationService _localizationService;
     private readonly WinBuild _build;
-
-    public IRelayCommand<string> OpenRegeditCommand { get; }
 
     public TechnicalDetailsManager(
         Func<string> getSettingId,
@@ -37,8 +35,6 @@ internal sealed class TechnicalDetailsManager
         _regeditLauncher = regeditLauncher;
         _localizationService = localizationService;
         _build = build;
-
-        OpenRegeditCommand = new RelayCommand<string>(OpenRegeditAtPath);
     }
 
     public void Update(Setting? setting, SettingStateSnapshot snapshot)
@@ -58,7 +54,8 @@ internal sealed class TechnicalDetailsManager
         });
     }
 
-    private void OpenRegeditAtPath(string? path)
+    [RelayCommand]
+    private void OpenRegedit(string? path)
     {
         if (!string.IsNullOrEmpty(path))
             _regeditLauncher?.OpenAtPath(path);

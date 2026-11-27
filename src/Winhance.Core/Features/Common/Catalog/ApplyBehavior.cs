@@ -31,6 +31,9 @@ public enum WindowsChange
 
     // FREE: the generic WM_SETTINGCHANGE alone, for values Explorer and open windows re-read when told something changed.
     Settings = 1 << 3,
+
+    // Apps re-read scrollbar visibility after the named Accessibility notice, not just the registry write.
+    Accessibility = 1 << 4,
 }
 
 // Reboot is separate (RequiresReboot); a setting may need both.

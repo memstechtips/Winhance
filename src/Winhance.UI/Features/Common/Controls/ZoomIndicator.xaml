@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.ZoomIndicator"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    HorizontalAlignment="Center"
+    VerticalAlignment="Top"
+    Margin="0,12,0,0"
+    IsHitTestVisible="False">
+
+    <Border Padding="16,8"
+            CornerRadius="{ThemeResource OverlayCornerRadius}"
+            Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
+            BorderBrush="{ThemeResource SurfaceStrokeColorFlyoutBrush}"
+            BorderThickness="1">
+        <TextBlock x:Name="ZoomText"
+                   Style="{StaticResource BodyStrongTextBlockStyle}"
+                   AutomationProperties.LiveSetting="Polite"/>
+    </Border>
+</UserControl>

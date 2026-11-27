@@ -111,10 +111,10 @@ public class LaunchCommandLineTests
     }
 
     [Fact]
-    public void Parse_DiagMemory_SetsTheFlag()
+    public void Parse_Diag_SetsTheFlag()
     {
-        Parse("--diag-memory").DiagMemory.Should().BeTrue();
-        Parse().DiagMemory.Should().BeFalse();
+        Parse("--diag").Diagnostics.Should().BeTrue();
+        Parse().Diagnostics.Should().BeFalse();
     }
 
     [Fact]

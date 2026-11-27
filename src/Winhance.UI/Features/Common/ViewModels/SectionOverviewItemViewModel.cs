@@ -18,6 +18,10 @@ namespace Winhance.UI.Features.Common.ViewModels;
 // settings, same invalidation triggers.
 public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDisposable
 {
+    private static readonly string[] LocalizedProperties = [nameof(IncludeAutomationName)];
+    private static readonly string[] IncludeProperties =
+        [nameof(IncludeState), nameof(IsIncluded), nameof(IncludeIcon), nameof(IncludeToolTip)];
+
     private readonly IConfigReviewBadgeService _badgeService;
     private readonly IConfigReviewModeService _reviewModeService;
     private readonly ILocalizationService _localizationService;
@@ -118,6 +122,8 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
 
     public bool IsIncluded => IncludeState is not false;
 
+    public FluentIcons.Common.Icon IncludeIcon => IsIncluded ? FluentIcons.Common.Icon.Link : FluentIcons.Common.Icon.LinkOff;
+
     // A 20px checkbox, 8px, a 16px glyph, then 12px to the header icon.
     private const double IncludeBoxGutter = 56;
 
@@ -126,8 +132,8 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
         : new Microsoft.UI.Xaml.Thickness(16, 12, 16, 12);
 
     public string IncludeToolTip => IncludeState is false
-        ? Localized("Setting_Include_Tooltip_Out", "Left out of the file. Tick it to put it back.")
-        : Localized("Setting_Include_Tooltip_In", "Included in the file");
+        ? _localizationService.GetStringOrDefault("Setting_Include_Tooltip_Out", "Left out of the file. Tick it to put it back.")
+        : _localizationService.GetStringOrDefault("Setting_Include_Tooltip_In", "Included in the file");
 
     public string IncludeAutomationName => _localizationService.GetStringOrDefault(
         "Setting_Include_AutomationName", $"Include {Feature.DisplayName} in the file", Feature.DisplayName);
@@ -170,10 +176,15 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
             }
 
             // The only raise when the click changed nothing - without it the box keeps what was clicked.
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(IsIncluded));
-            OnPropertyChanged(nameof(IncludeToolTip));
+            RaiseIncludeChanged();
         }
+    }
+
+    // The include properties are read live off the session, which raises nothing a generated property could follow.
+    private void RaiseIncludeChanged()
+    {
+        foreach (var name in IncludeProperties)
+            OnPropertyChanged(name);
     }
 
     // The session never excludes an answer-file setting, so counting one would pin the box to indeterminate.
@@ -206,22 +217,20 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
         if (ArePillsVisible)
         {
             RecommendedText =
-                $"{Localized("InfoBadge_Recommended", "Recommended")} {summary.RecommendedCount}/{total}";
+                $"{_localizationService.GetStringOrDefault("InfoBadge_Recommended", "Recommended")} {summary.RecommendedCount}/{total}";
             RecommendedOpacity = summary.RecommendedCount > 0 ? 1.0 : 0.4;
 
-            DefaultText = $"{Localized("InfoBadge_Default", "Default")} {summary.DefaultCount}/{total}";
+            DefaultText = $"{_localizationService.GetStringOrDefault("InfoBadge_Default", "Default")} {summary.DefaultCount}/{total}";
             DefaultOpacity = summary.DefaultCount > 0 ? 1.0 : 0.4;
         }
 
         IsNewBadgeVisible = AreNewBadgesVisible && summary.NewCount > 0;
         if (IsNewBadgeVisible)
         {
-            NewBadgeText = $"{Localized("Badge_New", "NEW")} {summary.NewCount}";
+            NewBadgeText = $"{_localizationService.GetStringOrDefault("Badge_New", "NEW")} {summary.NewCount}";
         }
 
-        OnPropertyChanged(nameof(IncludeState));
-        OnPropertyChanged(nameof(IsIncluded));
-        OnPropertyChanged(nameof(IncludeToolTip));
+        RaiseIncludeChanged();
     }
 
     // A count while diffs are unreviewed, a checkmark once fully reviewed or in the config with no diffs, nothing
@@ -250,9 +259,6 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
         IsReviewSuccessBadgeVisible = _badgeService.IsFeatureInConfig(FeatureId);
         IsReviewPendingBadgeVisible = false;
     }
-
-    private string Localized(string key, string fallback) =>
-        _localizationService.TryGetString(key, out var value) ? value : fallback;
 
     private void Attach()
     {
@@ -322,9 +328,7 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
     {
         OnPropertyChanged(nameof(ShowIncludeBox));
         OnPropertyChanged(nameof(CardPadding));
-        OnPropertyChanged(nameof(IncludeState));
-        OnPropertyChanged(nameof(IsIncluded));
-        OnPropertyChanged(nameof(IncludeToolTip));
+        RaiseIncludeChanged();
     }
 
     private void OnBadgeStateChanged(object? sender, EventArgs e) => UpdateReviewBadge();
@@ -333,7 +337,8 @@ public sealed partial class SectionOverviewItemViewModel : ObservableObject, IDi
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        OnPropertyChanged(nameof(IncludeAutomationName));
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
         Refresh();
     }
 

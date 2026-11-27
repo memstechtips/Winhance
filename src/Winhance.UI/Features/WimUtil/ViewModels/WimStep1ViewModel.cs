@@ -84,7 +84,6 @@ public partial class WimStep1ViewModel : ObservableObject
         WorkingDirectory = SavedWorkingDirectory() ?? _automaticWorkingDirectory;
 
         CreateActionCards();
-        DescribeWorkingDirectory();
     }
 
     private string? SavedWorkingDirectory()
@@ -140,24 +139,34 @@ public partial class WimStep1ViewModel : ObservableObject
 
     private void CreateActionCards()
     {
-        SelectIsoCard = new WizardActionCard
-        {
-            Title = _localizationService.GetString("WIMUtil_Card_SelectISO_Title"),
-            Description = _localizationService.GetString("WIMUtil_Label_NoSelection"),
-            ButtonText = _localizationService.GetString("WIMUtil_Card_SelectISO_Button"),
-            ButtonCommand = SelectIsoFileCommand,
-            IsEnabled = true,
-            BusyReason = _localizationService.GetString("WIMUtil_Disabled_Busy")
-        };
+        SelectIsoCard = new WizardActionCard { ButtonCommand = SelectIsoFileCommand };
+        SelectDirectoryCard = new WizardActionCard { ButtonCommand = SelectWorkingDirectoryCommand };
+        RelabelActionCards();
+    }
 
-        SelectDirectoryCard = new WizardActionCard
-        {
-            Title = _localizationService.GetString("WIMUtil_Card_SelectDirectory_Title"),
-            ButtonText = _localizationService.GetString("WIMUtil_Card_SelectDirectory_Button"),
-            ButtonCommand = SelectWorkingDirectoryCommand,
-            IsEnabled = true,
-            BusyReason = _localizationService.GetString("WIMUtil_Disabled_Busy")
-        };
+    // The page holds these card instances, so a language switch relabels them in place. A description that reports
+    // how a pick or an extraction went keeps its text until the next one.
+    public void RelabelActionCards()
+    {
+        SelectIsoCard.Title = _localizationService.GetString("WIMUtil_Card_SelectISO_Title");
+        SelectIsoCard.ButtonText = _localizationService.GetString("WIMUtil_Card_SelectISO_Button");
+        SelectIsoCard.BusyReason = _localizationService.GetString("WIMUtil_Disabled_Busy");
+        SelectDirectoryCard.Title = _localizationService.GetString("WIMUtil_Card_SelectDirectory_Title");
+        SelectDirectoryCard.ButtonText = _localizationService.GetString("WIMUtil_Card_SelectDirectory_Button");
+        SelectDirectoryCard.BusyReason = _localizationService.GetString("WIMUtil_Disabled_Busy");
+
+        if (string.IsNullOrEmpty(SelectedIsoPath))
+            SelectIsoCard.Description = _localizationService.GetString("WIMUtil_Label_NoSelection");
+
+        // An empty folder means the last pick failed and the card shows why.
+        if (string.IsNullOrEmpty(WorkingDirectory))
+            return;
+        if (!HasExtractedIsoAlready)
+            DescribeWorkingDirectory();
+        else
+            SelectDirectoryCard.Description = IsExtractionComplete
+                ? $"{_localizationService.GetString("WIMUtil_Label_Using")}: {WorkingDirectory}"
+                : _localizationService.GetString("WIMUtil_Label_SelectExtracted");
     }
 
     [RelayCommand]
@@ -206,16 +215,16 @@ public partial class WimStep1ViewModel : ObservableObject
         else
         {
             WorkingDirectory = _fileSystemService.CombinePath(selectedPath, WorkingFolderName);
-            try
+            var created = await _dialogService.RunOrShowErrorAsync(_logService, () =>
+                {
+                    _fileSystemService.CreateDirectory(WorkingDirectory);
+                    _userPreferencesService.SetPreferenceAsync(UserPreferenceKeys.WimUtilWorkingDirectory, WorkingDirectory).FireAndForget(_logService);
+                    DescribeWorkingDirectory();
+                    CanStartExtraction = !string.IsNullOrEmpty(SelectedIsoPath) && !string.IsNullOrEmpty(WorkingDirectory);
+                },
+                _ => _localizationService.GetString("WIMUtil_Error_DirectoryCreateFailed"));
+            if (!created)
             {
-                _fileSystemService.CreateDirectory(WorkingDirectory);
-                _userPreferencesService.SetPreferenceAsync(UserPreferenceKeys.WimUtilWorkingDirectory, WorkingDirectory).FireAndForget(_logService);
-                DescribeWorkingDirectory();
-                CanStartExtraction = !string.IsNullOrEmpty(SelectedIsoPath) && !string.IsNullOrEmpty(WorkingDirectory);
-            }
-            catch (Exception ex)
-            {
-                _logService.LogError($"Failed to create working directory: {ex.Message}", ex);
                 SelectDirectoryCard.Description = _localizationService.GetString("WIMUtil_Error_DirectoryCreateFailed");
                 WorkingDirectory = string.Empty;
             }
@@ -252,6 +261,18 @@ public partial class WimStep1ViewModel : ObservableObject
 
     [RelayCommand]
     private async Task StartIsoExtractionAsync()
+    {
+        try
+        {
+            await _dialogService.RunOrShowErrorAsync(_logService, ExtractIsoAsync, ExtractionFailed);
+        }
+        finally
+        {
+            _taskProgressService.CompleteTask();
+        }
+    }
+
+    private async Task ExtractIsoAsync()
     {
         try
         {
@@ -303,19 +324,16 @@ public partial class WimStep1ViewModel : ObservableObject
                 string.Format(_localizationService.GetString("WIMUtil_Msg_InsufficientSpace"), spaceEx.DriveName, spaceEx.RequiredGB.ToString("F2"), spaceEx.AvailableGB.ToString("F2"), (spaceEx.RequiredGB - spaceEx.AvailableGB).ToString("F2")),
                 string.Format(_localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace"), spaceEx.DriveName));
         }
-        catch (Exception ex)
-        {
-            _taskProgressService.FailTask();
-            ResetExtractionState();
-            SelectIsoCard.HasFailed = true;
-            SelectIsoCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
-            await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_ExtractionError"), ex.Message));
-        }
-        finally
-        {
-            _taskProgressService.CompleteTask();
-        }
+    }
+
+    // Runs before the error dialog opens, so the card and the progress bar already show the failure behind it.
+    private string ExtractionFailed(Exception ex)
+    {
+        _taskProgressService.FailTask();
+        ResetExtractionState();
+        SelectIsoCard.HasFailed = true;
+        SelectIsoCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
+        return string.Format(_localizationService.GetString("WIMUtil_Msg_ExtractionError"), ex.Message);
     }
 
     private void ResetExtractionState()
@@ -326,18 +344,15 @@ public partial class WimStep1ViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task OpenWindows10DownloadAsync()
-    {
-        try { await Windows.System.Launcher.LaunchUriAsync(new Uri("https://www.microsoft.com/software-download/windows10")); }
-        catch (Exception ex) { _logService.LogDebug($"Failed to launch Windows 10 download URL: {ex.Message}"); }
-    }
+    private Task OpenWindows10DownloadAsync() => OpenLinkAsync("https://www.microsoft.com/software-download/windows10");
 
     [RelayCommand]
-    private async Task OpenWindows11DownloadAsync()
-    {
-        try { await Windows.System.Launcher.LaunchUriAsync(new Uri("https://www.microsoft.com/software-download/windows11")); }
-        catch (Exception ex) { _logService.LogDebug($"Failed to launch Windows 11 download URL: {ex.Message}"); }
-    }
+    private Task OpenWindows11DownloadAsync() => OpenLinkAsync("https://www.microsoft.com/software-download/windows11");
+
+    private Task<bool> OpenLinkAsync(string url) =>
+        _dialogService.RunOrShowErrorAsync(_logService,
+            async () => await Windows.System.Launcher.LaunchUriAsync(new Uri(url)),
+            ex => _localizationService.GetString("WIMUtil_Msg_OpenLinkFailed", ex.Message));
 
     partial void OnHasExtractedIsoAlreadyChanged(bool value)
     {

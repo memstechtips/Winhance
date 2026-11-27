@@ -18,7 +18,7 @@
     Its own control for cohesion, not symmetry: the knob's hover animation needs a named icon, and x:Name
     is not reachable inside a DataTemplate.
     -->
-    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+    <StackPanel Orientation="Horizontal" Spacing="{StaticResource QuickSetSpacing}" VerticalAlignment="Center">
         <local:SettingQuickSetButtons
             Setting="{x:Bind Setting, Mode=OneWay}"
             Mode="Single"
@@ -31,15 +31,15 @@
                  out of hit-testing, the tab order and the automation tree, so the overlay above it is the
                  only thing a pointer, the keyboard or Narrator reaches. -->
             <ToggleSwitch
-                IsOn="{x:Bind IsOn, Mode=OneWay}"
+                IsOn="{x:Bind Setting.IsSelected, Mode=OneWay}"
                 Toggled="OnToggled"
-                OnContent="{x:Bind OnText, Mode=OneWay}"
-                OffContent="{x:Bind OffText, Mode=OneWay}"
-                AutomationProperties.Name="{x:Bind SettingName, Mode=OneWay}"
-                Opacity="{x:Bind SwitchOpacity, Mode=OneWay}"
-                IsHitTestVisible="{x:Bind SwitchInteractive, Mode=OneWay}"
-                IsTabStop="{x:Bind SwitchInteractive, Mode=OneWay}"
-                AutomationProperties.AccessibilityView="{x:Bind SwitchAccessibilityView, Mode=OneWay}"/>
+                OnContent="{x:Bind Setting.OnText, Mode=OneWay}"
+                OffContent="{x:Bind Setting.OffText, Mode=OneWay}"
+                AutomationProperties.Name="{x:Bind Setting.Name, Mode=OneWay}"
+                Opacity="{x:Bind Setting.TwoStateOpacityFor(Setting.Outcome), Mode=OneWay}"
+                IsHitTestVisible="{x:Bind Setting.TwoStateInteractiveFor(Setting.Outcome), Mode=OneWay}"
+                IsTabStop="{x:Bind Setting.TwoStateInteractiveFor(Setting.Outcome), Mode=OneWay}"
+                AutomationProperties.AccessibilityView="{x:Bind Setting.TwoStateAccessibilityViewFor(Setting.Outcome), Mode=OneWay}"/>
 
             <!-- Track-only stand-in, 2px larger than the stock 40x20 track, with the outcome's colour icon
                  as the knob and its matching short glyph ("?" / "!" / "x") in the On/Off-content slot.
@@ -49,7 +49,8 @@
                  Undetermined renders but does nothing - the view model's IsActionable gate stops a click
                  writing blind over a value we could not read. -->
             <Button
-                Visibility="{x:Bind OverlayVisibility, Mode=OneWay}"
+                x:Name="Overlay"
+                x:Load="{x:Bind local:SettingBoundControl.HasOverlay(Setting, Setting.Outcome), Mode=OneWay}"
                 Click="OnOverlayClicked"
                 PointerEntered="OnOverlayPointerEntered"
                 PointerExited="OnOverlayPointerExited"
@@ -62,8 +63,8 @@
                 HorizontalContentAlignment="Right"
                 VerticalAlignment="Stretch"
                 VerticalContentAlignment="Center"
-                ToolTipService.ToolTip="{x:Bind OverlayTooltip, Mode=OneWay}"
-                AutomationProperties.Name="{x:Bind OverlayText, Mode=OneWay}">
+                ToolTipService.ToolTip="{x:Bind Setting.OverlayTooltipFor(Setting.Outcome, x:True), Mode=OneWay}"
+                AutomationProperties.Name="{x:Bind Setting.OverlayStateTextFor(Setting.Outcome), Mode=OneWay}">
                 <Button.Resources>
                     <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent"/>
                     <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent"/>
@@ -73,14 +74,14 @@
                 <!-- Same order as the real toggles in this app: label LEFT, track flush at the card's
                      right edge. -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="{x:Bind OverlayShortLabel, Mode=OneWay}" Margin="0,0,12,0"
+                    <TextBlock Text="{x:Bind Setting.OverlayShortLabelFor(Setting.Outcome), Mode=OneWay}" Margin="{StaticResource ColumnGapMargin}"
                                VerticalAlignment="Center"/>
                     <Border Width="42" Height="22" CornerRadius="11"
                             Background="{ThemeResource ControlFillColorDisabledBrush}"
                             BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
                             BorderThickness="1">
                         <fluentIcons:FluentIcon x:Name="KnobIcon"
-                                                Icon="{x:Bind OverlayIcon, Mode=OneWay}" IconVariant="Color"
+                                                Icon="{x:Bind Setting.OverlayIconFor(Setting.Outcome), Mode=OneWay}" IconVariant="Color"
                                                 FontSize="{StaticResource OutcomeIconFontSize}"
                                                 HorizontalAlignment="Center" VerticalAlignment="Center"
                                                 RenderTransformOrigin="0.5,0.5">

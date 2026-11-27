@@ -1,14 +1,16 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Shapes;
 using Windows.UI;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Optimize.ViewModels;
 using VirtualKey = Windows.System.VirtualKey;
 
@@ -22,16 +24,21 @@ public sealed partial class SettingComboBox : SettingBoundControl
     private static readonly SolidColorBrush ExistsBrush = new(Color.FromArgb(255, 0, 200, 60));
     private static readonly SolidColorBrush NotExistsBrush = new(Color.FromArgb(255, 200, 40, 0));
 
+    private readonly IDispatcherService _dispatcherService = App.Services.GetRequiredService<IDispatcherService>();
+    private ObservableCollection<ComboBoxDisplayOption>? _options;
+    private bool _resyncQueued;
+
     public event EventHandler<DynamicOption>? DeleteRequested;
 
     public SettingComboBox()
     {
         InitializeComponent();
+        Input.RegisterPropertyChangedCallback(ItemsControl.ItemsSourceProperty, OnItemsSourceChanged);
     }
 
     public static readonly DependencyProperty ModeProperty = DependencyProperty.Register(
         nameof(Mode), typeof(SettingInputMode), typeof(SettingComboBox),
-        new PropertyMetadata(SettingInputMode.Single, RefreshOnChange));
+        new PropertyMetadata(SettingInputMode.Single));
 
     public SettingInputMode Mode
     {
@@ -44,7 +51,7 @@ public sealed partial class SettingComboBox : SettingBoundControl
     // which is why Width, MinWidth and MaxWidth are all driven from it.
     public static readonly DependencyProperty PinnedWidthProperty = DependencyProperty.Register(
         nameof(PinnedWidth), typeof(double), typeof(SettingComboBox),
-        new PropertyMetadata(double.NaN, RefreshOnChange));
+        new PropertyMetadata(double.NaN));
 
     public double PinnedWidth
     {
@@ -52,13 +59,12 @@ public sealed partial class SettingComboBox : SettingBoundControl
         set => SetValue(PinnedWidthProperty, value);
     }
 
-    public double PinnedMaxWidth => MaxWidthForPin(PinnedWidth);
-
-    // The status dot and the delete button turn on after the popup has measured, so those dropdowns get a floor.
+    // The status dot, the Active badge and the delete button sit on the dropdown rows only, which the closed box does
+    // not measure, so those dropdowns get a floor.
     private const double OptionStatusMinWidth = 220d;
 
-    public double PinnedMinWidth =>
-        Math.Max(MinWidthForPin(PinnedWidth), Setting is { ShowsOptionStatus: true } ? OptionStatusMinWidth : 0d);
+    public static double MinWidthFor(double pin, bool showsOptionStatus) =>
+        Math.Max(MinWidthForPin(pin), showsOptionStatus ? OptionStatusMinWidth : 0d);
 
     // Width alone accepts NaN as "auto"; MinWidth and MaxWidth reject it with E_INVALIDARG - an unguarded MinWidth
     // threw on every unpinned dropdown. Static so the guards are testable without a XAML application.
@@ -66,37 +72,19 @@ public sealed partial class SettingComboBox : SettingBoundControl
 
     public static double MaxWidthForPin(double pin) => double.IsNaN(pin) ? double.PositiveInfinity : pin;
 
-    public ObservableCollection<ComboBoxDisplayOption>? Options { get; private set; }
-    public int SelectedIndex { get; private set; } = -1;
-    public string InputAutomationName { get; private set; } = string.Empty;
+    // The trailing arguments are what the index is read from: the per-mode values, and the option list, whose
+    // position decides a keyed selection's index. x:Bind calls the function again when any of them changes.
+    public static int IndexFor(SettingItemViewModel? setting, SettingInputMode mode,
+        object? _1, int _2, int _3, ObservableCollection<ComboBoxDisplayOption> _4)
+        => setting?.ComboIndexForMode(mode) ?? ComboBoxConstants.CustomStateIndex;
 
     // On the CONTROL, not the overlay - the overlay passes pointer input through, so a tooltip on it could never
     // fire. Null while resolved so no empty tooltip appears.
-    public string? OutcomeTooltip { get; private set; }
-
-    protected override bool RefreshesOn(string propertyName)
-        => propertyName is nameof(SettingItemViewModel.SelectedValue)
-            or nameof(SettingItemViewModel.AcValue)
-            or nameof(SettingItemViewModel.DcValue)
-            or nameof(SettingItemViewModel.ComboBoxOptions)
-            or nameof(SettingItemViewModel.Name);
-
-    protected override void Refresh()
-    {
-        if (Setting is not { } vm)
-            return;
-
-        Options = vm.ComboBoxOptions;
-        SelectedIndex = vm.ComboIndexForMode(Mode);
-        InputAutomationName = vm.InputAutomationNameForMode(Mode);
-        OutcomeTooltip = vm.OutcomeForMode(Mode) == SettingDetectionOutcome.Resolved
+    public static string? OutcomeTooltip(SettingItemViewModel? setting, SettingInputMode mode,
+        SettingDetectionOutcome _1, object? _2, int _3, int _4)
+        => setting is null || setting.OutcomeForMode(mode) == SettingDetectionOutcome.Resolved
             ? null
-            : vm.OverlayTooltipForMode(Mode, isTwoState: false);
-        // PinnedMinWidth/PinnedMaxWidth are derived from the PinnedWidth DP, so they are announced here
-        // too - the DP's own change callback routes through Refresh.
-        Notify(nameof(Options), nameof(SelectedIndex), nameof(InputAutomationName), nameof(OutcomeTooltip),
-            nameof(PinnedMinWidth), nameof(PinnedMaxWidth));
-    }
+            : setting.OverlayTooltipForMode(mode, isTwoState: false);
 
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -104,59 +92,64 @@ public sealed partial class SettingComboBox : SettingBoundControl
         Setting?.OnComboBoxSelectionChanged(sender, e);
     }
 
-    private void OnDropDownOpened(object sender, object e)
+    private void ObserveOptions(ObservableCollection<ComboBoxDisplayOption>? options)
     {
-        // Item containers exist only while the popup is up, so the per-item visuals are applied on every open.
-        if (Setting is { ShowsOptionStatus: true } vm)
-            DispatcherQueue.TryEnqueue(() => UpdateAllItemVisualStates(vm));
+        if (ReferenceEquals(_options, options))
+            return;
+
+        if (_options is { } old)
+            old.CollectionChanged -= OnOptionsChanged;
+        _options = options;
+        if (_options is { } current)
+            current.CollectionChanged += OnOptionsChanged;
     }
 
-    private void UpdateAllItemVisualStates(SettingItemViewModel vm)
+    private void OnItemsSourceChanged(DependencyObject sender, DependencyProperty property)
     {
-        for (int i = 0; i < vm.ComboBoxOptions.Count; i++)
+        if (Input.IsLoaded)
+            ObserveOptions(Input.ItemsSource as ObservableCollection<ComboBoxDisplayOption>);
+    }
+
+    // Replacing the selected item resets the ComboBox's SelectedIndex to -1, and a rebuild onto the same key changes
+    // no view-model property, so the index is pushed again here. Queued, so it lands after the whole rebuild and after
+    // the ComboBox's own handling of each change; an unloaded control has stopped observing and skips it.
+    private void OnOptionsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_resyncQueued)
+            return;
+
+        _resyncQueued = true;
+        _dispatcherService.Enqueue(() =>
         {
-            if (Input.ContainerFromIndex(i) is not ComboBoxItem container
-                || vm.ComboBoxOptions[i].Tag is not DynamicOption option
-                || FindChild<Grid>(container, null) is not { } row)
-                continue;
-
-            if (FindChild<Ellipse>(row, "StatusIndicator") is { } status)
-            {
-                status.Visibility = Visibility.Visible;
-                status.Fill = option.ExistsOnSystem ? ExistsBrush : NotExistsBrush;
-                ToolTipService.SetToolTip(status,
-                    option.ExistsOnSystem ? vm.KeyedInstalledTooltipText : vm.KeyedNotInstalledTooltipText);
-            }
-
-            if (FindChild<TextBlock>(row, "ActiveBadge") is { } badge)
-            {
-                badge.Text = vm.KeyedActiveBadgeText;
-                badge.Visibility = string.Equals(option.Value, vm.LiveKeyedSelection, StringComparison.OrdinalIgnoreCase)
-                    ? Visibility.Visible
-                    : Visibility.Collapsed;
-            }
-
-            if (FindChild<Button>(row, "DeleteButton") is { } delete)
-            {
-                delete.Visibility = option.CanDelete ? Visibility.Visible : Visibility.Collapsed;
-                ToolTipService.SetToolTip(delete, vm.KeyedDeleteTooltipText);
-                AutomationProperties.SetName(delete, vm.KeyedDeleteTooltipText);
-                delete.Tag = option;
-                delete.Click -= OnDeleteButtonClick;
-                delete.Click += OnDeleteButtonClick;
-            }
-
-            // Tab dismisses an open ComboBox, so Delete on the focused item is the only keyboard route to the button.
-            container.Tag = option;
-            container.KeyDown -= OnItemKeyDown;
-            container.KeyDown += OnItemKeyDown;
-        }
+            _resyncQueued = false;
+            if (_options is not null)
+                PushIndex();
+        });
     }
 
-    private void OnItemKeyDown(object sender, KeyRoutedEventArgs e)
+    // A list that changed while unloaded went unobserved, so the index is pushed again on the way back in.
+    private void OnInputLoaded(object sender, RoutedEventArgs e)
+    {
+        ObserveOptions(Input.ItemsSource as ObservableCollection<ComboBoxDisplayOption>);
+        PushIndex();
+    }
+
+    private void OnInputUnloaded(object sender, RoutedEventArgs e) => ObserveOptions(null);
+
+    // A local value set over a OneWay x:Bind target leaves the binding in place; its next update overwrites it.
+    private void PushIndex()
+    {
+        if (Setting is { } vm)
+            Input.SelectedIndex = vm.ComboIndexForMode(Mode);
+    }
+
+    public static SolidColorBrush StatusBrush(bool existsOnSystem) => existsOnSystem ? ExistsBrush : NotExistsBrush;
+
+    // Tab dismisses an open ComboBox, so Delete on the focused row is the only keyboard route to the button.
+    private void OnInputKeyDown(object sender, KeyRoutedEventArgs e)
     {
         if (e.Key == VirtualKey.Delete
-            && sender is ComboBoxItem { Tag: DynamicOption { CanDelete: true } option })
+            && e.OriginalSource is ComboBoxItem { Content: ComboBoxDisplayOption { CanDelete: true, Tag: DynamicOption option } })
         {
             DeleteRequested?.Invoke(this, option);
             e.Handled = true;
@@ -165,24 +158,8 @@ public sealed partial class SettingComboBox : SettingBoundControl
 
     private void OnDeleteButtonClick(object sender, RoutedEventArgs e)
     {
-        if (sender is Button { Tag: DynamicOption option })
+        if (sender is Button { DataContext: ComboBoxDisplayOption { Tag: DynamicOption option } })
             DeleteRequested?.Invoke(this, option);
-    }
-
-    private static T? FindChild<T>(DependencyObject parent, string? childName) where T : FrameworkElement
-    {
-        var count = VisualTreeHelper.GetChildrenCount(parent);
-        for (var i = 0; i < count; i++)
-        {
-            var child = VisualTreeHelper.GetChild(parent, i);
-
-            if (child is T typedChild && (childName == null || typedChild.Name == childName))
-                return typedChild;
-
-            if (FindChild<T>(child, childName) is { } result)
-                return result;
-        }
-        return null;
     }
 
     private void OnDropDownClosed(object sender, object e)

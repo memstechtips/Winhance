@@ -46,7 +46,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
             {
                 Name = LocKey.Setting.GamingPerformanceExplorerMousePrecision.Name,
                 Description = LocKey.Setting.GamingPerformanceExplorerMousePrecision.Description,
-                Icon = MaterialIcons.Mouse,
+                Icon = FluentIcons.Cursor,
                 IsSubjectivePreference = true,
             },
             Apply = new() { RequiresReboot = true },
@@ -75,7 +75,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
             {
                 Name = LocKey.Setting.GamingPerformanceMouseHoverTime.Name,
                 Description = LocKey.Setting.GamingPerformanceMouseHoverTime.Description,
-                Icon = MaterialIcons.Mouse,
+                Icon = FluentIcons.CursorHover,
                 AddedInVersion = "26.04.03",
                 IsSubjectivePreference = true,
             },
@@ -124,7 +124,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
             {
                 Name = LocKey.Setting.GamingPerformanceAutostartDelay.Name,
                 Description = LocKey.Setting.GamingPerformanceAutostartDelay.Description,
-                Icon = MaterialIcons.ClockStart,
+                Icon = FluentIcons.HourglassHalf,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("StartupDelayInMSec", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize" }, "StartupDelayInMSec", RegistryValueKind.DWord) },
@@ -152,7 +152,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
             {
                 Name = LocKey.Setting.GamingBackgroundApps.Name,
                 Description = LocKey.Setting.GamingBackgroundApps.Description,
-                Icon = MaterialIcons.Apps,
+                Icon = FluentIcons.Apps,
                 AddedInVersion = "26.04.08",
                 IsSubjectivePreference = true,
             },
@@ -186,7 +186,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
             {
                 Name = LocKey.Setting.GamingStorageSense.Name,
                 Description = LocKey.Setting.GamingStorageSense.Description,
-                Icon = MaterialIcons.Harddisk,
+                Icon = FluentIcons.HardDrive,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("AllowStorageSenseGlobal", new[] { @"HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\StorageSense", @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\StorageSense" }, "AllowStorageSenseGlobal", RegistryValueKind.DWord) { IsGroupPolicy = true } },
@@ -209,12 +209,254 @@ public static class GamingAndPerformanceOptimizationsCatalog
         },
         new()
         {
+            Id = "gaming-storage-sense-temporary-files",
+            Display = new()
+            {
+                Name = LocKey.Setting.GamingStorageSenseTemporaryFiles.Name,
+                Description = LocKey.Setting.GamingStorageSenseTemporaryFiles.Description,
+                Icon = FluentIcons.Delete,
+                AddedInVersion = "26.11.24",
+                IsSubjectivePreference = true,
+            },
+            UiParentId = "gaming-storage-sense",
+            Availability = new() { Builds = new[] { BuildRange.Between(26300, int.MaxValue) } },
+            Targets = new Target[]
+            {
+                new RegTarget("TemporaryFiles", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy" }, "04", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue> { ["TemporaryFiles"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Set = new Dictionary<string, StateValue> { ["TemporaryFiles"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "gaming-storage-sense-frequency",
+            Display = new()
+            {
+                Name = LocKey.Setting.GamingStorageSenseFrequency.Name,
+                Description = LocKey.Setting.GamingStorageSenseFrequency.Description,
+                Icon = FluentIcons.CalendarClock,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            UiParentId = "gaming-storage-sense",
+            EnabledWhen = new("gaming-storage-sense", [LocKey.Common.Enabled]),
+            Targets = new Target[]
+            {
+                new RegTarget("Cadence", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy" }, "2048", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Setting.GamingStorageSenseFrequency.Option0,
+                    Set = new Dictionary<string, StateValue> { ["Cadence"] = Of(1) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.GamingStorageSenseFrequency.Option1,
+                    Set = new Dictionary<string, StateValue> { ["Cadence"] = Of(7) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.GamingStorageSenseFrequency.Option2,
+                    Set = new Dictionary<string, StateValue> { ["Cadence"] = Of(30) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.GamingStorageSenseFrequency.Option3,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["Cadence"] = Of(0).OrAbsent() },
+                },
+            },
+        },
+        new()
+        {
+            Id = "gaming-storage-sense-recycle-bin",
+            Display = new()
+            {
+                Name = LocKey.Setting.GamingStorageSenseRecycleBin.Name,
+                Description = LocKey.Setting.GamingStorageSenseRecycleBin.Description,
+                Icon = FluentIcons.Delete,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            UiParentId = "gaming-storage-sense",
+            EnabledWhen = new("gaming-storage-sense", [LocKey.Common.Enabled]),
+            Targets = new Target[]
+            {
+                new RegTarget("Enable", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy" }, "08", RegistryValueKind.DWord),
+                new RegTarget("Days", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy" }, "256", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Setting.GamingStorageSenseRecycleBin.Option0,
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["Enable"] = Of(0),
+                        ["Days"] = Of(0),
+                    },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.GamingStorageSenseRecycleBin.Option1,
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["Enable"] = Of(1),
+                        ["Days"] = Of(1),
+                    },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.GamingStorageSenseRecycleBin.Option2,
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["Enable"] = Of(1),
+                        ["Days"] = Of(14),
+                    },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.GamingStorageSenseRecycleBin.Option3,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["Enable"] = Of(1).OrAbsent(),
+                        ["Days"] = Of(30).OrAbsent(),
+                    },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.GamingStorageSenseRecycleBin.Option4,
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["Enable"] = Of(1),
+                        ["Days"] = Of(60),
+                    },
+                },
+            },
+        },
+        new()
+        {
+            Id = "gaming-storage-sense-downloads",
+            Display = new()
+            {
+                Name = LocKey.Setting.GamingStorageSenseDownloads.Name,
+                Description = LocKey.Setting.GamingStorageSenseDownloads.Description,
+                Icon = FluentIcons.ArrowDownload,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            UiParentId = "gaming-storage-sense",
+            EnabledWhen = new("gaming-storage-sense", [LocKey.Common.Enabled]),
+            Targets = new Target[]
+            {
+                new RegTarget("Enable", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy" }, "32", RegistryValueKind.DWord),
+                new RegTarget("Days", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy" }, "512", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Setting.GamingStorageSenseDownloads.Option0,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["Enable"] = Of(0).OrAbsent(),
+                        ["Days"] = Of(0).OrAbsent(),
+                    },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.GamingStorageSenseDownloads.Option1,
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["Enable"] = Of(1),
+                        ["Days"] = Of(1),
+                    },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.GamingStorageSenseDownloads.Option2,
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["Enable"] = Of(1),
+                        ["Days"] = Of(14),
+                    },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.GamingStorageSenseDownloads.Option3,
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["Enable"] = Of(1),
+                        ["Days"] = Of(30),
+                    },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.GamingStorageSenseDownloads.Option4,
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["Enable"] = Of(1),
+                        ["Days"] = Of(60),
+                    },
+                },
+            },
+        },
+        new()
+        {
+            Id = "gaming-archive-apps",
+            Display = new()
+            {
+                Name = LocKey.Setting.GamingArchiveApps.Name,
+                Description = LocKey.Setting.GamingArchiveApps.Description,
+                Icon = FluentIcons.FolderZip,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            // The policy, not the Settings toggle: Settings stores the choice per user SID under HKLM.
+            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
+            Targets = new Target[]
+            {
+                new RegTarget("AllowAutomaticAppArchiving", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Appx" }, "AllowAutomaticAppArchiving", RegistryValueKind.DWord) { IsGroupPolicy = true },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["AllowAutomaticAppArchiving"] = Absent },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Set = new Dictionary<string, StateValue> { ["AllowAutomaticAppArchiving"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
             Id = "gaming-performance-explorer-search",
             Display = new()
             {
                 Name = LocKey.Setting.GamingPerformanceExplorerSearch.Name,
                 Description = LocKey.Setting.GamingPerformanceExplorerSearch.Description,
-                Icon = MaterialIcons.FolderSearch,
+                Icon = FluentIcons.FolderSearch,
             },
             Targets = new Target[] { new RegTarget("WholeFileSystem", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Search\Preferences" }, "WholeFileSystem", RegistryValueKind.DWord) },
             States = new[]
@@ -319,7 +561,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
             {
                 Name = LocKey.Setting.GamingPerformanceExplorerMenuShowDelay.Name,
                 Description = LocKey.Setting.GamingPerformanceExplorerMenuShowDelay.Description,
-                Icon = MaterialIcons.MenuOpen,
+                Icon = FluentIcons.LineHorizontal3,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("MenuShowDelay", new[] { @"HKEY_CURRENT_USER\Control Panel\Desktop" }, "MenuShowDelay", RegistryValueKind.String) },
@@ -347,24 +589,41 @@ public static class GamingAndPerformanceOptimizationsCatalog
             {
                 Name = LocKey.Setting.GamingExplorerAltTabFilter.Name,
                 Description = LocKey.Setting.GamingExplorerAltTabFilter.Description,
-                Icon = MaterialIcons.ViewGrid,
+                Icon = FluentIcons.Grid,
                 IsSubjectivePreference = true,
             },
-            Targets = new Target[] { new RegTarget("MultiTaskingAltTabFilter", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "MultiTaskingAltTabFilter", RegistryValueKind.DWord) },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("MultiTaskingAltTabFilter10", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "MultiTaskingAltTabFilter", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows10 } },
+                new RegTarget("MultiTaskingAltTabFilter", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "MultiTaskingAltTabFilter", RegistryValueKind.DWord) { AppliesTo = new[] { BuildRange.Windows11 } },
+            },
             States = new[]
             {
                 new SettingState
                 {
-                    Label = LocKey.Common.Enabled,
-                    Roles = new[] { StateRole.Recommended },
-                    Set = new Dictionary<string, StateValue> { ["MultiTaskingAltTabFilter"] = Of(3) },
+                    Label = LocKey.Setting.GamingExplorerAltTabFilter.Option0,
+                    Set = new Dictionary<string, StateValue> { ["MultiTaskingAltTabFilter10"] = Of(0), ["MultiTaskingAltTabFilter"] = Of(0) },
                 },
                 new SettingState
                 {
-                    Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.WindowsDefault },
-                    IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["MultiTaskingAltTabFilter"] = Of(0).OrAbsent() },
+                    Label = LocKey.Setting.GamingExplorerAltTabFilter.Option1,
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows10 } } },
+                    Set = new Dictionary<string, StateValue> { ["MultiTaskingAltTabFilter10"] = Of(1).OrAbsent(), ["MultiTaskingAltTabFilter"] = Of(1) },
+                    ResetSet = new Dictionary<string, StateValue> { ["MultiTaskingAltTabFilter10"] = Absent },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.GamingExplorerAltTabFilter.Option2,
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Windows11 } } },
+                    Set = new Dictionary<string, StateValue> { ["MultiTaskingAltTabFilter10"] = Of(2), ["MultiTaskingAltTabFilter"] = Of(2).OrAbsent() },
+                    ResetSet = new Dictionary<string, StateValue> { ["MultiTaskingAltTabFilter"] = Absent },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.GamingExplorerAltTabFilter.Option3,
+                    Roles = new[] { StateRole.Recommended },
+                    Set = new Dictionary<string, StateValue> { ["MultiTaskingAltTabFilter10"] = Of(3), ["MultiTaskingAltTabFilter"] = Of(3) },
                 },
             },
         },
@@ -375,7 +634,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
             {
                 Name = LocKey.Setting.SystemRestoreProtection.Name,
                 Description = LocKey.Setting.SystemRestoreProtection.Description,
-                Icon = MaterialIcons.History,
+                Icon = FluentIcons.History,
                 AddedInVersion = "26.05.13",
                 IsSubjectivePreference = true,
             },
@@ -403,7 +662,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingWin32Priority.Name,
                 Description = LocKey.Setting.GamingWin32Priority.Description,
                 GroupName = LocKey.SettingGroup.Processor,
-                Icon = MaterialIcons.Application,
+                Icon = FluentIcons.Window,
             },
             Targets = new Target[] { new RegTarget("Win32PrioritySeparation", new[] { @"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\PriorityControl" }, "Win32PrioritySeparation", RegistryValueKind.DWord) },
             States = new[]
@@ -433,7 +692,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingSystemResponsiveness.Name,
                 Description = LocKey.Setting.GamingSystemResponsiveness.Description,
                 GroupName = LocKey.SettingGroup.Processor,
-                Icon = MaterialIcons.Speedometer,
+                Icon = FluentIcons.TopSpeed,
             },
             Targets = new Target[] { new RegTarget("SystemResponsiveness", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" }, "SystemResponsiveness", RegistryValueKind.DWord) },
             States = new[]
@@ -461,7 +720,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingCpuPriority.Name,
                 Description = LocKey.Setting.GamingCpuPriority.Description,
                 GroupName = LocKey.SettingGroup.Processor,
-                Icon = MaterialIcons.Chip,
+                Icon = FluentIcons.DeveloperBoard,
             },
             Targets = new Target[] { new RegTarget("Priority", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" }, "Priority", RegistryValueKind.DWord) },
             States = new[]
@@ -489,7 +748,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingSchedulingCategory.Name,
                 Description = LocKey.Setting.GamingSchedulingCategory.Description,
                 GroupName = LocKey.SettingGroup.Processor,
-                Icon = MaterialIcons.CalendarClock,
+                Icon = FluentIcons.CalendarClock,
             },
             Targets = new Target[] { new RegTarget("Scheduling Category", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" }, "Scheduling Category", RegistryValueKind.String) },
             States = new[]
@@ -585,7 +844,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingGpuPriority.Name,
                 Description = LocKey.Setting.GamingGpuPriority.Description,
                 GroupName = LocKey.SettingGroup.Graphics,
-                Icon = MaterialIcons.Memory,
+                Icon = FluentIcons.Ram,
             },
             Targets = new Target[] { new RegTarget("GPU Priority", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" }, "GPU Priority", RegistryValueKind.DWord) },
             States = new[]
@@ -612,7 +871,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingGpuScheduling.Name,
                 Description = LocKey.Setting.GamingGpuScheduling.Description,
                 GroupName = LocKey.SettingGroup.Graphics,
-                Icon = MaterialIcons.ExpansionCard,
+                Icon = FluentIcons.DeveloperBoardLightning,
             },
             Apply = new() { RequiresReboot = true },
             Targets = new Target[] { new RegTarget("HwSchMode", new[] { @"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\GraphicsDrivers" }, "HwSchMode", RegistryValueKind.DWord) },
@@ -640,7 +899,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingDirectxFlipModel.Name,
                 Description = LocKey.Setting.GamingDirectxFlipModel.Description,
                 GroupName = LocKey.SettingGroup.Graphics,
-                Icon = MaterialIcons.ApplicationCog,
+                Icon = FluentIcons.WindowSettings,
             },
             Targets = new Target[] { new RegTarget("DirectXUserGlobalSettings", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\DirectX\UserGpuPreferences" }, "DirectXUserGlobalSettings", RegistryValueKind.String) { CompositeStringKey = "SwapEffectUpgradeEnable" } },
             States = new[]
@@ -667,7 +926,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingDirectxVrrOptimizations.Name,
                 Description = LocKey.Setting.GamingDirectxVrrOptimizations.Description,
                 GroupName = LocKey.SettingGroup.Graphics,
-                Icon = MaterialIcons.MonitorShimmer,
+                Icon = FluentIcons.DesktopPulse,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("DirectXUserGlobalSettings", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\DirectX\UserGpuPreferences" }, "DirectXUserGlobalSettings", RegistryValueKind.String) { CompositeStringKey = "VRROptimizeEnable" } },
@@ -695,7 +954,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingDirectxAutoHdr.Name,
                 Description = LocKey.Setting.GamingDirectxAutoHdr.Description,
                 GroupName = LocKey.SettingGroup.Graphics,
-                Icon = MaterialIcons.Hdr,
+                Icon = FluentIcons.Hdr,
                 IsSubjectivePreference = true,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
@@ -724,7 +983,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingNvidiaSharpening.Name,
                 Description = LocKey.Setting.GamingNvidiaSharpening.Description,
                 GroupName = LocKey.SettingGroup.Graphics,
-                Icon = MaterialIcons.ImageFilterHdr,
+                Icon = FluentIcons.PhotoFilter,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("EnableGR535", new[] { @"HKEY_LOCAL_MACHINE\Software\NVIDIA Corporation\Global\FTS" }, "EnableGR535", RegistryValueKind.DWord) },
@@ -754,7 +1013,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingFullscreenOptimizations.Name,
                 Description = LocKey.Setting.GamingFullscreenOptimizations.Description,
                 GroupName = LocKey.SettingGroup.Graphics,
-                Icon = MaterialIcons.MonitorScreenshot,
+                Icon = FluentIcons.FullScreenMaximize,
             },
             Targets = new Target[]
             {
@@ -796,7 +1055,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingPerformanceDesktopComposition.Name,
                 Description = LocKey.Setting.GamingPerformanceDesktopComposition.Description,
                 GroupName = LocKey.SettingGroup.Graphics,
-                Icon = MaterialIcons.ViewDashboard,
+                Icon = FluentIcons.LayoutColumnTwoSplitRight,
             },
             Targets = new Target[] { new RegTarget("CompositionPolicy", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM" }, "CompositionPolicy", RegistryValueKind.DWord) },
             States = new[]
@@ -823,7 +1082,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingAutoColorManagement.Name,
                 Description = LocKey.Setting.GamingAutoColorManagement.Description,
                 GroupName = LocKey.SettingGroup.Graphics,
-                Icon = MaterialIcons.Color,
+                Icon = FluentIcons.Color,
                 AddedInVersion = "26.03.27",
                 IsSubjectivePreference = true,
             },
@@ -854,7 +1113,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingDisableMpo.Name,
                 Description = LocKey.Setting.GamingDisableMpo.Description,
                 GroupName = LocKey.SettingGroup.Graphics,
-                Icon = MaterialIcons.MonitorDashboard,
+                Icon = FluentIcons.Layer,
                 AddedInVersion = "26.04.03",
                 IsSubjectivePreference = true,
             },
@@ -884,7 +1143,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingDisableAllOverlays.Name,
                 Description = LocKey.Setting.GamingDisableAllOverlays.Description,
                 GroupName = LocKey.SettingGroup.Graphics,
-                Icon = MaterialIcons.MonitorDashboard,
+                Icon = FluentIcons.Layer,
                 AddedInVersion = "26.05.08",
                 IsSubjectivePreference = true,
             },
@@ -914,7 +1173,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingDisableMpoMinFps.Name,
                 Description = LocKey.Setting.GamingDisableMpoMinFps.Description,
                 GroupName = LocKey.SettingGroup.Graphics,
-                Icon = MaterialIcons.MonitorDashboard,
+                Icon = FluentIcons.Layer,
                 AddedInVersion = "26.04.03",
                 IsSubjectivePreference = true,
             },
@@ -944,7 +1203,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingNetworkThrottling.Name,
                 Description = LocKey.Setting.GamingNetworkThrottling.Description,
                 GroupName = LocKey.SettingGroup.Network,
-                Icon = MaterialIcons.NetworkOffOutline,
+                Icon = FluentIcons.Gauge,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("NetworkThrottlingIndex", new[] { @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" }, "NetworkThrottlingIndex", RegistryValueKind.DWord) },
@@ -972,7 +1231,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingNagleAlgorithm.Name,
                 Description = LocKey.Setting.GamingNagleAlgorithm.Description,
                 GroupName = LocKey.SettingGroup.Network,
-                Icon = MaterialIcons.Wan,
+                Icon = FluentIcons.ArrowSwap,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1012,7 +1271,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingDnsServer.Name,
                 Description = LocKey.Setting.GamingDnsServer.Description,
                 GroupName = LocKey.SettingGroup.Network,
-                Icon = MaterialIcons.Dns,
+                Icon = FluentIcons.Server,
                 AddedInVersion = "26.04.08",
                 IsSubjectivePreference = true,
             },
@@ -1144,7 +1403,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingVirtualizationBasedSecurity.Name,
                 Description = LocKey.Setting.GamingVirtualizationBasedSecurity.Description,
                 GroupName = LocKey.SettingGroup.Security,
-                Icon = MaterialIcons.ShieldLock,
+                Icon = FluentIcons.ShieldLock,
                 AddedInVersion = "26.04.01",
                 IsSubjectivePreference = true,
             },
@@ -1191,7 +1450,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingMemoryIntegrity.Name,
                 Description = LocKey.Setting.GamingMemoryIntegrity.Description,
                 GroupName = LocKey.SettingGroup.Security,
-                Icon = MaterialIcons.MemoryArrowDown,
+                Icon = FluentIcons.Ram,
                 AddedInVersion = "26.04.01",
                 IsSubjectivePreference = true,
             },
@@ -1241,7 +1500,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingXboxGameDvr.Name,
                 Description = LocKey.Setting.GamingXboxGameDvr.Description,
                 GroupName = LocKey.SettingGroup.Xbox,
-                Icon = MaterialIcons.RecordRec,
+                Icon = FluentIcons.Record,
             },
             Targets = new Target[]
             {
@@ -1312,7 +1571,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingGameBarTips.Name,
                 Description = LocKey.Setting.GamingGameBarTips.Description,
                 GroupName = LocKey.SettingGroup.Xbox,
-                Icon = MaterialIcons.LightbulbOff,
+                Icon = FluentIcons.Lightbulb,
             },
             Targets = new Target[] { new RegTarget("ShowStartupPanel", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\GameBar" }, "ShowStartupPanel", RegistryValueKind.DWord) },
             States = new[]
@@ -1340,7 +1599,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingPerformanceBackgroundServices.Name,
                 Description = LocKey.Setting.GamingPerformanceBackgroundServices.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.Cog,
+                Icon = FluentIcons.Settings,
             },
             Targets = new Target[] { new RegTarget("ServicesPipeTimeout", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control" }, "ServicesPipeTimeout", RegistryValueKind.DWord) },
             States = new[]
@@ -1369,7 +1628,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingSysmainService.Name,
                 Description = LocKey.Setting.GamingSysmainService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.Cached,
+                Icon = FluentIcons.ArrowSync,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SysMain" }, "Start", RegistryValueKind.DWord) },
@@ -1403,7 +1662,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingPerformancePrefetch.Name,
                 Description = LocKey.Setting.GamingPerformancePrefetch.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.Download,
+                Icon = FluentIcons.ArrowDownload,
                 IsSubjectivePreference = true,
             },
             UiParentId = "gaming-sysmain-service",
@@ -1440,7 +1699,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingWindowsSearchService.Name,
                 Description = LocKey.Setting.GamingWindowsSearchService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.DatabaseSearch,
+                Icon = FluentIcons.DatabaseSearch,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WSearch" }, "Start", RegistryValueKind.DWord) },
@@ -1474,7 +1733,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingPrintSpoolerService.Name,
                 Description = LocKey.Setting.GamingPrintSpoolerService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.Printer,
+                Icon = FluentIcons.Print,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Spooler" }, "Start", RegistryValueKind.DWord) },
@@ -1506,7 +1765,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTelemetryService.Name,
                 Description = LocKey.Setting.GamingTelemetryService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.CloudUpload,
+                Icon = FluentIcons.CloudArrowUp,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\DiagTrack" }, "Start", RegistryValueKind.DWord) },
             States = new[]
@@ -1514,6 +1773,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 new SettingState
                 {
                     Label = LocKey.ServiceOption.DisabledRecommended,
+                    RiskWarning = LocKey.Setting.GamingTelemetryService.OptionWarning0,
                     Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["Start"] = Of(4) },
                 },
@@ -1538,7 +1798,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingConnectedDevicesPlatformService.Name,
                 Description = LocKey.Setting.GamingConnectedDevicesPlatformService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.CellphoneLink,
+                Icon = FluentIcons.PhoneLaptop,
                 AddedInVersion = "26.03.27",
                 IsSubjectivePreference = true,
             },
@@ -1574,7 +1834,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingCompatibilityAssistantService.Name,
                 Description = LocKey.Setting.GamingCompatibilityAssistantService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.ApplicationCog,
+                Icon = FluentIcons.WindowSettings,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\PcaSvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
@@ -1606,7 +1866,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingErrorReportingService.Name,
                 Description = LocKey.Setting.GamingErrorReportingService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.AlertOctagon,
+                Icon = FluentIcons.Warning,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WerSvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
@@ -1637,7 +1897,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingGeolocationService.Name,
                 Description = LocKey.Setting.GamingGeolocationService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.MapMarkerOff,
+                Icon = FluentIcons.LocationOff,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\lfsvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
@@ -1668,7 +1928,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingRetailDemoService.Name,
                 Description = LocKey.Setting.GamingRetailDemoService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.StorefrontOutline,
+                Icon = FluentIcons.BuildingShop,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RetailDemo" }, "Start", RegistryValueKind.DWord) },
             States = new[]
@@ -1699,7 +1959,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingInsiderService.Name,
                 Description = LocKey.Setting.GamingInsiderService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.TestTube,
+                Icon = FluentIcons.Beaker,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\wisvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
@@ -1730,7 +1990,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingPhoneService.Name,
                 Description = LocKey.Setting.GamingPhoneService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.Cellphone,
+                Icon = FluentIcons.Phone,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\PhoneSvc" }, "Start", RegistryValueKind.DWord) },
@@ -1762,7 +2022,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingWalletService.Name,
                 Description = LocKey.Setting.GamingWalletService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.Wallet,
+                Icon = FluentIcons.Wallet,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WalletService" }, "Start", RegistryValueKind.DWord) },
             States = new[]
@@ -1793,7 +2053,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingSmartCardServices.Name,
                 Description = LocKey.Setting.GamingSmartCardServices.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.SmartCard,
+                Icon = FluentIcons.Payment,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SCardSvr", @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\ScDeviceEnum", @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SCPolicySvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
@@ -1824,7 +2084,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingMapsBrokerService.Name,
                 Description = LocKey.Setting.GamingMapsBrokerService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.MapOutline,
+                Icon = FluentIcons.Map,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\MapsBroker" }, "Start", RegistryValueKind.DWord) },
             States = new[]
@@ -1856,7 +2116,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingFaxService.Name,
                 Description = LocKey.Setting.GamingFaxService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.Fax,
+                Icon = FluentIcons.Fax,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Fax" }, "Start", RegistryValueKind.DWord) },
             States = new[]
@@ -1888,7 +2148,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingWmpNetworkService.Name,
                 Description = LocKey.Setting.GamingWmpNetworkService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.ShareOff,
+                Icon = FluentIcons.Share,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WMPNetworkSvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
@@ -1920,7 +2180,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingMixedRealityService.Name,
                 Description = LocKey.Setting.GamingMixedRealityService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.VirtualReality,
+                Icon = FluentIcons.HeadsetVr,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\MixedRealityOpenXRSvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
@@ -1952,7 +2212,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingMobileHotspotService.Name,
                 Description = LocKey.Setting.GamingMobileHotspotService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.CellphoneWireless,
+                Icon = FluentIcons.PhoneLaptop,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\icssvc" }, "Start", RegistryValueKind.DWord) },
@@ -1984,7 +2244,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingSmsRouterService.Name,
                 Description = LocKey.Setting.GamingSmsRouterService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.MessageText,
+                Icon = FluentIcons.CommentText,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SmsRouter" }, "Start", RegistryValueKind.DWord) },
             States = new[]
@@ -2015,7 +2275,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingParentalControlsService.Name,
                 Description = LocKey.Setting.GamingParentalControlsService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.ShieldAccount,
+                Icon = FluentIcons.ShieldPerson,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WpcMonSvc" }, "Start", RegistryValueKind.DWord) },
@@ -2047,7 +2307,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingPaymentsNfcService.Name,
                 Description = LocKey.Setting.GamingPaymentsNfcService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.Nfc,
+                Icon = FluentIcons.PaymentWireless,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SEMgrSvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
@@ -2078,7 +2338,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingSpotVerifierService.Name,
                 Description = LocKey.Setting.GamingSpotVerifierService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.ShieldCheck,
+                Icon = FluentIcons.ShieldCheckmark,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\svsvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
@@ -2109,7 +2369,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingRemoteAccessManager.Name,
                 Description = LocKey.Setting.GamingRemoteAccessManager.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.Vpn,
+                Icon = FluentIcons.GlobeShield,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RasMan" }, "Start", RegistryValueKind.DWord) },
@@ -2142,7 +2402,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingRemoteAccessAuto.Name,
                 Description = LocKey.Setting.GamingRemoteAccessAuto.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.NetworkOff,
+                Icon = FluentIcons.GlobeOff,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RasAuto" }, "Start", RegistryValueKind.DWord) },
@@ -2174,7 +2434,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingRemoteDesktopServices.Name,
                 Description = LocKey.Setting.GamingRemoteDesktopServices.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.RemoteDesktop,
+                Icon = FluentIcons.DesktopCursor,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TermService" }, "Start", RegistryValueKind.DWord) },
@@ -2207,7 +2467,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingRemoteDesktopConfiguration.Name,
                 Description = LocKey.Setting.GamingRemoteDesktopConfiguration.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.MonitorShare,
+                Icon = FluentIcons.ShareScreenStart,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SessionEnv" }, "Start", RegistryValueKind.DWord) },
@@ -2239,7 +2499,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingRemoteDesktopPortRedirector.Name,
                 Description = LocKey.Setting.GamingRemoteDesktopPortRedirector.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.TransitConnectionVariant,
+                Icon = FluentIcons.ArrowRouting,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\UmRdpService" }, "Start", RegistryValueKind.DWord) },
@@ -2271,7 +2531,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingXboxAuthManager.Name,
                 Description = LocKey.Setting.GamingXboxAuthManager.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.MicrosoftXbox,
+                Icon = FluentIcons.Games,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\XblAuthManager" }, "Start", RegistryValueKind.DWord) },
@@ -2304,7 +2564,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingXboxGameSave.Name,
                 Description = LocKey.Setting.GamingXboxGameSave.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.CloudUploadOutline,
+                Icon = FluentIcons.CloudArrowUp,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\XblGameSave" }, "Start", RegistryValueKind.DWord) },
@@ -2336,7 +2596,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingXboxNetworking.Name,
                 Description = LocKey.Setting.GamingXboxNetworking.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.NetworkOutline,
+                Icon = FluentIcons.Globe,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\XboxNetApiSvc" }, "Start", RegistryValueKind.DWord) },
@@ -2368,7 +2628,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingBiometricService.Name,
                 Description = LocKey.Setting.GamingBiometricService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.Fingerprint,
+                Icon = FluentIcons.Fingerprint,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WbioSrvc" }, "Start", RegistryValueKind.DWord) },
@@ -2400,7 +2660,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTouchKeyboardService.Name,
                 Description = LocKey.Setting.GamingTouchKeyboardService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.KeyboardOutline,
+                Icon = FluentIcons.Keyboard,
                 AddedInVersion = "26.04.03",
                 IsSubjectivePreference = true,
             },
@@ -2459,7 +2719,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTelephonyService.Name,
                 Description = LocKey.Setting.GamingTelephonyService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.PhoneClassic,
+                Icon = FluentIcons.Call,
                 AddedInVersion = "26.05.18",
                 IsSubjectivePreference = true,
             },
@@ -2493,7 +2753,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingSensorMonitoringService.Name,
                 Description = LocKey.Setting.GamingSensorMonitoringService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.Radar,
+                Icon = FluentIcons.Radar,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SensrSvc" }, "Start", RegistryValueKind.DWord) },
             States = new[]
@@ -2524,7 +2784,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingSensorDataService.Name,
                 Description = LocKey.Setting.GamingSensorDataService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.ChartBox,
+                Icon = FluentIcons.DataHistogram,
             },
             Targets = new Target[] { new RegTarget("Start", new[] { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SensorDataService" }, "Start", RegistryValueKind.DWord) },
             States = new[]
@@ -2555,7 +2815,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingAiFabricService.Name,
                 Description = LocKey.Setting.GamingAiFabricService.Description,
                 GroupName = LocKey.SettingGroup.SystemServices,
-                Icon = MaterialIcons.Robot,
+                Icon = FluentIcons.Bot,
                 AddedInVersion = "26.04.10",
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
@@ -2589,7 +2849,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTaskCompatibilityAppraiser.Name,
                 Description = LocKey.Setting.GamingTaskCompatibilityAppraiser.Description,
                 GroupName = LocKey.SettingGroup.ScheduledTasks,
-                Icon = MaterialIcons.FileDocumentCheck,
+                Icon = FluentIcons.DocumentCheckmark,
             },
             Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser") },
@@ -2618,7 +2878,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTaskProgramDataUpdater.Name,
                 Description = LocKey.Setting.GamingTaskProgramDataUpdater.Description,
                 GroupName = LocKey.SettingGroup.ScheduledTasks,
-                Icon = MaterialIcons.DatabaseSync,
+                Icon = FluentIcons.DatabaseArrowDown,
             },
             Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Application Experience\ProgramDataUpdater") },
@@ -2647,7 +2907,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTaskCeipConsolidator.Name,
                 Description = LocKey.Setting.GamingTaskCeipConsolidator.Description,
                 GroupName = LocKey.SettingGroup.ScheduledTasks,
-                Icon = MaterialIcons.ChartLine,
+                Icon = FluentIcons.DataLine,
             },
             Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Customer Experience Improvement Program\Consolidator") },
@@ -2676,7 +2936,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTaskUsbCeip.Name,
                 Description = LocKey.Setting.GamingTaskUsbCeip.Description,
                 GroupName = LocKey.SettingGroup.ScheduledTasks,
-                Icon = MaterialIcons.Usb,
+                Icon = FluentIcons.Usb,
             },
             Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip") },
@@ -2705,7 +2965,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTaskDiskDiagnostic.Name,
                 Description = LocKey.Setting.GamingTaskDiskDiagnostic.Description,
                 GroupName = LocKey.SettingGroup.ScheduledTasks,
-                Icon = MaterialIcons.Harddisk,
+                Icon = FluentIcons.HardDrive,
             },
             Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector") },
@@ -2734,7 +2994,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTaskFeedbackDmclient.Name,
                 Description = LocKey.Setting.GamingTaskFeedbackDmclient.Description,
                 GroupName = LocKey.SettingGroup.ScheduledTasks,
-                Icon = MaterialIcons.MessageAlert,
+                Icon = FluentIcons.ChatWarning,
             },
             Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Feedback\Siuf\DmClient") },
@@ -2763,7 +3023,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTaskFeedbackDmclientDownload.Name,
                 Description = LocKey.Setting.GamingTaskFeedbackDmclientDownload.Description,
                 GroupName = LocKey.SettingGroup.ScheduledTasks,
-                Icon = MaterialIcons.Download,
+                Icon = FluentIcons.ArrowDownload,
             },
             Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Feedback\Siuf\DmClientOnScenarioDownload") },
@@ -2792,7 +3052,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTaskErrorReportingQueue.Name,
                 Description = LocKey.Setting.GamingTaskErrorReportingQueue.Description,
                 GroupName = LocKey.SettingGroup.ScheduledTasks,
-                Icon = MaterialIcons.AlertOctagon,
+                Icon = FluentIcons.Warning,
             },
             Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Windows Error Reporting\QueueReporting") },
@@ -2821,7 +3081,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTaskSqm.Name,
                 Description = LocKey.Setting.GamingTaskSqm.Description,
                 GroupName = LocKey.SettingGroup.ScheduledTasks,
-                Icon = MaterialIcons.ChartBar,
+                Icon = FluentIcons.DataBarVertical,
             },
             Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\PI\Sqm-Tasks") },
@@ -2850,7 +3110,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTaskMareBackup.Name,
                 Description = LocKey.Setting.GamingTaskMareBackup.Description,
                 GroupName = LocKey.SettingGroup.ScheduledTasks,
-                Icon = MaterialIcons.BackupRestore,
+                Icon = FluentIcons.History,
             },
             Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Application Experience\MareBackup") },
@@ -2879,7 +3139,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTaskStartupApp.Name,
                 Description = LocKey.Setting.GamingTaskStartupApp.Description,
                 GroupName = LocKey.SettingGroup.ScheduledTasks,
-                Icon = MaterialIcons.RocketLaunch,
+                Icon = FluentIcons.Rocket,
             },
             Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Application Experience\StartupAppTask") },
@@ -2908,7 +3168,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTaskMapsUpdate.Name,
                 Description = LocKey.Setting.GamingTaskMapsUpdate.Description,
                 GroupName = LocKey.SettingGroup.ScheduledTasks,
-                Icon = MaterialIcons.MapOutline,
+                Icon = FluentIcons.Map,
             },
             Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Maps\MapsUpdateTask") },
@@ -2936,7 +3196,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTaskAutochkProxy.Name,
                 Description = LocKey.Setting.GamingTaskAutochkProxy.Description,
                 GroupName = LocKey.SettingGroup.ScheduledTasks,
-                Icon = MaterialIcons.HarddiskPlus,
+                Icon = FluentIcons.HardDrive,
             },
             Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Autochk\Proxy") },
@@ -2965,7 +3225,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTaskFamilySafety.Name,
                 Description = LocKey.Setting.GamingTaskFamilySafety.Description,
                 GroupName = LocKey.SettingGroup.ScheduledTasks,
-                Icon = MaterialIcons.AccountSupervisor,
+                Icon = FluentIcons.People,
                 IsSubjectivePreference = true,
             },
             Availability = new() { ValidatesExistence = true },
@@ -2995,7 +3255,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTaskPowerEfficiency.Name,
                 Description = LocKey.Setting.GamingTaskPowerEfficiency.Description,
                 GroupName = LocKey.SettingGroup.ScheduledTasks,
-                Icon = MaterialIcons.LightningBolt,
+                Icon = FluentIcons.Flash,
             },
             Availability = new() { ValidatesExistence = true },
             Targets = new Target[] { new TaskTarget("Task", @"\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem") },
@@ -3024,7 +3284,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTaskWindowsAi.Name,
                 Description = LocKey.Setting.GamingTaskWindowsAi.Description,
                 GroupName = LocKey.SettingGroup.ScheduledTasks,
-                Icon = MaterialIcons.Robot,
+                Icon = FluentIcons.Bot,
                 AddedInVersion = "26.04.10",
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 }, ValidatesExistence = true },
@@ -3058,7 +3318,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.GamingTaskOfficeActionsServer.Name,
                 Description = LocKey.Setting.GamingTaskOfficeActionsServer.Description,
                 GroupName = LocKey.SettingGroup.ScheduledTasks,
-                Icon = MaterialIcons.CalendarClock,
+                Icon = FluentIcons.CalendarClock,
                 AddedInVersion = "26.04.10",
             },
             Availability = new() { ValidatesExistence = true },
@@ -3088,7 +3348,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.VisualEffectsMode.Name,
                 Description = LocKey.Setting.VisualEffectsMode.Description,
                 GroupName = LocKey.SettingGroup.VisualEffects,
-                Icon = MaterialIcons.MonitorEye,
+                Icon = FluentIcons.Eye,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("VisualFXSetting", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" }, "VisualFXSetting", RegistryValueKind.DWord) },
@@ -3129,7 +3389,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.UiEffects.Name,
                 Description = LocKey.Setting.UiEffects.Description,
                 GroupName = LocKey.SettingGroup.VisualEffects,
-                Icon = MaterialIcons.Animation,
+                Icon = FluentIcons.SlideTransition,
                 IsSubjectivePreference = true,
             },
             Apply = new() { NotifyWindows = WindowsChange.Settings },
@@ -3161,7 +3421,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.WindowAnimation.Name,
                 Description = LocKey.Setting.WindowAnimation.Description,
                 GroupName = LocKey.SettingGroup.VisualEffects,
-                Icon = MaterialIcons.WindowRestore,
+                Icon = FluentIcons.WindowMultiple,
                 IsSubjectivePreference = true,
             },
             Apply = new() { NotifyWindows = WindowsChange.Settings },
@@ -3193,7 +3453,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.TaskbarAnimations.Name,
                 Description = LocKey.Setting.TaskbarAnimations.Description,
                 GroupName = LocKey.SettingGroup.VisualEffects,
-                Icon = MaterialIcons.DockBottom,
+                Icon = FluentIcons.PanelBottom,
                 IsSubjectivePreference = true,
             },
             Apply = new() { NotifyWindows = WindowsChange.Settings },
@@ -3223,7 +3483,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.EnablePeek.Name,
                 Description = LocKey.Setting.EnablePeek.Description,
                 GroupName = LocKey.SettingGroup.VisualEffects,
-                Icon = MaterialIcons.MonitorEye,
+                Icon = FluentIcons.Eye,
                 IsSubjectivePreference = true,
             },
             Apply = new() { RequiresReboot = true },
@@ -3252,7 +3512,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.MenuAnimation.Name,
                 Description = LocKey.Setting.MenuAnimation.Description,
                 GroupName = LocKey.SettingGroup.VisualEffects,
-                Icon = MaterialIcons.MenuOpen,
+                Icon = FluentIcons.LineHorizontal3,
                 IsSubjectivePreference = true,
             },
             Apply = new() { NotifyWindows = WindowsChange.Settings },
@@ -3284,7 +3544,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.FadeTooltip.Name,
                 Description = LocKey.Setting.FadeTooltip.Description,
                 GroupName = LocKey.SettingGroup.VisualEffects,
-                Icon = MaterialIcons.TooltipText,
+                Icon = FluentIcons.TooltipQuote,
                 IsSubjectivePreference = true,
             },
             Apply = new() { NotifyWindows = WindowsChange.Settings },
@@ -3377,7 +3637,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.MouseShadow.Name,
                 Description = LocKey.Setting.MouseShadow.Description,
                 GroupName = LocKey.SettingGroup.VisualEffects,
-                Icon = MaterialIcons.CursorDefault,
+                Icon = FluentIcons.Cursor,
                 IsSubjectivePreference = true,
             },
             Apply = new() { NotifyWindows = WindowsChange.Settings },
@@ -3408,7 +3668,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.WindowShadows.Name,
                 Description = LocKey.Setting.WindowShadows.Description,
                 GroupName = LocKey.SettingGroup.VisualEffects,
-                Icon = MaterialIcons.BoxShadow,
+                Icon = FluentIcons.SquareShadow,
                 IsSubjectivePreference = true,
             },
             Apply = new() { NotifyWindows = WindowsChange.Settings },
@@ -3469,7 +3729,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.TranslucentSelection.Name,
                 Description = LocKey.Setting.TranslucentSelection.Description,
                 GroupName = LocKey.SettingGroup.VisualEffects,
-                Icon = MaterialIcons.Select,
+                Icon = FluentIcons.SelectObject,
                 IsSubjectivePreference = true,
             },
             Apply = new() { NotifyWindows = WindowsChange.Settings },
@@ -3498,7 +3758,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.DragFullWindows.Name,
                 Description = LocKey.Setting.DragFullWindows.Description,
                 GroupName = LocKey.SettingGroup.VisualEffects,
-                Icon = MaterialIcons.SelectionDrag,
+                Icon = FluentIcons.Drag,
                 IsSubjectivePreference = true,
             },
             Apply = new() { NotifyWindows = WindowsChange.Settings },
@@ -3529,7 +3789,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.ComboBoxAnimation.Name,
                 Description = LocKey.Setting.ComboBoxAnimation.Description,
                 GroupName = LocKey.SettingGroup.VisualEffects,
-                Icon = MaterialIcons.FormDropdown,
+                Icon = FluentIcons.ChevronDown,
                 IsSubjectivePreference = true,
             },
             Apply = new() { NotifyWindows = WindowsChange.Settings },
@@ -3561,7 +3821,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.FontSmoothing.Name,
                 Description = LocKey.Setting.FontSmoothing.Description,
                 GroupName = LocKey.SettingGroup.VisualEffects,
-                Icon = MaterialIcons.FormatSize,
+                Icon = FluentIcons.TextFontSize,
                 IsSubjectivePreference = true,
             },
             Apply = new() { NotifyWindows = WindowsChange.Settings },
@@ -3592,7 +3852,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.SmoothScrollListboxes.Name,
                 Description = LocKey.Setting.SmoothScrollListboxes.Description,
                 GroupName = LocKey.SettingGroup.VisualEffects,
-                Icon = MaterialIcons.ListBox,
+                Icon = FluentIcons.ListBar,
                 IsSubjectivePreference = true,
             },
             Apply = new() { NotifyWindows = WindowsChange.Settings },
@@ -3624,7 +3884,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.DropShadows.Name,
                 Description = LocKey.Setting.DropShadows.Description,
                 GroupName = LocKey.SettingGroup.VisualEffects,
-                Icon = MaterialIcons.TextShadow,
+                Icon = FluentIcons.TextEffects,
                 IsSubjectivePreference = true,
             },
             Apply = new() { NotifyWindows = WindowsChange.Settings },
@@ -3648,13 +3908,47 @@ public static class GamingAndPerformanceOptimizationsCatalog
         },
         new()
         {
+            Id = "explorer-always-show-scrollbars",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerAlwaysShowScrollbars.Name,
+                Description = LocKey.Setting.ExplorerAlwaysShowScrollbars.Description,
+                GroupName = LocKey.SettingGroup.Accessibility,
+                Icon = FluentIcons.Window,
+                AddedInVersion = "26.11.24",
+                IsSubjectivePreference = true,
+            },
+            Availability = new() { Builds = new[] { BuildRange.Between(26300, int.MaxValue) } },
+            Apply = new() { NotifyWindows = WindowsChange.Accessibility },
+            Targets = new Target[]
+            {
+                new RegTarget("DynamicScrollbars", new[] { @"HKEY_CURRENT_USER\Control Panel\Accessibility" }, "DynamicScrollbars", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue> { ["DynamicScrollbars"] = Of(0) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Between(26300, 26300) } } },
+                    Set = new Dictionary<string, StateValue> { ["DynamicScrollbars"] = Of(1).OrAbsent() },
+                    ResetSet = new Dictionary<string, StateValue> { ["DynamicScrollbars"] = Absent },
+                },
+            },
+        },
+        new()
+        {
             Id = "gaming-narrator-hotkey",
             Display = new()
             {
                 Name = LocKey.Setting.GamingNarratorHotkey.Name,
                 Description = LocKey.Setting.GamingNarratorHotkey.Description,
                 GroupName = LocKey.SettingGroup.Accessibility,
-                Icon = MaterialIcons.AccountVoice,
+                Icon = FluentIcons.ReadAloud,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("WinEnterLaunchEnabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Narrator\NoRoam" }, "WinEnterLaunchEnabled", RegistryValueKind.DWord) },
@@ -3683,7 +3977,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.AccessibilityStickykeysHotkey.Name,
                 Description = LocKey.Setting.AccessibilityStickykeysHotkey.Description,
                 GroupName = LocKey.SettingGroup.Accessibility,
-                Icon = MaterialIcons.AppleKeyboardShift,
+                Icon = FluentIcons.KeyboardShift,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Flags", new[] { @"HKEY_CURRENT_USER\Control Panel\Accessibility\StickyKeys" }, "Flags", RegistryValueKind.String) },
@@ -3712,7 +4006,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.AccessibilityFilterkeysHotkey.Name,
                 Description = LocKey.Setting.AccessibilityFilterkeysHotkey.Description,
                 GroupName = LocKey.SettingGroup.Accessibility,
-                Icon = MaterialIcons.KeyboardOutline,
+                Icon = FluentIcons.Keyboard,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Flags", new[] { @"HKEY_CURRENT_USER\Control Panel\Accessibility\Keyboard Response" }, "Flags", RegistryValueKind.String) },
@@ -3741,7 +4035,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.AccessibilityTogglekeysHotkey.Name,
                 Description = LocKey.Setting.AccessibilityTogglekeysHotkey.Description,
                 GroupName = LocKey.SettingGroup.Accessibility,
-                Icon = MaterialIcons.Numeric,
+                Icon = FluentIcons.Keyboard123,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Flags", new[] { @"HKEY_CURRENT_USER\Control Panel\Accessibility\ToggleKeys" }, "Flags", RegistryValueKind.String) },
@@ -3770,7 +4064,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.AccessibilityMousekeysHotkey.Name,
                 Description = LocKey.Setting.AccessibilityMousekeysHotkey.Description,
                 GroupName = LocKey.SettingGroup.Accessibility,
-                Icon = MaterialIcons.MouseVariant,
+                Icon = FluentIcons.Keyboard,
                 IsSubjectivePreference = true,
             },
             // Flags is a decimal-string bitmask; 0x04 = MKF_HOTKEYACTIVE. Fresh installs ship "62"
@@ -3802,7 +4096,7 @@ public static class GamingAndPerformanceOptimizationsCatalog
                 Name = LocKey.Setting.AccessibilityHighcontrastHotkey.Name,
                 Description = LocKey.Setting.AccessibilityHighcontrastHotkey.Description,
                 GroupName = LocKey.SettingGroup.Accessibility,
-                Icon = MaterialIcons.ContrastCircle,
+                Icon = FluentIcons.CircleHalfFill,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[] { new RegTarget("Flags", new[] { @"HKEY_CURRENT_USER\Control Panel\Accessibility\HighContrast" }, "Flags", RegistryValueKind.String) },

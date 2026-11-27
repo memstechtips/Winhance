@@ -115,7 +115,7 @@ internal static class DocsCatalogExport
             Text(loc, s.Display.Name),
             Text(loc, s.Display.Description),
             GroupName(s, loc),
-            s.Display.Icon is { } ic ? new DocsIcon(ic.Pack.ToString(), ic.Glyph) : null,
+            DocsIconFor(s.Display.Icon),
             s.Control.ToString(),
             s.Display.IsSubjectivePreference,
             s.Display.AddedInVersion,
@@ -126,6 +126,14 @@ internal static class DocsCatalogExport
             sameOnBothBuilds ? null : win10,
             Fields(s, loc));
     }
+
+    // The docs cannot reach a PC's icon cache, so an app-logo icon exports its Fluent fallback.
+    private static DocsIcon? DocsIconFor(Icon? icon) => icon switch
+    {
+        null => null,
+        { Pack: IconPack.App, Fallback: { } fallback } => new DocsIcon(fallback.Pack.ToString(), fallback.Glyph),
+        _ => new DocsIcon(icon.Pack.ToString(), icon.Glyph),
+    };
 
     private static List<IReadOnlyList<DocsField>>? Fields(Setting s, ILocalizationService loc) =>
         s.Fields.Count == 0
@@ -144,9 +152,8 @@ internal static class DocsCatalogExport
         Options = s.States.Select((state, i) => new ComboBoxDisplayOption(OptionLabel(state, loc), i)).ToList(),
     };
 
-    // SettingViewModelFactory.BuildCatalogOptionWarnings, minus the states that carry no warning. The app
-    // raises a Warning as an Error banner under the card while its option is selected, and a RiskWarning as a
-    // Warning banner whatever is selected. The banner is looked up by the selected value, which is a state index
+    // SettingViewModelFactory.BuildCatalogOptionWarnings: the app shows a RiskWarning as a Warning banner whatever is
+    // selected. The banner is computed from the selected value, which is a state index
     // only for a ComboBox (a Toggle carries a bool, a slider a number), so a warning authored on any other control
     // kind never surfaces there and must not here either.
     private static List<DocsOptionWarning> OptionWarnings(Setting s, ILocalizationService loc)
@@ -154,11 +161,8 @@ internal static class DocsCatalogExport
         if (s.Control != ControlKind.Selection) return [];
 
         return s.States
-            .Where(state => state.Warning is not null || state.RiskWarning is not null)
-            .Select(state => new DocsOptionWarning(
-                OptionLabel(state, loc),
-                Text(loc, (state.Warning ?? state.RiskWarning)!.Value),
-                state.Warning is null))
+            .Where(state => state.RiskWarning is not null)
+            .Select(state => new DocsOptionWarning(OptionLabel(state, loc), Text(loc, state.RiskWarning!.Value), Always: true))
             .ToList();
     }
 

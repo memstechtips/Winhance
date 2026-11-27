@@ -1049,6 +1049,18 @@ public class AutounattendWritersTests
 
     // XML parsing hands the extractor LF line endings, and cmd.exe misses labels in a batch file that has them.
     [Fact]
+    public void ExtractScript_ProtectsTheCurrentAndLegacyPictureDestinationsBeforeWriting()
+    {
+        var script = AutounattendScripts.ExtractScript;
+        script.Should().Contain(PictureFileConstants.CarriedPictureFolder).And.Contain(PictureFileConstants.LegacyCarriedPictureFolder);
+        int guarded = script.IndexOf("if (-not (Test-PictureLanding $path))", StringComparison.Ordinal);
+        int write = script.IndexOf("[System.IO.File]::WriteAllBytes( $path, [System.Convert]::FromBase64String", StringComparison.Ordinal);
+        guarded.Should().BeGreaterThanOrEqualTo(0);
+        write.Should().BeGreaterThan(guarded);
+        script.Should().Contain("Skipped text entry in the shared wallpaper folder.");
+    }
+
+    [Fact]
     public void ExtractScript_Always_WritesTextFilesWithCrlfLineEndings()
     {
         AutounattendScripts.ExtractScript.Should().Contain("$text = $file.InnerText.Trim() -replace '\\r?\\n', \"`r`n\";");

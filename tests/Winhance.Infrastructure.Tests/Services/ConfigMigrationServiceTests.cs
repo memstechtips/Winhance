@@ -45,6 +45,75 @@ public class ConfigMigrationServiceTests
         action.Should().NotThrow();
     }
 
+    [Theory]
+    [InlineData(true, 3)]
+    [InlineData(false, 0)]
+    public void AltTabToggle_PreservesWhatTheOldProfileApplied(bool windowsOnly, int index)
+    {
+        var item = new ConfigurationItem
+        {
+            Id = "gaming-explorer-alt-tab-filter",
+            InputType = InputType.Toggle,
+            IsSelected = windowsOnly,
+            CustomStateValues = new() { ["MultiTaskingAltTabFilter"] = 4 },
+        };
+        var config = CreateConfigWithCustomizeItem(item);
+
+        _sut.MigrateConfig(config);
+        _sut.MigrateConfig(config);
+
+        Assert.Equal(InputType.Selection, item.InputType);
+        Assert.Equal(index, item.SelectedIndex);
+        Assert.Null(item.IsSelected);
+        Assert.Null(item.CustomStateValues);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void AltTabSelection_PreservesIntermediateOptions(int index)
+    {
+        var item = new ConfigurationItem { Id = "gaming-explorer-alt-tab-filter", InputType = InputType.Selection, SelectedIndex = index };
+        var config = CreateConfigWithCustomizeItem(item);
+
+        _sut.MigrateConfig(config);
+
+        Assert.Equal(index, item.SelectedIndex);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(-1)]
+    [InlineData(4)]
+    public void AltTabSelection_WithoutAValidChoiceIsSkipped(int? index)
+    {
+        var item = new ConfigurationItem { Id = "gaming-explorer-alt-tab-filter", InputType = InputType.Selection, SelectedIndex = index };
+        var config = CreateConfigWithCustomizeItem(item);
+        _sut.MigrateConfig(config);
+        Assert.Empty(config.Customize.Features["TaskbarCustomizations"].Items);
+    }
+
+    [Fact]
+    public void AltTabSelection_PreservesCustomFilter()
+    {
+        var item = new ConfigurationItem { Id = "gaming-explorer-alt-tab-filter", InputType = InputType.Selection, CustomStateValues = new() { ["MultiTaskingAltTabFilter"] = 4 } };
+        var config = CreateConfigWithCustomizeItem(item);
+        _sut.MigrateConfig(config);
+        Assert.Same(item, Assert.Single(config.Customize.Features["TaskbarCustomizations"].Items));
+        Assert.Equal(4, item.CustomStateValues["MultiTaskingAltTabFilter"]);
+    }
+
+    [Fact]
+    public void AltTabToggle_WithoutASavedChoiceIsSkipped()
+    {
+        var item = new ConfigurationItem { Id = "gaming-explorer-alt-tab-filter", InputType = InputType.Toggle };
+        var config = CreateConfigWithCustomizeItem(item);
+
+        _sut.MigrateConfig(config);
+
+        Assert.Empty(config.Customize.Features["TaskbarCustomizations"].Items);
+    }
+
     [Fact]
     public void MigrateConfig_NoMigrateableItems_NoChanges()
     {

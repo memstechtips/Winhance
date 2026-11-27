@@ -19,12 +19,26 @@
     <x:Double x:Key="TechnicalDetailsChevronFontSize">9</x:Double>
     <x:Double x:Key="CardExpanderChevronFontSize">16</x:Double>
 
-    <!-- WimUtil: pass/fail status glyph on its step and action cards. -->
+    <!-- Status glyph: WimUtil step and action cards, an app's install state, the select-all filters and the
+         pending-restart bar. -->
     <x:Double x:Key="StatusIconFontSize">20</x:Double>
+    <!-- Install-state chip on an app card. -->
+    <x:Double x:Key="StatusChipIconFontSize">18</x:Double>
+    <!-- WimUtil step rail: the step's own glyph. -->
+    <x:Double x:Key="StepRailIconFontSize">18</x:Double>
+
+    <!-- Glyph beside the label of a text button. -->
+    <x:Double x:Key="ButtonIconFontSize">14</x:Double>
+    <!-- Glyph beside caption-size text, and the check on a selected swatch. -->
+    <x:Double x:Key="CaptionIconFontSize">12</x:Double>
+    <!-- Glyph inside a card or list row: include box, link, section and lock icons. -->
+    <x:Double x:Key="CardIconFontSize">16</x:Double>
 
     <!-- App chrome. -->
     <x:Double x:Key="NavIconFontSize">20</x:Double>
     <x:Double x:Key="TitleBarIconFontSize">20</x:Double>
+    <!-- Title bar back and nav-toggle buttons. -->
+    <x:Double x:Key="TitleBarNavIconFontSize">16</x:Double>
     <!-- The labelled Support pill; one step up from its neighbours on purpose. -->
     <x:Double x:Key="SupportHeartFontSize">22</x:Double>
 

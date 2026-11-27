@@ -14,9 +14,9 @@
                                IsEnabled="{x:Bind Card.IsEnabled}"
                                CornerRadius="{x:Bind CornerRadius}"
                                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
-                               Margin="0,0,0,8">
+                               Margin="{StaticResource CardBottomMargin}">
             <controls:SettingsCard.Header>
-                <StackPanel Orientation="Horizontal" Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="{StaticResource HeaderTagSpacing}">
                     <TextBlock Text="{x:Bind Card.Title}" VerticalAlignment="Center"/>
                 </StackPanel>
             </controls:SettingsCard.Header>
@@ -24,25 +24,29 @@
                 <fluentIcons:FluentIcon Icon="{x:Bind Icon}" IconVariant="Regular"/>
             </controls:SettingsCard.HeaderIcon>
 
-            <StackPanel Orientation="Horizontal" Spacing="8">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource IconLabelSpacing}">
                 <Grid Width="32" Height="32" VerticalAlignment="Center">
-                    <ProgressRing IsActive="{x:Bind Card.IsProcessing}"
-                                  Width="20" Height="20"
-                                  Visibility="{x:Bind Card.IsProcessing}"/>
+                    <ProgressRing x:Name="ProcessingRing"
+                                  x:Load="{x:Bind Card.IsProcessing}"
+                                  IsActive="True"
+                                  Width="20" Height="20"/>
                     <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"
                                             FontSize="{StaticResource StatusIconFontSize}"
-                                            Visibility="{x:Bind Card.IsComplete}"
+                                            x:Name="CompleteIcon"
+                                            x:Load="{x:Bind Card.IsComplete}"
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center"/>
                     <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color"
                                             FontSize="{StaticResource StatusIconFontSize}"
-                                            Visibility="{x:Bind Card.HasFailed}"
+                                            x:Name="FailedIcon"
+                                            x:Load="{x:Bind Card.HasFailed}"
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center"/>
                 </Grid>
-                <Button Content="{x:Bind Card.ButtonText}"
+                <Button x:Name="ActionButton"
+                        x:Load="{x:Bind Card.HasButton}"
+                        Content="{x:Bind Card.ButtonText}"
                         Command="{x:Bind Card.ButtonCommand}"
-                        Visibility="{x:Bind Card.HasButton}"
                         VerticalAlignment="Center"
                         MinWidth="100"/>
             </StackPanel>

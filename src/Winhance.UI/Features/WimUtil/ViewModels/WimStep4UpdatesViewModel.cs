@@ -59,7 +59,8 @@ public partial class WimStep4UpdatesViewModel : ObservableObject, IMediaChoice
     public partial string UpdateDescription { get; set; }
 
     // Media with no update on the list, or none looked up yet, has nothing to tick.
-    public bool CanAddUpdate => !_isLookingUp && (_offer is not null || _updateOnMedia);
+    [ObservableProperty]
+    public partial bool CanAddUpdate { get; private set; }
 
     public string ApplyTitleKey => "WIMUtil_Build_PrepareUpdate";
 
@@ -99,7 +100,7 @@ public partial class WimStep4UpdatesViewModel : ObservableObject, IMediaChoice
         }
 
         _isLookingUp = true;
-        OnPropertyChanged(nameof(CanAddUpdate));
+        CanAddUpdate = false;
         UpdateDescription = _localizationService.GetString("WIMUtil_Card_AddUpdate_Description_Looking");
 
         WindowsUpdate? offer;
@@ -138,12 +139,9 @@ public partial class WimStep4UpdatesViewModel : ObservableObject, IMediaChoice
             AddUpdate = false;
         }
 
-        OnPropertyChanged(nameof(CanAddUpdate));
-        OnPropertyChanged(nameof(NeedsApply));
+        CanAddUpdate = _offer is not null || _updateOnMedia;
         ShowDescription();
     }
-
-    partial void OnAddUpdateChanged(bool value) => OnPropertyChanged(nameof(NeedsApply));
 
     // The description follows the mode, the offer and the language.
     public void ShowDescription()
@@ -188,7 +186,6 @@ public partial class WimStep4UpdatesViewModel : ObservableObject, IMediaChoice
 
             await _wimCustomizationService.EnsureUpdateInstallStepAsync(WorkingDirectory, cancellationToken);
             _updateOnMedia = true;
-            OnPropertyChanged(nameof(NeedsApply));
             ShowDescription();
             return null;
         }

@@ -31,6 +31,13 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
     private readonly ISystemInfoProvider _systemInfo;
     private readonly IBuilderModeEntry _builderEntry;
 
+    // A new ItemsSource clears the seed box's selection, so SelectedSeedIndex is raised after StartSeedOptions.
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(IncludedTitle), nameof(IncludedDescription), nameof(StartedFromHeader), nameof(StartedFromDescription),
+        nameof(StartSeedOptions), nameof(SelectedSeedIndex),
+    ];
+
     private static readonly BuilderSeed[] SeedOrder =
         [BuilderSeed.CurrentMachine, BuilderSeed.Recommended, BuilderSeed.WindowsDefaults, BuilderSeed.ConfigFile];
 
@@ -262,12 +269,8 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
 
     private void RelabelIncluded()
     {
-        OnPropertyChanged(nameof(IncludedTitle));
-        OnPropertyChanged(nameof(IncludedDescription));
-        OnPropertyChanged(nameof(StartedFromHeader));
-        OnPropertyChanged(nameof(StartedFromDescription));
-        OnPropertyChanged(nameof(StartSeedOptions));
-        OnPropertyChanged(nameof(SelectedSeedIndex));
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
 
         if (_summary is not { } summary)
         {
@@ -456,7 +459,7 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
         if (name is not null)
             name.PropertyChanged += OnComputerNameChanged;
 
-        _ = ShowNamePreviewAsync();
+        ShowNamePreviewAsync().FireAndForget(_logService);
     }
 
     private void WatchNetfx3()
@@ -498,7 +501,7 @@ public partial class AutounattendViewModel : BaseSettingsFeatureViewModel
     private void OnComputerNameChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(SettingItemViewModel.TextValue))
-            _ = ShowNamePreviewAsync();
+            ShowNamePreviewAsync().FireAndForget(_logService);
     }
 
     // This PC's ending is read once and kept, so the preview does not change while the user types.
@@ -651,12 +654,15 @@ public partial class IncludedAppsCardViewModel(string pageTag, string? featureId
     public partial string Names { get; private set; } = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsList), nameof(CornerRadius), nameof(ListCornerRadius))]
     public partial bool HasList { get; private set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsList), nameof(CornerRadius), nameof(ListCornerRadius))]
     public partial bool IsListOpen { get; private set; }
 
-    public string ListToggleLabel => IsListOpen ? _hideList : _seeList;
+    [ObservableProperty]
+    public partial string ListToggleLabel { get; private set; } = string.Empty;
 
     public bool ShowsList => HasList && IsListOpen;
 
@@ -680,23 +686,10 @@ public partial class IncludedAppsCardViewModel(string pageTag, string? featureId
         _hideList = hideList;
         Names = string.Join(", ", names);
         HasList = names.Count > PreviewNames;
-        OnPropertyChanged(nameof(ListToggleLabel));
+        ListToggleLabel = IsListOpen ? _hideList : _seeList;
     }
 
-    partial void OnHasListChanged(bool value) => ShowCorners();
-
-    partial void OnIsListOpenChanged(bool value)
-    {
-        OnPropertyChanged(nameof(ListToggleLabel));
-        ShowCorners();
-    }
-
-    protected void ShowCorners()
-    {
-        OnPropertyChanged(nameof(ShowsList));
-        OnPropertyChanged(nameof(CornerRadius));
-        OnPropertyChanged(nameof(ListCornerRadius));
-    }
+    partial void OnIsListOpenChanged(bool value) => ListToggleLabel = value ? _hideList : _seeList;
 }
 
 // The staging tick and the installer list are two catalog cards the page keeps off its grouped list; this card draws
@@ -777,6 +770,7 @@ public sealed partial class InstalledAppsCardViewModel(string pageTag, string? f
         OnPropertyChanged(nameof(OwnInstallerRows));
         OnPropertyChanged(nameof(HasOwnInstallers));
         OnPropertyChanged(nameof(OwnInstallersCornerRadius));
-        ShowCorners();
+        OnPropertyChanged(nameof(CornerRadius));
+        OnPropertyChanged(nameof(ListCornerRadius));
     }
 }

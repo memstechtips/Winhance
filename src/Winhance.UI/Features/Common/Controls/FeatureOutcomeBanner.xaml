@@ -15,16 +15,19 @@
     Rows are built in code because each is one wrapping TextBlock whose Inlines mix text with Hyperlink
     runs - TextBlock.Inlines cannot be data-bound, and a panel of link buttons would not reflow.
     -->
-    <Border Visibility="{x:Bind BannerVisibility, Mode=OneWay}" Margin="0,-9,0,0">
+    <Grid>
         <local:QuietInfoBar
-            IsOpen="{x:Bind IsBannerOpen, Mode=OneWay}"
+            x:Name="Bar"
+            x:Load="{x:Bind IsBannerOpen, Mode=OneWay}"
+            IsOpen="True"
             Severity="Informational"
             Message="{x:Bind BannerMessage, Mode=OneWay}"
             IsClosable="False"
             IsTabStop="True"
             UseSystemFocusVisuals="True"
-            CornerRadius="0,0,4,4">
-            <StackPanel x:Name="FragmentHost" Spacing="2" Margin="0,0,0,6"/>
+            Margin="0,-9,0,0"
+            CornerRadius="{StaticResource JoinedCardCornerRadius}">
+            <StackPanel x:Name="FragmentHost" Spacing="{StaticResource TextLineSpacing}" Margin="0,0,0,6"/>
         </local:QuietInfoBar>
-    </Border>
+    </Grid>
 </UserControl>

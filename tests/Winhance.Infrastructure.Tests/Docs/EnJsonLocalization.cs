@@ -48,5 +48,7 @@ internal sealed class EnJsonLocalization : ILocalizationService
 
     public bool SetLanguage(string languageCode) => languageCode == "en";
 
+    public void KeepOnly(params string[] keyPrefixes) => throw new NotSupportedException();
+
     public IReadOnlyList<LanguageOption> GetAvailableLanguages() => [new("en", "English")];
 }

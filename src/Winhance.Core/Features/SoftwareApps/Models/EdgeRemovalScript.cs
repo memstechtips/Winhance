@@ -1,10 +1,32 @@
+using Winhance.Core.Features.Common.Constants;
+
 namespace Winhance.Core.Features.SoftwareApps.Models;
 
 public static class EdgeRemovalScript
 {
     public const string ScriptName = "EdgeRemoval";
 
-    public const string ScriptVersion = "2.4";
+    public const string ScriptVersion = "2.5";
+
+    public const string RedirectStubName = "ie_to_edge_stub.exe";
+    public const string RedirectCommandName = "OpenWebSearch.cmd";
+    public const string RedirectFilterKey = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\ie_to_edge_stub.exe\0";
+
+    public static string GetRepairScript() => $$"""
+        $stubPath = '{{ScriptPaths.OpenWebSearchDirectoryLiteral}}\{{RedirectStubName}}'
+        $owsPath = '{{ScriptPaths.OpenWebSearchDirectoryLiteral}}\{{RedirectCommandName}}'
+        if (-not (Test-Path -LiteralPath $stubPath)) { exit }
+        if (-not (Test-Path -LiteralPath $owsPath)) { exit }
+        $cmd = (Get-ItemProperty 'Registry::HKEY_CLASSES_ROOT\microsoft-edge\shell\open\command' -ErrorAction SilentlyContinue).'(default)'
+        if ($cmd -notlike '*ie_to_edge_stub*') {
+            reg.exe add 'HKCR\microsoft-edge\shell\open\command' /f /ve /d "$stubPath %1" 2>&1 | Out-Null
+        }
+        Remove-ItemProperty 'Registry::HKEY_CLASSES_ROOT\MSEdgeHTM' -Name NoOpenWith -ErrorAction SilentlyContinue
+        $htm = (Get-ItemProperty 'Registry::HKEY_CLASSES_ROOT\MSEdgeHTM\shell\open\command' -ErrorAction SilentlyContinue).'(default)'
+        if ($htm -notlike '*ie_to_edge_stub*') {
+            reg.exe add 'HKCR\MSEdgeHTM\shell\open\command' /f /ve /d "`"$stubPath`" %1" 2>&1 | Out-Null
+        }
+        """;
 
     private const string FullModeLine = "$RemoveWebView2 = $true";
 
@@ -256,22 +278,9 @@ set "".=!.:{=%%!"" & endlocal& set ""URL=%.:}=!%"" & exit /b
     Invoke-Reg delete ""$ifeo\msedge.exe"" /f
     # The repair task is registered by the run at setup time
     if ($Offline) { return }
-
-    $repairContent = @""
-# OpenWebSearch Repair - re-sets protocol handler and MSEdgeHTM registry if Edge overwrites them
-`$stubPath = ""$stubTargetPath""
-`$owsPath = ""$openWebSearchPath""
-if (-not (Test-Path `$stubPath)) { exit }
-if (-not (Test-Path `$owsPath)) { exit }
-`$cmd = (Get-ItemProperty ""Registry::HKEY_CLASSES_ROOT\microsoft-edge\shell\open\command"" -ErrorAction SilentlyContinue).'(default)'
-if (`$cmd -and `$cmd -notlike ""*ie_to_edge_stub*"") {
-    reg.exe add ""HKCR\microsoft-edge\shell\open\command"" /f /ve /d ""`$stubPath %1"" 2>&1 | Out-Null
-}
-`$htm = (Get-ItemProperty ""Registry::HKEY_CLASSES_ROOT\MSEdgeHTM\shell\open\command"" -ErrorAction SilentlyContinue).'(default)'
-if (`$htm -and `$htm -notlike ""*ie_to_edge_stub*"") {
-    reg.exe add ""HKCR\MSEdgeHTM\shell\open\command"" /f /ve /d ""```""`$stubPath```"" %1"" 2>&1 | Out-Null
-}
-""@
+    $repairContent = @'
+" + GetRepairScript() + @"
+'@
     $repairScriptPath = ""$scriptsDir\OpenWebSearchRepair.ps1""
     $repairContent | Out-File -FilePath $repairScriptPath -Encoding UTF8 -Force
     Write-Log ""Created OpenWebSearchRepair.ps1 at $repairScriptPath""
@@ -606,6 +615,7 @@ if ($RemoveWebView2 -and (Test-WebView2Installed)) {
 $stubPath = ""$owsDir\ie_to_edge_stub.exe""
 if (Test-Path $stubPath) {
     Invoke-Reg add ""$classes\MSEdgeHTM\shell\open\command"" /f /ve /d """"""`""$runtimeStubPath`"" %1""
+    Invoke-Reg delete ""$classes\MSEdgeHTM"" /v 'NoOpenWith' /f
     Write-Log 'Redirected MSEdgeHTM to ie_to_edge_stub.exe'
 } else {
     Invoke-Reg delete ""$classes\MSEdgeHTM"" /f

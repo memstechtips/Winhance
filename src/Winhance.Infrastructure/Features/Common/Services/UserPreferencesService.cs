@@ -106,7 +106,7 @@ internal class UserPreferencesService : IUserPreferencesService
         }
     }
 
-    // The sync twin for startup, where an await on the UI thread deadlocks.
+    // The sync twin for GetPreference, where an await on the UI thread deadlocks.
     private Dictionary<string, object> LoadUnsafe()
     {
         if (_cache != null)
@@ -225,23 +225,6 @@ internal class UserPreferencesService : IUserPreferencesService
             }
             return OperationResult.Failed(ex.Message, ex);
         }
-    }
-
-    public async Task<T> GetPreferenceAsync<T>(string key, T defaultValue)
-    {
-        object? value;
-        await _fileLock.WaitAsync().ConfigureAwait(false);
-        try
-        {
-            if (!(await LoadUnsafeAsync().ConfigureAwait(false)).TryGetValue(key, out value))
-                return defaultValue;
-        }
-        finally
-        {
-            _fileLock.Release();
-        }
-
-        return ConvertValue(key, value, defaultValue);
     }
 
     public async Task<OperationResult> SetPreferenceAsync<T>(string key, T value)

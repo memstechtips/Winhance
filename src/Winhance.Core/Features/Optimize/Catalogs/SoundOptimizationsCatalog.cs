@@ -20,7 +20,7 @@ public static class SoundOptimizationsCatalog
                 Name = LocKey.Setting.SoundStartup.Name,
                 Description = LocKey.Setting.SoundStartup.Description,
                 GroupName = LocKey.SettingGroup.SystemSounds,
-                Icon = MaterialIcons.MonitorSpeaker,
+                Icon = FluentIcons.DesktopSpeaker,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -60,7 +60,7 @@ public static class SoundOptimizationsCatalog
                 Name = LocKey.Setting.SoundCommunicationDucking.Name,
                 Description = LocKey.Setting.SoundCommunicationDucking.Description,
                 GroupName = LocKey.SettingGroup.SystemSounds,
-                Icon = MaterialIcons.VolumeMedium,
+                Icon = FluentIcons.Speaker1,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -101,7 +101,7 @@ public static class SoundOptimizationsCatalog
                 Name = LocKey.Setting.SoundNarratorAudioDucking.Name,
                 Description = LocKey.Setting.SoundNarratorAudioDucking.Description,
                 GroupName = LocKey.SettingGroup.SystemSounds,
-                Icon = MaterialIcons.VolumeOff,
+                Icon = FluentIcons.SpeakerOff,
             },
             Targets = new Target[]
             {
@@ -132,7 +132,7 @@ public static class SoundOptimizationsCatalog
                 Name = LocKey.Setting.SoundVoiceActivation.Name,
                 Description = LocKey.Setting.SoundVoiceActivation.Description,
                 GroupName = LocKey.SettingGroup.SystemSounds,
-                Icon = MaterialIcons.AccountTieVoice,
+                Icon = FluentIcons.PersonVoice,
             },
             Targets = new Target[]
             {
@@ -163,7 +163,7 @@ public static class SoundOptimizationsCatalog
                 Name = LocKey.Setting.SoundVoiceActivationLastUsed.Name,
                 Description = LocKey.Setting.SoundVoiceActivationLastUsed.Description,
                 GroupName = LocKey.SettingGroup.SystemSounds,
-                Icon = MaterialIcons.MicrophoneMessage,
+                Icon = FluentIcons.MicrophoneChat,
             },
             Targets = new Target[]
             {
@@ -194,7 +194,7 @@ public static class SoundOptimizationsCatalog
                 Name = LocKey.Setting.SoundAccessibilityActivation.Name,
                 Description = LocKey.Setting.SoundAccessibilityActivation.Description,
                 GroupName = LocKey.SettingGroup.SystemSounds,
-                Icon = MaterialIcons.Keyboard,
+                Icon = FluentIcons.Keyboard,
             },
             Targets = new Target[]
             {

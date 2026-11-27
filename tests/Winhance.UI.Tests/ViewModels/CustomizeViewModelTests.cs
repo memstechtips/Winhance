@@ -178,7 +178,7 @@ public class CustomizeViewModelTests
     [Fact]
     public void TimeRegionLanguageSection_UsesTheFluentSymbolIconResource()
     {
-        // SectionIconConverter routes on the key suffix: Symbol means a FluentIcon, Path means SVG data.
+        // IconConverter routes a FeatureIcon key on its suffix: Symbol means a FluentIcon, Path means SVG data.
         CustomizeViewModel.Sections.Single(s => s.Key == "TimeRegionLanguage")
             .IconGlyphKey.Should().Be("TimeRegionLanguageIconSymbol");
     }

@@ -62,7 +62,7 @@ public class SectionOverviewItemViewModelTests
     private SectionOverviewItemViewModel CreateSut() => new(
         SectionKey,
         FeatureId,
-        "PrivacyIconPath",
+        "PrivacyIconSymbol",
         _feature.Object,
         _badges.Object,
         _reviewMode.Object,
@@ -286,7 +286,7 @@ public class SectionOverviewItemViewModelTests
 
         sut.SectionKey.Should().Be(SectionKey);
         sut.FeatureId.Should().Be(FeatureId);
-        sut.IconResourceKey.Should().Be("PrivacyIconPath");
+        sut.IconResourceKey.Should().Be("PrivacyIconSymbol");
         sut.Feature.Should().BeSameAs(_feature.Object);
     }
 

@@ -23,6 +23,25 @@ public class EdgeRemovalScriptTests
     }
 
     [Fact]
+    public void EdgeRemoval_InstallsTheSameRepairScriptThatStartupCanRestore()
+    {
+        var repair = EdgeRemovalScript.GetRepairScript();
+        var removal = EdgeRemovalScript.GetScript();
+
+        removal.ReplaceLineEndings("\n").Should().Contain("$repairContent = @'\n" + repair.ReplaceLineEndings("\n") + "\n'@")
+            .And.Contain("Register-ScheduledTask -TaskName 'OpenWebSearchRepair'");
+        repair.Should().Contain("reg.exe add 'HKCR\\microsoft-edge\\shell\\open\\command'")
+            .And.Contain("reg.exe add 'HKCR\\MSEdgeHTM\\shell\\open\\command'");
+    }
+
+    [Fact]
+    public void EdgeRemoval_ClearsStaleHtmlNoOpenWithInRemovalAndRepair()
+    {
+        EdgeRemovalScript.GetScript().Should().Contain("Invoke-Reg delete \"$classes\\MSEdgeHTM\" /v 'NoOpenWith' /f");
+        EdgeRemovalScript.GetRepairScript().Should().Contain("Remove-ItemProperty 'Registry::HKEY_CLASSES_ROOT\\MSEdgeHTM' -Name NoOpenWith");
+    }
+
+    [Fact]
     public void RemovesWebView2_ScriptWrittenBeforeTheModeExisted_IsEdgeOnly()
     {
         EdgeRemovalScript.RemovesWebView2("<#\n  Script Version: 1.6\n#>").Should().BeFalse();

@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
@@ -194,6 +195,65 @@ public class StartupNotificationServiceTests
                 It.IsAny<string>(),
                 It.IsAny<string>()),
             Times.Once);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ShowFirstLaunchRestoreOfferAsync_FailsAfterTurningProtectionOn_OneDialogAsksWhetherToKeepIt(bool turnOff)
+    {
+        _mockLocalizationService
+            .Setup(l => l.GetString(It.IsAny<string>()))
+            .Returns((string key) => key);
+        _mockPrefsService.Setup(p => p.GetPreference(
+            UserPreferenceKeys.InitialRestorePointOffered, false))
+            .Returns(false);
+        var asked = new List<ConfirmationRequest>();
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .Callback((ConfirmationRequest r) => asked.Add(r))
+            .ReturnsAsync(() => new ConfirmationResponse { Confirmed = asked.Count == 1 || turnOff });
+        _mockBackupService
+            .Setup(b => b.CreateRestorePointAsync(
+                It.IsAny<string?>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BackupResult.CreateFailure("disk full", turnedProtectionOn: true));
+
+        var service = CreateService();
+
+        await service.ShowFirstLaunchRestoreOfferAsync();
+
+        asked.Should().HaveCount(2);
+        asked[1].Title.Should().Be("Startup_Backup_Title_Fail");
+        asked[1].Message.Should().Contain("Startup_Backup_RestoreCreatedFail").And.Contain("RestorePoint_Fail_ProtectionTurnedOn");
+        asked[1].ConfirmButtonText.Should().Be("RestorePoint_Fail_Button_TurnOff");
+        _mockBackupService.Verify(b => b.TurnOffSystemRestoreAsync(), turnOff ? Times.Once() : Times.Never());
+        _mockDialogService.Verify(
+            d => d.ShowWarningAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ShowFirstLaunchRestoreOfferAsync_WhenCancelled_EndsTheTaskAsCancelledWithNoDialog()
+    {
+        SetupLocalizationDefaults();
+        _mockPrefsService.Setup(p => p.GetPreference(UserPreferenceKeys.InitialRestorePointOffered, false)).Returns(false);
+        _mockDialogService
+            .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+        _mockBackupService
+            .Setup(b => b.CreateRestorePointAsync(
+                It.IsAny<string?>(),
+                It.IsAny<IProgress<TaskProgressDetail>?>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+
+        await CreateService().ShowFirstLaunchRestoreOfferAsync();
+
+        _mockTaskProgressService.Verify(t => t.CancelTask(), Times.Once);
+        _mockTaskProgressService.Verify(t => t.FailTask(), Times.Never);
+        _mockDialogService.Verify(d => d.ShowWarningAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

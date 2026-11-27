@@ -34,7 +34,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.PowerDisplayTimeout.Name,
                 Description = LocKey.Setting.PowerDisplayTimeout.Description,
                 GroupName = LocKey.SettingGroup.Display,
-                Icon = MaterialIcons.MonitorOff,
+                Icon = FluentIcons.DesktopOff,
                 IsSubjectivePreference = true,
             },
             Availability = new()
@@ -56,7 +56,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.PowerHarddiskTimeout.Name,
                 Description = LocKey.Setting.PowerHarddiskTimeout.Description,
                 GroupName = LocKey.SettingGroup.HardDisk,
-                Icon = MaterialIcons.Harddisk,
+                Icon = FluentIcons.HardDrive,
                 IsSubjectivePreference = true,
             },
             Availability = new()
@@ -85,7 +85,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.InternetExplorerJavascriptTimer.Name,
                 Description = LocKey.Setting.InternetExplorerJavascriptTimer.Description,
                 GroupName = LocKey.SettingGroup.InternetExplorer,
-                Icon = MaterialIcons.CodeBraces,
+                Icon = FluentIcons.Braces,
             },
             Availability = new()
             {
@@ -106,7 +106,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.DesktopSlideshow.Name,
                 Description = LocKey.Setting.DesktopSlideshow.Description,
                 GroupName = LocKey.SettingGroup.DesktopBackgroundSettings,
-                Icon = MaterialIcons.Image,
+                Icon = FluentIcons.Image,
                 IsSubjectivePreference = true,
             },
             Availability = new()
@@ -128,7 +128,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.WirelessPowerMode.Name,
                 Description = LocKey.Setting.WirelessPowerMode.Description,
                 GroupName = LocKey.SettingGroup.WirelessAdapterSettings,
-                Icon = MaterialIcons.Wifi,
+                Icon = FluentIcons.WiFi,
                 IsSubjectivePreference = true,
             },
             Availability = new()
@@ -150,7 +150,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.PowerSleepTimeout.Name,
                 Description = LocKey.Setting.PowerSleepTimeout.Description,
                 GroupName = LocKey.SettingGroup.Sleep,
-                Icon = MaterialIcons.Sleep,
+                Icon = FluentIcons.WeatherMoon,
                 IsSubjectivePreference = true,
             },
             Availability = new()
@@ -172,7 +172,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.PowerWakeTimers.Name,
                 Description = LocKey.Setting.PowerWakeTimers.Description,
                 GroupName = LocKey.SettingGroup.Sleep,
-                Icon = MaterialIcons.Alarm,
+                Icon = FluentIcons.ClockAlarm,
             },
             Availability = new()
             {
@@ -193,7 +193,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.PowerHibernationEnable.Name,
                 Description = LocKey.Setting.PowerHibernationEnable.Description,
                 GroupName = LocKey.SettingGroup.Sleep,
-                Icon = MaterialIcons.PowerSleep,
+                Icon = FluentIcons.WeatherSnowflake,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -234,7 +234,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.PowerHibernateTimeout.Name,
                 Description = LocKey.Setting.PowerHibernateTimeout.Description,
                 GroupName = LocKey.SettingGroup.Sleep,
-                Icon = MaterialIcons.BedClock,
+                Icon = FluentIcons.WeatherSnowflake,
                 IsSubjectivePreference = true,
             },
             Availability = new()
@@ -258,7 +258,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.PowerHybridSleep.Name,
                 Description = LocKey.Setting.PowerHybridSleep.Description,
                 GroupName = LocKey.SettingGroup.Sleep,
-                Icon = MaterialIcons.WeatherNight,
+                Icon = FluentIcons.WeatherMoon,
                 IsSubjectivePreference = true,
             },
             Availability = new()
@@ -286,7 +286,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.PowerFastStartup.Name,
                 Description = LocKey.Setting.PowerFastStartup.Description,
                 GroupName = LocKey.SettingGroup.Sleep,
-                Icon = MaterialIcons.FlashAuto,
+                Icon = FluentIcons.FastAcceleration,
             },
             UiParentId = "power-hibernation-enable",
             EnabledWhen = new("power-hibernation-enable", new[] { LocKey.Common.Enabled }),
@@ -323,7 +323,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.StartPowerHibernateOption.Name,
                 Description = LocKey.Setting.StartPowerHibernateOption.Description,
                 GroupName = LocKey.SettingGroup.Sleep,
-                Icon = MaterialIcons.FlashRedEye,
+                Icon = FluentIcons.WeatherSnowflake,
                 IsSubjectivePreference = true,
             },
             UiParentId = "power-hibernation-enable",
@@ -360,7 +360,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.UsbHubSelectiveSuspendTimeout.Name,
                 Description = LocKey.Setting.UsbHubSelectiveSuspendTimeout.Description,
                 GroupName = LocKey.SettingGroup.USBsettings,
-                Icon = MaterialIcons.TimerPause,
+                Icon = FluentIcons.ClockPause,
             },
             Availability = new()
             {
@@ -388,7 +388,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.UsbSelectiveSuspend.Name,
                 Description = LocKey.Setting.UsbSelectiveSuspend.Description,
                 GroupName = LocKey.SettingGroup.USBsettings,
-                Icon = MaterialIcons.Usb,
+                Icon = FluentIcons.Usb,
             },
             Availability = new()
             {
@@ -409,7 +409,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.Usb3LinkPowerManagement.Name,
                 Description = LocKey.Setting.Usb3LinkPowerManagement.Description,
                 GroupName = LocKey.SettingGroup.USBsettings,
-                Icon = MaterialIcons.UsbPort,
+                Icon = FluentIcons.PortUsbA,
             },
             Availability = new()
             {
@@ -430,7 +430,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.IntelGraphicsPowerPlan.Name,
                 Description = LocKey.Setting.IntelGraphicsPowerPlan.Description,
                 GroupName = LocKey.SettingGroup.IntelRGraphicsSettings,
-                Icon = MaterialIcons.ExpansionCard,
+                Icon = FluentIcons.DeveloperBoardLightning,
             },
             Availability = new()
             {
@@ -451,7 +451,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.PowerButtonAction.Name,
                 Description = LocKey.Setting.PowerButtonAction.Description,
                 GroupName = LocKey.SettingGroup.PowerButtonsandLid,
-                Icon = MaterialIcons.PowerSettings,
+                Icon = FluentIcons.Power,
                 IsSubjectivePreference = true,
             },
             Availability = new()
@@ -473,7 +473,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.SleepButtonAction.Name,
                 Description = LocKey.Setting.SleepButtonAction.Description,
                 GroupName = LocKey.SettingGroup.PowerButtonsandLid,
-                Icon = MaterialIcons.Sleep,
+                Icon = FluentIcons.WeatherMoon,
                 IsSubjectivePreference = true,
             },
             Availability = new()
@@ -495,7 +495,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.LidCloseAction.Name,
                 Description = LocKey.Setting.LidCloseAction.Description,
                 GroupName = LocKey.SettingGroup.PowerButtonsandLid,
-                Icon = MaterialIcons.Laptop,
+                Icon = FluentIcons.Laptop,
                 IsSubjectivePreference = true,
             },
             Availability = new()
@@ -518,7 +518,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.PciLinkStatePowerManagement.Name,
                 Description = LocKey.Setting.PciLinkStatePowerManagement.Description,
                 GroupName = LocKey.SettingGroup.PCIExpress,
-                Icon = MaterialIcons.Router,
+                Icon = FluentIcons.Router,
             },
             Availability = new()
             {
@@ -539,7 +539,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.ProcessorMinState.Name,
                 Description = LocKey.Setting.ProcessorMinState.Description,
                 GroupName = LocKey.SettingGroup.ProcessorPowerManagement,
-                Icon = MaterialIcons.SpeedometerSlow,
+                Icon = FluentIcons.Gauge,
             },
             Availability = new()
             {
@@ -567,7 +567,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.ProcessorMaxState.Name,
                 Description = LocKey.Setting.ProcessorMaxState.Description,
                 GroupName = LocKey.SettingGroup.ProcessorPowerManagement,
-                Icon = MaterialIcons.Speedometer,
+                Icon = FluentIcons.TopSpeed,
             },
             Availability = new()
             {
@@ -595,7 +595,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.SystemCoolingPolicy.Name,
                 Description = LocKey.Setting.SystemCoolingPolicy.Description,
                 GroupName = LocKey.SettingGroup.ProcessorPowerManagement,
-                Icon = MaterialIcons.Fan,
+                Icon = FluentIcons.Temperature,
             },
             Availability = new()
             {
@@ -617,7 +617,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.ProcessorPerformanceBoostMode.Name,
                 Description = LocKey.Setting.ProcessorPerformanceBoostMode.Description,
                 GroupName = LocKey.SettingGroup.ProcessorPowerManagement,
-                Icon = MaterialIcons.RocketLaunch,
+                Icon = FluentIcons.Rocket,
             },
             Availability = new()
             {
@@ -639,7 +639,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.ProcessorPerformanceIncreasePolicy.Name,
                 Description = LocKey.Setting.ProcessorPerformanceIncreasePolicy.Description,
                 GroupName = LocKey.SettingGroup.ProcessorPowerManagement,
-                Icon = MaterialIcons.TrendingUp,
+                Icon = FluentIcons.ArrowTrending,
             },
             Availability = new()
             {
@@ -661,7 +661,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.ProcessorPerformanceDecreasePolicy.Name,
                 Description = LocKey.Setting.ProcessorPerformanceDecreasePolicy.Description,
                 GroupName = LocKey.SettingGroup.ProcessorPowerManagement,
-                Icon = MaterialIcons.TrendingDown,
+                Icon = FluentIcons.ArrowTrendingDown,
             },
             Availability = new()
             {
@@ -683,7 +683,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.ProcessorCoreParkingMinCores.Name,
                 Description = LocKey.Setting.ProcessorCoreParkingMinCores.Description,
                 GroupName = LocKey.SettingGroup.ProcessorPowerManagement,
-                Icon = MaterialIcons.Cpu64Bit,
+                Icon = FluentIcons.DeveloperBoard,
             },
             Availability = new()
             {
@@ -712,7 +712,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.ProcessorCoreParkingMaxCores.Name,
                 Description = LocKey.Setting.ProcessorCoreParkingMaxCores.Description,
                 GroupName = LocKey.SettingGroup.ProcessorPowerManagement,
-                Icon = MaterialIcons.Cpu64Bit,
+                Icon = FluentIcons.DeveloperBoard,
             },
             Availability = new()
             {
@@ -741,7 +741,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.ProcessorEnergyPerformancePreference.Name,
                 Description = LocKey.Setting.ProcessorEnergyPerformancePreference.Description,
                 GroupName = LocKey.SettingGroup.ProcessorPowerManagement,
-                Icon = MaterialIcons.Tune,
+                Icon = FluentIcons.Options,
             },
             Availability = new()
             {
@@ -770,7 +770,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.ProcessorPerformanceIncreaseThreshold.Name,
                 Description = LocKey.Setting.ProcessorPerformanceIncreaseThreshold.Description,
                 GroupName = LocKey.SettingGroup.ProcessorPowerManagement,
-                Icon = MaterialIcons.TrendingUp,
+                Icon = FluentIcons.ArrowTrending,
             },
             Availability = new()
             {
@@ -799,7 +799,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.ProcessorPerformanceDecreaseThreshold.Name,
                 Description = LocKey.Setting.ProcessorPerformanceDecreaseThreshold.Description,
                 GroupName = LocKey.SettingGroup.ProcessorPowerManagement,
-                Icon = MaterialIcons.TrendingDown,
+                Icon = FluentIcons.ArrowTrendingDown,
             },
             Availability = new()
             {
@@ -828,7 +828,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.PowerThrottling.Name,
                 Description = LocKey.Setting.PowerThrottling.Description,
                 GroupName = LocKey.SettingGroup.ProcessorPowerManagement,
-                Icon = MaterialIcons.SelectOff,
+                Icon = FluentIcons.LeafOne,
             },
             Targets = new Target[]
             {
@@ -859,7 +859,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.MultimediaWhenSharingMedia.Name,
                 Description = LocKey.Setting.MultimediaWhenSharingMedia.Description,
                 GroupName = LocKey.SettingGroup.MultimediaSettings,
-                Icon = MaterialIcons.Share,
+                Icon = FluentIcons.Share,
             },
             Availability = new()
             {
@@ -880,7 +880,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.MultimediaVideoPlaybackQualityBias.Name,
                 Description = LocKey.Setting.MultimediaVideoPlaybackQualityBias.Description,
                 GroupName = LocKey.SettingGroup.MultimediaSettings,
-                Icon = MaterialIcons.HighDefinition,
+                Icon = FluentIcons.Hd,
             },
             Availability = new()
             {
@@ -901,7 +901,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.MultimediaWhenPlayingVideo.Name,
                 Description = LocKey.Setting.MultimediaWhenPlayingVideo.Description,
                 GroupName = LocKey.SettingGroup.MultimediaSettings,
-                Icon = MaterialIcons.Play,
+                Icon = FluentIcons.Play,
             },
             Availability = new()
             {
@@ -922,7 +922,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.CriticalBatteryNotification.Name,
                 Description = LocKey.Setting.CriticalBatteryNotification.Description,
                 GroupName = LocKey.SettingGroup.Battery,
-                Icon = MaterialIcons.AlertCircle,
+                Icon = FluentIcons.ErrorCircle,
             },
             Availability = new()
             {
@@ -944,7 +944,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.CriticalBatteryAction.Name,
                 Description = LocKey.Setting.CriticalBatteryAction.Description,
                 GroupName = LocKey.SettingGroup.Battery,
-                Icon = MaterialIcons.BatteryAlert,
+                Icon = FluentIcons.BatteryWarning,
             },
             Availability = new()
             {
@@ -966,7 +966,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.LowBatteryLevel.Name,
                 Description = LocKey.Setting.LowBatteryLevel.Description,
                 GroupName = LocKey.SettingGroup.Battery,
-                Icon = MaterialIcons.Battery20,
+                Icon = FluentIcons.Battery2,
                 IsSubjectivePreference = true,
             },
             Availability = new()
@@ -996,7 +996,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.CriticalBatteryLevel.Name,
                 Description = LocKey.Setting.CriticalBatteryLevel.Description,
                 GroupName = LocKey.SettingGroup.Battery,
-                Icon = MaterialIcons.BatteryOutline,
+                Icon = FluentIcons.Battery0,
             },
             Availability = new()
             {
@@ -1025,7 +1025,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.LowBatteryNotification.Name,
                 Description = LocKey.Setting.LowBatteryNotification.Description,
                 GroupName = LocKey.SettingGroup.Battery,
-                Icon = MaterialIcons.Bell,
+                Icon = FluentIcons.Alert,
             },
             Availability = new()
             {
@@ -1047,7 +1047,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.LowBatteryAction.Name,
                 Description = LocKey.Setting.LowBatteryAction.Description,
                 GroupName = LocKey.SettingGroup.Battery,
-                Icon = MaterialIcons.Battery20,
+                Icon = FluentIcons.Battery2,
                 IsSubjectivePreference = true,
             },
             Availability = new()
@@ -1070,7 +1070,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.ReserveBatteryLevel.Name,
                 Description = LocKey.Setting.ReserveBatteryLevel.Description,
                 GroupName = LocKey.SettingGroup.Battery,
-                Icon = MaterialIcons.BatteryCharging,
+                Icon = FluentIcons.BatteryCharge,
             },
             Availability = new()
             {
@@ -1099,7 +1099,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.EnergySaverBatteryLevel.Name,
                 Description = LocKey.Setting.EnergySaverBatteryLevel.Description,
                 GroupName = LocKey.SettingGroup.EnergySaver,
-                Icon = MaterialIcons.Battery20,
+                Icon = FluentIcons.Battery2,
                 AddedInVersion = "26.10.21",
             },
             Availability = new()
@@ -1129,7 +1129,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.EnergySaverBrightness.Name,
                 Description = LocKey.Setting.EnergySaverBrightness.Description,
                 GroupName = LocKey.SettingGroup.EnergySaver,
-                Icon = MaterialIcons.MonitorShimmer,
+                Icon = FluentIcons.BrightnessHigh,
                 IsSubjectivePreference = true,
                 AddedInVersion = "26.10.21",
             },
@@ -1160,7 +1160,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.EnergySaverPolicy.Name,
                 Description = LocKey.Setting.EnergySaverPolicy.Description,
                 GroupName = LocKey.SettingGroup.EnergySaver,
-                Icon = MaterialIcons.SpeedometerSlow,
+                Icon = FluentIcons.Gauge,
                 AddedInVersion = "26.10.21",
             },
             Availability = new()
@@ -1183,7 +1183,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.AmdPowerSliderOverlay.Name,
                 Description = LocKey.Setting.AmdPowerSliderOverlay.Description,
                 GroupName = LocKey.SettingGroup.AMDPowerSlider,
-                Icon = MaterialIcons.ExpansionCard,
+                Icon = FluentIcons.DeveloperBoardLightning,
             },
             Availability = new()
             {
@@ -1204,7 +1204,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.AtiPowerplaySetting.Name,
                 Description = LocKey.Setting.AtiPowerplaySetting.Description,
                 GroupName = LocKey.SettingGroup.ATIPowerPlay,
-                Icon = MaterialIcons.ExpansionCard,
+                Icon = FluentIcons.DeveloperBoardLightning,
             },
             Availability = new()
             {
@@ -1225,7 +1225,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.SwitchableGraphicsGpuPreference.Name,
                 Description = LocKey.Setting.SwitchableGraphicsGpuPreference.Description,
                 GroupName = LocKey.SettingGroup.SwitchableGraphics,
-                Icon = MaterialIcons.SwapHorizontal,
+                Icon = FluentIcons.ArrowSwap,
             },
             Availability = new()
             {
@@ -1246,7 +1246,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.StartPowerLockOption.Name,
                 Description = LocKey.Setting.StartPowerLockOption.Description,
                 GroupName = LocKey.SettingGroup.StartMenu,
-                Icon = MaterialIcons.EyeLock,
+                Icon = FluentIcons.LockClosed,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1282,7 +1282,7 @@ public static class PowerOptimizationsCatalog
                 Name = LocKey.Setting.StartPowerSleepOption.Name,
                 Description = LocKey.Setting.StartPowerSleepOption.Description,
                 GroupName = LocKey.SettingGroup.StartMenu,
-                Icon = MaterialIcons.LightbulbNight,
+                Icon = FluentIcons.WeatherMoon,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]

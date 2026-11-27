@@ -1542,9 +1542,9 @@
           },
           {
             "Id": "gaming-explorer-alt-tab-filter",
-            "Name": "Alt+Tab Filter",
-            "IsSelected": true,
-            "InputType": 0
+            "Name": "App tabs in Alt+Tab",
+            "InputType": 1,
+            "SelectedIndex": 3
           },
           {
             "Id": "gaming-win32-priority",
@@ -2706,6 +2706,12 @@
             "InputType": 0
           },
           {
+            "Id": "privacy-share-suggested-apps",
+            "Name": "Show suggested apps when sharing",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "privacy-lock-screen",
             "Name": "Lock Screen",
             "IsSelected": true,
@@ -2826,6 +2832,12 @@
             "InputType": 0
           },
           {
+            "Id": "privacy-search-store-suggestions",
+            "Name": "Show Microsoft Store suggestions in search",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
             "Id": "privacy-search-msa-cloud",
             "Name": "Cloud Content Search for Microsoft account",
             "IsSelected": false,
@@ -2904,6 +2916,7 @@
           { "Id": "privacy-disable-input-insights", "Name": "Input Insights", "IsSelected": false, "InputType": 0 },
           { "Id": "privacy-disable-copilot-nudges", "Name": "Copilot Nudges", "IsSelected": false, "InputType": 0 },
           { "Id": "privacy-disable-consumer-ai-content", "Name": "AI Consumer Content", "IsSelected": false, "InputType": 0 },
+          { "Id": "privacy-get-started", "Name": "Get Started app at sign-in", "IsSelected": false, "InputType": 0 },
           { "Id": "privacy-edge-copilot-cdp-page-context", "Name": "Edge Copilot CDP Page Context", "IsSelected": false, "InputType": 0 },
           { "Id": "privacy-edge-copilot-page-context", "Name": "Edge Copilot Page Context", "IsSelected": false, "InputType": 0 },
           { "Id": "privacy-edge-copilot-sidebar", "Name": "Edge Copilot Sidebar", "IsSelected": false, "InputType": 0 },

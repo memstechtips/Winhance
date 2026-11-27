@@ -45,8 +45,8 @@ public class ScriptMigrationServiceTests
     public async Task MigrateFromOldPathsAsync_AlreadyMigrated_SkipsAndReturnsSuccess()
     {
         _mockPrefs
-            .Setup(x => x.GetPreferenceAsync("ScriptMigrationCompleted", false))
-            .ReturnsAsync(true);
+            .Setup(x => x.GetPreference("ScriptMigrationCompleted", false))
+            .Returns(true);
 
         var result = await _service.MigrateFromOldPathsAsync();
 
@@ -60,8 +60,8 @@ public class ScriptMigrationServiceTests
     public async Task MigrateFromOldPathsAsync_OldFilesFound_MigratesAndRenames()
     {
         _mockPrefs
-            .Setup(x => x.GetPreferenceAsync("ScriptMigrationCompleted", false))
-            .ReturnsAsync(false);
+            .Setup(x => x.GetPreference("ScriptMigrationCompleted", false))
+            .Returns(false);
 
         _mockFileSystem
             .Setup(x => x.DirectoryExists(FakeOldScriptsPath))
@@ -106,8 +106,8 @@ public class ScriptMigrationServiceTests
     public async Task MigrateFromOldPathsAsync_OldDirectoryExistsButNoScripts_MarksComplete()
     {
         _mockPrefs
-            .Setup(x => x.GetPreferenceAsync("ScriptMigrationCompleted", false))
-            .ReturnsAsync(false);
+            .Setup(x => x.GetPreference("ScriptMigrationCompleted", false))
+            .Returns(false);
 
         _mockFileSystem
             .Setup(x => x.DirectoryExists(FakeOldScriptsPath))
@@ -139,8 +139,8 @@ public class ScriptMigrationServiceTests
     public async Task MigrateFromOldPathsAsync_NoOldDirectory_MarksCompleteWithoutMigration()
     {
         _mockPrefs
-            .Setup(x => x.GetPreferenceAsync("ScriptMigrationCompleted", false))
-            .ReturnsAsync(false);
+            .Setup(x => x.GetPreference("ScriptMigrationCompleted", false))
+            .Returns(false);
 
         _mockFileSystem
             .Setup(x => x.DirectoryExists(FakeOldScriptsPath))
@@ -164,8 +164,8 @@ public class ScriptMigrationServiceTests
     public async Task MigrateFromOldPathsAsync_ExistingOldRenameFile_DeletesBeforeRenaming()
     {
         _mockPrefs
-            .Setup(x => x.GetPreferenceAsync("ScriptMigrationCompleted", false))
-            .ReturnsAsync(false);
+            .Setup(x => x.GetPreference("ScriptMigrationCompleted", false))
+            .Returns(false);
 
         _mockFileSystem
             .Setup(x => x.DirectoryExists(FakeOldScriptsPath))
@@ -218,8 +218,8 @@ public class ScriptMigrationServiceTests
     public async Task MigrateFromOldPathsAsync_ExceptionThrown_ReturnsFailure()
     {
         _mockPrefs
-            .Setup(x => x.GetPreferenceAsync("ScriptMigrationCompleted", false))
-            .ThrowsAsync(new InvalidOperationException("Prefs unavailable"));
+            .Setup(x => x.GetPreference("ScriptMigrationCompleted", false))
+            .Throws(new InvalidOperationException("Prefs unavailable"));
 
         var result = await _service.MigrateFromOldPathsAsync();
 
@@ -233,8 +233,8 @@ public class ScriptMigrationServiceTests
     public async Task MigrateFromOldPathsAsync_TaskDeletionFails_ContinuesWithOtherTasks()
     {
         _mockPrefs
-            .Setup(x => x.GetPreferenceAsync("ScriptMigrationCompleted", false))
-            .ReturnsAsync(false);
+            .Setup(x => x.GetPreference("ScriptMigrationCompleted", false))
+            .Returns(false);
 
         _mockFileSystem
             .Setup(x => x.DirectoryExists(FakeOldScriptsPath))
@@ -297,7 +297,7 @@ public class ScriptMigrationServiceTests
     [Fact]
     public async Task MigrateFromOldPathsAsync_RunsTheBackgroundTaskStartUpCheck()
     {
-        _mockPrefs.Setup(x => x.GetPreferenceAsync("ScriptMigrationCompleted", false)).ReturnsAsync(true);
+        _mockPrefs.Setup(x => x.GetPreference("ScriptMigrationCompleted", false)).Returns(true);
 
         await _service.MigrateFromOldPathsAsync();
 

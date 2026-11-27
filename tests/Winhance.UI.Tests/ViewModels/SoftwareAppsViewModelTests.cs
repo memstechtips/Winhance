@@ -128,6 +128,7 @@ public class SoftwareAppsViewModelTests
         _userPreferencesService.Object,
         _parentLocalizationService.Object,
         new Mock<IVersionService>().Object,
+        TimeProvider.System,
         _parentLogService.Object);
 
     private void GivenBuilder(BuilderTarget target)
@@ -147,35 +148,56 @@ public class SoftwareAppsViewModelTests
     }
 
     [Fact]
-    public async Task InitializeAsync_StartsExternalAppsWhileWindowsAppsIsStillLoading()
+    public async Task InitializeAsync_OnTheWindowsAppsTab_LeavesExternalSoftwareUnloaded()
     {
-        _dispatcherService.Setup(d => d.RunOnUIThreadWithContextAsync(It.IsAny<Func<Task>>()))
-            .Returns<Func<Task>>(f => f());
-        _extDispatcherService.Setup(d => d.RunOnUIThreadWithContextAsync(It.IsAny<Func<Task>>()))
-            .Returns<Func<Task>>(f => f());
-        var externalStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        // Bounded so tabs loaded one after the other fail this test instead of hanging the run.
-        _windowsAppsService.Setup(s => s.GetAppsAsync())
-            .Returns(async () =>
-            {
-                await externalStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
-                return Enumerable.Empty<ItemDefinition>();
-            });
         var sut = CreateSut();
-        bool? windowsLoadingWhenExternalStarted = null;
-        _externalAppsService.Setup(s => s.GetAppsAsync())
-            .Callback(() =>
-            {
-                windowsLoadingWhenExternalStarted = sut.WindowsAppsViewModel.IsLoading;
-                externalStarted.TrySetResult();
-            })
-            .ReturnsAsync(Enumerable.Empty<ItemDefinition>());
 
         await sut.InitializeAsync();
 
-        windowsLoadingWhenExternalStarted.Should().BeTrue();
         sut.WindowsAppsViewModel.IsInitialized.Should().BeTrue();
+        sut.ExternalAppsViewModel.IsInitialized.Should().BeFalse();
+        _externalAppsService.Verify(s => s.GetAppsAsync(), Times.Never);
+    }
+
+    [Fact]
+    public void SelectExternalAppsTab_LoadsExternalSoftware()
+    {
+        var sut = CreateSut();
+
+        sut.SelectExternalAppsTab();
+
         sut.ExternalAppsViewModel.IsInitialized.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RefreshInstallationStatusCommand_OnWindowsApps_LoadsExternalSoftwareSoTheTrayCountCoversIt()
+    {
+        _windowsAppsService.Setup(s => s.GetAppsAsync()).ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+        _externalAppsService.Setup(s => s.GetAppsAsync()).ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>())).ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
+        var sut = CreateSut();
+        await sut.InitializeAsync();
+
+        await sut.RefreshInstallationStatusCommand.ExecuteAsync(null);
+
+        sut.ExternalAppsViewModel.IsInitialized.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RefreshInstallationStatusCommand_WhenTheRecheckThrows_ShowsTheError()
+    {
+        _windowsAppsService.Setup(s => s.GetAppsAsync()).ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+        _externalAppsService.Setup(s => s.GetAppsAsync()).ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>())).ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
+        var sut = CreateSut();
+        sut.SelectExternalAppsTab();
+        await sut.InitializeAsync();
+        _installedAppsService.Setup(s => s.Invalidate()).Throws(new InvalidOperationException("boom"));
+
+        await sut.RefreshInstallationStatusCommand.ExecuteAsync(null);
+
+        _parentDialogService.Verify(d => d.ShowErrorAsync("Notify_CheckFailed_Message", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        sut.ExternalAppsViewModel.IsLoading.Should().BeFalse();
     }
 
     [Fact]
@@ -1014,6 +1036,66 @@ public class SoftwareAppsViewModelTests
         sut.ExternalAppsViewModel.SearchText.Should().Be("handbrake");
     }
 
+    // The Builder leave dialog says its selections are discarded; ticks carried into Normal would install or remove
+    // apps on this PC that were only picked for a file.
+    [Fact]
+    public async Task ModeChanged_LeavingBuilder_ClearsTheTicksOnBothTabs()
+    {
+        GivenBuilder(BuilderTarget.Config);
+        var sut = await CreateSutWithApps(WithUpdate("Git"));
+        var windowsApp = WindowsAppRow(sut);
+        Row(sut, "Git").IsSelected = true;
+        windowsApp.IsSelected = true;
+
+        _applicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Normal);
+        _applicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        Row(sut, "Git").IsSelected.Should().BeFalse();
+        windowsApp.IsSelected.Should().BeFalse();
+        sut.ExternalAppsViewModel.IsAllSelectedWithUpdates.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ModeChanged_WhenOnlyBuilderTargetSwitches_KeepsTheTicks()
+    {
+        GivenBuilder(BuilderTarget.Config);
+        var sut = await CreateSutWithApps(WithUpdate("Git"));
+        var windowsApp = WindowsAppRow(sut);
+        Row(sut, "Git").IsSelected = true;
+        windowsApp.IsSelected = true;
+
+        GivenBuilder(BuilderTarget.Autounattend);
+        _applicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        Row(sut, "Git").IsSelected.Should().BeTrue();
+        windowsApp.IsSelected.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ModeChanged_WhenOnlyBuilderTargetSwitches_SelectAllInstalledReadsTheSearchedRows()
+    {
+        GivenBuilder(BuilderTarget.Config);
+        var sut = await CreateSutWithApps(UpToDate("Git"));
+        Row(sut, "Git").IsSelected = true;
+        sut.SearchText = "zz";
+        var boxes = new SelectAllBoxes(sut.ExternalAppsViewModel);
+
+        GivenBuilder(BuilderTarget.Autounattend);
+        _applicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        sut.ExternalAppsViewModel.IsAllSelectedInstalled.Should().BeFalse();
+        boxes.ShouldShowWhatTheRowsSay();
+    }
+
+    private AppItemViewModel WindowsAppRow(SoftwareAppsViewModel sut)
+    {
+        var app = new AppItemViewModel(
+            new ItemDefinition { Id = "clipchamp", Name = "Clipchamp", Description = "", GroupName = "Media" },
+            _localizationService.Object, _dispatcherService.Object, _themeService.Object);
+        sut.WindowsAppsViewModel.Items.Add(app);
+        return app;
+    }
+
     [Fact]
     public void SetFilter_WithInstalled_FiltersBothTabsAndSavesIt()
     {
@@ -1076,6 +1158,63 @@ public class SoftwareAppsViewModelTests
 
         sut.WindowsAppsViewModel.Filter.Should().Be(AppFilter.Installed);
         sut.ExternalAppsViewModel.Filter.Should().Be(AppFilter.Installed);
+    }
+
+    [Fact]
+    public async Task UninstallSelected_OnWindowsAppsWithOnlyNotInstalledAppsTicked_IsEnabled()
+    {
+        var sut = await CreateSutWithApps();
+        sut.SelectWindowsAppsTab();
+        var app = WindowsAppRow(sut);
+
+        sut.WindowsAppsViewModel.ChangeSelection(() => app.IsSelected = true);
+
+        sut.CanRemoveItems.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task UninstallSelected_OnExternalAppsWithOnlyNotInstalledAppsTicked_IsDisabled()
+    {
+        var sut = await CreateSutWithCatalogApp("7-Zip", UpToDate("Git"));
+
+        Row(sut, "7-Zip").IsSelected = true;
+
+        sut.CanRemoveItems.Should().BeFalse();
+        sut.CanInstallItems.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task UninstallSelected_OnExternalAppsWithOneInstalledAppTicked_IsEnabled()
+    {
+        var sut = await CreateSutWithCatalogApp("7-Zip", UpToDate("Git"));
+
+        Row(sut, "7-Zip").IsSelected = true;
+        Row(sut, "Git").IsSelected = true;
+
+        sut.CanRemoveItems.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task UninstallSelected_OnExternalApps_FollowsATickedAppsInstalledState()
+    {
+        var sut = await CreateSutWithCatalogApp("7-Zip");
+        Row(sut, "7-Zip").IsSelected = true;
+        sut.CanRemoveItems.Should().BeFalse();
+
+        Row(sut, "7-Zip").IsInstalled = true;
+        sut.CanRemoveItems.Should().BeTrue();
+
+        Row(sut, "7-Zip").IsInstalled = false;
+        sut.CanRemoveItems.Should().BeFalse();
+    }
+
+    private async Task<SoftwareAppsViewModel> CreateSutWithCatalogApp(string name, params InstalledApp[] apps)
+    {
+        _externalAppsService.Setup(s => s.GetAppsAsync()).ReturnsAsync(new[]
+        {
+            new ItemDefinition { Id = name, Name = name, Description = "", GroupName = "Utilities", WinGetPackageId = [$"Publisher.{name}"] },
+        });
+        return await CreateSutWithApps(apps);
     }
 
     [Fact]

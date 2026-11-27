@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+    Spacing, margins, padding, corners and text sizes that repeat across the app, keyed by the job they
+    do rather than the number they hold, so two roles that share a value today can change apart.
+    Icon sizes live in IconSizes.xaml.
+    -->
+
+    <!-- StackPanel spacing -->
+    <x:Double x:Key="IconLabelSpacing">8</x:Double>
+    <x:Double x:Key="CompactIconLabelSpacing">6</x:Double>
+    <x:Double x:Key="HeaderTagSpacing">8</x:Double>
+    <x:Double x:Key="ItemStackSpacing">8</x:Double>
+    <x:Double x:Key="ControlRowSpacing">8</x:Double>
+    <x:Double x:Key="ControlGroupSpacing">12</x:Double>
+    <x:Double x:Key="GroupStackSpacing">12</x:Double>
+    <x:Double x:Key="NavItemSpacing">4</x:Double>
+    <x:Double x:Key="PillSpacing">4</x:Double>
+    <x:Double x:Key="BadgeRowSpacing">6</x:Double>
+    <x:Double x:Key="QuickSetSpacing">4</x:Double>
+    <x:Double x:Key="FieldLabelSpacing">4</x:Double>
+    <x:Double x:Key="TaskStatusStackSpacing">4</x:Double>
+    <x:Double x:Key="IconButtonRowSpacing">2</x:Double>
+    <x:Double x:Key="TextLineSpacing">2</x:Double>
+    <x:Double x:Key="LoaderSpacing">16</x:Double>
+    <x:Double x:Key="PageHeaderSpacing">16</x:Double>
+    <!-- Row and column gap of the tile and swatch grid. -->
+    <x:Double x:Key="TileSpacing">8</x:Double>
+
+    <!-- InfoBar: WinUI's own keys, overridden app-wide. The stock 16 above and below the icon and 14 above the text
+         make a one-line banner 48 tall, too heavy under a setting card. -->
+    <x:Double x:Key="InfoBarMinHeight">40</x:Double>
+    <Thickness x:Key="InfoBarIconMargin">0,12,14,12</Thickness>
+    <Thickness x:Key="InfoBarTitleHorizontalOrientationMargin">0,10,0,0</Thickness>
+    <Thickness x:Key="InfoBarMessageHorizontalOrientationMargin">12,10,0,0</Thickness>
+    <Thickness x:Key="InfoBarTitleVerticalOrientationMargin">0,10,0,0</Thickness>
+    <Thickness x:Key="InfoBarPanelVerticalOrientationPadding">0,10,0,12</Thickness>
+
+    <!-- Margins -->
+    <Thickness x:Key="BannerBottomMargin">0,0,0,8</Thickness>
+    <Thickness x:Key="BannerTopMargin">0,8,0,0</Thickness>
+    <Thickness x:Key="CardBottomMargin">0,0,0,8</Thickness>
+    <Thickness x:Key="BlockBottomMargin">0,0,0,8</Thickness>
+    <Thickness x:Key="ControlBottomMargin">0,0,0,4</Thickness>
+    <Thickness x:Key="CardBodyMargin">0,0,0,6</Thickness>
+    <!-- Pulls a card up one pixel so its top border sits on the bottom border of the card above. -->
+    <Thickness x:Key="JoinedCardMargin">0,-1,0,0</Thickness>
+    <Thickness x:Key="ColumnGapMargin">0,0,12,0</Thickness>
+    <Thickness x:Key="InlineLeadingMargin">4,0,0,0</Thickness>
+    <Thickness x:Key="InlineTrailingMargin">0,0,6,0</Thickness>
+    <Thickness x:Key="LeadingIconMargin">0,0,8,0</Thickness>
+    <Thickness x:Key="BarIconMargin">0,0,10,0</Thickness>
+    <Thickness x:Key="ModeBarActionMargin">4,0,4,0</Thickness>
+    <Thickness x:Key="ToolbarButtonMargin">0,0,4,0</Thickness>
+    <Thickness x:Key="ReviewChoiceMargin">8,0,0,0</Thickness>
+    <Thickness x:Key="DescriptionTopMargin">0,2,0,0</Thickness>
+    <Thickness x:Key="IncludeBoxMargin">16,0,0,0</Thickness>
+    <Thickness x:Key="TabAccentMargin">6,0,0,0</Thickness>
+    <Thickness x:Key="ExpanderInfoBarMargin">16,8</Thickness>
+    <Thickness x:Key="StatusChipIconMargin">0,1,4,1</Thickness>
+
+    <!-- Padding -->
+    <!-- Keeps page content clear of the page scrollbar. -->
+    <Thickness x:Key="PageRootPadding">0,0,12,0</Thickness>
+    <Thickness x:Key="AppListPadding">0,8,0,12</Thickness>
+    <Thickness x:Key="BreadcrumbButtonPadding">8,4</Thickness>
+    <Thickness x:Key="ModeButtonPadding">10,6</Thickness>
+
+    <!-- Corners -->
+    <CornerRadius x:Key="CardCornerRadius">4</CornerRadius>
+    <!-- The bottom piece of a card group: square on top where it joins the card above. -->
+    <CornerRadius x:Key="JoinedCardCornerRadius">0,0,4,4</CornerRadius>
+    <CornerRadius x:Key="TileCornerRadius">4</CornerRadius>
+    <CornerRadius x:Key="SelectionCornerRadius">4</CornerRadius>
+    <!-- The neutral band under a page header. -->
+    <CornerRadius x:Key="SectionBandCornerRadius">8</CornerRadius>
+
+    <!-- Text sizes off the WinUI ramp (ramp sizes use its *TextBlockFontSize keys) -->
+    <x:Double x:Key="ItemTitleFontSize">16</x:Double>
+    <x:Double x:Key="LoaderTaglineFontSize">16</x:Double>
+    <x:Double x:Key="BarTextFontSize">13</x:Double>
+    <x:Double x:Key="TitleBarSubtitleFontSize">11</x:Double>
+
+    <!-- Size and weight only: the WinUI text styles also set wrapping and line height. -->
+    <Style x:Key="EmphasisLabelTextStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+</ResourceDictionary>

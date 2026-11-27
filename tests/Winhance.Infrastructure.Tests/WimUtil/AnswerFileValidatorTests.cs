@@ -65,6 +65,36 @@ public class AnswerFileValidatorTests
         AutounattendDocumentBuilder.Serialize(AutounattendDocumentBuilder.Build(
             new AutounattendRenderContext("Write-Host 'generated'", "0.0.0", SelectionSet.Empty)));
 
+    [Fact]
+    public async Task StagedScript_MissingOrChangedFailsValidation()
+    {
+        const string path = @"C:\work\sources\$OEM$\$1\ProgramData\Winhance\Unattend\Scripts\Winhancements.ps1";
+        var bytes = Encoding.UTF8.GetBytes("Write-Host 'staged'");
+        var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes));
+        var xml = Doc(Specialize(Command(1, $"powershell.exe -File \"{WinhanceScript}\"")),
+            WinhanceExtensions($"<StagedFile path=\"{WinhanceScript}\" sha256=\"{hash}\"/>"));
+        var missing = await ValidateAsync(xml);
+        missing.IsWinhanceGenerated.Should().BeTrue();
+        missing.Findings.Should().Contain(f => f.Rule == AnswerFileRule.FileUnreadable);
+        _files.Setup(f => f.FileExists(path)).Returns(true);
+        _files.Setup(f => f.ReadAllBytesAsync(path, It.IsAny<CancellationToken>())).ReturnsAsync(bytes);
+        (await ValidateAsync(xml)).Findings.Should().BeEmpty();
+        _sent!.Values.Should().Contain("Write-Host 'staged'");
+        _files.Setup(f => f.ReadAllBytesAsync(path, It.IsAny<CancellationToken>())).ReturnsAsync(new byte[] { 1 });
+        (await ValidateAsync(xml)).Findings.Should().Contain(f => f.Rule == AnswerFileRule.FileUnreadable);
+    }
+
+    [Fact]
+    public async Task EncodedGeneratedChild_IsSentToTheParser()
+    {
+        const string child = "Write-Host 'child'";
+        var payload = Convert.ToBase64String(Encoding.UTF8.GetBytes(child));
+        var script = $"$childContent = [Convert]::FromBase64String('{payload}')";
+        var report = await ValidateAsync(Doc(Specialize(Command(1, Extract)), WinhanceExtensions(Carried(WinhanceScript, script))));
+        report.Findings.Should().BeEmpty();
+        _sent!.Values.Should().Contain(child);
+    }
+
     private static AnswerFileFinding Single(AnswerFileReport report, AnswerFileRule rule) =>
         report.Findings.Should().ContainSingle(f => f.Rule == rule).Subject;
 

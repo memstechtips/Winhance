@@ -195,12 +195,19 @@ public sealed partial class TaskProgressControl : UserControl
             "TaskProgress");
     }
 
+    // The card is built only while a task shows, so a line that arrived before it was built is drawn once it loads.
+    private void TerminalLineRichText_Loaded(object sender, RoutedEventArgs e) => RenderTerminalLine();
+
     private static void OnLastTerminalLineChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        if (d is not TaskProgressControl control) return;
-        var text = e.NewValue as string ?? string.Empty;
+        if (d is TaskProgressControl control)
+            control.RenderTerminalLine();
+    }
 
-        var rtb = control.TerminalLineRichText;
+    private void RenderTerminalLine()
+    {
+        var text = LastTerminalLine;
+        var rtb = TerminalLineRichText;
         if (rtb == null) return;
 
         rtb.Blocks.Clear();

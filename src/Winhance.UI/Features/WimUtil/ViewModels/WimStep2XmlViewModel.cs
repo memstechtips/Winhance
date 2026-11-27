@@ -65,10 +65,15 @@ public partial class WimStep2XmlViewModel : ObservableObject, IMediaChoice, IDis
     [NotifyPropertyChangedFor(nameof(IsOwnXmlChosen))]
     [NotifyPropertyChangedFor(nameof(UsesOwnAnswerFile))]
     [NotifyPropertyChangedFor(nameof(OwnAnswerFileName))]
+    [NotifyPropertyChangedFor(nameof(HasAnswerFileChoice))]
     public partial AnswerFileChoice Choice { get; set; }
 
     public bool IsBuilderChosen => Choice == AnswerFileChoice.Builder;
     public bool IsOwnXmlChosen => Choice == AnswerFileChoice.OwnXml;
+
+    // Step 3 shows what was chosen here: the summary of Winhance's own file, or the name of the file the user picked,
+    // which Winhance does not read. Nothing shows when no answer file was chosen.
+    public bool HasAnswerFileChoice => Choice != AnswerFileChoice.None;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowsWinhanceFileOnMedia))]
@@ -84,6 +89,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IMediaChoice, IDis
     public bool ShowsOwnFileOnMedia => HasMediaAnswerFile && !MediaAnswerFileIsWinhance;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(OwnAnswerFileName))]
     public partial string SelectedXmlPath { get; set; }
 
     [ObservableProperty]
@@ -208,20 +214,15 @@ public partial class WimStep2XmlViewModel : ObservableObject, IMediaChoice, IDis
     [RelayCommand]
     private async Task DeleteMediaAnswerFileAsync()
     {
-        try
-        {
-            _fileSystemService.DeleteFile(MediaAnswerFilePath);
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error deleting the answer file on the media: {ex.Message}", ex);
-            await _dialogService.ShowErrorAsync(_localizationService.GetString("WIMUtil_Msg_AnswerFileDeleteFailed", ex.Message));
+        if (!await _dialogService.RunOrShowErrorAsync(_logService,
+                () => _fileSystemService.DeleteFile(MediaAnswerFilePath),
+                ex => _localizationService.GetString("WIMUtil_Msg_AnswerFileDeleteFailed", ex.Message)))
             return;
-        }
 
         if (_checkState.Subject == MediaAnswerFilePath)
             _checkState.Publish(null, null);
-        await PickUpMediaAnswerFileAsync();
+        await _dialogService.RunOrShowErrorAsync(_logService, PickUpMediaAnswerFileAsync,
+            ex => _localizationService.GetString("Common_ActionFailed", ex.Message));
     }
 
     [RelayCommand]
@@ -283,8 +284,6 @@ public partial class WimStep2XmlViewModel : ObservableObject, IMediaChoice, IDis
         return Task.CompletedTask;
     }
 
-    partial void OnSelectedXmlPathChanged(string value) => OnPropertyChanged(nameof(OwnAnswerFileName));
-
     private async Task<ImageFormatInfo?> MediaImageAsync() =>
         string.IsNullOrEmpty(WorkingDirectory) ? null : await _wimImageService.DetectImageFormatAsync(WorkingDirectory);
 
@@ -341,12 +340,13 @@ public partial class WimStep2XmlViewModel : ObservableObject, IMediaChoice, IDis
     // Picking records the file and checks it. Nothing reaches the media until Create.
     private async Task<bool> PickOwnXmlAsync()
     {
-        try
+        var picked = false;
+        await _dialogService.RunOrShowErrorAsync(_logService, async () =>
         {
             var selectedPath = _filePickerService.PickFile(
                 ["XML Files", "*.xml"],
                 _localizationService.GetString("WIMUtil_FileDialog_SelectXml"));
-            if (string.IsNullOrEmpty(selectedPath)) return false;
+            if (string.IsNullOrEmpty(selectedPath)) return;
 
             XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlValidating");
             var isValidXml = await ValidateXmlFile(selectedPath);
@@ -356,7 +356,7 @@ public partial class WimStep2XmlViewModel : ObservableObject, IMediaChoice, IDis
                 XmlStatus = _localizationService.GetString("WIMUtil_Status_XmlInvalid");
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_XmlInvalidError"));
-                return false;
+                return;
             }
 
             _ownXmlOnMedia = false;
@@ -365,16 +365,13 @@ public partial class WimStep2XmlViewModel : ObservableObject, IMediaChoice, IDis
             var reopened = await OpenWinhanceFileAsync(selectedPath, ask: true);
             if (reopened)
                 Choice = AnswerFileChoice.Builder;
-            return !reopened;
-        }
-        catch (Exception ex)
+            picked = !reopened;
+        }, ex =>
         {
-            _logService.LogError($"Error selecting XML: {ex.Message}", ex);
             XmlStatus = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
-            await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_XmlSelectError"), ex.Message));
-            return false;
-        }
+            return string.Format(_localizationService.GetString("WIMUtil_Msg_XmlSelectError"), ex.Message);
+        });
+        return picked;
     }
 
     public async Task<string?> ApplyAsync(IProgress<TaskProgressDetail> progress, CancellationToken cancellationToken)
@@ -430,20 +427,17 @@ public partial class WimStep2XmlViewModel : ObservableObject, IMediaChoice, IDis
                     Choice = AnswerFileChoice.Builder;
             }
         }
-        catch (Exception ex)
+        finally
         {
-            _logService.LogError($"Error reading the answer file on the media: {ex.Message}", ex);
+            await JoinSessionAsync();
         }
-
-        await JoinSessionAsync();
     }
 
     [RelayCommand]
-    private async Task OpenSchneegansXmlGeneratorAsync()
-    {
-        try { await Windows.System.Launcher.LaunchUriAsync(new Uri("https://schneegans.de/windows/unattend-generator/")); }
-        catch (Exception ex) { _logService.LogError($"Error opening Schneegans XML generator: {ex.Message}", ex); }
-    }
+    private Task OpenSchneegansXmlGeneratorAsync() =>
+        _dialogService.RunOrShowErrorAsync(_logService,
+            async () => await Windows.System.Launcher.LaunchUriAsync(new Uri("https://schneegans.de/windows/unattend-generator/")),
+            ex => _localizationService.GetString("WIMUtil_Msg_OpenLinkFailed", ex.Message));
 
     // A Winhance file too old to carry its choices cannot reopen as a session, so it is offered as the user's own.
     private async Task<bool> IsWinhanceFileAsync(string path)

@@ -15,7 +15,7 @@
         IsLoading="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
         HasNoSearchResults="{x:Bind HasNoSearchResults, Mode=OneWay}">
         <commonControls:SettingsListView.Header>
-            <StackPanel Spacing="{StaticResource SettingsCardSpacing}" Margin="0,0,0,8">
+            <StackPanel Spacing="{StaticResource SettingsCardSpacing}" Margin="{StaticResource BlockBottomMargin}">
                 <TextBlock
                     Text="{x:Bind ViewModel.IncludedTitle, Mode=OneWay}"
                     Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>

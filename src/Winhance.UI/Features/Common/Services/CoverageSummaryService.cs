@@ -148,7 +148,7 @@ public sealed class CoverageSummaryService(
         catch (Exception ex)
         {
             log.Log(LogLevel.Error, $"Could not save an updated copy of {path}: {ex.Message}");
-            dialogs.ShowMessage(loc.GetString("Config_Import_UpdatedCopyFailed", ex.Message), loc.GetString("Dialog_Error"));
+            await dialogs.ShowErrorAsync(loc.GetString("Config_Import_UpdatedCopyFailed", ex.Message));
         }
     }
 

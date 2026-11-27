@@ -1,7 +1,9 @@
 using Microsoft.UI.Xaml;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Enums;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -12,6 +14,8 @@ public class ApplicationCloseService : IApplicationCloseService
     private readonly ISupportAskSchedule _supportAskSchedule;
     private readonly IDialogService _dialogService;
     private readonly ILocalizationService _localizationService;
+    private readonly IVersionService _versionService;
+    private readonly IUserPreferencesService _preferences;
 
     public Func<Task>? BeforeShutdown { get; set; }
 
@@ -35,18 +39,56 @@ public class ApplicationCloseService : IApplicationCloseService
         ITaskProgressService taskProgressService,
         ISupportAskSchedule supportAskSchedule,
         IDialogService dialogService,
-        ILocalizationService localizationService)
+        ILocalizationService localizationService,
+        IVersionService versionService,
+        IUserPreferencesService preferences)
     {
         _logService = logService;
         _taskProgressService = taskProgressService;
         _supportAskSchedule = supportAskSchedule;
         _dialogService = dialogService;
         _localizationService = localizationService;
+        _versionService = versionService;
+        _preferences = preferences;
     }
 
     public async Task ExitAsync()
     {
         await RunBeforeShutdownAsync();
+        Shutdown();
+    }
+
+    public async Task ExitWithoutWindowAsync()
+    {
+        await RunBeforeShutdownAsync();
+        if (await AskIsDueAsync(_supportAskSchedule, _logService))
+        {
+            _logService.LogInformation("Showing the support window");
+            await _dialogService.ShowExitSupportWindowAsync();
+            await _supportAskSchedule.MarkAskedAsync();
+        }
+
+        Shutdown();
+    }
+
+    // Set to install automatically, an update already downloaded installs as Winhance closes, so the user does not
+    // have to click Relaunch first. Notify leaves it waiting for the next Relaunch or launch.
+    private void Shutdown()
+    {
+        try
+        {
+            if (_versionService.IsUpdateDownloaded
+                && _preferences.GetPreference(UserPreferenceKeys.WinhanceUpdateAction, AppUpdateAction.Notify) == AppUpdateAction.Install)
+            {
+                _logService.LogInformation("Installing the downloaded Winhance update on exit");
+                _versionService.LaunchInstallerOnExit();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError($"Could not install the downloaded update on exit: {ex.Message}", ex);
+        }
+
         ShutdownAction();
     }
 
@@ -111,7 +153,7 @@ public class ApplicationCloseService : IApplicationCloseService
             }
             catch
             {
-                ShutdownAction();
+                Shutdown();
             }
             return OperationResult.Succeeded();
         }
@@ -133,12 +175,12 @@ public class ApplicationCloseService : IApplicationCloseService
             }
 
             _logService.LogInformation("Shutting down application");
-            ShutdownAction();
+            Shutdown();
         }
         catch (Exception ex)
         {
             _logService.LogError($"Error in CloseApplicationWithSupportDialogAsync: {ex.Message}", ex);
-            ShutdownAction();
+            Shutdown();
         }
     }
 

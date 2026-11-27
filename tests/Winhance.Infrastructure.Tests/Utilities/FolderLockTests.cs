@@ -1,9 +1,11 @@
 using System.Diagnostics;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using System.Text.RegularExpressions;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Infrastructure.Features.Autounattend;
 using Winhance.Infrastructure.Features.Common.Utilities;
 using Xunit;
 
@@ -22,6 +24,29 @@ public class FolderLockTests
     public void RootMatches_TheSecurityItBuilds_IsTrue()
     {
         FolderLock.RootMatches(FolderLock.BuildRootSecurity()).Should().BeTrue();
+    }
+
+    [Fact]
+    public void CanProtectChild_UsersCanCreateSiblingDirectories_ButNotModifyProtectedChildren()
+    {
+        var security = FolderLock.BuildRootSecurity();
+        security.AddAccessRule(Grant(Users, FileSystemRights.AppendData));
+
+        FolderLock.CanProtectChild(security).Should().BeTrue();
+
+        security.AddAccessRule(Grant(Users, FileSystemRights.DeleteSubdirectoriesAndFiles));
+        FolderLock.CanProtectChild(security).Should().BeFalse();
+    }
+
+    [Fact]
+    public void PictureExtractor_UsesTheSameProtectedPermissionsAsTheApp()
+    {
+        var match = Regex.Match(AutounattendScripts.ExtractScript, "SetSecurityDescriptorSddlForm\\('([^']+)'\\)");
+        match.Success.Should().BeTrue();
+        var security = new DirectorySecurity();
+        security.SetSecurityDescriptorSddlForm(match.Groups[1].Value);
+
+        FolderLock.RootMatches(security).Should().BeTrue();
     }
 
     [Fact]

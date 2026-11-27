@@ -1,0 +1,11 @@
+src/Winhance.UI/Features/Common/Controls/SectionPage.cs	9	menu-item
+src/Winhance.UI/Features/Common/Controls/SectionPageShell.xaml	5	menu-item
+src/Winhance.UI/Features/Common/Controls/SectionPageShell.xaml	1	loading-curtain
+src/Winhance.UI/Features/Common/Controls/SettingsListView.xaml.cs	1	loading-curtain
+src/Winhance.UI/Features/Common/Resources/SettingTemplates.xaml	4	search-filter
+src/Winhance.UI/Features/SoftwareApps/SoftwareAppsPage.xaml	2	menu-item
+src/Winhance.UI/Features/Common/Controls/PageHeader.xaml	1	visual-state
+src/Winhance.UI/Features/Common/Helpers/FitToWidth.cs	1	measured-fit
+src/Winhance.UI/Features/SoftwareApps/SoftwareAppsPage.xaml	3	visual-state
+src/Winhance.UI/Features/Common/Resources/CheckBoxStyle.xaml	10	visual-state
+src/Winhance.UI/Features/WimUtil/Controls/WizardStep.xaml	1	preserve-step-content

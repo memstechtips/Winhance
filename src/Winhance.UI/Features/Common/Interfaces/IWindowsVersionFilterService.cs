@@ -4,14 +4,14 @@ public interface IWindowsVersionFilterService
 {
     bool IsFilterEnabled { get; }
 
-    Task LoadFilterPreferenceAsync();
+    void LoadFilterPreference();
 
     Task<bool> ToggleFilterAsync(bool isInReviewMode);
 
     // Not persisted.
     void ForceFilterOn();
 
-    Task RestoreFilterPreferenceAsync();
+    void RestoreFilterPreference();
 
     event EventHandler<bool>? FilterStateChanged;
 }

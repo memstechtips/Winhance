@@ -8,7 +8,8 @@
     HorizontalContentAlignment="Stretch">
     <StackPanel Spacing="6">
         <TextBlock
-            Text="{x:Bind DescriptionText, Mode=OneWay}"
+            x:Name="DescriptionBlock"
+            x:Load="{x:Bind ShowsDescription(DescriptionText, Link), Mode=OneWay}"
             TextWrapping="Wrap"
             Style="{StaticResource CaptionTextBlockStyle}"/>
         <!-- WrapPanel instead of horizontal StackPanel so PowerCfg AC/DC settings
@@ -18,10 +19,11 @@
              Microsoft.UI.Xaml.Controls.Panel so it works as an ItemsControl.ItemsPanel;
              FlowLayout/WrapLayout from the same packages are VirtualizingLayout-only
              (ItemsRepeater) and not usable here. -->
+        <!-- Bounded: Preference plus Recommended and Default, each split AC and DC on a battery, at most 5 pills -->
         <ItemsControl
+            x:Name="BadgePills"
+            x:Load="{x:Bind ShowBadges, Mode=OneWay}"
             ItemsSource="{x:Bind BadgeRow, Mode=OneWay}"
-            Visibility="{x:Bind ShowBadges, Mode=OneWay,
-                         Converter={StaticResource BooleanToVisibilityConverter}}"
             ItemTemplateSelector="{StaticResource BadgePillTemplateSelector}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>

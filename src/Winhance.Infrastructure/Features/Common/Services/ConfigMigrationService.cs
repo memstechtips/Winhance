@@ -34,6 +34,7 @@ internal class ConfigMigrationService : IConfigMigrationService
             ["explorer-customization-shortcut-suffix"] = MigrateToggleToSelection,
             ["explorer-customization-shortcut-arrow"] = MigrateToggleToSelection,
             ["gaming-background-apps"] = MigrateBackgroundApps,
+            ["gaming-explorer-alt-tab-filter"] = MigrateAltTabFilter,
             ["updates-notification-level"] = MigrateUpdateNotificationLevel,
             ["region-short-date"] = MigrateShortDateToKey,
             ["gaming-dns-server"] = MigrateDnsDohOption,
@@ -107,6 +108,12 @@ internal class ConfigMigrationService : IConfigMigrationService
     {
         if (section?.Items == null) return;
 
+        if (section.Items.Any(IsInvalidAltTabChoice))
+        {
+            section.Items = section.Items.Where(item => !IsInvalidAltTabChoice(item)).ToList();
+            _logService.Log(LogLevel.Warning, "Skipped an Alt+Tab entry without a valid saved choice");
+        }
+
         foreach (var item in section.Items)
         {
             if (item?.Id == null) continue;
@@ -130,6 +137,28 @@ internal class ConfigMigrationService : IConfigMigrationService
                 }
             }
         }
+    }
+
+    private static bool IsInvalidAltTabChoice(ConfigurationItem item) =>
+        item is { Id: "gaming-explorer-alt-tab-filter" } && item.InputType switch
+        {
+            InputType.Toggle => item.IsSelected is null,
+            InputType.Selection => item.CustomStateValues is { Count: > 0 } custom
+                ? !custom.ContainsKey("MultiTaskingAltTabFilter")
+                : item.SelectedIndex is not (>= 0 and <= 3),
+            _ => true,
+        };
+
+    private static void MigrateAltTabFilter(ConfigurationItem item)
+    {
+        if (item.InputType != InputType.Toggle || item.IsSelected is not { } windowsOnly)
+            return;
+
+        item.CustomStateValues = null;
+        item.PowerSettings = null;
+        item.SelectedIndex = windowsOnly ? 3 : 0;
+        item.InputType = InputType.Selection;
+        item.IsSelected = null;
     }
 
     private void MigrateDnsDohOption(ConfigurationItem item)

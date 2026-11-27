@@ -1,4 +1,9 @@
+using System.Text;
+using System.Xml.Linq;
 using FluentAssertions;
+using Winhance.Infrastructure.Features.Autounattend;
+using Winhance.Infrastructure.Features.Autounattend.Helpers;
+using Winhance.Infrastructure.Features.Common.Services;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -24,6 +29,11 @@ public class WimCustomizationServiceTests
         _mockFileSystem
             .Setup(fs => fs.CombinePath(It.IsAny<string[]>()))
             .Returns((string[] paths) => string.Join("\\", paths));
+
+        _mockFileSystem.Setup(fs => fs.OpenRead(It.IsAny<string>()))
+            .Returns(() => new MemoryStream(Encoding.UTF8.GetBytes("<unattend/>")));
+        _mockFileSystem.Setup(fs => fs.ReadAllBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encoding.UTF8.GetBytes("<unattend/>"));
 
         _mockLocalization
             .Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
@@ -74,7 +84,8 @@ public class WimCustomizationServiceTests
         var result = await _service.AddXmlToImageAsync(@"C:\answer.xml", @"C:\work");
 
         result.Success.Should().BeTrue();
-        _mockFileSystem.Verify(fs => fs.CopyFile(@"C:\answer.xml", @"C:\work\autounattend.xml", true), Times.Once);
+        _mockFileSystem.Verify(fs => fs.CopyFile(@"C:\answer.xml", It.IsAny<string>(), false), Times.Once);
+        _mockFileSystem.Verify(fs => fs.MoveFileReplacing(It.IsAny<string>(), @"C:\work\autounattend.xml"), Times.Once);
     }
 
     [Fact]
@@ -87,7 +98,7 @@ public class WimCustomizationServiceTests
 
         result.Success.Should().BeTrue();
         _mockFileSystem.Verify(fs => fs.CopyFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
-        _mockDriverInstallStep.Verify(d => d.EnsureAsync(@"C:\WIM", It.IsAny<CancellationToken>()), Times.Once);
+        _mockDriverInstallStep.Verify(d => d.EnsureAsync(@"C:\WIM\autounattend.xml", @"C:\WIM", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -98,7 +109,7 @@ public class WimCustomizationServiceTests
         var calls = new List<string>();
         _mockFileSystem.Setup(fs => fs.SetFileAttributes(@"C:\WIM\autounattend.xml", FileAttributes.Normal))
             .Callback(() => calls.Add("attributes"));
-        _mockFileSystem.Setup(fs => fs.CopyFile(@"C:\answer.xml", @"C:\WIM\autounattend.xml", true))
+        _mockFileSystem.Setup(fs => fs.MoveFileReplacing(It.IsAny<string>(), @"C:\WIM\autounattend.xml"))
             .Callback(() => calls.Add("copy"));
 
         var result = await _service.AddXmlToImageAsync(@"C:\answer.xml", @"C:\WIM");
@@ -120,6 +131,54 @@ public class WimCustomizationServiceTests
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Be("Disk error");
         result.Exception.Should().BeOfType<IOException>();
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task AddXmlToImageAsync_ImportsSidecarsOrPreservesExistingXmlWhenMissing(bool samePath, bool missing)
+    {
+        var root = Directory.CreateTempSubdirectory();
+        try
+        {
+            string source = Path.Combine(root.FullName, "source");
+            string target = samePath ? source : Path.Combine(root.FullName, "target");
+            Directory.CreateDirectory(source);
+            Directory.CreateDirectory(target);
+            string sourceXml = Path.Combine(source, "autounattend.xml");
+            string targetXml = Path.Combine(target, "autounattend.xml");
+            const string picture = @"C:\Wallpapers\Winhance\beach.jpg";
+            byte[] bytes = [1, 2, 3];
+            XNamespace x = AutounattendDocument.WinhanceExtensions;
+            var doc = new XDocument(new XElement("unattend", new XElement(x + "Extensions",
+                new XElement(x + "Generator", "Winhance"), MediaPayloads.Entry(picture, bytes, true))));
+            doc.Save(sourceXml);
+            if (!samePath)
+                File.WriteAllText(targetXml, "<previous/>");
+            var previous = File.ReadAllBytes(targetXml);
+            if (!missing)
+            {
+                string sourcePicture = MediaPayloads.MediaPath(source, picture)!;
+                Directory.CreateDirectory(Path.GetDirectoryName(sourcePicture)!);
+                File.WriteAllBytes(sourcePicture, bytes);
+            }
+
+            var service = new WimCustomizationService(new FileSystemService(_mockLogService.Object), _mockLogService.Object,
+                _mockLocalization.Object, _mockDriverCategorizer.Object, _mockDismRunner.Object, _mockDriverInstallStep.Object, _mockUpdateInstallStep.Object);
+            var result = await service.AddXmlToImageAsync(sourceXml, target);
+
+            result.Success.Should().Be(!missing);
+            File.ReadAllBytes(targetXml).Should().Equal(missing ? previous : File.ReadAllBytes(sourceXml));
+            if (!missing)
+                File.ReadAllBytes(MediaPayloads.MediaPath(target, picture)!).Should().Equal(bytes);
+            Directory.GetDirectories(target, ".winhance-media-*").Should().BeEmpty();
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
     }
 
     [Fact]
@@ -278,7 +337,7 @@ public class WimCustomizationServiceTests
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
         _mockDriverInstallStep
-            .Setup(w => w.EnsureAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(w => w.EnsureAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("locked"));
 
         var result = await _service.AddXmlToImageAsync(@"C:\answer.xml", @"C:\work");
@@ -287,7 +346,7 @@ public class WimCustomizationServiceTests
     }
 
     [Fact]
-    public async Task AddXmlToImageAsync_EnsuresTheDriverInstallStepAfterTheWrite()
+    public async Task AddXmlToImageAsync_EnsuresTheDriverInstallStepBeforePublication()
     {
         _mockFileSystem.Setup(fs => fs.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystem.Setup(fs => fs.DirectoryExists(It.IsAny<string>())).Returns(true);
@@ -295,6 +354,6 @@ public class WimCustomizationServiceTests
         var result = await _service.AddXmlToImageAsync(@"C:\answer.xml", @"C:\work");
 
         result.Success.Should().BeTrue();
-        _mockDriverInstallStep.Verify(w => w.EnsureAsync(@"C:\work", It.IsAny<CancellationToken>()), Times.Once);
+        _mockDriverInstallStep.Verify(w => w.EnsureAsync(It.IsAny<string>(), @"C:\work", It.IsAny<CancellationToken>()), Times.Once);
     }
 }

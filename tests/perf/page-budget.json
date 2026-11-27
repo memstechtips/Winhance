@@ -1,0 +1,243 @@
+{
+  "measured": "2026-11-16",
+  "build": {
+    "commit": "76140b1e270adafa2b85f381622f174735a68096",
+    "dirty": false,
+    "ui_tree": "07c97c4c5955483c6e339fb90ae256701b6c62b3"
+  },
+  "runs": 3,
+  "tolerance": {
+    "elements_pct": 5.0,
+    "private_mb_pct": 5.0
+  },
+  "pages": [
+    {
+      "mode": "normal",
+      "page": "SoftwareAppsPage",
+      "elements": 1210,
+      "private_mb_median": 151,
+      "private_mb_runs": [
+        160,
+        151,
+        148
+      ],
+      "elements_runs": [
+        1210,
+        1210,
+        1210
+      ]
+    },
+    {
+      "mode": "normal",
+      "page": "OptimizePage",
+      "elements": 419,
+      "private_mb_median": 140,
+      "private_mb_runs": [
+        151,
+        140,
+        137
+      ],
+      "elements_runs": [
+        419,
+        419,
+        419
+      ]
+    },
+    {
+      "mode": "normal",
+      "page": "CustomizePage",
+      "elements": 419,
+      "private_mb_median": 123,
+      "private_mb_runs": [
+        133,
+        123,
+        121
+      ],
+      "elements_runs": [
+        419,
+        419,
+        419
+      ]
+    },
+    {
+      "mode": "normal",
+      "page": "SettingsPage",
+      "elements": 815,
+      "private_mb_median": 127,
+      "private_mb_runs": [
+        138,
+        127,
+        124
+      ],
+      "elements_runs": [
+        815,
+        815,
+        815
+      ]
+    },
+    {
+      "mode": "builder",
+      "page": "SoftwareAppsPage",
+      "elements": 1116,
+      "private_mb_median": 161,
+      "private_mb_runs": [
+        160,
+        163,
+        161
+      ],
+      "elements_runs": [
+        1116,
+        1116,
+        1116
+      ]
+    },
+    {
+      "mode": "builder",
+      "page": "OptimizePage",
+      "elements": 551,
+      "private_mb_median": 156,
+      "private_mb_runs": [
+        154,
+        158,
+        156
+      ],
+      "elements_runs": [
+        551,
+        551,
+        551
+      ]
+    },
+    {
+      "mode": "builder",
+      "page": "CustomizePage",
+      "elements": 551,
+      "private_mb_median": 147,
+      "private_mb_runs": [
+        144,
+        149,
+        147
+      ],
+      "elements_runs": [
+        551,
+        551,
+        551
+      ]
+    },
+    {
+      "mode": "builder",
+      "page": "AutounattendPage",
+      "elements": 1131,
+      "private_mb_median": 156,
+      "private_mb_runs": [
+        155,
+        157,
+        156
+      ],
+      "elements_runs": [
+        1131,
+        1131,
+        1131
+      ]
+    },
+    {
+      "mode": "builder",
+      "page": "WimUtilPage",
+      "elements": 523,
+      "private_mb_median": 156,
+      "private_mb_runs": [
+        155,
+        157,
+        156
+      ],
+      "elements_runs": [
+        523,
+        523,
+        523
+      ]
+    },
+    {
+      "mode": "builder",
+      "page": "SettingsPage",
+      "elements": 875,
+      "private_mb_median": 155,
+      "private_mb_runs": [
+        155,
+        157,
+        155
+      ],
+      "elements_runs": [
+        875,
+        875,
+        875
+      ]
+    },
+    {
+      "mode": "configreview",
+      "page": "SoftwareAppsPage",
+      "elements": 1096,
+      "private_mb_median": 171,
+      "private_mb_runs": [
+        172,
+        171,
+        169
+      ],
+      "elements_runs": [
+        1096,
+        1096,
+        1096
+      ]
+    },
+    {
+      "mode": "configreview",
+      "page": "OptimizePage",
+      "elements": 510,
+      "private_mb_median": 166,
+      "private_mb_runs": [
+        166,
+        166,
+        155
+      ],
+      "elements_runs": [
+        510,
+        510,
+        510
+      ]
+    },
+    {
+      "mode": "configreview",
+      "page": "CustomizePage",
+      "elements": 507,
+      "private_mb_median": 155,
+      "private_mb_runs": [
+        156,
+        155,
+        153
+      ],
+      "elements_runs": [
+        507,
+        507,
+        507
+      ]
+    },
+    {
+      "mode": "configreview",
+      "page": "SettingsPage",
+      "elements": 855,
+      "private_mb_median": 164,
+      "private_mb_runs": [
+        164,
+        164,
+        161
+      ],
+      "elements_runs": [
+        855,
+        855,
+        855
+      ]
+    }
+  ],
+  "tray": {
+    "idle_private_ws_mb": 1.9,
+    "ceiling_mb": 3.0
+  }
+}

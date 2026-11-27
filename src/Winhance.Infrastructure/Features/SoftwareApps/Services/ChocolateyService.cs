@@ -189,7 +189,7 @@ internal class ChocolateyService : IChocolateyService
     // A failed checksum is only retried without the check when the user has said so, now or earlier.
     private async Task<bool> AllowIgnoreChecksumsAsync(string displayName)
     {
-        if (await _preferences.GetPreferenceAsync(UserPreferenceKeys.ChocolateyIgnoreChecksums, false).ConfigureAwait(false))
+        if (_preferences.GetPreference(UserPreferenceKeys.ChocolateyIgnoreChecksums, false))
             return true;
 
         if (_dialogService == null)

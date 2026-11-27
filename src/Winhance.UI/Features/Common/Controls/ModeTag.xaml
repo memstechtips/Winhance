@@ -6,10 +6,12 @@
     VerticalAlignment="Center"
     IsTabStop="False">
 
-    <Border x:Name="Pill" Style="{StaticResource BadgeDefaultStyle}" Visibility="Collapsed">
-        <TextBlock
-            x:Name="Label"
-            Style="{StaticResource BadgeTextStyle}"
-            Foreground="{ThemeResource BadgeDefaultForeground}"/>
-    </Border>
+    <Grid>
+        <Border x:Name="Pill" x:Load="False" Style="{StaticResource BadgeDefaultStyle}">
+            <TextBlock
+                x:Name="Label"
+                Style="{StaticResource BadgeTextStyle}"
+                Foreground="{ThemeResource BadgeDefaultForeground}"/>
+        </Border>
+    </Grid>
 </UserControl>

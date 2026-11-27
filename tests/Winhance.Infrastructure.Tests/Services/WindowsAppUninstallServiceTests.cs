@@ -27,6 +27,7 @@ public class WindowsAppUninstallServiceTests
     public WindowsAppUninstallServiceTests()
     {
         _backgroundTaskService.Setup(x => x.GetMode()).Returns(KeepRemovedMode.Scripts);
+        _backgroundTaskService.Setup(x => x.GetKeptApps()).Returns([]);
         _backgroundTaskService.Setup(x => x.AddKeptAppsAsync(It.IsAny<IEnumerable<string>>())).ReturnsAsync(OperationResult.Succeeded());
     }
 
@@ -617,6 +618,19 @@ public class WindowsAppUninstallServiceTests
 
         _bloatRemovalService.Verify(x => x.CleanupAllRemovalArtifactsAsync(), Times.Once);
         _bloatRemovalService.Verify(x => x.PersistRemovalScriptsAsync(It.IsAny<List<ItemDefinition>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UninstallAppsAsync_DontSaveRemovalScripts_LeavesUnrelatedKeptAppsAlone()
+    {
+        _backgroundTaskService.Setup(x => x.GetKeptApps()).Returns([new KeptApp("other", "Other", null, 0)]);
+        BloatRemovalReturns(RemovalOutcome.Success);
+
+        await CreateSut().UninstallAppsAsync([Cortana], saveRemovalScripts: false);
+
+        _bloatRemovalService.Verify(x => x.CleanupAllRemovalArtifactsAsync(), Times.Never);
+        _bloatRemovalService.Verify(x => x.RemoveItemsFromScriptAsync(It.Is<List<ItemDefinition>>(items => items.Count == 1 && items[0].Id == Cortana.Id)), Times.Once);
+        _backgroundTaskService.Verify(x => x.RemoveKeptApp("other"), Times.Never);
     }
 
     [Fact]

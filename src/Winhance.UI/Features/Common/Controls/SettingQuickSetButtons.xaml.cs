@@ -20,8 +20,7 @@ public sealed partial class SettingQuickSetButtons : SettingBoundControl
     }
 
     public static readonly DependencyProperty ModeProperty = DependencyProperty.Register(
-        nameof(Mode), typeof(SettingInputMode), typeof(SettingQuickSetButtons),
-        new PropertyMetadata(SettingInputMode.Single, RefreshOnChange));
+        nameof(Mode), typeof(SettingInputMode), typeof(SettingQuickSetButtons), new PropertyMetadata(SettingInputMode.Single));
 
     public SettingInputMode Mode
     {
@@ -30,8 +29,7 @@ public sealed partial class SettingQuickSetButtons : SettingBoundControl
     }
 
     public static readonly DependencyProperty KindProperty = DependencyProperty.Register(
-        nameof(Kind), typeof(SettingQuickSetKind), typeof(SettingQuickSetButtons),
-        new PropertyMetadata(SettingQuickSetKind.Selection, RefreshOnChange));
+        nameof(Kind), typeof(SettingQuickSetKind), typeof(SettingQuickSetButtons), new PropertyMetadata(SettingQuickSetKind.Selection));
 
     public SettingQuickSetKind Kind
     {
@@ -39,68 +37,56 @@ public sealed partial class SettingQuickSetButtons : SettingBoundControl
         set => SetValue(KindProperty, value);
     }
 
-    private QuickSetState _state = QuickSetState.Hidden;
-
-    public Visibility ButtonsVisibility => _state.Show ? Visibility.Visible : Visibility.Collapsed;
-    public IRelayCommand? RecommendedCommand => _state.RecommendedCommand;
-    public IRelayCommand? DefaultCommand => _state.DefaultCommand;
-    public string? RecommendedTooltip => _state.RecommendedTooltip;
-    public string? DefaultTooltip => _state.DefaultTooltip;
-    public string RecommendedAutomationName => _state.RecommendedAutomationName;
-    public string DefaultAutomationName => _state.DefaultAutomationName;
-
-    // Every view model change lands here (the inputs are spread over too many properties to filter safely), so only
-    // the values that actually moved are announced: seven notifications per change per card added up on a long list.
-    protected override void Refresh()
-    {
-        var next = Setting is { } vm ? Read(vm) : QuickSetState.Hidden;
-        var changed = QuickSetState.Changed(_state, next);
-        _state = next;
-        if (changed.Length > 0)
-            Notify(changed);
-    }
-
-    private QuickSetState Read(SettingItemViewModel vm)
-    {
-        var (show, recommended, @default, recommendedTip, defaultTip) = Kind switch
+    // The buttons show only while the info badges are on, which is the one thing that moves after the view model is
+    // built; the commands are fixed per view model. The tooltips are re-read on a language switch (any of the view
+    // model's localized properties raises then) and on a new selection, which follows a keyed option list rebuild.
+    public static bool Shows(SettingItemViewModel? setting, SettingQuickSetKind kind, SettingInputMode mode, bool _)
+        => setting is { } vm && kind switch
         {
-            SettingQuickSetKind.TwoState => (vm.ShowTwoStateQuickSetButtons,
-                vm.SetTwoStateToRecommendedCommand, vm.SetTwoStateToDefaultCommand,
-                vm.TwoStateRecommendedTooltip, vm.TwoStateDefaultTooltip),
-            SettingQuickSetKind.Numeric => (vm.ShowNumericQuickSetButtons,
-                vm.NumericRecommendedCommandForMode(Mode), vm.NumericDefaultCommandForMode(Mode),
-                vm.NumericRecommendedTooltipForMode(Mode), vm.NumericDefaultTooltipForMode(Mode)),
-            _ => (vm.ShowSelectionQuickSetForMode(Mode),
-                vm.SelectionRecommendedCommandForMode(Mode), vm.SelectionDefaultCommandForMode(Mode),
-                vm.SelectionRecommendedTooltipForMode(Mode), vm.SelectionDefaultTooltipForMode(Mode)),
+            SettingQuickSetKind.TwoState => vm.ShowTwoStateQuickSetButtons,
+            SettingQuickSetKind.Numeric => vm.ShowNumericQuickSetButtons,
+            _ => vm.ShowSelectionQuickSetForMode(mode),
         };
 
-        return new QuickSetState(show, recommended, @default, recommendedTip, defaultTip,
-            vm.A11yNameForMode(Mode, recommendedTip), vm.A11yNameForMode(Mode, defaultTip));
-    }
-}
+    public static IRelayCommand? RecommendedCommand(SettingItemViewModel? setting, SettingQuickSetKind kind, SettingInputMode mode)
+        => kind switch
+        {
+            SettingQuickSetKind.TwoState => setting?.SetTwoStateToRecommendedCommand,
+            SettingQuickSetKind.Numeric => setting?.NumericRecommendedCommandForMode(mode),
+            _ => setting?.SelectionRecommendedCommandForMode(mode),
+        };
 
-internal readonly record struct QuickSetState(
-    bool Show,
-    IRelayCommand? RecommendedCommand,
-    IRelayCommand? DefaultCommand,
-    string? RecommendedTooltip,
-    string? DefaultTooltip,
-    string RecommendedAutomationName,
-    string DefaultAutomationName)
-{
-    public static QuickSetState Hidden { get; } = new(false, null, null, null, null, string.Empty, string.Empty);
+    public static IRelayCommand? DefaultCommand(SettingItemViewModel? setting, SettingQuickSetKind kind, SettingInputMode mode)
+        => kind switch
+        {
+            SettingQuickSetKind.TwoState => setting?.SetTwoStateToDefaultCommand,
+            SettingQuickSetKind.Numeric => setting?.NumericDefaultCommandForMode(mode),
+            _ => setting?.SelectionDefaultCommandForMode(mode),
+        };
 
-    public static string[] Changed(QuickSetState before, QuickSetState after)
-    {
-        var names = new List<string>(7);
-        if (before.Show != after.Show) names.Add(nameof(SettingQuickSetButtons.ButtonsVisibility));
-        if (!ReferenceEquals(before.RecommendedCommand, after.RecommendedCommand)) names.Add(nameof(SettingQuickSetButtons.RecommendedCommand));
-        if (!ReferenceEquals(before.DefaultCommand, after.DefaultCommand)) names.Add(nameof(SettingQuickSetButtons.DefaultCommand));
-        if (before.RecommendedTooltip != after.RecommendedTooltip) names.Add(nameof(SettingQuickSetButtons.RecommendedTooltip));
-        if (before.DefaultTooltip != after.DefaultTooltip) names.Add(nameof(SettingQuickSetButtons.DefaultTooltip));
-        if (before.RecommendedAutomationName != after.RecommendedAutomationName) names.Add(nameof(SettingQuickSetButtons.RecommendedAutomationName));
-        if (before.DefaultAutomationName != after.DefaultAutomationName) names.Add(nameof(SettingQuickSetButtons.DefaultAutomationName));
-        return [.. names];
-    }
+    public static string? RecommendedTooltip(
+        SettingItemViewModel? setting, SettingQuickSetKind kind, SettingInputMode mode, string _1, object? _2)
+        => kind switch
+        {
+            SettingQuickSetKind.TwoState => setting?.TwoStateRecommendedTooltip,
+            SettingQuickSetKind.Numeric => setting?.NumericRecommendedTooltipForMode(mode),
+            _ => setting?.SelectionRecommendedTooltipForMode(mode),
+        };
+
+    public static string? DefaultTooltip(
+        SettingItemViewModel? setting, SettingQuickSetKind kind, SettingInputMode mode, string _1, object? _2)
+        => kind switch
+        {
+            SettingQuickSetKind.TwoState => setting?.TwoStateDefaultTooltip,
+            SettingQuickSetKind.Numeric => setting?.NumericDefaultTooltipForMode(mode),
+            _ => setting?.SelectionDefaultTooltipForMode(mode),
+        };
+
+    public static string RecommendedAutomationName(
+        SettingItemViewModel? setting, SettingQuickSetKind kind, SettingInputMode mode, string _1, object? _2)
+        => setting?.A11yNameForMode(mode, RecommendedTooltip(setting, kind, mode, _1, _2)) ?? string.Empty;
+
+    public static string DefaultAutomationName(
+        SettingItemViewModel? setting, SettingQuickSetKind kind, SettingInputMode mode, string _1, object? _2)
+        => setting?.A11yNameForMode(mode, DefaultTooltip(setting, kind, mode, _1, _2)) ?? string.Empty;
 }

@@ -123,6 +123,50 @@ public class SettingItemViewModelKeyedSelectionTests
     }
 
     [Fact]
+    public void TryApplyKeyedOptions_PowerPlanList_EachOptionCarriesItsRowParts()
+    {
+        var sut = CreateSut(Config(
+            FakeOptionProvider.SettingFor("power-plan-card") with { Options = new(OptionSource.PowerPlans) },
+            InputType.Selection));
+
+        sut.TryApplyKeyedOptions(new SettingStateResult
+        {
+            Success = true,
+            CurrentValue = 0,
+            Outcome = SettingDetectionOutcome.Resolved,
+            DynamicOptions =
+            [
+                new DynamicOption("Balanced", "g-bal", ExistsOnSystem: true, CanDelete: true),
+                new DynamicOption("Ultimate Performance", "g-ult", ExistsOnSystem: false),
+            ],
+            DynamicSelection = "G-BAL",
+        });
+
+        sut.ComboBoxOptions.Select(o => (o.ShowsStatus, o.ExistsOnSystem, o.StatusTooltip, o.IsActive, o.CanDelete))
+            .Should().Equal(
+                (true, true, "PowerPlan_Status_Exists", true, true),
+                (true, false, "PowerPlan_Status_NotExists", false, false));
+        sut.ComboBoxOptions.Should().AllSatisfy(o =>
+        {
+            o.ActiveBadgeText.Should().Be("PowerPlan_Active_Badge");
+            o.DeleteTooltip.Should().Be("PowerPlan_Delete_Tooltip");
+        });
+    }
+
+    [Fact]
+    public void TryApplyKeyedOptions_ListWithoutStatus_DrawsNoRowParts()
+    {
+        var sut = KeyedCard();
+
+        sut.ComboBoxOptions.Should().AllSatisfy(o =>
+        {
+            o.ShowsStatus.Should().BeFalse();
+            o.IsActive.Should().BeFalse(because: "the Active badge belongs to the power plan list only");
+            o.CanDelete.Should().BeFalse();
+        });
+    }
+
+    [Fact]
     public void ComboBoxOptions_Always_AreSourceOptionsLabelledAsMachineGaveThem()
     {
         var sut = KeyedCard();
@@ -175,16 +219,20 @@ public class SettingItemViewModelKeyedSelectionTests
     }
 
     [Fact]
-    public void UpdateStateFromSystemState_RefreshOntoSameKey_StillTellsCardToReselect()
+    public void UpdateStateFromSystemState_RefreshOntoSameKey_EditsTheListInPlace()
     {
         var sut = KeyedCard();
+        var options = sut.ComboBoxOptions;
         var raised = new List<string?>();
+        var edits = 0;
         sut.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+        options.CollectionChanged += (_, _) => edits++;
 
         sut.UpdateStateFromSystemState(KeyedState("beta"));
 
-        raised.Should().Contain(nameof(SettingItemViewModel.ComboBoxOptions),
-            because: "SelectedValue is unchanged and raises nothing, so nothing else re-pushes the index the cleared ItemsSource threw away");
+        sut.ComboBoxOptions.Should().BeSameAs(options);
+        edits.Should().BePositive(because: "SettingComboBox re-pushes its index from the list's own change");
+        raised.Should().NotContain(nameof(SettingItemViewModel.ComboBoxOptions));
         sut.ComboIndexForMode(SettingInputMode.Single).Should().Be(1);
     }
 

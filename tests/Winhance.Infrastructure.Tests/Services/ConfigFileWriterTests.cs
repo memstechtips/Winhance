@@ -85,6 +85,32 @@ public class ConfigFileWriterTests
     }
 
     [Fact]
+    public async Task WriteAsync_CarriesOnlyTheSelectedPicture_NotAlbumBytes()
+    {
+        const string picture = @"C:\Wallpapers\Winhance\selected.jpg";
+        const string album = @"D:\Pictures\Holiday";
+        _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>())).Returns(SettingCatalog.ByFeature);
+        var set = new SelectionSet([
+            new SettingChoice("theme-wallpaper-picture", new ChoiceValue.Keyed(picture, "selected")),
+            new SettingChoice("theme-wallpaper-album", new ChoiceValue.Text(album)),
+        ], [], [])
+        {
+            Files = [
+                new CarriedFile("theme-wallpaper-picture", picture, "AQID"),
+                new CarriedFile("theme-wallpaper-picture", picture, "BAUG"),
+                new CarriedFile("theme-wallpaper-picture", @"C:\Wallpapers\Winhance\other.jpg", "BwgJ"),
+                new CarriedFile("theme-wallpaper-album", album + @"\one.jpg", "CQgH"),
+            ],
+        };
+        await Sut().WriteAsync(set, CatalogScope.CurrentMachine, OutputPath);
+        var config = System.Text.Json.JsonSerializer.Deserialize<Winhance.Core.Features.Common.Models.WinhanceConfigFile>(_written, ConfigFileConstants.JsonOptions)!;
+        var reopened = ConfigFileMapper.FromFile(config, SettingCatalog.ByFeature);
+        reopened.Files.Should().Equal(set.Files[1]);
+        reopened.Value("theme-wallpaper-album").Should().Be(new ChoiceValue.Text(album));
+        _written.Should().NotContain("CQgH").And.NotContain("BwgJ").And.NotContain("AQID");
+    }
+
+    [Fact]
     public async Task WriteAsync_ReturnsExactlyTheBytesItWrote()
     {
         var returned = await Sut().WriteAsync(Selections(), CatalogScope.CurrentMachine, OutputPath);

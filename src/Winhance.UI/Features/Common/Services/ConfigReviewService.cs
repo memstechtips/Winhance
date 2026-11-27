@@ -580,7 +580,7 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
                     var diff = new ConfigReviewDiff
                     {
                         SettingId = setting.Id,
-                        SettingName = Localized(setting.Display.Name),
+                        SettingName = _localizationService.GetString(setting.Display.Name),
                         FeatureModuleId = featureId,
                         CurrentValueDisplay = currentDisplay,
                         ConfigValueDisplay = configDisplay,
@@ -744,7 +744,6 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
         }
     }
 
-    private string Localized(LocKey key) => _localizationService.GetStringOrDefault(key.Value, key.Value);
 
     private static string? LabelOn(SettingStateResult state, string? key) =>
         state.DynamicOptions?.FirstOrDefault(o => string.Equals(o.Value, key, StringComparison.OrdinalIgnoreCase))?.Label;
@@ -772,9 +771,9 @@ public class ConfigReviewService : IConfigReviewService, IConfigReviewModeServic
             if (states[i].IsDetectOnly)
                 continue;
             result.Options.Add(new ComboBoxDisplayOption(
-                Localized(states[i].Label),
+                _localizationService.GetString(states[i].Label),
                 i,
-                states[i].Tooltip is { } tip ? Localized(tip) : null)
+                states[i].Tooltip is { } tip ? _localizationService.GetString(tip) : null)
             {
                 IsRecommended = states[i].HasRole(RoleKind.Recommended),
                 IsDefault = states[i].HasRole(RoleKind.WindowsDefault),

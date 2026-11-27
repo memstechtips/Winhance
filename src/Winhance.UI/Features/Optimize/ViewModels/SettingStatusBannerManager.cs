@@ -2,7 +2,6 @@ using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
-using Winhance.UI.Features.Common.Models;
 
 namespace Winhance.UI.Features.Optimize.ViewModels;
 
@@ -26,7 +25,7 @@ internal sealed class SettingStatusBannerManager
     // BannerState.Clear when there is nothing to show; null leaves an existing compatibility banner untouched
     // (value is not an int index).
     public BannerState? ComputeBannerForValue(
-        object? value, IReadOnlyList<OptionWarning?>? optionWarnings, string? crossGroupInfoMessage, int optionCount, string? compatibilityMessage,
+        object? value, IReadOnlyList<string>? optionWarnings, string? crossGroupInfoMessage, int optionCount, string? compatibilityMessage,
         InfoBarSeverity compatibilitySeverity = InfoBarSeverity.Warning)
     {
         if (value is not int selectedIndex)
@@ -36,18 +35,9 @@ internal sealed class SettingStatusBannerManager
             return null;
         }
 
-        if (optionWarnings is { } w
-            && selectedIndex >= 0 && selectedIndex < w.Count
-            && w[selectedIndex] is { Always: false } warning)
-        {
-            // Error is a consequence the user is about to cause; an advisory describes a state they are already in.
-            return new BannerState(warning.Text, warning.Advisory ? InfoBarSeverity.Warning : InfoBarSeverity.Error);
-        }
-
-        // A risk warning stands before the choice is made, so it shows for every selection, the custom state included.
-        // Options that share one text (Manual and Disabled) print it once.
-        if (optionWarnings?.Where(x => x is { Always: true }).Select(x => x!.Text).Distinct().ToList() is { Count: > 0 } risks)
-            return new BannerState(string.Join("\n", risks), InfoBarSeverity.Warning);
+        // A warning stands before the choice is made, so it shows for every selection, the custom state included.
+        if (optionWarnings is { Count: > 0 })
+            return new BannerState(string.Join("\n", optionWarnings), InfoBarSeverity.Warning);
 
         // Cross-group child settings info (promotional banner). The precomputed message already includes the header.
         if (!string.IsNullOrEmpty(crossGroupInfoMessage))

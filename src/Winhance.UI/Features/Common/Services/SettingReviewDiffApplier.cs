@@ -63,15 +63,10 @@ public class SettingReviewDiffApplier(
                     viewModel.IsReviewActionRejected = true;
             }
 
-            viewModel.ReviewApprovalChanged += (sender, approved) =>
-            {
-                configReviewDiffService.SetSettingApproval(viewModel.SettingId, approved);
-            };
-
-            viewModel.ReviewActionApprovalChanged += (sender, approved) =>
-            {
-                configReviewDiffService.SetActionApproval(viewModel.SettingId, approved);
-            };
+            viewModel.ReviewApprovalChanged -= OnReviewApprovalChanged;
+            viewModel.ReviewApprovalChanged += OnReviewApprovalChanged;
+            viewModel.ReviewActionApprovalChanged -= OnReviewActionApprovalChanged;
+            viewModel.ReviewActionApprovalChanged += OnReviewActionApprovalChanged;
             return;
         }
 
@@ -103,11 +98,21 @@ public class SettingReviewDiffApplier(
             };
             configReviewDiffService.RegisterDiff(diff);
 
-            viewModel.ReviewApprovalChanged += (sender, approved) =>
-            {
-                configReviewDiffService.SetSettingApproval(viewModel.SettingId, approved);
-            };
+            viewModel.ReviewApprovalChanged -= OnReviewApprovalChanged;
+            viewModel.ReviewApprovalChanged += OnReviewApprovalChanged;
         }
+    }
+
+    private void OnReviewApprovalChanged(object? sender, bool approved)
+    {
+        if (sender is SettingItemViewModel viewModel)
+            configReviewDiffService.SetSettingApproval(viewModel.SettingId, approved);
+    }
+
+    private void OnReviewActionApprovalChanged(object? sender, bool approved)
+    {
+        if (sender is SettingItemViewModel viewModel)
+            configReviewDiffService.SetActionApproval(viewModel.SettingId, approved);
     }
 
     private (ConfigurationItem? item, string? featureId) FindConfigItemForSetting(string settingId, WinhanceConfigFile config)

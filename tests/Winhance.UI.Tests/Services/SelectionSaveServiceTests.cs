@@ -30,8 +30,7 @@ public class SelectionSaveServiceTests
         Array.Empty<SettingChoice>(), OneWindowsApp, Array.Empty<AppChoice>());
 
     private const string AlbumFolder = @"D:\Pictures\Holiday";
-    private const string StagedAlbum = @"C:\WinhanceWIM\sources\$OEM$\$$\Web\Wallpaper\Winhance\Holiday";
-    private const string LandedAlbum = @"C:\Windows\Web\Wallpaper\Winhance\Holiday";
+    private const string LandedAlbum = @"C:\Wallpapers\Winhance\Holiday";
 
     private static readonly string[] HeicAlbumFiles = [@"D:\Pictures\Holiday\three.heic"];
 
@@ -68,6 +67,14 @@ public class SelectionSaveServiceTests
             .Setup(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()))
             .Callback((SelectionSet set, CatalogScope _, string _) => _written = set)
             .ReturnsAsync(XmlPath);
+        _autounattend
+            .Setup(w => w.WriteMediaAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Func<string, Task>>(), It.IsAny<CancellationToken>()))
+            .Returns(async (SelectionSet set, CatalogScope _, string path, string _, Func<string, Task> validate, CancellationToken _) =>
+            {
+                _written = set;
+                await validate(path);
+                return path;
+            });
 
         _fileStore
             .Setup(w => w.LoadAsync(It.IsAny<SelectionSet>()))
@@ -79,6 +86,7 @@ public class SelectionSaveServiceTests
         _files.Setup(f => f.GetFileName(It.IsAny<string>())).Returns((string path) => Path.GetFileName(path));
         _files.Setup(f => f.DirectoryExists(It.IsAny<string>())).Returns(true);
         _files.Setup(f => f.GetFiles(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<SearchOption>())).Returns(AlbumFiles);
+        _files.Setup(f => f.ReadAllBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new byte[] { 1, 2, 3 });
 
         _progress.Setup(p => p.CreateDetailedProgress()).Returns(new Progress<TaskProgressDetail>());
         _progress.Setup(p => p.CurrentTaskCancellationSource).Returns(new CancellationTokenSource());
@@ -134,6 +142,7 @@ public class SelectionSaveServiceTests
     {
         _configFiles.Verify(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()), Times.Never);
         _autounattend.Verify(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()), Times.Never);
+        _autounattend.Verify(w => w.WriteMediaAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Func<string, Task>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Theory]
@@ -160,16 +169,16 @@ public class SelectionSaveServiceTests
             .Setup(v => v.ValidateAsync(XmlPath, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AnswerFileReport(
             [
-                new AnswerFileFinding(AnswerFileRule.DuplicateAccountName, AnswerFileSeverity.Error, "line 12: LocalAccount", "Marco"),
+                new AnswerFileFinding(AnswerFileRule.NoAdministratorAccount, AnswerFileSeverity.Warning, "line 12: LocalAccount", "Marco"),
             ]));
 
         await Sut().SaveAsync(BuilderTarget.Autounattend, SelectionSet.Empty);
 
         VerifySummary(r => r.Title == "Dialog_Success"
-            && r.Verdict!.Title == "WIMUtil_AnswerFile_Verdict_WillFail"
+            && r.Verdict!.Title == "WIMUtil_AnswerFile_Verdict_MayFail"
             && r.CopyText != null
             && r.Sections.SelectMany(s => s.Rows).Any(row =>
-                row.Title == "WIMUtil_AnswerFile_Rule_DuplicateAccountName" && row.Tone == SummaryTone.Error)
+                row.Title == "WIMUtil_AnswerFile_Rule_NoAdministratorAccount" && row.Tone == SummaryTone.Warning)
             && r.Sections.SelectMany(s => s.Rows).Any(row =>
                 row.Title == "WIMUtil_Generate_Plan_NoWindowsApps" && row.Tone == SummaryTone.Warning));
     }
@@ -186,17 +195,18 @@ public class SelectionSaveServiceTests
     }
 
     [Fact]
-    public async Task ACheckThatFails_StillReportsTheSave()
+    public async Task ACheckThatFails_StopsTheSave()
     {
         ArrangePicker(XmlPath);
         _validator
             .Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new IOException("file locked"));
 
-        await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps);
+        var act = () => Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps);
 
-        VerifySummary(r => r.Title == "Dialog_Success" && r.Verdict == null);
-        _dialogs.Verify(d => d.ShowErrorAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        await act.Should().ThrowAsync<IOException>();
+        VerifyNoSummary();
+        _progress.Verify(p => p.FailTask(), Times.Once);
     }
 
     [Fact]
@@ -267,9 +277,8 @@ public class SelectionSaveServiceTests
         _progress.Verify(p => p.StartTask(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
     }
 
-    // WIMUtil checks the file itself once the save returns, so the service must not check it as well.
     [Fact]
-    public async Task ReportSuccessInDialog_False_LeavesTheCheckToTheCaller_ButStillShowsTheProgressBar()
+    public async Task ReportSuccessInDialog_False_StillRequiresValidation()
     {
         await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps, new SelectionSaveOptions
         {
@@ -277,9 +286,30 @@ public class SelectionSaveServiceTests
             ReportSuccessInDialog = false,
         });
 
-        _validator.Verify(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _validator.Verify(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
         _progress.Verify(p => p.StartTask("Builder_Save_SavingAnswerFile", true), Times.Once);
         _progress.Verify(p => p.CompleteTask(), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(AnswerFileRule.PowerShellParse, AnswerFileSeverity.Error, true)]
+    [InlineData(AnswerFileRule.PowerShellParse, AnswerFileSeverity.Error, false)]
+    [InlineData(AnswerFileRule.ParserUnavailable, AnswerFileSeverity.Warning, true)]
+    [InlineData(AnswerFileRule.ParserUnavailable, AnswerFileSeverity.Warning, false)]
+    public async Task BrokenGeneratedAnswerFile_StopsBeforeReportingSuccess(AnswerFileRule rule, AnswerFileSeverity severity, bool reportInDialog)
+    {
+        _validator.Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AnswerFileReport([new(rule, severity, "Winhancements.ps1", "broken script")]));
+        var act = () => Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps, new SelectionSaveOptions
+        {
+            FixedPath = XmlPath,
+            ReportSuccessInDialog = reportInDialog,
+        });
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*broken script*");
+        VerifyNoSummary();
+        _progress.Verify(p => p.FailTask(), Times.Once);
+        _progress.Verify(p => p.CompleteTask(), Times.Never);
     }
 
     [Fact]
@@ -420,16 +450,15 @@ public class SelectionSaveServiceTests
     }
 
     [Fact]
-    public async Task Autounattend_InAWimUtilSession_EnsuresTheDriverStepOnTheWrittenFile()
+    public async Task StandaloneSave_InAWimUtilSession_LeavesTheDriverStepAlone()
     {
         ArrangePicker(XmlPath);
         _session.WorkingDirectory = WorkingDirectory;
 
         await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps);
 
-        _wim.Verify(
-            w => w.EnsureDriverInstallStepAsync(XmlPath, WorkingDirectory, It.IsAny<CancellationToken>()),
-            Times.Once);
+        VerifyDriverStep(Times.Never());
+        _autounattend.Verify(w => w.WriteMediaAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Func<string, Task>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -463,13 +492,31 @@ public class SelectionSaveServiceTests
             .Setup(w => w.EnsureDriverInstallStepAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new IOException("the media went away"));
 
-        string? savedPath = (await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps)).Path;
+        string? savedPath = (await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps, new SelectionSaveOptions { MediaFolder = WorkingDirectory })).Path;
 
         savedPath.Should().Be(XmlPath);
         _log.Verify(
             l => l.Log(LogLevel.Warning, It.Is<string>(m => m.Contains("the media went away")), null, It.IsAny<string>()),
             Times.Once);
         VerifySummary(r => r.Message == "AdvancedTools_Msg_XmlGenSuccess" && r.Title == "Dialog_Success");
+    }
+
+    [Fact]
+    public async Task InvalidReplacement_DoesNotOverwriteTheExistingAnswerFile()
+    {
+        ArrangePicker(XmlPath);
+        _files.Setup(f => f.FileExists(XmlPath)).Returns(true);
+        _autounattend.Setup(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.IsAny<string>()))
+            .ReturnsAsync((SelectionSet _, CatalogScope _, string path) => path);
+        _validator.Setup(v => v.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AnswerFileReport([new AnswerFileFinding(AnswerFileRule.PowerShellParse, AnswerFileSeverity.Error, "script", "invalid")]));
+
+        Func<Task> save = () => Sut().SaveAsync(BuilderTarget.Autounattend, SetWithApps);
+        await save.Should().ThrowAsync<InvalidOperationException>();
+
+        _autounattend.Verify(w => w.WriteAsync(It.IsAny<SelectionSet>(), It.IsAny<CatalogScope>(), It.Is<string>(path => path.StartsWith(XmlPath + ".tmp-"))), Times.Once);
+        _files.Verify(f => f.CopyFile(It.IsAny<string>(), XmlPath, true), Times.Never);
+        _files.Verify(f => f.DeleteFile(XmlPath), Times.Never);
     }
 
     private static SelectionSet SetWithAlbum(string folder) => new(
@@ -481,51 +528,60 @@ public class SelectionSaveServiceTests
         ((ChoiceValue.Text)set!.Settings[0].Value).Value;
 
     [Fact]
-    public async Task Autounattend_InAWimUtilSession_CopiesTheAlbumOntoTheMediaAndNamesWhereItLands()
+    public async Task StandaloneSave_InAWimUtilSession_LeavesAlbumPathOnly()
     {
         ArrangePicker(XmlPath);
         _session.WorkingDirectory = WorkingDirectory;
 
         await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithAlbum(AlbumFolder));
 
-        _files.Verify(f => f.CreateDirectory(StagedAlbum), Times.Once);
-        _files.Verify(f => f.CopyFile(@"D:\Pictures\Holiday\one.jpg", StagedAlbum + @"\one.jpg", true), Times.Once);
-        _files.Verify(f => f.CopyFile(@"D:\Pictures\Holiday\two.PNG", StagedAlbum + @"\two.PNG", true), Times.Once);
-        AlbumFolderOf(_written).Should().Be(LandedAlbum);
+        _written!.Files.Should().BeEmpty();
+        _autounattend.Verify(w => w.WriteAsync(_written, CatalogScope.CurrentMachine, XmlPath), Times.Once);
+        AlbumFolderOf(_written).Should().Be(AlbumFolder);
+        _files.Verify(f => f.ReadAllBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task Autounattend_InAWimUtilSession_CopiesOnlyPictures()
+    public async Task MediaGeneration_CarriesOnlyPictures()
     {
         ArrangePicker(XmlPath);
         _session.WorkingDirectory = WorkingDirectory;
 
-        await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithAlbum(AlbumFolder));
+        await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithAlbum(AlbumFolder), new SelectionSaveOptions
+        {
+            FixedPath = XmlPath,
+            MediaFolder = WorkingDirectory,
+        });
 
-        _files.Verify(f => f.CopyFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Exactly(2));
+        _files.Verify(f => f.ReadAllBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _written!.Files.Should().HaveCount(2);
     }
 
     [Fact]
-    public async Task Autounattend_InAWimUtilSession_CopiesAHeicSlide()
+    public async Task MediaGeneration_CarriesAHeicSlide()
     {
         ArrangePicker(XmlPath);
         _session.WorkingDirectory = WorkingDirectory;
         _files.Setup(f => f.GetFiles(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<SearchOption>()))
             .Returns(HeicAlbumFiles);
 
-        await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithAlbum(AlbumFolder));
+        await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithAlbum(AlbumFolder), new SelectionSaveOptions
+        {
+            FixedPath = XmlPath,
+            MediaFolder = WorkingDirectory,
+        });
 
-        _files.Verify(f => f.CopyFile(@"D:\Pictures\Holiday\three.heic", StagedAlbum + @"\three.heic", true), Times.Once);
+        _written!.Files.Should().Equal(new CarriedFile("theme-wallpaper-album", LandedAlbum + @"\three.heic", "AQID"));
     }
 
     [Fact]
-    public async Task Autounattend_OutsideAWimUtilSession_LeavesTheAlbumWhereItWasAuthored()
+    public async Task Autounattend_OutsideAWimUtilSession_LeavesAlbumPathOnly()
     {
         ArrangePicker(XmlPath);
 
         await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithAlbum(AlbumFolder));
 
-        _files.Verify(f => f.CopyFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+        _written!.Files.Should().BeEmpty();
         AlbumFolderOf(_written).Should().Be(AlbumFolder);
     }
 
@@ -543,7 +599,7 @@ public class SelectionSaveServiceTests
     }
 
     [Fact]
-    public async Task AnAlbumThisPcDoesNotHave_IsLogged_AndTravelsAsAuthored()
+    public async Task StandaloneAlbumPath_IsKeptWithoutCheckingTheLocalFolder()
     {
         ArrangePicker(XmlPath);
         _session.WorkingDirectory = WorkingDirectory;
@@ -553,9 +609,35 @@ public class SelectionSaveServiceTests
 
         _files.Verify(f => f.CopyFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
         AlbumFolderOf(_written).Should().Be(AlbumFolder);
-        _log.Verify(
-            l => l.Log(LogLevel.Warning, It.Is<string>(m => m.Contains(AlbumFolder)), null, It.IsAny<string>()),
-            Times.Once);
+        _files.Verify(f => f.DirectoryExists(AlbumFolder), Times.Never);
+    }
+
+    [Fact]
+    public async Task MediaGeneration_WithMissingAlbum_StopsBeforeWriting()
+    {
+        _files.Setup(f => f.DirectoryExists(AlbumFolder)).Returns(false);
+        Func<Task> save = () => Sut().SaveAsync(BuilderTarget.Autounattend, SetWithAlbum(AlbumFolder), new SelectionSaveOptions
+        {
+            FixedPath = XmlPath,
+            MediaFolder = WorkingDirectory,
+        });
+        await save.Should().ThrowAsync<IOException>().WithMessage("*not available*");
+        VerifyNothingWritten();
+    }
+
+    [Fact]
+    public async Task MediaGeneration_WithMissingCustomWallpaper_StopsBeforeWriting()
+    {
+        const string wallpaper = @"D:\Pictures\missing.jpg";
+        _theme.Setup(t => t.Travels(wallpaper)).Returns(true);
+        var set = new SelectionSet([new SettingChoice("theme-wallpaper-picture", new ChoiceValue.Keyed(wallpaper, "missing"))], [], []);
+        Func<Task> save = () => Sut().SaveAsync(BuilderTarget.Autounattend, set, new SelectionSaveOptions
+        {
+            FixedPath = XmlPath,
+            MediaFolder = WorkingDirectory,
+        });
+        await save.Should().ThrowAsync<IOException>().WithMessage("*not available*");
+        VerifyNothingWritten();
     }
 
     [Fact]
@@ -571,7 +653,7 @@ public class SelectionSaveServiceTests
     }
 
     [Fact]
-    public async Task Autounattend_WithAMediaFolderAndNoWimUtilSession_CopiesTheAlbumOntoThatMedia()
+    public async Task Autounattend_WithAMediaFolderAndNoWimUtilSession_PassesTheAlbumToTheMediaWriter()
     {
         await Sut().SaveAsync(BuilderTarget.Autounattend, SetWithAlbum(AlbumFolder), new SelectionSaveOptions
         {
@@ -580,8 +662,8 @@ public class SelectionSaveServiceTests
             ReportSuccessInDialog = false,
         });
 
-        _files.Verify(f => f.CreateDirectory(StagedAlbum), Times.Once);
-        _files.Verify(f => f.CopyFile(@"D:\Pictures\Holiday\one.jpg", StagedAlbum + @"\one.jpg", true), Times.Once);
+        _written!.Files.Should().HaveCount(2);
+        _autounattend.Verify(w => w.WriteMediaAsync(_written, CatalogScope.CurrentMachine, XmlPath, WorkingDirectory, It.IsAny<Func<string, Task>>(), It.IsAny<CancellationToken>()), Times.Once);
         AlbumFolderOf(_written).Should().Be(LandedAlbum);
     }
 

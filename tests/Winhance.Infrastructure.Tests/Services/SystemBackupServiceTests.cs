@@ -26,6 +26,9 @@ public class SystemBackupServiceTests
         _mockLocalization
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => key);
+        _mockLocalization
+            .Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Returns((string key, object[] args) => $"{key}:{string.Join(",", args)}");
 
         _sut = new SystemBackupService(
             _mockLog.Object,
@@ -48,6 +51,36 @@ public class SystemBackupServiceTests
         result.Success.Should().BeFalse();
     }
 
+    [Theory]
+    [InlineData(1058, "RestorePoint_Error_ServiceDisabled")]
+    [InlineData(112, "RestorePoint_Error_DiskFull")]
+    [InlineData(10, "RestorePoint_Error_SafeMode")]
+    [InlineData(1460, "RestorePoint_Error_Timeout")]
+    [InlineData(1359, "RestorePoint_Error_Internal")]
+    [InlineData(-2147212542, "RestorePoint_Error_ShadowCopy")]
+    [InlineData(-2147212532, "RestorePoint_Error_WindowsCode:0x8004230C")]
+    [InlineData(-1, "RestorePoint_Error_WindowsCode:0xFFFFFFFF")]
+    public async Task CreateRestorePointAsync_NativeWriteFails_ReturnsALocalizedReasonForTheStatus(int status, string expected)
+    {
+        _restorePointWriter.StatusCode = status;
+
+        var result = await _sut.CreateRestorePointAsync();
+
+        result.ErrorMessage.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task CreateRestorePointAsync_NativeWriteFails_LogsTheFailureOnce()
+    {
+        _restorePointWriter.StatusCode = -2147212542;
+
+        await _sut.CreateRestorePointAsync();
+
+        _mockLog.Verify(
+            l => l.Log(Core.Features.Common.Enums.LogLevel.Error, It.Is<string>(m => m.StartsWith("Failed to create restore point")), It.IsAny<Exception>(), It.IsAny<string>()),
+            Times.Once);
+    }
+
     [Fact]
     public async Task CreateRestorePointAsync_ReportsProgressViaCallback()
     {
@@ -67,6 +100,210 @@ public class SystemBackupServiceTests
         var result = await _sut.CreateRestorePointAsync(cancellationToken: cts.Token);
 
         result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task CreateRestorePointAsync_CancelledBeforeTheWrite_ThrowsAndWritesNothing()
+    {
+        _mockSystemRestore.Setup(s => s.IsEnabledForC()).Returns(true);
+        _restorePointWriter.Success = true;
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var act = () => _sut.CreateRestorePointAsync(cancellationToken: cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _restorePointWriter.LastDescription.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CreateRestorePointAsync_CancelledBeforeItStarts_LeavesProtectionOff()
+    {
+        _mockSystemRestore.Setup(s => s.IsEnabledForC()).Returns(false);
+        _restorePointWriter.Success = true;
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var act = () => _sut.CreateRestorePointAsync(cancellationToken: cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _wmiApi.ClassInvocations.Should().BeEmpty();
+        _restorePointWriter.LastDescription.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CreateRestorePointAsync_CancelledWhileTurningProtectionOn_TurnsItBackOff()
+    {
+        _mockSystemRestore.Setup(s => s.IsEnabledForC()).Returns(false);
+        _restorePointWriter.Success = true;
+        using var cts = new CancellationTokenSource();
+        _mockProcessExecutor
+            .Setup(p => p.ExecuteAsync("vssadmin", It.Is<string>(a => a.Contains("MaxSize=20GB")), It.IsAny<CancellationToken>()))
+            .Callback(() => cts.Cancel())
+            .ReturnsAsync(new ProcessExecutionResult { ExitCode = 0 });
+
+        var act = () => _sut.CreateRestorePointAsync(cancellationToken: cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _restorePointWriter.LastDescription.Should().BeNull();
+        _wmiApi.ClassInvocations.Select(i => i.Method).Should().Equal("Enable", "Disable");
+    }
+
+    [Fact]
+    public async Task CreateRestorePointAsync_CancelledWhenProtectionWasAlreadyOn_LeavesItOn()
+    {
+        _mockSystemRestore.Setup(s => s.IsEnabledForC()).Returns(true);
+        _restorePointWriter.Success = true;
+        using var cts = new CancellationTokenSource();
+        _mockProcessExecutor
+            .Setup(p => p.ExecuteAsync("vssadmin", It.Is<string>(a => a.StartsWith("list shadowstorage")), It.IsAny<CancellationToken>()))
+            .Callback(() => cts.Cancel())
+            .ReturnsAsync(new ProcessExecutionResult { ExitCode = 1 });
+
+        var act = () => _sut.CreateRestorePointAsync(cancellationToken: cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _restorePointWriter.LastDescription.Should().BeNull();
+        _wmiApi.ClassInvocations.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CreateRestorePointAsync_CancelledDuringTheStorageCheckAfterTurningOn_TurnsItBackOff()
+    {
+        _mockSystemRestore.Setup(s => s.IsEnabledForC()).Returns(false);
+        _restorePointWriter.Success = true;
+        using var cts = new CancellationTokenSource();
+        _mockProcessExecutor
+            .Setup(p => p.ExecuteAsync("vssadmin", It.Is<string>(a => a.StartsWith("list shadowstorage")), It.IsAny<CancellationToken>()))
+            .Callback(() => cts.Cancel())
+            .ReturnsAsync(new ProcessExecutionResult { ExitCode = 1 });
+
+        var act = () => _sut.CreateRestorePointAsync(cancellationToken: cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _restorePointWriter.LastDescription.Should().BeNull();
+        _restorePointWriter.Removed.Should().BeEmpty();
+        _wmiApi.ClassInvocations.Select(i => i.Method).Should().Equal("Enable", "Disable");
+    }
+
+    [Fact]
+    public async Task CreateRestorePointAsync_CancelledDuringTheWriteAfterTurningOn_RemovesThePointAndTurnsItBackOff()
+    {
+        _mockSystemRestore.Setup(s => s.IsEnabledForC()).Returns(false);
+        _restorePointWriter.Success = true;
+        using var cts = new CancellationTokenSource();
+        _restorePointWriter.OnCreate = cts.Cancel;
+
+        var act = () => _sut.CreateRestorePointAsync(cancellationToken: cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _restorePointWriter.Removed.Should().Equal(42u);
+        _wmiApi.ClassInvocations.Select(i => i.Method).Should().Equal("Enable", "Disable");
+    }
+
+    [Fact]
+    public async Task CreateRestorePointAsync_CancelledDuringTheWriteWithProtectionOn_RemovesThePointAndLeavesItOn()
+    {
+        _mockSystemRestore.Setup(s => s.IsEnabledForC()).Returns(true);
+        _restorePointWriter.Success = true;
+        using var cts = new CancellationTokenSource();
+        _restorePointWriter.OnCreate = cts.Cancel;
+
+        var act = () => _sut.CreateRestorePointAsync(cancellationToken: cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _restorePointWriter.Removed.Should().Equal(42u);
+        _wmiApi.ClassInvocations.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CreateRestorePointAsync_CancelledDuringTheWriteWhenThePointMayNotBeOurs_RemovesNothing()
+    {
+        _mockSystemRestore.Setup(s => s.IsEnabledForC()).Returns(false);
+        _restorePointWriter.Success = true;
+        _restorePointWriter.SequenceNumber = null;
+        using var cts = new CancellationTokenSource();
+        _restorePointWriter.OnCreate = cts.Cancel;
+
+        var act = () => _sut.CreateRestorePointAsync(cancellationToken: cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _restorePointWriter.Removed.Should().BeEmpty();
+        _wmiApi.ClassInvocations.Select(i => i.Method).Should().Equal("Enable", "Disable");
+    }
+
+    [Fact]
+    public async Task CreateRestorePointAsync_CancelledWhileVerifying_RemovesThePointAndTurnsItBackOff()
+    {
+        _mockSystemRestore.Setup(s => s.IsEnabledForC()).Returns(false);
+        _restorePointWriter.Success = true;
+        using var cts = new CancellationTokenSource();
+        _restorePointWriter.OnCreate = () => cts.CancelAfter(TimeSpan.FromMilliseconds(200));
+
+        var act = () => _sut.CreateRestorePointAsync(cancellationToken: cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _restorePointWriter.Removed.Should().Equal(42u);
+        _wmiApi.ClassInvocations.Select(i => i.Method).Should().Equal("Enable", "Disable");
+    }
+
+    [Fact]
+    public async Task CreateRestorePointAsync_CancelledBeforeWindowsRegistersThePoint_RemovesItOnceItIs()
+    {
+        _mockSystemRestore.Setup(s => s.IsEnabledForC()).Returns(false);
+        _restorePointWriter.Success = true;
+        _restorePointWriter.NotFoundRemovals = 2;
+        using var cts = new CancellationTokenSource();
+        _restorePointWriter.OnCreate = cts.Cancel;
+
+        var act = () => _sut.CreateRestorePointAsync(cancellationToken: cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _restorePointWriter.RemoveAttempts.Should().Be(3);
+        _restorePointWriter.Removed.Should().Equal(42u);
+        _wmiApi.ClassInvocations.Select(i => i.Method).Should().Equal("Enable", "Disable");
+    }
+
+    [Fact]
+    public async Task CreateRestorePointAsync_CancelledDuringTheQueryThatFindsThePoint_RemovesItAndThrows()
+    {
+        _mockSystemRestore.Setup(s => s.IsEnabledForC()).Returns(true);
+        _restorePointWriter.Success = true;
+        _wmiApi.For("SystemRestore").Add(new FakeWmiInstance
+        {
+            ["CreationTime"] = ManagementDateTimeConverter.ToDmtfDateTime(DateTime.Now),
+        });
+        using var cts = new CancellationTokenSource();
+        _wmiApi.OnQuery = cts.Cancel;
+
+        var act = () => _sut.CreateRestorePointAsync(cancellationToken: cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _restorePointWriter.Removed.Should().Equal(42u);
+    }
+
+    [Fact]
+    public async Task CreateRestorePointAsync_FailsAfterTurningProtectionOn_SaysSoAndLeavesTheChoiceToTheUser()
+    {
+        _mockSystemRestore.Setup(s => s.IsEnabledForC()).Returns(false);
+
+        var result = await _sut.CreateRestorePointAsync();
+
+        result.Success.Should().BeFalse();
+        result.TurnedProtectionOn.Should().BeTrue();
+        _wmiApi.ClassInvocations.Select(i => i.Method).Should().Equal("Enable");
+    }
+
+    [Fact]
+    public async Task CreateRestorePointAsync_FailsWithProtectionAlreadyOn_DoesNotClaimToHaveTurnedItOn()
+    {
+        _mockSystemRestore.Setup(s => s.IsEnabledForC()).Returns(true);
+
+        var result = await _sut.CreateRestorePointAsync();
+
+        result.Success.Should().BeFalse();
+        result.TurnedProtectionOn.Should().BeFalse();
+        _wmiApi.ClassInvocations.Should().BeEmpty();
     }
 
     [Fact]
@@ -185,11 +422,33 @@ internal sealed class FakeSystemRestorePointWriter : ISystemRestorePointWriter
 
     public int StatusCode { get; set; } = -1;
 
+    public uint? SequenceNumber { get; set; } = 42;
+
+    public Action? OnCreate { get; set; }
+
     public string? LastDescription { get; private set; }
 
-    public (bool Success, int StatusCode) CreateRestorePoint(string description)
+    public int NotFoundRemovals { get; set; }
+
+    public int RemoveAttempts { get; private set; }
+
+    public List<uint> Removed { get; } = [];
+
+    public (bool Success, int StatusCode, uint? SequenceNumber) CreateRestorePoint(string description)
     {
         LastDescription = description;
-        return (Success, StatusCode);
+        OnCreate?.Invoke();
+        return (Success, StatusCode, Success ? SequenceNumber : null);
+    }
+
+    public int RemoveRestorePoint(uint sequenceNumber)
+    {
+        if (++RemoveAttempts <= NotFoundRemovals)
+        {
+            return 2;
+        }
+
+        Removed.Add(sequenceNumber);
+        return 0;
     }
 }

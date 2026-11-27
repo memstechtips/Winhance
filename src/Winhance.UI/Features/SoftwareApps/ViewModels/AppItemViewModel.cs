@@ -1,9 +1,11 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
+using FluentIcons.Common;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
@@ -13,6 +15,17 @@ namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 public partial class AppItemViewModel : ObservableObject, IDisposable
 {
     private static readonly string[] SizeUnits = ["B", "KB", "MB", "GB", "TB"];
+
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(InstalledStatusText), nameof(ReinstallableStatusText), nameof(DescriptionTooltip), nameof(StatusColumnText),
+        nameof(InstabilityWarningLabel), nameof(InstabilityWarningTooltip), nameof(InstalledStatusTooltip),
+        nameof(CategoryDisplayName), nameof(UpdateAvailableLabel), nameof(UpdateAvailableTooltip), nameof(NoPackageTooltip),
+        nameof(ItemTypeDescription), nameof(OpenWebsiteLabel),
+    ];
+
+    private static readonly string[] IconProperties =
+        [nameof(IconSource), nameof(ResolvedIconPath), nameof(HasIcon), nameof(NeedsFallbackIcon)];
 
     private readonly ItemDefinition _definition;
     private readonly ILocalizationService _localizationService;
@@ -31,6 +44,7 @@ public partial class AppItemViewModel : ObservableObject, IDisposable
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
         _themeService = themeService;
+        IsInstalled = definition.IsInstalled;
 
         _localizationService.LanguageChanged += OnLanguageChanged;
         _themeService.ThemeChanged += OnThemeChanged;
@@ -49,23 +63,11 @@ public partial class AppItemViewModel : ObservableObject, IDisposable
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        OnPropertyChanged(nameof(InstalledStatusText));
-        OnPropertyChanged(nameof(ReinstallableStatusText));
-        OnPropertyChanged(nameof(DescriptionTooltip));
-        OnPropertyChanged(nameof(StatusColumnText));
-        OnPropertyChanged(nameof(InstabilityWarningLabel));
-        OnPropertyChanged(nameof(InstabilityWarningTooltip));
-        OnPropertyChanged(nameof(InstalledStatusTooltip));
-        OnPropertyChanged(nameof(CategoryDisplayName));
-        OnPropertyChanged(nameof(UpdateAvailableLabel));
-        OnPropertyChanged(nameof(UpdateAvailableTooltip));
-        OnPropertyChanged(nameof(NoPackageTooltip));
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
     }
 
-    private void OnThemeChanged(object? sender, WinhanceTheme theme)
-    {
-        _dispatcherService.RunOnUIThread(() => OnPropertyChanged(nameof(IconSource)));
-    }
+    private void OnThemeChanged(object? sender, WinhanceTheme theme) => NotifyIconChanged();
 
     public ItemDefinition Definition => _definition;
 
@@ -84,26 +86,12 @@ public partial class AppItemViewModel : ObservableObject, IDisposable
     public string GroupName => Definition.GroupName ?? string.Empty;
     public string Id => Definition.Id;
 
-    public bool IsInstalled
-    {
-        get => Definition.IsInstalled;
-        set
-        {
-            if (Definition.IsInstalled != value)
-            {
-                Definition.IsInstalled = value;
-                _dispatcherService.RunOnUIThread(() =>
-                {
-                    OnPropertyChanged();
-                    OnPropertyChanged(nameof(InstalledStatusText));
-                    OnPropertyChanged(nameof(InstalledStatusTooltip));
-                    OnPropertyChanged(nameof(HasUpdate));
-                    OnPropertyChanged(nameof(IsInstalledUpToDate));
-                    OnPropertyChanged(nameof(StatusColumnText));
-                });
-            }
-        }
-    }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(InstalledStatusText), nameof(InstalledStatusTooltip), nameof(HasUpdate), nameof(IsInstalledUpToDate),
+        nameof(StatusColumnText), nameof(StatusIcon), nameof(StatusTooltip))]
+    public partial bool IsInstalled { get; set; }
+
+    partial void OnIsInstalledChanged(bool value) => Definition.IsInstalled = value;
 
     public bool CanBeReinstalled => Definition.CanBeReinstalled;
 
@@ -113,27 +101,32 @@ public partial class AppItemViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasUpdate), nameof(IsInstalledUpToDate), nameof(StatusColumnText), nameof(Version), nameof(VersionSortKey), nameof(AvailableVersion),
         nameof(InstalledOn), nameof(InstalledOnText), nameof(SizeBytes), nameof(SizeText), nameof(UpdateAvailableTooltip),
-        nameof(PackageId), nameof(IsSelectable), nameof(NoPackageTooltip))]
+        nameof(StatusIcon), nameof(StatusTooltip))]
     public partial InstalledApp? Installed { get; set; }
 
-    partial void OnInstalledChanged(InstalledApp? value) => DropSelectionIfLocked();
+    partial void OnInstalledChanged(InstalledApp? value) => UpdateIsSelectable();
 
     // Builder writes a file for another PC, which can only install an app a package manager offers.
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsSelectable), nameof(NoPackageTooltip))]
     public partial bool AuthorsIntent { get; set; }
 
-    partial void OnAuthorsIntentChanged(bool value) => DropSelectionIfLocked();
+    partial void OnAuthorsIntentChanged(bool value) => UpdateIsSelectable();
 
-    private void DropSelectionIfLocked()
+    // Every mode change sets AuthorsIntent on all ~400 rows; only an unlisted app without a package can lock, so the
+    // rest keep this value and raise nothing that would re-evaluate their bindings.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NoPackageTooltip))]
+    public partial bool IsSelectable { get; private set; } = true;
+
+    partial void OnIsSelectableChanged(bool value)
     {
-        if (!IsSelectable)
+        if (!value)
             IsSelected = false;
     }
 
-    public string? PackageId => IsOtherInstalled && Installed is { } app ? OtherInstalledItem.PackageId(app) : null;
+    private void UpdateIsSelectable() => IsSelectable = !(AuthorsIntent && IsOtherInstalled && PackageId is null);
 
-    public bool IsSelectable => !(AuthorsIntent && IsOtherInstalled && PackageId is null);
+    public string? PackageId => IsOtherInstalled && Installed is { } app ? OtherInstalledItem.PackageId(app) : null;
 
     public string? NoPackageTooltip => IsSelectable ? null : _localizationService.GetString("ExternalApps_NoPackageSource_Tooltip",
         _localizationService.GetString("Setting_autounattend-own-installers_Name"), _localizationService.GetString("Nav_Autounattend"));
@@ -143,6 +136,10 @@ public partial class AppItemViewModel : ObservableObject, IDisposable
     public bool IsInstalledUpToDate => IsInstalled && !HasUpdate;
 
     public string StatusColumnText => HasUpdate ? UpdateAvailableLabel : InstalledStatusText;
+
+    public Icon StatusIcon => HasUpdate ? Icon.Clock : IsInstalled ? Icon.CheckmarkCircle : Icon.DismissCircle;
+
+    public string StatusTooltip => HasUpdate ? UpdateAvailableTooltip : InstalledStatusTooltip;
 
     public string Version => Installed?.Version ?? string.Empty;
 
@@ -184,6 +181,8 @@ public partial class AppItemViewModel : ObservableObject, IDisposable
 
     private BitmapImage? _iconSource;
     private string? _iconSourcePath;
+    private string? _resolvedIconBase;
+    private string? _resolvedIconPath;
 
     // Cached by path value so a change to IconPath produces a fresh BitmapImage on next read; IconPath is mutated
     // by IAppIconResolver AFTER binding, so mutators call NotifyIconChanged(). Separate from IconSource because path
@@ -193,7 +192,18 @@ public partial class AppItemViewModel : ObservableObject, IDisposable
         get
         {
             var basePath = Definition.IconPath;
-            return string.IsNullOrEmpty(basePath) ? null : ResolveThemeAwarePath(basePath);
+            if (string.IsNullOrEmpty(basePath))
+                return null;
+
+            // Every container that realizes the row reads this, so the variant files are probed once per theme
+            // and icon change, not on each read.
+            if (_resolvedIconPath is null || _resolvedIconBase != basePath)
+            {
+                _resolvedIconPath = ResolveThemeAwarePath(basePath);
+                _resolvedIconBase = basePath;
+            }
+
+            return _resolvedIconPath;
         }
     }
 
@@ -212,12 +222,27 @@ public partial class AppItemViewModel : ObservableObject, IDisposable
             if (_iconSource is not null && _iconSourcePath == resolvedPath)
                 return _iconSource;
 
-            var bmp = new BitmapImage { DecodePixelWidth = 64 };
+            // The card icon's size in logical pixels, so the decode follows the display scale and the
+            // smaller compact and table icons scale down from it.
+            var bmp = new BitmapImage { DecodePixelWidth = 36, DecodePixelType = DecodePixelType.Logical };
             bmp.UriSource = new Uri(resolvedPath);
             _iconSource = bmp;
             _iconSourcePath = resolvedPath;
             return _iconSource;
         }
+    }
+
+    // WinUI keeps the icon file's bytes in its image cache for as long as a BitmapImage points at the file, and a
+    // dropped BitmapImage only lets go when the GC collects its wrapper. Clearing UriSource frees them now; the next
+    // read of IconSource builds a fresh one.
+    public void ReleaseIcon()
+    {
+        if (_iconSource is null)
+            return;
+
+        _iconSource.UriSource = null;
+        _iconSource = null;
+        _iconSourcePath = null;
     }
 
     // Mirrors AppIconResolver.LightVariantPath / DarkVariantPath (in a
@@ -248,49 +273,40 @@ public partial class AppItemViewModel : ObservableObject, IDisposable
 
     public bool HasIcon => !string.IsNullOrEmpty(Definition.IconPath);
 
-    public bool IsAppXFallback =>
-        !HasIcon &&
-        string.IsNullOrEmpty(Definition.CapabilityName) &&
-        string.IsNullOrEmpty(Definition.OptionalFeatureName);
+    public bool NeedsFallbackIcon => !HasIcon;
 
-    public bool IsCapabilityFallback =>
-        !HasIcon && !string.IsNullOrEmpty(Definition.CapabilityName);
+    public Icon FallbackIcon =>
+        !string.IsNullOrEmpty(Definition.CapabilityName) ? Icon.PuzzlePiece
+        : !string.IsNullOrEmpty(Definition.OptionalFeatureName) ? Icon.StarSettings
+        : Icon.Apps;
 
-    public bool IsOptionalFeatureFallback =>
-        !HasIcon && !string.IsNullOrEmpty(Definition.OptionalFeatureName);
-
-    // Call after mutating Definition.IconPath (e.g. after ResolveBatchAsync) so the bound Image/FontIcon refresh.
+    // Call after mutating Definition.IconPath (e.g. after ResolveBatchAsync) so the bound Image and fallback icon refresh.
     public void NotifyIconChanged()
     {
         _dispatcherService.RunOnUIThread(() =>
         {
-            OnPropertyChanged(nameof(IconSource));
-            OnPropertyChanged(nameof(ResolvedIconPath));
-            OnPropertyChanged(nameof(HasIcon));
-            OnPropertyChanged(nameof(IsAppXFallback));
-            OnPropertyChanged(nameof(IsCapabilityFallback));
-            OnPropertyChanged(nameof(IsOptionalFeatureFallback));
+            _resolvedIconPath = null;
+            foreach (var name in IconProperties)
+                OnPropertyChanged(name);
         });
     }
 
-    public string ItemTypeDescription
+    public string ItemTypeDescription => Definition.Kind switch
     {
-        get
-        {
-            if (!string.IsNullOrEmpty(Definition.CapabilityName))
-                return "Legacy Capability";
-
-            if (!string.IsNullOrEmpty(Definition.OptionalFeatureName))
-                return "Optional Feature";
-
-            if (Definition.AppxPackageName?.Length > 0)
-                return "AppX Package";
-
-            return string.Empty;
-        }
-    }
+        WindowsAppKind.AppxPackage => _localizationService.GetString("SoftwareApps_Type_AppxPackage"),
+        WindowsAppKind.Capability => _localizationService.GetString("SoftwareApps_Type_LegacyCapability"),
+        WindowsAppKind.OptionalFeature => _localizationService.GetString("SoftwareApps_Type_OptionalFeature"),
+        WindowsAppKind.DesktopApp => _localizationService.GetString("SoftwareApps_Type_DesktopApp"),
+        _ => string.Empty,
+    };
 
     public string? WebsiteUrl => Definition.WebsiteUrl;
+
+    public Uri? WebsiteUri => Uri.TryCreate(WebsiteUrl, UriKind.Absolute, out var uri) ? uri : null;
+
+    public bool HasWebsite => WebsiteUri is not null;
+
+    public string OpenWebsiteLabel => _localizationService.GetString("Tooltip_OpenWebsite");
 
     public bool HasDescription => !string.IsNullOrEmpty(Definition.Description);
 

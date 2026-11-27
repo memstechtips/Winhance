@@ -71,6 +71,12 @@ public sealed record Setting
     // Such a card opens on this PC's reading, so nothing that sets cards by role may overwrite it.
     public bool SeedsFromThisPc => IsAnswerFileOnly && Targets.OfType<RegTarget>().Any(t => t.ReadOnly);
 
+    // Windows Settings shows "Some of these settings are managed by your organization" once one of these values exists.
+    public bool WritesGroupPolicy =>
+        Targets.OfType<RegTarget>().Any(t => !t.ReadOnly && (t.IsGroupPolicy || t.Paths.Any(RegTarget.IsPolicyPath)))
+        || Effects.Concat(States.SelectMany(s => s.Effects)).OfType<RegistryWriteEffect>()
+            .Any(e => e.IsGroupPolicy || RegTarget.IsPolicyPath(e.Path));
+
     // Derived from the setting shape, never authored, so it cannot drift from what the engine detects.
     public ControlKind Control =>
         CheckList is not null ? ControlKind.CheckList

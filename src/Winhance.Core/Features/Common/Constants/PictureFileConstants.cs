@@ -2,6 +2,9 @@ namespace Winhance.Core.Features.Common.Constants;
 
 public static class PictureFileConstants
 {
+    public const string CarriedPictureFolder = @"C:\Wallpapers\Winhance";
+    public const string LegacyCarriedPictureFolder = @"C:\Windows\Web\Wallpaper\Winhance";
+
     // Every picture type the Windows background picker offers. A config is someone else's file: nothing else lands.
     private static readonly string[] Extensions =
     [

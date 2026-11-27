@@ -9,6 +9,7 @@ using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Extensions.DI;
 using Winhance.UI.Features.Common.Models;
+using Winhance.UI.Features.Common.Utilities;
 using Winhance.UI.Features.SoftwareApps.Services;
 using Winhance.UI.Helpers;
 
@@ -25,6 +26,7 @@ internal sealed class TrayHost(
     IReadOnlyList<SettingsProfile> profiles,
     IVersionService versionService,
     ISupportAskSchedule supportAsk,
+    Task? maintenance,
     ILogService logService)
 {
     private const string MutexName = @"Local\Winhance-TrayHost";
@@ -34,8 +36,14 @@ internal sealed class TrayHost(
     // SystemTrayIcon subclasses the same window with id 1.
     private const nuint SubclassId = 2;
     private const nuint CheckTimer = 1;
+    private const nuint IdleTimer = 2;
+    // Every message and every finished background job starts the wait over, so memory is released once nothing has happened for this long.
+    private static readonly TimeSpan IdleDelay = TimeSpan.FromSeconds(30);
     // Posted to the window once a Winhance update check has saved its result; wParam 1 asks for the notification.
     private const uint WinhanceCheckedMessage = PInvoke.WM_APP + 2;
+
+    // The keys of every string the host and its menu show.
+    internal static readonly string[] StringPrefixes = ["Tray_", "Profiles_"];
 
     internal static readonly string[] ScheduledCheckArguments =
         [TrayController.CheckAppUpdatesFlag, nameof(AppUpdateCheckLaunch.Scheduled), SignInTask.TrayFlag];
@@ -89,6 +97,7 @@ internal sealed class TrayHost(
         using var services = StartServices(out var logService);
         var preferences = services.GetRequiredService<IUserPreferencesService>();
         var localization = services.GetRequiredService<ILocalizationService>();
+        localization.KeepOnly(StringPrefixes);
         localization.SetLanguage(preferences.GetPreference(UserPreferenceKeys.Language, "en"));
         var fileSystem = services.GetRequiredService<IFileSystemService>();
         var profiles = ProfileService.List(localization, fileSystem, ProfileService.FolderFor(services.GetRequiredService<IInteractiveUserService>(), fileSystem));
@@ -96,7 +105,7 @@ internal sealed class TrayHost(
         var maintenance = maintain ? Task.Run(() => MaintainAsync(services.GetRequiredService<IBackgroundTaskService>(), logService)) : null;
 
         var icon = new SystemTrayIcon(logService);
-        new TrayHost(icon, preferences, localization, profiles, services.GetRequiredService<IVersionService>(), services.GetRequiredService<ISupportAskSchedule>(), logService).RunLoop(quit, firstCheck);
+        new TrayHost(icon, preferences, localization, profiles, services.GetRequiredService<IVersionService>(), services.GetRequiredService<ISupportAskSchedule>(), maintenance, logService).RunLoop(quit, firstCheck);
 
         // Quitting mid-pass would leave removals half done and dispose the services under them.
         maintenance?.Wait();
@@ -191,8 +200,11 @@ internal sealed class TrayHost(
 
         var hwnd = _hwnd;
         var wait = ThreadPool.RegisterWaitForSingleObject(quit, (_, _) => PInvoke.PostMessage(hwnd, PInvoke.WM_CLOSE, default, default), null, Timeout.Infinite, executeOnlyOnce: true);
+        WakeWhenDone(maintenance);
         while (PInvoke.GetMessage(out var message, HWND.Null, 0, 0).Value > 0)
         {
+            if (message.message != PInvoke.WM_TIMER || message.wParam.Value != IdleTimer)
+                PInvoke.SetTimer(_hwnd, IdleTimer, (uint)IdleDelay.TotalMilliseconds, null);
             PInvoke.TranslateMessage(in message);
             PInvoke.DispatchMessage(in message);
         }
@@ -203,6 +215,10 @@ internal sealed class TrayHost(
         PInvoke.DestroyWindow(_hwnd);
     }
 
+    // Background work ends off the window's thread; the empty message starts the idle wait over from its end.
+    private void WakeWhenDone(Task? work) =>
+        work?.ContinueWith(_ => PInvoke.PostMessage(_hwnd, PInvoke.WM_NULL, default, default), TaskScheduler.Default);
+
     private void ApplyStatus()
     {
         _status = TrayStatus.Load(preferences, versionService.GetCurrentVersion());
@@ -210,15 +226,30 @@ internal sealed class TrayHost(
         icon.SetMenu(TrayController.BuildMenu(localization, profiles, ActiveProfileId(), busy: false, _status));
     }
 
-    // Runs off the window's thread: it saves the result and posts the rest back.
-    private async Task CheckWinhanceUpdateAsync()
+    // Runs off the window's thread: it saves the result and posts the rest back. An update set to install
+    // automatically is announced only when it could not start.
+    private async Task CheckWinhanceUpdateAsync(bool mayInstall)
     {
         var (done, version) = await AppUpdateMonitor.CheckWinhanceAsync(versionService, preferences, DateTime.UtcNow);
         if (!done)
             return;
 
         var announce = await TrayStatus.RecordWinhanceUpdateAsync(preferences, version, versionService.GetCurrentVersion());
+        if (mayInstall && await TryInstallWinhanceUpdateAsync(version))
+            return;
         PInvoke.PostMessage(_hwnd, WinhanceCheckedMessage, new WPARAM(announce ? 1u : 0u), default);
+    }
+
+    // Nothing is open here, so this is the moment to install. The installer closes every Winhance process, so it
+    // waits for the maintenance pass and for a tick that did not just start an app update check.
+    private async Task<bool> TryInstallWinhanceUpdateAsync(string? version)
+    {
+        if (maintenance is { IsCompleted: false } || !AppUpdateMonitor.WinhanceAutoInstallIsDue(preferences, version)
+            || !await AppUpdateMonitor.StartWinhanceInstallAsync(versionService, preferences, version!, logService))
+            return false;
+
+        PInvoke.PostMessage(_hwnd, PInvoke.WM_CLOSE, default, default);
+        return true;
     }
 
     private string? ActiveProfileId() => ProfileService.LastSwitchFailedIn(preferences) ? null : ProfileService.ActiveProfileIdIn(preferences);
@@ -264,10 +295,16 @@ internal sealed class TrayHost(
         {
             case PInvoke.WM_TIMER when wParam.Value == CheckTimer:
                 PInvoke.SetTimer(_hwnd, CheckTimer, (uint)AppUpdateMonitor.Tick.TotalMilliseconds, null);
-                if (AppUpdateMonitor.IsDue(preferences, DateTime.UtcNow))
-                    Launch(ScheduledCheckArguments);
-                if (AppUpdateMonitor.WinhanceCheckIsDue(preferences, DateTime.UtcNow))
-                    CheckWinhanceUpdateAsync().FireAndForget(logService);
+                var checksApps = AppUpdateMonitor.IsDue(preferences, DateTime.UtcNow) && Launch(ScheduledCheckArguments);
+                var work = AppUpdateMonitor.WinhanceCheckIsDue(preferences, DateTime.UtcNow) ? CheckWinhanceUpdateAsync(mayInstall: !checksApps)
+                    : !checksApps ? TryInstallWinhanceUpdateAsync(_status.WinhanceVersion)
+                    : null;
+                work?.FireAndForget(logService);
+                WakeWhenDone(work);
+                return new LRESULT(0);
+            case PInvoke.WM_TIMER when wParam.Value == IdleTimer:
+                PInvoke.KillTimer(_hwnd, IdleTimer);
+                Task.Run(NativeHeaps.ReleaseAllWhileIdle).FireAndForget(logService);
                 return new LRESULT(0);
             case WinhanceCheckedMessage:
                 ApplyStatus();

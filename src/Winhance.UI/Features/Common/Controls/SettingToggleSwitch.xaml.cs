@@ -1,9 +1,7 @@
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
-using Winhance.UI.Features.Optimize.ViewModels;
 
 namespace Winhance.UI.Features.Common.Controls;
 
@@ -17,53 +15,6 @@ public sealed partial class SettingToggleSwitch : SettingBoundControl
     public SettingToggleSwitch()
     {
         InitializeComponent();
-    }
-
-    public bool IsOn { get; private set; }
-    public string OnText { get; private set; } = string.Empty;
-    public string OffText { get; private set; } = string.Empty;
-    public string SettingName { get; private set; } = string.Empty;
-
-    public double SwitchOpacity { get; private set; } = 1d;
-    public bool SwitchInteractive { get; private set; } = true;
-    public AccessibilityView SwitchAccessibilityView { get; private set; } = AccessibilityView.Content;
-
-    public Visibility OverlayVisibility { get; private set; } = Visibility.Collapsed;
-    public FluentIcons.Common.Icon OverlayIcon { get; private set; } = FluentIcons.Common.Icon.QuestionCircle;
-    public string OverlayShortLabel { get; private set; } = string.Empty;
-    public string OverlayText { get; private set; } = string.Empty;
-    public string OverlayTooltip { get; private set; } = string.Empty;
-
-    protected override bool RefreshesOn(string propertyName)
-        => propertyName is nameof(SettingItemViewModel.IsSelected)
-            or nameof(SettingItemViewModel.Outcome)
-            or nameof(SettingItemViewModel.Name);
-
-    protected override void Refresh()
-    {
-        if (Setting is not { } vm)
-            return;
-
-        IsOn = vm.IsSelected;
-        OnText = vm.OnText;
-        OffText = vm.OffText;
-        SettingName = vm.Name;
-
-        SwitchOpacity = vm.TwoStateOpacityFor(vm.Outcome);
-        SwitchInteractive = vm.TwoStateInteractiveFor(vm.Outcome);
-        SwitchAccessibilityView = vm.TwoStateAccessibilityViewFor(vm.Outcome);
-
-        OverlayVisibility = vm.OverlayVisibilityFor(vm.Outcome);
-        OverlayIcon = vm.OverlayIconFor(vm.Outcome);
-        OverlayShortLabel = vm.OverlayShortLabelFor(vm.Outcome);
-        OverlayText = vm.OverlayStateTextFor(vm.Outcome);
-        OverlayTooltip = vm.OverlayTooltipFor(vm.Outcome);
-
-        Notify(
-            nameof(IsOn), nameof(OnText), nameof(OffText), nameof(SettingName),
-            nameof(SwitchOpacity), nameof(SwitchInteractive), nameof(SwitchAccessibilityView),
-            nameof(OverlayVisibility), nameof(OverlayIcon), nameof(OverlayShortLabel),
-            nameof(OverlayText), nameof(OverlayTooltip));
     }
 
     private void OnToggled(object sender, RoutedEventArgs e) => Setting?.OnToggleSwitchToggled(sender);

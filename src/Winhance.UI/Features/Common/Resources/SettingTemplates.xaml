@@ -10,11 +10,13 @@
     xmlns:converters="using:Winhance.UI.Features.Common.Converters"
     xmlns:selectors="using:Winhance.UI.Features.Common.TemplateSelectors"
     xmlns:coreModels="using:Winhance.Core.Features.Common.Models"
-    xmlns:fluentIcons="using:FluentIcons.WinUI">
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
+    xmlns:helpers="using:Winhance.UI.Features.Common.Helpers">
 
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="TechnicalDetailsStyles.xaml"/>
         <ResourceDictionary Source="IconSizes.xaml"/>
+        <ResourceDictionary Source="LayoutTokens.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
     <!-- Common spacing for settings cards -->
@@ -30,11 +32,8 @@
                     Style="{StaticResource BadgeRecommendedStyle}"
                     Opacity="{x:Bind IsHighlighted, Converter={StaticResource BoolToDimOpacityConverter}}"
                     ToolTipService.ToolTip="{x:Bind Tooltip}">
-                    <StackPanel Orientation="Horizontal" Spacing="4">
-                        <PathIcon Data="{StaticResource BadgeRecommendedIconPath}"
-                                  Height="12" Width="12"
-                                  VerticalAlignment="Center"
-                                  Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource PillSpacing}">
+                        <fluentIcons:FluentIcon Style="{StaticResource BadgeRecommendedIcon}"/>
                         <TextBlock Text="{x:Bind Label}"
                                    Style="{StaticResource BadgeTextStyle}"
                                    Foreground="{ThemeResource BadgeRecommendedForeground}"/>
@@ -49,11 +48,8 @@
                     Style="{StaticResource BadgeDefaultStyle}"
                     Opacity="{x:Bind IsHighlighted, Converter={StaticResource BoolToDimOpacityConverter}}"
                     ToolTipService.ToolTip="{x:Bind Tooltip}">
-                    <StackPanel Orientation="Horizontal" Spacing="4">
-                        <PathIcon Data="{StaticResource BadgeDefaultIconPath}"
-                                  Height="12" Width="12"
-                                  VerticalAlignment="Center"
-                                  Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource PillSpacing}">
+                        <fluentIcons:FluentIcon Style="{StaticResource BadgeDefaultIcon}"/>
                         <TextBlock Text="{x:Bind Label}"
                                    Style="{StaticResource BadgeTextStyle}"
                                    Foreground="{ThemeResource BadgeDefaultForeground}"/>
@@ -69,11 +65,8 @@
                     Style="{StaticResource BadgePreferenceStyle}"
                     Opacity="{x:Bind IsHighlighted, Converter={StaticResource BoolToDimOpacityConverter}}"
                     ToolTipService.ToolTip="{x:Bind Tooltip}">
-                    <StackPanel Orientation="Horizontal" Spacing="4">
-                        <PathIcon Data="{StaticResource BadgePreferenceIconPath}"
-                                  Height="12" Width="12"
-                                  VerticalAlignment="Center"
-                                  Foreground="{ThemeResource BadgePreferenceForeground}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource PillSpacing}">
+                        <fluentIcons:FluentIcon Style="{StaticResource BadgePreferenceIcon}"/>
                         <TextBlock Text="{x:Bind Label}"
                                    Style="{StaticResource BadgeTextStyle}"
                                    Foreground="{ThemeResource BadgePreferenceForeground}"/>
@@ -107,15 +100,16 @@
     </Style>
 
     <DataTemplate x:Key="ListTextFieldTemplate" x:DataType="commonViewModels:ListFieldViewModel">
-        <StackPanel Spacing="4">
+        <StackPanel Spacing="{StaticResource FieldLabelSpacing}">
             <TextBox
                 Header="{x:Bind Label}"
                 Text="{x:Bind Text, Mode=TwoWay}"
                 IsEnabled="{x:Bind IsEnabled, Mode=OneWay}"
                 AutomationProperties.Name="{x:Bind Label}"/>
             <TextBlock
+                x:Name="ListFieldError"
+                x:Load="{x:Bind HasError, Mode=OneWay}"
                 Text="{x:Bind Error}"
-                Visibility="{x:Bind HasError, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                 Foreground="{ThemeResource SystemFillColorCriticalBrush}"
                 Style="{StaticResource CaptionTextBlockStyle}"
                 TextWrapping="Wrap"/>
@@ -188,14 +182,15 @@
             ContentAlignment="Vertical"
             HorizontalContentAlignment="Stretch"
             MinHeight="0">
-            <StackPanel Spacing="8">
+            <StackPanel Spacing="{StaticResource ItemStackSpacing}">
+                <!-- Bounded: the fields the catalog declares for one row -->
                 <ItemsControl
                     ItemsSource="{x:Bind Fields}"
                     ItemTemplateSelector="{StaticResource ListFieldTemplateSelector}"
                     HorizontalContentAlignment="Stretch">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <StackPanel Spacing="8"/>
+                            <StackPanel Spacing="{StaticResource ItemStackSpacing}"/>
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>
@@ -211,13 +206,14 @@
     <!-- One DNS server per line, its boxes side by side the way Windows Settings stacks them: address, encryption,
          template, fallback. -->
     <DataTemplate x:Key="FieldRowTemplate" x:DataType="commonViewModels:ListRowViewModel">
+        <!-- Bounded: the fields the catalog declares for one row -->
         <ItemsControl
             ItemsSource="{x:Bind Fields}"
             ItemTemplateSelector="{StaticResource ListFieldTemplateSelector}"
             IsTabStop="False">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <StackPanel Orientation="Horizontal" Spacing="12"/>
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource ControlGroupSpacing}"/>
                 </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemContainerStyle>
@@ -232,7 +228,7 @@
     <!-- IsThreeState stays false: a click can only hand back true or false, and a parent with mixed children
          still renders indeterminate from the IncludeState getter alone. -->
     <DataTemplate x:Key="IncludeBoxTemplate" x:DataType="viewModels:SettingItemViewModel">
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="{StaticResource IconLabelSpacing}">
             <CheckBox
                 IsChecked="{x:Bind IncludeState, Mode=TwoWay}"
                 IsThreeState="False"
@@ -241,96 +237,103 @@
                 MinWidth="0"
                 Padding="0"
                 VerticalAlignment="Center"/>
-            <Grid Width="16" Height="16" VerticalAlignment="Center"
-                  Opacity="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource BoolToDimOpacityConverter}}">
-                <fluentIcons:FluentIcon Icon="Link" IconVariant="Regular" FontSize="16"
-                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Visibility="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                <fluentIcons:FluentIcon Icon="LinkOff" IconVariant="Regular" FontSize="16"
-                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Visibility="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
-            </Grid>
+            <fluentIcons:FluentIcon Icon="{x:Bind IncludeIcon, Mode=OneWay}" IconVariant="Regular" FontSize="{StaticResource CardIconFontSize}"
+                                    Width="16" Height="16" VerticalAlignment="Center"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Opacity="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource BoolToDimOpacityConverter}}"/>
         </StackPanel>
     </DataTemplate>
 
-    <!-- Ask before a config writes this setting. Every card shape needs it: a change nobody can answer keeps Apply off. -->
-    <DataTemplate x:Key="ReviewBannersTemplate" x:DataType="viewModels:SettingItemViewModel">
-        <StackPanel>
-            <!-- Review mode diff banner -->
-            <Border x:Name="ReviewDiffBanner" x:Load="{x:Bind HasReviewDiff, Mode=OneWay}"
-                    Margin="0,0,0,8">
-                <InfoBar
-                    IsOpen="{x:Bind HasReviewDiff, Mode=OneWay}"
-                    Severity="Warning"
-                    IsClosable="False"
-                    AutomationProperties.LiveSetting="Off"
-                    Margin="0,-1,0,0"
-                    CornerRadius="0,0,4,4">
-                    <InfoBar.Content>
-                        <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4,8,4">
-                            <TextBlock
-                                Grid.Column="0"
-                                Text="{x:Bind ReviewDiffMessage, Mode=OneWay}"
-                                TextWrapping="Wrap"
-                                VerticalAlignment="Center"/>
-                            <RadioButton
-                                Grid.Column="1"
-                                Content="{x:Bind ReviewApplyLabel, Mode=OneWay}"
-                                GroupName="{x:Bind SettingId}"
-                                IsChecked="{x:Bind IsReviewApproved, Mode=TwoWay}"
-                                Margin="8,0,0,0"
-                                MinWidth="0"
-                                VerticalAlignment="Center"/>
-                            <RadioButton
-                                Grid.Column="2"
-                                Content="{x:Bind ReviewDontApplyLabel, Mode=OneWay}"
-                                GroupName="{x:Bind SettingId}"
-                                IsChecked="{x:Bind IsReviewRejected, Mode=TwoWay}"
-                                Margin="8,0,0,0"
-                                MinWidth="0"
-                                VerticalAlignment="Center"/>
-                        </Grid>
-                    </InfoBar.Content>
-                </InfoBar>
-            </Border>
+    <!-- QuietInfoBar keeps Narrator from reading each banner aloud when a page opens. -->
+    <Style x:Key="SettingCardBannerStyle" TargetType="commonControls:QuietInfoBar">
+        <Setter Property="IsOpen" Value="True"/>
+        <Setter Property="IsClosable" Value="False"/>
+        <Setter Property="IsTabStop" Value="True"/>
+        <Setter Property="UseSystemFocusVisuals" Value="True"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
 
-            <!-- Review mode action banner -->
-            <Border x:Name="ReviewActionBanner" x:Load="{x:Bind HasReviewAction, Mode=OneWay}"
-                    Margin="0,0,0,8">
-                <InfoBar
-                    IsOpen="{x:Bind HasReviewAction, Mode=OneWay}"
-                    Severity="Warning"
-                    IsClosable="False"
-                    AutomationProperties.LiveSetting="Off"
-                    Margin="0,-1,0,0"
-                    CornerRadius="0,0,4,4">
-                    <InfoBar.Content>
-                        <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4,8,4">
-                            <TextBlock
-                                Grid.Column="0"
-                                Text="{x:Bind ReviewActionMessage, Mode=OneWay}"
-                                TextWrapping="Wrap"
-                                VerticalAlignment="Center"/>
-                            <RadioButton
-                                Grid.Column="1"
-                                Content="{x:Bind ReviewApplyLabel, Mode=OneWay}"
-                                GroupName="{x:Bind ReviewActionGroupName}"
-                                IsChecked="{x:Bind IsReviewActionApproved, Mode=TwoWay}"
-                                Margin="8,0,0,0"
-                                MinWidth="0"
-                                VerticalAlignment="Center"/>
-                            <RadioButton
-                                Grid.Column="2"
-                                Content="{x:Bind ReviewDontApplyLabel, Mode=OneWay}"
-                                GroupName="{x:Bind ReviewActionGroupName}"
-                                IsChecked="{x:Bind IsReviewActionRejected, Mode=TwoWay}"
-                                Margin="8,0,0,0"
-                                MinWidth="0"
-                                VerticalAlignment="Center"/>
-                        </Grid>
-                    </InfoBar.Content>
-                </InfoBar>
-            </Border>
+    <!-- A state banner hangs under its card, sharing the card's bottom edge. -->
+    <Style x:Key="JoinedSettingCardBannerStyle" TargetType="commonControls:QuietInfoBar" BasedOn="{StaticResource SettingCardBannerStyle}">
+        <Setter Property="Margin" Value="{StaticResource JoinedCardMargin}"/>
+        <Setter Property="CornerRadius" Value="{StaticResource JoinedCardCornerRadius}"/>
+    </Style>
+
+    <DataTemplate x:Key="SettingCardBannersTemplate" x:DataType="viewModels:SettingItemViewModel">
+        <StackPanel Margin="{StaticResource BannerBottomMargin}">
+            <commonControls:QuietInfoBar
+                x:Name="StatusBanner"
+                x:Load="{x:Bind HasStatusBanner, Mode=OneWay}"
+                Style="{StaticResource JoinedSettingCardBannerStyle}"
+                Severity="{x:Bind StatusBannerSeverity, Mode=OneWay}"
+                Message="{x:Bind StatusBannerMessage, Mode=OneWay}"
+                IconSource="{x:Bind StatusBannerIconSource, Mode=OneWay}"/>
+            <commonControls:QuietInfoBar
+                x:Name="WallpaperExportBanner"
+                x:Load="{x:Bind ShowWallpaperExportBanner, Mode=OneWay}"
+                Style="{StaticResource JoinedSettingCardBannerStyle}"
+                Severity="Informational"
+                Message="{x:Bind WallpaperExportNote, Mode=OneWay}"/>
+            <!-- Ask before a config writes this setting. A change nobody can answer keeps Apply off. -->
+            <commonControls:QuietInfoBar
+                x:Name="ReviewDiffBanner"
+                x:Load="{x:Bind HasReviewDiff, Mode=OneWay}"
+                Style="{StaticResource JoinedSettingCardBannerStyle}"
+                Severity="Warning">
+                    <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4,8,4">
+                        <TextBlock
+                            Grid.Column="0"
+                            Text="{x:Bind ReviewDiffMessage, Mode=OneWay}"
+                            TextWrapping="Wrap"
+                            VerticalAlignment="Center"/>
+                        <RadioButton
+                            Grid.Column="1"
+                            Content="{x:Bind ReviewApplyLabel, Mode=OneWay}"
+                            GroupName="{x:Bind SettingId}"
+                            IsChecked="{x:Bind IsReviewApproved, Mode=TwoWay}"
+                            Margin="{StaticResource ReviewChoiceMargin}"
+                            MinWidth="0"
+                            VerticalAlignment="Center"/>
+                        <RadioButton
+                            Grid.Column="2"
+                            Content="{x:Bind ReviewDontApplyLabel, Mode=OneWay}"
+                            GroupName="{x:Bind SettingId}"
+                            IsChecked="{x:Bind IsReviewRejected, Mode=TwoWay}"
+                            Margin="{StaticResource ReviewChoiceMargin}"
+                            MinWidth="0"
+                            VerticalAlignment="Center"/>
+                    </Grid>
+            </commonControls:QuietInfoBar>
+            <!-- An action setting such as the wallpaper, asked separately from its diff -->
+            <commonControls:QuietInfoBar
+                x:Name="ReviewActionBanner"
+                x:Load="{x:Bind HasReviewAction, Mode=OneWay}"
+                Style="{StaticResource JoinedSettingCardBannerStyle}"
+                Severity="Warning">
+                    <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4,8,4">
+                        <TextBlock
+                            Grid.Column="0"
+                            Text="{x:Bind ReviewActionMessage, Mode=OneWay}"
+                            TextWrapping="Wrap"
+                            VerticalAlignment="Center"/>
+                        <RadioButton
+                            Grid.Column="1"
+                            Content="{x:Bind ReviewApplyLabel, Mode=OneWay}"
+                            GroupName="{x:Bind ReviewActionGroupName}"
+                            IsChecked="{x:Bind IsReviewActionApproved, Mode=TwoWay}"
+                            Margin="{StaticResource ReviewChoiceMargin}"
+                            MinWidth="0"
+                            VerticalAlignment="Center"/>
+                        <RadioButton
+                            Grid.Column="2"
+                            Content="{x:Bind ReviewDontApplyLabel, Mode=OneWay}"
+                            GroupName="{x:Bind ReviewActionGroupName}"
+                            IsChecked="{x:Bind IsReviewActionRejected, Mode=TwoWay}"
+                            Margin="{StaticResource ReviewChoiceMargin}"
+                            MinWidth="0"
+                            VerticalAlignment="Center"/>
+                    </Grid>
+            </commonControls:QuietInfoBar>
         </StackPanel>
     </DataTemplate>
 
@@ -340,8 +343,8 @@
              since ItemsStackPanel has no Spacing. -->
         <Grid>
             <StackPanel x:Name="CardBody"
-                        Visibility="{x:Bind EffectiveIsVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-                        Margin="0,0,0,6">
+                        Visibility="{x:Bind EffectiveIsVisible, Mode=OneWay}"
+                        Margin="{StaticResource CardBodyMargin}">
                 <!-- IsIncluded is true outside authoring, so the card is disabled only while authoring leaves it out. -->
                 <Grid>
                     <controls:SettingsCard
@@ -353,16 +356,18 @@
                         HeaderIcon="{x:Bind Converter={StaticResource IconConverter}}"
                         Padding="{x:Bind CardPadding, Mode=OneWay}">
                         <controls:SettingsCard.Description>
-                            <commonControls:SettingDescriptionWithBadges
+                            <commonControls:SettingDescriptionWithBadges x:Phase="1"
                                 DescriptionText="{x:Bind Description}"
+                                Link="{x:Bind GroupPolicyLink, Mode=OneWay}"
                                 BadgeRow="{x:Bind BadgeRow, Mode=OneWay}"
                                 ShowBadges="{x:Bind ShowInfoBadge, Mode=OneWay}"/>
                         </controls:SettingsCard.Description>
                         <controls:SettingsCard.Header>
-                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource HeaderTagSpacing}">
                                 <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center"/>
                                 <Border
-                                    Visibility="{x:Bind ShowNewBadge, Mode=OneWay}"
+                                    x:Name="NewBadge"
+                                    x:Load="{x:Bind ShowNewBadge, Mode=OneWay}"
                                     Style="{StaticResource NewBadgeBorderStyle}">
                                     <TextBlock
                                         Text="{x:Bind NewBadgeText}"
@@ -380,7 +385,7 @@
                         x:Name="ApplyingOverlay"
                         x:Load="{x:Bind IsApplying, Mode=OneWay}"
                         Background="{ThemeResource SmokeFillColorDefaultBrush}"
-                        CornerRadius="4">
+                        CornerRadius="{StaticResource CardCornerRadius}">
                         <ProgressRing IsActive="{x:Bind IsApplying, Mode=OneWay}" Width="24" Height="24"/>
                     </Border>
 
@@ -394,7 +399,7 @@
                         IsTabStop="False"
                         HorizontalAlignment="Left"
                         VerticalAlignment="Center"
-                        Margin="16,0,0,0"/>
+                        Margin="{StaticResource IncludeBoxMargin}"/>
                 </Grid>
 
                 <ContentControl
@@ -408,28 +413,29 @@
                         ContentAlignment="Vertical"
                         HorizontalContentAlignment="Stretch"
                         BorderThickness="1,0,1,1"
-                        CornerRadius="0,0,4,4"
-                        Margin="0,-1,0,0"
+                        CornerRadius="{StaticResource JoinedCardCornerRadius}"
+                        Margin="{StaticResource JoinedCardMargin}"
                         MinHeight="0"
                         Padding="{x:Bind RowPadding, Mode=OneWay}">
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="{StaticResource ItemStackSpacing}">
+                            <!-- Nested: a SettingsListView item, the setting's card -->
                             <ItemsControl ItemsSource="{x:Bind Rows}" ItemTemplate="{StaticResource ListRowTemplate}" IsTabStop="False">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <StackPanel Spacing="8"/>
+                                        <StackPanel Spacing="{StaticResource ItemStackSpacing}"/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                             </ItemsControl>
                             <commonControls:QuietInfoBar
-                                Visibility="{x:Bind ShowPasswordBanner, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                IsOpen="{x:Bind ShowPasswordBanner, Mode=OneWay}"
+                                x:Name="PasswordBanner"
+                                x:Load="{x:Bind ShowPasswordBanner, Mode=OneWay}"
+                                Style="{StaticResource SettingCardBannerStyle}"
                                 Severity="Informational"
-                                Message="{x:Bind SavePasswordsNote, Mode=OneWay}"
-                                IsClosable="False">
+                                Message="{x:Bind SavePasswordsNote, Mode=OneWay}">
                                 <CheckBox
                                     Content="{x:Bind SavePasswordsLabel, Mode=OneWay}"
                                     IsChecked="{x:Bind SavePasswords, Mode=TwoWay}"
-                                    Margin="0,0,0,8"/>
+                                    Margin="{StaticResource BlockBottomMargin}"/>
                             </commonControls:QuietInfoBar>
                         </StackPanel>
                     </controls:SettingsCard>
@@ -448,11 +454,12 @@
                         ContentAlignment="Vertical"
                         HorizontalContentAlignment="Stretch"
                         BorderThickness="1,0,1,1"
-                        CornerRadius="0,0,4,4"
-                        Margin="0,-1,0,0"
+                        CornerRadius="{StaticResource JoinedCardCornerRadius}"
+                        Margin="{StaticResource JoinedCardMargin}"
                         MinHeight="0"
                         Padding="{x:Bind RowPadding, Mode=OneWay}">
-                        <StackPanel Spacing="12">
+                        <StackPanel Spacing="{StaticResource GroupStackSpacing}">
+                            <!-- Bounded: the field rows the catalog declares for the setting -->
                             <ItemsControl
                                 ItemsSource="{x:Bind FieldRows, Mode=OneWay}"
                                 ItemTemplate="{StaticResource FieldRowTemplate}"
@@ -460,21 +467,23 @@
                                 IsTabStop="False">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <StackPanel Spacing="8"/>
+                                        <StackPanel Spacing="{StaticResource ItemStackSpacing}"/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                             </ItemsControl>
                             <TextBlock
+                                x:Name="FieldsError"
+                                x:Load="{x:Bind ShowFieldsError, Mode=OneWay}"
                                 Text="{x:Bind FieldsErrorText}"
-                                Visibility="{x:Bind ShowFieldsError, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                 Foreground="{ThemeResource SystemFillColorCriticalBrush}"
                                 Style="{StaticResource CaptionTextBlockStyle}"
                                 TextWrapping="Wrap"/>
                             <StackPanel
                                 Orientation="Horizontal"
-                                Spacing="8"
+                                Spacing="{StaticResource ControlRowSpacing}"
                                 HorizontalAlignment="Right"
-                                Visibility="{x:Bind ShowFieldButtons, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                x:Name="FieldButtons"
+                                x:Load="{x:Bind ShowFieldButtons, Mode=OneWay}">
                                 <Button
                                     Content="{x:Bind ApplyFieldsText}"
                                     Command="{x:Bind ApplyFieldsCommand}"
@@ -490,31 +499,24 @@
 
                 <!-- Technical Details panel -->
                 <commonControls:TechnicalDetailsPanel
+                    x:Name="TechnicalDetails"
+                    x:Load="{x:Bind ShowTechnicalDetailsBar, Mode=OneWay}"
                     Matrix="{x:Bind TechnicalDetailMatrix, Mode=OneWay}"
                     IsExpanded="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"
-                    IsBarVisible="{x:Bind ShowTechnicalDetailsBar, Mode=OneWay}"
                     HeaderLabel="{x:Bind TechnicalDetailsLabel, Mode=OneWay}"
                     BarCornerRadius="{x:Bind TechnicalDetailsToggleCornerRadius, Mode=OneWay}"
                     ToggleCommand="{x:Bind ToggleTechnicalDetailsCommand}"
                     RegeditCommand="{x:Bind OpenRegeditCommand}"/>
 
-                <!-- Status banner below the settings card (QuietInfoBar suppresses
-                     InfoBarAutomationPeer's hardcoded Assertive live setting) -->
-                <Border x:Name="StatusBanner" x:Load="{x:Bind HasStatusBanner, Mode=OneWay}"
-                        Margin="0,0,0,8">
-                    <commonControls:QuietInfoBar
-                        IsOpen="{x:Bind HasStatusBanner, Mode=OneWay}"
-                        Severity="{x:Bind StatusBannerSeverity, Mode=OneWay}"
-                        Message="{x:Bind StatusBannerMessage, Mode=OneWay}"
-                        IconSource="{x:Bind StatusBannerIconSource, Mode=OneWay}"
-                        IsClosable="False"
-                        IsTabStop="True"
-                        UseSystemFocusVisuals="True"
-                        Margin="0,-1,0,0"
-                        CornerRadius="0,0,4,4"/>
-                </Border>
+                <ContentControl
+                    x:Name="CardBanners"
+                    x:Load="{x:Bind ShowsCardBanners(HasStatusBanner, HasReviewBanners, ShowWallpaperExportBanner), Mode=OneWay}"
+                    Content="{x:Bind}"
+                    ContentTemplate="{StaticResource SettingCardBannersTemplate}"
+                    IsTabStop="False"
+                    HorizontalContentAlignment="Stretch"/>
 
-                <ContentControl Content="{x:Bind}" ContentTemplate="{StaticResource ReviewBannersTemplate}" IsTabStop="False" HorizontalContentAlignment="Stretch"/>
+
             </StackPanel>
         </Grid>
     </DataTemplate>
@@ -522,8 +524,8 @@
     <DataTemplate x:Key="SettingExpanderItemTemplate" x:DataType="viewModels:SettingItemViewModel">
         <Grid>
             <StackPanel x:Name="CardBody"
-                        Visibility="{x:Bind EffectiveIsVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-                        Margin="0,0,0,6">
+                        Visibility="{x:Bind EffectiveIsVisible, Mode=OneWay}"
+                        Margin="{StaticResource CardBodyMargin}">
                 <!-- Parent setting card with expand/collapse chevron -->
                 <Grid>
                     <!-- IsEnabled is bound on the inner SettingsCardItem (the actual input
@@ -531,49 +533,47 @@
                          interactive so its click-to-expand handler keeps working in Review
                          Mode and while authoring leaves it out, which keeps its children
                          reachable; only the toggle/dropdown inside dims out.
-                         IsTabStop is true so keyboard users can Tab onto the card and press
+                         While a child is on screen the card is a tab stop so keyboard users can press
                          Enter/Space to expand (ClickableSettingsCard raises Invoked on those keys,
-                         as it does for a click and for Narrator). AutomationProperties.Name is what Narrator
-                         announces when the card is focused. -->
+                         as it does for a click and for Narrator). With every child hidden it is a plain card.
+                         AutomationProperties.Name is what Narrator announces when the card is focused. -->
                     <commonControls:ClickableSettingsCard
                         Invoked="{x:Bind ToggleExpander}"
-                        IsTabStop="True"
+                        IsClickEnabled="{x:Bind HasVisibleChildren, Mode=OneWay}"
+                        IsTabStop="{x:Bind HasVisibleChildren, Mode=OneWay}"
                         ToolTipService.ToolTip="{x:Bind DisabledReason, Mode=OneWay}"
                         AutomationProperties.Name="{x:Bind Name}"
                         AutomationProperties.LocalizedControlType="setting"
                         AutomationProperties.AutomationId="{x:Bind SettingId}"
                         Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
                         CornerRadius="{x:Bind ParentCornerRadius, Mode=OneWay}"
-                        Padding="{x:Bind CardPadding, Mode=OneWay}">
-                        <!-- Hide the built-in > action icon that appears with IsClickEnabled -->
-                        <commonControls:ClickableSettingsCard.Resources>
-                            <x:Double x:Key="SettingsCardActionIconMaxSize">0</x:Double>
-                            <Thickness x:Key="SettingsCardActionIconMargin">0</Thickness>
-                        </commonControls:ClickableSettingsCard.Resources>
+                        Padding="{x:Bind CardPadding, Mode=OneWay}"
+                        ShowsActionIcon="False">
 
                         <!-- This card stays enabled so it can expand, and only the toolkit's disabled state dims a HeaderIcon;
-                             an IconSourceElement can bind Opacity. The 1px lift matches IconConverter's path icon margin. -->
+                             an IconSourceElement can bind Opacity. -->
                         <commonControls:ClickableSettingsCard.HeaderIcon>
-                            <IconSourceElement
+                            <IconSourceElement x:Phase="1"
                                 IconSource="{x:Bind Converter={StaticResource IconConverter}}"
-                                Opacity="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource BoolToDimOpacityConverter}}"
-                                Margin="0,0,0,1"/>
+                                Opacity="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource BoolToDimOpacityConverter}}"/>
                         </commonControls:ClickableSettingsCard.HeaderIcon>
 
                         <commonControls:ClickableSettingsCard.Description>
-                            <commonControls:SettingDescriptionWithBadges
+                            <commonControls:SettingDescriptionWithBadges x:Phase="1"
                                 Opacity="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource BoolToDimOpacityConverter}}"
                                 DescriptionText="{x:Bind Description}"
+                                Link="{x:Bind GroupPolicyLink, Mode=OneWay}"
                                 BadgeRow="{x:Bind BadgeRow, Mode=OneWay}"
                                 ShowBadges="{x:Bind ShowInfoBadge, Mode=OneWay}"/>
                         </commonControls:ClickableSettingsCard.Description>
 
                         <commonControls:ClickableSettingsCard.Header>
-                                                    <StackPanel Orientation="Horizontal" Spacing="8"
+                                                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource HeaderTagSpacing}"
                                         Opacity="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource BoolToDimOpacityConverter}}">
                                 <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center"/>
                                 <Border
-                                    Visibility="{x:Bind ShowNewBadge, Mode=OneWay}"
+                                    x:Name="NewBadge"
+                                    x:Load="{x:Bind ShowNewBadge, Mode=OneWay}"
                                     Style="{StaticResource NewBadgeBorderStyle}">
                                     <TextBlock
                                         Text="{x:Bind NewBadgeText}"
@@ -587,14 +587,13 @@
                             <commonControls:SettingsCardItem Setting="{x:Bind}" VerticalAlignment="Center"
                                 IsEnabled="{x:Bind EffectiveIsEnabled, Mode=OneWay}"
                                 AutomationProperties.HelpText="{x:Bind StatusBannerMessage, Mode=OneWay}"/>
-                            <Grid Width="20" Height="20">
-                                <FontIcon Glyph="&#xE70E;" FontSize="{StaticResource CardExpanderChevronFontSize}"
-                                          Visibility="{x:Bind IsExpanderExpanded, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                          Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-                                <FontIcon Glyph="&#xE70D;" FontSize="{StaticResource CardExpanderChevronFontSize}"
-                                          Visibility="{x:Bind IsExpanderExpanded, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
-                                          Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-                            </Grid>
+                            <fluentIcons:FluentIcon x:Name="ExpanderChevron"
+                                                    x:Load="{x:Bind HasVisibleChildren, Mode=OneWay}"
+                                                    Width="20" Height="20"
+                                                    Icon="{x:Bind helpers:ExpandChevron.For(IsExpanderExpanded), Mode=OneWay}"
+                                                    IconVariant="Regular"
+                                                    FontSize="{StaticResource CardExpanderChevronFontSize}"
+                                                    Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                         </StackPanel>
 
                     </commonControls:ClickableSettingsCard>
@@ -604,7 +603,7 @@
                         x:Name="ApplyingOverlay"
                         x:Load="{x:Bind IsApplying, Mode=OneWay}"
                         Background="{ThemeResource SmokeFillColorDefaultBrush}"
-                        CornerRadius="4">
+                        CornerRadius="{StaticResource CardCornerRadius}">
                         <ProgressRing IsActive="{x:Bind IsApplying, Mode=OneWay}" Width="24" Height="24"/>
                     </Border>
 
@@ -617,37 +616,32 @@
                         IsTabStop="False"
                         HorizontalAlignment="Left"
                         VerticalAlignment="Center"
-                        Margin="16,0,0,0"/>
+                        Margin="{StaticResource IncludeBoxMargin}"/>
                 </Grid>
 
                 <!-- Technical Details panel -->
                 <commonControls:TechnicalDetailsPanel
+                    x:Name="TechnicalDetails"
+                    x:Load="{x:Bind ShowTechnicalDetailsBar, Mode=OneWay}"
                     Matrix="{x:Bind TechnicalDetailMatrix, Mode=OneWay}"
                     IsExpanded="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"
-                    IsBarVisible="{x:Bind ShowTechnicalDetailsBar, Mode=OneWay}"
                     HeaderLabel="{x:Bind TechnicalDetailsLabel, Mode=OneWay}"
                     BarCornerRadius="{x:Bind TechnicalDetailsToggleCornerRadius, Mode=OneWay}"
                     ToggleCommand="{x:Bind ToggleTechnicalDetailsCommand}"
                     RegeditCommand="{x:Bind OpenRegeditCommand}"/>
 
-                <!-- Status banner -->
-                <Border x:Name="StatusBanner" x:Load="{x:Bind HasStatusBanner, Mode=OneWay}"
-                        Margin="0,0,0,8">
-                    <commonControls:QuietInfoBar
-                        IsOpen="{x:Bind HasStatusBanner, Mode=OneWay}"
-                        Severity="{x:Bind StatusBannerSeverity, Mode=OneWay}"
-                        Message="{x:Bind StatusBannerMessage, Mode=OneWay}"
-                        IconSource="{x:Bind StatusBannerIconSource, Mode=OneWay}"
-                        IsClosable="False"
-                        IsTabStop="True"
-                        UseSystemFocusVisuals="True"
-                        Margin="0,-1,0,0"
-                        CornerRadius="0,0,4,4"/>
-                </Border>
+                <ContentControl
+                    x:Name="CardBanners"
+                    x:Load="{x:Bind ShowsCardBanners(HasStatusBanner, HasReviewBanners, ShowWallpaperExportBanner), Mode=OneWay}"
+                    Content="{x:Bind}"
+                    ContentTemplate="{StaticResource SettingCardBannersTemplate}"
+                    IsTabStop="False"
+                    HorizontalContentAlignment="Stretch"/>
 
-                <ContentControl Content="{x:Bind}" ContentTemplate="{StaticResource ReviewBannersTemplate}" IsTabStop="False" HorizontalContentAlignment="Stretch"/>
+
 
                 <!-- Children rendered below the expander with full template support (tech details, banners) -->
+                <!-- Bounded: the child settings the catalog declares under this parent -->
                 <ItemsControl ItemsSource="{x:Bind Children}"
                               x:Name="ChildCards"
                               x:Load="{x:Bind IsExpanderExpanded, Mode=OneWay}"
@@ -659,7 +653,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="viewModels:SettingItemViewModel">
-                            <StackPanel Visibility="{x:Bind EffectiveIsVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <StackPanel Visibility="{x:Bind EffectiveIsVisible, Mode=OneWay}">
                                 <Grid>
                                     <!-- MinHeight is a local attribute: the toolkit's 68 comes from a Style setter no
                                          per-card resource can reach. -->
@@ -677,17 +671,22 @@
                                         HorizontalContentAlignment="{x:Bind ChildContentHorizontalAlignment, Mode=OneWay}"
                                         Padding="{x:Bind ChildCardPadding, Mode=OneWay}">
                                         <controls:SettingsCard.Description>
-                                            <commonControls:SettingDescriptionWithBadges
-                                                Visibility="{x:Bind IsCompactRow, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
-                                                DescriptionText="{x:Bind Description, Mode=OneWay}"
-                                                BadgeRow="{x:Bind BadgeRow, Mode=OneWay}"
-                                                ShowBadges="{x:Bind ShowInfoBadge, Mode=OneWay}"/>
+                                            <Grid>
+                                                <commonControls:SettingDescriptionWithBadges
+                                                    x:Name="ChildDescription"
+                                                    x:Load="{x:Bind ShowsChildDescription}"
+                                                    DescriptionText="{x:Bind ChildDescriptionText, Mode=OneWay}"
+                                                    Link="{x:Bind GroupPolicyLink, Mode=OneWay}"
+                                                    BadgeRow="{x:Bind BadgeRow, Mode=OneWay}"
+                                                    ShowBadges="{x:Bind ShowInfoBadge, Mode=OneWay}"/>
+                                            </Grid>
                                         </controls:SettingsCard.Description>
                                         <controls:SettingsCard.Header>
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource HeaderTagSpacing}">
                                                 <TextBlock Text="{x:Bind ChildHeader}" VerticalAlignment="Center"/>
                                                 <Border
-                                                    Visibility="{x:Bind ShowNewBadge, Mode=OneWay}"
+                                                    x:Name="ChildNewBadge"
+                                                    x:Load="{x:Bind ShowNewBadge, Mode=OneWay}"
                                                     Style="{StaticResource NewBadgeBorderStyle}">
                                                     <TextBlock
                                                         Text="{x:Bind NewBadgeText}"
@@ -705,7 +704,7 @@
                                         x:Name="ChildApplyingOverlay"
                                         x:Load="{x:Bind IsApplying, Mode=OneWay}"
                                         Background="{ThemeResource SmokeFillColorDefaultBrush}"
-                                        CornerRadius="4">
+                                        CornerRadius="{StaticResource CardCornerRadius}">
                                         <ProgressRing IsActive="{x:Bind IsApplying, Mode=OneWay}" Width="24" Height="24"/>
                                     </Border>
 
@@ -747,27 +746,28 @@
                                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                         BorderThickness="1,0,1,1"
-                                        CornerRadius="0,0,4,4"
-                                        Margin="0,-1,0,0"
+                                        CornerRadius="{StaticResource JoinedCardCornerRadius}"
+                                        Margin="{StaticResource JoinedCardMargin}"
                                         Padding="54,8,52,12">
-                                        <StackPanel Spacing="8">
+                                        <StackPanel Spacing="{StaticResource ItemStackSpacing}">
+                                            <!-- Nested: a SettingsListView item, the parent setting's card -->
                                             <ItemsControl ItemsSource="{x:Bind Rows}" ItemTemplate="{StaticResource ListRowTemplate}" IsTabStop="False">
                                                 <ItemsControl.ItemsPanel>
                                                     <ItemsPanelTemplate>
-                                                        <StackPanel Spacing="8"/>
+                                                        <StackPanel Spacing="{StaticResource ItemStackSpacing}"/>
                                                     </ItemsPanelTemplate>
                                                 </ItemsControl.ItemsPanel>
                                             </ItemsControl>
                                             <commonControls:QuietInfoBar
-                                                Visibility="{x:Bind ShowPasswordBanner, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                                IsOpen="{x:Bind ShowPasswordBanner, Mode=OneWay}"
+                                                x:Name="ChildPasswordBanner"
+                                                x:Load="{x:Bind ShowPasswordBanner, Mode=OneWay}"
+                                                Style="{StaticResource SettingCardBannerStyle}"
                                                 Severity="Informational"
-                                                Message="{x:Bind SavePasswordsNote, Mode=OneWay}"
-                                                IsClosable="False">
+                                                Message="{x:Bind SavePasswordsNote, Mode=OneWay}">
                                                 <CheckBox
                                                     Content="{x:Bind SavePasswordsLabel, Mode=OneWay}"
                                                     IsChecked="{x:Bind SavePasswords, Mode=TwoWay}"
-                                                    Margin="0,0,0,8"/>
+                                                    Margin="{StaticResource BlockBottomMargin}"/>
                                             </commonControls:QuietInfoBar>
                                         </StackPanel>
                                     </Border>
@@ -775,30 +775,23 @@
 
                                 <!-- Technical Details panel -->
                                 <commonControls:TechnicalDetailsPanel
+                                    x:Name="ChildTechnicalDetails"
+                                    x:Load="{x:Bind ShowTechnicalDetailsBar, Mode=OneWay}"
                                     Matrix="{x:Bind TechnicalDetailMatrix, Mode=OneWay}"
                                     IsExpanded="{x:Bind IsTechnicalDetailsExpanded, Mode=OneWay}"
-                                    IsBarVisible="{x:Bind ShowTechnicalDetailsBar, Mode=OneWay}"
                                     HeaderLabel="{x:Bind TechnicalDetailsLabel, Mode=OneWay}"
                                     BarCornerRadius="{x:Bind TechnicalDetailsToggleCornerRadius, Mode=OneWay}"
                                     ToggleCommand="{x:Bind ToggleTechnicalDetailsCommand}"
                                     RegeditCommand="{x:Bind OpenRegeditCommand}"/>
 
-                                <!-- Status banner -->
-                                <Border x:Name="ChildStatusBanner" x:Load="{x:Bind HasStatusBanner, Mode=OneWay}"
-                                        Margin="0,0,0,8">
-                                    <commonControls:QuietInfoBar
-                                        IsOpen="{x:Bind HasStatusBanner, Mode=OneWay}"
-                                        Severity="{x:Bind StatusBannerSeverity, Mode=OneWay}"
-                                        Message="{x:Bind StatusBannerMessage, Mode=OneWay}"
-                                        IconSource="{x:Bind StatusBannerIconSource, Mode=OneWay}"
-                                        IsClosable="False"
-                                        IsTabStop="True"
-                                        UseSystemFocusVisuals="True"
-                                        Margin="0,-1,0,0"
-                                        CornerRadius="0,0,4,4"/>
-                                </Border>
+                                <ContentControl
+                                    x:Name="ChildCardBanners"
+                                    x:Load="{x:Bind ShowsCardBanners(HasStatusBanner, HasReviewBanners, ShowWallpaperExportBanner), Mode=OneWay}"
+                                    Content="{x:Bind}"
+                                    ContentTemplate="{StaticResource SettingCardBannersTemplate}"
+                                    IsTabStop="False"
+                                    HorizontalContentAlignment="Stretch"/>
 
-                                <ContentControl Content="{x:Bind}" ContentTemplate="{StaticResource ReviewBannersTemplate}" IsTabStop="False" HorizontalContentAlignment="Stretch"/>
                             </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -848,10 +841,10 @@
     </Style>
 
     <!-- Group header template for settings lists -->
-    <DataTemplate x:Key="SettingsGroupHeaderTemplate">
+    <DataTemplate x:Key="SettingsGroupHeaderTemplate" x:DataType="viewModels:SettingsGroup">
         <TextBlock
-            Text="{Binding Key}"
-            Visibility="{Binding HasVisibleItems, Converter={StaticResource BooleanToVisibilityConverter}}"
+            Text="{x:Bind Key}"
+            Visibility="{x:Bind HasVisibleItems, Mode=OneWay}"
             Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
     </DataTemplate>
 

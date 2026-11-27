@@ -239,22 +239,41 @@ public class InstalledAppsServiceTests
         _winGetDetection.Verify(w => w.GetInstalledPackagesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
+    private static readonly TimeSpan Patience = TimeSpan.FromSeconds(10);
+
+    // The first winget read waits on the returned release; later reads answer at once. A scan reaches winget on a pool
+    // thread, so a test that starts a second scan must first await firstRead, or the second scan can take the waiting read.
+    private TaskCompletionSource<IReadOnlyList<WinGetInstalledPackage>?> GivenTheFirstWinGetReadWaits(out Task firstRead)
+    {
+        var release = new TaskCompletionSource<IReadOnlyList<WinGetInstalledPackage>?>();
+        var entered = new TaskCompletionSource();
+        firstRead = entered.Task;
+        var reads = 0;
+        _winGetDetection.Setup(w => w.GetInstalledPackagesAsync(It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                if (Interlocked.Increment(ref reads) > 1)
+                    return Task.FromResult<IReadOnlyList<WinGetInstalledPackage>?>([]);
+                entered.SetResult();
+                return release.Task;
+            });
+        return release;
+    }
+
     [Fact]
     public async Task GetInstalledAppsAsync_AfterAnUpdateDuringAScan_StartsAFreshScan()
     {
         GivenOneProgramAndNoPackages();
-        var release = new TaskCompletionSource<IReadOnlyList<WinGetInstalledPackage>?>();
-        _winGetDetection.SetupSequence(w => w.GetInstalledPackagesAsync(It.IsAny<CancellationToken>()))
-            .Returns(release.Task)
-            .Returns(Task.FromResult<IReadOnlyList<WinGetInstalledPackage>?>([]));
+        var release = GivenTheFirstWinGetReadWaits(out var firstRead);
         _winGetInstaller
             .Setup(w => w.UpgradePackageAsync("Tool.Id", It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(PackageInstallResult.Succeeded());
         var sut = CreateSut();
 
         var stale = sut.GetInstalledAppsAsync(NoDefinitions, StatusRules.External);
+        await firstRead.WaitAsync(Patience);
         await sut.UpdateAsync(new InstalledApp("winget:Tool.Id", "Tool", InstalledAppKind.Program) { WinGetId = "Tool.Id", UpdateVia = PackageSources.WinGet });
-        var fresh = await sut.GetInstalledAppsAsync(NoDefinitions, StatusRules.External);
+        var fresh = await sut.GetInstalledAppsAsync(NoDefinitions, StatusRules.External).WaitAsync(Patience);
         release.SetResult([]);
         await stale;
 
@@ -354,17 +373,15 @@ public class InstalledAppsServiceTests
     public async Task Invalidate_DropsTheInstalledListAndMakesTheNextCallerReadAgain()
     {
         GivenOneProgramAndNoPackages();
-        var release = new TaskCompletionSource<IReadOnlyList<WinGetInstalledPackage>?>();
-        _winGetDetection.SetupSequence(w => w.GetInstalledPackagesAsync(It.IsAny<CancellationToken>()))
-            .Returns(release.Task)
-            .Returns(Task.FromResult<IReadOnlyList<WinGetInstalledPackage>?>([]));
+        var release = GivenTheFirstWinGetReadWaits(out var firstRead);
         var sut = CreateSut();
 
         var stale = sut.GetInstalledAppsAsync(NoDefinitions, StatusRules.External);
+        await firstRead.WaitAsync(Patience);
         sut.Invalidate();
         var fresh = sut.GetInstalledAppsAsync(NoDefinitions, StatusRules.External);
         release.SetResult([]);
-        await Task.WhenAll(stale, fresh);
+        await Task.WhenAll(stale, fresh).WaitAsync(Patience);
 
         _winGetDetection.Verify(w => w.InvalidateInstalledPackages(), Times.Once);
         _winGetDetection.Verify(w => w.GetInstalledPackagesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));

@@ -4,6 +4,7 @@ using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.Events.Settings;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Optimize.Interfaces;
@@ -15,10 +16,9 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
     private readonly IDialogService _dialogService;
     private readonly IPowerService _powerService;
     private ISubscriptionToken? _powerPlanChangedSubscription;
+    private IDebounceTimer? _planRefreshTimer;
 
     public override string ModuleId => FeatureIds.Power;
-
-    public IRelayCommand<DynamicOption> DeletePowerPlanCommand { get; }
 
     public PowerOptimizationsViewModel(
         ISettingsLoadingService settingsLoadingService,
@@ -33,8 +33,6 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
     {
         _dialogService = dialogService;
         _powerService = powerService;
-
-        DeletePowerPlanCommand = new RelayCommand<DynamicOption>(async plan => await DeletePowerPlanAsync(plan));
     }
 
     public override async Task LoadSettingsAsync()
@@ -48,7 +46,7 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
         await base.LoadSettingsAsync();
 
         _powerPlanChangedSubscription?.Dispose();
-        _powerPlanChangedSubscription = _eventBus.SubscribeAsync<SettingAppliedEvent>(HandleSettingAppliedAsync);
+        _powerPlanChangedSubscription = _eventBus.Subscribe<SettingAppliedEvent>(OnSettingApplied);
     }
 
     // Power-plan apply flows through the apply funnel, which publishes the generic
@@ -56,29 +54,25 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
     // a power refresh. The base BaseSettingsFeatureViewModel also subscribes to SettingAppliedEvent, but only to
     // update the applied setting's own VM state - this handler adds the power-plan-specific dropdown +
     // dependent-state refresh.
-    private async Task HandleSettingAppliedAsync(SettingAppliedEvent evt)
+    private void OnSettingApplied(SettingAppliedEvent evt)
     {
-        if (evt.SettingId != "power-plan-selection")
-            return;
-
-        try
-        {
-            // Re-detect after the apply settles. RefreshSettingStatesAsync re-runs detection and feeds each setting's
-            // UpdateStateFromSystemState, which for the power-plan setting rebuilds the dropdown from the fresh
-            // DynamicOptions/DynamicSelection (TryApplyKeyedOptions) AND refreshes the dependent power
-            // states (display/sleep timeouts differ per plan). The delay lets the OS report the newly-active scheme + its powercfg values.
-            await Task.Delay(700).ConfigureAwait(false);
-            await RefreshSettingStatesAsync();
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"Error handling power plan change: {ex.Message}");
-        }
+        if (evt.SettingId == "power-plan-selection")
+            _dispatcherService.RunOnUIThread(ArmPlanRefreshTimer);
     }
 
-    public async Task DeletePowerPlanAsync(DynamicOption? planToDelete)
+    // UI thread. Re-detect after the apply settles. RefreshSettingStatesAsync re-runs detection and feeds each
+    // setting's UpdateStateFromSystemState, which for the power-plan setting rebuilds the dropdown from the fresh
+    // DynamicOptions/DynamicSelection (TryApplyKeyedOptions) AND refreshes the dependent power states (display/sleep
+    // timeouts differ per plan). The wait lets the OS report the newly-active scheme + its powercfg values.
+    private void ArmPlanRefreshTimer()
     {
-        try
+        _planRefreshTimer ??= _dispatcherService.CreateDebounceTimer(TimeSpan.FromMilliseconds(700), () => RefreshSettingStatesAsync().FireAndForget(_logService));
+        _planRefreshTimer.Restart();
+    }
+
+    [RelayCommand]
+    public Task DeletePowerPlanAsync(DynamicOption? planToDelete) =>
+        _dialogService.RunOrShowErrorAsync(_logService, async () =>
         {
             if (planToDelete == null) return;
 
@@ -135,20 +129,15 @@ public partial class PowerOptimizationsViewModel : BaseSettingsFeatureViewModel
                     _localizationService.GetString("Dialog_DeleteFailed_Title"));
                 _logService.Log(LogLevel.Error, $"Failed to delete power plan: {displayName}");
             }
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Error, $"Error deleting power plan: {ex.Message}");
-            await _dialogService.ShowErrorAsync(
-                _localizationService.GetString("PowerPlan_Delete_Error", ex.Message));
-        }
-    }
+        }, ex => _localizationService.GetString("PowerPlan_Delete_Error", ex.Message));
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
             _powerPlanChangedSubscription?.Dispose();
+            _planRefreshTimer?.Stop();
+            _planRefreshTimer = null;
         }
         base.Dispose(disposing);
     }

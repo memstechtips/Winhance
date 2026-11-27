@@ -41,6 +41,36 @@ public class WindowsStateWriterTests
     private static RegTarget Reg(string? valueName = ValueName, RegistryValueKind kind = RegistryValueKind.DWord) =>
         new("key", new[] { Path }, valueName, kind);
 
+    [Theory]
+    [InlineData(true, 30, 30, true)]
+    [InlineData(true, 30, 5, false)]
+    [InlineData(true, 30, null, false)]
+    [InlineData(true, 5, 30, false)]
+    [InlineData(false, 30, 30, false)]
+    public void MessageDuration_RequiresSuccessfulLiveApplyAndMatchingReadback(bool set, int actual, int? stored, bool success)
+    {
+        var target = new MessageDurationTarget();
+        _systemParameters.Setup(p => p.SetMessageDuration(30)).Returns(set);
+        _systemParameters.Setup(p => p.GetMessageDuration()).Returns(actual);
+        _reg.Setup(r => r.GetValue(target.Paths[0], target.ValueName!)).Returns(stored);
+
+        var result = ApplyExecutor.Execute(new ApplyPlan([new RegistryWriteOp(target, target.Paths[0], 30)], []), _sut);
+
+        result.AllSucceeded.Should().Be(success);
+        _systemParameters.Verify(p => p.SetMessageDuration(30), Times.Once);
+        _reg.Verify(r => r.GetValue(target.Paths[0], target.ValueName!), set && actual == 30 ? Times.Once() : Times.Never());
+        _reg.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public void MessageDuration_OtsElevationDoesNotCallSpiForTheAdmin()
+    {
+        var parameters = new SystemParametersService(Mock.Of<IInteractiveUserService>(u => u.IsOtsElevation));
+
+        parameters.SetMessageDuration(30).Should().BeFalse();
+        parameters.GetMessageDuration().Should().BeNull();
+    }
+
     private static RegTarget ListReg() =>
         new("key", new[] { Path }, ValueName, RegistryValueKind.String) { ListItem = "home", ListPrefix = "hide:" };
 

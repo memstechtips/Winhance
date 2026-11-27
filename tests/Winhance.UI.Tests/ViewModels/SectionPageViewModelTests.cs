@@ -259,7 +259,7 @@ public class SectionPageViewModelTests
     }
 
     [Fact]
-    public async Task InitializeAsync_OnSecondCall_DoesNotReload()
+    public async Task InitializeAsync_OnSecondCall_RefreshesInsteadOfReloading()
     {
         var vm = CreateViewModel();
 
@@ -269,7 +269,75 @@ public class SectionPageViewModelTests
         foreach (var mockVm in _mockFeatureVms)
         {
             mockVm.Verify(v => v.LoadSettingsAsync(), Times.Once);
+            mockVm.Verify(v => v.RefreshOnNavigationAsync(), Times.Once);
         }
+    }
+
+    [Fact]
+    public async Task InitializeAsync_OnFirstCall_ReadsEachFeatureOnce()
+    {
+        var vm = CreateViewModel();
+
+        await vm.InitializeAsync();
+
+        foreach (var mockVm in _mockFeatureVms)
+        {
+            mockVm.Verify(v => v.LoadSettingsAsync(), Times.Once);
+            mockVm.Verify(v => v.RefreshOnNavigationAsync(), Times.Never);
+        }
+    }
+
+    [Fact]
+    public async Task RefreshOnNavigationAsync_ForASection_RefreshesOnlyThatFeature()
+    {
+        var vm = CreateViewModel();
+
+        await vm.RefreshOnNavigationAsync(_mockFeatureVms[1].Object);
+
+        _mockFeatureVms[0].Verify(v => v.RefreshOnNavigationAsync(), Times.Never);
+        _mockFeatureVms[1].Verify(v => v.RefreshOnNavigationAsync(), Times.Once);
+        _mockFeatureVms[2].Verify(v => v.RefreshOnNavigationAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task RefreshOnNavigationAsync_WhenAFeatureIsStale_ShowsTheLoaderForTheRebuild()
+    {
+        var vm = CreateViewModel();
+        await vm.InitializeAsync();
+        var loadingDuringRefresh = false;
+        _mockFeatureVms[0].Setup(v => v.NeedsRebuild).Returns(true);
+        _mockFeatureVms[0]
+            .Setup(v => v.RefreshOnNavigationAsync())
+            .Returns(() =>
+            {
+                loadingDuringRefresh = vm.IsLoading;
+                return Task.CompletedTask;
+            });
+
+        await vm.RefreshOnNavigationAsync(null);
+
+        loadingDuringRefresh.Should().BeTrue();
+        vm.IsLoading.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RefreshOnNavigationAsync_WhenNothingIsStale_LeavesTheLoaderDown()
+    {
+        // A state re-read changes values in place; raising the loader for it would only flash the page.
+        var vm = CreateViewModel();
+        await vm.InitializeAsync();
+        var loadingDuringRefresh = true;
+        _mockFeatureVms[0]
+            .Setup(v => v.RefreshOnNavigationAsync())
+            .Returns(() =>
+            {
+                loadingDuringRefresh = vm.IsLoading;
+                return Task.CompletedTask;
+            });
+
+        await vm.RefreshOnNavigationAsync(null);
+
+        loadingDuringRefresh.Should().BeFalse();
     }
 
     [Fact]
@@ -541,6 +609,14 @@ public class SectionPageViewModelTests
 
         vm.SearchSuggestions.Should().NotBeNull();
         vm.SearchSuggestions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SearchSuggestionItem_ToString_IsTheSettingName()
+    {
+        var suggestion = new SearchSuggestionItem("App Diagnostic Access", "Privacy", "Privacy & Security");
+
+        suggestion.ToString().Should().Be("App Diagnostic Access");
     }
 
     [Fact]

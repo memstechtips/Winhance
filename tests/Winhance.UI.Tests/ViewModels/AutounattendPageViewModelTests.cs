@@ -34,6 +34,15 @@ public class AutounattendPageViewModelTests
         _localization.Setup(l => l.GetString(It.IsAny<string>())).Returns((string key) => $"[{key}]");
         _localization.MirrorTryGetString();
         _dispatcher.Setup(d => d.RunOnUIThread(It.IsAny<Action>())).Callback<Action>(action => action());
+        // Fires the tick on Restart, so a debounced search filters at once.
+        _dispatcher
+            .Setup(d => d.CreateDebounceTimer(It.IsAny<TimeSpan>(), It.IsAny<Action>()))
+            .Returns<TimeSpan, Action>((_, tick) =>
+            {
+                var timer = new Mock<IDebounceTimer>();
+                timer.Setup(t => t.Restart()).Callback(tick);
+                return timer.Object;
+            });
 
         _feature = new AutounattendViewModel(
             _settingsLoading.Object,

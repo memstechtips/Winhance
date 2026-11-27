@@ -1,9 +1,11 @@
 using FluentAssertions;
+using Microsoft.Win32;
 using Moq;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.SoftwareApps.Utilities;
 using Winhance.Infrastructure.Features.WimUtil.Services;
 using Xunit;
 
@@ -17,7 +19,7 @@ public class OfflineAppRemoverTests
     private const string DefaultUser = @"HKEY_LOCAL_MACHINE\WH_DEFAULT";
     private const string Weather = "Microsoft.BingWeather_4.53.0.0_neutral_~_8wekyb3d8bbwe";
 
-    private static readonly string Marker = Mount + "\\" + ScriptPaths.UnattendAppsRemovedMarker[3..];
+    private const string MarkerKey = Software + @"\Winhance";
 
     private readonly Mock<IDismProcessRunner> _dism = new();
     private readonly Mock<IFileSystemService> _files = new();
@@ -25,6 +27,8 @@ public class OfflineAppRemoverTests
     private readonly Mock<IOfflineHiveLoader> _hives = new();
     private readonly Mock<IOfflineHiveSession> _session = new();
     private readonly Mock<ILogService> _log = new();
+    private readonly Mock<IWindowsRegistryService> _registry = new();
+    private readonly List<string> _markerValues = [];
     private readonly List<string> _dismCalls = [];
     private readonly List<string> _scripts = [];
     private readonly List<string> _arguments = [];
@@ -50,6 +54,9 @@ public class OfflineAppRemoverTests
                 _arguments.Add(args);
                 return Task.FromResult(string.Empty);
             });
+        _registry.Setup(r => r.SetValue(MarkerKey, ScriptPaths.UnattendAppsRemovedValue, It.IsAny<object>(), RegistryValueKind.String))
+            .Callback((string _, string _, object value, RegistryValueKind _) => _markerValues.Add((string)value))
+            .Returns(true);
         _session.SetupGet(s => s.SoftwareRoot).Returns(Software);
         _session.SetupGet(s => s.SystemRoot).Returns(SystemHive);
         _session.SetupGet(s => s.DefaultUserRoot).Returns(DefaultUser);
@@ -65,7 +72,7 @@ public class OfflineAppRemoverTests
             });
     }
 
-    private OfflineAppRemover Create() => new(_dism.Object, _files.Object, _powerShell.Object, _hives.Object, _log.Object);
+    private OfflineAppRemover Create() => new(_dism.Object, _files.Object, _powerShell.Object, _hives.Object, _registry.Object, _log.Object);
 
     private static AppChoice Appx(string id, params string[] packages) => new(id, id, packages, null, null, null);
 
@@ -210,7 +217,7 @@ public class OfflineAppRemoverTests
         _scripts.Should().HaveCount(2).And.OnlyContain(path => path.StartsWith(@"C:\Temp\Winhance_Image_") && path.EndsWith(".ps1"));
         var folder = _scripts[0][.._scripts[0].LastIndexOf('\\')];
         _deletedFolders.Should().Equal(folder);
-        _session.Verify(s => s.DisposeAsync(), Times.Once);
+        _session.Verify(s => s.DisposeAsync(), Times.Exactly(3));
     }
 
     [Fact]
@@ -225,8 +232,8 @@ public class OfflineAppRemoverTests
         outcome.Succeeded.Should().BeFalse();
         outcome.Failed.Should().Contain("Microsoft Edge");
         _deletedFolders.Should().ContainSingle();
-        _session.Verify(s => s.DisposeAsync(), Times.Once);
-        _files.Verify(f => f.WriteAllText(Marker, It.IsAny<string>()), Times.Never);
+        _session.Verify(s => s.DisposeAsync(), Times.Exactly(2));
+        _markerValues.Should().Equal(string.Empty);
     }
 
     [Fact]
@@ -242,13 +249,13 @@ public class OfflineAppRemoverTests
     }
 
     [Fact]
-    public async Task RemoveAsync_RegularApps_NeverLoadsTheHivesOrRunsScripts()
+    public async Task RemoveAsync_RegularApps_OnlyLoadsHivesForTheMarker()
     {
         _outputs["/Get-ProvisionedAppxPackages"] = ProvisionedListing(Weather);
 
         await RunAsync(Appx("windows-app-weather", "Microsoft.BingWeather"));
 
-        _hives.Verify(h => h.LoadAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _hives.Verify(h => h.LoadAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
         _scripts.Should().BeEmpty();
     }
 
@@ -257,18 +264,59 @@ public class OfflineAppRemoverTests
     {
         _outputs["/Get-ProvisionedAppxPackages"] = ProvisionedListing(Weather);
 
-        var ok = await RunAsync(Appx("windows-app-weather", "Microsoft.BingWeather"));
+        var choice = Appx("windows-app-weather", "Microsoft.BingWeather");
+        var ok = await RunAsync(choice);
         ok.Succeeded.Should().BeTrue();
-        _files.Verify(f => f.WriteAllText(Marker, It.IsAny<string>()), Times.Once);
+        _markerValues.Should().Equal(string.Empty, AppRemovalPlan.For([choice]).ImageFingerprint());
 
-        _files.Invocations.Clear();
+        _markerValues.Clear();
         _exit = args => args.Contains("/Remove-ProvisionedAppxPackage") ? 1 : 0;
         var failed = await RunAsync(Appx("windows-app-weather", "Microsoft.BingWeather"));
 
         failed.Succeeded.Should().BeFalse();
         failed.Failed.Should().Contain(Weather);
         failed.Applied.Should().Be(0);
-        _files.Verify(f => f.WriteAllText(Marker, It.IsAny<string>()), Times.Never);
+        _markerValues.Should().Equal(string.Empty);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_PhotosLegacyChoice_DeprovisionsBothPackagesWithoutLiveInstaller()
+    {
+        const string photos = "Microsoft.Windows.Photos_1.0.0.0_neutral_~_8wekyb3d8bbwe";
+        const string companion = "Microsoft.OneDrive.Photos_1.0.0.0_neutral_~_8wekyb3d8bbwe";
+        const string sync = "Microsoft.OneDriveSync_1.0.0.0_neutral_~_8wekyb3d8bbwe";
+        _outputs["/Get-ProvisionedAppxPackages"] = ProvisionedListing(photos, companion, sync);
+
+        var outcome = await RunAsync(Appx("windows-app-photos", "Microsoft.Windows.Photos"));
+
+        outcome.Succeeded.Should().BeTrue();
+        _dismCalls.Should().Contain(c => c.Contains($"/PackageName:{photos}"));
+        _dismCalls.Should().Contain(c => c.Contains($"/PackageName:{companion}"));
+        _dismCalls.Should().NotContain(c => c.Contains($"/PackageName:{sync}"));
+        _scripts.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RemoveAsync_OneDrive_DoesNotDeprovisionStandardPhotos()
+    {
+        const string photos = "Microsoft.Windows.Photos_1.0.0.0_neutral_~_8wekyb3d8bbwe";
+        const string companion = "Microsoft.OneDrive.Photos_1.0.0.0_neutral_~_8wekyb3d8bbwe";
+        _outputs["/Get-ProvisionedAppxPackages"] = ProvisionedListing(photos, companion);
+
+        var outcome = await RunAsync(Appx("windows-app-onedrive", "Microsoft.OneDriveSync"));
+
+        outcome.Succeeded.Should().BeTrue();
+        _dismCalls.Should().Contain(c => c.Contains($"/PackageName:{companion}"));
+        _dismCalls.Should().NotContain(c => c.Contains($"/PackageName:{photos}"));
+    }
+
+    [Fact]
+    public async Task RemoveAsync_OfficeHub_DefersTheAmbiguousWrapperToSetup()
+    {
+        _outputs["/Get-ProvisionedAppxPackages"] = ProvisionedListing("Microsoft.MicrosoftOfficeHub_1.0.0.0_neutral_~_8wekyb3d8bbwe");
+        var outcome = await RunAsync(Appx("windows-app-office-hub", "Microsoft.MicrosoftOfficeHub"));
+        outcome.Succeeded.Should().BeTrue();
+        _dismCalls.Should().NotContain(c => c.Contains("/Remove-ProvisionedAppxPackage"));
     }
 
     [Fact]

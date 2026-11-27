@@ -3,7 +3,7 @@ namespace Winhance.Core.Features.SoftwareApps.Models;
 public static class OneDriveRemovalScript
 {
     public const string ScriptName = "OneDriveRemoval";
-    public const string ScriptVersion = "1.9";
+    public const string ScriptVersion = "2.0";
 
     public static string GetScript()
     {
@@ -15,7 +15,7 @@ public static class OneDriveRemovalScript
 
   .DESCRIPTION
       Detects and removes:
-      - OneDrive AppxPackage (Microsoft.OneDriveSync)
+      - OneDrive AppxPackages (Microsoft.OneDriveSync, Microsoft.OneDrive.Photos)
       - Registry-based uninstallation using the HKLM uninstall entries, plus the HKCU entry when run as the signed-in user
       - OneDrive files and folders from every user profile's AppData folder. (NOTE: Userdata in %USERPROFILE%\OneDrive is preserved)
       - System-wide OneDrive installation files
@@ -72,10 +72,22 @@ Write-Log 'Starting OneDrive removal process'
 # SYSTEM must never run a command read from a user's registry hive
 $runningAsSystem = -not $Offline -and ($env:USERNAME -eq 'SYSTEM' -or $env:USERNAME -like '*$' -or $env:USERPROFILE -like '*\system32\config\systemprofile')
 
+# The full and partial OneDrive uninstallers must not run against the same files at the same time.
+if (-not $Offline) {
+    $gate = [Threading.Mutex]::new($false, 'Global\WinhanceOneDriveRemoval')
+    try { $held = $gate.WaitOne([TimeSpan]::FromMinutes(5)) } catch [Threading.AbandonedMutexException] { $held = $true }
+    if (-not $held) { $gate.Dispose(); throw 'Timed out waiting for OneDrive Photos removal.' }
+}
+try {
 # Step 1: Remove OneDrive AppxPackage and check registry for OneDrive installation
 if (-not $Offline) {
     Write-Log 'Removing OneDrive AppxPackage if present'
-    try { Get-AppxPackage -AllUsers *OneDriveSync* | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue }
+    try {
+        foreach ($name in 'Microsoft.OneDriveSync', 'Microsoft.OneDrive.Photos') {
+            Get-AppxProvisionedPackage -Online | Where-Object DisplayName -eq $name | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Out-Null
+            Get-AppxPackage -AllUsers -Name $name | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
+        }
+    }
     catch { Write-Log ""AppxPackage removal failed or not found: $($_.Exception.Message)"" }
 }
 
@@ -128,7 +140,7 @@ foreach ($key in $hklmUninstallKeys + ""$SoftwareRoot\Microsoft\OneDrive"", ""$S
 
 # 3.1c: Delete the per-user OneDrive keys of every profile, loading the hives of users who are not signed in
 function Remove-OneDriveUserKeys([string]$Hive) {
-    foreach ($subKey in 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe', 'SOFTWARE\Microsoft\OneDrive', 'SOFTWARE\WOW6432Node\Microsoft\OneDrive') {
+    foreach ($subKey in 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe', 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ODPhotosOneDriveSetup.exe', 'SOFTWARE\Microsoft\OneDrive', 'SOFTWARE\WOW6432Node\Microsoft\OneDrive') {
         reg.exe delete ""$Hive\$subKey"" /f 2>&1 | Out-Null
         if ($LASTEXITCODE -eq 0) { Write-Log ""Deleted registry key: $Hive\$subKey"" }
     }
@@ -218,8 +230,9 @@ if ($remaining -and -not $Offline) {
 if (-not $Offline) {
     Write-Log 'Checking for OneDrive scheduled tasks'
     try {
-        foreach ($task in Get-ScheduledTask -TaskName '*OneDrive*' -ErrorAction SilentlyContinue) {
-            if ($task.TaskName -eq 'OneDriveRemoval') { Write-Log ""Skipping OneDriveRemoval task: $($task.TaskName)""; continue }
+        foreach ($task in Get-ScheduledTask -TaskName 'OneDrive*' -ErrorAction SilentlyContinue) {
+            if ($task.TaskPath -ne '\' -or $task.TaskName -notmatch '^OneDrive (Standalone Update Task|Reporting Task|Startup Task)(-S-1-[0-9-]+)?$') { continue }
+            if (-not ($task.Actions | Where-Object { $_.Execute -and [IO.Path]::GetFileName($_.Execute.Trim('""')) -in 'OneDrive.exe','OneDriveStandaloneUpdater.exe','OneDriveSetup.exe' })) { continue }
             try {
                 Unregister-ScheduledTask -TaskName $task.TaskName -TaskPath $task.TaskPath -Confirm:$false -ErrorAction SilentlyContinue
                 Write-Log ""Deleted scheduled task: $($task.TaskName)""
@@ -238,21 +251,42 @@ if ($LASTEXITCODE -eq 0) {
     Write-Log 'Default user already configured on this machine, skipping this step.'
 } else {
     Write-Log 'Configuring registry to prevent OneDrive auto-install for new users'
-    $defaultUser = if ($Offline) { $UserRoot } else { 'HKU\Default' }
-    if (-not $Offline) { reg.exe Load HKEY_USERS\Default 'C:\Users\Default\NTUSER.DAT' 2>&1 | Out-Null }
-    reg.exe delete ""$defaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"" /v OneDriveSetup /f 2>&1 | Out-Null
-    reg.exe add ""$defaultUser\SOFTWARE\Microsoft\OneDrive"" /v EnableTHDFFeatures /t REG_DWORD /d 0 /f 2>&1 | Out-Null
-    if (-not $Offline) {
-        # Close regedit in case it is running so we can unload the hive
-        Stop-Process -Name regedit -Force -ErrorAction SilentlyContinue
-        reg.exe Unload HKEY_USERS\Default 2>&1 | Out-Null
+    $defaultUser = if ($Offline) { $UserRoot } else { 'HKU\WinhanceDefault_' + [Guid]::NewGuid().ToString('N') }
+    $loaded = $false
+    $configured = $false
+    try {
+        if (-not $Offline) {
+            reg.exe load $defaultUser (Join-Path $root 'Users\Default\NTUSER.DAT') 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw 'Could not load the default user hive.' }
+            $loaded = $true
+        }
+        $run = ""$defaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Run""
+        reg.exe query $run /v OneDriveSetup 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            reg.exe delete $run /v OneDriveSetup /f 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw 'Could not remove the default setup entry.' }
+        }
+        reg.exe add ""$defaultUser\SOFTWARE\Microsoft\OneDrive"" /v EnableTHDFFeatures /t REG_DWORD /d 0 /f 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'Could not configure default user settings.' }
+        $configured = $true
+    } catch { Write-Log $_.Exception.Message }
+    finally {
+        if ($loaded) {
+            reg.exe unload $defaultUser 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) { $configured = $false; Write-Log 'Could not unload the default user hive.' }
+        }
     }
-    reg.exe add $markerKey /v DefaultUserConfigured /t REG_SZ /d ""$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"" /f 2>&1 | Out-Null
-    Write-Log 'Default user configuration completed and marked'
+    if ($configured) {
+        reg.exe add $markerKey /v DefaultUserConfigured /t REG_SZ /d ""$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"" /f 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) { Write-Log 'Default user configuration completed and marked' }
+    }
 }
 
 Write-Log 'Done.'
 Write-Host ""Done.$logHint""
+} finally {
+    if (-not $Offline) { $gate.ReleaseMutex(); $gate.Dispose() }
+}
 ";
     }
 }

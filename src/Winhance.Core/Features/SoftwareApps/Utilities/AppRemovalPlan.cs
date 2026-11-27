@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.SoftwareApps.Catalogs;
 using Winhance.Core.Features.SoftwareApps.Models;
@@ -20,6 +22,18 @@ public sealed record AppRemovalPlan(
     private static readonly List<ItemDefinition> DedicatedCatalog = WindowsAppDefinitions.GetWindowsApps().Items
         .Where(a => a.RemovalScript != null)
         .ToList();
+
+    public string ImageFingerprint()
+    {
+        var work = Packages.Select(p => "package:" + p)
+            .Concat(DedicatedPackages.Select(p => "package:" + p))
+            .Concat(Capabilities.Select(c => "capability:" + c))
+            .Concat(Features.Select(f => "feature:" + f))
+            .Concat(SpecialApps.Select(s => "special:" + s))
+            .Concat(Dedicated.Select(d => "dedicated:" + d.Id))
+            .Select(s => s.ToUpperInvariant()).Distinct().Order(StringComparer.Ordinal);
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', work))));
+    }
 
     public static AppRemovalPlan For(IReadOnlyList<AppChoice> apps)
     {
@@ -54,6 +68,9 @@ public sealed record AppRemovalPlan(
                 }
             }
         }
+
+        if (PhotosRemovalScript.Includes(packages) && !packages.Contains(PhotosRemovalScript.CompanionPackage, StringComparer.OrdinalIgnoreCase))
+            packages.Add(PhotosRemovalScript.CompanionPackage);
 
         var dedicated = DedicatedRemovalScripts.OnePerScript(selectedDedicated)
             .OrderBy(d => DedicatedCatalog.FindIndex(x => x.RemovalScriptName == d.RemovalScriptName))

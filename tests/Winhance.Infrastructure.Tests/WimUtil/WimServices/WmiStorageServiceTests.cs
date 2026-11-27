@@ -30,7 +30,7 @@ public class WmiStorageServiceTests
         var disks = CreateSut().GetDisks();
 
         disks.Should().HaveCount(2);
-        disks[0].Should().Be(new RemovableDrive(2, "SanDisk Cruzer Blade", 16_008_609_792L, "USB", IsSystemDisk: false, HasRemovableMedia: true));
+        disks[0].Should().Be(new RemovableDrive(2, "SanDisk Cruzer Blade", 16_008_609_792L, "USB", IsSystemDisk: false, HasRemovableMedia: true, UniqueId: "stick-a"));
         disks[1].BusType.Should().Be("NVMe");
         disks[1].IsSystemDisk.Should().BeTrue();
         disks[1].HasRemovableMedia.Should().BeFalse();
@@ -76,7 +76,7 @@ public class WmiStorageServiceTests
         var survivor = GivenPartition(2, 1);
         survivor.OnInvoke = (method, _) => (method == "DeleteObject" ? 42000u : 0u, new FakeInstance());
 
-        CreateSut().Clear(2, "");
+        CreateSut().Clear(2, "stick-a");
 
         disk.Invocations.Select(i => i.Method).Should().Equal("Clear");
         disk.Invocations[0].Parameters.Should().Contain("RemoveData", true);
@@ -99,6 +99,7 @@ public class WmiStorageServiceTests
     public void Clear_DiskNowReportsNoUniqueIdButThePickedOneHadOne_ThrowsBeforeWiping()
     {
         var disk = GivenDisk(2);
+        disk["UniqueId"] = "";
 
         Action act = () => CreateSut().Clear(2, "stick-a");
 
@@ -107,11 +108,32 @@ public class WmiStorageServiceTests
     }
 
     [Fact]
+    public void Clear_BothIdentitiesMissing_RefusesBeforeWipe()
+    {
+        var disk = GivenDisk(2);
+        disk["UniqueId"] = "";
+        Action clear = () => CreateSut().Clear(2, "");
+        clear.Should().Throw<InvalidOperationException>();
+        disk.Invocations.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Clear_IdentityChangesAfterClear_LeavesSurvivingPartitionAlone()
+    {
+        var disk = GivenDisk(2);
+        var partition = GivenPartition(2, 1);
+        disk.OnInvoke = (_, _) => { disk["UniqueId"] = "stick-b"; return (0u, new FakeInstance()); };
+        Action clear = () => CreateSut().Clear(2, "stick-a");
+        clear.Should().Throw<InvalidOperationException>();
+        partition.Invocations.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Clear_NoFreeExtentAfterwards_Throws()
     {
         GivenDisk(2, largestFreeExtent: 0);
 
-        Action act = () => CreateSut().Clear(2, "");
+        Action act = () => CreateSut().Clear(2, "stick-a");
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*no free space*");
     }
@@ -121,7 +143,7 @@ public class WmiStorageServiceTests
     {
         var disk = GivenDisk(2, partitionStyle: 1);
 
-        CreateSut().EnsureMbr(2);
+        CreateSut().EnsureMbr(2, "stick-a");
 
         disk.Invocations.Should().BeEmpty();
     }
@@ -138,7 +160,7 @@ public class WmiStorageServiceTests
             return (41001u, new FakeInstance());
         };
 
-        CreateSut().EnsureMbr(2);
+        CreateSut().EnsureMbr(2, "stick-a");
 
         disk.Invocations.Select(i => i.Method).Should().Equal("Initialize");
         disk.Invocations[0].Parameters.Should().Contain("PartitionStyle", (ushort)1);
@@ -150,7 +172,7 @@ public class WmiStorageServiceTests
         var disk = GivenDisk(2, partitionStyle: 2);
         disk.OnInvoke = (_, _) => (41001u, new FakeInstance());
 
-        Action act = () => CreateSut().EnsureMbr(2);
+        Action act = () => CreateSut().EnsureMbr(2, "stick-a");
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*41001*");
         disk.Invocations.Select(i => i.Method).Should().Equal("ConvertStyle");
@@ -163,7 +185,7 @@ public class WmiStorageServiceTests
     {
         var disk = GivenDisk(2, partitionStyle: 0);
 
-        Action act = () => CreateSut().EnsureMbr(2);
+        Action act = () => CreateSut().EnsureMbr(2, "stick-a");
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*partition style 0*");
         disk.Invocations.Select(i => i.Method).Should().Equal("Initialize", "Refresh");
@@ -175,7 +197,7 @@ public class WmiStorageServiceTests
         var disk = GivenDisk(2);
         disk.OnInvoke = (_, _) => (0u, OutputWithCreatedPartition(1));
 
-        var number = CreateSut().CreateBootPartition(2, 2_147_483_648L);
+        var number = CreateSut().CreateBootPartition(2, "stick-a", 2_147_483_648L);
 
         number.Should().Be(1);
         var parameters = disk.Invocations.Single().Parameters;
@@ -192,7 +214,7 @@ public class WmiStorageServiceTests
         var disk = GivenDisk(2);
         disk.OnInvoke = (_, _) => (0u, OutputWithCreatedPartition(2));
 
-        var number = CreateSut().CreateInstallPartition(2);
+        var number = CreateSut().CreateInstallPartition(2, "stick-a");
 
         number.Should().Be(2);
         var parameters = disk.Invocations.Single().Parameters;
@@ -207,11 +229,12 @@ public class WmiStorageServiceTests
     [InlineData("NTFS", "WINSETUP")]
     public void Format_FormatsTheVolumeBehindThePartition_Quick(string fileSystem, string label)
     {
+        GivenDisk(2);
         var partition = GivenPartition(2, 1);
         var volume = new FakeInstance();
         partition.Related["MSFT_Volume"] = [volume];
 
-        CreateSut().Format(2, 1, fileSystem, label);
+        CreateSut().Format(2, "stick-a", 1, fileSystem, label);
 
         volume.Invocations.Single().Method.Should().Be("Format");
         var parameters = volume.Invocations.Single().Parameters;
@@ -223,9 +246,10 @@ public class WmiStorageServiceTests
     [Fact]
     public void AssignDriveLetter_WindowsAlreadyMountedIt_AsksForNothing()
     {
+        GivenDisk(2);
         var partition = GivenPartition(2, 1, 'E');
 
-        CreateSut().AssignDriveLetter(2, 1).Should().Be('E');
+        CreateSut().AssignDriveLetter(2, "stick-a", 1).Should().Be('E');
 
         partition.Invocations.Should().BeEmpty();
     }
@@ -233,6 +257,7 @@ public class WmiStorageServiceTests
     [Fact]
     public void AssignDriveLetter_NoLetterYet_AddsAnAccessPathAndReadsItBack()
     {
+        GivenDisk(2);
         var partition = GivenPartition(2, 1);
         partition.OnInvoke = (_, _) =>
         {
@@ -240,7 +265,7 @@ public class WmiStorageServiceTests
             return (0u, new FakeInstance());
         };
 
-        CreateSut().AssignDriveLetter(2, 1).Should().Be('F');
+        CreateSut().AssignDriveLetter(2, "stick-a", 1).Should().Be('F');
 
         partition.Invocations.Single().Method.Should().Be("AddAccessPath");
         partition.Invocations.Single().Parameters.Should().Contain("AssignDriveLetter", true);
@@ -255,7 +280,7 @@ public class WmiStorageServiceTests
             ["ExtendedStatus"] = new FakeInstance { ["Message"] = "Access denied." },
         });
 
-        Action act = () => CreateSut().Clear(2, "");
+        Action act = () => CreateSut().Clear(2, "stick-a");
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*Access denied.*40001*");
     }
@@ -271,6 +296,7 @@ public class WmiStorageServiceTests
         var disk = new FakeInstance
         {
             ["Number"] = (uint)number,
+            ["UniqueId"] = "stick-a",
             ["FriendlyName"] = "SanDisk Cruzer Blade",
             ["Size"] = 16_008_609_792UL,
             ["BusType"] = (ushort)7,

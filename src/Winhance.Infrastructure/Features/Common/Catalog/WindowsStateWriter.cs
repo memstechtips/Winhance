@@ -58,6 +58,10 @@ internal sealed class WindowsStateWriter : IStateWriter
         return true;
     }
 
+    public bool SetMessageDuration(MessageDurationTarget target, int seconds) =>
+        _systemParameters.SetMessageDuration(seconds) && _systemParameters.GetMessageDuration() == seconds
+        && Equals(_reg.GetValue(target.Paths[0], target.ValueName!), seconds);
+
     public bool DeleteRegistry(RegTarget target, string path)
     {
         // A ValueName-less target encodes state as key existence, so its "off" deletes the KEY. A named value

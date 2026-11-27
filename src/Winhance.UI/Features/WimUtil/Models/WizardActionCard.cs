@@ -11,6 +11,7 @@ public partial class WizardActionCard : ObservableObject
         Title = string.Empty;
         Description = string.Empty;
         ButtonText = string.Empty;
+        BusyReason = string.Empty;
         IsEnabled = true;
     }
 
@@ -38,7 +39,9 @@ public partial class WizardActionCard : ObservableObject
     public partial bool IsEnabled { get; set; }
 
     // Each card is disabled only while its own task runs.
-    public string BusyReason { get; init; } = string.Empty;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisabledReason))]
+    public partial string BusyReason { get; set; }
 
     public string? DisabledReason => IsEnabled ? null : BusyReason;
 

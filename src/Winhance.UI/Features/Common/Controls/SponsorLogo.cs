@@ -46,16 +46,8 @@ internal static class SponsorLogo
             VerticalAlignment = VerticalAlignment.Center
         };
 
-        var initial = new TextBlock
-        {
-            Text = Initial(sponsor.Name),
-            FontSize = size / 2.2,
-            FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-            Style = CodeBuiltStyle.Named(TierStyle(sponsor, "Text")),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-            Visibility = Visibility.Collapsed
-        };
+        var layers = new Grid { Width = size, Height = size };
+        layers.Children.Add(image);
 
         bool hasSettled = false;
         void Settle()
@@ -72,12 +64,20 @@ internal static class SponsorLogo
         {
             if (next < sources.Count)
             {
-                image.Source = new BitmapImage(new Uri(sources[next++]));
+                image.Source = new BitmapImage(new Uri(sources[next++])) { DecodePixelWidth = (int)size, DecodePixelType = DecodePixelType.Logical };
                 return;
             }
 
-            image.Visibility = Visibility.Collapsed;
-            initial.Visibility = Visibility.Visible;
+            layers.Children.Remove(image);
+            layers.Children.Add(new TextBlock
+            {
+                Text = Initial(sponsor.Name),
+                FontSize = size / 2.2,
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                Style = CodeBuiltStyle.Named(TierStyle(sponsor, "Text")),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            });
             Settle();
         }
 
@@ -85,9 +85,6 @@ internal static class SponsorLogo
         image.ImageFailed += (_, _) => TryNext();
         TryNext();
 
-        var layers = new Grid { Width = size, Height = size };
-        layers.Children.Add(image);
-        layers.Children.Add(initial);
         return layers;
     }
 }

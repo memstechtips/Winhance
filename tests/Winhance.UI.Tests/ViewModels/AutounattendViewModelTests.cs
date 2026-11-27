@@ -57,6 +57,15 @@ public class AutounattendViewModelTests
         _dispatcher.Setup(d => d.RunOnUIThread(It.IsAny<Action>())).Callback<Action>(action => action());
         _dispatcher.Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
             .Returns<Func<Task>>(action => action());
+        // Fires the tick on Restart, so a debounced search filters at once.
+        _dispatcher
+            .Setup(d => d.CreateDebounceTimer(It.IsAny<TimeSpan>(), It.IsAny<Action>()))
+            .Returns<TimeSpan, Action>((_, tick) =>
+            {
+                var timer = new Mock<IDebounceTimer>();
+                timer.Setup(t => t.Restart()).Callback(tick);
+                return timer.Object;
+            });
 
         _scope.SetupGet(s => s.Current).Returns(CatalogScope.CurrentMachine);
         _registry.Setup(r => r.InitializeAsync()).Returns(Task.CompletedTask);

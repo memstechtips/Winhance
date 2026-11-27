@@ -1,5 +1,8 @@
 using Moq;
+using Winhance.Core.Features.Common.Selections;
+using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.Core.Features.Common.Catalog;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Optimize.Models;
 using Winhance.Infrastructure.Features.Common.Catalog;
@@ -23,7 +26,7 @@ public class SystemDetectionContextTests
         Mock<IWindowsRegistryService> reg,
         Mock<ISystemRestoreService> restore,
         Mock<IScheduledTaskStateService> tasks,
-        Mock<IPowerSettingsQueryService> power) Build()
+        Mock<IPowerSettingsQueryService> power) Build(ISystemParametersService? parameters = null)
     {
         var reg = new Mock<IWindowsRegistryService>();
         var restore = new Mock<ISystemRestoreService>();
@@ -35,7 +38,7 @@ public class SystemDetectionContextTests
             .Returns((IReadOnlyCollection<string> paths) => paths.ToDictionary(p => p, _ => (bool?)null));
         var power = new Mock<IPowerSettingsQueryService>();
         var log = new Mock<ILogService>();
-        var ctx = new SystemDetectionContext(reg.Object, restore.Object, tasks.Object, power.Object, Localization, log.Object);
+        var ctx = new SystemDetectionContext(reg.Object, restore.Object, tasks.Object, power.Object, Localization, log.Object, parameters ?? Mock.Of<ISystemParametersService>());
         return (ctx, reg, restore, tasks, power);
     }
 
@@ -45,6 +48,43 @@ public class SystemDetectionContextTests
         Display = new() { Name = TestKeys.Of("s"), Description = TestKeys.Of("s") },
         Targets = targets,
     };
+
+    [Theory]
+    [InlineData(30, 30, 3, SettingMatch.Matches)]
+    [InlineData(30, 5, 3, SettingMatch.Differs)]
+    [InlineData(5, 30, 3, SettingMatch.Differs)]
+    [InlineData(5, 5, 3, SettingMatch.Differs)]
+    [InlineData(5, null, 0, SettingMatch.Differs)]
+    [InlineData(30, "30", 3, SettingMatch.Differs)]
+    [InlineData(null, 30, 3, SettingMatch.Unknown)]
+    public async Task MessageDuration_CapturesTheSessionButMatchesOnlyIfAlsoPersisted(int? live, object? stored, int option, SettingMatch expected)
+    {
+        var setting = SettingCatalog.Find("notifications-banner-duration")!;
+        var target = Assert.Single(setting.Targets.OfType<MessageDurationTarget>());
+        var parameters = new Mock<ISystemParametersService>();
+        parameters.Setup(p => p.GetMessageDuration()).Returns(live);
+        var (ctx, reg, _, _, _) = Build(parameters.Object);
+        reg.Setup(r => r.GetValue(target.Paths[0], target.ValueName!)).Returns(stored);
+        var factory = Mock.Of<ISystemDetectionContextFactory>(f => f.Create() == ctx);
+        var options = OptionProviderFixtures.Registry();
+        var logger = Mock.Of<ILogService>();
+        var version = Mock.Of<IWindowsVersionService>(v => v.GetWindowsBuildNumber() == 26300);
+        var detection = new CatalogDetectionService(factory, logger, options, OptionProviderFixtures.ThemeService(Localization));
+        var states = new CatalogSettingStateProvider(detection, new ComboBoxResolver(version), version);
+        var registry = Mock.Of<ICatalogSettingsRegistry>(r => r.GetById(setting.Id, CatalogScope.CurrentMachine) == setting);
+        Mock.Get(registry).Setup(r => r.GetAll(CatalogScope.CurrentMachine)).Returns(
+            new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.Notifications] = [setting] });
+        var snapshot = new SettingSnapshotSource(registry, states, logger, options, Mock.Of<IFileStore>(), Mock.Of<IHardwareDetectionService>(), factory);
+
+        var captured = await snapshot.CaptureAsync(CatalogScope.CurrentMachine);
+        if (live is null)
+            Assert.Empty(captured);
+        else
+            Assert.Equal(new ChoiceValue.Option(live == 5 ? 0 : 3), Assert.Single(captured).Value);
+        var matches = await snapshot.CompareAsync([new SettingChoice(setting.Id, new ChoiceValue.Option(option))], [], CatalogScope.CurrentMachine);
+
+        Assert.Equal(expected, matches[setting.Id]);
+    }
 
     [Fact]
     public void GetValue_Always_DelegatesToRegistry()

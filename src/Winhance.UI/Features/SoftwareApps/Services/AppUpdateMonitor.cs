@@ -29,6 +29,7 @@ public sealed class AppUpdateMonitor(
     IUserPreferencesService preferences,
     ILocalizationService localization,
     IVersionService versionService,
+    TimeProvider time,
     ILogService logService) : IDisposable
 {
     internal static readonly TimeSpan Tick = TimeSpan.FromMinutes(30);
@@ -63,10 +64,33 @@ public sealed class AppUpdateMonitor(
     internal static bool IsDue(IUserPreferencesService preferences, DateTime nowUtc) =>
         IsDue(preferences.GetPreference(UserPreferenceKeys.AppUpdateCheckFrequency, AppUpdateCheckFrequency.Daily), LastCheckUtc(preferences), nowUtc);
 
-    // The same schedule for Winhance itself, but never slower than daily; Off turns it off with the app update check.
+    // Winhance's own check runs daily whatever the software update setting says.
     internal static bool WinhanceCheckIsDue(IUserPreferencesService preferences, DateTime nowUtc) =>
-        preferences.GetPreference(UserPreferenceKeys.AppUpdateCheckFrequency, AppUpdateCheckFrequency.Daily) != AppUpdateCheckFrequency.Off
-        && IsDue(AppUpdateCheckFrequency.Daily, LastCheckUtc(preferences, UserPreferenceKeys.LastWinhanceUpdateCheck), nowUtc);
+        IsDue(AppUpdateCheckFrequency.Daily, LastCheckUtc(preferences, UserPreferenceKeys.LastWinhanceUpdateCheck), nowUtc);
+
+    // One unattended try per version, so an installer that fails is not downloaded again on every tick.
+    internal static bool WinhanceAutoInstallIsDue(IUserPreferencesService preferences, string? version) =>
+        !string.IsNullOrEmpty(version)
+        && preferences.GetPreference(UserPreferenceKeys.WinhanceUpdateAction, AppUpdateAction.Notify) == AppUpdateAction.Install
+        && version != preferences.GetPreference(UserPreferenceKeys.LastWinhanceAutoInstall, string.Empty);
+
+    // True once the installer is running; the caller exits straight away. Winhance runs elevated, so the installer
+    // inherits that and shows no UAC prompt, then starts Winhance back in the tray.
+    internal static async Task<bool> StartWinhanceInstallAsync(IVersionService versionService, IUserPreferencesService preferences, string version, ILogService logService)
+    {
+        await preferences.SetPreferenceAsync(UserPreferenceKeys.LastWinhanceAutoInstall, version);
+        try
+        {
+            await versionService.DownloadAndInstallUpdateAsync();
+            versionService.LaunchInstallerAndRestart(relaunchInTray: true);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logService.LogError("Installing the Winhance update automatically failed", ex);
+            return false;
+        }
+    }
 
     // Done is false when the check could not reach GitHub, so the last-check time stays and the next tick tries again.
     internal static async Task<(bool Done, string? Version)> CheckWinhanceAsync(IVersionService versionService, IUserPreferencesService preferences, DateTime nowUtc)
@@ -159,7 +183,10 @@ public sealed class AppUpdateMonitor(
                 await externalApps.LoadItemsAsync();
             if (!windowsApps.IsInitialized)
                 await windowsApps.LoadItemsAsync();
-            if (!await ScanRowsAsync())
+            // Opening a tab reads the PC, and so do the loads above; a scheduled check right after one would read it again.
+            var readSince = time.GetUtcNow().UtcDateTime - Tick;
+            var fresh = !manual && externalApps.UpdatesReadUtc >= readSince && windowsApps.UpdatesReadUtc >= readSince;
+            if (!fresh && !await ScanRowsAsync())
             {
                 if (manual)
                     ReportRows(finished: false);
@@ -239,15 +266,14 @@ public sealed class AppUpdateMonitor(
     {
         try
         {
-            await Task.Delay(FirstCheckDelay, cancellationToken);
-            using var timer = new PeriodicTimer(Tick);
-            do
+            using var timer = new PeriodicTimer(FirstCheckDelay, time);
+            while (await timer.WaitForNextTickAsync(cancellationToken))
             {
+                timer.Period = Tick;
                 if (IsDue(preferences, DateTime.UtcNow))
                     await CheckAsync(manual: false);
                 await CheckWinhanceUpdateAsync();
             }
-            while (await timer.WaitForNextTickAsync(cancellationToken));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

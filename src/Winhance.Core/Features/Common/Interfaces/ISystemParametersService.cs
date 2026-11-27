@@ -10,6 +10,10 @@ public interface ISystemParametersService
     // what survives a sign-out is the registry value beside it.
     bool SetSysColors(int index, uint colorRef);
 
+    int? GetMessageDuration();
+
+    bool SetMessageDuration(int seconds);
+
     // Live only: leaves the registry alone, so the value lasts until sign-out unless something else persists it.
     bool SetLive(SystemParameter parameter, bool on);
 }

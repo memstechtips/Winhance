@@ -34,12 +34,22 @@ public class EnabledWhenConformanceTests
         ["taskbar-multi-display-apps"] = ("taskbar-multi-display", new[] { "Common_Enabled" }),
         ["taskbar-combine-buttons-other"] = ("taskbar-multi-display", new[] { "Common_Enabled" }),
 
+        // The lock policies grey both choices in Windows Settings, so Winhance greys them the same way. The gate
+        // points down at the parent's own child, which sits on the same page.
+        ["taskbar-position"] = ("taskbar-lock-position-size", new[] { "Common_Disabled" }),
+        ["taskbar-size"] = ("taskbar-lock-position-size", new[] { "Common_Disabled" }),
+
         // Windows Settings greys every snap option while Snap windows is off.
         ["explorer-snap-suggestions"] = ("explorer-snap-windows", new[] { "Common_Enabled" }),
         ["explorer-snap-layouts-maximize-button"] = ("explorer-snap-windows", new[] { "Common_Enabled" }),
         ["explorer-snap-layouts-top-of-screen"] = ("explorer-snap-windows", new[] { "Common_Enabled" }),
         ["explorer-snap-groups-in-switchers"] = ("explorer-snap-windows", new[] { "Common_Enabled" }),
         ["explorer-snap-without-edge"] = ("explorer-snap-windows", new[] { "Common_Enabled" }),
+
+        // The cleanup schedule belongs to Storage Sense; the policy switching it off leaves nothing to schedule.
+        ["gaming-storage-sense-frequency"] = ("gaming-storage-sense", new[] { "Common_Enabled" }),
+        ["gaming-storage-sense-recycle-bin"] = ("gaming-storage-sense", new[] { "Common_Enabled" }),
+        ["gaming-storage-sense-downloads"] = ("gaming-storage-sense", new[] { "Common_Enabled" }),
 
         // The Store Notepad ignores both values; measured in the 26H2 VM. Only legacy Notepad reads them.
         ["explorer-customization-notepad-word-wrap"] = ("explorer-customization-legacy-notepad", new[] { "Common_Enabled" }),
@@ -124,6 +134,9 @@ public class EnabledWhenConformanceTests
         "privacy-rotating-lock-screen",
         "privacy-lock-screen-overlay",
 
+        // This sets a cleanup preference; it does not run Storage Sense or change its schedule.
+        "gaming-storage-sense-temporary-files",
+
         // A tray-icon preference Explorer honours whether or not toasts are on.
         "notifications-show-bell-icon",
 
@@ -154,6 +167,9 @@ public class EnabledWhenConformanceTests
         "context-menu-store-reset",
         "context-menu-reliability-monitor",
         "context-menu-battery-report",
+
+        // The lock is a policy of its own, usable whatever the position is.
+        "taskbar-lock-position-size",
     };
 
     [Fact]
@@ -247,20 +263,18 @@ public class EnabledWhenConformanceTests
             .Select(s => s.Id)
             .OrderBy(id => id, System.StringComparer.Ordinal);
 
-        nested.Should().Equal(Expected.Keys.Concat(Hidden.Keys).Concat(DeliberatelyUngated)
+        nested.Should().Equal(Expected.Keys.Where(id => !string.IsNullOrEmpty(S(id).UiParentId)).Concat(Hidden.Keys).Concat(DeliberatelyUngated)
             .OrderBy(id => id, System.StringComparer.Ordinal));
     }
 
     [Fact]
-    public void EnabledWhen_Gate_NamesOnlyTheSettingsOwnUiParent()
+    public void EnabledWhen_Gate_NamesASettingOnTheSamePage()
     {
-        // Not a rule of the model - EnabledWhen may name any setting, and Link deliberately does point
-        // at non-parents. It is a statement about TODAY'S catalog: every gate we could verify happens to
-        // be a claim about the card's own UI parent. If that ever stops being true it should be a
-        // conscious edit here, because a gate whose target lives on another PAGE cannot be read: the
-        // feature view-model only sees its own settings, and an unreadable gate stays open.
+        // A gate whose target lives on another PAGE cannot be read: the feature view-model only sees its own
+        // settings, and an unreadable gate stays open.
         foreach (var s in SettingCatalog.All.Where(s => s.EnabledWhen is not null))
-            s.EnabledWhen!.OtherId.Should().Be(s.UiParentId!, $"'{s.Id}' gates on its own parent");
+            SettingCatalog.FeatureById[s.EnabledWhen!.OtherId].Should().Be(SettingCatalog.FeatureById[s.Id],
+                $"'{s.Id}' gates on a setting its page shows");
     }
 
     [Fact]

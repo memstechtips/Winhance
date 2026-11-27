@@ -19,7 +19,7 @@ public static class NotificationOptimizationsCatalog
             {
                 Name = LocKey.Setting.WindowsPushnotifications.Name,
                 Description = LocKey.Setting.WindowsPushnotifications.Description,
-                Icon = MaterialIcons.BellAlert,
+                Icon = FluentIcons.AlertUrgent,
                 IsSubjectivePreference = true,
             },
             Apply = new() { Restart = new RestartService("WpnUserService*") },
@@ -51,7 +51,7 @@ public static class NotificationOptimizationsCatalog
             {
                 Name = LocKey.Setting.NotificationsSound.Name,
                 Description = LocKey.Setting.NotificationsSound.Description,
-                Icon = MaterialIcons.VolumeHigh,
+                Icon = FluentIcons.Speaker2,
                 IsSubjectivePreference = true,
             },
             UiParentId = "windows-pushnotifications",
@@ -84,7 +84,7 @@ public static class NotificationOptimizationsCatalog
             {
                 Name = LocKey.Setting.NotificationsToastAboveLock.Name,
                 Description = LocKey.Setting.NotificationsToastAboveLock.Description,
-                Icon = MaterialIcons.CellphoneLock,
+                Icon = FluentIcons.PhoneLock,
                 IsSubjectivePreference = true,
             },
             UiParentId = "windows-pushnotifications",
@@ -127,7 +127,7 @@ public static class NotificationOptimizationsCatalog
             {
                 Name = LocKey.Setting.NotificationsCriticalToastAboveLock.Name,
                 Description = LocKey.Setting.NotificationsCriticalToastAboveLock.Description,
-                Icon = MaterialIcons.PhoneAlert,
+                Icon = FluentIcons.CallExclamation,
                 IsSubjectivePreference = true,
             },
             UiParentId = "windows-pushnotifications",
@@ -161,7 +161,7 @@ public static class NotificationOptimizationsCatalog
             {
                 Name = LocKey.Setting.NotificationsShowBellIcon.Name,
                 Description = LocKey.Setting.NotificationsShowBellIcon.Description,
-                Icon = MaterialIcons.BellCheck,
+                Icon = FluentIcons.AlertOn,
                 IsSubjectivePreference = true,
             },
             UiParentId = "windows-pushnotifications",
@@ -197,7 +197,7 @@ public static class NotificationOptimizationsCatalog
                 Name = LocKey.Setting.NotificationsWelcomeExperience.Name,
                 Description = LocKey.Setting.NotificationsWelcomeExperience.Description,
                 GroupName = LocKey.SettingGroup.AdditionalSettings,
-                Icon = MaterialIcons.HumanGreeting,
+                Icon = FluentIcons.HandWave,
             },
             Targets = new Target[]
             {
@@ -228,7 +228,7 @@ public static class NotificationOptimizationsCatalog
                 Name = LocKey.Setting.NotificationsSystemSettingEngagement.Name,
                 Description = LocKey.Setting.NotificationsSystemSettingEngagement.Description,
                 GroupName = LocKey.SettingGroup.AdditionalSettings,
-                Icon = MaterialIcons.AutoFix,
+                Icon = FluentIcons.Wand,
             },
             Targets = new Target[]
             {
@@ -259,7 +259,7 @@ public static class NotificationOptimizationsCatalog
                 Name = LocKey.Setting.NotificationsTipsSuggestions.Name,
                 Description = LocKey.Setting.NotificationsTipsSuggestions.Description,
                 GroupName = LocKey.SettingGroup.AdditionalSettings,
-                Icon = MaterialIcons.LightbulbOnOutline,
+                Icon = FluentIcons.Lightbulb,
             },
             Targets = new Target[]
             {
@@ -290,7 +290,7 @@ public static class NotificationOptimizationsCatalog
                 Name = LocKey.Setting.NotificationsSystemPaneSuggestions.Name,
                 Description = LocKey.Setting.NotificationsSystemPaneSuggestions.Description,
                 GroupName = LocKey.SettingGroup.AdditionalSettings,
-                Icon = MaterialIcons.MessageBadge,
+                Icon = FluentIcons.CommentBadge,
             },
             Targets = new Target[]
             {
@@ -315,13 +315,94 @@ public static class NotificationOptimizationsCatalog
         },
         new()
         {
+            Id = "notifications-banner-duration",
+            Display = new()
+            {
+                Name = LocKey.Setting.NotificationsBannerDuration.Name,
+                Description = LocKey.Setting.NotificationsBannerDuration.Description,
+                GroupName = LocKey.SettingGroup.SystemNotifications,
+                Icon = FluentIcons.AlertUrgent,
+                IsSubjectivePreference = true,
+                AddedInVersion = "26.11.24",
+            },
+            Availability = new() { Builds = new[] { BuildRange.Between(26300, int.MaxValue) } },
+            Targets = new Target[] { new MessageDurationTarget() },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Setting.NotificationsBannerDuration.Option0,
+                    Set = new Dictionary<string, StateValue> { ["MessageDuration"] = Of(5) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.NotificationsBannerDuration.Option1,
+                    Set = new Dictionary<string, StateValue> { ["MessageDuration"] = Of(7) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.NotificationsBannerDuration.Option2,
+                    Set = new Dictionary<string, StateValue> { ["MessageDuration"] = Of(15) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.NotificationsBannerDuration.Option3,
+                    Set = new Dictionary<string, StateValue> { ["MessageDuration"] = Of(30) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.NotificationsBannerDuration.Option4,
+                    Set = new Dictionary<string, StateValue> { ["MessageDuration"] = Of(60) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.NotificationsBannerDuration.Option5,
+                    Set = new Dictionary<string, StateValue> { ["MessageDuration"] = Of(300) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "notifications-usb-errors",
+            Display = new()
+            {
+                Name = LocKey.Setting.NotificationsUsbErrors.Name,
+                Description = LocKey.Setting.NotificationsUsbErrors.Description,
+                GroupName = LocKey.SettingGroup.SystemNotifications,
+                Icon = FluentIcons.Usb,
+                AddedInVersion = "26.11.24",
+                IsSubjectivePreference = true,
+            },
+            Availability = new() { Builds = new[] { BuildRange.Between(26300, int.MaxValue) } },
+            Targets = new Target[]
+            {
+                new RegTarget("NotifyOnUsbErrors", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Shell\USB" }, "NotifyOnUsbErrors", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Between(26300, 26300) } } },
+                    Set = new Dictionary<string, StateValue> { ["NotifyOnUsbErrors"] = Of(1).OrAbsent() },
+                    ResetSet = new Dictionary<string, StateValue> { ["NotifyOnUsbErrors"] = Absent },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Set = new Dictionary<string, StateValue> { ["NotifyOnUsbErrors"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
             Id = "notifications-capability-access",
             Display = new()
             {
                 Name = LocKey.Setting.NotificationsCapabilityAccess.Name,
                 Description = LocKey.Setting.NotificationsCapabilityAccess.Description,
                 GroupName = LocKey.SettingGroup.SystemNotifications,
-                Icon = MaterialIcons.LockOpenAlertOutline,
+                Icon = FluentIcons.WarningLockOpen,
             },
             Targets = new Target[]
             {
@@ -352,7 +433,7 @@ public static class NotificationOptimizationsCatalog
                 Name = LocKey.Setting.NotificationsStartupApp.Name,
                 Description = LocKey.Setting.NotificationsStartupApp.Description,
                 GroupName = LocKey.SettingGroup.SystemNotifications,
-                Icon = MaterialIcons.ArchiveAlert,
+                Icon = FluentIcons.AlertBadge,
             },
             Targets = new Target[]
             {
@@ -382,7 +463,7 @@ public static class NotificationOptimizationsCatalog
                 Name = LocKey.Setting.NotificationsClockChange.Name,
                 Description = LocKey.Setting.NotificationsClockChange.Description,
                 GroupName = LocKey.SettingGroup.SystemNotifications,
-                Icon = MaterialIcons.ClockAlertOutline,
+                Icon = FluentIcons.ClockWarning,
             },
             Targets = new Target[]
             {
@@ -413,7 +494,7 @@ public static class NotificationOptimizationsCatalog
                 Name = LocKey.Setting.NotificationsAppLocationRequest.Name,
                 Description = LocKey.Setting.NotificationsAppLocationRequest.Description,
                 GroupName = LocKey.SettingGroup.PrivacyNotifications,
-                Icon = MaterialIcons.MapMarker,
+                Icon = FluentIcons.Location,
             },
             Targets = new Target[]
             {
@@ -482,7 +563,7 @@ public static class NotificationOptimizationsCatalog
                 Name = LocKey.Setting.NotificationsSecurityMaintenance.Name,
                 Description = LocKey.Setting.NotificationsSecurityMaintenance.Description,
                 GroupName = LocKey.SettingGroup.SecurityNotifications,
-                Icon = MaterialIcons.ShieldSync,
+                Icon = FluentIcons.ShieldBadge,
             },
             Targets = new Target[]
             {

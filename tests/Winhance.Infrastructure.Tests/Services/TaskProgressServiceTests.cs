@@ -150,7 +150,7 @@ public class TaskProgressServiceTests
     }
 
     [Fact]
-    public void FailTask_ReportsZeroProgressWhileRunningThenEndsTheTask()
+    public void FailTask_EndsTheTaskInOneEventAtZeroProgress()
     {
         _sut.StartTask("Work");
         var received = new List<(TaskProgressDetail Detail, bool WasRunning)>();
@@ -160,12 +160,11 @@ public class TaskProgressServiceTests
 
         _sut.IsTaskRunning.Should().BeFalse();
         _sut.CurrentTaskCancellationSource.Should().BeNull();
-        received.Should().HaveCount(2);
-        received[0].WasRunning.Should().BeTrue();
+        received.Should().ContainSingle();
+        received[0].WasRunning.Should().BeFalse();
         received[0].Detail.Progress.Should().Be(0);
         received[0].Detail.StatusText.Should().Be("Work");
-        received[1].WasRunning.Should().BeFalse();
-        received[1].Detail.DetailedMessage.Should().Be("Task failed");
+        received[0].Detail.DetailedMessage.Should().Be("Task failed");
     }
 
     [Fact]

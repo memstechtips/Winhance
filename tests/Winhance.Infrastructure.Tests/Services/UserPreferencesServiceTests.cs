@@ -45,58 +45,19 @@ public class UserPreferencesServiceTests
     }
 
     [Fact]
-    public async Task GetPreferenceAsync_KeyMissing_ReturnsDefaultValue()
-    {
-        _mockFileSystemService
-            .Setup(f => f.FileExists(It.IsAny<string>()))
-            .Returns(false);
-
-        var result = await _service.GetPreferenceAsync("NonExistentKey", "default_value");
-
-        result.Should().Be("default_value");
-    }
-
-    [Fact]
-    public async Task GetPreferenceAsync_KeyExists_ReturnsStoredValue()
+    public void GetPreference_StringKey_ReturnsStoredValue()
     {
         var prefs = new Dictionary<string, object> { { "Theme", "Dark" } };
         string json = JsonSerializer.Serialize(prefs);
 
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
-        _mockFileSystemService.Setup(f => f.ReadAllTextAsync(It.IsAny<string>(), default))
-            .ReturnsAsync(json);
+        _mockFileSystemService.Setup(f => f.ReadAllText(It.IsAny<string>()))
+            .Returns(json);
 
-        var result = await _service.GetPreferenceAsync("Theme", "Light");
+        var result = _service.GetPreference("Theme", "Light");
 
         // STJ deserializes string values as JsonElement; the conversion logic handles it
         result.Should().Be("Dark");
-    }
-
-    [Fact]
-    public async Task GetPreferenceAsync_BoolKey_ReturnsBoolValue()
-    {
-        var prefs = new Dictionary<string, object> { { "AutoUpdate", true } };
-        string json = JsonSerializer.Serialize(prefs);
-
-        _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
-        _mockFileSystemService.Setup(f => f.ReadAllTextAsync(It.IsAny<string>(), default))
-            .ReturnsAsync(json);
-
-        var result = await _service.GetPreferenceAsync("AutoUpdate", false);
-
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task GetPreferenceAsync_EmptyFile_ReturnsDefaultValue()
-    {
-        _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
-        _mockFileSystemService.Setup(f => f.ReadAllTextAsync(It.IsAny<string>(), default))
-            .ReturnsAsync(string.Empty);
-
-        var result = await _service.GetPreferenceAsync("AnyKey", 42);
-
-        result.Should().Be(42);
     }
 
     [Fact]
@@ -329,38 +290,38 @@ public class UserPreferencesServiceTests
     }
 
     [Fact]
-    public async Task GetPreferenceAsync_ManyReads_ParseTheFileOnce()
+    public async Task GetPreference_ManyReads_ParseTheFileOnce()
     {
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
-        _mockFileSystemService.Setup(f => f.ReadAllTextAsync(It.IsAny<string>(), default))
-            .ReturnsAsync(JsonSerializer.Serialize(new Dictionary<string, object> { { "Theme", "Dark" } }));
+        _mockFileSystemService.Setup(f => f.ReadAllText(It.IsAny<string>()))
+            .Returns(JsonSerializer.Serialize(new Dictionary<string, object> { { "Theme", "Dark" } }));
 
         for (int i = 0; i < 20; i++)
-            (await _service.GetPreferenceAsync("Theme", "Light")).Should().Be("Dark");
-        _service.GetPreference("Theme", "Light").Should().Be("Dark");
+            _service.GetPreference("Theme", "Light").Should().Be("Dark");
+        (await _service.GetPreferencesAsync()).Should().ContainKey("Theme");
 
-        _mockFileSystemService.Verify(f => f.ReadAllTextAsync(It.IsAny<string>(), default), Times.Once);
-        _mockFileSystemService.Verify(f => f.ReadAllText(It.IsAny<string>()), Times.Never);
+        _mockFileSystemService.Verify(f => f.ReadAllText(It.IsAny<string>()), Times.Once);
+        _mockFileSystemService.Verify(f => f.ReadAllTextAsync(It.IsAny<string>(), default), Times.Never);
     }
 
     [Fact]
-    public async Task GetPreferenceAsync_AfterASave_SeesTheSavedValueWithoutRereadingTheFile()
+    public async Task GetPreference_AfterASave_SeesTheSavedValueWithoutRereadingTheFile()
     {
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
-        _mockFileSystemService.Setup(f => f.ReadAllTextAsync(It.IsAny<string>(), default))
-            .ReturnsAsync(JsonSerializer.Serialize(new Dictionary<string, object> { { "Theme", "Light" } }));
+        _mockFileSystemService.Setup(f => f.ReadAllText(It.IsAny<string>()))
+            .Returns(JsonSerializer.Serialize(new Dictionary<string, object> { { "Theme", "Light" } }));
         _mockFileSystemService
             .Setup(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), default))
             .Returns(Task.CompletedTask);
 
-        (await _service.GetPreferenceAsync("Theme", "")).Should().Be("Light");
+        _service.GetPreference("Theme", "").Should().Be("Light");
         (await _service.SetPreferenceAsync("Theme", "Dark")).Success.Should().BeTrue();
         (await _service.SetPreferenceAsync("Volume", 75)).Success.Should().BeTrue();
 
-        (await _service.GetPreferenceAsync("Theme", "")).Should().Be("Dark");
+        _service.GetPreference("Theme", "").Should().Be("Dark");
         _service.GetPreference("Volume", 0).Should().Be(75);
         (await _service.GetPreferencesAsync()).Should().ContainKeys("Theme", "Volume");
-        _mockFileSystemService.Verify(f => f.ReadAllTextAsync(It.IsAny<string>(), default), Times.Once);
+        _mockFileSystemService.Verify(f => f.ReadAllText(It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -377,7 +338,7 @@ public class UserPreferencesServiceTests
         prefs["Theme"] = "Dark";
         await _service.SavePreferencesAsync(prefs);
 
-        (await _service.GetPreferenceAsync("Theme", "")).Should().Be("Dark");
+        _service.GetPreference("Theme", "").Should().Be("Dark");
     }
 
     [Fact]
@@ -391,7 +352,7 @@ public class UserPreferencesServiceTests
         prefs["Theme"] = "Dark";
         prefs["Extra"] = true;
 
-        (await _service.GetPreferenceAsync("Theme", "")).Should().Be("Light");
+        _service.GetPreference("Theme", "").Should().Be("Light");
         (await _service.GetPreferencesAsync()).Should().NotContainKey("Extra");
     }
 
@@ -401,37 +362,40 @@ public class UserPreferencesServiceTests
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
         _mockFileSystemService.Setup(f => f.ReadAllTextAsync(It.IsAny<string>(), default))
             .ReturnsAsync(JsonSerializer.Serialize(new Dictionary<string, object> { { "Theme", "Light" } }));
+        _mockFileSystemService.Setup(f => f.ReadAllText(It.IsAny<string>()))
+            .Returns(JsonSerializer.Serialize(new Dictionary<string, object> { { "Theme", "Light" } }));
         _mockFileSystemService
             .Setup(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), default))
             .ThrowsAsync(new System.IO.IOException("Disk full"));
 
         (await _service.SetPreferenceAsync("Theme", "Dark")).Success.Should().BeFalse();
 
-        (await _service.GetPreferenceAsync("Theme", "")).Should().Be("Light");
-        _mockFileSystemService.Verify(f => f.ReadAllTextAsync(It.IsAny<string>(), default), Times.Exactly(2));
+        _service.GetPreference("Theme", "").Should().Be("Light");
+        _mockFileSystemService.Verify(f => f.ReadAllTextAsync(It.IsAny<string>(), default), Times.Once);
+        _mockFileSystemService.Verify(f => f.ReadAllText(It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
-    public async Task GetPreferenceAsync_AfterAFailedRead_TriesAgainRatherThanCaching()
+    public void GetPreference_AfterAFailedRead_TriesAgainRatherThanCaching()
     {
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
-        _mockFileSystemService.SetupSequence(f => f.ReadAllTextAsync(It.IsAny<string>(), default))
-            .ThrowsAsync(new System.IO.IOException("in use"))
-            .ReturnsAsync(JsonSerializer.Serialize(new Dictionary<string, object> { { "Theme", "Dark" } }));
+        _mockFileSystemService.SetupSequence(f => f.ReadAllText(It.IsAny<string>()))
+            .Throws(new System.IO.IOException("in use"))
+            .Returns(JsonSerializer.Serialize(new Dictionary<string, object> { { "Theme", "Dark" } }));
 
-        (await _service.GetPreferenceAsync("Theme", "Light")).Should().Be("Light");
-        (await _service.GetPreferenceAsync("Theme", "Light")).Should().Be("Dark");
+        _service.GetPreference("Theme", "Light").Should().Be("Light");
+        _service.GetPreference("Theme", "Light").Should().Be("Dark");
     }
 
     [Fact]
-    public async Task GetPreferenceAsync_RepeatedReads_LogsThePreferenceCountOnlyOnTheRealLoad()
+    public void GetPreference_RepeatedReads_LogsThePreferenceCountOnlyOnTheRealLoad()
     {
         _mockFileSystemService.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
-        _mockFileSystemService.Setup(f => f.ReadAllTextAsync(It.IsAny<string>(), default))
-            .ReturnsAsync(JsonSerializer.Serialize(new Dictionary<string, object> { { "Theme", "Dark" } }));
+        _mockFileSystemService.Setup(f => f.ReadAllText(It.IsAny<string>()))
+            .Returns(JsonSerializer.Serialize(new Dictionary<string, object> { { "Theme", "Dark" } }));
 
         for (int i = 0; i < 5; i++)
-            await _service.GetPreferenceAsync("Theme", "Light");
+            _service.GetPreference("Theme", "Light");
 
         _mockLogService.Verify(
             l => l.Log(Winhance.Core.Features.Common.Enums.LogLevel.Info, It.Is<string>(m => m.StartsWith("Loaded 1 preferences", StringComparison.Ordinal)), null, It.IsAny<string>()),

@@ -21,8 +21,8 @@ public class IconConverterTests
     public void Resolve_EachType_ReadsThroughItsOwnProperties()
     {
         IconConverter.Resolve(new Item { Icon = "Shield", IconPack = "Fluent" }, null!).Should().Be(("Shield", "Fluent"));
-        IconConverter.Resolve(new Other(), null!).Should().Be(("Cog", "Material"));
-        IconConverter.Resolve(new Item { Icon = "Lock" }, null!).Should().Be(("Lock", "Material"));
+        IconConverter.Resolve(new Other(), null!).Should().Be(("Cog", "Fluent"));
+        IconConverter.Resolve(new Item { Icon = "Lock" }, null!).Should().Be(("Lock", "Fluent"));
     }
 
     [Fact]
@@ -30,15 +30,5 @@ public class IconConverterTests
     {
         IconConverter.Resolve(new Item(), null!).Should().BeNull();
         IconConverter.Resolve(new object(), null!).Should().BeNull();
-    }
-
-    [Fact]
-    public void MaterialPathData_Always_MatchesAnyCasingAndSkipsUnknownNames()
-    {
-        var data = IconConverter.MaterialPathData("Cog");
-
-        data.Should().NotBeNullOrEmpty();
-        IconConverter.MaterialPathData("cog").Should().Be(data);
-        IconConverter.MaterialPathData("NoSuchIcon").Should().BeNull();
     }
 }

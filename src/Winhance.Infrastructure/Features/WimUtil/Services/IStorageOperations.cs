@@ -15,18 +15,19 @@ internal interface IStorageOperations
 
     // Refuses before wiping when the disk now at this number carries a different UniqueId than the one picked.
     void Clear(int diskNumber, string uniqueId);
+    void VerifyDisk(int diskNumber, string uniqueId);
 
-    void EnsureMbr(int diskNumber);
+    void EnsureMbr(int diskNumber, string uniqueId);
 
     // Both return the new partition's number. Its drive letter comes last, after the format, the
     // way the diskpart recipe does it: a RAW volume with a letter is what Explorer greets with
     // its "you need to format the disk" prompt.
-    int CreateBootPartition(int diskNumber, long sizeBytes);
+    int CreateBootPartition(int diskNumber, string uniqueId, long sizeBytes);
 
     // Takes the rest of the disk.
-    int CreateInstallPartition(int diskNumber);
+    int CreateInstallPartition(int diskNumber, string uniqueId);
 
-    void Format(int diskNumber, int partitionNumber, string fileSystem, string label);
+    void Format(int diskNumber, string uniqueId, int partitionNumber, string fileSystem, string label);
 
-    char AssignDriveLetter(int diskNumber, int partitionNumber);
+    char AssignDriveLetter(int diskNumber, string uniqueId, int partitionNumber);
 }

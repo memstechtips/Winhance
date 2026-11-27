@@ -9,14 +9,6 @@
     Title="Winhance">
 
     <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded" KeyboardAcceleratorPlacementMode="Hidden">
-        <Grid.Resources>
-            <!-- A translucent white button on the accent-colored mode bars. No BasedOn, so a DropDownButton keeps its own chevron template. -->
-            <Style x:Key="AccentBarButtonStyle" TargetType="Button">
-                <Setter Property="Background" Value="#40FFFFFF"/>
-                <Setter Property="Foreground" Value="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
-                <Setter Property="BorderThickness" Value="0"/>
-            </Style>
-        </Grid.Resources>
         <Grid.KeyboardAccelerators>
             <!-- Ctrl+1-6: Navigate to sections, Ctrl+7: More menu -->
             <KeyboardAccelerator Key="Number1" Modifiers="Control" Invoked="NavigateAccelerator_Invoked"/>
@@ -57,15 +49,15 @@
                 <ColumnDefinition x:Name="RightPaddingColumn" Width="0"/>
             </Grid.ColumnDefinitions>
 
-            <StackPanel x:Name="NavButtons" Grid.Column="1" Orientation="Horizontal" Margin="4,0,0,0">
-                <!-- The glyph the WinUI TitleBar back button uses; it flips for right-to-left languages. -->
+            <StackPanel x:Name="NavButtons" Grid.Column="1" Orientation="Horizontal" Margin="{StaticResource InlineLeadingMargin}">
+                <!-- Flips for right-to-left languages. -->
                 <Button x:Name="BackButton"
                         Click="BackButton_Click"
                         IsEnabled="False"
                         Style="{StaticResource TitleBarButtonStyle}"
                         ToolTipService.ToolTip="{x:Bind ViewModel.BackTooltip, Mode=OneWay}"
                         AutomationProperties.Name="{x:Bind ViewModel.BackTooltip, Mode=OneWay}">
-                    <FontIcon Glyph="&#xE72B;" FontSize="16" MirroredWhenRightToLeft="True"/>
+                    <fluentIcons:FluentIcon Icon="ArrowLeft" IconVariant="Regular" FontSize="{StaticResource TitleBarNavIconFontSize}" MirroredWhenRightToLeft="True"/>
                 </Button>
 
                 <Button x:Name="PaneToggleButton"
@@ -73,7 +65,7 @@
                         Style="{StaticResource TitleBarButtonStyle}"
                         ToolTipService.ToolTip="{x:Bind ViewModel.ToggleNavigationTooltip, Mode=OneWay}"
                         AutomationProperties.Name="{x:Bind ViewModel.ToggleNavigationTooltip, Mode=OneWay}">
-                    <fluentIcons:FluentIcon Icon="Navigation" IconVariant="Regular" FontSize="16"/>
+                    <fluentIcons:FluentIcon Icon="Navigation" IconVariant="Regular" FontSize="{StaticResource TitleBarNavIconFontSize}"/>
                 </Button>
             </StackPanel>
 
@@ -92,28 +84,15 @@
                         Spacing="6">
                 <TextBlock x:Name="AppTitleTextBlock"
                            Text="{x:Bind ViewModel.AppTitle, Mode=OneWay}"
-                           FontSize="12"
+                           FontSize="{StaticResource CaptionTextBlockFontSize}"
                            FontWeight="SemiBold"
                            VerticalAlignment="Center"/>
                 <TextBlock x:Name="AppSubtitleTextBlock"
                            Text="{x:Bind ViewModel.AppSubtitle, Mode=OneWay}"
-                           FontSize="11"
+                           FontSize="{StaticResource TitleBarSubtitleFontSize}"
                            Opacity="0.6"
                            VerticalAlignment="Center"/>
             </StackPanel>
-
-            <!-- Beta Banner (hidden in stable builds, shown dynamically for beta) -->
-            <TextBlock x:Name="BetaBannerText"
-                       Grid.Column="4"
-                       Text="Release-Preview: Version is for Testing Only"
-                       Foreground="#FFE74C3C"
-                       FontSize="12"
-                       FontWeight="SemiBold"
-                       HorizontalAlignment="Left"
-                       VerticalAlignment="Center"
-                       Margin="12,0,0,0"
-                       IsHitTestVisible="False"
-                       Visibility="Collapsed"/>
 
             <!-- Winhance Mode switcher (centered in the title bar) — single segmented
                  container like the Software Apps view-mode toggle: a bordered pill with
@@ -122,15 +101,15 @@
             <StackPanel x:Name="ModeSwitcher"
                         Grid.Column="4"
                         Orientation="Horizontal"
-                        Spacing="8"
+                        Spacing="{StaticResource ControlRowSpacing}"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center">
                 <TextBlock x:Name="ModeLabelText"
                            Text="{x:Bind ViewModel.WinhanceModeLabel, Mode=OneWay}"
-                           FontSize="11"
+                           FontSize="{StaticResource TitleBarSubtitleFontSize}"
                            Opacity="0.6"
                            VerticalAlignment="Center"/>
-                <Border CornerRadius="4"
+                <Border CornerRadius="{StaticResource CardCornerRadius}"
                         BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
                         BorderThickness="1">
                     <StackPanel Orientation="Horizontal">
@@ -143,14 +122,18 @@
                                       Background="Transparent"
                                       BorderThickness="0"
                                       CornerRadius="4,0,0,4"
-                                      Padding="10,6">
-                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                <Image Source="ms-appx:///Assets/ModeIcons/winhance-monitor.png"
-                                       Width="24" Height="24"
-                                       VerticalAlignment="Center"/>
+                                      Padding="{StaticResource ModeButtonPadding}">
+                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource CompactIconLabelSpacing}" VerticalAlignment="Center">
+                                <Image Width="24" Height="24" VerticalAlignment="Center">
+                                    <Image.Source>
+                                        <BitmapImage UriSource="ms-appx:///Assets/ModeIcons/winhance-monitor.png"
+                                                     DecodePixelWidth="24" DecodePixelHeight="24"
+                                                     DecodePixelType="Logical"/>
+                                    </Image.Source>
+                                </Image>
                                 <TextBlock x:Name="NormalModeText"
                                            Text="{x:Bind ViewModel.ModeNormalLabel, Mode=OneWay}"
-                                           FontSize="12"
+                                           FontSize="{StaticResource CaptionTextBlockFontSize}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                         </ToggleButton>
@@ -167,14 +150,18 @@
                                       Background="Transparent"
                                       BorderThickness="0"
                                       CornerRadius="0"
-                                      Padding="10,6">
-                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                <Image Source="ms-appx:///Assets/ModeIcons/winhance-document-build.png"
-                                       Width="24" Height="24"
-                                       VerticalAlignment="Center"/>
+                                      Padding="{StaticResource ModeButtonPadding}">
+                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource CompactIconLabelSpacing}" VerticalAlignment="Center">
+                                <Image Width="24" Height="24" VerticalAlignment="Center">
+                                    <Image.Source>
+                                        <BitmapImage UriSource="ms-appx:///Assets/ModeIcons/winhance-document-build.png"
+                                                     DecodePixelWidth="24" DecodePixelHeight="24"
+                                                     DecodePixelType="Logical"/>
+                                    </Image.Source>
+                                </Image>
                                 <TextBlock x:Name="BuilderModeText"
                                            Text="{x:Bind ViewModel.ModeBuilderLabel, Mode=OneWay}"
-                                           FontSize="12"
+                                           FontSize="{StaticResource CaptionTextBlockFontSize}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                         </ToggleButton>
@@ -191,14 +178,18 @@
                                       Background="Transparent"
                                       BorderThickness="0"
                                       CornerRadius="0,4,4,0"
-                                      Padding="10,6">
-                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                <Image Source="ms-appx:///Assets/ModeIcons/winhance-document-search.png"
-                                       Width="24" Height="24"
-                                       VerticalAlignment="Center"/>
+                                      Padding="{StaticResource ModeButtonPadding}">
+                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource CompactIconLabelSpacing}" VerticalAlignment="Center">
+                                <Image Width="24" Height="24" VerticalAlignment="Center">
+                                    <Image.Source>
+                                        <BitmapImage UriSource="ms-appx:///Assets/ModeIcons/winhance-document-search.png"
+                                                     DecodePixelWidth="24" DecodePixelHeight="24"
+                                                     DecodePixelType="Logical"/>
+                                    </Image.Source>
+                                </Image>
                                 <TextBlock x:Name="ConfigReviewModeText"
                                            Text="{x:Bind ViewModel.ModeConfigReviewLabel, Mode=OneWay}"
-                                           FontSize="12"
+                                           FontSize="{StaticResource CaptionTextBlockFontSize}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                         </ToggleButton>
@@ -212,20 +203,20 @@
                         Orientation="Horizontal"
                         VerticalAlignment="Center"
                         Margin="0,0,8,0"
-                        Spacing="2">
+                        Spacing="{StaticResource IconButtonRowSpacing}">
 
                 <!-- Support pill: first in the row and labelled, so the ask is always visible without a banner -->
                 <Button x:Name="DonateButton"
                         Style="{StaticResource TitleBarButtonStyle}"
                         Width="Auto"
                         Padding="10,0,12,0"
-                        Margin="0,0,6,0"
+                        Margin="{StaticResource InlineTrailingMargin}"
                         Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                         ToolTipService.ToolTip="{x:Bind ViewModel.DonateTooltip, Mode=OneWay}"
                         AutomationProperties.Name="{x:Bind ViewModel.DonateTooltip, Mode=OneWay}">
-                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource CompactIconLabelSpacing}" VerticalAlignment="Center">
                         <fluentIcons:FluentIcon Icon="Heart" IconVariant="Filled" FontSize="{StaticResource SupportHeartFontSize}" Foreground="{StaticResource SupportHeartBrush}"/>
-                        <TextBlock x:Name="SupportButtonText" Text="{x:Bind ViewModel.SupportButtonText, Mode=OneWay}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="SupportButtonText" Text="{x:Bind ViewModel.SupportButtonText, Mode=OneWay}" Style="{StaticResource EmphasisLabelTextStyle}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
 
@@ -235,9 +226,10 @@
                         ToolTipService.ToolTip="{x:Bind ViewModel.WindowsFilterTooltip, Mode=OneWay}"
                         AutomationProperties.Name="{x:Bind ViewModel.WindowsFilterTooltip, Mode=OneWay}"
                         IsEnabled="{x:Bind ViewModel.IsWindowsFilterButtonEnabled, Mode=OneWay}">
-                    <Viewbox Width="18" Height="18">
-                        <PathIcon x:Name="WindowsFilterIcon" Data="{StaticResource FilterCheckIconPath}" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-                    </Viewbox>
+                    <fluentIcons:FluentIcon x:Name="WindowsFilterIcon"
+                                            Icon="{x:Bind ViewModel.WindowsFilterIcon, Mode=OneWay}"
+                                            IconVariant="Regular"
+                                            FontSize="{StaticResource TitleBarIconFontSize}"/>
                 </Button>
 
                 <!-- Bug Report Button -->
@@ -256,278 +248,6 @@
                     <fluentIcons:FluentIcon Icon="BookQuestionMark" IconVariant="Regular" FontSize="{StaticResource TitleBarIconFontSize}"/>
                 </Button>
             </StackPanel>
-        </Grid>
-
-        <!-- OTS Elevation InfoBar -->
-        <InfoBar x:Name="OtsElevationInfoBar"
-                 Grid.Row="2"
-                 Severity="Warning"
-                 IsOpen="{x:Bind ViewModel.IsOtsInfoBarOpen, Mode=OneWay}"
-                 Title="{x:Bind ViewModel.OtsInfoBarTitle, Mode=OneWay}"
-                 Message="{x:Bind ViewModel.OtsInfoBarMessage, Mode=OneWay}"
-                 IsClosable="True"
-                 Closed="OtsElevationInfoBar_Closed"/>
-
-        <!-- Update InfoBar -->
-        <InfoBar x:Name="UpdateInfoBar"
-                 Grid.Row="3"
-                 IsOpen="{x:Bind ViewModel.UpdateCheck.IsUpdateInfoBarOpen, Mode=OneWay}"
-                 Title="{x:Bind ViewModel.UpdateCheck.UpdateInfoBarTitle, Mode=OneWay}"
-                 Message="{x:Bind ViewModel.UpdateCheck.UpdateInfoBarMessage, Mode=OneWay}"
-                 Severity="{x:Bind ViewModel.UpdateCheck.UpdateInfoBarSeverity, Mode=OneWay}"
-                 IsClosable="True"
-                 Closed="UpdateInfoBar_Closed"/>
-
-        <!-- Review Mode Bar (visible during config review) -->
-        <Grid x:Name="ReviewModeBar"
-              Grid.Row="1"
-              Background="{ThemeResource AccentFillColorDefaultBrush}"
-              Visibility="Collapsed"
-              Padding="16,10,16,10">
-            <!-- Rows 1 and 2 take the description and status when the window is too narrow (MainWindow.FitModeBar). -->
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>  <!-- Icon -->
-                <ColumnDefinition Width="Auto"/>  <!-- Title -->
-                <ColumnDefinition Width="*"/>     <!-- Description (flex: expands to available width, wraps only when needed) -->
-                <ColumnDefinition Width="Auto"/>  <!-- Status text -->
-                <ColumnDefinition Width="Auto"/>  <!-- Accept all remaining button -->
-                <ColumnDefinition Width="Auto"/>  <!-- Apply button -->
-                <ColumnDefinition Width="Auto"/>  <!-- Cancel button -->
-            </Grid.ColumnDefinitions>
-
-            <Image Grid.Column="0"
-                   Source="ms-appx:///Assets/ModeIcons/winhance-document-search.png"
-                   Width="24" Height="24"
-                   VerticalAlignment="Center"
-                   Margin="0,0,10,0"/>
-
-            <TextBlock Grid.Column="1"
-                       x:Name="ReviewModeTitleText"
-                       Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeTitleText, Mode=OneWay}"
-                       FontWeight="SemiBold"
-                       FontSize="13"
-                       Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
-                       VerticalAlignment="Center"
-                       Margin="0,0,12,0"/>
-
-            <TextBlock Grid.Column="2"
-                       x:Name="ReviewModeDescriptionText"
-                       Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeDescriptionText, Mode=OneWay}"
-                       FontSize="12"
-                       Foreground="{ThemeResource TextOnAccentFillColorSecondaryBrush}"
-                       VerticalAlignment="Center"
-                       Opacity="0.85"
-                       TextWrapping="Wrap"
-                       Margin="0,0,16,0"/>
-
-            <TextBlock Grid.Column="3"
-                       x:Name="ReviewModeStatusText"
-                       Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeStatusText, Mode=OneWay}"
-                       ToolTipService.ToolTip="{x:Bind ViewModel.ReviewModeBar.ReviewModeSetAsideDetail, Mode=OneWay}"
-                       FontSize="12"
-                       Foreground="{ThemeResource TextOnAccentFillColorSecondaryBrush}"
-                       VerticalAlignment="Center"
-                       Opacity="0.9"/>
-
-            <Button Grid.Column="4"
-                    x:Name="ReviewModeAcceptAllRemainingButton"
-                    Click="ReviewModeAcceptAllRemainingButton_Click"
-                    Visibility="{x:Bind ViewModel.ReviewModeBar.CanAcceptAllRemaining, Mode=OneWay}"
-                    AutomationProperties.Name="{x:Bind ViewModel.ReviewModeBar.ReviewModeAcceptAllRemainingText, Mode=OneWay}"
-                    Style="{StaticResource AccentBarButtonStyle}"
-                    VerticalAlignment="Center"
-                    Margin="8,0,4,0">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Regular" FontSize="14"/>
-                    <TextBlock Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeAcceptAllRemainingText, Mode=OneWay}"/>
-                </StackPanel>
-            </Button>
-
-            <!-- A disabled control shows no tooltip, so the reason sits on a wrapper. -->
-            <Grid Grid.Column="5"
-                  Background="Transparent"
-                  VerticalAlignment="Center"
-                  Margin="4,0,4,0"
-                  ToolTipService.ToolTip="{x:Bind ViewModel.ReviewModeBar.ReviewModeApplyBlockedTooltip, Mode=OneWay}">
-                <Button x:Name="ReviewModeApplyButton"
-                        Click="ReviewModeApplyButton_Click"
-                        IsEnabled="{x:Bind ViewModel.ReviewModeBar.CanApplyReviewedConfig, Mode=OneWay}"
-                        AutomationProperties.Name="{x:Bind ViewModel.ReviewModeBar.ReviewModeApplyButtonText, Mode=OneWay}"
-                        AutomationProperties.HelpText="{x:Bind ViewModel.ReviewModeBar.ReviewModeApplyBlockedTooltip, Mode=OneWay}"
-                        Style="{StaticResource AccentBarButtonStyle}">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <fluentIcons:FluentIcon Icon="Checkmark" IconVariant="Regular" FontSize="14"/>
-                        <TextBlock x:Name="ReviewModeApplyButtonText"
-                                   Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeApplyButtonText, Mode=OneWay}"/>
-                    </StackPanel>
-                </Button>
-            </Grid>
-
-            <Button Grid.Column="6"
-                    x:Name="ReviewModeCancelButton"
-                    Click="ReviewModeCancelButton_Click"
-                    AutomationProperties.Name="{x:Bind ViewModel.ReviewModeBar.ReviewModeCancelButtonText, Mode=OneWay}"
-                    Style="{StaticResource AccentBarButtonStyle}"
-                    ToolTipService.ToolTip="{x:Bind ViewModel.ReviewModeBar.ReviewModeCancelButtonText, Mode=OneWay}"
-                    VerticalAlignment="Center"
-                    Margin="4,0,0,0">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular" FontSize="14"/>
-                    <TextBlock x:Name="ReviewModeCancelButtonText"
-                               Text="{x:Bind ViewModel.ReviewModeBar.ReviewModeCancelButtonText, Mode=OneWay}"/>
-                </StackPanel>
-            </Button>
-        </Grid>
-
-        <!-- Builder Mode Bar (visible while authoring a config/autounattend; shares Row 3 with the Review bar — mutually exclusive) -->
-        <Grid x:Name="BuilderModeBarGrid"
-              Grid.Row="1"
-              Background="{ThemeResource AccentFillColorDefaultBrush}"
-              Visibility="Collapsed"
-              Padding="16,10,16,10">
-            <!-- Rows 1 and 2 take the description and target choices when the window is too narrow (MainWindow.FitModeBar). -->
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>  <!-- Icon -->
-                <ColumnDefinition Width="Auto"/>  <!-- Title -->
-                <ColumnDefinition Width="*"/>     <!-- Description (flex: expands to available width, wraps only when needed) -->
-                <ColumnDefinition Width="Auto"/>  <!-- spacer (collapses; description now takes the flex space) -->
-                <ColumnDefinition Width="Auto"/>  <!-- Target radios -->
-                <ColumnDefinition Width="Auto"/>  <!-- Save -->
-                <ColumnDefinition Width="Auto"/>  <!-- Cancel -->
-            </Grid.ColumnDefinitions>
-
-            <Image Grid.Column="0"
-                   Source="ms-appx:///Assets/ModeIcons/winhance-document-build.png"
-                   Width="24" Height="24"
-                   VerticalAlignment="Center"
-                   Margin="0,0,10,0"/>
-
-            <TextBlock Grid.Column="1"
-                       Text="{x:Bind ViewModel.BuilderModeBar.BuilderModeTitleText, Mode=OneWay}"
-                       FontWeight="SemiBold"
-                       FontSize="13"
-                       Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
-                       VerticalAlignment="Center"
-                       Margin="0,0,12,0"/>
-
-            <TextBlock Grid.Column="2"
-                       x:Name="BuilderModeDescriptionText"
-                       Text="{x:Bind ViewModel.BuilderModeBar.BuilderModeDescriptionText, Mode=OneWay}"
-                       FontSize="12"
-                       Foreground="{ThemeResource TextOnAccentFillColorSecondaryBrush}"
-                       VerticalAlignment="Center"
-                       Opacity="0.85"
-                       TextWrapping="Wrap"
-                       Margin="0,0,16,0"/>
-
-            <StackPanel Grid.Column="4"
-                        x:Name="BuilderTargetPanel"
-                        Orientation="Horizontal"
-                        Spacing="12"
-                        VerticalAlignment="Center"
-                        Margin="0,0,12,0">
-                <RadioButton x:Name="BuilderConfigRadio"
-                             GroupName="BuilderTarget"
-                             Content="{x:Bind ViewModel.BuilderModeBar.BuilderConfigTargetText, Mode=OneWay}"
-                             IsChecked="{x:Bind ViewModel.BuilderModeBar.IsConfigTarget, Mode=OneWay}"
-                             Checked="BuilderConfigRadio_Checked"
-                             Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
-                <RadioButton x:Name="BuilderAutounattendRadio"
-                             GroupName="BuilderTarget"
-                             Content="{x:Bind ViewModel.BuilderModeBar.BuilderAutounattendTargetText, Mode=OneWay}"
-                             IsChecked="{x:Bind ViewModel.BuilderModeBar.IsAutounattendTarget, Mode=OneWay}"
-                             Checked="BuilderAutounattendRadio_Checked"
-                             Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
-                <DropDownButton x:Name="BuilderTargetWindowsButton"
-                                ToolTipService.ToolTip="{x:Bind ViewModel.BuilderModeBar.TargetWindowsTooltip, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind ViewModel.BuilderModeBar.TargetWindowsTooltip, Mode=OneWay}"
-                                Style="{StaticResource AccentBarButtonStyle}"
-                                VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Viewbox Width="14" Height="14">
-                            <PathIcon Data="{StaticResource FilterCheckIconPath}" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
-                        </Viewbox>
-                        <TextBlock Text="{x:Bind ViewModel.BuilderModeBar.TargetWindowsText, Mode=OneWay}"/>
-                    </StackPanel>
-                    <DropDownButton.Flyout>
-                        <MenuFlyout Placement="Bottom" Opening="BuilderTargetWindowsFlyout_Opening"/>
-                    </DropDownButton.Flyout>
-                </DropDownButton>
-                <CheckBox x:Name="BuilderOtherHardwareCheck"
-                          Content="{x:Bind ViewModel.BuilderModeBar.ShowOtherHardwareText, Mode=OneWay}"
-                          IsChecked="{x:Bind ViewModel.BuilderModeBar.ShowOtherHardware, Mode=OneWay}"
-                          ToolTipService.ToolTip="{x:Bind ViewModel.BuilderModeBar.ShowOtherHardwareTooltip, Mode=OneWay}"
-                          Checked="BuilderOtherHardwareCheck_Changed"
-                          Unchecked="BuilderOtherHardwareCheck_Changed"
-                          Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
-                          VerticalAlignment="Center"
-                          MinWidth="0"/>
-            </StackPanel>
-
-            <!-- MinWidth: the label changes with the target ("Save" / "Save autounattend.xml") and this
-                 column is Auto, so without it the button resizes and every control to its left shifts. -->
-            <DropDownButton Grid.Column="5"
-                            x:Name="BuilderSaveMenuButton"
-                            Visibility="{x:Bind ViewModel.BuilderModeBar.IsConfigTarget, Mode=OneWay}"
-                            AutomationProperties.Name="{x:Bind ViewModel.BuilderModeBar.BuilderSaveButtonText, Mode=OneWay}"
-                            Style="{StaticResource AccentBarButtonStyle}"
-                            VerticalAlignment="Center"
-                            MinWidth="200"
-                            HorizontalContentAlignment="Center"
-                            Margin="4,0,4,0">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:FluentIcon Icon="DocumentSave" IconVariant="Regular" FontSize="14"/>
-                    <TextBlock Text="{x:Bind ViewModel.BuilderModeBar.BuilderSaveButtonText, Mode=OneWay}"/>
-                </StackPanel>
-                <DropDownButton.Flyout>
-                    <MenuFlyout Placement="Bottom">
-                        <MenuFlyoutItem x:Name="BuilderSaveAsConfigItem"
-                                        Text="{x:Bind ViewModel.BuilderModeBar.SaveAsConfigText, Mode=OneWay}"
-                                        Command="{x:Bind ViewModel.BuilderModeBar.SaveAsConfigCommand}"/>
-                        <MenuFlyoutItem x:Name="BuilderSaveAsProfileItem"
-                                        Text="{x:Bind ViewModel.BuilderModeBar.SaveAsProfileText, Mode=OneWay}"
-                                        Command="{x:Bind ViewModel.BuilderModeBar.SaveAsProfileCommand}"/>
-                    </MenuFlyout>
-                </DropDownButton.Flyout>
-            </DropDownButton>
-            <Button Grid.Column="5"
-                    x:Name="BuilderSaveButton"
-                    Visibility="{x:Bind ViewModel.BuilderModeBar.IsAutounattendTarget, Mode=OneWay}"
-                    AutomationProperties.Name="{x:Bind ViewModel.BuilderModeBar.BuilderSaveButtonText, Mode=OneWay}"
-                    Click="BuilderSaveButton_Click"
-                    Style="{StaticResource AccentBarButtonStyle}"
-                    VerticalAlignment="Center"
-                    MinWidth="200"
-                    HorizontalContentAlignment="Center"
-                    Margin="4,0,4,0">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:FluentIcon Icon="DocumentSave" IconVariant="Regular" FontSize="14"/>
-                    <TextBlock Text="{x:Bind ViewModel.BuilderModeBar.BuilderSaveButtonText, Mode=OneWay}"/>
-                </StackPanel>
-            </Button>
-
-            <Button Grid.Column="6"
-                    x:Name="BuilderCancelButton"
-                    AutomationProperties.Name="{x:Bind ViewModel.BuilderModeBar.BuilderCancelButtonText, Mode=OneWay}"
-                    Click="BuilderCancelButton_Click"
-                    Style="{StaticResource AccentBarButtonStyle}"
-                    VerticalAlignment="Center"
-                    Margin="4,0,0,0">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular" FontSize="14"/>
-                    <TextBlock Text="{x:Bind ViewModel.BuilderModeBar.BuilderCancelButtonText, Mode=OneWay}"/>
-                </StackPanel>
-            </Button>
         </Grid>
 
         <!-- Main Content Area -->
@@ -553,9 +273,10 @@
 
                 <!-- Content Frame for Page Navigation -->
                 <Frame x:Name="ContentFrame" Grid.Row="0"/>
+                <controls:RocketLoader x:Name="PageLoader" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
                 <!-- Pending Explorer restart + Task Progress Bars (up to 3 for parallel script removal) -->
-                <StackPanel Grid.Row="1" Margin="0,2,12,8" Spacing="4">
+                <StackPanel Grid.Row="1" Margin="0,2,12,8" Spacing="{StaticResource TaskStatusStackSpacing}">
                     <controls:PendingRestartBar x:Name="PendingRestartBar"/>
                     <controls:TaskProgressControl x:Name="TaskProgressControl"/>
                     <controls:TaskProgressControl x:Name="TaskProgressControl2"/>
@@ -564,33 +285,16 @@
             </Grid>
             </Grid>
 
-            <!-- Outside ZoomHost so the zoom level it reports doesn't scale it -->
-            <Border x:Name="ZoomIndicator"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Top"
-                    Margin="0,12,0,0"
-                    Padding="16,8"
-                    CornerRadius="{ThemeResource OverlayCornerRadius}"
-                    Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
-                    BorderBrush="{ThemeResource SurfaceStrokeColorFlyoutBrush}"
-                    BorderThickness="1"
-                    IsHitTestVisible="False"
-                    Visibility="Collapsed">
-                <TextBlock x:Name="ZoomIndicatorText"
-                           Style="{StaticResource BodyStrongTextBlockStyle}"
-                           AutomationProperties.LiveSetting="Polite"/>
-            </Border>
         </Grid>
 
         <!-- Loading Overlay (shown during startup initialization) -->
         <Grid x:Name="LoadingOverlay"
               Grid.RowSpan="5"
               Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
-              Visibility="Visible"
               AutomationProperties.LiveSetting="Polite">
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24">
+            <StackPanel x:Name="LoadingContent" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24">
                 <!-- Logo + Branding -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="{StaticResource LoaderSpacing}">
                     <Viewbox Width="128" Height="128" VerticalAlignment="Center">
                         <controls:RocketLoader IsActive="True"/>
                     </Viewbox>
@@ -599,35 +303,15 @@
                                    FontSize="80"
                                    FontWeight="Bold"/>
                         <TextBlock x:Name="LoadingTaglineText"
-                                   FontSize="16"
+                                   FontSize="{StaticResource LoaderTaglineFontSize}"
                                    Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>
 
                 <TextBlock x:Name="LoadingStatusText"
                            HorizontalAlignment="Center"
-                           FontSize="14"
+                           FontSize="{StaticResource BodyTextBlockFontSize}"
                            Opacity="0.6"/>
-
-                <!-- Real gold and emerald sponsors from the offline snapshot. Stretches to the branding row's width, so
-                     the divider lines up with it; the pills stay centred and grow outwards as sponsors are added. -->
-                <StackPanel x:Name="LoadingSponsors"
-                            Spacing="12"
-                            Opacity="0"
-                            Visibility="Collapsed">
-                    <StackPanel.OpacityTransition>
-                        <ScalarTransition Duration="0:0:0.25"/>
-                    </StackPanel.OpacityTransition>
-                    <TextBlock x:Name="LoadingSponsorsHeading"
-                               HorizontalAlignment="Center"
-                               FontSize="13"
-                               Opacity="0.6"/>
-                    <Border Height="1" Background="{ThemeResource SurfaceStrokeColorDefaultBrush}"/>
-                    <StackPanel x:Name="LoadingSponsorPills"
-                                Orientation="Horizontal"
-                                HorizontalAlignment="Center"
-                                Spacing="10"/>
-                </StackPanel>
             </StackPanel>
         </Grid>
     </Grid>

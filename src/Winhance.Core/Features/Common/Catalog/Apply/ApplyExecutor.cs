@@ -15,6 +15,7 @@ public static class ApplyExecutor
             {
                 bool ok = op switch
                 {
+                    RegistryWriteOp { Target: MessageDurationTarget duration } w => w.Value is int seconds && writer.SetMessageDuration(duration, seconds),
                     RegistryWriteOp w => writer.WriteRegistry(w.Target, w.Path, w.Value),
                     RegistryDeleteOp d => writer.DeleteRegistry(d.Target, d.Path),
                     RegistryEnsureKeyOp e => writer.EnsureRegistryKey(e.Target, e.Path),

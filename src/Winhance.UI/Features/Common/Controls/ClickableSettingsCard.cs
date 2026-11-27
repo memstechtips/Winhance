@@ -11,12 +11,35 @@ namespace Winhance.UI.Features.Common.Controls;
 // raise Invoked instead.
 public partial class ClickableSettingsCard : SettingsCard
 {
+    private const string ActionIconMaxSizeKey = "SettingsCardActionIconMaxSize";
+    private const string ActionIconMarginKey = "SettingsCardActionIconMargin";
+
     public event RoutedEventHandler? Invoked;
 
     public ClickableSettingsCard()
     {
         IsClickEnabled = true;
         Click += (sender, e) => Invoked?.Invoke(sender, e);
+    }
+
+    // The toolkit draws a ">" chevron on every clickable card. False hides it, for a card that picks an option or
+    // expands in place rather than opening a page. Set it in XAML, before the template applies.
+    public bool ShowsActionIcon
+    {
+        get => !Resources.ContainsKey(ActionIconMaxSizeKey);
+        set
+        {
+            if (value)
+            {
+                Resources.Remove(ActionIconMaxSizeKey);
+                Resources.Remove(ActionIconMarginKey);
+            }
+            else
+            {
+                Resources[ActionIconMaxSizeKey] = 0d;
+                Resources[ActionIconMarginKey] = new Thickness(0);
+            }
+        }
     }
 
     protected override AutomationPeer OnCreateAutomationPeer()

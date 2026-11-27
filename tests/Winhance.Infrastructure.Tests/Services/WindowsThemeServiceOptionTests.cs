@@ -228,7 +228,7 @@ public class WindowsThemeServiceOptionTests
     {
         _sut.Travels(Win11Light).Should().BeFalse();
         _sut.Travels(@"D:\Pictures\lake.jpg").Should().BeTrue();
-        _sut.DestinationFor(@"D:\Pictures\lake.jpg").Should().Be(@"C:\Windows\Web\Wallpaper\Winhance\lake.jpg");
+        _sut.DestinationFor(@"D:\Pictures\lake.jpg").Should().Be(@"C:\Wallpapers\Winhance\lake.jpg");
     }
 
     [Fact]
@@ -460,13 +460,13 @@ public class WindowsThemeServiceOptionTests
     [Fact]
     public void DestinationFor_Picture_KeepsTheFileNameUnderTheWinhanceFolder()
     {
-        _sut.DestinationFor(@"D:\x\03 - a.jpg").Should().Be(@"C:\Windows\Web\Wallpaper\Winhance\03 - a.jpg");
+        _sut.DestinationFor(@"D:\x\03 - a.jpg").Should().Be(@"C:\Wallpapers\Winhance\03 - a.jpg");
     }
 
     [Fact]
     public void AlbumDestinationFor_Album_KeepsItsFolderNameUnderTheWinhanceFolder()
     {
-        _sut.AlbumDestinationFor(@"D:\Pictures\Trip 2026\").Should().Be(@"C:\Windows\Web\Wallpaper\Winhance\Trip 2026");
+        _sut.AlbumDestinationFor(@"D:\Pictures\Trip 2026\").Should().Be(@"C:\Wallpapers\Winhance\Trip 2026");
     }
 
     [Fact]
@@ -479,7 +479,7 @@ public class WindowsThemeServiceOptionTests
     [Fact]
     public void Travels_PictureAnEarlierImportCarried_TravelsAgainToTheSamePlace()
     {
-        const string carried = @"C:\Windows\Web\Wallpaper\Winhance\lake.jpg";
+        const string carried = @"C:\Wallpapers\Winhance\lake.jpg";
 
         _sut.Travels(carried).Should().BeTrue();
         _sut.DestinationFor(carried).Should().Be(carried);

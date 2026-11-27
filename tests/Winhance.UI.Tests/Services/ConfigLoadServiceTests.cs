@@ -309,7 +309,7 @@ public class ConfigLoadServiceTests
         var result = await service.LoadUserBackupConfigurationAsync();
 
         result.Should().BeNull();
-        _mockDialogService.Verify(d => d.ShowMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _mockDialogService.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -335,13 +335,13 @@ public class ConfigLoadServiceTests
         var result = await service.LoadUserBackupConfigurationAsync();
 
         result.Should().BeNull();
-        _mockDialogService.Verify(d => d.ShowMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _mockDialogService.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
     private const string ConfigPath = @"C:\Configs\mine.winhance";
 
     private void FileHolds(string json) =>
-        _mockFileSystemService.Setup(f => f.ReadAllTextAsync(ConfigPath, It.IsAny<CancellationToken>())).ReturnsAsync(json);
+        _mockFileSystemService.Setup(f => f.ReadAllBytesAsync(ConfigPath, It.IsAny<CancellationToken>())).ReturnsAsync(System.Text.Encoding.UTF8.GetBytes(json));
 
     private static string Json(WinhanceConfigFile config) => JsonSerializer.Serialize(config, ConfigFileConstants.JsonOptions);
 
@@ -416,7 +416,22 @@ public class ConfigLoadServiceTests
 
         result.Should().BeNull();
         _mockConfigImportState.Object.SourceName.Should().Be("previous.winhance");
-        _mockDialogService.Verify(d => d.ShowMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _mockDialogService.Verify(d => d.ShowErrorAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task LoadAndValidateConfigurationAsync_NotJson_SaysItIsNotAConfigAndLogsTheParserText()
+    {
+        _mockLocalizationService.Setup(l => l.GetString("Config_Load_NotAConfig")).Returns("not a config");
+        FileHolds("{ this is not json }");
+
+        var result = await CreateService().LoadAndValidateConfigurationAsync(ConfigPath);
+
+        result.Should().BeNull();
+        _mockDialogService.Verify(d => d.ShowErrorAsync("not a config", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _mockLogService.Verify(l => l.Log(
+            It.IsAny<Core.Features.Common.Enums.LogLevel>(), It.Is<string>(m => m.Contains("invalid start of a property name")),
+            It.IsAny<Exception?>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -520,6 +535,40 @@ public class ConfigLoadServiceTests
 
         result.Should().NotBeNull();
         _mockConfigMigrationService.Verify(m => m.MigrateConfig(result!), Times.Once);
+    }
+
+    [Fact]
+    public void ParseConfiguration_SkipsAUtf8ByteOrderMark()
+    {
+        byte[] bytes = [.. System.Text.Encoding.UTF8.GetPreamble(), .. System.Text.Encoding.UTF8.GetBytes(Json(new WinhanceConfigFile()))];
+
+        CreateService().ParseConfiguration(bytes, ConfigPath).Should().NotBeNull();
+    }
+
+    [Fact]
+    public void ParseConfiguration_OfAProfileWithAWallpaper_AllocatesLittleBeyondTheCarriedString()
+    {
+        var wallpaper = new CarriedFileItem { Destination = @"C:\Windows\Web\Wallpaper\Winhance\big.jpg", Base64 = new string('A', 3_000_000) };
+        var config = new WinhanceConfigFile
+        {
+            Customize = new FeatureGroupSection
+            {
+                Features = new Dictionary<string, ConfigSection>
+                {
+                    ["Windows Theme"] = new ConfigSection { Items = [new ConfigurationItem { Id = "theme-wallpaper-picture", File = wallpaper }] },
+                },
+            },
+        };
+        var bytes = System.Text.Encoding.UTF8.GetBytes(Json(config));
+        var service = CreateService();
+        service.ParseConfiguration(bytes, ConfigPath);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var result = service.ParseConfiguration(bytes, ConfigPath);
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        result!.Customize.Features["Windows Theme"].Items[0].File!.Base64.Should().HaveLength(3_000_000);
+        allocated.Should().BeLessThan(bytes.Length * 2L + 1_000_000);
     }
 
     [Theory]

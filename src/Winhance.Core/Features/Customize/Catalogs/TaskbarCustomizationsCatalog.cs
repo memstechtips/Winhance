@@ -21,7 +21,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarClean.Name,
                 Description = LocKey.Setting.TaskbarClean.Description,
                 GroupName = LocKey.SettingGroup.Layout,
-                Icon = MaterialIcons.Broom,
+                Icon = FluentIcons.Broom,
                 IsSubjectivePreference = true,
             },
             Apply = new() { RequiresConfirmation = true, Restart = new RestartProcess("Explorer") },
@@ -38,7 +38,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarSearchBox11.Name,
                 Description = LocKey.Setting.TaskbarSearchBox11.Description,
                 GroupName = LocKey.SettingGroup.TaskbarIcons,
-                Icon = MaterialIcons.Magnify,
+                Icon = FluentIcons.Search,
                 IsSubjectivePreference = true,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
@@ -80,7 +80,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarSearchBox10.Name,
                 Description = LocKey.Setting.TaskbarSearchBox10.Description,
                 GroupName = LocKey.SettingGroup.TaskbarIcons,
-                Icon = MaterialIcons.Magnify,
+                Icon = FluentIcons.Search,
                 IsSubjectivePreference = true,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows10 } },
@@ -156,7 +156,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarTaskView.Name,
                 Description = LocKey.Setting.TaskbarTaskView.Description,
                 GroupName = LocKey.SettingGroup.TaskbarIcons,
-                Icon = MaterialIcons.DockWindow,
+                Icon = FluentIcons.WindowMultiple,
                 IsSubjectivePreference = true,
             },
             Apply = new() { Restart = new RestartProcess("Explorer") },
@@ -222,7 +222,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarCopilotCompanion.Name,
                 Description = LocKey.Setting.TaskbarCopilotCompanion.Description,
                 GroupName = LocKey.SettingGroup.TaskbarIcons,
-                Icon = MaterialIcons.Robot,
+                Icon = FluentIcons.Bot,
                 AddedInVersion = "26.04.10",
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
@@ -256,7 +256,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarCopilotPwaPin.Name,
                 Description = LocKey.Setting.TaskbarCopilotPwaPin.Description,
                 GroupName = LocKey.SettingGroup.TaskbarIcons,
-                Icon = MaterialIcons.Pin,
+                Icon = FluentIcons.Pin,
                 AddedInVersion = "26.04.10",
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
@@ -290,7 +290,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarRecallPin.Name,
                 Description = LocKey.Setting.TaskbarRecallPin.Description,
                 GroupName = LocKey.SettingGroup.TaskbarIcons,
-                Icon = MaterialIcons.History,
+                Icon = FluentIcons.History,
                 AddedInVersion = "26.04.10",
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
@@ -324,7 +324,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarNewsAndInterests.Name,
                 Description = LocKey.Setting.TaskbarNewsAndInterests.Description,
                 GroupName = LocKey.SettingGroup.TaskbarIcons,
-                Icon = MaterialIcons.Newspaper,
+                Icon = FluentIcons.News,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows10 } },
             Apply = new() { Restart = new RestartProcess("Explorer") },
@@ -361,7 +361,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarAlignment.Name,
                 Description = LocKey.Setting.TaskbarAlignment.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.FileTableBoxOutline,
+                Icon = FluentIcons.AlignCenterHorizontal,
                 IsSubjectivePreference = true,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
@@ -388,13 +388,154 @@ public static class TaskbarCustomizationsCatalog
         },
         new()
         {
+            Id = "taskbar-position",
+            Display = new()
+            {
+                Name = LocKey.Setting.TaskbarPosition.Name,
+                Description = LocKey.Setting.TaskbarPosition.Description,
+                GroupName = LocKey.SettingGroup.TaskbarBehavior,
+                Icon = FluentIcons.PanelBottom,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            // The September 2026 update (26100.9445 and 26200.9445) brought this to 24H2 and 25H2.
+            Availability = new()
+            {
+                Builds = new[]
+                {
+                    new BuildRange(new WinBuild(26100, 9445), new WinBuild(26100, int.MaxValue)),
+                    new BuildRange(new WinBuild(26200, 9445), new WinBuild(26200, int.MaxValue)),
+                    new BuildRange(new WinBuild(26300), new WinBuild(int.MaxValue, int.MaxValue)),
+                },
+            },
+            EnabledWhen = new("taskbar-lock-position-size", new[] { LocKey.Common.Disabled }),
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("TaskbarLocation", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "TaskbarLocation", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Setting.TaskbarPosition.Option0,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["TaskbarLocation"] = Of(3).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.TaskbarPosition.Option1,
+                    Set = new Dictionary<string, StateValue> { ["TaskbarLocation"] = Of(1) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.TaskbarPosition.Option2,
+                    Set = new Dictionary<string, StateValue> { ["TaskbarLocation"] = Of(0) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.TaskbarPosition.Option3,
+                    Set = new Dictionary<string, StateValue> { ["TaskbarLocation"] = Of(2) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "taskbar-size",
+            Display = new()
+            {
+                Name = LocKey.Setting.TaskbarSize.Name,
+                Description = LocKey.Setting.TaskbarSize.Description,
+                GroupName = LocKey.SettingGroup.TaskbarBehavior,
+                Icon = FluentIcons.ResizeSmall,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            // The September 2026 update (26100.9445 and 26200.9445) brought this to 24H2 and 25H2.
+            Availability = new()
+            {
+                Builds = new[]
+                {
+                    new BuildRange(new WinBuild(26100, 9445), new WinBuild(26100, int.MaxValue)),
+                    new BuildRange(new WinBuild(26200, 9445), new WinBuild(26200, int.MaxValue)),
+                    new BuildRange(new WinBuild(26300), new WinBuild(int.MaxValue, int.MaxValue)),
+                },
+            },
+            EnabledWhen = new("taskbar-lock-position-size", new[] { LocKey.Common.Disabled }),
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("TaskbarSize", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "TaskbarSize", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Setting.TaskbarSize.Option0,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["TaskbarSize"] = Of(0).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.TaskbarSize.Option1,
+                    Set = new Dictionary<string, StateValue> { ["TaskbarSize"] = Of(1) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "taskbar-lock-position-size",
+            Display = new()
+            {
+                Name = LocKey.Setting.TaskbarLockPositionSize.Name,
+                Description = LocKey.Setting.TaskbarLockPositionSize.Description,
+                GroupName = LocKey.SettingGroup.TaskbarBehavior,
+                Icon = FluentIcons.LockClosed,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            UiParentId = "taskbar-position",
+            // Taskbar.admx ships these policies with 26H2; build 26300.9457 still ignores both values.
+            Availability = new() { Builds = new[] { new BuildRange(new WinBuild(26300), new WinBuild(int.MaxValue, int.MaxValue)) } },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("DisableTaskbarPosition", new[]
+                {
+                    @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer",
+                    @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer",
+                }, "DisableTaskbarPosition", RegistryValueKind.DWord) { IsGroupPolicy = true },
+                new RegTarget("DisableTaskbarSize", new[]
+                {
+                    @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer",
+                    @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer",
+                }, "DisableTaskbarSize", RegistryValueKind.DWord) { IsGroupPolicy = true },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue> { ["DisableTaskbarPosition"] = Of(1), ["DisableTaskbarSize"] = Of(1) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["DisableTaskbarPosition"] = Absent, ["DisableTaskbarSize"] = Absent },
+                },
+            },
+        },
+        new()
+        {
             Id = "taskbar-auto-hide",
             Display = new()
             {
                 Name = LocKey.Setting.TaskbarAutoHide.Name,
                 Description = LocKey.Setting.TaskbarAutoHide.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.ArrowCollapseDown,
+                Icon = FluentIcons.ArrowBetweenDown,
                 AddedInVersion = "26.04.08",
                 IsSubjectivePreference = true,
             },
@@ -427,7 +568,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarExtendedHoverTime.Name,
                 Description = LocKey.Setting.TaskbarExtendedHoverTime.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.DockBottom,
+                Icon = FluentIcons.PanelBottom,
                 AddedInVersion = "26.04.03",
                 IsSubjectivePreference = true,
             },
@@ -479,7 +620,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarBadges.Name,
                 Description = LocKey.Setting.TaskbarBadges.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.Bell,
+                Icon = FluentIcons.Alert,
                 AddedInVersion = "26.04.08",
                 IsSubjectivePreference = true,
             },
@@ -511,7 +652,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarFlashing.Name,
                 Description = LocKey.Setting.TaskbarFlashing.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.FlashAlert,
+                Icon = FluentIcons.Flash,
                 AddedInVersion = "26.04.08",
                 IsSubjectivePreference = true,
             },
@@ -544,7 +685,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarMultiDisplay.Name,
                 Description = LocKey.Setting.TaskbarMultiDisplay.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.MonitorMultiple,
+                Icon = FluentIcons.DualScreenDesktop,
                 AddedInVersion = "26.04.08",
                 IsSubjectivePreference = true,
             },
@@ -577,7 +718,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarMultiDisplayApps.Name,
                 Description = LocKey.Setting.TaskbarMultiDisplayApps.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.Monitor,
+                Icon = FluentIcons.Desktop,
                 AddedInVersion = "26.04.08",
                 IsSubjectivePreference = true,
             },
@@ -616,7 +757,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarCombineButtonsOther.Name,
                 Description = LocKey.Setting.TaskbarCombineButtonsOther.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.TabUnselected,
+                Icon = FluentIcons.Stack,
                 AddedInVersion = "26.04.08",
                 IsSubjectivePreference = true,
             },
@@ -655,7 +796,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarShareWindow.Name,
                 Description = LocKey.Setting.TaskbarShareWindow.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.ShareVariant,
+                Icon = FluentIcons.ShareAndroid,
                 AddedInVersion = "26.04.08",
                 IsSubjectivePreference = true,
             },
@@ -688,7 +829,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarShowDesktop.Name,
                 Description = LocKey.Setting.TaskbarShowDesktop.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.DesktopClassic,
+                Icon = FluentIcons.Desktop,
                 AddedInVersion = "26.04.08",
                 IsSubjectivePreference = true,
             },
@@ -721,7 +862,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarCombineButtons.Name,
                 Description = LocKey.Setting.TaskbarCombineButtons.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.Tab,
+                Icon = FluentIcons.Tab,
                 AddedInVersion = "26.04.08",
                 IsSubjectivePreference = true,
             },
@@ -758,7 +899,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarButtonSize.Name,
                 Description = LocKey.Setting.TaskbarButtonSize.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.Resize,
+                Icon = FluentIcons.Resize,
                 AddedInVersion = "26.04.08",
                 IsSubjectivePreference = true,
             },
@@ -796,7 +937,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarSystemTrayIcons.Name,
                 Description = LocKey.Setting.TaskbarSystemTrayIcons.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.TrayFull,
+                Icon = FluentIcons.ChevronUp,
                 IsSubjectivePreference = true,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows10 } },
@@ -830,7 +971,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarSystemTrayIcons11.Name,
                 Description = LocKey.Setting.TaskbarSystemTrayIcons11.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.TrayFull,
+                Icon = FluentIcons.ChevronUp,
                 AddedInVersion = "25.04.08",
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
@@ -852,7 +993,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarClockSeconds.Name,
                 Description = LocKey.Setting.TaskbarClockSeconds.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.ClockStart,
+                Icon = FluentIcons.Timer,
                 IsSubjectivePreference = true,
                 AddedInVersion = "26.09.30",
             },
@@ -885,7 +1026,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarTransparent.Name,
                 Description = LocKey.Setting.TaskbarTransparent.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.Opacity,
+                Icon = FluentIcons.TransparencySquare,
                 IsSubjectivePreference = true,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows10 } },
@@ -924,7 +1065,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarSmall.Name,
                 Description = LocKey.Setting.TaskbarSmall.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.SizeXxs,
+                Icon = FluentIcons.ResizeSmall,
                 IsSubjectivePreference = true,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows10 } },
@@ -958,7 +1099,7 @@ public static class TaskbarCustomizationsCatalog
                 Name = LocKey.Setting.TaskbarEndTask.Name,
                 Description = LocKey.Setting.TaskbarEndTask.Description,
                 GroupName = LocKey.SettingGroup.TaskbarBehavior,
-                Icon = MaterialIcons.ApplicationCog,
+                Icon = FluentIcons.WindowSettings,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
             Targets = new Target[]

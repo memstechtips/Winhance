@@ -20,7 +20,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.SecurityUacLevel.Name,
                 Description = LocKey.Setting.SecurityUacLevel.Description,
                 GroupName = LocKey.SettingGroup.Security,
-                Icon = MaterialIcons.ShieldAccount,
+                Icon = FluentIcons.ShieldPerson,
             },
             Targets = new Target[]
             {
@@ -88,7 +88,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.SecurityWorkplaceJoinMessages.Name,
                 Description = LocKey.Setting.SecurityWorkplaceJoinMessages.Description,
                 GroupName = LocKey.SettingGroup.Security,
-                Icon = MaterialIcons.OfficeBuilding,
+                Icon = FluentIcons.Building,
             },
             Targets = new Target[]
             {
@@ -152,7 +152,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.SecurityWpbtExecution.Name,
                 Description = LocKey.Setting.SecurityWpbtExecution.Description,
                 GroupName = LocKey.SettingGroup.Security,
-                Icon = MaterialIcons.Chip,
+                Icon = FluentIcons.DeveloperBoard,
                 IsSubjectivePreference = true,
                 AddedInVersion = "26.09.30",
             },
@@ -185,7 +185,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.SecurityWifiSense.Name,
                 Description = LocKey.Setting.SecurityWifiSense.Description,
                 GroupName = LocKey.SettingGroup.Security,
-                Icon = MaterialIcons.WifiOff,
+                Icon = FluentIcons.WiFiOff,
             },
             Targets = new Target[]
             {
@@ -215,7 +215,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.SecurityAutomaticMaintenance.Name,
                 Description = LocKey.Setting.SecurityAutomaticMaintenance.Description,
                 GroupName = LocKey.SettingGroup.Security,
-                Icon = MaterialIcons.ProgressWrench,
+                Icon = FluentIcons.WrenchSettings,
             },
             Targets = new Target[]
             {
@@ -277,7 +277,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.SecurityRemoteAssistance.Name,
                 Description = LocKey.Setting.SecurityRemoteAssistance.Description,
                 GroupName = LocKey.SettingGroup.Security,
-                Icon = MaterialIcons.RemoteDesktop,
+                Icon = FluentIcons.DesktopCursor,
             },
             Targets = new Target[]
             {
@@ -308,7 +308,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.SecuritySmartAppControl.Name,
                 Description = LocKey.Setting.SecuritySmartAppControl.Description,
                 GroupName = LocKey.SettingGroup.Security,
-                Icon = MaterialIcons.ShieldCheck,
+                Icon = FluentIcons.ShieldCheckmark,
                 AddedInVersion = "26.04.01",
                 IsSubjectivePreference = true,
             },
@@ -346,7 +346,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.SecurityDeveloperMode.Name,
                 Description = LocKey.Setting.SecurityDeveloperMode.Description,
                 GroupName = LocKey.SettingGroup.Security,
-                Icon = MaterialIcons.CodeBraces,
+                Icon = FluentIcons.Braces,
                 AddedInVersion = "26.04.08",
                 IsSubjectivePreference = true,
             },
@@ -379,7 +379,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.SecurityPowershellExecutionPolicy.Name,
                 Description = LocKey.Setting.SecurityPowershellExecutionPolicy.Description,
                 GroupName = LocKey.SettingGroup.Security,
-                Icon = MaterialIcons.Powershell,
+                Icon = FluentIcons.WindowConsole,
                 AddedInVersion = "26.04.08",
                 IsSubjectivePreference = true,
             },
@@ -420,13 +420,53 @@ public static class PrivacyOptimizationsCatalog
         },
         new()
         {
+            Id = "security-app-install-source",
+            Display = new()
+            {
+                Name = LocKey.Setting.SecurityAppInstallSource.Name,
+                Description = LocKey.Setting.SecurityAppInstallSource.Description,
+                GroupName = LocKey.SettingGroup.Security,
+                Icon = FluentIcons.ShieldCheckmark,
+                AddedInVersion = "26.11.17",
+            },
+            Targets = new Target[]
+            {
+                new RegTarget("AicEnabled", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" }, "AicEnabled", RegistryValueKind.String),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Setting.SecurityAppInstallSource.Option0,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["AicEnabled"] = Of("Anywhere").OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.SecurityAppInstallSource.Option1,
+                    Set = new Dictionary<string, StateValue> { ["AicEnabled"] = Of("Recommendations") },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.SecurityAppInstallSource.Option2,
+                    Set = new Dictionary<string, StateValue> { ["AicEnabled"] = Of("PreferStore") },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.SecurityAppInstallSource.Option3,
+                    Set = new Dictionary<string, StateValue> { ["AicEnabled"] = Of("StoreOnly") },
+                },
+            },
+        },
+        new()
+        {
             Id = "privacy-ads-promotional-master",
             Display = new()
             {
                 Name = LocKey.Setting.PrivacyAdsPromotionalMaster.Name,
                 Description = LocKey.Setting.PrivacyAdsPromotionalMaster.Description,
                 GroupName = LocKey.SettingGroup.ContentDeliveryAdvertising,
-                Icon = MaterialIcons.AdvertisementsOff,
+                Icon = FluentIcons.WindowAdOff,
                 CrossGroupChildSettings = new Dictionary<string, LocKey>
                 {
                     ["privacy-rotating-lock-screen"] = LocKey.Setting.PrivacyAdsPromotionalMaster.ChildSpotlight,
@@ -510,7 +550,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyContentDeliveryAllowed.Name,
                 Description = LocKey.Setting.PrivacyContentDeliveryAllowed.Description,
                 GroupName = LocKey.SettingGroup.ContentDeliveryAdvertising,
-                Icon = MaterialIcons.PackageVariant,
+                Icon = FluentIcons.Box,
             },
             Targets = new Target[]
             {
@@ -541,7 +581,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacySubscribedContent.Name,
                 Description = LocKey.Setting.PrivacySubscribedContent.Description,
                 GroupName = LocKey.SettingGroup.ContentDeliveryAdvertising,
-                Icon = MaterialIcons.BookmarkMultiple,
+                Icon = FluentIcons.BookmarkMultiple,
             },
             Targets = new Target[]
             {
@@ -572,7 +612,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyFeatureManagement.Name,
                 Description = LocKey.Setting.PrivacyFeatureManagement.Description,
                 GroupName = LocKey.SettingGroup.ContentDeliveryAdvertising,
-                Icon = MaterialIcons.MonitorArrowDown,
+                Icon = FluentIcons.DesktopArrowDown,
             },
             Targets = new Target[]
             {
@@ -602,7 +642,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacySoftLanding.Name,
                 Description = LocKey.Setting.PrivacySoftLanding.Description,
                 GroupName = LocKey.SettingGroup.ContentDeliveryAdvertising,
-                Icon = MaterialIcons.LightbulbOn,
+                Icon = FluentIcons.Lightbulb,
             },
             Targets = new Target[]
             {
@@ -633,7 +673,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyOemPreinstalledApps.Name,
                 Description = LocKey.Setting.PrivacyOemPreinstalledApps.Description,
                 GroupName = LocKey.SettingGroup.ContentDeliveryAdvertising,
-                Icon = MaterialIcons.PackageDown,
+                Icon = FluentIcons.Box,
             },
             Targets = new Target[]
             {
@@ -664,7 +704,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyPreinstalledApps.Name,
                 Description = LocKey.Setting.PrivacyPreinstalledApps.Description,
                 GroupName = LocKey.SettingGroup.ContentDeliveryAdvertising,
-                Icon = MaterialIcons.PackageVariantPlus,
+                Icon = FluentIcons.AppsAddIn,
             },
             Targets = new Target[]
             {
@@ -695,7 +735,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyPreinstalledAppsEver.Name,
                 Description = LocKey.Setting.PrivacyPreinstalledAppsEver.Description,
                 GroupName = LocKey.SettingGroup.ContentDeliveryAdvertising,
-                Icon = MaterialIcons.ClipboardTextClockOutline,
+                Icon = FluentIcons.ClipboardClock,
             },
             Targets = new Target[]
             {
@@ -726,7 +766,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacySilentInstalledApps.Name,
                 Description = LocKey.Setting.PrivacySilentInstalledApps.Description,
                 GroupName = LocKey.SettingGroup.ContentDeliveryAdvertising,
-                Icon = MaterialIcons.CubeOffOutline,
+                Icon = FluentIcons.ArrowDownload,
             },
             Targets = new Target[]
             {
@@ -751,13 +791,88 @@ public static class PrivacyOptimizationsCatalog
         },
         new()
         {
+            Id = "privacy-share-suggested-apps",
+            Display = new()
+            {
+                Name = LocKey.Setting.PrivacyShareSuggestedApps.Name,
+                Description = LocKey.Setting.PrivacyShareSuggestedApps.Description,
+                GroupName = LocKey.SettingGroup.ContentDeliveryAdvertising,
+                Icon = FluentIcons.ShareAndroid,
+                AddedInVersion = "26.11.17",
+            },
+            // The September 2026 update (26100.9445 and 26200.9445) brought this to 24H2 and 25H2.
+            Availability = new()
+            {
+                Builds = new[]
+                {
+                    new BuildRange(new WinBuild(26100, 9445), new WinBuild(26100, int.MaxValue)),
+                    new BuildRange(new WinBuild(26200, 9445), new WinBuild(26200, int.MaxValue)),
+                    new BuildRange(new WinBuild(26300), new WinBuild(int.MaxValue, int.MaxValue)),
+                },
+            },
+            Targets = new Target[]
+            {
+                new RegTarget("EnablePromotionalAppsForShare", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CDP" }, "EnablePromotionalAppsForShare", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["EnablePromotionalAppsForShare"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.Recommended },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["EnablePromotionalAppsForShare"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "privacy-get-started",
+            Display = new()
+            {
+                Name = LocKey.Setting.PrivacyGetStarted.Name,
+                Description = LocKey.Setting.PrivacyGetStarted.Description,
+                GroupName = LocKey.SettingGroup.ContentDeliveryAdvertising,
+                Icon = FluentIcons.Rocket,
+                AddedInVersion = "26.11.17",
+            },
+            Availability = new() { Builds = new[] { BuildRange.Windows11 } },
+            Targets = new Target[]
+            {
+                new RegTarget("DisableGetStarted", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\CloudContent" }, "DisableGetStarted", RegistryValueKind.DWord) { IsGroupPolicy = true },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["DisableGetStarted"] = Absent },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.Recommended },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["DisableGetStarted"] = Of(1) },
+                },
+            },
+        },
+        new()
+        {
             Id = "privacy-lock-screen",
             Display = new()
             {
                 Name = LocKey.Setting.PrivacyLockScreen.Name,
                 Description = LocKey.Setting.PrivacyLockScreen.Description,
                 GroupName = LocKey.SettingGroup.LockScreen,
-                Icon = MaterialIcons.MonitorLock,
+                Icon = FluentIcons.LockClosed,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -827,7 +942,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyLockScreenOverlay.Name,
                 Description = LocKey.Setting.PrivacyLockScreenOverlay.Description,
                 GroupName = LocKey.SettingGroup.LockScreen,
-                Icon = MaterialIcons.MonitorShimmer,
+                Icon = FluentIcons.Lightbulb,
             },
             UiParentId = "privacy-lock-screen",
             Targets = new Target[]
@@ -859,7 +974,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyAdvertisingId.Name,
                 Description = LocKey.Setting.PrivacyAdvertisingId.Description,
                 GroupName = LocKey.SettingGroup.General,
-                Icon = MaterialIcons.Advertisements,
+                Icon = FluentIcons.WindowAd,
             },
             Targets = new Target[]
             {
@@ -902,7 +1017,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyLanguageList.Name,
                 Description = LocKey.Setting.PrivacyLanguageList.Description,
                 GroupName = LocKey.SettingGroup.General,
-                Icon = MaterialIcons.Translate,
+                Icon = FluentIcons.Translate,
             },
             Targets = new Target[]
             {
@@ -933,7 +1048,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyAppLaunchTracking.Name,
                 Description = LocKey.Setting.PrivacyAppLaunchTracking.Description,
                 GroupName = LocKey.SettingGroup.General,
-                Icon = MaterialIcons.ArchiveSearch,
+                Icon = FluentIcons.AppsListDetail,
             },
             Targets = new Target[]
             {
@@ -964,7 +1079,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacySettingsContent.Name,
                 Description = LocKey.Setting.PrivacySettingsContent.Description,
                 GroupName = LocKey.SettingGroup.General,
-                Icon = MaterialIcons.StarCog,
+                Icon = FluentIcons.StarSettings,
             },
             Targets = new Target[]
             {
@@ -1008,7 +1123,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacySettingsHome.Name,
                 Description = LocKey.Setting.PrivacySettingsHome.Description,
                 GroupName = LocKey.SettingGroup.General,
-                Icon = MaterialIcons.Home,
+                Icon = FluentIcons.Home,
                 AddedInVersion = "26.10.15",
                 IsSubjectivePreference = true,
             },
@@ -1043,7 +1158,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacySettingsNotifications.Name,
                 Description = LocKey.Setting.PrivacySettingsNotifications.Description,
                 GroupName = LocKey.SettingGroup.General,
-                Icon = MaterialIcons.BellCog,
+                Icon = FluentIcons.AlertBadge,
             },
             Targets = new Target[]
             {
@@ -1074,7 +1189,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacySpeechRecognition.Name,
                 Description = LocKey.Setting.PrivacySpeechRecognition.Description,
                 GroupName = LocKey.SettingGroup.Speech,
-                Icon = MaterialIcons.MicrophoneQuestion,
+                Icon = FluentIcons.MicSync,
             },
             Targets = new Target[]
             {
@@ -1118,7 +1233,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyNarratorOnlineServices.Name,
                 Description = LocKey.Setting.PrivacyNarratorOnlineServices.Description,
                 GroupName = LocKey.SettingGroup.Speech,
-                Icon = MaterialIcons.CloudQuestion,
+                Icon = FluentIcons.CloudWords,
             },
             Targets = new Target[]
             {
@@ -1149,7 +1264,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyNarratorScripting.Name,
                 Description = LocKey.Setting.PrivacyNarratorScripting.Description,
                 GroupName = LocKey.SettingGroup.Speech,
-                Icon = MaterialIcons.ScriptText,
+                Icon = FluentIcons.Script,
             },
             Targets = new Target[]
             {
@@ -1313,7 +1428,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyTailoredExperiences.Name,
                 Description = LocKey.Setting.PrivacyTailoredExperiences.Description,
                 GroupName = LocKey.SettingGroup.DiagnosticsFeedback,
-                Icon = MaterialIcons.AccountCog,
+                Icon = FluentIcons.PersonSettings,
             },
             Targets = new Target[]
             {
@@ -1426,7 +1541,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyTimelineSuggestions.Name,
                 Description = LocKey.Setting.PrivacyTimelineSuggestions.Description,
                 GroupName = LocKey.SettingGroup.ActivityHistory,
-                Icon = MaterialIcons.TimelineAlert,
+                Icon = FluentIcons.Timeline,
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows10 } },
             Targets = new Target[]
@@ -1458,7 +1573,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacySearchHistory.Name,
                 Description = LocKey.Setting.PrivacySearchHistory.Description,
                 GroupName = LocKey.SettingGroup.SearchPermissions,
-                Icon = MaterialIcons.MagnifyScan,
+                Icon = FluentIcons.SearchVisual,
             },
             Targets = new Target[]
             {
@@ -1514,13 +1629,55 @@ public static class PrivacyOptimizationsCatalog
         },
         new()
         {
+            Id = "privacy-search-store-suggestions",
+            Display = new()
+            {
+                Name = LocKey.Setting.PrivacySearchStoreSuggestions.Name,
+                Description = LocKey.Setting.PrivacySearchStoreSuggestions.Description,
+                GroupName = LocKey.SettingGroup.SearchPermissions,
+                Icon = FluentIcons.StoreMicrosoft,
+                AddedInVersion = "26.11.17",
+            },
+            // The September 2026 update (26100.9445 and 26200.9445) brought this to 24H2 and 25H2.
+            Availability = new()
+            {
+                Builds = new[]
+                {
+                    new BuildRange(new WinBuild(26100, 9445), new WinBuild(26100, int.MaxValue)),
+                    new BuildRange(new WinBuild(26200, 9445), new WinBuild(26200, int.MaxValue)),
+                    new BuildRange(new WinBuild(26300), new WinBuild(int.MaxValue, int.MaxValue)),
+                },
+            },
+            Targets = new Target[]
+            {
+                new RegTarget("IsStoreSuggestionsEnabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings" }, "IsStoreSuggestionsEnabled", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["IsStoreSuggestionsEnabled"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.Recommended },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["IsStoreSuggestionsEnabled"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
             Id = "privacy-search-msa-cloud",
             Display = new()
             {
                 Name = LocKey.Setting.PrivacySearchMsaCloud.Name,
                 Description = LocKey.Setting.PrivacySearchMsaCloud.Description,
                 GroupName = LocKey.SettingGroup.SearchPermissions,
-                Icon = MaterialIcons.CloudSearch,
+                Icon = FluentIcons.GlobeSearch,
             },
             Targets = new Target[]
             {
@@ -1551,7 +1708,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacySearchAadCloud.Name,
                 Description = LocKey.Setting.PrivacySearchAadCloud.Description,
                 GroupName = LocKey.SettingGroup.SearchPermissions,
-                Icon = MaterialIcons.BriefcaseSearch,
+                Icon = FluentIcons.BriefcaseSearch,
             },
             Targets = new Target[]
             {
@@ -1613,7 +1770,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyLocationServices.Name,
                 Description = LocKey.Setting.PrivacyLocationServices.Description,
                 GroupName = LocKey.SettingGroup.AppPermissions,
-                Icon = MaterialIcons.MapMarker,
+                Icon = FluentIcons.Location,
             },
             Targets = new Target[]
             {
@@ -1653,7 +1810,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyCameraAccess.Name,
                 Description = LocKey.Setting.PrivacyCameraAccess.Description,
                 GroupName = LocKey.SettingGroup.AppPermissions,
-                Icon = MaterialIcons.Camera,
+                Icon = FluentIcons.Camera,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1684,7 +1841,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyMicrophoneAccess.Name,
                 Description = LocKey.Setting.PrivacyMicrophoneAccess.Description,
                 GroupName = LocKey.SettingGroup.AppPermissions,
-                Icon = MaterialIcons.Microphone,
+                Icon = FluentIcons.Mic,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1715,7 +1872,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyAccountInfoAccess.Name,
                 Description = LocKey.Setting.PrivacyAccountInfoAccess.Description,
                 GroupName = LocKey.SettingGroup.AppPermissions,
-                Icon = MaterialIcons.AccountLockOpen,
+                Icon = FluentIcons.PersonInfo,
             },
             Targets = new Target[]
             {
@@ -1746,7 +1903,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyAppDiagnosticAccess.Name,
                 Description = LocKey.Setting.PrivacyAppDiagnosticAccess.Description,
                 GroupName = LocKey.SettingGroup.AppPermissions,
-                Icon = MaterialIcons.Stethoscope,
+                Icon = FluentIcons.Stethoscope,
             },
             Targets = new Target[]
             {
@@ -1777,7 +1934,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyOnedriveAutoBackup.Name,
                 Description = LocKey.Setting.PrivacyOnedriveAutoBackup.Description,
                 GroupName = LocKey.SettingGroup.AppPermissions,
-                Icon = MaterialIcons.CloudOff,
+                Icon = FluentIcons.CloudOff,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1809,7 +1966,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyTurnOffCopilot.Name,
                 Description = LocKey.Setting.PrivacyTurnOffCopilot.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.Robot,
+                Icon = FluentIcons.Bot,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -1842,7 +1999,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisableAiDataAnalysis.Name,
                 Description = LocKey.Setting.PrivacyDisableAiDataAnalysis.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.DatabaseOff,
+                Icon = FluentIcons.BrainCircuit,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -1875,7 +2032,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyBlockRecallEnablement.Name,
                 Description = LocKey.Setting.PrivacyBlockRecallEnablement.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.Cancel,
+                Icon = FluentIcons.DismissCircle,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -1908,7 +2065,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisableRecallSnapshots.Name,
                 Description = LocKey.Setting.PrivacyDisableRecallSnapshots.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.CameraOff,
+                Icon = FluentIcons.CameraOff,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -1941,7 +2098,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisableClickToDo.Name,
                 Description = LocKey.Setting.PrivacyDisableClickToDo.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.CursorDefaultClickOutline,
+                Icon = FluentIcons.CursorClick,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -1974,7 +2131,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisableSettingsAgent.Name,
                 Description = LocKey.Setting.PrivacyDisableSettingsAgent.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.CogOff,
+                Icon = FluentIcons.SettingsChat,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2007,7 +2164,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisableAgentConnectors.Name,
                 Description = LocKey.Setting.PrivacyDisableAgentConnectors.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.VectorPolylineRemove,
+                Icon = FluentIcons.Connector,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2040,7 +2197,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisableAgentWorkspaces.Name,
                 Description = LocKey.Setting.PrivacyDisableAgentWorkspaces.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.DesktopClassic,
+                Icon = FluentIcons.Desktop,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2073,7 +2230,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisableRemoteAgentConnectors.Name,
                 Description = LocKey.Setting.PrivacyDisableRemoteAgentConnectors.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.LanDisconnect,
+                Icon = FluentIcons.PlugDisconnected,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2106,7 +2263,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisableCopilotHardwareKey.Name,
                 Description = LocKey.Setting.PrivacyDisableCopilotHardwareKey.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.KeyboardOutline,
+                Icon = FluentIcons.Keyboard,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2139,7 +2296,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisableCopilotRuntime.Name,
                 Description = LocKey.Setting.PrivacyDisableCopilotRuntime.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.RobotOff,
+                Icon = FluentIcons.Bot,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2172,7 +2329,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyCopilotUnavailable.Name,
                 Description = LocKey.Setting.PrivacyCopilotUnavailable.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.RobotOff,
+                Icon = FluentIcons.Bot,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2205,7 +2362,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisableBingChat.Name,
                 Description = LocKey.Setting.PrivacyDisableBingChat.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.ChatRemove,
+                Icon = FluentIcons.ChatDismiss,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2238,7 +2395,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDenyGenerativeAiAccess.Name,
                 Description = LocKey.Setting.PrivacyDenyGenerativeAiAccess.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.ShieldLock,
+                Icon = FluentIcons.ShieldLock,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2280,7 +2437,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDenySystemAiModels.Name,
                 Description = LocKey.Setting.PrivacyDenySystemAiModels.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.ShieldLock,
+                Icon = FluentIcons.ShieldLock,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2325,7 +2482,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDenyCopilotMicrophone.Name,
                 Description = LocKey.Setting.PrivacyDenyCopilotMicrophone.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.MicrophoneOff,
+                Icon = FluentIcons.MicOff,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2358,7 +2515,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisablePaintAiImageCreator.Name,
                 Description = LocKey.Setting.PrivacyDisablePaintAiImageCreator.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.ImageOff,
+                Icon = FluentIcons.ImageOff,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2391,7 +2548,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisablePaintAiCocreator.Name,
                 Description = LocKey.Setting.PrivacyDisablePaintAiCocreator.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.PaletteOutline,
+                Icon = FluentIcons.Color,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2457,7 +2614,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisablePaintGenerativeFill.Name,
                 Description = LocKey.Setting.PrivacyDisablePaintGenerativeFill.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.FormatPaint,
+                Icon = FluentIcons.PaintBucket,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2490,7 +2647,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisablePaintGenerativeErase.Name,
                 Description = LocKey.Setting.PrivacyDisablePaintGenerativeErase.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.EraserVariant,
+                Icon = FluentIcons.Eraser,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2523,7 +2680,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisablePaintRemoveBackground.Name,
                 Description = LocKey.Setting.PrivacyDisablePaintRemoveBackground.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.ImageRemove,
+                Icon = FluentIcons.ImageDismiss,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2556,7 +2713,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisableInputInsights.Name,
                 Description = LocKey.Setting.PrivacyDisableInputInsights.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.KeyboardOff,
+                Icon = FluentIcons.KeyboardOff,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2589,7 +2746,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisableCopilotNudges.Name,
                 Description = LocKey.Setting.PrivacyDisableCopilotNudges.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.BellOff,
+                Icon = FluentIcons.AlertOff,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2622,7 +2779,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyDisableConsumerAiContent.Name,
                 Description = LocKey.Setting.PrivacyDisableConsumerAiContent.Description,
                 GroupName = LocKey.SettingGroup.WindowsAI,
-                Icon = MaterialIcons.AccountOff,
+                Icon = FluentIcons.PersonProhibited,
                 AddedInVersion = "26.04.10",
             },
             Availability = new Availability { Builds = new[] { BuildRange.Windows11 } },
@@ -2655,7 +2812,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyEdgeCopilotCdpPageContext.Name,
                 Description = LocKey.Setting.PrivacyEdgeCopilotCdpPageContext.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftEdgeAI,
-                Icon = MaterialIcons.WebOff,
+                Icon = FluentIcons.GlobeProhibited,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]
@@ -2687,7 +2844,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyEdgeCopilotPageContext.Name,
                 Description = LocKey.Setting.PrivacyEdgeCopilotPageContext.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftEdgeAI,
-                Icon = MaterialIcons.FileEyeOutline,
+                Icon = FluentIcons.Eye,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]
@@ -2719,7 +2876,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyEdgeCopilotSidebar.Name,
                 Description = LocKey.Setting.PrivacyEdgeCopilotSidebar.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftEdgeAI,
-                Icon = MaterialIcons.DockRight,
+                Icon = FluentIcons.PanelRight,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]
@@ -2751,7 +2908,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyEdgeEntraCopilot.Name,
                 Description = LocKey.Setting.PrivacyEdgeEntraCopilot.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftEdgeAI,
-                Icon = MaterialIcons.ShieldOff,
+                Icon = FluentIcons.ShieldDismiss,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]
@@ -2783,7 +2940,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyEdgeM365CopilotIcon.Name,
                 Description = LocKey.Setting.PrivacyEdgeM365CopilotIcon.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftEdgeAI,
-                Icon = MaterialIcons.ChatMinus,
+                Icon = FluentIcons.ChatOff,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]
@@ -2815,7 +2972,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyEdgeAiHistorySearch.Name,
                 Description = LocKey.Setting.PrivacyEdgeAiHistorySearch.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftEdgeAI,
-                Icon = MaterialIcons.History,
+                Icon = FluentIcons.History,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]
@@ -2847,7 +3004,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyEdgeInlineCompose.Name,
                 Description = LocKey.Setting.PrivacyEdgeInlineCompose.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftEdgeAI,
-                Icon = MaterialIcons.PenOff,
+                Icon = FluentIcons.PenOff,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]
@@ -2879,7 +3036,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyEdgeLocalAiModel.Name,
                 Description = LocKey.Setting.PrivacyEdgeLocalAiModel.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftEdgeAI,
-                Icon = MaterialIcons.DatabaseOff,
+                Icon = FluentIcons.BrainCircuit,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]
@@ -2911,7 +3068,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyEdgeBuiltinAiApis.Name,
                 Description = LocKey.Setting.PrivacyEdgeBuiltinAiApis.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftEdgeAI,
-                Icon = MaterialIcons.Api,
+                Icon = FluentIcons.Braces,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]
@@ -2943,7 +3100,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyEdgeAiThemes.Name,
                 Description = LocKey.Setting.PrivacyEdgeAiThemes.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftEdgeAI,
-                Icon = MaterialIcons.PaletteOutline,
+                Icon = FluentIcons.Color,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]
@@ -2975,7 +3132,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyEdgeDevtoolsAi.Name,
                 Description = LocKey.Setting.PrivacyEdgeDevtoolsAi.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftEdgeAI,
-                Icon = MaterialIcons.CodeBracesBox,
+                Icon = FluentIcons.WindowDevTools,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]
@@ -3007,7 +3164,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyEdgeShareHistoryCopilot.Name,
                 Description = LocKey.Setting.PrivacyEdgeShareHistoryCopilot.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftEdgeAI,
-                Icon = MaterialIcons.ShareOff,
+                Icon = FluentIcons.ChatHistory,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]
@@ -3039,7 +3196,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyOfficeAiTraining.Name,
                 Description = LocKey.Setting.PrivacyOfficeAiTraining.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftOfficeAI,
-                Icon = MaterialIcons.SchoolOutline,
+                Icon = FluentIcons.HatGraduation,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]
@@ -3071,7 +3228,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyOfficeConnectedServices.Name,
                 Description = LocKey.Setting.PrivacyOfficeConnectedServices.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftOfficeAI,
-                Icon = MaterialIcons.CloudOff,
+                Icon = FluentIcons.CloudOff,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]
@@ -3112,7 +3269,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyWordCopilot.Name,
                 Description = LocKey.Setting.PrivacyWordCopilot.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftOfficeAI,
-                Icon = MaterialIcons.FileWord,
+                Icon = FluentIcons.DocumentWord,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]
@@ -3144,7 +3301,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyExcelCopilot.Name,
                 Description = LocKey.Setting.PrivacyExcelCopilot.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftOfficeAI,
-                Icon = MaterialIcons.FileExcel,
+                Icon = FluentIcons.DocumentTable,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]
@@ -3176,7 +3333,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyOnenoteCopilot.Name,
                 Description = LocKey.Setting.PrivacyOnenoteCopilot.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftOfficeAI,
-                Icon = MaterialIcons.NotebookEdit,
+                Icon = FluentIcons.Notebook,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]
@@ -3220,7 +3377,7 @@ public static class PrivacyOptimizationsCatalog
                 Name = LocKey.Setting.PrivacyOfficeContentSafetyAi.Name,
                 Description = LocKey.Setting.PrivacyOfficeContentSafetyAi.Description,
                 GroupName = LocKey.SettingGroup.MicrosoftOfficeAI,
-                Icon = MaterialIcons.TextBoxRemove,
+                Icon = FluentIcons.ShieldCheckmark,
                 AddedInVersion = "26.04.10",
             },
             Targets = new Target[]

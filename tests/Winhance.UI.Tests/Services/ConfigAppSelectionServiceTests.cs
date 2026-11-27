@@ -38,6 +38,9 @@ public class ConfigAppSelectionServiceTests
         _mockThemeService
             .Setup(t => t.GetEffectiveTheme())
             .Returns(ElementTheme.Dark);
+
+        _mockWindowsAppsVM.Setup(v => v.ChangeSelection(It.IsAny<Action>())).Callback<Action>(change => change());
+        _mockExternalAppsVM.Setup(v => v.ChangeSelection(It.IsAny<Action>())).Callback<Action>(change => change());
     }
 
     private ConfigAppSelectionService CreateService()

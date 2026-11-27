@@ -206,16 +206,17 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
     }
 
     [Fact]
-    public void OnApplicationModeChanged_LeavingBuilder_ResetsTheHardwareFilterBeforePublishingTheReload()
+    public void OnApplicationModeChanged_LeavingBuilder_MarksFeaturesStaleBeforeResettingTheScope()
     {
-        // Order, not just the call: the reload reads the scope synchronously before its first await, so a reset
-        // published after it reloads Normal mode with Builder's widened scope - and the FilterStateChangedEvent
-        // refresh that reset then raises is dropped while the first load still holds the loading semaphore.
+        // Order, not just the call: a feature already marked stale skips the scope reconcile each reset raises,
+        // so resetting first would reconcile every loaded feature only for the rebuild to replace it.
         var order = new List<string>();
         _mockHardwareFilter.Setup(h => h.Reset())
-            .Callback(() => order.Add("reset"));
+            .Callback(() => order.Add("reset hardware"));
+        _mockTargetWindows.Setup(t => t.Reset())
+            .Callback(() => order.Add("reset windows"));
         _mockEventBus.Setup(e => e.Publish(It.IsAny<AuthoringModeExitedEvent>()))
-            .Callback(() => order.Add("reload"));
+            .Callback(() => order.Add("stale"));
 
         _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
         var service = CreateService();
@@ -223,7 +224,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(WinhanceMode.Normal);
         _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
 
-        order.Should().Equal("reset", "reload");
+        order.Should().Equal("stale", "reset hardware", "reset windows");
     }
 
     [Fact]
@@ -489,7 +490,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
 
         _mockConfigReviewModeService.Verify(r => r.ExitReviewMode(), Times.Once);
         _mockDialogService.Verify(
-            d => d.ShowMessage(It.Is<string>(s => s.Contains("Test error")), It.IsAny<string>()),
+            d => d.ShowErrorAsync(It.Is<string>(s => s.Contains("Test error")), It.IsAny<string>(), It.IsAny<string>()),
             Times.Once);
     }
 
@@ -541,7 +542,7 @@ public class ConfigReviewOrchestrationServiceTests : IDisposable
         var service = CreateService();
         await service.ApplyReviewedConfigAsync();
 
-        _mockDialogService.Verify(d => d.ShowMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _mockDialogService.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

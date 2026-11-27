@@ -52,44 +52,40 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- Runs from this marker down to the next one, across the row boundary; a Canvas does not clip. -->
-                        <Canvas Visibility="{x:Bind HasNextStep}">
+                        <Canvas x:Name="NextStepLine" x:Load="{x:Bind HasNextStep}">
                             <Rectangle Canvas.Left="15" Canvas.Top="44" Width="2" Height="16"
-                                       Fill="{ThemeResource ControlStrongStrokeColorDefaultBrush}"
-                                       Visibility="{x:Bind local:WizardStepRail.PendingVisibility(IsComplete)}"/>
+                                       x:Name="PendingLine"
+                                       x:Load="{x:Bind local:WizardStepRail.IsPending(IsComplete)}"
+                                       Fill="{ThemeResource ControlStrongStrokeColorDefaultBrush}"/>
                             <Rectangle Canvas.Left="15" Canvas.Top="44" Width="2" Height="16"
-                                       Fill="{ThemeResource SystemFillColorSuccessBrush}"
-                                       Visibility="{x:Bind IsComplete}"/>
+                                       x:Name="CompleteLine"
+                                       x:Load="{x:Bind IsComplete}"
+                                       Fill="{ThemeResource SystemFillColorSuccessBrush}"/>
                         </Canvas>
 
                         <Grid Width="{StaticResource StepRailMarkerSize}"
                               Height="{StaticResource StepRailMarkerSize}"
                               VerticalAlignment="Center">
-                            <Grid Visibility="{x:Bind local:WizardStepRail.PendingVisibility(IsComplete)}">
+                            <Grid x:Name="PendingMarker" x:Load="{x:Bind local:WizardStepRail.IsPending(IsComplete)}">
                                 <Ellipse StrokeThickness="1.5" Stroke="{ThemeResource ControlStrongStrokeColorDefaultBrush}"/>
-                                <fluentIcons:FluentIcon Icon="{x:Bind Icon}" IconVariant="Regular" FontSize="18"
+                                <fluentIcons:FluentIcon x:Name="PendingFluentIcon"
+                                                        Icon="{x:Bind Icon}" IconVariant="Regular" FontSize="{StaticResource StepRailIconFontSize}"
                                                         Foreground="{ThemeResource TextFillColorPrimaryBrush}"
-                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                        Visibility="{x:Bind UsesFluentIcon}"/>
-                                <FontIcon Glyph="{x:Bind Glyph}" FontSize="18"
-                                          Foreground="{ThemeResource TextFillColorPrimaryBrush}"
-                                          Visibility="{x:Bind HasGlyph}"/>
+                                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Grid>
-                            <Grid Visibility="{x:Bind IsComplete}">
+                            <Grid x:Name="CompleteMarker" x:Load="{x:Bind IsComplete}">
                                 <Ellipse Fill="{ThemeResource SystemFillColorSuccessBrush}"/>
-                                <fluentIcons:FluentIcon Icon="{x:Bind Icon}" IconVariant="Regular" FontSize="18"
+                                <fluentIcons:FluentIcon x:Name="CompleteFluentIcon"
+                                                        Icon="{x:Bind Icon}" IconVariant="Regular" FontSize="{StaticResource StepRailIconFontSize}"
                                                         Foreground="{ThemeResource SolidBackgroundFillColorBaseBrush}"
-                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                        Visibility="{x:Bind UsesFluentIcon}"/>
-                                <FontIcon Glyph="{x:Bind Glyph}" FontSize="18"
-                                          Foreground="{ThemeResource SolidBackgroundFillColorBaseBrush}"
-                                          Visibility="{x:Bind HasGlyph}"/>
+                                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Grid>
                         </Grid>
 
                         <TextBlock Grid.Column="1"
                                    Text="{x:Bind Title}"
                                    Style="{StaticResource BodyTextBlockStyle}"
-                                   FontSize="16"
+                                   FontSize="{StaticResource ItemTitleFontSize}"
                                    FontWeight="{x:Bind local:WizardStepRail.LabelWeight(IsCurrent)}"
                                    MaxLines="2"
                                    TextWrapping="Wrap"

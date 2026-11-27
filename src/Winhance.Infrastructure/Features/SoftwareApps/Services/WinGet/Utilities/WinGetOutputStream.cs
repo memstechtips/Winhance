@@ -81,7 +81,7 @@ internal sealed class WinGetOutputStream(
             if (IsProgressBarLine(line))
                 return;
 
-            var displayLine = WinGetProgressParser.TranslateLine(line);
+            var displayLine = WinGetProgressParser.TranslateLine(line, localization);
             var progress = WinGetProgressParser.ParseLine(line);
 
             if (progress == null)
@@ -135,7 +135,7 @@ internal sealed class WinGetOutputStream(
     }
 
     internal void ForwardProgressLine(string line) =>
-        WinGetProgressParser.Forward(line, taskProgressService, logService);
+        WinGetProgressParser.Forward(line, taskProgressService, localization, logService);
 
     private bool IsWorthLogging(WinGetProgressParser.WinGetPhase phase) =>
         phase is WinGetProgressParser.WinGetPhase.Found

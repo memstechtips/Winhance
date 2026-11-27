@@ -28,6 +28,7 @@ public class CatalogSettingStateProviderConformanceTests
         s.Control == ControlKind.Selection
         && s.Detector is null
         && s.Targets.OfType<RegTarget>().Any()
+        && !s.Targets.OfType<MessageDurationTarget>().Any() // live SPI detection, registry storage for offline images
         && !s.Targets.OfType<PowerCfgTarget>().Any()
         && !s.Targets.OfType<TaskTarget>().Any();
 
@@ -141,6 +142,13 @@ public class CatalogSettingStateProviderConformanceTests
         ["region-first-day-of-week"] = "locale: en-US starts on Sunday, most of Europe on Monday",
         ["region-list-separator"] = "locale: comma-decimal locales such as de-DE ship ';'",
     };
+
+    [Fact]
+    public void MessageDuration_IsNotAPureRegistrySelection()
+    {
+        Assert.False(IsPureRegistrySelection(Catalog["notifications-banner-duration"]));
+        Assert.True(IsPureRegistrySelection(Catalog["region-measurement-system"]));
+    }
 
     [Fact]
     public void DeriveIsEnabled_EveryGateSelection_HasExactlyOneWindowsDefaultAnchor()

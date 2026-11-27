@@ -1,7 +1,10 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Events.UI;
@@ -11,6 +14,8 @@ using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Models;
 using Winhance.Core.Features.SoftwareApps.Utilities;
+using Winhance.UI.Features.Common.Helpers;
+using CatalogFluentIcons = Winhance.Core.Features.Common.Catalog.FluentIcons;
 
 namespace Winhance.UI.Features.Settings.ViewModels;
 
@@ -20,14 +25,13 @@ public partial class SettingsViewModel
 
     private const int TaskSchedulerRunning = 0x41301;
 
-    private const string RedirectIconKey = "TimeRegionLanguageIconSymbol";
     private const string EdgeCategory = EdgeRemovalScript.ScriptName;
 
-    private static readonly Dictionary<string, string> CategoryIcons = new()
+    private static readonly Dictionary<string, Icon> CategoryIcons = new()
     {
-        [BloatRemovalScriptGenerator.ScriptName] = "DeleteSweepIconPath",
-        [EdgeCategory] = "MicrosoftEdgeIconPath",
-        [OneDriveRemovalScript.ScriptName] = "MicrosoftOneDriveIconPath",
+        [BloatRemovalScriptGenerator.ScriptName] = CatalogFluentIcons.Apps,
+        [EdgeCategory] = new(IconPack.App, "windows-app-edge", new(IconPack.Fluent, "Globe")),
+        [OneDriveRemovalScript.ScriptName] = new(IconPack.App, "windows-app-onedrive", new(IconPack.Fluent, "Cloud")),
     };
 
     private IReadOnlyList<KeptApp> _keptApps = [];
@@ -35,10 +39,15 @@ public partial class SettingsViewModel
     private IReadOnlyList<WinhanceTaskInfo> _otherTasks = [];
     private RemovalTaskState? _edgeRedirect;
     private IReadOnlyList<RemovalTaskState> _removalTasks = [];
-    private SignInOptions _signIn = SignInOptions.None;
-    private KeepRemovedMode _mode = KeepRemovedMode.Winhance;
-    private bool _keepRemovedOn;
     private bool _taskSafe;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(KeepRemovedDescription))]
+    public partial SignInOptions SignIn { get; private set; } = SignInOptions.None;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(KeepRemovedDescription), nameof(ModeDescription))]
+    public partial KeepRemovedMode Mode { get; private set; } = KeepRemovedMode.Winhance;
 
     internal Task BackgroundTasksReady { get; private set; } = Task.CompletedTask;
 
@@ -48,40 +57,37 @@ public partial class SettingsViewModel
     public ObservableCollection<ComboBoxDisplayOption> ModeOptions { get; } = new();
 
     // The option objects themselves, like the update pickers: the ComboBox cannot match a boxed enum.
-    private ComboBoxDisplayOption? _selectedModeOption;
-    public ComboBoxDisplayOption? SelectedModeOption
-    {
-        get => _selectedModeOption;
-        set
-        {
-            if (value?.Value is not KeepRemovedMode mode || ReferenceEquals(value, _selectedModeOption))
-                return;
+    [ObservableProperty]
+    public partial ComboBoxDisplayOption? SelectedModeOption { get; set; }
 
-            var previous = _selectedModeOption;
-            _selectedModeOption = value;
-            OnPropertyChanged();
-            ApplyModeAsync(mode, previous).FireAndForget(_logService);
-        }
+    [ObservableProperty]
+    public partial bool KeepRemovedEnabled { get; set; }
+
+    partial void OnSelectedModeOptionChanged(ComboBoxDisplayOption? oldValue, ComboBoxDisplayOption? newValue)
+    {
+        if (_isShowingState)
+            return;
+
+        if (newValue?.Value is KeepRemovedMode mode)
+            ApplyModeAsync(mode, oldValue).FireAndForget(_logService);
+        else
+            ShowState(() => SelectedModeOption = oldValue);
     }
 
-    public bool KeepRemovedEnabled
+    partial void OnKeepRemovedEnabledChanged(bool value)
     {
-        get => _keepRemovedOn;
-        set
-        {
-            if (SetProperty(ref _keepRemovedOn, value))
-                ApplyKeepRemovedAsync(value).FireAndForget(_logService);
-        }
+        if (!_isShowingState)
+            ApplyKeepRemovedAsync(value).FireAndForget(_logService);
     }
 
     public string BackgroundTasksLabel => _localizationService.GetString("BackgroundTasks_Label");
     public string KeepRemovedHeader => _localizationService.GetString("BackgroundTasks_KeepRemoved_Title");
-    public string KeepRemovedDescription => _mode == KeepRemovedMode.Winhance
+    public string KeepRemovedDescription => Mode == KeepRemovedMode.Winhance
         ? _localizationService.GetString("BackgroundTasks_KeepRemoved_Description") + " " + _localizationService.GetString(
-            _signIn.Maintain ? "BackgroundTasks_ChecksAtSignIn" : "BackgroundTasks_ChecksOnOpen")
+            SignIn.Maintain ? "BackgroundTasks_ChecksAtSignIn" : "BackgroundTasks_ChecksOnOpen")
         : _localizationService.GetString("BackgroundTasks_KeepRemoved_Description");
     public string ModeHeader => _localizationService.GetString("BackgroundTasks_Mode_Title");
-    public string ModeDescription => _mode == KeepRemovedMode.Scripts
+    public string ModeDescription => Mode == KeepRemovedMode.Scripts
         ? _localizationService.GetString("BackgroundTasks_Mode_Scripts_Description")
         : _localizationService.GetString("BackgroundTasks_Mode_Winhance_Description");
 
@@ -100,23 +106,19 @@ public partial class SettingsViewModel
     private async Task RefreshBackgroundTasksAsync()
     {
         var (mode, kept, status) = await Task.Run(() => (_backgroundTasks.GetMode(), _backgroundTasks.GetKeptApps(), _backgroundTasks.GetStatus()));
-        _mode = mode;
+        Mode = mode;
         _keptApps = kept;
         _status = status;
-        _keepRemovedOn = await _backgroundTasks.IsKeepRemovedOnAsync();
+        var on = await _backgroundTasks.IsKeepRemovedOnAsync();
+        ShowState(() => KeepRemovedEnabled = on);
         _taskSafe = await _backgroundTasks.IsTaskSafetyOkAsync();
-        _removalTasks = mode == KeepRemovedMode.Scripts ? await _backgroundTasks.GetRemovalTasksAsync() : [];
+        _removalTasks = await _backgroundTasks.GetRemovalTasksAsync();
         _otherTasks = await _backgroundTasks.GetOtherTasksAsync();
         _edgeRedirect = await _backgroundTasks.GetEdgeRedirectAsync();
         ShowSignInOptions(await _backgroundTasks.GetSignInOptionsAsync());
 
         EnsureModeOptions();
-        _selectedModeOption = ModeOptions.FirstOrDefault(o => Equals(o.Value, _mode));
-
-        OnPropertyChanged(nameof(SelectedModeOption));
-        OnPropertyChanged(nameof(KeepRemovedEnabled));
-        OnPropertyChanged(nameof(ModeDescription));
-        OnPropertyChanged(nameof(KeepRemovedDescription));
+        ShowState(() => SelectedModeOption = ModeOptions.FirstOrDefault(o => Equals(o.Value, mode)));
         RebuildBackgroundRows();
     }
 
@@ -138,75 +140,75 @@ public partial class SettingsViewModel
     private void RebuildBackgroundRows()
     {
         var hasKept = _keptApps.Count > 0;
-        KeepRemovedChildren.Clear();
-        KeepRemovedChildren.Add(new ModeRow(this, _keepRemovedOn && hasKept));
+        var rows = new List<object> { new ModeRow(this, KeepRemovedEnabled && hasKept) };
 
         var categories = CategoryNames().ToList();
         if (!hasKept && _removalTasks.Count == 0)
         {
-            KeepRemovedChildren.Add(new EmptyListRow(
+            rows.Add(new EmptyListRow(
                 _localizationService.GetString("BackgroundTasks_Empty_Message"),
                 _localizationService.GetString("BackgroundTasks_Empty_Open"),
-                new RelayCommand(OpenSoftwareApps)));
+                OpenSoftwareAppsCommand));
         }
 
-        if (_mode == KeepRemovedMode.Scripts || _edgeRedirect is not null)
+        if (Mode == KeepRemovedMode.Scripts || _removalTasks.Count > 0 || _edgeRedirect is not null)
         {
             var protect = _localizationService.GetString("BackgroundTasks_Safety_Protect");
-            KeepRemovedChildren.Add(_taskSafe
+            rows.Add(_taskSafe
                 ? new FolderSafeRow(_localizationService.GetString("BackgroundTasks_Safety_Protected"))
                 : new FolderUnsafeRow(
                     _localizationService.GetString("BackgroundTasks_Safety_NeedsRepair"),
                     protect,
-                    new AsyncRelayCommand(RepairTaskSafetyAsync)));
+                    RepairTaskSafetyCommand));
         }
 
-        if (_mode == KeepRemovedMode.Winhance)
+        if (Mode == KeepRemovedMode.Winhance)
         {
-            KeepRemovedChildren.Add(new TaskRow(
+            rows.Add(new TaskRow(
                 LastCheckText(),
                 LastPutBackText(),
                 _localizationService.GetString("BackgroundTasks_CheckNow"),
-                new AsyncRelayCommand(CheckNowAsync),
+                CheckNowCommand,
                 _localizationService.GetString("BackgroundTasks_OpenLog"),
-                new AsyncRelayCommand(OpenLogAsync)));
+                OpenLogCommand));
         }
         else
         {
-            KeepRemovedChildren.Add(new TaskRow(
+            rows.Add(new TaskRow(
                 _localizationService.GetString("BackgroundTasks_ScriptFolder_Title"),
                 ScriptPaths.ScriptsDirectory,
                 _localizationService.GetString("BackgroundTasks_OpenFolder"),
-                new AsyncRelayCommand(OpenScriptFolderAsync),
+                OpenScriptFolderCommand,
                 _localizationService.GetString("BackgroundTasks_OpenLog"),
-                new AsyncRelayCommand(OpenLogAsync)));
+                OpenLogCommand));
         }
 
         var redirectAdded = false;
         foreach (var name in categories)
         {
-            KeepRemovedChildren.Add(CreateCategoryRow(name, _removalTasks.FirstOrDefault(t => t.Name == name)));
+            rows.Add(CreateCategoryRow(name, _removalTasks.FirstOrDefault(t => t.Name == name)));
             if (name == EdgeCategory && _edgeRedirect is not null)
             {
-                KeepRemovedChildren.Add(CreateRedirectRow(_edgeRedirect));
+                rows.Add(CreateRedirectRow(_edgeRedirect));
                 redirectAdded = true;
             }
         }
 
         if (_edgeRedirect is not null && !redirectAdded)
-            KeepRemovedChildren.Add(CreateRedirectRow(_edgeRedirect));
+            rows.Add(CreateRedirectRow(_edgeRedirect));
 
         foreach (var task in _otherTasks)
         {
-            KeepRemovedChildren.Add(new TaskRow(
+            rows.Add(new TaskRow(
                 task.Name,
                 OtherTaskDetail(task),
                 _localizationService.GetString("BackgroundTasks_Remove"),
-                new AsyncRelayCommand(() => RemoveOtherTaskAsync(task))));
+                RemoveOtherTaskCommand));
         }
+
+        KeepRemovedChildren.ReplaceInPlace(rows);
     }
 
-    // Bloat, Edge, OneDrive: the categories that have kept apps or, in Scripts mode, a task or script on disk.
     private IEnumerable<string> CategoryNames() =>
         CategoryIcons.Keys.Where(name =>
             _keptApps.Any(app => CategoryOf(app) == name) || _removalTasks.Any(task => task.Name == name));
@@ -219,66 +221,91 @@ public partial class SettingsViewModel
         var kept = _keptApps.Where(app => CategoryOf(app) == name).ToList();
         var items = state is { Items.Count: > 0 } ? state.Items : [.. kept.Select(app => app.Name)];
         var lines = new List<string>();
-        if (items.Count > 0)
-            lines.Add(_localizationService.GetString("BackgroundTasks_Removes", string.Join(", ", items)));
-
-        if (RemovedOnText(kept) is { Length: > 0 } removedOn)
-            lines.Add(removedOn);
-
-        var returned = kept.Sum(app => app.ReturnCount);
-        if (state is not null)
+        var removedOn = RemovedOnText(kept);
+        var historyOnly = state is null && (Mode == KeepRemovedMode.Scripts || !KeepRemovedEnabled);
+        if (items.Count > 0 && (!historyOnly || removedOn.Length == 0))
         {
-            lines.Add(_localizationService.GetString(
-                "BackgroundTasks_TaskAndScript", $@"{ScriptPaths.TaskFolder}\{name}", state.ScriptPath));
-            if (state.Health != RemovalTaskHealth.NoTask)
-                lines.Add(LastRunText(state.LastRun, state.LastResult));
+            var names = string.Join(", ", items);
+            lines.Add(historyOnly ? names : _localizationService.GetString("BackgroundTasks_Removes", names));
         }
-        else if (returned > 0)
+        if (removedOn.Length > 0)
+            lines.Add(removedOn);
+        if (state is not null)
+            AddTaskDetails(lines, state);
+        else
         {
-            lines.Add(_localizationService.GetString("BackgroundTasks_KeptApp_Returned", returned));
+            var returned = kept.Sum(app => app.ReturnCount);
+            if (returned > 0)
+                lines.Add(_localizationService.GetString("BackgroundTasks_KeptApp_Returned", returned));
         }
 
         var title = _localizationService.GetStringOrDefault("BackgroundTasks_Card_" + name, name);
-        var opacity = _keepRemovedOn ? 1.0 : 0.5;
-        var icon = CategoryIcons[name];
-        var detail = string.Join('\n', lines);
-        if (state is null)
-        {
-            return new CategoryRow(title, detail, icon, opacity,
-                StopText: _localizationService.GetString("BackgroundTasks_StopKeeping"),
-                Stop: new AsyncRelayCommand(() => StopKeepingAsync(name, title)),
-                ButtonsEnabled: _keepRemovedOn);
-        }
+        var (icon, iconPack) = DisplayIcon(CategoryIcons[name]);
+        if (name == BloatRemovalScriptGenerator.ScriptName)
+            iconPack = "FluentColor";
 
-        var healthKey = "BackgroundTasks_Health_" + state.Health;
-        return new CategoryRow(title, detail, icon, opacity,
-            _localizationService.GetString(healthKey),
-            state.Health == RemovalTaskHealth.Active,
-            _localizationService.GetString("BackgroundTasks_Repair"),
-            state.Health != RemovalTaskHealth.Active ? new AsyncRelayCommand(() => RepairRemovalTaskAsync(name)) : null,
-            _localizationService.GetString("BackgroundTasks_Remove"),
-            new AsyncRelayCommand(() => RemoveRemovalTaskAsync(name)),
-            ButtonsEnabled: _keepRemovedOn);
+        return CreateTaskCategoryRow(name, title, string.Join('\n', lines), icon, iconPack, state, isRedirect: false);
     }
 
     private CategoryRow CreateRedirectRow(RemovalTaskState state)
     {
-        var healthKey = state.Health == RemovalTaskHealth.ScriptMissing
-            ? "BackgroundTasks_Redirect_FilesMissing"
-            : "BackgroundTasks_Health_" + state.Health;
-        var details = _localizationService.GetString(
-            "BackgroundTasks_Redirect_Details", $@"{ScriptPaths.TaskFolder}\{ScriptPaths.OpenWebSearchTaskName}", state.ScriptPath);
-        if (state.Health != RemovalTaskHealth.NoTask)
-            details += "\n" + LastRunText(state.LastRun, state.LastResult);
-
-        return new CategoryRow(
+        var lines = new List<string>();
+        AddTaskDetails(lines, state);
+        return CreateTaskCategoryRow(state.Name,
             _localizationService.GetString("BackgroundTasks_Redirect_Title"),
-            details,
-            RedirectIconKey,
-            1.0,
-            _localizationService.GetString(healthKey),
-            state.Health == RemovalTaskHealth.Active);
+            string.Join('\n', lines), CatalogFluentIcons.Globe.Glyph, "FluentColor", state, isRedirect: true);
     }
+
+    private void AddTaskDetails(List<string> lines, RemovalTaskState state)
+    {
+        lines.Add(_localizationService.GetString(
+            "BackgroundTasks_TaskAndScript", $@"{ScriptPaths.TaskFolder}\{state.Name}", state.ScriptPath));
+        if (state.TaskExists)
+            lines.Add(LastRunText(state.LastRun, state.LastResult));
+    }
+
+    private CategoryRow CreateTaskCategoryRow(string name, string title, string detail, string icon, string iconPack,
+        RemovalTaskState? state, bool isRedirect)
+    {
+        var inApp = state is null && Mode == KeepRemovedMode.Winhance;
+        var active = inApp ? KeepRemovedEnabled : state?.Health == RemovalTaskHealth.Active;
+        var taskStatus = inApp ? (active ? "BackgroundTasks_Health_Active" : "Common_Off")
+            : state?.TaskEnabled switch
+            {
+                true => "BackgroundTasks_TaskEnabled",
+                false => "BackgroundTasks_Health_TaskDisabled",
+                null => "BackgroundTasks_TaskMissing",
+            };
+        bool? scriptPresent = inApp ? null : state?.ScriptExists == true;
+        var scriptStatus = scriptPresent switch
+        {
+            true => _localizationService.GetString("BackgroundTasks_ScriptPresent"),
+            false => _localizationService.GetString("BackgroundTasks_ScriptMissing"),
+            null => string.Empty,
+        };
+        var row = new CategoryRow(name, title, detail, icon, iconPack,
+            _localizationService.GetString(taskStatus), scriptStatus, scriptPresent, active);
+        if (isRedirect)
+            return row;
+
+        return row with
+        {
+            ActionsText = _localizationService.GetString("BackgroundTasks_TaskActions"),
+            EnableTask = state is { TaskEnabled: true } ? false
+                : state is { TaskEnabled: false, ScriptExists: true } ? true : null,
+            ToggleText = _localizationService.GetString(state?.TaskEnabled == true ? "BackgroundTasks_DisableTask" : "BackgroundTasks_EnableTask"),
+            Toggle = ToggleBackgroundTaskCommand,
+            RepairText = _localizationService.GetString("BackgroundTasks_Repair"),
+            Repair = state?.Health is RemovalTaskHealth.NoTask or RemovalTaskHealth.ScriptMissing ? RepairRemovalTaskCommand : null,
+            RemoveText = _localizationService.GetString("BackgroundTasks_RemoveTaskAndScript"),
+            Remove = state is not null ? RemoveBackgroundTaskCommand : null,
+            StopText = _localizationService.GetString("BackgroundTasks_StopKeeping"),
+            Stop = inApp ? StopKeepingCommand : null,
+        };
+    }
+
+    private (string Glyph, string Pack) DisplayIcon(Icon icon) =>
+        CatalogIconDisplay.For(icon, _appIcons, _themeService.GetEffectiveTheme() == ElementTheme.Light);
 
     private string OtherTaskDetail(WinhanceTaskInfo task)
     {
@@ -315,6 +342,7 @@ public partial class SettingsViewModel
         return _localizationService.GetString("BackgroundTasks_Task_LastRun", at.ToString("g", CultureInfo.CurrentCulture), outcome);
     }
 
+    [RelayCommand]
     private void OpenSoftwareApps() =>
         _eventBus.Publish(new PageRequestedEvent { PageTag = "SoftwareApps", FeatureId = FeatureIds.WindowsApps });
 
@@ -362,8 +390,7 @@ public partial class SettingsViewModel
             : await ConfirmAsync("BackgroundTasks_Mode_ToWinhance_Title", "BackgroundTasks_Mode_ToWinhance_Message");
         if (!confirmed)
         {
-            _selectedModeOption = previous;
-            OnPropertyChanged(nameof(SelectedModeOption));
+            ShowState(() => SelectedModeOption = previous);
             return;
         }
 
@@ -377,11 +404,10 @@ public partial class SettingsViewModel
     // The state shown is the state found: after the change the page reads it back, so a failed change turns the switch back.
     private async Task ApplyKeepRemovedAsync(bool enabled)
     {
-        if (!enabled && _removalTasks.Count > 0
+        if (!enabled && Mode == KeepRemovedMode.Scripts
             && !await ConfirmAsync("BackgroundTasks_TurnOff_Title", "BackgroundTasks_TurnOff_Message"))
         {
-            _keepRemovedOn = true;
-            OnPropertyChanged(nameof(KeepRemovedEnabled));
+            ShowState(() => KeepRemovedEnabled = true);
             return;
         }
 
@@ -392,80 +418,87 @@ public partial class SettingsViewModel
         await RefreshBackgroundTasksAsync();
     }
 
+    [RelayCommand]
     private async Task CheckNowAsync()
     {
         await _backgroundTasks.MaintainAsync();
         await RefreshBackgroundTasksAsync();
     }
 
-    private async Task OpenLogAsync()
-    {
-        try
-        {
-            await _explorerWindowManager.OpenFolderAsync(Path.Combine(AppDataPaths.MachineRoot, "Logs"));
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error opening logs folder: {ex.Message}", ex);
-        }
-    }
+    [RelayCommand]
+    private Task OpenLogAsync() => OpenFolderAsync(Path.Combine(AppDataPaths.MachineRoot, "Logs"));
 
-    private async Task OpenScriptFolderAsync()
-    {
-        try
-        {
-            await _explorerWindowManager.OpenFolderAsync(ScriptPaths.ScriptsDirectory);
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error opening the script folder: {ex.Message}", ex);
-        }
-    }
+    [RelayCommand]
+    private Task OpenScriptFolderAsync() => OpenFolderAsync(ScriptPaths.ScriptsDirectory);
 
-    private async Task StopKeepingAsync(string category, string title)
+    private Task OpenFolderAsync(string path) =>
+        _dialogService.RunOrShowErrorAsync(_logService, () => _explorerWindowManager.OpenFolderAsync(path),
+            ex => _localizationService.GetString("Common_ActionFailed", ex.Message));
+
+    [RelayCommand]
+    private async Task StopKeepingAsync(CategoryRow row)
     {
-        if (!await ConfirmAsync("BackgroundTasks_StopKeeping_Title", "BackgroundTasks_StopKeeping_Message", title))
+        if (!await ConfirmAsync("BackgroundTasks_StopKeeping_Title", "BackgroundTasks_StopKeeping_Message", row.Title))
             return;
 
-        foreach (var app in _keptApps.Where(app => CategoryOf(app) == category))
+        foreach (var app in _keptApps.Where(app => CategoryOf(app) == row.Category))
             _backgroundTasks.RemoveKeptApp(app.Id);
 
         _keptApps = _backgroundTasks.GetKeptApps();
         RebuildBackgroundRows();
     }
 
-    private async Task RepairRemovalTaskAsync(string name)
+    [RelayCommand]
+    private async Task RepairRemovalTaskAsync(CategoryRow row)
     {
-        var result = await _backgroundTasks.RepairRemovalTaskAsync(name);
-        if (!result.Success)
-            _logService.LogWarning($"Could not repair the removal task '{name}': {result.ErrorMessage}");
-
-        await RefreshBackgroundTasksAsync();
+        var result = await _backgroundTasks.RepairRemovalTaskAsync(row.Category);
+        await FinishBackgroundTaskActionAsync(result);
     }
 
-    private async Task RemoveRemovalTaskAsync(string name)
+    [RelayCommand]
+    private async Task RemoveBackgroundTaskAsync(CategoryRow row)
     {
-        var result = await _backgroundTasks.RemoveRemovalTaskAsync(name);
-        if (!result.Success)
-            _logService.LogWarning($"Could not remove the removal task '{name}': {result.ErrorMessage}");
+        if (!await ConfirmAsync("BackgroundTasks_RemoveTaskAndScript_Title", "BackgroundTasks_RemoveTaskAndScript_Message", row.Title))
+            return;
 
-        await RefreshBackgroundTasksAsync();
+        var result = await _backgroundTasks.RemoveRemovalTaskAsync(row.Category);
+        await FinishBackgroundTaskActionAsync(result);
     }
 
-    private async Task RemoveOtherTaskAsync(WinhanceTaskInfo task)
+    [RelayCommand]
+    private async Task ToggleBackgroundTaskAsync(CategoryRow row)
     {
-        var result = await _scheduledTaskService.UnregisterScheduledTaskAsync(task.Name);
+        if (row.EnableTask is not { } enabled)
+            return;
+
+        var result = await _backgroundTasks.SetBackgroundTaskEnabledAsync(row.Category, enabled);
+        await FinishBackgroundTaskActionAsync(result);
+    }
+
+    private async Task FinishBackgroundTaskActionAsync(OperationResult result)
+    {
+        await RefreshBackgroundTasksAsync();
         if (!result.Success)
-            _logService.LogWarning($"Could not remove the task '{task.Name}': {result.ErrorMessage}");
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Common_ActionFailed", result.ErrorMessage ?? string.Empty));
+    }
+
+    // An unknown task's row is titled with the task's name.
+    [RelayCommand]
+    private async Task RemoveOtherTaskAsync(TaskRow row)
+    {
+        var result = await _scheduledTaskService.UnregisterScheduledTaskAsync(row.Title);
+        if (!result.Success)
+            _logService.LogWarning($"Could not remove the task '{row.Title}': {result.ErrorMessage}");
 
         _otherTasks = await _backgroundTasks.GetOtherTasksAsync();
         RebuildBackgroundRows();
     }
 
+    [RelayCommand]
     private async Task RepairTaskSafetyAsync()
     {
-        await _backgroundTasks.RepairTaskSafetyAsync();
-        await RefreshBackgroundTasksAsync();
+        var result = await _backgroundTasks.RepairTaskSafetyAsync();
+        await FinishBackgroundTaskActionAsync(result);
     }
 
     private void OnMaintained(object? sender, EventArgs e) =>
@@ -475,11 +508,6 @@ public partial class SettingsViewModel
     {
         foreach (var option in ModeOptions)
             option.DisplayText = ModeText((KeepRemovedMode)option.Value);
-        OnPropertyChanged(nameof(BackgroundTasksLabel));
-        OnPropertyChanged(nameof(KeepRemovedHeader));
-        OnPropertyChanged(nameof(KeepRemovedDescription));
-        OnPropertyChanged(nameof(ModeHeader));
-        OnPropertyChanged(nameof(ModeDescription));
         RebuildBackgroundRows();
     }
 }
@@ -507,23 +535,35 @@ public sealed record FolderSafeRow(string Message);
 public sealed record FolderUnsafeRow(string Message, string ActionText, ICommand Action);
 
 public sealed record CategoryRow(
+    string Category,
     string Title,
     string Detail,
-    string IconKey,
-    double Opacity,
-    string Pill = "",
-    bool Healthy = false,
+    string Icon,
+    string IconPack,
+    string TaskStatus,
+    string ScriptStatus,
+    bool? ScriptPresent,
+    bool Active,
+    string ActionsText = "",
+    bool? EnableTask = null,
+    string ToggleText = "",
+    ICommand? Toggle = null,
     string RepairText = "",
     ICommand? Repair = null,
     string RemoveText = "",
     ICommand? Remove = null,
     string StopText = "",
-    ICommand? Stop = null,
-    bool ButtonsEnabled = true)
+    ICommand? Stop = null)
 {
-    public bool ShowHealthy => Pill.Length > 0 && Healthy;
+    public bool Inactive => !Active;
 
-    public bool ShowUnhealthy => Pill.Length > 0 && !Healthy;
+    public bool ShowScriptPresent => ScriptPresent == true;
+
+    public bool ShowScriptMissing => ScriptPresent == false;
+
+    public bool HasTaskActions => CanToggle || CanRepair || CanRemove;
+
+    public bool CanToggle => EnableTask.HasValue;
 
     public bool CanRepair => Repair is not null;
 

@@ -3,13 +3,14 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Helpers;
+using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Core.Features.SoftwareApps.Utilities;
 
 public static class BloatRemovalScriptGenerator
 {
     public const string ScriptName = "BloatRemoval";
-    public const string ScriptVersion = "2.6";
+    public const string ScriptVersion = "2.7";
     public const string PackagesArray = "packages";
     public const string CapabilitiesArray = "capabilities";
     public const string OptionalFeaturesArray = "optionalFeatures";
@@ -23,12 +24,16 @@ public static class BloatRemovalScriptGenerator
         bool includeXboxRegistryFix = false,
         bool includeTeamsProcessKill = false)
     {
+        bool includesPhotos = PhotosRemovalScript.Includes(packages);
+        if (includesPhotos && !packages.Contains(PhotosRemovalScript.CompanionPackage, StringComparer.OrdinalIgnoreCase))
+            packages = [.. packages, PhotosRemovalScript.CompanionPackage];
+
         var sb = new StringBuilder(GetPreamble());
         AppendArray(sb, PackagesArray, packages);
         AppendArray(sb, CapabilitiesArray, capabilities);
         AppendArray(sb, OptionalFeaturesArray, optionalFeatures);
         AppendArray(sb, "specialApps", specialApps);
-        sb.Append(GetMainRemovalLogic(includeXboxRegistryFix, includeTeamsProcessKill));
+        sb.Append(GetMainRemovalLogic(includeXboxRegistryFix, includeTeamsProcessKill, includesPhotos, CopilotRemovalScript.Includes(packages)));
 
         return sb.ToString();
     }
@@ -171,7 +176,7 @@ function Invoke-RunspacePool([array]$Items, [scriptblock]$Action, [int]$MaxThrea
 ";
     }
 
-    private static string GetMainRemovalLogic(bool includeXboxRegistryFix, bool includeTeamsProcessKill)
+    private static string GetMainRemovalLogic(bool includeXboxRegistryFix, bool includeTeamsProcessKill, bool includesPhotos, bool includesCopilot)
     {
         var teamsProcessKill = includeTeamsProcessKill ? @"    # Stop Microsoft Teams process before removal to avoid long removal delays
     Get-Process | Where-Object { $_.Name -like '*teams*' } | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -204,9 +209,41 @@ if ($packages | Where-Object { $xboxPackages -contains $_ }) {
 
 " : "";
 
+        var photosRemoval = includesPhotos ? """
+    # The companion's vendor uninstaller has to run before removing its AppX registration.
+    try {
+        & {
+""" + "\n" + PhotosRemovalScript.GetScript() + """
+
+        }
+    } catch {
+        Write-Log "Photos removal incomplete: $($_.Exception.Message)"
+        $photosFailed = $true
+    }
+    $packages = @($packages | Where-Object { $_ -notin 'Microsoft.Windows.Photos', 'Microsoft.OneDrive.Photos' })
+
+""" : "";
+
+        var copilotRemoval = includesCopilot ? """
+    try {
+        & {
+""" + "\n" + CopilotRemovalScript.GetScript() + """
+
+        }
+    } catch {
+        Write-Log "Copilot removal incomplete: $($_.Exception.Message)"
+        $copilotFailed = $true
+        # Retain the consumer wrapper if the desktop product could not be removed, so it can be retried.
+        $packages = @($packages | Where-Object { $_ -ne 'Microsoft.MicrosoftOfficeHub' })
+    }
+
+""" : "";
+
         return @"Write-Log ""Starting bloat removal process""
+$photosFailed = $false
+$copilotFailed = $false
 if (-not $Offline) {
-" + teamsProcessKill + @"    # Discover all packages upfront (single query each)
+" + photosRemoval + copilotRemoval + teamsProcessKill + @"    # Discover all packages upfront (single query each)
     Write-Log ""Discovering all packages...""
     $allInstalled = Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue
     $allProvisioned = Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue
@@ -315,7 +352,8 @@ if (-not $Offline) {
         }
     }
 }
-" + xboxRegistryFix + @"Write-Log ""Bloat removal process completed""
+" + xboxRegistryFix + @"if ($photosFailed -or $copilotFailed) { throw 'App removal incomplete; see the removal log for details.' }
+Write-Log ""Bloat removal process completed""
 ";
     }
 }

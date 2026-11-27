@@ -21,6 +21,7 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
     private readonly IConfigImportState _configImportState;
     private readonly ITaskProgressService _taskProgressService;
     private readonly IDispatcherService _dispatcherService;
+    private readonly IDialogService _dialogService;
     private readonly ILogService _logService;
     private readonly ISubscriptionToken? _pendingChangedSubscription;
     private bool _disposed;
@@ -59,6 +60,7 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
         IConfigImportState configImportState,
         ITaskProgressService taskProgressService,
         IDispatcherService dispatcherService,
+        IDialogService dialogService,
         ILogService logService)
     {
         _pendingRestartService = pendingRestartService;
@@ -68,6 +70,7 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
         _configImportState = configImportState;
         _taskProgressService = taskProgressService;
         _dispatcherService = dispatcherService;
+        _dialogService = dialogService;
         _logService = logService;
 
         // Settings apply on background threads, so this event does NOT arrive on the dispatcher.
@@ -79,6 +82,7 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
         // An app removal raises the bar while its own task is still running, so the button has to re-check when a task ends.
         _taskProgressService.ProgressUpdated += OnTaskProgressUpdated;
         _configImportState.AnyImportRunningChanged += OnImportRunningChanged;
+        _localizationService.LanguageChanged += OnLanguageChanged;
 
         Refresh();
     }
@@ -86,9 +90,9 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
     public void Refresh()
     {
         IsBarVisible = _pendingRestartService.IsPending;
-        Message = Localize("PendingRestart_Message");
-        ButtonText = Localize("PendingRestart_Button");
-        RestartingText = Localize("PendingRestart_Restarting");
+        Message = _localizationService.GetStringOrDefault("PendingRestart_Message", string.Empty);
+        ButtonText = _localizationService.GetStringOrDefault("PendingRestart_Button", string.Empty);
+        RestartingText = _localizationService.GetStringOrDefault("PendingRestart_Restarting", string.Empty);
         TooltipText = BuildTooltip();
         CanRestart = ComputeCanRestart();
     }
@@ -97,6 +101,8 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
         IsBarVisible && !IsRestarting && !_configImportState.IsAnyImportRunning && !_taskProgressService.IsTaskRunning;
 
     private void OnTaskProgressUpdated(object? sender, TaskProgressDetail detail) => RecheckCanRestart();
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => Refresh();
 
     // The quiet apply (tray, profile switch) shows no overlay, so the button stays reachable while it runs.
     private void OnImportRunningChanged(object? sender, EventArgs e) => RecheckCanRestart();
@@ -115,23 +121,12 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
 
         IsRestarting = true;
         CanRestart = false;
-        try
-        {
-            // The service clears the pending state on success only, so a failure naturally leaves the
-            // bar up and the user a way to retry.
-            await _explorerRestartService.RestartAsync().ConfigureAwait(true);
-        }
-        catch (Exception ex)
-        {
-            // This is a [RelayCommand], so an unhandled throw is rethrown on the UI thread and takes
-            // the process down - while the user is staring at no desktop and trying to recover.
-            _logService.LogError("Failed to restart Explorer from the pending-restart bar", ex);
-        }
-        finally
-        {
-            IsRestarting = false;
-            Refresh();
-        }
+        // The service clears the pending state on success only, so a failure naturally leaves the
+        // bar up and the user a way to retry.
+        await _dialogService.RunOrShowErrorAsync(_logService, () => _explorerRestartService.RestartAsync(),
+            ex => _localizationService.GetString("PendingRestart_Failed", ex.Message));
+        IsRestarting = false;
+        Refresh();
     }
 
     // Settings and Windows apps share the bar. Falls back to the catalog's English name, then the raw ID, so an unknown
@@ -155,9 +150,6 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
         return _localizationService.SettingName(setting);
     }
 
-    private string Localize(string key) =>
-        _localizationService.TryGetString(key, out var value) ? value : string.Empty;
-
     public void Dispose()
     {
         if (_disposed)
@@ -166,6 +158,7 @@ public partial class PendingRestartViewModel : ObservableObject, IDisposable
         _disposed = true;
         _taskProgressService.ProgressUpdated -= OnTaskProgressUpdated;
         _configImportState.AnyImportRunningChanged -= OnImportRunningChanged;
+        _localizationService.LanguageChanged -= OnLanguageChanged;
         if (_pendingChangedSubscription != null)
             _eventBus.Unsubscribe(_pendingChangedSubscription);
 

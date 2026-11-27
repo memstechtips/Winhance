@@ -6,7 +6,8 @@ using Xunit;
 
 namespace Winhance.IntegrationTests.Localization;
 
-// A literal GetString("...") has no fallback at the call site, so a miss renders [Key]. Catalog keys are LocKey
+// A literal GetString("...") has no fallback at the call site, so a miss renders [Key], and a literal
+// GetStringOrDefault("...", "...") miss shows its English fallback in every language. Catalog keys are LocKey
 // members generated from en.json, so a missing one does not compile and needs no test here.
 public class LocalizationKeyReferenceTests
 {
@@ -15,20 +16,19 @@ public class LocalizationKeyReferenceTests
     private static readonly string EnJsonPath = Path.Combine(
         TestContext.SolutionDir, "src", "Winhance.Core", "Features", "Common", "Localization", "en.json");
 
-    // Matches a localization key passed as the FIRST argument to any GetString(...) call, on any
-    // receiver (_localization.GetString("X"), localizationService.GetString("X", arg), etc.).
-    // Only pure string literals are captured; dynamically-built keys (GetString(someVar),
-    // GetString($"Setting_{id}")) are intentionally skipped here.
+    // Matches a localization key passed as the FIRST argument to any GetString(...) or GetStringOrDefault(...)
+    // call, on any receiver. Only a whole literal is captured; dynamically-built keys (GetString(someVar),
+    // GetString($"Setting_{id}"), a "Prefix_" + name concatenation) are intentionally skipped here.
     private static readonly Regex GetStringLiteral = new(
-        @"GetString\(\s*""([^""]+)""", RegexOptions.Compiled);
+        @"GetString(?:OrDefault)?\(\s*""([^""]+)""\s*[,)]", RegexOptions.Compiled);
 
     // A dialog title / message / button label written as a literal, or a literal message handed straight to
-    // ShowMessage / ShowInformation/Warning/ErrorAsync. $"..." counts: an interpolated string is still English
+    // ShowInformation/Warning/ErrorAsync. $"..." counts: an interpolated string is still English
     // around the holes.
     // "" is allowed - it means "use the localized default".
     private static readonly Regex HardcodedDialogText = new(
         @"\b(?:(?:Confirm|Cancel|Secondary|Close|Primary)?ButtonText|Title|Message|Content)\s*=\s*\$?""[^""]" +
-        @"|\bShow(?:Message|(?:Information|Warning|Error|CustomContentDialog|TaskOutputDialog)Async)\(\s*\$?""[^""]",
+        @"|\bShow(?:Information|Warning|Error|CustomContentDialog|TaskOutputDialog)Async\(\s*\$?""[^""]",
         RegexOptions.Compiled);
 
     // No leading \b, so a ToggleSwitch's OnContent/OffContent is caught too.
@@ -86,8 +86,8 @@ public class LocalizationKeyReferenceTests
             .ToList();
 
         missing.Should().BeEmpty(because:
-            "every localization key passed as a literal to GetString(\"...\") has no call-site " +
-            "fallback — a missing key renders the raw \"[Key]\" string in the UI. " +
+            "every localization key passed as a literal to GetString(\"...\") or GetStringOrDefault(\"...\") " +
+            "must exist - a missing key renders \"[Key]\" or the English fallback in every language. " +
             "Add these keys to en.json (and the other language files), or fix the typo'd call site:\n" +
             string.Join("\n", missing));
     }

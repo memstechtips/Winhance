@@ -267,10 +267,11 @@ internal class PowerShellRunner : IPowerShellRunner
 
             var fileList = string.Join(", ", tempFiles.Select(f => "'" + PowerShellScriptUtilities.EscapePowerShellString(f) + "'"));
             var parseScript = @"
+$ErrorActionPreference = 'Stop'
 $files = @(" + fileList + @")
 for ($i = 0; $i -lt $files.Count; $i++) {
     $errors = $null
-    [System.Management.Automation.Language.Parser]::ParseFile($files[$i], [ref]$null, [ref]$errors)
+    $null = [System.Management.Automation.Language.Parser]::ParseFile($files[$i], [ref]$null, [ref]$errors)
     foreach ($e in $errors) { Write-Host (""PARSE_ERROR`t"" + $i + ""`tline "" + $e.Extent.StartLineNumber + "": "" + ($e.Message -replace '[\r\n]+', ' ')) }
 }
 Write-Host 'PARSE_DONE'

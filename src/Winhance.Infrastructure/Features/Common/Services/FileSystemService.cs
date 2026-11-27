@@ -38,17 +38,21 @@ internal class FileSystemService(ILogService log) : IFileSystemService
 
     public void CopyFile(string source, string destination, bool overwrite = false) => File.Copy(source, destination, overwrite);
     public void MoveFile(string source, string destination) => File.Move(source, destination);
+    public void MoveFileReplacing(string source, string destination) => File.Move(source, destination, overwrite: true);
     public void MoveDirectory(string source, string destination) => Directory.Move(source, destination);
     public void ExtractZip(string zipPath, string folder) => System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, folder, overwriteFiles: true);
     public void CreateSymbolicLink(string link, string target) => File.CreateSymbolicLink(link, target);
     public string ReadAllText(string path, System.Text.Encoding encoding) => File.ReadAllText(path, encoding);
     public long GetFileSize(string path) => new FileInfo(path).Length;
+    public DateTime GetLastWriteTimeUtc(string path) => File.GetLastWriteTimeUtc(path);
+    public Stream OpenRead(string path) => File.OpenRead(path);
     public void SetFileAttributes(string path, FileAttributes attributes) => new FileInfo(path).Attributes = attributes;
     public FileAttributes GetFileAttributes(string path) => File.GetAttributes(path);
 
     public bool DirectoryExists(string path) => Directory.Exists(path);
     public void CreateDirectory(string path) => Directory.CreateDirectory(path);
     public bool CreatePrivateDirectory(string path) => FolderLock.EnsurePrivateFolder(path, log);
+    public bool EnsureProtectedPictureDestination(string path) => FolderLock.EnsureProtectedPictureDestination(path, log);
     public void DeleteDirectory(string path, bool recursive = false) => Directory.Delete(path, recursive);
     public string[] GetFiles(string path, string searchPattern = "*", SearchOption searchOption = SearchOption.TopDirectoryOnly)
         => Directory.GetFiles(path, searchPattern, searchOption);

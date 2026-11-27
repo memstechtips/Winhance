@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Enums;
@@ -72,7 +73,7 @@ public class ConfigLoadService : IConfigLoadService
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error picking a configuration file: {ex.Message}");
-            _dialogService.ShowMessage(_localizationService.GetString("Config_Load_Error", ex.Message), _localizationService.GetString("Dialog_Error"));
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Config_Load_Error", ex.Message));
             return null;
         }
     }
@@ -82,9 +83,9 @@ public class ConfigLoadService : IConfigLoadService
         try
         {
             var read = await ReadFileAsync(filePath);
-            if (read.Failure == ConfigReadFailure.Empty)
+            if (read.Failure == ConfigReadFailure.NotAConfig)
             {
-                _dialogService.ShowMessage(_localizationService.GetString("Config_Load_Failed"), _localizationService.GetString("Dialog_Error"));
+                await _dialogService.ShowErrorAsync(_localizationService.GetString("Config_Load_NotAConfig"));
                 return null;
             }
             if (read.Failure == ConfigReadFailure.UnsupportedVersion)
@@ -100,7 +101,7 @@ public class ConfigLoadService : IConfigLoadService
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error loading configuration file: {ex.Message}");
-            _dialogService.ShowMessage(_localizationService.GetString("Config_Load_Error", ex.Message), _localizationService.GetString("Dialog_Error"));
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Config_Load_Error", ex.Message));
             return null;
         }
     }
@@ -122,7 +123,7 @@ public class ConfigLoadService : IConfigLoadService
             if (read.Failure == ConfigReadFailure.ResourceMissing)
             {
                 _logService.Log(LogLevel.Error, $"Embedded resource not found: {resourceName}");
-                _dialogService.ShowMessage(
+                await _dialogService.ShowInformationAsync(
                     _localizationService.GetString(missingKey),
                     _localizationService.GetString("Config_Load_ResourceError_Title"));
                 return null;
@@ -132,7 +133,7 @@ public class ConfigLoadService : IConfigLoadService
                 await RejectVersionAsync(read.Config!);
                 return null;
             }
-            if (read.Failure == ConfigReadFailure.Empty)
+            if (read.Failure == ConfigReadFailure.NotAConfig)
                 return null;
 
             _configImportState.SourceName = _localizationService.GetString(sourceNameKey);
@@ -142,7 +143,7 @@ public class ConfigLoadService : IConfigLoadService
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error loading {label} configuration: {ex.Message}");
-            _dialogService.ShowMessage(_localizationService.GetString("Config_Load_Error", ex.Message), _localizationService.GetString("Dialog_Error"));
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Config_Load_Error", ex.Message));
             return null;
         }
     }
@@ -155,7 +156,7 @@ public class ConfigLoadService : IConfigLoadService
 
             if (!_fileSystemService.DirectoryExists(configDir))
             {
-                _dialogService.ShowMessage(
+                await _dialogService.ShowInformationAsync(
                     _localizationService.GetStringOrDefault("Config_Backup_NotFound", "No backup configuration files were found. A backup is automatically created on first app launch."),
                     _localizationService.GetStringOrDefault("Config_Backup_NotFound_Title", "No Backup Found"));
                 return null;
@@ -167,7 +168,7 @@ public class ConfigLoadService : IConfigLoadService
 
             if (backupFiles.Length == 0)
             {
-                _dialogService.ShowMessage(
+                await _dialogService.ShowInformationAsync(
                     _localizationService.GetStringOrDefault("Config_Backup_NotFound", "No backup configuration files were found. A backup is automatically created on first app launch."),
                     _localizationService.GetStringOrDefault("Config_Backup_NotFound_Title", "No Backup Found"));
                 return null;
@@ -204,9 +205,9 @@ public class ConfigLoadService : IConfigLoadService
             _logService.Log(LogLevel.Info, $"Loading user backup configuration from {filePath}");
 
             var read = await ReadFileAsync(filePath);
-            if (read.Failure == ConfigReadFailure.Empty)
+            if (read.Failure == ConfigReadFailure.NotAConfig)
             {
-                _dialogService.ShowMessage(_localizationService.GetString("Config_Backup_LoadFailed"), _localizationService.GetString("Dialog_Error"));
+                await _dialogService.ShowErrorAsync(_localizationService.GetString("Config_Backup_LoadFailed"));
                 return null;
             }
             if (read.Failure == ConfigReadFailure.UnsupportedVersion)
@@ -222,7 +223,7 @@ public class ConfigLoadService : IConfigLoadService
         catch (Exception ex)
         {
             _logService.Log(LogLevel.Error, $"Error loading user backup configuration: {ex.Message}");
-            _dialogService.ShowMessage(_localizationService.GetString("Config_Backup_LoadError", ex.Message), _localizationService.GetString("Dialog_Error"));
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Config_Backup_LoadError", ex.Message));
             return null;
         }
     }
@@ -244,8 +245,7 @@ public class ConfigLoadService : IConfigLoadService
     {
         try
         {
-            using var reader = new StreamReader(new MemoryStream(content));
-            return Accepted(Parse(reader.ReadToEnd()), source);
+            return Accepted(Parse(content), source);
         }
         catch (Exception ex)
         {
@@ -278,28 +278,42 @@ public class ConfigLoadService : IConfigLoadService
         }
     }
 
-    private enum ConfigReadFailure { None, Empty, UnsupportedVersion, ResourceMissing }
+    private enum ConfigReadFailure { None, NotAConfig, UnsupportedVersion, ResourceMissing }
 
     // Config is set for UnsupportedVersion too, so the caller can name the version it refused.
     private readonly record struct ConfigRead(WinhanceConfigFile? Config, ConfigReadFailure Failure);
 
     private async Task<ConfigRead> ReadFileAsync(string filePath) =>
-        Parse(await _fileSystemService.ReadAllTextAsync(filePath));
+        Parse(await _fileSystemService.ReadAllBytesAsync(filePath));
 
     private async Task<ConfigRead> ReadResourceAsync(string resourceName)
     {
         using var stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
         if (stream is null)
             return new ConfigRead(null, ConfigReadFailure.ResourceMissing);
-        using var reader = new StreamReader(stream);
-        return Parse(await reader.ReadToEndAsync());
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer);
+        return Parse(buffer.ToArray());
     }
 
-    private ConfigRead Parse(string json)
+    // Deserializing the UTF-8 bytes directly keeps a profile that carries a wallpaper from first becoming a string of
+    // twice its size. The span overload does not skip a BOM, so it is cut off here.
+    private ConfigRead Parse(byte[] json)
     {
-        var config = JsonSerializer.Deserialize<WinhanceConfigFile>(json, ConfigFileConstants.JsonOptions);
+        WinhanceConfigFile? config;
+        try
+        {
+            var preamble = Encoding.UTF8.Preamble;
+            var body = json.AsSpan().StartsWith(preamble) ? json.AsSpan(preamble.Length) : json;
+            config = JsonSerializer.Deserialize<WinhanceConfigFile>(body, ConfigFileConstants.JsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            _logService.Log(LogLevel.Warning, $"Not a Winhance config: {ex.Message}");
+            return new ConfigRead(null, ConfigReadFailure.NotAConfig);
+        }
         if (config is null)
-            return new ConfigRead(null, ConfigReadFailure.Empty);
+            return new ConfigRead(null, ConfigReadFailure.NotAConfig);
         _configMigrationService.MigrateConfig(config);
         return new ConfigRead(config, config.Version == "2.0" ? ConfigReadFailure.None : ConfigReadFailure.UnsupportedVersion);
     }

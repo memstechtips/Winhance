@@ -12,7 +12,7 @@ public class FileStoreTests
 {
     private const string SettingId = "theme-wallpaper-picture";
     private const string Source = @"D:\pictures\mine.jpg";
-    private const string Destination = @"C:\Windows\Web\Wallpaper\Winhance\mine.jpg";
+    private const string Destination = @"C:\Wallpapers\Winhance\mine.jpg";
     private const string WindowsOwn = @"C:\Windows\Web\Wallpaper\Windows\img0.jpg";
 
     private static readonly byte[] Bytes = [1, 2, 3];
@@ -24,10 +24,12 @@ public class FileStoreTests
     public FileStoreTests()
     {
         _files.Setup(f => f.FileExists(It.IsAny<string>())).Returns(true);
+        _files.Setup(f => f.EnsureProtectedPictureDestination(It.IsAny<string>())).Returns(true);
         _files.Setup(f => f.GetFileSize(It.IsAny<string>())).Returns(Bytes.Length);
         _files
             .Setup(f => f.ReadAllBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Bytes);
+        _files.Setup(f => f.OpenRead(It.IsAny<string>())).Returns(() => new MemoryStream(Bytes));
         _sut = new FileStore(_files.Object, _log.Object, OptionProviderFixtures.ThemeService(Mock.Of<ILocalizationService>()));
     }
 
@@ -148,7 +150,7 @@ public class FileStoreTests
     {
         var result = await _sut.MaterializeAsync(SetWith(Convert.ToBase64String(Bytes)));
 
-        _files.Verify(f => f.CreateDirectory(@"C:\Windows\Web\Wallpaper\Winhance"), Times.Once);
+        _files.Verify(f => f.EnsureProtectedPictureDestination(Destination), Times.Once);
         _files.Verify(
             f => f.WriteAllBytesAsync(Destination, It.Is<byte[]>(b => b.SequenceEqual(Bytes)), It.IsAny<CancellationToken>()),
             Times.Once);
@@ -157,12 +159,24 @@ public class FileStoreTests
     }
 
     [Fact]
+    public async Task MaterializeAsync_UnprotectedDestination_IsNotWrittenOrSelected()
+    {
+        _files.Setup(f => f.EnsureProtectedPictureDestination(Destination)).Returns(false);
+        var set = SetWith(Convert.ToBase64String(Bytes));
+
+        var result = await _sut.MaterializeAsync(set);
+
+        result.Should().BeSameAs(set);
+        _files.Verify(f => f.WriteAllBytesAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task MaterializeAsync_FileThatOnlyTravelledAsAPath_PassesThroughUntouched()
     {
         var result = await _sut.MaterializeAsync(SetWith(base64: null));
 
         KeyOf(result).Key.Should().Be(Source);
-        _files.Verify(f => f.CreateDirectory(It.IsAny<string>()), Times.Never);
+        _files.Verify(f => f.EnsureProtectedPictureDestination(It.IsAny<string>()), Times.Never);
         _files.Verify(
             f => f.WriteAllBytesAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -208,13 +222,14 @@ public class FileStoreTests
     [InlineData("C:/Windows/System32/mine.jpg")]
     [InlineData(@"\\elsewhere\share\mine.jpg")]
     [InlineData("C:mine.jpg")]
+    [InlineData(@"C:\Windows\Web\Wallpaper\Winhance\mine.jpg")]
     [InlineData(@"C:\Windows\Web\Wallpaper\Winhance\Trip 2026\mine.jpg")]
     public async Task MaterializeAsync_CarriedFileName_IsTheOnlyNameBelieved(string named)
     {
         var result = await _sut.MaterializeAsync(Carrying(SettingId, named));
 
-        _files.Verify(f => f.CreateDirectory(@"C:\Windows\Web\Wallpaper\Winhance"), Times.Once);
-        _files.Verify(f => f.CreateDirectory(It.IsAny<string>()), Times.Once);
+        _files.Verify(f => f.EnsureProtectedPictureDestination(Destination), Times.Once);
+        _files.Verify(f => f.EnsureProtectedPictureDestination(It.IsAny<string>()), Times.Once);
         _files.Verify(
             f => f.WriteAllBytesAsync(Destination, It.IsAny<byte[]>(), It.IsAny<CancellationToken>()), Times.Once);
         _files.Verify(
@@ -242,7 +257,7 @@ public class FileStoreTests
         var result = await _sut.MaterializeAsync(Carrying(SettingId, named));
 
         KeyOf(result).Key.Should().Be(Source);
-        _files.Verify(f => f.CreateDirectory(It.IsAny<string>()), Times.Never);
+        _files.Verify(f => f.EnsureProtectedPictureDestination(It.IsAny<string>()), Times.Never);
         _files.Verify(
             f => f.WriteAllBytesAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -279,6 +294,25 @@ public class FileStoreTests
         (await _sut.IsSameFileAsync(Source, Convert.ToBase64String(carried))).Should().Be(expected);
     }
 
+    // A carried picture runs to megabytes, so neither copy may be read whole onto the large object heap.
+    [Theory]
+    [InlineData(-1, true)]
+    [InlineData(150_000, false)]
+    [InlineData(299_999, false)]
+    public async Task IsSameFileAsync_LargeFile_IsComparedASliceAtATime(int changedAt, bool expected)
+    {
+        var onDisk = Enumerable.Range(0, 300_000).Select(i => (byte)(i * 7)).ToArray();
+        var carried = (byte[])onDisk.Clone();
+        if (changedAt >= 0)
+            carried[changedAt] ^= 1;
+        _files.Setup(f => f.GetFileSize(Source)).Returns(onDisk.Length);
+        _files.Setup(f => f.OpenRead(Source)).Returns(() => new MemoryStream(onDisk));
+
+        (await _sut.IsSameFileAsync(Source, Convert.ToBase64String(carried))).Should().Be(expected);
+
+        _files.Verify(f => f.ReadAllBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     [Fact]
     public async Task IsSameFileAsync_MissingFileOrBadBase64_IsNeverTheSame()
     {
@@ -291,7 +325,7 @@ public class FileStoreTests
     [Fact]
     public async Task MaterializeAsync_FileThatCannotBeWritten_IsLoggedAndTheRestStillLand()
     {
-        const string otherDestination = @"C:\Windows\Web\Wallpaper\Winhance\day1.jpg";
+        const string otherDestination = @"C:\Wallpapers\Winhance\day1.jpg";
         _files
             .Setup(f => f.WriteAllBytesAsync(Destination, It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new IOException("the file is in use"));

@@ -209,6 +209,45 @@ public class BloatRemovalScriptGeneratorTests
     }
 
     [Fact]
+    public void UpdateScriptTemplate_LegacyPhotosSelection_AddsCompanionAndOwnerContextCleanup()
+    {
+        var original = "$packages = @(\n    'Microsoft.Windows.Photos'\n)\n";
+        var updated = BloatRemovalScriptGenerator.UpdateScriptTemplate(original);
+        BloatRemovalScriptGenerator.ExtractArrayFromScript(updated, "packages")
+            .Should().Equal("Microsoft.Windows.Photos", "Microsoft.OneDrive.Photos");
+        updated.Should().Contain("-LogonType Interactive -RunLevel Limited");
+        updated.Should().Contain("Global\\WinhanceOneDriveRemoval");
+        updated.Should().Contain("ODPhotosOneDriveSetup.exe");
+        var encoded = System.Text.RegularExpressions.Regex.Match(updated, @"\$userAction = '([^']+)'").Groups[1].Value;
+        var ownerScript = System.Text.Encoding.Unicode.GetString(Convert.FromBase64String(encoded));
+        ownerScript.Should().Contain("/partialodphotosremoval");
+        ownerScript.Should().NotContain("/removeonedrive");
+        ownerScript.Should().Contain("OneDrive Photos installer missing while OneDrive is still installed.");
+        ownerScript.IndexOf("Orphan OneDrive Photos package could not be removed.", StringComparison.Ordinal)
+            .Should().BeLessThan(ownerScript.IndexOf("Remove-Item -LiteralPath $key", StringComparison.Ordinal));
+        updated.IndexOf("-LogonType Interactive -RunLevel Limited", StringComparison.Ordinal)
+            .Should().BeLessThan(updated.IndexOf("# Discover all packages upfront", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("Microsoft.Copilot")]
+    [InlineData("Microsoft.MicrosoftOfficeHub")]
+    public void GenerateScript_CopilotSelection_ChecksManifestAndReportsResidualDesktopInstallation(string package)
+    {
+        var script = BloatRemovalScriptGenerator.GenerateScript([package], [], [], []);
+        script.Should().Contain("copilotapp_proxy.exe").And.Contain("Microsoft Copilot");
+        script.Should().Contain("Get-AuthenticodeSignature").And.Contain("--mscopilot");
+        script.Should().Contain("$retryClock = [Diagnostics.Stopwatch]::StartNew()");
+        script.Should().Contain("while ((Test-Path -LiteralPath $key) -and $retryClock.Elapsed.TotalSeconds -lt 120)");
+        script.Should().Contain("if ($process.ExitCode -ne 60 -or -not (Test-Path -LiteralPath $key)) { break }");
+        script.Should().Contain("Start-Sleep -Seconds ([Math]::Min(15, $remaining))");
+        script.IndexOf("$entry = Get-ItemProperty -LiteralPath $key", StringComparison.Ordinal)
+            .Should().BeGreaterThan(script.IndexOf("while ((Test-Path -LiteralPath $key)", StringComparison.Ordinal));
+        script.Should().Contain("The desktop Copilot installation remains");
+        script.Should().NotContain("Remove-Item -LiteralPath $key");
+    }
+
+    [Fact]
     public void GenerateScript_NameWithAQuote_IsEscaped()
     {
         var script = BloatRemovalScriptGenerator.GenerateScript(

@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Winhance.Core.Features.Common.Extensions;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Autounattend.ViewModels;
 
 namespace Winhance.UI.Features.Autounattend;
@@ -15,11 +17,13 @@ public sealed partial class IncludedFromFeaturesView : UserControl
     public static readonly DependencyProperty ShowsModeTagsProperty =
         DependencyProperty.Register(nameof(ShowsModeTags), typeof(bool), typeof(IncludedFromFeaturesView), new PropertyMetadata(false));
 
+    private readonly ILogService _logService;
     private bool _loadedItself;
 
     public IncludedFromFeaturesView()
     {
         ViewModel = App.Services.GetRequiredService<AutounattendViewModel>();
+        _logService = App.Services.GetRequiredService<ILogService>();
         InitializeComponent();
     }
 
@@ -37,13 +41,16 @@ public sealed partial class IncludedFromFeaturesView : UserControl
         set => SetValue(ShowsModeTagsProperty, value);
     }
 
-    private async void OnLoaded(object sender, RoutedEventArgs e)
+    private void OnLoaded(object sender, RoutedEventArgs e)
     {
         ViewModel.ShowModeTags(ShowsModeTags);
 
-        if (!LoadsItself)
-            return;
+        if (LoadsItself)
+            LoadItselfAsync().FireAndForget(_logService);
+    }
 
+    private async Task LoadItselfAsync()
+    {
         _loadedItself = true;
 
         // First: OnUnloaded can run during the await below, and a subscription opened after it is never released.
@@ -53,8 +60,8 @@ public sealed partial class IncludedFromFeaturesView : UserControl
         await ViewModel.RefreshSettingsAsync();
     }
 
-    private async void OnStartSeedChanged(object sender, SelectionChangedEventArgs e) =>
-        await ViewModel.ChangeSeedAsync(((ComboBox)sender).SelectedIndex);
+    private void OnStartSeedChanged(object sender, SelectionChangedEventArgs e) =>
+        ViewModel.ChangeSeedAsync(((ComboBox)sender).SelectedIndex).FireAndForget(_logService);
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {

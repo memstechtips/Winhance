@@ -1,0 +1,9 @@
+src/Winhance.UI/Features/Autounattend/IncludedFromFeaturesView.xaml	1	nested-in-list
+src/Winhance.UI/Features/Common/Controls/SectionBreadcrumbButton.xaml	1	bounded-set
+src/Winhance.UI/Features/Common/Controls/SectionPageShell.xaml	1	bounded-set
+src/Winhance.UI/Features/Common/Controls/SettingDescriptionWithBadges.xaml	1	bounded-set
+src/Winhance.UI/Features/Common/Controls/SettingTileSelection.xaml	2	bounded-set
+src/Winhance.UI/Features/Common/Resources/SettingInputTemplates.xaml	1	bounded-set
+src/Winhance.UI/Features/Common/Resources/SettingTemplates.xaml	2	nested-in-list
+src/Winhance.UI/Features/Common/Resources/SettingTemplates.xaml	4	bounded-set
+src/Winhance.UI/Features/WimUtil/WimUtilPage.xaml	1	bounded-set

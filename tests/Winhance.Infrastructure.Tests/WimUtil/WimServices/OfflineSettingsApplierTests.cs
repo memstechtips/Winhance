@@ -164,6 +164,16 @@ public class OfflineSettingsApplierTests
     }
 
     [Fact]
+    public void Execute_StoresMessageDurationInTheOfflineUserHive()
+    {
+        var target = new MessageDurationTarget();
+        var result = ApplyExecutor.Execute(new ApplyPlan([new RegistryWriteOp(target, target.Paths[0], 15)], []), Writer());
+
+        result.AllSucceeded.Should().BeTrue();
+        _live.Verify(r => r.SetValue(@"HKEY_LOCAL_MACHINE\WH_NTUSER_t\Control Panel\Accessibility", "MessageDuration", 15, RegistryValueKind.DWord), Times.Once);
+    }
+
+    [Fact]
     public void Execute_ReportsAWriteToAnUnmappedRootAsFailedAndWritesNothing()
     {
         var target = new RegTarget("Foo", [@"HKEY_USERS\.DEFAULT\Foo"], "Bar", RegistryValueKind.DWord);

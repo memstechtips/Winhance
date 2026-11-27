@@ -152,7 +152,7 @@ public static class ApplyRequestResolver
                     // setting's RegTarget ValueNames - an AC/DC dict (ACValue/DCValue keys) does not, and returns null.
                     && setting.Targets.OfType<RegTarget>().Any(r => customValues.ContainsKey(r.ValueName ?? "KeyExists")))
                 {
-                    return ApplyPlanBuilder.BuildRegistryCustomState(setting, customValues);
+                    return ApplyPlanBuilder.BuildRegistryCustomState(setting, customValues, build);
                 }
 
                 // Typed DNS servers: the custom values are keyed by the DNS targets' keys, the way a preset's Set is.

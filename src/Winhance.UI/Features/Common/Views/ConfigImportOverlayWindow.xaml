@@ -10,7 +10,7 @@
           AutomationProperties.LiveSetting="Assertive">
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24">
             <!-- Logo + Branding -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="{StaticResource LoaderSpacing}">
                 <Viewbox Width="128" Height="128" VerticalAlignment="Center">
                     <controls:RocketLoader IsActive="True" Foreground="White"/>
                 </Viewbox>
@@ -20,17 +20,17 @@
                                FontWeight="Bold"
                                Foreground="White"/>
                     <TextBlock x:Name="OverlayTaglineText"
-                               FontSize="16"
+                               FontSize="{StaticResource LoaderTaglineFontSize}"
                                Foreground="White"
                                Opacity="0.7"/>
                 </StackPanel>
             </StackPanel>
 
             <!-- Status -->
-            <StackPanel HorizontalAlignment="Center" Spacing="16">
+            <StackPanel HorizontalAlignment="Center" Spacing="{StaticResource LoaderSpacing}">
                 <TextBlock x:Name="OverlayStatusText"
                            HorizontalAlignment="Center"
-                           FontSize="14"
+                           FontSize="{StaticResource BodyTextBlockFontSize}"
                            Foreground="White"
                            Opacity="0.8"/>
                 <TextBlock x:Name="OverlayDetailText"

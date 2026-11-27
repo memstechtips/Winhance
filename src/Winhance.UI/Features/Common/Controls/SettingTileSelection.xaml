@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Winhance.UI.Features.Common.Controls"
+    xmlns:fluentIcons="using:FluentIcons.WinUI"
     xmlns:viewModels="using:Winhance.UI.Features.Common.ViewModels">
 
     <local:SettingBoundControl.Resources>
@@ -26,9 +27,10 @@
                         Source="{x:Bind Thumbnail}"
                         Stretch="UniformToFill"/>
                     <Border
+                        x:Name="PictureSelectionBorder"
+                        x:Load="{x:Bind IsSelected, Mode=OneWay}"
                         BorderBrush="{ThemeResource AccentFillColorDefaultBrush}"
-                        BorderThickness="2"
-                        Visibility="{x:Bind IsSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        BorderThickness="2"/>
                 </Grid>
             </Button>
         </DataTemplate>
@@ -49,20 +51,23 @@
                 <Grid>
                     <Border
                         Background="{x:Bind Brush}"
-                        CornerRadius="4"/>
+                        CornerRadius="{StaticResource TileCornerRadius}"/>
                     <Border
+                        x:Name="ColorSelectionBorder"
+                        x:Load="{x:Bind IsSelected, Mode=OneWay}"
                         BorderBrush="{ThemeResource TextFillColorPrimaryBrush}"
                         BorderThickness="2"
-                        CornerRadius="4"
-                        Visibility="{x:Bind IsSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                    <FontIcon
-                        Glyph="&#xE73E;"
-                        FontSize="12"
+                        CornerRadius="{StaticResource TileCornerRadius}"/>
+                    <fluentIcons:FluentIcon
+                        x:Name="ColorSelectionCheck"
+                        x:Load="{x:Bind IsSelected, Mode=OneWay}"
+                        Icon="Checkmark"
+                        IconVariant="Regular"
+                        FontSize="{StaticResource CaptionIconFontSize}"
                         Foreground="White"
                         Margin="0,4,4,0"
                         HorizontalAlignment="Right"
-                        VerticalAlignment="Top"
-                        Visibility="{x:Bind IsSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        VerticalAlignment="Top"/>
                 </Grid>
             </Button>
         </DataTemplate>
@@ -71,58 +76,65 @@
     <Grid>
         <!-- Non-virtualising ItemsControl + UniformWrapPanel, not ItemsRepeater + UniformGridLayout: that pair
              produced a measure cycle that snapped the page's ScrollViewer to the top. -->
-        <Grid Visibility="{x:Bind TilesVisibility, Mode=OneWay}">
+        <Grid x:Name="TileGrid" x:Load="{x:Bind local:SettingTileSelection.ShowsTiles(Part), Mode=OneWay}">
+            <!-- Bounded: the setting's 3 Windows pictures, the shown picture and Windows' 5 recent ones, at most 9 -->
             <ItemsControl
-                ItemsSource="{x:Bind Tiles, Mode=OneWay}"
-                ItemTemplate="{StaticResource PictureTileTemplate}"
-                Visibility="{x:Bind PictureVisibility, Mode=OneWay}">
+                ItemsSource="{x:Bind Setting.Tiles, Mode=OneWay}"
+                x:Name="PictureTiles"
+                x:Load="{x:Bind local:SettingTileSelection.IsPictures(Setting), Mode=OneWay}"
+                ItemTemplate="{StaticResource PictureTileTemplate}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <local:UniformWrapPanel ItemWidth="96" ItemHeight="54" ColumnSpacing="8" RowSpacing="8"/>
+                        <local:UniformWrapPanel ItemWidth="96" ItemHeight="54" ColumnSpacing="{StaticResource TileSpacing}" RowSpacing="{StaticResource TileSpacing}"/>
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
 
+            <!-- Bounded: Windows' 24 background colours -->
             <ItemsControl
-                ItemsSource="{x:Bind Tiles, Mode=OneWay}"
-                ItemTemplate="{StaticResource ColorTileTemplate}"
-                Visibility="{x:Bind ColorVisibility, Mode=OneWay}">
+                ItemsSource="{x:Bind Setting.Tiles, Mode=OneWay}"
+                x:Name="ColorTiles"
+                x:Load="{x:Bind local:SettingTileSelection.IsColors(Setting), Mode=OneWay}"
+                ItemTemplate="{StaticResource ColorTileTemplate}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <local:UniformWrapPanel ItemWidth="40" ItemHeight="40" ColumnSpacing="8" RowSpacing="8"/>
+                        <local:UniformWrapPanel ItemWidth="40" ItemHeight="40" ColumnSpacing="{StaticResource TileSpacing}" RowSpacing="{StaticResource TileSpacing}"/>
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
         </Grid>
 
         <StackPanel
+            x:Name="BrowsePanel"
+            x:Load="{x:Bind local:SettingTileSelection.ShowsBrowse(Part), Mode=OneWay}"
             Orientation="Horizontal"
-            Spacing="12"
-            HorizontalAlignment="Right"
-            Visibility="{x:Bind BrowseVisibility, Mode=OneWay}">
+            Spacing="{StaticResource ControlGroupSpacing}"
+            HorizontalAlignment="Right">
             <local:SettingOutcomeOverlay
                 Setting="{x:Bind Setting, Mode=OneWay}"
                 Mode="Single"
                 VerticalAlignment="Center"/>
 
             <Button
+                x:Name="BrowseButton"
+                x:Load="{x:Bind local:SettingTileSelection.IsPictures(Setting), Mode=OneWay}"
                 MinWidth="140"
-                Content="{x:Bind BrowseLabel, Mode=OneWay}"
+                Content="{x:Bind Setting.BrowseLabel, Mode=OneWay}"
                 Click="OnBrowseClick"
-                Visibility="{x:Bind PictureVisibility, Mode=OneWay}"
-                AutomationProperties.Name="{x:Bind SettingName, Mode=OneWay}"/>
+                AutomationProperties.Name="{x:Bind Setting.Name, Mode=OneWay}"/>
 
             <Button
+                x:Name="ColorButton"
+                x:Load="{x:Bind local:SettingTileSelection.IsColors(Setting), Mode=OneWay}"
                 MinWidth="140"
-                Content="{x:Bind BrowseLabel, Mode=OneWay}"
-                Visibility="{x:Bind ColorVisibility, Mode=OneWay}"
-                AutomationProperties.Name="{x:Bind SettingName, Mode=OneWay}">
+                Content="{x:Bind Setting.BrowseLabel, Mode=OneWay}"
+                AutomationProperties.Name="{x:Bind Setting.Name, Mode=OneWay}">
                 <Button.Flyout>
                     <Flyout Closed="OnColorFlyoutClosed">
                         <ColorPicker
                             IsAlphaEnabled="False"
                             IsMoreButtonVisible="True"
-                            Color="{x:Bind PickedColor, Mode=TwoWay}"/>
+                            Color="{x:Bind local:SettingTileSelection.ColorFor(Setting.SelectedValue), Mode=OneWay}"/>
                     </Flyout>
                 </Button.Flyout>
             </Button>

@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Winhance.UI.Tests.DI;
 
-// Builds the exact host the app builds (CompositionRoot forces ValidateOnBuild + ValidateScopes on), so a service
+// Builds the exact container the app builds (CompositionRoot forces ValidateOnBuild + ValidateScopes on), so a service
 // registered with a dependency nothing provides fails here instead of refusing to start on a user's machine.
 public class WinhanceHostSmokeTests
 {
@@ -13,7 +13,7 @@ public class WinhanceHostSmokeTests
     {
         var build = () =>
         {
-            using var host = CompositionRoot.CreateWinhanceHost().Build();
+            using var services = CompositionRoot.BuildWinhanceServices();
         };
 
         build.Should().NotThrow();

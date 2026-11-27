@@ -17,21 +17,23 @@ public sealed partial class SettingsPage : Page
 
         this.InitializeComponent();
 
-        // Settings page is lightweight - no need for caching
-        this.NavigationCacheMode = NavigationCacheMode.Disabled;
         ScrollMemory.Keep(nameof(SettingsPage), PageScrollViewer);
 
-        Loaded += (_, _) =>
-        {
-            if (App.MainWindow is { } window)
-                window.Activated += OnWindowActivated;
-        };
-        Unloaded += (_, _) =>
-        {
-            if (App.MainWindow is { } window)
-                window.Activated -= OnWindowActivated;
-            ViewModel.Dispose();
-        };
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (App.MainWindow is { } window)
+            window.Activated += OnWindowActivated;
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (App.MainWindow is { } window)
+            window.Activated -= OnWindowActivated;
+        ViewModel.Dispose();
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)

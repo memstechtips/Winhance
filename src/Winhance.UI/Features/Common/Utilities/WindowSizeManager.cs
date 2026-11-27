@@ -46,12 +46,12 @@ public class WindowSizeManager
         _logService = logService;
     }
 
-    public async Task InitializeAsync()
+    public void Initialize()
     {
         try
         {
             SetMinimumSize();
-            bool loaded = await LoadWindowSettingsAsync();
+            bool loaded = LoadWindowSettings();
 
             if (!loaded)
             {
@@ -110,15 +110,15 @@ public class WindowSizeManager
         }
     }
 
-    private async Task<bool> LoadWindowSettingsAsync()
+    private bool LoadWindowSettings()
     {
         try
         {
-            var width = await _userPreferencesService.GetPreferenceAsync<double>(UserPreferenceKeys.WindowWidth, 0);
-            var height = await _userPreferencesService.GetPreferenceAsync<double>(UserPreferenceKeys.WindowHeight, 0);
-            var left = await _userPreferencesService.GetPreferenceAsync<double>(UserPreferenceKeys.WindowLeft, double.NaN);
-            var top = await _userPreferencesService.GetPreferenceAsync<double>(UserPreferenceKeys.WindowTop, double.NaN);
-            var isMaximized = await _userPreferencesService.GetPreferenceAsync<bool>(UserPreferenceKeys.WindowMaximized, false);
+            var width = _userPreferencesService.GetPreference<double>(UserPreferenceKeys.WindowWidth, 0);
+            var height = _userPreferencesService.GetPreference<double>(UserPreferenceKeys.WindowHeight, 0);
+            var left = _userPreferencesService.GetPreference<double>(UserPreferenceKeys.WindowLeft, double.NaN);
+            var top = _userPreferencesService.GetPreference<double>(UserPreferenceKeys.WindowTop, double.NaN);
+            var isMaximized = _userPreferencesService.GetPreference<bool>(UserPreferenceKeys.WindowMaximized, false);
 
             // Only reject clearly invalid values (no saved prefs yet)
             if (width <= 0 || height <= 0)

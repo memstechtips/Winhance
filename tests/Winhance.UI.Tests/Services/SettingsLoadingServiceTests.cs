@@ -79,8 +79,8 @@ public class SettingsLoadingServiceTests
             });
 
         _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync(It.IsAny<string>(), false))
-            .ReturnsAsync(false);
+            .Setup(u => u.GetPreference(It.IsAny<string>(), false))
+            .Returns(false);
 
         var mockVm1 = CreateMockSettingItemViewModel("security-workplace-join-messages");
         var mockVm2 = CreateMockSettingItemViewModel("start-disable-bing-search-results");
@@ -127,8 +127,8 @@ public class SettingsLoadingServiceTests
             });
 
         _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync(It.IsAny<string>(), false))
-            .ReturnsAsync(false);
+            .Setup(u => u.GetPreference(It.IsAny<string>(), false))
+            .Returns(false);
 
         var mockVm = CreateMockSettingItemViewModel("security-workplace-join-messages");
         _mockViewModelFactory
@@ -160,8 +160,8 @@ public class SettingsLoadingServiceTests
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
         _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync(It.IsAny<string>(), false))
-            .ReturnsAsync(false);
+            .Setup(u => u.GetPreference(It.IsAny<string>(), false))
+            .Returns(false);
 
         await _sut.LoadConfiguredSettingsAsync(
             "TestFeature", "Loading...", null);
@@ -198,8 +198,8 @@ public class SettingsLoadingServiceTests
             .ReturnsAsync(new Dictionary<string, SettingStateResult>());
 
         _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync(It.IsAny<string>(), false))
-            .ReturnsAsync(false);
+            .Setup(u => u.GetPreference(It.IsAny<string>(), false))
+            .Returns(false);
 
         var result = await _sut.LoadConfiguredSettingsAsync(
             "EmptyFeature", "Loading...", null);
@@ -227,8 +227,8 @@ public class SettingsLoadingServiceTests
             });
 
         _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync(It.IsAny<string>(), false))
-            .ReturnsAsync(false);
+            .Setup(u => u.GetPreference(It.IsAny<string>(), false))
+            .Returns(false);
 
         var mockVm = CreateMockSettingItemViewModel("security-workplace-join-messages");
         _mockViewModelFactory
@@ -279,8 +279,8 @@ public class SettingsLoadingServiceTests
             });
 
         _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync(It.IsAny<string>(), false))
-            .ReturnsAsync(false);
+            .Setup(u => u.GetPreference(It.IsAny<string>(), false))
+            .Returns(false);
 
         string? receivedCompatibilityMessage = null;
         var mockVm = CreateMockSettingItemViewModel("legacy-win10-setting");
@@ -341,8 +341,8 @@ public class SettingsLoadingServiceTests
             });
 
         _mockUserPreferencesService
-            .Setup(u => u.GetPreferenceAsync(It.IsAny<string>(), false))
-            .ReturnsAsync(false);
+            .Setup(u => u.GetPreference(It.IsAny<string>(), false))
+            .Returns(false);
 
         var mockVm = CreateMockSettingItemViewModel("region-measurement-system");
         _mockViewModelFactory
@@ -497,7 +497,7 @@ public class SettingsLoadingServiceTests
             Description = "Test",
             GroupName = string.Empty,
             Icon = string.Empty,
-            IconPack = "Material",
+            IconPack = "Fluent",
             InputType = InputType.Toggle,
             IsSelected = false,
             OnText = "On",

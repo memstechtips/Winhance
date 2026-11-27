@@ -14,6 +14,10 @@ public sealed partial class PendingRestartBar : UserControl
     public PendingRestartViewModel? ViewModel
     {
         get => DataContext as PendingRestartViewModel;
-        set => DataContext = value;
+        set
+        {
+            DataContext = value;
+            Bindings.Update();
+        }
     }
 }

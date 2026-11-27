@@ -1,8 +1,10 @@
 using FluentAssertions;
 using Microsoft.UI.Xaml.Controls;
 using Moq;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.UI.ViewModels;
 using Xunit;
 using Winhance.TestSupport;
@@ -13,6 +15,7 @@ public class UpdateCheckViewModelTests : IDisposable
 {
     private readonly Mock<IVersionService> _mockVersionService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
+    private readonly Mock<IUserPreferencesService> _mockPreferences = new();
     private readonly Mock<ILogService> _mockLogService = new();
 
     private readonly UpdateCheckViewModel _sut;
@@ -29,6 +32,7 @@ public class UpdateCheckViewModelTests : IDisposable
         _sut = new UpdateCheckViewModel(
             _mockVersionService.Object,
             _mockLocalizationService.Object,
+            _mockPreferences.Object,
             _mockLogService.Object);
     }
 
@@ -174,6 +178,44 @@ public class UpdateCheckViewModelTests : IDisposable
 
         _sut.IsUpdateInfoBarOpen.Should().BeTrue();
         _sut.IsUpdateActionButtonVisible.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(AppUpdateAction.Notify, true, false)]
+    [InlineData(AppUpdateAction.Install, true, true)]
+    [InlineData(AppUpdateAction.Install, false, false)]
+    public async Task CheckForUpdatesOnStartupAsync_UpdateAvailable_DownloadsOnlyWhenSetToInstallAndTheWindowShows(AppUpdateAction action, bool windowShown, bool downloads)
+    {
+        _mockPreferences.Setup(p => p.GetPreference(UserPreferenceKeys.WinhanceUpdateAction, It.IsAny<AppUpdateAction>())).Returns(action);
+        _mockVersionService
+            .Setup(v => v.CheckForUpdateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new VersionInfo { Version = "v25.06.01", IsUpdateAvailable = true });
+        _mockVersionService
+            .Setup(v => v.GetCurrentVersion())
+            .Returns(new VersionInfo { Version = "v25.05.01" });
+
+        await _sut.CheckForUpdatesOnStartupAsync(windowShown);
+
+        _mockVersionService.Verify(v => v.DownloadAndInstallUpdateAsync(It.IsAny<CancellationToken>()), downloads ? Times.Once() : Times.Never());
+        _sut.IsRelaunchButtonVisible.Should().Be(downloads);
+        _sut.IsUpdateActionButtonVisible.Should().Be(!downloads);
+    }
+
+    [Fact]
+    public async Task CheckForUpdatesOnStartupAsync_WhenTheUpdateIsAlreadyDownloaded_KeepsRelaunch()
+    {
+        _mockVersionService
+            .Setup(v => v.CheckForUpdateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new VersionInfo { Version = "v25.06.01", IsUpdateAvailable = true });
+        _mockVersionService
+            .Setup(v => v.GetCurrentVersion())
+            .Returns(new VersionInfo { Version = "v25.05.01" });
+        await _sut.InstallUpdateCommand.ExecuteAsync(null);
+
+        await _sut.CheckForUpdatesOnStartupAsync();
+
+        _sut.IsRelaunchButtonVisible.Should().BeTrue();
+        _sut.IsUpdateActionButtonVisible.Should().BeFalse();
     }
 
     [Fact]
@@ -331,6 +373,7 @@ public class UpdateCheckViewModelTests : IDisposable
         var sut = new UpdateCheckViewModel(
             _mockVersionService.Object,
             _mockLocalizationService.Object,
+            _mockPreferences.Object,
             _mockLogService.Object);
 
         sut.Dispose();
@@ -349,6 +392,7 @@ public class UpdateCheckViewModelTests : IDisposable
         var sut = new UpdateCheckViewModel(
             _mockVersionService.Object,
             _mockLocalizationService.Object,
+            _mockPreferences.Object,
             _mockLogService.Object);
 
         var act = () =>

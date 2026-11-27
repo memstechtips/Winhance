@@ -11,11 +11,27 @@ public class SettingsExpanderChildrenTests
 {
     private static readonly XNamespace Controls = "using:CommunityToolkit.WinUI.Controls";
     private static readonly XNamespace Presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+    private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     private static IEnumerable<XDocument> Pages() => RepoPaths.SourceFiles("*.xaml").Select(f => XDocument.Load(f));
 
     private static bool IsSafe(XElement child) =>
         child.Name == Controls + "SettingsCard" || child.Attribute("Style") is not null;
+
+    [Theory]
+    [InlineData("ActivePill", "ScriptPresentPill")]
+    [InlineData("InactivePill", "ScriptMissingPill")]
+    public void BackgroundTaskScriptPills_MatchTheCorrespondingTaskStyles(string taskPill, string scriptPill)
+    {
+        var page = XDocument.Load(RepoPaths.SourceFiles("SettingsPage.xaml").Single());
+        var badges = page.Descendants(Presentation + "Border");
+        var task = badges.Single(badge => (string?)badge.Attribute(Xaml + "Name") == taskPill);
+        var script = badges.Single(badge => (string?)badge.Attribute(Xaml + "Name") == scriptPill);
+
+        ((string?)script.Attribute("Style")).Should().Be((string?)task.Attribute("Style"));
+        ((string?)script.Element(Presentation + "TextBlock")!.Attribute("Foreground"))
+            .Should().Be((string?)task.Element(Presentation + "TextBlock")!.Attribute("Foreground"));
+    }
 
     [Fact]
     public void SettingsExpanderItems_Always_AreASettingsCardOrHaveTheirOwnStyle()

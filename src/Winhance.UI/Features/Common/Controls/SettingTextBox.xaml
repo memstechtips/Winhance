@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Winhance.UI.Features.Common.Controls">
 
-    <StackPanel Spacing="4" MinWidth="200">
+    <StackPanel Spacing="{StaticResource FieldLabelSpacing}" MinWidth="200">
         <Grid ColumnSpacing="8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -14,26 +14,28 @@
 
             <!-- Read-only beside a picker: the value applies as it is typed, and half a path is a folder of its own. -->
             <TextBox
-                Text="{x:Bind TextValue, Mode=OneWay}"
-                PlaceholderText="{x:Bind Placeholder, Mode=OneWay}"
-                IsReadOnly="{x:Bind IsPickerOnly, Mode=OneWay}"
+                Text="{x:Bind Setting.TextValue, Mode=OneWay}"
+                PlaceholderText="{x:Bind Setting.TextPlaceholder, Mode=OneWay}"
+                IsReadOnly="{x:Bind Setting.HasTextBoxPicker, Mode=OneWay}"
                 TextChanged="OnTextChanged"
                 MinWidth="200"
-                AutomationProperties.Name="{x:Bind SettingName, Mode=OneWay}"/>
+                AutomationProperties.Name="{x:Bind Setting.Name, Mode=OneWay}"/>
 
             <Button
+                x:Name="BrowseButton"
+                x:Load="{x:Bind Setting.HasTextBoxPicker, Mode=OneWay}"
                 Grid.Column="1"
                 MinWidth="140"
                 VerticalAlignment="Center"
-                Content="{x:Bind BrowseLabel, Mode=OneWay}"
+                Content="{x:Bind Setting.BrowseLabel, Mode=OneWay}"
                 Click="OnBrowseClick"
-                Visibility="{x:Bind BrowseVisibility, Mode=OneWay}"
-                AutomationProperties.Name="{x:Bind SettingName, Mode=OneWay}"/>
+                AutomationProperties.Name="{x:Bind Setting.Name, Mode=OneWay}"/>
         </Grid>
 
         <TextBlock
-            Text="{x:Bind TextError, Mode=OneWay}"
-            Visibility="{x:Bind ErrorVisibility, Mode=OneWay}"
+            x:Name="ErrorText"
+            x:Load="{x:Bind Setting.HasTextError, Mode=OneWay}"
+            Text="{x:Bind Setting.TextError, Mode=OneWay}"
             Foreground="{ThemeResource SystemFillColorCriticalBrush}"
             Style="{StaticResource CaptionTextBlockStyle}"
             TextWrapping="Wrap"/>

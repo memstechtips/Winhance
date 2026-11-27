@@ -3,6 +3,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.WinUI.Collections;
+using FluentIcons.Common;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -15,13 +16,37 @@ using Winhance.UI.Features.SoftwareApps.Models;
 
 namespace Winhance.UI.Features.SoftwareApps.ViewModels;
 
-public record AppCategory(string GroupName, string DisplayName, string IconGlyph, IReadOnlyList<AppItemViewModel> Apps);
+public record AppCategory(string GroupName, string DisplayName, Icon SectionIcon, IReadOnlyList<AppItemViewModel> Apps)
+{
+    // A group's accessible name is its ToString.
+    public override string ToString() => DisplayName;
+
+    // A new list makes a view rebuild every row it shows and jump back to the top. Rows update in place, so a view
+    // swaps its list only when a row came, went or moved.
+    public static bool SameLayout(IReadOnlyList<AppCategory> current, IReadOnlyList<AppCategory> rebuilt) =>
+        current.Count == rebuilt.Count
+        && current.Zip(rebuilt).All(pair => pair.First.GroupName == pair.Second.GroupName
+            && pair.First.DisplayName == pair.Second.DisplayName
+            && pair.First.Apps.SequenceEqual(pair.Second.Apps));
+}
 
 // How an update run ended. UpdatesKnown is the scan after it: only then does a row without an update mean it updated.
 public readonly record struct AppUpdateRun(bool Started, bool Cancelled, bool UpdatesKnown);
 
 public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsProvider, ISelectAllSource
 {
+    private static readonly string[] VisibleRowProperties =
+    [
+        nameof(IsAllSelected), nameof(IsAllSelectedInstalled), nameof(IsAllSelectedNotInstalled), nameof(IsAllSelectedWithUpdates),
+        nameof(UpdatesCount), nameof(HasUpdates), nameof(SelectAllWithUpdatesLabel),
+    ];
+
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(SelectAllWithUpdatesLabel), nameof(SelectAllLabel), nameof(SelectAllInstalledLabel), nameof(SelectAllNotInstalledLabel),
+        nameof(ChocolateyNoteText), nameof(StatusText), nameof(PackageSearchStatus),
+    ];
+
     private readonly IExternalAppsService _externalAppsService;
     private readonly IInstalledAppsService _installedAppsService;
     private readonly IAppInstallationService _appInstallationService;
@@ -69,42 +94,38 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         ItemsView.Filter = FilterItem;
         AppSortHelper.ApplySortDescriptions(ItemsView, SortMode);
 
+        StatusKey = string.Empty;
         // Must come after ItemsView: OnSearchTextChanged uses it.
-        StatusText = string.Empty;
         SearchText = string.Empty;
     }
 
     public ObservableCollection<AppItemViewModel> Items { get; }
     public AdvancedCollectionView ItemsView { get; }
 
-    private IReadOnlyList<AppCategory> _categories = new List<AppCategory>();
-    public IReadOnlyList<AppCategory> Categories
-    {
-        get => _categories;
-        private set => SetProperty(ref _categories, value);
-    }
+    [ObservableProperty]
+    public partial IReadOnlyList<AppCategory> Categories { get; private set; } = [];
 
-    private static readonly Dictionary<string, string> CategoryGlyphs = new()
+    private static readonly Dictionary<string, Icon> CategoryIcons = new()
     {
-        ["Browsers"] = "\uE774",
-        ["Compression"] = "\uE8B7",
-        ["Customization Utilities"] = "\uE790",
-        ["Development Apps"] = "\uE943",
-        ["Document Viewers"] = "\uE8A5",
-        ["File & Disk Management"] = "\uEDA2",
-        ["Gaming"] = "\uE7FC",
-        ["Imaging"] = "\uE722",
-        ["Messaging, Email & Calendar"] = "\uE715",
-        ["Multimedia (Audio & Video)"] = "\uE8B2",
-        ["Online Storage & Backup"] = "\uE753",
-        ["Optical Disc Tools"] = "\uE958",
-        ["Other Utilities"] = "\uE74C",
-        ["Privacy & Security"] = "\uE72E",
-        ["Remote Access"] = "\uE8AF",
-        ["Runtimes & Dependencies"] = "\uE756",
-        [OtherInstalledItem.GroupName] = "\uE71D",
-        [WinGetPackageItem.GroupName] = "\uE721",
-        [ChocoPackageItem.GroupName] = "\uE7B8",
+        ["Browsers"] = Icon.Globe,
+        ["Compression"] = Icon.FolderZip,
+        ["Customization Utilities"] = Icon.Color,
+        ["Development Apps"] = Icon.Code,
+        ["Document Viewers"] = Icon.DocumentText,
+        ["File & Disk Management"] = Icon.HardDrive,
+        ["Gaming"] = Icon.Games,
+        ["Imaging"] = Icon.Camera,
+        ["Messaging, Email & Calendar"] = Icon.Mail,
+        ["Multimedia (Audio & Video)"] = Icon.Video,
+        ["Online Storage & Backup"] = Icon.Cloud,
+        ["Optical Disc Tools"] = Icon.Target,
+        ["Other Utilities"] = Icon.Toolbox,
+        ["Privacy & Security"] = Icon.LockClosed,
+        ["Remote Access"] = Icon.DesktopArrowRight,
+        ["Runtimes & Dependencies"] = Icon.WindowConsole,
+        [OtherInstalledItem.GroupName] = Icon.Apps,
+        [WinGetPackageItem.GroupName] = Icon.Search,
+        [ChocoPackageItem.GroupName] = Icon.Box,
     };
 
     private void RebuildCategories()
@@ -118,20 +139,12 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
 
         var rebuilt = groups
             .Select(group => new AppCategory(group.Key, group.First().CategoryDisplayName,
-                CategoryGlyphs.GetValueOrDefault(group.Key, "\uE74C"), AppSortHelper.Order(group, SortMode).ToList()))
+                CategoryIcons.GetValueOrDefault(group.Key, Icon.Toolbox), AppSortHelper.Order(group, SortMode).ToList()))
             .ToList();
 
-        // A new list makes the card and compact views lay out every row again, which blocks the UI for seconds. Rows
-        // update in place, so the list only changes when a row came, went or moved.
-        if (!SameLayout(_categories, rebuilt))
+        if (!AppCategory.SameLayout(Categories, rebuilt))
             Categories = rebuilt;
     }
-
-    private static bool SameLayout(IReadOnlyList<AppCategory> current, IReadOnlyList<AppCategory> rebuilt) =>
-        current.Count == rebuilt.Count
-        && current.Zip(rebuilt).All(pair => pair.First.GroupName == pair.Second.GroupName
-            && pair.First.DisplayName == pair.Second.DisplayName
-            && pair.First.Apps.SequenceEqual(pair.Second.Apps));
 
     // The catalog's categories, then the apps it does not list, then search results.
     private static int GroupRank(string group) => group switch
@@ -150,11 +163,18 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
     [NotifyPropertyChangedFor(nameof(IsContentReady))]
     public partial bool IsInitialized { get; set; }
 
+    // When a scan last read every installed app's update; a scheduled check skips a read this recent.
+    public DateTime? UpdatesReadUtc { get; private set; }
+
     // The tab shows only its loader until this is true, on the first load and on every refresh.
     public bool IsContentReady => IsInitialized && !IsLoading;
 
+    // Held as a key so a language switch re-reads it.
     [ObservableProperty]
-    public partial string StatusText { get; set; }
+    [NotifyPropertyChangedFor(nameof(StatusText))]
+    public partial string StatusKey { get; private set; }
+
+    public string StatusText => StatusKey.Length == 0 ? string.Empty : _localizationService.GetString(StatusKey);
 
     [ObservableProperty]
     public partial string SearchText { get; set; }
@@ -169,11 +189,43 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
 
     public bool IsWorkingInBackground => IsSearchingPackages || IsScanningInstalledApps;
 
+    // Held as a key and a count so a language switch re-reads it.
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PackageSearchStatus))]
     [NotifyPropertyChangedFor(nameof(HasPackageSearchStatus))]
-    public partial string PackageSearchStatus { get; set; } = string.Empty;
+    public partial string PackageSearchStatusKey { get; private set; } = string.Empty;
 
-    public bool HasPackageSearchStatus => !string.IsNullOrEmpty(PackageSearchStatus);
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PackageSearchStatus))]
+    public partial int PackageSearchFoundCount { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PackageSearchStatus))]
+    public partial int PackageSearchPickCount { get; private set; }
+
+    public string PackageSearchStatus => PackageSearchStatusKey switch
+    {
+        "" => string.Empty,
+        "ExternalApps_PackageSearch_Found" => _localizationService.GetString(
+            PackageSearchFoundCount == 1 ? "ExternalApps_PackageSearch_Found_One" : "ExternalApps_PackageSearch_Found",
+            PackageSearchFoundCount),
+        "ExternalApps_PackageSearch_FoundWithPicks" => _localizationService.GetString(
+            (PackageSearchFoundCount, PackageSearchPickCount) switch
+            {
+                (1, 1) => "ExternalApps_PackageSearch_FoundWithPicks_One_OnePick",
+                (1, _) => "ExternalApps_PackageSearch_FoundWithPicks_One",
+                (_, 1) => "ExternalApps_PackageSearch_FoundWithPicks_OnePick",
+                _ => "ExternalApps_PackageSearch_FoundWithPicks",
+            },
+            PackageSearchFoundCount,
+            PackageSearchPickCount),
+        "ExternalApps_PackageSearch_NoneWithPicks" => _localizationService.GetString(
+            PackageSearchPickCount == 1 ? "ExternalApps_PackageSearch_NoneWithPicks_One" : "ExternalApps_PackageSearch_NoneWithPicks",
+            PackageSearchPickCount),
+        var key => _localizationService.GetString(key),
+    };
+
+    public bool HasPackageSearchStatus => PackageSearchStatusKey.Length > 0;
 
     // Search covers Chocolatey only through choco itself, so without it the results are winget's alone.
     [ObservableProperty]
@@ -206,78 +258,65 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
             ItemsView.RefreshFilter();
         }
         RebuildCategories();
-        OnPropertyChanged(nameof(IsAllSelectedWithUpdates));
-        NotifyUpdateCountChanged();
+        NotifyVisibleRowsChanged();
     }
 
-    private IEnumerable<AppItemViewModel> SelectableItems => Items.Where(a => a.IsSelectable);
+    // The select-all boxes and the update count cover the rows the filter and search show, so they match what the
+    // user sees.
+    private IEnumerable<AppItemViewModel> VisibleSelectableItems => Items.Where(a => a.IsSelectable && FilterItem(a));
 
-    public bool IsAllSelected =>
-        SelectableItems.Any() && SelectableItems.All(a => a.IsSelected);
-    public bool IsAllSelectedInstalled =>
-        SelectableItems.Any(a => a.IsInstalled) && SelectableItems.Where(a => a.IsInstalled).All(a => a.IsSelected);
-    public bool IsAllSelectedNotInstalled =>
-        SelectableItems.Any(a => !a.IsInstalled) && SelectableItems.Where(a => !a.IsInstalled).All(a => a.IsSelected);
-    // The count and Select All With Updates cover the rows the filter shows, so they match what the user sees.
-    private IEnumerable<AppItemViewModel> VisibleSelectableItems => SelectableItems.Where(a => FilterItem(a));
-
-    public bool IsAllSelectedWithUpdates => UpdateSelection.IsAllSelected(VisibleSelectableItems);
+    public bool IsAllSelected => SelectAllRows.AreAllSelected(VisibleSelectableItems);
+    public bool IsAllSelectedInstalled => SelectAllRows.AreAllSelected(VisibleSelectableItems.Where(a => a.IsInstalled));
+    public bool IsAllSelectedNotInstalled => SelectAllRows.AreAllSelected(VisibleSelectableItems.Where(a => !a.IsInstalled));
+    public bool IsAllSelectedWithUpdates => SelectAllRows.AreAllSelected(VisibleSelectableItems.Where(a => a.HasUpdate));
 
     public int UpdatesCount => Items.Count(a => a.HasUpdate && FilterItem(a));
     public bool HasUpdates => Items.Any(a => a.HasUpdate && FilterItem(a));
 
     [RelayCommand]
-    private void ToggleSelectAll()
-    {
-        var newValue = !IsAllSelected;
-        foreach (var item in SelectableItems)
-            item.IsSelected = newValue;
-        NotifySelectionStateChanged();
-    }
+    private void ToggleSelectAll() => ChangeSelection(() => SelectAllRows.Toggle(VisibleSelectableItems));
 
     [RelayCommand]
-    private void ToggleSelectAllInstalled()
-    {
-        var newValue = !IsAllSelectedInstalled;
-        foreach (var item in SelectableItems.Where(a => a.IsInstalled))
-            item.IsSelected = newValue;
-        NotifySelectionStateChanged();
-    }
+    private void ToggleSelectAllInstalled() =>
+        ChangeSelection(() => SelectAllRows.Toggle(VisibleSelectableItems.Where(a => a.IsInstalled)));
 
     [RelayCommand]
-    private void ToggleSelectAllNotInstalled()
-    {
-        var newValue = !IsAllSelectedNotInstalled;
-        foreach (var item in SelectableItems.Where(a => !a.IsInstalled))
-            item.IsSelected = newValue;
-        NotifySelectionStateChanged();
-    }
+    private void ToggleSelectAllNotInstalled() =>
+        ChangeSelection(() => SelectAllRows.Toggle(VisibleSelectableItems.Where(a => !a.IsInstalled)));
 
     [RelayCommand]
-    private void ToggleSelectAllWithUpdates()
-    {
-        UpdateSelection.Toggle(VisibleSelectableItems);
-        NotifySelectionStateChanged();
-    }
+    private void ToggleSelectAllWithUpdates() =>
+        ChangeSelection(() => SelectAllRows.Toggle(VisibleSelectableItems.Where(a => a.HasUpdate)));
 
     [ObservableProperty]
     public partial bool AuthorsIntent { get; set; }
 
-    partial void OnAuthorsIntentChanged(bool value)
+    partial void OnAuthorsIntentChanged(bool value) => ChangeSelection(() =>
     {
         foreach (var item in Items)
             item.AuthorsIntent = value;
+    });
+
+    // Each tick or status change re-scans every row for the select-all boxes, so a change across the list notifies
+    // once, at the end.
+    public void ChangeSelection(Action change)
+    {
+        _changingSelection = true;
+        try
+        {
+            change();
+        }
+        finally
+        {
+            _changingSelection = false;
+        }
         NotifySelectionStateChanged();
     }
 
     private void NotifySelectionStateChanged()
     {
-        OnPropertyChanged(nameof(IsAllSelected));
-        OnPropertyChanged(nameof(IsAllSelectedInstalled));
-        OnPropertyChanged(nameof(IsAllSelectedNotInstalled));
-        OnPropertyChanged(nameof(IsAllSelectedWithUpdates));
-        NotifyUpdateCountChanged();
         OnPropertyChanged(nameof(HasSelectedItems));
+        NotifyVisibleRowsChanged();
         SelectedItemsChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -291,7 +330,10 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
 
     public event EventHandler? SelectedItemsChanged;
 
+    private bool _changingSelection;
+
     public bool HasSelectedItems => Items.Any(a => a.IsSelected);
+    public bool HasSelectedInstalledItems => Items.Any(a => a.IsSelected && a.IsInstalled);
 
     partial void OnSearchTextChanged(string value)
     {
@@ -332,7 +374,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         {
             IsSearchingPackages = false;
             IsChocolateyNoteVisible = false;
-            PackageSearchStatus = string.Empty;
+            PackageSearchStatusKey = string.Empty;
             ShowSearchResults([]);
             return;
         }
@@ -356,16 +398,22 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
     internal async Task SearchPackagesAsync(string query, CancellationToken cancellationToken)
     {
         IsSearchingPackages = true;
-        PackageSearchStatus = _localizationService.GetString("ExternalApps_PackageSearch_Searching");
+        PackageSearchStatusKey = "ExternalApps_PackageSearch_Searching";
         try
         {
             var result = await _externalAppsService.SearchPackagesAsync(query, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             IsChocolateyNoteVisible = !result.SearchedChocolatey;
-            var shown = ShowSearchResults(result.Items);
-            PackageSearchStatus = shown == 0
-                ? _localizationService.GetString("ExternalApps_PackageSearch_None")
-                : _localizationService.GetString("ExternalApps_PackageSearch_Found", shown);
+            var (found, picks) = ShowSearchResults(result.Items);
+            PackageSearchFoundCount = found;
+            PackageSearchPickCount = picks;
+            PackageSearchStatusKey = (found, picks) switch
+            {
+                (0, 0) => "ExternalApps_PackageSearch_None",
+                (0, _) => "ExternalApps_PackageSearch_NoneWithPicks",
+                (_, 0) => "ExternalApps_PackageSearch_Found",
+                _ => "ExternalApps_PackageSearch_FoundWithPicks",
+            };
         }
         finally
         {
@@ -375,20 +423,25 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
     }
 
     // Ticked results stay so a pick survives the next search; unticked ones make way for the new results. A result
-    // the PC already has as another installed app is that app, so it is not listed twice. Returns how many show.
-    private int ShowSearchResults(IReadOnlyList<ItemDefinition> results)
+    // the PC already has as another installed app is that app, so it is not listed twice. Returns how many results
+    // show and how many earlier picks show beside them.
+    private (int Found, int Picks) ShowSearchResults(IReadOnlyList<ItemDefinition> results)
     {
+        var stale = Items.Where(item => PackageSearchItem.Is(item.Id) && !item.IsSelected).ToList();
         using (ItemsView.DeferRefresh())
         {
-            foreach (var stale in Items.Where(item => PackageSearchItem.Is(item.Id) && !item.IsSelected).ToList())
-                RemoveItem(stale);
+            foreach (var item in stale)
+                RemoveItem(item);
         }
+        if (stale.Count > 0)
+            NotifyVisibleRowsChanged();
 
         var installed = Items.Where(item => item.IsOtherInstalled).Select(item => item.Installed?.WinGetId).OfType<string>()
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var shown = results.Where(result => result.WinGetPackageId?.FirstOrDefault() is not { } id || !installed.Contains(id)).ToList();
         AddItems(shown);
-        return shown.Count;
+        var shownIds = shown.Select(result => result.Id).ToHashSet();
+        return (shown.Count, Items.Count(item => PackageSearchItem.Is(item.Id) && !shownIds.Contains(item.Id)));
     }
 
     private void RemoveItem(AppItemViewModel item)
@@ -443,7 +496,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
     private async Task LoadAppsAndCheckInstallationStatusCoreAsync()
     {
         IsLoading = true;
-        StatusText = _localizationService.GetString("Progress_LoadingExternalApps");
+        StatusKey = "Progress_LoadingExternalApps";
 
         try
         {
@@ -490,9 +543,8 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         // Resolve icons in the background — never block the load flow. Callers such
         // as config-import review-mode setup await LoadItemsAsync, and the icon
         // pipeline is network-bound (rate-limit retries can run for over a minute).
-        // Awaiting it here kept the import command's task pending that whole time,
-        // leaving the Import Config button greyed out. ResolveIconsAsync logs and
-        // swallows its own failures and refreshes each item's icon as it completes.
+        // Awaiting it here would keep the import command's task pending that whole time,
+        // leaving the Import Config button greyed out.
         ResolveIconsAsync(Items.ToList()).FireAndForget(_logService);
     }
 
@@ -510,6 +562,8 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
             var scan = await _installedAppsService.GetInstalledAppsAsync(definitions, StatusRules.External);
             ApplyStatus(Items, scan.Status);
             MergeInstalledApps(scan.Apps, scan.UpdatesKnown);
+            if (scan.UpdatesKnown)
+                UpdatesReadUtc = DateTime.UtcNow;
             return scan.UpdatesKnown;
         }
         catch (Exception ex)
@@ -538,7 +592,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         }
     }
 
-    private void ApplyStatus(IEnumerable<AppItemViewModel> items, IReadOnlyDictionary<string, bool> status)
+    private void ApplyStatus(IEnumerable<AppItemViewModel> items, IReadOnlyDictionary<string, bool> status) => ChangeSelection(() =>
     {
         using (ItemsView.DeferRefresh())
         {
@@ -548,7 +602,7 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
                     item.IsInstalled = isInstalled;
             }
         }
-    }
+    });
 
     private void MergeInstalledApps(IReadOnlyList<InstalledApp> apps, bool updatesKnown)
     {
@@ -640,40 +694,38 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         return added;
     }
 
-    // A ticked row gaining or losing its update changes what the Install button will do, like a tick does.
+    // A ticked row gaining or losing its update or its install changes what Install and Uninstall will do, like a tick
+    // does. A row that changes status or stops being selectable moves between the boxes even while unticked.
     private void Item_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(AppItemViewModel.HasUpdate))
-        {
-            OnPropertyChanged(nameof(IsAllSelectedWithUpdates));
-            NotifyUpdateCountChanged();
-        }
+        if (_changingSelection)
+            return;
         if (e.PropertyName == nameof(AppItemViewModel.IsSelected)
-            || (e.PropertyName == nameof(AppItemViewModel.HasUpdate) && sender is AppItemViewModel { IsSelected: true }))
+            || (e.PropertyName is nameof(AppItemViewModel.HasUpdate) or nameof(AppItemViewModel.IsInstalled)
+                && sender is AppItemViewModel { IsSelected: true }))
         {
             NotifySelectionStateChanged();
         }
+        else if (e.PropertyName is nameof(AppItemViewModel.HasUpdate) or nameof(AppItemViewModel.IsInstalled)
+                 or nameof(AppItemViewModel.IsSelectable))
+        {
+            NotifyVisibleRowsChanged();
+        }
     }
 
-    // No-op when no resolver was injected. Failures are logged and swallowed - icon resolution must never block the load flow.
+    // No-op when no resolver was injected. Started with FireAndForget, which logs a failure: icon resolution must
+    // never block the load flow.
     private async Task ResolveIconsAsync(IReadOnlyList<AppItemViewModel> items)
     {
         if (_iconResolver is null) return;
 
-        try
-        {
-            var definitions = items.Select(item => item.Definition).ToList();
-            // External Apps are vendor brand logos — cache them exactly as
-            // shipped (no backplate crop, no light/dark variant synthesis).
-            await _iconResolver.ResolveBatchAsync(definitions, applyThemeAdaptation: false);
+        var definitions = items.Select(item => item.Definition).ToList();
+        // External Apps are vendor brand logos — cache them exactly as
+        // shipped (no backplate crop, no light/dark variant synthesis).
+        await _iconResolver.ResolveBatchAsync(definitions, applyThemeAdaptation: false);
 
-            foreach (var item in items)
-                item.NotifyIconChanged();
-        }
-        catch (Exception ex)
-        {
-            _logService.LogWarning($"Icon resolution failed: {ex.Message}");
-        }
+        foreach (var item in items)
+            item.NotifyIconChanged();
     }
 
     // False before the first load finishes. The updates come from AppUpdateMonitor, which scans once for both tabs.
@@ -681,19 +733,16 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
     {
         if (!IsInitialized)
         {
-            StatusText = _localizationService.GetString("Progress_WaitForInitialLoad");
+            StatusKey = "Progress_WaitForInitialLoad";
             return false;
         }
 
+        StatusKey = "Progress_LoadingExternalApps";
         IsLoading = true;
         try
         {
             _installedAppsService.Invalidate();
             await RefreshInstalledAppsAsync();
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError("Error refreshing status", ex);
         }
         finally
         {
@@ -856,54 +905,56 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         var failedApps = new List<AppItemViewModel>(apps);
         var failedInstallers = new List<StagedInstaller>(ownInstallers);
         var triedAndFailed = new List<string>();
+        var current = string.Empty;
 
         IsTaskRunning = true;
 
         try
         {
-            var cancellation = _progressService.StartTask(_localizationService.GetStringOrDefault("Progress_Task_InstallingExternalApps", "Installing External Apps"), false);
-            var progress = _progressService.CreateDetailedProgress();
-
-            for (int i = 0; i < names.Count; i++)
+            var finished = await _dialogService.RunOrShowErrorAsync(_logService, async () =>
             {
-                if (_progressService.ConsumeSkipNextRequest())
-                    continue;
+                var cancellation = _progressService.StartTask(_localizationService.GetStringOrDefault("Progress_Task_InstallingExternalApps", "Installing External Apps"), false);
+                var progress = _progressService.CreateDetailedProgress();
 
-                progress.Report(new TaskProgressDetail
+                for (int i = 0; i < names.Count; i++)
                 {
-                    StatusText = _localizationService.GetString("Progress_Installing", names[i]),
-                    QueueTotal = names.Count,
-                    QueueCurrent = i + 1,
-                    QueueNextItemName = i + 1 < names.Count ? names[i + 1] : null
-                });
+                    if (_progressService.ConsumeSkipNextRequest())
+                        continue;
 
-                if (i < apps.Count)
-                {
-                    var result = await installApp(apps[i], progress);
-                    if (result.Success && result.Result)
+                    current = names[i];
+                    progress.Report(new TaskProgressDetail
                     {
-                        apps[i].IsInstalled = true;
-                        failedApps.Remove(apps[i]);
+                        StatusText = _localizationService.GetString("Progress_Installing", names[i]),
+                        QueueTotal = names.Count,
+                        QueueCurrent = i + 1,
+                        QueueNextItemName = i + 1 < names.Count ? names[i + 1] : null
+                    });
+
+                    if (i < apps.Count)
+                    {
+                        var result = await installApp(apps[i], progress);
+                        if (result.Success && result.Result)
+                        {
+                            apps[i].IsInstalled = true;
+                            failedApps.Remove(apps[i]);
+                        }
+                        else if (!cancellation.IsCancellationRequested)
+                        {
+                            triedAndFailed.Add(names[i]);
+                        }
                     }
-                    else if (!cancellation.IsCancellationRequested)
+                    else
                     {
-                        triedAndFailed.Add(names[i]);
+                        var installer = ownInstallers[i - apps.Count];
+                        if (await _stagedAppInstaller.InstallAsync(installer, progress, cancellation.Token))
+                            failedInstallers.Remove(installer);
+                        else if (!cancellation.IsCancellationRequested)
+                            triedAndFailed.Add(names[i]);
                     }
                 }
-                else
-                {
-                    var installer = ownInstallers[i - apps.Count];
-                    if (await _stagedAppInstaller.InstallAsync(installer, progress, cancellation.Token))
-                        failedInstallers.Remove(installer);
-                    else if (!cancellation.IsCancellationRequested)
-                        triedAndFailed.Add(names[i]);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _progressService.FailTask();
-            _logService.LogError("Error installing apps", ex);
+            }, ex => _localizationService.GetString("Progress_WinGet_InstallationError", current, ex.Message));
+            if (!finished)
+                _progressService.FailTask();
         }
         finally
         {
@@ -936,36 +987,42 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         if (!confirmed) return;
 
         IsTaskRunning = true;
+        string current = string.Empty;
+        var failed = new List<AppItemViewModel>();
+        var finished = false;
 
         try
         {
-            _progressService.StartTask(_localizationService.GetStringOrDefault("Progress_Task_UninstallingExternalApps", "Uninstalling External Apps"), false);
-            var progress = _progressService.CreateDetailedProgress();
-
-            for (int i = 0; i < selectedItems.Count; i++)
+            finished = await _dialogService.RunOrShowErrorAsync(_logService, async () =>
             {
-                if (_progressService.ConsumeSkipNextRequest())
-                    continue;
+                var cancellation = _progressService.StartTask(_localizationService.GetStringOrDefault("Progress_Task_UninstallingExternalApps", "Uninstalling External Apps"), false);
+                var progress = _progressService.CreateDetailedProgress();
 
-                var app = selectedItems[i];
-                var nextName = i + 1 < selectedItems.Count ? selectedItems[i + 1].Name : null;
-                progress.Report(new TaskProgressDetail
+                for (int i = 0; i < selectedItems.Count; i++)
                 {
-                    StatusText = _localizationService.GetString("Progress_Uninstalling", app.Name),
-                    QueueTotal = selectedItems.Count,
-                    QueueCurrent = i + 1,
-                    QueueNextItemName = nextName
-                });
+                    if (_progressService.ConsumeSkipNextRequest())
+                        continue;
 
-                var result = await _externalAppsService.UninstallAppAsync(app.Definition, progress);
-                if (result.Success && result.Result)
-                    app.IsInstalled = false;
-            }
-        }
-        catch (Exception ex)
-        {
-            _progressService.FailTask();
-            _logService.LogError("Error uninstalling apps", ex);
+                    var app = selectedItems[i];
+                    current = app.Name;
+                    var nextName = i + 1 < selectedItems.Count ? selectedItems[i + 1].Name : null;
+                    progress.Report(new TaskProgressDetail
+                    {
+                        StatusText = _localizationService.GetString("Progress_Uninstalling", app.Name),
+                        QueueTotal = selectedItems.Count,
+                        QueueCurrent = i + 1,
+                        QueueNextItemName = nextName
+                    });
+
+                    var result = await _externalAppsService.UninstallAppAsync(app.Definition, progress);
+                    if (result.Success && result.Result)
+                        app.IsInstalled = false;
+                    else if (!cancellation.IsCancellationRequested)
+                        failed.Add(app);
+                }
+            }, ex => _localizationService.GetString("Progress_WinGet_UninstallationError", current, ex.Message));
+            if (!finished)
+                _progressService.FailTask();
         }
         finally
         {
@@ -977,6 +1034,23 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         }
 
         await RefreshAfterOperationAsync();
+
+        // A run that threw has already shown its error dialog.
+        if (finished && failed.Count > 0)
+            await _dialogService.ShowWarningAsync(UninstallFailedMessage(failed));
+    }
+
+    // The rescan tells an app that was never on this PC apart from one whose uninstaller ran and left it in place.
+    private string UninstallFailedMessage(List<AppItemViewModel> failed)
+    {
+        var notFound = failed.Where(a => !a.IsInstalled).Select(a => a.Name).ToList();
+        var stillInstalled = failed.Where(a => a.IsInstalled).Select(a => a.Name).ToList();
+        var sections = new List<string>();
+        if (notFound.Count > 0)
+            sections.Add(_localizationService.GetString("ExternalApps_UninstallNotFound", string.Join("\n", notFound)));
+        if (stillInstalled.Count > 0)
+            sections.Add(_localizationService.GetString("ExternalApps_UninstallFailed", string.Join("\n", stillInstalled)));
+        return string.Join("\n\n", sections);
     }
 
     private async Task RefreshAfterOperationAsync()
@@ -1038,29 +1112,22 @@ public partial class ExternalAppsViewModel : BaseViewModel, IExternalAppsItemsPr
         && (definition.WinGetPackageId is { Length: > 0 } || !string.IsNullOrEmpty(definition.ChocoPackageId));
 
     [RelayCommand]
-    public void ClearSelections()
+    public void ClearSelections() => ChangeSelection(() =>
     {
         foreach (var item in Items)
-        {
             item.IsSelected = false;
-        }
-        NotifySelectionStateChanged();
-    }
+    });
 
-    private void NotifyUpdateCountChanged()
+    private void NotifyVisibleRowsChanged()
     {
-        OnPropertyChanged(nameof(UpdatesCount));
-        OnPropertyChanged(nameof(HasUpdates));
-        OnPropertyChanged(nameof(SelectAllWithUpdatesLabel));
+        foreach (var name in VisibleRowProperties)
+            OnPropertyChanged(name);
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        OnPropertyChanged(nameof(SelectAllWithUpdatesLabel));
-        OnPropertyChanged(nameof(SelectAllLabel));
-        OnPropertyChanged(nameof(SelectAllInstalledLabel));
-        OnPropertyChanged(nameof(SelectAllNotInstalledLabel));
-        OnPropertyChanged(nameof(ChocolateyNoteText));
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
         RebuildCategories();
     }
 

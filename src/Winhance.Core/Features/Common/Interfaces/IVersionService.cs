@@ -13,6 +13,10 @@ public interface IVersionService
 
     Task DownloadAndInstallUpdateAsync(CancellationToken cancellationToken = default);
 
-    // The caller should exit the application immediately after calling this.
-    void LaunchInstallerAndRestart();
+    bool IsUpdateDownloaded { get; }
+
+    // The caller should exit the application immediately after calling either of these.
+    void LaunchInstallerAndRestart(bool relaunchInTray = false);
+
+    void LaunchInstallerOnExit();
 }

@@ -212,6 +212,7 @@ internal class IsoService : IIsoService
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        string? temporaryOutput = null;
         try
         {
             if (string.IsNullOrEmpty(workingDirectory))
@@ -237,22 +238,18 @@ internal class IsoService : IIsoService
             if (!string.IsNullOrEmpty(outputDir) && !_fileSystemService.DirectoryExists(outputDir))
                 _fileSystemService.CreateDirectory(outputDir);
 
-            if (_fileSystemService.FileExists(outputPath))
-            {
-                _fileSystemService.DeleteFile(outputPath);
-                _logService.LogInformation("Removed existing ISO file");
-            }
-
+            // The previous ISO stays intact until the replacement is complete.
+            temporaryOutput = $"{outputPath}.{Guid.NewGuid():N}.tmp";
             await Task.Run(
-                () => _isoImageWriter.Write(workingDirectory, outputPath, replacements, progress, cancellationToken),
+                () => _isoImageWriter.Write(workingDirectory, temporaryOutput, replacements, progress, cancellationToken),
                 cancellationToken).ConfigureAwait(false);
 
-            if (!_fileSystemService.FileExists(outputPath))
-            {
+            if (!_fileSystemService.FileExists(temporaryOutput))
                 throw new InvalidOperationException($"IMAPI2 finished without producing {outputPath}.");
-            }
 
-            var isoFileSize = _fileSystemService.GetFileSize(outputPath);
+            cancellationToken.ThrowIfCancellationRequested();
+            var isoFileSize = _fileSystemService.GetFileSize(temporaryOutput);
+            _fileSystemService.MoveFileReplacing(temporaryOutput, outputPath);
             _logService.LogInformation($"ISO created successfully: {outputPath} ({isoFileSize:N0} bytes)");
 
             progress?.Report(new TaskProgressDetail
@@ -274,7 +271,6 @@ internal class IsoService : IIsoService
         }
         catch (Exception ex)
         {
-            _logService.LogError($"Error creating ISO: {ex.Message}", ex);
             progress?.Report(new TaskProgressDetail
             {
                 StatusText = _localization.GetString("Progress_IsoCreationFailed"),
@@ -284,6 +280,14 @@ internal class IsoService : IIsoService
             // The ViewModel shows the message. Swallowed into false, the user got "check the logs"
             // for the ISO while the USB path next to it named the reason.
             throw;
+        }
+        finally
+        {
+            if (temporaryOutput is not null && _fileSystemService.FileExists(temporaryOutput))
+            {
+                try { _fileSystemService.DeleteFile(temporaryOutput); }
+                catch (Exception ex) { _logService.LogDebug($"Could not remove incomplete ISO: {ex.Message}"); }
+            }
         }
     }
 }

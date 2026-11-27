@@ -30,24 +30,46 @@ public sealed partial class WizardStepRail : UserControl
 
     public event EventHandler<int>? StepInvoked;
 
+    // The steps belong to the singleton view model, so a subscription left in place roots this rail and its page.
+    private List<WizardStepState> _subscribedSteps = [];
+
     public WizardStepRail()
     {
         InitializeComponent();
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
-    public static Visibility PendingVisibility(bool isComplete) =>
-        isComplete ? Visibility.Collapsed : Visibility.Visible;
+    private void OnLoaded(object sender, RoutedEventArgs e) => SubscribeToSteps();
+
+    private void OnUnloaded(object sender, RoutedEventArgs e) => UnsubscribeFromSteps();
+
+    public static bool IsPending(bool isComplete) => !isComplete;
 
     public static FontWeight LabelWeight(bool isCurrent) => isCurrent ? FontWeights.SemiBold : FontWeights.Normal;
 
     private static void OnStepsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var rail = (WizardStepRail)d;
-        foreach (var step in StepsOf(e.OldValue))
-            step.PropertyChanged -= rail.OnStepPropertyChanged;
-        foreach (var step in StepsOf(e.NewValue))
-            step.PropertyChanged += rail.OnStepPropertyChanged;
-        rail.SelectCurrentStep();
+        rail.UnsubscribeFromSteps();
+        if (rail.IsLoaded)
+            rail.SubscribeToSteps();
+    }
+
+    private void SubscribeToSteps()
+    {
+        UnsubscribeFromSteps();
+        _subscribedSteps = [.. StepsOf(Steps)];
+        foreach (var step in _subscribedSteps)
+            step.PropertyChanged += OnStepPropertyChanged;
+        SelectCurrentStep();
+    }
+
+    private void UnsubscribeFromSteps()
+    {
+        foreach (var step in _subscribedSteps)
+            step.PropertyChanged -= OnStepPropertyChanged;
+        _subscribedSteps = [];
     }
 
     private static IEnumerable<WizardStepState> StepsOf(object? steps) =>

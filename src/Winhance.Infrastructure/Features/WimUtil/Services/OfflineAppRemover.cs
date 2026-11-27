@@ -1,3 +1,4 @@
+using Microsoft.Win32;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
@@ -14,6 +15,7 @@ internal sealed class OfflineAppRemover(
     IFileSystemService files,
     IPowerShellRunner powerShell,
     IOfflineHiveLoader hives,
+    IWindowsRegistryService registry,
     ILogService log) : IOfflineAppRemover
 {
     public async Task<OfflineStepOutcome> RemoveAsync(
@@ -26,8 +28,18 @@ internal sealed class OfflineAppRemover(
         var plan = AppRemovalPlan.For(set.WindowsApps);
         var tally = new Tally();
 
+        // Clear the old state before servicing. An interrupted rebuild must not inherit a success from a prior run.
+        if (!await WriteImageStateAsync(mountDir, string.Empty, cancellationToken).ConfigureAwait(false))
+            return new OfflineStepOutcome(false, ["registry"], 0);
+
+        var legacyMarker = files.CombinePath(mountDir, ScriptPaths.LegacyUnattendAppsRemovedMarker[3..]);
+        if (files.FileExists(legacyMarker))
+            files.DeleteFile(legacyMarker);
+
         // No script can run inside an image, so a dedicated app's own packages are removed here as well.
-        await RemoveProvisionedAsync(mountDir, [.. plan.Packages, .. plan.DedicatedPackages], tally, progress, cancellationToken).ConfigureAwait(false);
+        // OfficeHub can be the consumer Copilot wrapper; setup must inspect its live manifest before removing it.
+        var packages = plan.Packages.Where(p => !p.Equals("Microsoft.MicrosoftOfficeHub", StringComparison.OrdinalIgnoreCase));
+        await RemoveProvisionedAsync(mountDir, [.. packages, .. plan.DedicatedPackages], tally, progress, cancellationToken).ConfigureAwait(false);
         await RemoveCapabilitiesAsync(mountDir, plan.Capabilities, tally, progress, cancellationToken).ConfigureAwait(false);
         await DisableFeaturesAsync(mountDir, plan.Features, tally, progress, cancellationToken).ConfigureAwait(false);
 
@@ -42,11 +54,24 @@ internal sealed class OfflineAppRemover(
             return new OfflineStepOutcome(false, tally.Failed, tally.Applied);
         }
 
-        // The answer file reads this to know the continuous removal is not needed for these apps.
-        var marker = files.CombinePath(mountDir, ScriptPaths.UnattendAppsRemovedMarker[3..]);
-        files.CreateDirectory(files.GetDirectoryName(marker)!);
-        files.WriteAllText(marker, string.Empty);
+        if (!await WriteImageStateAsync(mountDir, plan.ImageFingerprint(), cancellationToken).ConfigureAwait(false))
+            return new OfflineStepOutcome(false, ["registry"], tally.Applied);
         return new OfflineStepOutcome(true, [], tally.Applied);
+    }
+
+    private async Task<bool> WriteImageStateAsync(string mountDir, string value, CancellationToken ct)
+    {
+        try
+        {
+            await using var session = await hives.LoadAsync(mountDir, ct).ConfigureAwait(false);
+            var key = $"{session.SoftwareRoot}\\Winhance";
+            return registry.SetValue(key, ScriptPaths.UnattendAppsRemovedValue, value, RegistryValueKind.String);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            log.LogWarning($"Could not record app removal in the image registry: {ex.Message}");
+            return false;
+        }
     }
 
     private async Task RemoveProvisionedAsync(

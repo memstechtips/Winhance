@@ -6,7 +6,7 @@ using Winhance.Core.Features.Common.Interfaces;
 
 namespace Winhance.Infrastructure.Features.Common.Services;
 
-internal class SystemParametersService : ISystemParametersService
+internal class SystemParametersService(IInteractiveUserService interactiveUser) : ISystemParametersService
 {
     // The int-typed parameters are Core's contract and stay that way: casting at this boundary is
     // what keeps Windows.Win32 types out of Winhance.Core.
@@ -24,6 +24,19 @@ internal class SystemParametersService : ISystemParametersService
 
     public bool SetSysColors(int index, uint colorRef) =>
         PInvoke.SetSysColors([index], [(COLORREF)colorRef]);
+
+    public unsafe int? GetMessageDuration()
+    {
+        uint seconds = 0;
+        return !interactiveUser.IsOtsElevation && PInvoke.SystemParametersInfo(
+            SYSTEM_PARAMETERS_INFO_ACTION.SPI_GETMESSAGEDURATION, 0, &seconds, 0) && seconds <= int.MaxValue
+            ? (int)seconds : null;
+    }
+
+    public unsafe bool SetMessageDuration(int seconds) =>
+        !interactiveUser.IsOtsElevation && seconds >= 0 && PInvoke.SystemParametersInfo(
+            SYSTEM_PARAMETERS_INFO_ACTION.SPI_SETMESSAGEDURATION, 0, (void*)(nint)seconds,
+            SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS.SPIF_UPDATEINIFILE | SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS.SPIF_SENDCHANGE);
 
     // fWinIni 0: the catalog's own registry write persists the value, and SPIF_UPDATEINIFILE would write back the
     // whole in-memory UserPreferencesMask, carrying any bit that was changed in the registry but not yet live.

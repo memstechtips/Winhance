@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Winhance.Infrastructure.Extensions.DI;
 using Winhance.UI.Helpers;
 
@@ -16,21 +15,19 @@ public static class CompositionRoot
         return services;
     }
 
-    public static IHostBuilder CreateWinhanceHost(LaunchOptions? launch = null)
+    // A plain container rather than the generic host: nothing here uses its configuration, logging or lifetime,
+    // and Host.CreateDefaultBuilder loads about 30 assemblies and watches appsettings.json for them.
+    // ValidateOnBuild makes a registration with an unresolvable dependency fail at startup, not on first use, and
+    // WinhanceHostSmokeTests fails the gate first.
+    public static ServiceProvider BuildWinhanceServices(LaunchOptions? launch = null)
     {
-        return Host.CreateDefaultBuilder()
-            // The generic host validates the service graph only in the Development environment, which a shipped
-            // desktop app never is - so a registration with an unresolvable dependency would surface on first
-            // use. Force it on: a broken graph fails at startup, and WinhanceHostSmokeTests fails the gate first.
-            .UseDefaultServiceProvider(options =>
-            {
-                options.ValidateOnBuild = true;
-                options.ValidateScopes = true;
-            })
-            .ConfigureServices((context, services) =>
-            {
-                services.ConfigureWinhanceServices();
-                services.AddSingleton(launch ?? LaunchOptions.None);
-            });
+        var services = new ServiceCollection()
+            .ConfigureWinhanceServices()
+            .AddSingleton(launch ?? LaunchOptions.None);
+        return services.BuildServiceProvider(new ServiceProviderOptions
+        {
+            ValidateOnBuild = true,
+            ValidateScopes = true,
+        });
     }
 }

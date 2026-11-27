@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -19,6 +20,7 @@ using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.Common.TechnicalDetails;
 using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Converters;
+using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Common.Services;
@@ -28,6 +30,19 @@ namespace Winhance.UI.Features.Optimize.ViewModels;
 
 public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 {
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(NewBadgeText), nameof(TechnicalDetailsLabel), nameof(ClickToUnlockText), nameof(PluggedInText),
+        nameof(OnBatteryText), nameof(AcInputAutomationName), nameof(DcInputAutomationName),
+        nameof(RecommendedValueTooltip), nameof(DefaultValueTooltip), nameof(RecommendedAcValueTooltip),
+        nameof(DefaultAcValueTooltip), nameof(RecommendedDcValueTooltip), nameof(DefaultDcValueTooltip),
+        nameof(TwoStateRecommendedTooltip), nameof(TwoStateDefaultTooltip), nameof(SelectionRecommendedTooltip),
+        nameof(SelectionDefaultTooltip), nameof(AcSelectionRecommendedTooltip), nameof(AcSelectionDefaultTooltip),
+        nameof(DcSelectionRecommendedTooltip), nameof(DcSelectionDefaultTooltip), nameof(IncludeAutomationName),
+        nameof(IncludeToolTip), nameof(ReviewApplyLabel), nameof(ReviewDontApplyLabel), nameof(GroupPolicyLink),
+        nameof(WallpaperExportNote),
+    ];
+
     private readonly ISettingWriteStrategySelector _writeStrategySelector;
     private readonly ILogService _logService;
     private readonly IDialogService _dialogService;
@@ -51,7 +66,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     public Setting? Setting { get; set; }
 
-    public IReadOnlyList<OptionWarning?>? OptionWarnings { get; }
+    public IReadOnlyList<string>? OptionWarnings { get; }
 
     [ObservableProperty]
     public partial string SettingId { get; set; }
@@ -64,6 +79,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public override string ToString() => Name;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ChildDescriptionText))]
     public partial string Description { get; set; }
 
     [ObservableProperty]
@@ -90,6 +106,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public partial string Status { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasStatusBanner))]
     public partial string? StatusBannerMessage { get; set; }
 
     [ObservableProperty]
@@ -102,10 +119,24 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     public bool HasStatusBanner => !string.IsNullOrEmpty(StatusBannerMessage);
 
-    partial void OnStatusBannerMessageChanged(string? value)
-    {
-        OnPropertyChanged(nameof(HasStatusBanner));
-    }
+    // Always shown, badges or not: people seeing "managed by your organization" in Settings should know Winhance put it there.
+    public DescriptionLinkSpec? GroupPolicyLink => Setting?.WritesGroupPolicy == true
+        ? new(
+            _localizationService.GetStringOrDefault("GroupPolicy_Link_Text", "Group Policy"),
+            _localizationService.GetStringOrDefault("GroupPolicy_Link_Pattern", "{0}. Uses [Group Policy]."),
+            _localizationService.GetStringOrDefault("GroupPolicy_Explanation",
+                "This setting, or some of its options, uses Windows Group Policy. A policy holds the setting in place, so Windows Update is less likely to change it back. While a policy is set, Windows Settings greys out that option and shows this message: {0}",
+                _localizationService.GetStringOrDefault("GroupPolicy_ManagedMessage", "Some of these settings are managed by your organization.")),
+            () => _dialogService.ShowGroupPolicyDialogAsync().FireAndForget(_logService))
+        : null;
+
+    [ObservableProperty]
+    public partial bool ShowWallpaperExportBanner { get; private set; }
+    public string WallpaperExportNote => _localizationService.GetString("Builder_Wallpaper_StandaloneExportNote");
+
+    // x:Bind re-runs a function when one of its arguments changes.
+    public bool ShowsCardBanners(bool hasStatusBanner, bool hasReviewBanners, bool showWallpaperExportBanner) =>
+        hasStatusBanner || hasReviewBanners || showWallpaperExportBanner;
 
     [ObservableProperty]
     public partial InputType InputType { get; set; }
@@ -150,11 +181,11 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public partial bool HasTextError { get; set; }
 
     public string TextError => Setting?.TextBox?.Rule.Message is { } message
-        ? Localized(message)
+        ? _localizationService.GetString(message)
         : string.Empty;
 
     public string TextPlaceholder => Setting?.TextBox?.Placeholder is { } placeholder
-        ? Localized(placeholder)
+        ? _localizationService.GetString(placeholder)
         : string.Empty;
 
     public PickerKind TextBoxPicker => Setting?.TextBox?.Picker ?? PickerKind.None;
@@ -209,24 +240,20 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public string ActionButtonText { get; set; } = "Apply";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TechnicalDetailsToggleCornerRadius))]
     public partial bool IsTechnicalDetailsExpanded { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowTechnicalDetailsBar))]
     public partial bool IsTechnicalDetailsGloballyVisible { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTechnicalDetails), nameof(ShowTechnicalDetailsBar))]
     public partial OptionMatrix? TechnicalDetailMatrix { get; set; }
 
     public bool HasTechnicalDetails => TechnicalDetailMatrix is not null;
 
-    partial void OnTechnicalDetailMatrixChanged(OptionMatrix? oldValue, OptionMatrix? newValue)
-    {
-        if ((oldValue is null) == (newValue is null)) return;
-        OnPropertyChanged(nameof(HasTechnicalDetails));
-        OnPropertyChanged(nameof(ShowTechnicalDetailsBar));
-    }
-
-    public IRelayCommand<string> OpenRegeditCommand => _technicalDetailsManager.OpenRegeditCommand;
+    public IRelayCommand<string?> OpenRegeditCommand => _technicalDetailsManager.OpenRegeditCommand;
 
     public bool ShowTechnicalDetailsBar => HasTechnicalDetails && IsTechnicalDetailsGloballyVisible;
 
@@ -236,14 +263,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             ? new Microsoft.UI.Xaml.CornerRadius(0)
             : new Microsoft.UI.Xaml.CornerRadius(0, 0, 4, 4);
 
-    partial void OnIsTechnicalDetailsExpandedChanged(bool value)
-    {
-        OnPropertyChanged(nameof(TechnicalDetailsToggleCornerRadius));
-    }
-
     partial void OnIsTechnicalDetailsGloballyVisibleChanged(bool value)
     {
-        OnPropertyChanged(nameof(ShowTechnicalDetailsBar));
         if (!value) IsTechnicalDetailsExpanded = false;
     }
 
@@ -254,9 +275,11 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public void ToggleTechnicalDetails() => IsTechnicalDetailsExpanded = !IsTechnicalDetailsExpanded;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EffectiveIsVisible))]
     public partial bool IsVisible { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EffectiveIsEnabled))]
     public partial bool IsEnabled { get; set; }
 
     // Names this setting's cross-group children. The child list is filtered by the catalog scope, so a
@@ -271,19 +294,19 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public InfoBarSeverity CompatibilitySeverity { get; set; } = InfoBarSeverity.Warning;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowNewBadge))]
     public partial bool IsNew { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowNewBadge))]
     public partial bool IsNewBadgeGloballyVisible { get; set; } = true;
 
     public string NewBadgeText => _localizationService.GetStringOrDefault("Badge_New", "NEW");
 
     public bool ShowNewBadge => IsNew && IsNewBadgeGloballyVisible;
 
-    partial void OnIsNewChanged(bool value) => OnPropertyChanged(nameof(ShowNewBadge));
-    partial void OnIsNewBadgeGloballyVisibleChanged(bool value) => OnPropertyChanged(nameof(ShowNewBadge));
-
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowInfoBadge), nameof(ShowNumericQuickSetButtons), nameof(ShowTwoStateQuickSetButtons), nameof(ShowSelectionQuickSetButtons), nameof(ShowAcSelectionQuickSetButtons), nameof(ShowDcSelectionQuickSetButtons))]
     public partial bool IsInfoBadgeGloballyVisible { get; set; }
 
     [ObservableProperty]
@@ -292,16 +315,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public bool HasBadgeData { get; set; }
 
     public bool ShowInfoBadge => IsInfoBadgeGloballyVisible && HasBadgeData;
-
-    partial void OnIsInfoBadgeGloballyVisibleChanged(bool value)
-    {
-        OnPropertyChanged(nameof(ShowInfoBadge));
-        OnPropertyChanged(nameof(ShowNumericQuickSetButtons));
-        OnPropertyChanged(nameof(ShowTwoStateQuickSetButtons));
-        OnPropertyChanged(nameof(ShowSelectionQuickSetButtons));
-        OnPropertyChanged(nameof(ShowAcSelectionQuickSetButtons));
-        OnPropertyChanged(nameof(ShowDcSelectionQuickSetButtons));
-    }
 
     // Quick-set buttons: every setting card shows "Set to Recommended" / "Set to Default" buttons in front
     // of its control when the ShowInfoBadges preference is on AND the setting has at
@@ -433,73 +446,67 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    public IRelayCommand SetNumericToRecommendedCommand => _setNumericToRecommendedCommand ??=
-        new RelayCommand(() =>
+    [RelayCommand]
+    private void SetNumericToRecommended()
+    {
+        if (NumericRecommendedValue is int v)
         {
-            if (NumericRecommendedValue is int v)
-            {
-                var display = ConvertFromSystemUnits(v);
-                NumericValue = display;
-                HandleValueChangedAsync(display).FireAndForget(_logService);
-            }
-        });
-    private RelayCommand? _setNumericToRecommendedCommand;
+            var display = ConvertFromSystemUnits(v);
+            NumericValue = display;
+            HandleValueChangedAsync(display).FireAndForget(_logService);
+        }
+    }
 
-    public IRelayCommand SetNumericToDefaultCommand => _setNumericToDefaultCommand ??=
-        new RelayCommand(() =>
+    [RelayCommand]
+    private void SetNumericToDefault()
+    {
+        if (NumericDefaultValue is int v)
         {
-            if (NumericDefaultValue is int v)
-            {
-                var display = ConvertFromSystemUnits(v);
-                NumericValue = display;
-                HandleValueChangedAsync(display, resetToDefault: true).FireAndForget(_logService);
-            }
-        });
-    private RelayCommand? _setNumericToDefaultCommand;
+            var display = ConvertFromSystemUnits(v);
+            NumericValue = display;
+            HandleValueChangedAsync(display, resetToDefault: true).FireAndForget(_logService);
+        }
+    }
 
-    public IRelayCommand SetAcNumericToRecommendedCommand => _setAcNumericToRecommendedCommand ??=
-        new RelayCommand(() =>
+    [RelayCommand]
+    private void SetAcNumericToRecommended()
+    {
+        if (AcRecommendedValue is int v)
         {
-            if (AcRecommendedValue is int v)
-            {
-                AcNumericValue = ConvertFromSystemUnits(v);
-                HandleACDCNumericChangedAsync().FireAndForget(_logService);
-            }
-        });
-    private RelayCommand? _setAcNumericToRecommendedCommand;
+            AcNumericValue = ConvertFromSystemUnits(v);
+            HandleACDCNumericChangedAsync().FireAndForget(_logService);
+        }
+    }
 
-    public IRelayCommand SetAcNumericToDefaultCommand => _setAcNumericToDefaultCommand ??=
-        new RelayCommand(() =>
+    [RelayCommand]
+    private void SetAcNumericToDefault()
+    {
+        if (AcDefaultValue is int v)
         {
-            if (AcDefaultValue is int v)
-            {
-                AcNumericValue = ConvertFromSystemUnits(v);
-                HandleACDCNumericChangedAsync(resetToDefault: true).FireAndForget(_logService);
-            }
-        });
-    private RelayCommand? _setAcNumericToDefaultCommand;
+            AcNumericValue = ConvertFromSystemUnits(v);
+            HandleACDCNumericChangedAsync(resetToDefault: true).FireAndForget(_logService);
+        }
+    }
 
-    public IRelayCommand SetDcNumericToRecommendedCommand => _setDcNumericToRecommendedCommand ??=
-        new RelayCommand(() =>
+    [RelayCommand]
+    private void SetDcNumericToRecommended()
+    {
+        if (DcRecommendedValue is int v)
         {
-            if (DcRecommendedValue is int v)
-            {
-                DcNumericValue = ConvertFromSystemUnits(v);
-                HandleACDCNumericChangedAsync().FireAndForget(_logService);
-            }
-        });
-    private RelayCommand? _setDcNumericToRecommendedCommand;
+            DcNumericValue = ConvertFromSystemUnits(v);
+            HandleACDCNumericChangedAsync().FireAndForget(_logService);
+        }
+    }
 
-    public IRelayCommand SetDcNumericToDefaultCommand => _setDcNumericToDefaultCommand ??=
-        new RelayCommand(() =>
+    [RelayCommand]
+    private void SetDcNumericToDefault()
+    {
+        if (DcDefaultValue is int v)
         {
-            if (DcDefaultValue is int v)
-            {
-                DcNumericValue = ConvertFromSystemUnits(v);
-                HandleACDCNumericChangedAsync(resetToDefault: true).FireAndForget(_logService);
-            }
-        });
-    private RelayCommand? _setDcNumericToDefaultCommand;
+            DcNumericValue = ConvertFromSystemUnits(v);
+            HandleACDCNumericChangedAsync(resetToDefault: true).FireAndForget(_logService);
+        }
+    }
 
     public bool? TwoStateRecommended =>
         Setting is { } s ? TwoState.GetRecommended(s, _build) : null;
@@ -530,25 +537,23 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    public IRelayCommand SetTwoStateToRecommendedCommand => _setTwoStateToRecommendedCommand ??=
-        new RelayCommand(() =>
-        {
-            if (TwoStateRecommended is bool v)
-                // fromCustomState while Custom: bypass the newValue==IsSelected guard (a Custom toggle
-                // sits at IsSelected=false, so a Disabled target would be silently swallowed - no write,
-                // no feedback) and clear the overlay on success. Quick-set is an explicit state pick,
-                // so no dialog (same reasoning as the Custom dialog flow's no-double-confirm).
-                HandleTwoStateAsync(v, fromCustomState: ShowsStateOverlay).FireAndForget(_logService);
-        });
-    private RelayCommand? _setTwoStateToRecommendedCommand;
+    [RelayCommand]
+    private void SetTwoStateToRecommended()
+    {
+        if (TwoStateRecommended is bool v)
+            // fromCustomState while Custom: bypass the newValue==IsSelected guard (a Custom toggle
+            // sits at IsSelected=false, so a Disabled target would be silently swallowed - no write,
+            // no feedback) and clear the overlay on success. Quick-set is an explicit state pick,
+            // so no dialog (same reasoning as the Custom dialog flow's no-double-confirm).
+            HandleTwoStateAsync(v, fromCustomState: ShowsStateOverlay).FireAndForget(_logService);
+    }
 
-    public IRelayCommand SetTwoStateToDefaultCommand => _setTwoStateToDefaultCommand ??=
-        new RelayCommand(() =>
-        {
-            if (TwoStateDefault is bool v)
-                HandleTwoStateAsync(v, resetToDefault: true, fromCustomState: ShowsStateOverlay).FireAndForget(_logService);
-        });
-    private RelayCommand? _setTwoStateToDefaultCommand;
+    [RelayCommand]
+    private void SetTwoStateToDefault()
+    {
+        if (TwoStateDefault is bool v)
+            HandleTwoStateAsync(v, resetToDefault: true, fromCustomState: ShowsStateOverlay).FireAndForget(_logService);
+    }
 
     // Per-state roles drive recommended/default. States order matches the option order 1:1, so the index
     // matches. HasRole defaults to PowerContext.Always - standard selections match here; PowerCfg AC/DC-scoped
@@ -605,21 +610,19 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    public IRelayCommand SetSelectionToRecommendedCommand => _setSelectionToRecommendedCommand ??=
-        new RelayCommand(() =>
-        {
-            if (SelectionRecommendedIndex is int i)
-                HandleValueChangedAsync(i).FireAndForget(_logService);
-        });
-    private RelayCommand? _setSelectionToRecommendedCommand;
+    [RelayCommand]
+    private void SetSelectionToRecommended()
+    {
+        if (SelectionRecommendedIndex is int i)
+            HandleValueChangedAsync(i).FireAndForget(_logService);
+    }
 
-    public IRelayCommand SetSelectionToDefaultCommand => _setSelectionToDefaultCommand ??=
-        new RelayCommand(() =>
-        {
-            if (SelectionDefaultIndex is int i)
-                HandleValueChangedAsync(i, resetToDefault: true).FireAndForget(_logService);
-        });
-    private RelayCommand? _setSelectionToDefaultCommand;
+    [RelayCommand]
+    private void SetSelectionToDefault()
+    {
+        if (SelectionDefaultIndex is int i)
+            HandleValueChangedAsync(i, resetToDefault: true).FireAndForget(_logService);
+    }
 
     public int? AcSelectionRecommendedIndex =>
         Setting is { } s ? FindStateIndexWithRole(s, RoleKind.Recommended, PowerContext.AC) : null;
@@ -675,49 +678,45 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    public IRelayCommand SetAcSelectionToRecommendedCommand => _setAcSelectionToRecommendedCommand ??=
-        new RelayCommand(() =>
+    [RelayCommand]
+    private void SetAcSelectionToRecommended()
+    {
+        if (AcSelectionRecommendedIndex is int i)
         {
-            if (AcSelectionRecommendedIndex is int i)
-            {
-                AcValue = i;
-                HandleACDCSelectionChangedAsync().FireAndForget(_logService);
-            }
-        });
-    private RelayCommand? _setAcSelectionToRecommendedCommand;
+            AcValue = i;
+            HandleACDCSelectionChangedAsync().FireAndForget(_logService);
+        }
+    }
 
-    public IRelayCommand SetAcSelectionToDefaultCommand => _setAcSelectionToDefaultCommand ??=
-        new RelayCommand(() =>
+    [RelayCommand]
+    private void SetAcSelectionToDefault()
+    {
+        if (AcSelectionDefaultIndex is int i)
         {
-            if (AcSelectionDefaultIndex is int i)
-            {
-                AcValue = i;
-                HandleACDCSelectionChangedAsync(resetToDefault: true).FireAndForget(_logService);
-            }
-        });
-    private RelayCommand? _setAcSelectionToDefaultCommand;
+            AcValue = i;
+            HandleACDCSelectionChangedAsync(resetToDefault: true).FireAndForget(_logService);
+        }
+    }
 
-    public IRelayCommand SetDcSelectionToRecommendedCommand => _setDcSelectionToRecommendedCommand ??=
-        new RelayCommand(() =>
+    [RelayCommand]
+    private void SetDcSelectionToRecommended()
+    {
+        if (DcSelectionRecommendedIndex is int i)
         {
-            if (DcSelectionRecommendedIndex is int i)
-            {
-                DcValue = i;
-                HandleACDCSelectionChangedAsync().FireAndForget(_logService);
-            }
-        });
-    private RelayCommand? _setDcSelectionToRecommendedCommand;
+            DcValue = i;
+            HandleACDCSelectionChangedAsync().FireAndForget(_logService);
+        }
+    }
 
-    public IRelayCommand SetDcSelectionToDefaultCommand => _setDcSelectionToDefaultCommand ??=
-        new RelayCommand(() =>
+    [RelayCommand]
+    private void SetDcSelectionToDefault()
+    {
+        if (DcSelectionDefaultIndex is int i)
         {
-            if (DcSelectionDefaultIndex is int i)
-            {
-                DcValue = i;
-                HandleACDCSelectionChangedAsync(resetToDefault: true).FireAndForget(_logService);
-            }
-        });
-    private RelayCommand? _setDcSelectionToDefaultCommand;
+            DcValue = i;
+            HandleACDCSelectionChangedAsync(resetToDefault: true).FireAndForget(_logService);
+        }
+    }
 
     // Set by ComputeBadgeState; a card without badge data never matches, so a bulk action still counts it.
     [ObservableProperty]
@@ -858,13 +857,13 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public string ClickToUnlockText => HasFields
         ? _localizationService.GetStringOrDefault("Common_Edit", "Edit")
         : _localizationService.GetStringOrDefault("Common_ClickToUnlock", "Click to unlock");
-    public IAsyncRelayCommand UnlockCommand { get; }
 
     // A Selection's presets spelled out as typed fields (the DNS servers): shown as the machine has them, edited
     // behind the pencil, and applied together so a half-typed address never reaches Windows.
     public bool HasFields => Setting?.Fields.Count > 0;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanApplyFields), nameof(ShowFieldsError))]
     public partial IReadOnlyList<ListRowViewModel> FieldRows { get; set; } = [];
 
     public bool ShowFieldButtons => HasFields && !IsLocked;
@@ -897,9 +896,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     public string ApplyFieldsText => _localizationService.GetStringOrDefault("Button_Apply", "Apply");
     public string CancelFieldsText => _localizationService.GetStringOrDefault("Button_Cancel", "Cancel");
-
-    public IAsyncRelayCommand ApplyFieldsCommand { get; }
-    public IRelayCommand CancelFieldsCommand { get; }
 
     // Review-mode state.
     // All of it lives behind one nullable reference, so leaving review is a single assignment to
@@ -935,7 +931,11 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public bool HasReviewDiff
     {
         get => _reviewState?.HasDiff ?? false;
-        set => SetReviewValue(static s => s.HasDiff, static (s, v) => s.HasDiff = v, value);
+        set
+        {
+            if (SetReviewValue(static s => s.HasDiff, static (s, v) => s.HasDiff = v, value))
+                OnPropertyChanged(nameof(HasReviewBanners));
+        }
     }
 
     public string? ReviewDiffMessage
@@ -983,8 +983,14 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public bool HasReviewAction
     {
         get => _reviewState?.HasAction ?? false;
-        set => SetReviewValue(static s => s.HasAction, static (s, v) => s.HasAction = v, value);
+        set
+        {
+            if (SetReviewValue(static s => s.HasAction, static (s, v) => s.HasAction = v, value))
+                OnPropertyChanged(nameof(HasReviewBanners));
+        }
     }
+
+    public bool HasReviewBanners => HasReviewDiff || HasReviewAction;
 
     public string? ReviewActionMessage
     {
@@ -1063,6 +1069,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         OnPropertyChanged(nameof(ReviewActionMessage));
         OnPropertyChanged(nameof(IsReviewActionApproved));
         OnPropertyChanged(nameof(IsReviewActionRejected));
+        OnPropertyChanged(nameof(HasReviewBanners));
     }
 
     // Handlers go first: dropping the overlay raises PropertyChanged for the projections, and a stale subscriber
@@ -1075,21 +1082,12 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         IsInReviewMode = false;
     }
 
-    partial void OnIsEnabledChanged(bool value)
-    {
-        OnPropertyChanged(nameof(EffectiveIsEnabled));
-    }
-
     // False only when Setting.EnabledWhen names a setting currently outside the declared states; true for every
     // card that declares no gate - including every card merely NESTED under another. One bool because that is all
     // the view binds to; the decision is made in BaseSettingsFeatureViewModel, the only place that can see the other card.
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EffectiveIsEnabled))]
     public partial bool ParentIsEnabled { get; set; }
-
-    partial void OnParentIsEnabledChanged(bool value)
-    {
-        OnPropertyChanged(nameof(EffectiveIsEnabled));
-    }
 
     // Why the gate is closed, shown as the card's tooltip; null whenever ParentIsEnabled is true.
     [ObservableProperty]
@@ -1098,17 +1096,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     // Kept apart from IsVisible because search and the view filter rewrite that one on every pass, which would
     // erase a declared gate.
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EffectiveIsVisible))]
     public partial bool ParentIsVisible { get; set; }
-
-    partial void OnParentIsVisibleChanged(bool value)
-    {
-        OnPropertyChanged(nameof(EffectiveIsVisible));
-    }
-
-    partial void OnIsVisibleChanged(bool value)
-    {
-        OnPropertyChanged(nameof(EffectiveIsVisible));
-    }
 
     public bool EffectiveIsVisible => IsVisible && ParentIsVisible;
 
@@ -1321,6 +1310,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public bool IsSubSetting => !string.IsNullOrEmpty(EffectiveUiParentId);
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IncludeState), nameof(HasVisibleChildren), nameof(ParentCornerRadius))]
     public partial ObservableCollection<SettingItemViewModel>? Children { get; set; }
 
     public bool IsParentSetting => Children != null && Children.Count > 0;
@@ -1329,6 +1319,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public partial bool IsExpanderExpanded { get; set; } = true;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ChildCornerRadius), nameof(BrowseRowCornerRadius))]
     public partial bool IsLastChild { get; set; }
 
     public Microsoft.UI.Xaml.CornerRadius ChildCornerRadius =>
@@ -1337,34 +1328,33 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public Microsoft.UI.Xaml.CornerRadius BrowseRowCornerRadius =>
         IsLastChild ? new Microsoft.UI.Xaml.CornerRadius(0, 0, 4, 4) : new Microsoft.UI.Xaml.CornerRadius(0);
 
-    partial void OnIsLastChildChanged(bool value)
-    {
-        OnPropertyChanged(nameof(ChildCornerRadius));
-        OnPropertyChanged(nameof(BrowseRowCornerRadius));
-    }
-
-    [ObservableProperty]
-    public partial bool HasVisibleChildren { get; set; } = true;
+    // A parent whose children are all hidden (page scope, a gate, search) draws as a plain card: no chevron, no expand.
+    public bool HasVisibleChildren => Children?.Any(child => child.EffectiveIsVisible) == true;
 
     public Microsoft.UI.Xaml.CornerRadius ParentCornerRadius => HasVisibleChildren
         ? new Microsoft.UI.Xaml.CornerRadius(4, 4, 0, 0)
         : new Microsoft.UI.Xaml.CornerRadius(4);
 
-    partial void OnHasVisibleChildrenChanged(bool value) => OnPropertyChanged(nameof(ParentCornerRadius));
+    public void ToggleExpander()
+    {
+        if (HasVisibleChildren)
+            IsExpanderExpanded = !IsExpanderExpanded;
+    }
 
-    public void ToggleExpander() => IsExpanderExpanded = !IsExpanderExpanded;
+    private void OnChildVisibilityChanged()
+    {
+        OnPropertyChanged(nameof(HasVisibleChildren));
+        OnPropertyChanged(nameof(ParentCornerRadius));
+    }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EffectiveIsEnabled), nameof(IncludeState), nameof(IncludeToolTip), nameof(IncludeIcon))]
     public partial bool IsIncluded { get; set; } = true;
 
     private bool _isSyncingInclude;
 
     partial void OnIsIncludedChanged(bool value)
     {
-        OnPropertyChanged(nameof(EffectiveIsEnabled));
-        OnPropertyChanged(nameof(IncludeState));
-        OnPropertyChanged(nameof(IncludeToolTip));
-
         if (_isSyncingInclude) return;
 
         _applicationModeService?.SetIncluded(SettingId, value);
@@ -1383,6 +1373,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         Setting?.List?.Fields.Any(f => f.Kind == FieldKind.Password) == true
         && AuthorsIntent
         && _applicationModeService?.CurrentBuilderTarget == BuilderTarget.Config;
+
+    public FluentIcons.Common.Icon IncludeIcon => IsIncluded ? FluentIcons.Common.Icon.Link : FluentIcons.Common.Icon.LinkOff;
 
     public string IncludeToolTip => IsIncluded
         ? _localizationService.GetStringOrDefault("Setting_Include_Tooltip_In", "Included in the file")
@@ -1407,6 +1399,11 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public bool IsCompactRow =>
         EffectiveUiParentId is { } parentId
         && SettingCatalog.Find(parentId)?.Display.CompactChildren == true;
+
+    // A compact row drops its description, but its policy link still needs a place on the card.
+    public bool ShowsChildDescription => !IsCompactRow || GroupPolicyLink is not null;
+
+    public string? ChildDescriptionText => IsCompactRow ? null : Description;
 
     // 52 is the toolkit's expander-item height, 68 its card minimum, from a Style setter no per-card resource can reach.
     public double ChildMinHeight => IsCompactRow ? 52 : 68;
@@ -1477,8 +1474,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         {
             child.PropertyChanged += OnChildPropertyChanged;
         }
-
-        OnPropertyChanged(nameof(IncludeState));
     }
 
     private void UnsubscribeFromChildren()
@@ -1495,6 +1490,9 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     private void OnChildPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName is null or nameof(EffectiveIsVisible))
+            OnChildVisibilityChanged();
+
         if (e.PropertyName is null or nameof(IsIncluded))
         {
             OnPropertyChanged(nameof(IncludeState));
@@ -1518,6 +1516,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         OnPropertyChanged(nameof(IncludeState));
         OnPropertyChanged(nameof(IncludeToolTip));
         OnPropertyChanged(nameof(ShowPasswordBanner));
+        ShowWallpaperExportBanner = SettingId == "theme-wallpaper" && AuthorsIntent;
     }
 
     internal void SetIncludedFromSession(bool included)
@@ -1603,9 +1602,9 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public string OverlayStateTextFor(SettingDetectionOutcome outcome) => outcome switch
     {
         SettingDetectionOutcome.Malformed =>
-            Localized("Common_MalformedState") ?? "Wrong format",
+            _localizationService.GetStringOrDefault("Common_MalformedState", "Wrong format"),
         SettingDetectionOutcome.Undetermined =>
-            Localized("Common_UndeterminedState") ?? "Couldn't read",
+            _localizationService.GetStringOrDefault("Common_UndeterminedState", "Couldn't read"),
         // One wording for every setting, and not "User Defined": that asserts a cause we cannot know - a
         // debloat tool, an OEM image or a policy could equally have set the value. The banner carries the
         // reassuring tone ("you can leave it as it is"); this label only has to be accurate. "Custom" itself
@@ -1613,7 +1612,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         // ads), so a detected value we cannot place says "Not recognized" instead - one word, one meaning.
         // With the value beside it where there is one to show: a regional format leaves date pictures no option
         // list can cover, and "Not recognized" alone leaves the user with no way to see what is actually set.
-        _ => UnrecognizedValueText ?? Localized("Common_CustomState") ?? "Not recognized",
+        _ => UnrecognizedValueText ?? _localizationService.GetStringOrDefault("Common_CustomState", "Not recognized"),
     };
 
     // Only a single-target card can name its value without ambiguity; a card reading several keys says the
@@ -1623,7 +1622,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         && captured.Values.First()?.ToString() is { Length: > 0 } value
             ? string.Format(
                 CultureInfo.CurrentCulture,
-                Localized("Common_CustomState_WithValue") ?? "Not recognized: {0}",
+                _localizationService.GetStringOrDefault("Common_CustomState_WithValue", "Not recognized: {0}"),
                 value)
             : null;
 
@@ -1643,7 +1642,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         get
         {
             if (ShowsTypedValues)
-                return Localized("Common_TypedValues") ?? "Custom";
+                return _localizationService.GetStringOrDefault("Common_TypedValues", "Custom");
 
             if (Setting is not { } catalogSetting
                 || SelectedValue is not int stateIndex
@@ -1652,7 +1651,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
                 return string.Empty;
             }
 
-            return Localized(state.Label.Value) ?? state.Label.Value;
+            return _localizationService.GetString(state.Label);
         }
     }
 
@@ -1669,9 +1668,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         if (value == SettingDetectionOutcome.Custom && HasFields)
             Outcome = SettingDetectionOutcome.Resolved;
     }
-
-    private string? Localized(string key) =>
-        _localizationService.TryGetString(key, out var text) ? text : null;
 
     // The SAME string that outcome's banner shows, so the two can never drift.
     public string OverlayTooltipFor(SettingDetectionOutcome outcome, bool isTwoState = true)
@@ -1879,8 +1875,6 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
     public string OnBatteryText =>
         _localizationService.GetStringOrDefault("PowerStatus_OnBattery", "On Battery");
 
-    public IAsyncRelayCommand RunActionCommand { get; }
-
     public SettingItemViewModel(
         SettingItemViewModelConfig config,
         ISettingWriteStrategySelector writeStrategySelector,
@@ -1915,6 +1909,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         OptionWarnings = config.OptionWarnings;
         ParentFeatureViewModel = config.ParentFeatureViewModel;
         SettingId = config.SettingId;
+        ShowWallpaperExportBanner = SettingId == "theme-wallpaper" && AuthorsIntent;
         Name = config.Name;
         Description = config.Description;
         GroupName = config.GroupName;
@@ -1935,12 +1930,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         IsEnabled = true;
         ParentIsEnabled = true;
         ParentIsVisible = true;
-        Rows.CollectionChanged += (_, _) => OnRowsChanged();
-
-        RunActionCommand = new AsyncRelayCommand(RunActionAsync);
-        UnlockCommand = new AsyncRelayCommand(HandleUnlockAsync);
-        ApplyFieldsCommand = new AsyncRelayCommand(ApplyFieldsAsync);
-        CancelFieldsCommand = new RelayCommand(CancelFields);
+        Rows.CollectionChanged += OnRowsChanged;
 
         IsNew = _newBadgeService?.IsSettingNew(
             config.Setting.Display.AddedInVersion, config.SettingId) == true;
@@ -2106,14 +2096,12 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         if (InputType != InputType.Selection || !IsKeyedSelection || state.DynamicOptions is not { } options)
             return false;
 
-        ComboBoxOptions.Clear();
-        // The Tag carries the option for SettingComboBox (status dot, delete button) and the technical details (status).
-        foreach (var option in options)
-            ComboBoxOptions.Add(new ComboBoxDisplayOption(option.Label, option.Value, tag: option));
+        LiveKeyedSelection = state.DynamicSelection is { Length: > 0 } live ? live : null;
+
+        // The Tag carries the option for SettingComboBox's delete request and for the technical details (status).
+        ComboBoxOptions.ReplaceInPlace(options.Select(KeyedDisplayOption));
 
         ApplyKeyedListNotices(options.Count);
-
-        LiveKeyedSelection = state.DynamicSelection is { Length: > 0 } live ? live : null;
 
         if (LiveKeyedSelection is { } key)
         {
@@ -2126,13 +2114,22 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
 
         UpdateStatusBanner(SelectedValue);
-
-        // Clearing a ComboBox's ItemsSource resets SelectedIndex to -1, and SettingComboBox re-pushes the index only
-        // from PropertyChanged, which a rebuild onto the SAME key raises for nothing else.
-        OnPropertyChanged(nameof(ComboBoxOptions));
         RebuildTiles();
         return true;
     }
+
+    private ComboBoxDisplayOption KeyedDisplayOption(DynamicOption option) => ShowsOptionStatus
+        ? new(option.Label, option.Value, tag: option)
+        {
+            ShowsStatus = true,
+            ExistsOnSystem = option.ExistsOnSystem,
+            StatusTooltip = option.ExistsOnSystem ? KeyedInstalledTooltipText : KeyedNotInstalledTooltipText,
+            IsActive = string.Equals(option.Value, LiveKeyedSelection, StringComparison.OrdinalIgnoreCase),
+            ActiveBadgeText = KeyedActiveBadgeText,
+            CanDelete = option.CanDelete,
+            DeleteTooltip = KeyedDeleteTooltipText,
+        }
+        : new(option.Label, option.Value, tag: option);
 
     // A list naming a no-choice label offers it first, carrying the empty key the writers read as "leave this out".
     // A list with nothing to choose between stays on screen, disabled, with the catalog's reason beside it: hiding
@@ -2143,12 +2140,12 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             return;
 
         if (list.NoChoiceLabel is { } noChoice)
-            ComboBoxOptions.Insert(0, new ComboBoxDisplayOption(Localized(noChoice), string.Empty));
+            ComboBoxOptions.Insert(0, new ComboBoxDisplayOption(_localizationService.GetString(noChoice), string.Empty));
 
         if (list.SingleOptionWarning is not { } warning || offered >= 2)
             return;
 
-        CompatibilityMessage = Localized(warning);
+        CompatibilityMessage = _localizationService.GetString(warning);
         CompatibilitySeverity = InfoBarSeverity.Warning;
         IsEnabled = false;
         ShowCompatibilityBanner();
@@ -2275,7 +2272,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         ChoiceValue.ListRow? picked = null;
         if (Setting?.List?.Fields.FirstOrDefault(f => f.Kind == FieldKind.File) is { Filter: { } filter } file)
         {
-            if (_filePickerService?.PickFile([Localized(filter.Name), filter.Pattern], ListAddLabel) is not { Length: > 0 } path)
+            if (_filePickerService?.PickFile([_localizationService.GetString(filter.Name), filter.Pattern], ListAddLabel) is not { Length: > 0 } path)
                 return;
 
             picked = new ChoiceValue.ListRow(new Dictionary<string, string>(StringComparer.Ordinal) { [file.Key] = path });
@@ -2551,7 +2548,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     internal void SeedList(ChoiceValue.List value) => RebuildRows(value);
 
-    private void OnRowsChanged()
+    private void OnRowsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         OnPropertyChanged(nameof(HasRows));
         foreach (var row in Rows)
@@ -2566,10 +2563,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             return null;
         }
 
-        return new ListRowViewModel(list.Fields, Localized, ListRemoveLabel, values, OnListRowChanged, RemoveRow);
+        return new ListRowViewModel(list.Fields, key => _localizationService.GetString(key), ListRemoveLabel, values, OnListRowChanged, RemoveRow);
     }
-
-    private string Localized(LocKey key) => _localizationService.GetStringOrDefault(key.Value, key.Value);
 
     private void OnListRowChanged(ListRowViewModel row)
     {
@@ -2593,12 +2588,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     private void RebuildRows(ChoiceValue.List value)
     {
-        Rows.Clear();
-        foreach (var values in value.Rows)
-        {
-            if (NewListRow(values) is { } row)
-                Rows.Add(row);
-        }
+        Rows.ReplaceInPlace(value.Rows.Select(NewListRow).OfType<ListRowViewModel>());
     }
 
     // No read-back after the write: rebuilding the rows would take the caret out of the box being typed in.
@@ -2629,9 +2619,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     internal void SetCheckListEntries(IReadOnlyList<string> keys)
     {
-        CheckItems.Clear();
-        foreach (var key in keys)
-            CheckItems.Add(new CheckListItemViewModel(key, _ticked?.Contains(key) ?? true, OnCheckListChanged));
+        CheckItems.ReplaceInPlace(keys.Select(key => new CheckListItemViewModel(key, _ticked?.Contains(key) ?? true, OnCheckListChanged)));
     }
 
     private void OnCheckListChanged() => HandleCheckListAsync().FireAndForget(_logService);
@@ -2669,17 +2657,20 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
 
     private void RebuildTiles()
     {
-        Tiles.Clear();
-        if (!ShowsOptionTiles)
+        if (!ShowsOptionTiles && Tiles.Count == 0)
             return;
 
-        foreach (var option in ComboBoxOptions)
+        var tiles = new List<OptionTileViewModel>();
+        if (ShowsOptionTiles)
         {
-            if (option.Value is string value)
-                Tiles.Add(new OptionTileViewModel(value, TileLabel(value, option.DisplayText), IsChosenTile(value), ChooseTile));
+            foreach (var option in ComboBoxOptions)
+            {
+                if (option.Value is string value)
+                    tiles.Add(new OptionTileViewModel(value, TileLabel(value, option.DisplayText), IsChosenTile(value), ChooseTile));
+            }
         }
 
-        OnPropertyChanged(nameof(Tiles));
+        Tiles.ReplaceInPlace(tiles);
     }
 
     private string TileLabel(string value, string enumerated) =>
@@ -2711,16 +2702,16 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             return;
 
         var source = FieldSource();
+        Func<LocKey, string> label = key => _localizationService.GetString(key);
         FieldRows = Setting!.Fields
             .Select(row => row.Where(f => f.Builds is not { } builds || builds.Any(r => r.Contains(_build))).ToList())
             .Where(row => row.Count > 0)
             .Select(row => new ListRowViewModel(
-                row, Localized, string.Empty,
+                row, label, string.Empty,
                 new ChoiceValue.ListRow(row.ToDictionary(
                     f => f.Key, f => source?.GetValueOrDefault(f.Key)?.ToString() ?? string.Empty, StringComparer.Ordinal)),
                 _ => OnFieldsChanged(), _ => { }))
             .ToList();
-        OnFieldsChanged();
     }
 
     // An authored card shows the file's values, a live one what the machine read. A preset spells out only its own
@@ -2780,6 +2771,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         return ComboBoxConstants.CustomStateIndex;
     }
 
+    [RelayCommand]
     private async Task ApplyFieldsAsync()
     {
         if (!CanApplyFields)
@@ -2833,6 +2825,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         _lastKnownState = state with { Readings = readings };
     }
 
+    [RelayCommand]
     private void CancelFields()
     {
         IsLocked = true;
@@ -3056,6 +3049,7 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
             ShowRestartBannerIfNeeded();
     }
 
+    [RelayCommand]
     private async Task RunActionAsync()
     {
         if (IsApplying) return;
@@ -3091,7 +3085,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         }
     }
 
-    private async Task HandleUnlockAsync()
+    [RelayCommand]
+    private async Task UnlockAsync()
     {
         if (!IsLocked) return;
 
@@ -3504,31 +3499,8 @@ public partial class SettingItemViewModel : BaseViewModel, ISettingWriteProgress
         // The panel bakes its localized strings in at build time, so it has to be rebuilt on a
         // language switch rather than just raising property-changed.
         RefreshTechnicalDetails();
-        OnPropertyChanged(nameof(NewBadgeText));
-        OnPropertyChanged(nameof(TechnicalDetailsLabel));
-        OnPropertyChanged(nameof(ClickToUnlockText));
-        OnPropertyChanged(nameof(PluggedInText));
-        OnPropertyChanged(nameof(OnBatteryText));
-        OnPropertyChanged(nameof(AcInputAutomationName));
-        OnPropertyChanged(nameof(DcInputAutomationName));
-        OnPropertyChanged(nameof(RecommendedValueTooltip));
-        OnPropertyChanged(nameof(DefaultValueTooltip));
-        OnPropertyChanged(nameof(RecommendedAcValueTooltip));
-        OnPropertyChanged(nameof(DefaultAcValueTooltip));
-        OnPropertyChanged(nameof(RecommendedDcValueTooltip));
-        OnPropertyChanged(nameof(DefaultDcValueTooltip));
-        OnPropertyChanged(nameof(TwoStateRecommendedTooltip));
-        OnPropertyChanged(nameof(TwoStateDefaultTooltip));
-        OnPropertyChanged(nameof(SelectionRecommendedTooltip));
-        OnPropertyChanged(nameof(SelectionDefaultTooltip));
-        OnPropertyChanged(nameof(AcSelectionRecommendedTooltip));
-        OnPropertyChanged(nameof(AcSelectionDefaultTooltip));
-        OnPropertyChanged(nameof(DcSelectionRecommendedTooltip));
-        OnPropertyChanged(nameof(DcSelectionDefaultTooltip));
-        OnPropertyChanged(nameof(IncludeAutomationName));
-        OnPropertyChanged(nameof(IncludeToolTip));
-        OnPropertyChanged(nameof(ReviewApplyLabel));
-        OnPropertyChanged(nameof(ReviewDontApplyLabel));
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
     }
 
     protected override void Dispose(bool disposing)

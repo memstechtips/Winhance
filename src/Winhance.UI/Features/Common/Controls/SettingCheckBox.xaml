@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Winhance.UI.Features.Common.Controls">
 
-    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+    <StackPanel Orientation="Horizontal" Spacing="{StaticResource QuickSetSpacing}" VerticalAlignment="Center">
         <local:SettingQuickSetButtons
             Setting="{x:Bind Setting, Mode=OneWay}"
             Mode="Single"
@@ -14,16 +14,16 @@
         <Grid VerticalAlignment="Center">
             <!-- MinWidth 0 drops the width the stock style reserves for content; this box has none. -->
             <CheckBox
-                IsChecked="{x:Bind IsChecked, Mode=OneWay}"
+                IsChecked="{x:Bind Setting.IsSelected, Mode=OneWay}"
                 Checked="OnChanged"
                 Unchecked="OnChanged"
                 MinWidth="0"
                 VerticalAlignment="Center"
-                AutomationProperties.Name="{x:Bind SettingName, Mode=OneWay}"
-                Opacity="{x:Bind BoxOpacity, Mode=OneWay}"
-                IsHitTestVisible="{x:Bind BoxInteractive, Mode=OneWay}"
-                IsTabStop="{x:Bind BoxInteractive, Mode=OneWay}"
-                AutomationProperties.AccessibilityView="{x:Bind BoxAccessibilityView, Mode=OneWay}"/>
+                AutomationProperties.Name="{x:Bind Setting.Name, Mode=OneWay}"
+                Opacity="{x:Bind Setting.TwoStateOpacityFor(Setting.Outcome), Mode=OneWay}"
+                IsHitTestVisible="{x:Bind Setting.TwoStateInteractiveFor(Setting.Outcome), Mode=OneWay}"
+                IsTabStop="{x:Bind Setting.TwoStateInteractiveFor(Setting.Outcome), Mode=OneWay}"
+                AutomationProperties.AccessibilityView="{x:Bind Setting.TwoStateAccessibilityViewFor(Setting.Outcome), Mode=OneWay}"/>
 
             <local:SettingOutcomeOverlay
                 Setting="{x:Bind Setting, Mode=OneWay}"

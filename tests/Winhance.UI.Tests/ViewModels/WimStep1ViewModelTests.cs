@@ -386,7 +386,7 @@ public class WimStep1ViewModelTests
     }
 
     [Fact]
-    public async Task SelectWorkingDirectoryCommand_WhenCreateDirectoryFails_SetsWorkingDirectoryToEmpty()
+    public async Task SelectWorkingDirectoryCommand_WhenCreateDirectoryFails_ClearsTheDirectoryAndSaysSo()
     {
         _mockFilePickerService
             .Setup(f => f.PickFolder(It.IsAny<string?>()))
@@ -399,6 +399,8 @@ public class WimStep1ViewModelTests
         await _sut.SelectWorkingDirectoryCommand.ExecuteAsync(null);
 
         _sut.WorkingDirectory.Should().BeEmpty();
+        _mockDialogService.Verify(d => d.ShowErrorAsync(
+            "WIMUtil_Error_DirectoryCreateFailed", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

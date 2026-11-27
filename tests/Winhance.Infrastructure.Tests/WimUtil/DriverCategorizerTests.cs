@@ -2,6 +2,7 @@ using System.Text;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.Infrastructure.Features.WimUtil.Helpers;
 using Xunit;
 
@@ -252,6 +253,42 @@ public class DriverCategorizerTests
 
         result.Should().Be(1);
         _fileSystemService.Verify(f => f.CreateDirectory("C:\\OEM\\DriverFolder"), Times.Once);
+    }
+
+    [Fact]
+    public void CategorizeAndCopyDrivers_NestedDriverFixture_PreservesEveryRelativePath()
+    {
+        string[] paths =
+        [
+            "device.inf", "device.cat", "driver.sys", @"Fw\firmware.bin",
+            @"AS\IAS\service.exe", @"AS\IAS\configuration.json", @"Components\configuration.json",
+        ];
+        DirectoryInfo temp = Directory.CreateTempSubdirectory();
+        try
+        {
+            string source = Path.Combine(temp.FullName, "Source");
+            string package = Path.Combine(source, "TestDriver");
+            string oem = Path.Combine(temp.FullName, "OEM");
+            foreach (string path in paths)
+            {
+                string file = Path.Combine(package, path);
+                Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+                File.WriteAllText(file, path == "device.inf" ? "[Version]\r\nClass=System\r\n" : path);
+            }
+
+            var categorizer = new DriverCategorizer(_logService.Object, new FileSystemService(_logService.Object));
+            categorizer.CategorizeAndCopyDrivers(source, Path.Combine(temp.FullName, "WinPE"), oem).Should().Be(1);
+
+            string staged = Path.Combine(oem, "TestDriver");
+            Directory.GetFiles(staged, "*", SearchOption.AllDirectories)
+                .Select(file => Path.GetRelativePath(staged, file)).Should().BeEquivalentTo(paths);
+            foreach (string path in paths)
+                File.ReadAllText(Path.Combine(staged, path)).Should().Be(File.ReadAllText(Path.Combine(package, path)));
+        }
+        finally
+        {
+            temp.Delete(recursive: true);
+        }
     }
 
     [Fact]

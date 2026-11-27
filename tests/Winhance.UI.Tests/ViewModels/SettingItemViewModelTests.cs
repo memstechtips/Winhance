@@ -62,7 +62,7 @@ public class SettingItemViewModelTests
             IsSelected = false,
             GroupName = "Test Group",
             Icon = "TestIcon",
-            IconPack = "Material"
+            IconPack = "Fluent"
         };
     }
 
@@ -90,7 +90,7 @@ public class SettingItemViewModelTests
         sut.Description.Should().Be("A test setting description");
         sut.GroupName.Should().Be("Test Group");
         sut.Icon.Should().Be("TestIcon");
-        sut.IconPack.Should().Be("Material");
+        sut.IconPack.Should().Be("Fluent");
         sut.InputType.Should().Be(InputType.Toggle);
         sut.IsSelected.Should().BeFalse();
         sut.Setting.Should().BeSameAs(_defaultSetting);
@@ -196,7 +196,7 @@ public class SettingItemViewModelTests
     }
 
     [Fact]
-    public void UpdateStatusBanner_WithOptionWarning_SetsErrorBanner()
+    public void UpdateStatusBanner_WithOptionWarning_SetsWarningBanner()
     {
         // The option-warning banner is computed from config.OptionWarnings, not the Setting, so a minimal synthetic Setting suffices.
         var config = _defaultConfig with
@@ -204,14 +204,14 @@ public class SettingItemViewModelTests
             Setting = new Setting { Id = "gaming-windows-search-service", Display = new() { Name = TestKeys.Of("Windows Search Indexing Service"), Description = TestKeys.Of("desc") } },
             SettingId = "gaming-windows-search-service",
             InputType = InputType.Selection,
-            OptionWarnings = new OptionWarning?[] { new("WARNING: Disabling WSearch breaks Outlook search.", false), null },
+            OptionWarnings = ["WARNING: Disabling WSearch breaks Outlook search."],
         };
         var sut = CreateSut(config);
 
         sut.UpdateStatusBanner(0);
 
         sut.StatusBannerMessage.Should().Be("WARNING: Disabling WSearch breaks Outlook search.");
-        sut.StatusBannerSeverity.Should().Be(Microsoft.UI.Xaml.Controls.InfoBarSeverity.Error);
+        sut.StatusBannerSeverity.Should().Be(Microsoft.UI.Xaml.Controls.InfoBarSeverity.Warning);
     }
 
     [Fact]
@@ -408,12 +408,12 @@ public class SettingItemViewModelTests
     }
 
     [Fact]
-    public void UpdateStateFromSystemState_SelectionType_RecomputesOptionWarningBanner()
+    public void UpdateStateFromSystemState_SelectionType_KeepsTheOptionWarningForEveryState()
     {
         var config = _defaultConfig with
         {
             InputType = InputType.Selection,
-            OptionWarnings = new OptionWarning?[] { null, new("Spotlight note", true) },
+            OptionWarnings = ["Spotlight note"],
         };
         var sut = CreateSut(config);
 
@@ -421,7 +421,7 @@ public class SettingItemViewModelTests
         sut.StatusBannerMessage.Should().Be("Spotlight note");
 
         sut.UpdateStateFromSystemState(new SettingStateResult { Success = true, CurrentValue = 0 });
-        sut.StatusBannerMessage.Should().BeNull();
+        sut.StatusBannerMessage.Should().Be("Spotlight note");
     }
 
     [Fact]

@@ -237,6 +237,16 @@ public class VersionServiceTests
         act.Should().Throw<InvalidOperationException>();
     }
 
+    [Fact]
+    public void LaunchInstallerOnExit_NothingDownloaded_Throws()
+    {
+        _service.IsUpdateDownloaded.Should().BeFalse();
+
+        var act = () => _service.LaunchInstallerOnExit();
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
     [Theory]
     [InlineData(@"D:\Winhance", false)]
     [InlineData(@"D:\Winhance\", false)]

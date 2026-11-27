@@ -73,6 +73,7 @@ public class MainWindowViewModelTests : IDisposable
         _updateCheckViewModel = new UpdateCheckViewModel(
             _mockVersionService.Object,
             _mockLocalizationService.Object,
+            Mock.Of<IUserPreferencesService>(),
             _mockLogService.Object);
 
         _reviewModeBarViewModel = new ReviewModeBarViewModel(
@@ -271,10 +272,41 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
+    public void ModeConfigReviewLabel_ReturnsImportEntryNameWhenLocalizationReturnsNull()
+    {
+        var sut = CreateSut();
+        sut.ModeConfigReviewLabel.Should().Be("Config Import");
+    }
+
+    [Fact]
     public void ModeConfigReviewTooltip_ReturnsFallbackWhenLocalizationReturnsNull()
     {
         var sut = CreateSut();
-        sut.ModeConfigReviewTooltip.Should().Be("Config Review — review an imported config before applying it.");
+        sut.ModeConfigReviewTooltip.Should().Be("Config Import. Choose a config to review or apply immediately.");
+    }
+
+    [Theory]
+    [InlineData(WinhanceMode.Normal)]
+    [InlineData(WinhanceMode.Builder)]
+    [InlineData(WinhanceMode.ConfigReview)]
+    public void TitleBarModeLabels_StayStaticWhenTheActiveModeChanges(WinhanceMode mode)
+    {
+        var sut = CreateSut();
+        sut.Initialize();
+        var notifications = new List<string?>();
+        sut.PropertyChanged += (_, args) => notifications.Add(args.PropertyName);
+
+        _mockApplicationModeService.Setup(m => m.CurrentMode).Returns(mode);
+        _mockApplicationModeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+
+        sut.ModeNormalLabel.Should().Be("Normal");
+        sut.ModeBuilderLabel.Should().Be("Builder");
+        sut.ModeConfigReviewLabel.Should().Be("Config Import");
+        sut.ModeConfigReviewTooltip.Should().StartWith("Config Import.");
+        sut.IsConfigReviewModeActive.Should().Be(mode == WinhanceMode.ConfigReview);
+        notifications.Should().Contain(nameof(MainWindowViewModel.IsConfigReviewModeActive));
+        notifications.Should().NotContain(nameof(MainWindowViewModel.ModeConfigReviewLabel));
+        notifications.Should().NotContain(nameof(MainWindowViewModel.ModeConfigReviewTooltip));
     }
 
     [Fact]
@@ -412,17 +444,13 @@ public class MainWindowViewModelTests : IDisposable
     [Fact]
     public void ReviewModeExited_RestoresFilterPreference()
     {
-        _mockWindowsVersionFilterService
-            .Setup(f => f.RestoreFilterPreferenceAsync())
-            .Returns(Task.CompletedTask);
-
         var sut = CreateSut();
         sut.Initialize();
 
         _reviewModeBarViewModel.IsInReviewMode = true;
         _reviewModeBarViewModel.IsInReviewMode = false;
 
-        _mockWindowsVersionFilterService.Verify(f => f.RestoreFilterPreferenceAsync(), Times.Once);
+        _mockWindowsVersionFilterService.Verify(f => f.RestoreFilterPreference(), Times.Once);
     }
 
     [Fact]
@@ -468,17 +496,13 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task LoadFilterPreferenceAsync_DelegatesToService()
+    public void LoadFilterPreference_DelegatesToService()
     {
-        _mockWindowsVersionFilterService
-            .Setup(f => f.LoadFilterPreferenceAsync())
-            .Returns(Task.CompletedTask);
-
         var sut = CreateSut();
 
-        await sut.LoadFilterPreferenceAsync();
+        sut.LoadFilterPreference();
 
-        _mockWindowsVersionFilterService.Verify(f => f.LoadFilterPreferenceAsync(), Times.Once);
+        _mockWindowsVersionFilterService.Verify(f => f.LoadFilterPreference(), Times.Once);
     }
 
     [Fact]
@@ -592,6 +616,34 @@ public class MainWindowViewModelTests : IDisposable
         _mockDialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
             .ReturnsAsync(new ConfirmationResponse { Confirmed = confirmed });
         _mockBuilderModeEntry.Setup(e => e.EnterAsync(It.IsAny<BuilderTarget>(), It.IsAny<string?>())).ReturnsAsync(confirmed);
+    }
+
+    // A nav click that reaches the window past an open dialog (a shortcut key, UI Automation) would queue
+    // a second dialog behind it, decided on the mode as it was before the first one closed.
+    [Theory]
+    [InlineData("Autounattend")]
+    [InlineData("Settings")]
+    public async Task RequestPage_WhileADialogIsOpen_OpensNothing(string tag)
+    {
+        InMode(WinhanceMode.Normal);
+        _mockDialogService.Setup(d => d.IsDialogOpen).Returns(true);
+
+        var opened = await CreateSut().RequestPageAsync(tag);
+
+        opened.Should().BeFalse();
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(It.IsAny<BuilderTarget>(), It.IsAny<string?>()), Times.Never);
+        _mockDialogService.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SwitchMode_WhileADialogIsOpen_OpensNothing()
+    {
+        InMode(WinhanceMode.Normal);
+        _mockDialogService.Setup(d => d.IsDialogOpen).Returns(true);
+
+        await CreateSut().RequestSwitchModeAsync(WinhanceMode.Builder);
+
+        _mockBuilderModeEntry.Verify(e => e.EnterAsync(It.IsAny<BuilderTarget>(), It.IsAny<string?>()), Times.Never);
     }
 
     [Theory]

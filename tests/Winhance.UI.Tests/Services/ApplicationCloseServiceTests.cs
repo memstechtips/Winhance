@@ -1,8 +1,10 @@
 using FluentAssertions;
 using Moq;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.UI.Features.Common.Services;
 using Xunit;
 
@@ -15,6 +17,8 @@ public class ApplicationCloseServiceTests
     private readonly Mock<ISupportAskSchedule> _mockSchedule = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
+    private readonly Mock<IVersionService> _mockVersionService = new();
+    private readonly Mock<IUserPreferencesService> _mockPreferences = new();
 
     public ApplicationCloseServiceTests()
     {
@@ -30,7 +34,9 @@ public class ApplicationCloseServiceTests
             _mockTaskProgressService.Object,
             _mockSchedule.Object,
             _mockDialogService.Object,
-            _mockLocalizationService.Object);
+            _mockLocalizationService.Object,
+            _mockVersionService.Object,
+            _mockPreferences.Object);
         // Tests must not actually terminate the test host — swap in a no-op shutdown.
         svc.ShutdownAction = () => { };
         return svc;
@@ -74,6 +80,24 @@ public class ApplicationCloseServiceTests
         shutDown.Should().BeTrue();
         _mockDialogService.VerifyNoOtherCalls();
         _mockSchedule.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ExitWithoutWindowAsync_ShowsTheSupportWindowOnlyWhenDue(bool due)
+    {
+        var shutDown = false;
+        var service = CreateService();
+        service.ShutdownAction = () => shutDown = true;
+        _mockSchedule.Setup(s => s.ShouldAskOnExitAsync()).ReturnsAsync(due);
+
+        await service.ExitWithoutWindowAsync();
+
+        _mockDialogService.Verify(d => d.ShowExitSupportWindowAsync(), due ? Times.Once() : Times.Never());
+        _mockSchedule.Verify(s => s.MarkAskedAsync(), due ? Times.Once() : Times.Never());
+        _mockDialogService.Verify(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()), Times.Never);
+        shutDown.Should().BeTrue();
     }
 
     [Fact]
@@ -313,5 +337,38 @@ public class ApplicationCloseServiceTests
         await service.CheckOperationsAndCloseAsync();
 
         _mockDialogService.Verify(d => d.ShowSponsorsDialogAsync(It.IsAny<SponsorsDialogMode>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(true, AppUpdateAction.Install, true)]
+    [InlineData(true, AppUpdateAction.Notify, false)]
+    [InlineData(false, AppUpdateAction.Install, false)]
+    public async Task ExitAsync_InstallsADownloadedUpdateOnlyWhenSetToInstall(bool downloaded, AppUpdateAction action, bool installs)
+    {
+        _mockVersionService.Setup(v => v.IsUpdateDownloaded).Returns(downloaded);
+        _mockPreferences.Setup(p => p.GetPreference(UserPreferenceKeys.WinhanceUpdateAction, AppUpdateAction.Notify)).Returns(action);
+        var shutDown = false;
+        var service = CreateService();
+        service.ShutdownAction = () => shutDown = true;
+
+        await service.ExitAsync();
+
+        _mockVersionService.Verify(v => v.LaunchInstallerOnExit(), installs ? Times.Once() : Times.Never());
+        shutDown.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ExitAsync_InstallerFailure_StillShutsDown()
+    {
+        _mockVersionService.Setup(v => v.IsUpdateDownloaded).Returns(true);
+        _mockPreferences.Setup(p => p.GetPreference(UserPreferenceKeys.WinhanceUpdateAction, AppUpdateAction.Notify)).Returns(AppUpdateAction.Install);
+        _mockVersionService.Setup(v => v.LaunchInstallerOnExit()).Throws(new InvalidOperationException("boom"));
+        var shutDown = false;
+        var service = CreateService();
+        service.ShutdownAction = () => shutDown = true;
+
+        await service.ExitAsync();
+
+        shutDown.Should().BeTrue();
     }
 }

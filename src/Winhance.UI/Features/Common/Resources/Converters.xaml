@@ -6,11 +6,8 @@
 
 
     <!-- Boolean Converters -->
-    <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-    <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
     <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
 
     <!-- Icon Converters -->
     <converters:IconConverter x:Key="IconConverter"/>
-    <converters:SectionIconConverter x:Key="SectionIconConverter"/>
 </ResourceDictionary>

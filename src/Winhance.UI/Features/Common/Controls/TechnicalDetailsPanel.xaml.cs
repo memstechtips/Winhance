@@ -39,19 +39,6 @@ public sealed partial class TechnicalDetailsPanel : UserControl
         set => SetValue(IsExpandedProperty, value);
     }
 
-    public static readonly DependencyProperty IsBarVisibleProperty =
-        DependencyProperty.Register(
-            nameof(IsBarVisible),
-            typeof(bool),
-            typeof(TechnicalDetailsPanel),
-            new PropertyMetadata(false));
-
-    public bool IsBarVisible
-    {
-        get => (bool)GetValue(IsBarVisibleProperty);
-        set => SetValue(IsBarVisibleProperty, value);
-    }
-
     public static readonly DependencyProperty HeaderLabelProperty =
         DependencyProperty.Register(
             nameof(HeaderLabel),

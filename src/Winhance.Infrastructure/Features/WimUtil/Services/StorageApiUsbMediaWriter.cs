@@ -69,6 +69,8 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
         // The whole record is compared because Windows reuses disk numbers: a drive plugged in
         // after the picked one was pulled can hold its number. Fixed-media USB drives pass here:
         // whether the picker offered one is the user's opt-in, not a safety rule.
+        if (string.IsNullOrWhiteSpace(target.UniqueId))
+            throw new InvalidOperationException($"Disk {target.DiskNumber} ({target.Model}) has no stable identity and cannot be safely erased.");
         if (!GetCandidateTargets(includeUsbHardDrives: true).Contains(target))
         {
             throw new InvalidOperationException(
@@ -135,17 +137,18 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
             // No bcdboot: the media already ships \EFI\BOOT\BOOTX64.EFI and \boot\bcd, and copying
             // them verbatim is what makes the stick boot.
             _operations.Clear(target.DiskNumber, target.UniqueId);
-            _operations.EnsureMbr(target.DiskNumber);
-            var bootPartition = _operations.CreateBootPartition(target.DiskNumber, UsbWriteLayoutPlanner.BootPartitionBytes);
-            var installPartition = _operations.CreateInstallPartition(target.DiskNumber);
-            _operations.Format(target.DiskNumber, bootPartition, "FAT32", BootLabel);
-            _operations.Format(target.DiskNumber, installPartition, "NTFS", InstallLabel);
-            var bootRoot = $"{_operations.AssignDriveLetter(target.DiskNumber, bootPartition)}:\\";
-            var installRoot = $"{_operations.AssignDriveLetter(target.DiskNumber, installPartition)}:\\";
+            _operations.EnsureMbr(target.DiskNumber, target.UniqueId);
+            var bootPartition = _operations.CreateBootPartition(target.DiskNumber, target.UniqueId, UsbWriteLayoutPlanner.BootPartitionBytes);
+            var installPartition = _operations.CreateInstallPartition(target.DiskNumber, target.UniqueId);
+            _operations.Format(target.DiskNumber, target.UniqueId, bootPartition, "FAT32", BootLabel);
+            _operations.Format(target.DiskNumber, target.UniqueId, installPartition, "NTFS", InstallLabel);
+            var bootRoot = $"{_operations.AssignDriveLetter(target.DiskNumber, target.UniqueId, bootPartition)}:\\";
+            var installRoot = $"{_operations.AssignDriveLetter(target.DiskNumber, target.UniqueId, installPartition)}:\\";
 
             var totalBytes = layout.BootBytes + layout.InstallBytes;
             _logService.LogInformation($"Writing {layout.BootBytes:N0} bytes to {bootRoot} and {layout.InstallBytes:N0} to {installRoot}");
 
+            _operations.VerifyDisk(target.DiskNumber, target.UniqueId);
             _mediaCopier.CopyTree(
                 workingDirectory,
                 bootRoot,
@@ -154,6 +157,7 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
                 0,
                 progress,
                 cancellationToken);
+            _operations.VerifyDisk(target.DiskNumber, target.UniqueId);
             _mediaCopier.CopyTree(
                 workingDirectory,
                 installRoot,
@@ -165,6 +169,7 @@ internal sealed class StorageApiUsbMediaWriter : IUsbMediaWriter
 
             foreach (var (relativePath, replacement) in replacements.Files)
             {
+                _operations.VerifyDisk(target.DiskNumber, target.UniqueId);
                 if (UsbWriteLayoutPlanner.IsOnBootPartition(relativePath))
                     _fileSystemService.CopyFile(replacement, Path.Combine(bootRoot, relativePath), overwrite: true);
 

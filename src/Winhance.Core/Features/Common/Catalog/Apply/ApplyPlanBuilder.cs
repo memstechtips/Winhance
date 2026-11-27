@@ -145,7 +145,7 @@ public static class ApplyPlanBuilder
 
     // Synthesizes a transient state mapping each captured ValueName to a write (or a delete for a null value); registry
     // targets only - the resolver gates this to pure registry selections.
-    public static IReadOnlyList<ApplyOp> BuildRegistryCustomState(Setting setting, IReadOnlyDictionary<string, object> customValues)
+    public static IReadOnlyList<ApplyOp> BuildRegistryCustomState(Setting setting, IReadOnlyDictionary<string, object> customValues, WinBuild? build = null)
     {
         var set = new Dictionary<string, StateValue>();
         foreach (var reg in setting.Targets.OfType<RegTarget>())
@@ -154,7 +154,7 @@ public static class ApplyPlanBuilder
             if (customValues.TryGetValue(valueName, out var v))
                 set[reg.Key] = v is null ? StateValue.Absent : StateValue.Of(v);
         }
-        return Build(setting, new SettingState { Label = LocKey.Common.CustomState, Set = set });
+        return Build(setting, new SettingState { Label = LocKey.Common.CustomState, Set = set }, build);
     }
 
     // Null when no server is typed: an empty list would mean Automatic, and a mistyped value must not quietly hand

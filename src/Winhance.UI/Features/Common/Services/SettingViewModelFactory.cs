@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
@@ -8,6 +9,8 @@ using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.Common.TechnicalDetails;
+using Winhance.Core.Features.SoftwareApps.Interfaces;
+using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Models;
 using Winhance.UI.Features.Optimize.ViewModels;
@@ -24,6 +27,8 @@ public class SettingViewModelFactory : ISettingViewModelFactory
     private readonly INewBadgeService _newBadgeService;
     private readonly ISettingViewModelEnricher _enricher;
     private readonly IPowerSettingsQueryService _power;
+    private readonly IAppIconResolver _appIcons;
+    private readonly IThemeService _themeService;
 
     public SettingViewModelFactory(
         SettingViewModelDependencies viewModelDeps,
@@ -32,7 +37,9 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         IUserPreferencesService userPreferencesService,
         INewBadgeService newBadgeService,
         ISettingViewModelEnricher enricher,
-        IPowerSettingsQueryService power)
+        IPowerSettingsQueryService power,
+        IAppIconResolver appIcons,
+        IThemeService themeService)
     {
         _viewModelDeps = viewModelDeps;
         _logService = logService;
@@ -41,6 +48,8 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         _newBadgeService = newBadgeService;
         _enricher = enricher;
         _power = power;
+        _appIcons = appIcons;
+        _themeService = themeService;
     }
 
     public async Task<SettingItemViewModel> CreateAsync(
@@ -52,6 +61,8 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         WinBuild build = default)
     {
         InputType inputType = ConfigFileMapper.InputTypeFor(setting);
+        var (iconGlyph, iconPack) = CatalogIconDisplay.For(
+            setting.Display.Icon, _appIcons, _themeService.GetEffectiveTheme() == ElementTheme.Light);
 
         var config = new SettingItemViewModelConfig
         {
@@ -59,11 +70,11 @@ public class SettingViewModelFactory : ISettingViewModelFactory
             Build = build,
             ParentFeatureViewModel = parentViewModel,
             SettingId = setting.Id,
-            Name = Localized(setting.Display.Name),
-            Description = Localized(setting.Display.Description),
-            GroupName = setting.Display.GroupName is { } group ? Localized(group) : string.Empty,
-            Icon = setting.Display.Icon?.Glyph ?? string.Empty,
-            IconPack = setting.Display.Icon?.Pack.ToString() ?? "Material",
+            Name = _localizationService.GetString(setting.Display.Name),
+            Description = _localizationService.GetString(setting.Display.Description),
+            GroupName = setting.Display.GroupName is { } group ? _localizationService.GetString(group) : string.Empty,
+            Icon = iconGlyph,
+            IconPack = iconPack,
             InputType = inputType,
             IsSelected = currentState.IsEnabled,
             Outcome = currentState.Outcome,
@@ -99,7 +110,7 @@ public class SettingViewModelFactory : ISettingViewModelFactory
 
         if (setting.Availability.RequiresAdvancedUnlock)
         {
-            var unlocked = await _userPreferencesService.GetPreferenceAsync("AdvancedPowerSettingsUnlocked", false);
+            var unlocked = _userPreferencesService.GetPreference("AdvancedPowerSettingsUnlocked", false);
             viewModel.IsLocked = !unlocked;
         }
 
@@ -140,10 +151,10 @@ public class SettingViewModelFactory : ISettingViewModelFactory
 
         if (inputType == InputType.List)
         {
-            viewModel.ListAddLabel = setting.List!.Add is { } add ? Localized(add) : string.Empty;
-            viewModel.ListRemoveLabel = setting.List.Remove is { } remove ? Localized(remove) : string.Empty;
-            viewModel.SavePasswordsLabel = Localized(LocKey.AutounattendAccounts.SavePasswords);
-            viewModel.SavePasswordsNote = Localized(LocKey.AutounattendAccounts.SavePasswordsNote);
+            viewModel.ListAddLabel = setting.List!.Add is { } add ? _localizationService.GetString(add) : string.Empty;
+            viewModel.ListRemoveLabel = setting.List.Remove is { } remove ? _localizationService.GetString(remove) : string.Empty;
+            viewModel.SavePasswordsLabel = _localizationService.GetString(LocKey.AutounattendAccounts.SavePasswords);
+            viewModel.SavePasswordsNote = _localizationService.GetString(LocKey.AutounattendAccounts.SavePasswordsNote);
 
             if (currentState.CurrentValue is ChoiceValue.List seeded)
                 viewModel.SeedList(seeded);
@@ -298,8 +309,8 @@ public class SettingViewModelFactory : ISettingViewModelFactory
                     continue;   // this PC has no such value, and the card is about to change this PC
                 }
             }
-            var label = windowsName ?? Localized(state.Label);
-            var tooltip = state.Tooltip is { } tip ? Localized(tip) : null;
+            var label = windowsName ?? _localizationService.GetString(state.Label);
+            var tooltip = state.Tooltip is { } tip ? _localizationService.GetString(tip) : null;
             options.Add(new ComboBoxDisplayOption(label, i, tooltip)
             {
                 IsRecommended = state.HasRole(RoleKind.Recommended),
@@ -309,18 +320,13 @@ public class SettingViewModelFactory : ISettingViewModelFactory
         }
     }
 
-    // One entry per State, detect-only ones included: the status banner indexes it by the selected value, the state index.
-    private IReadOnlyList<OptionWarning?>? BuildCatalogOptionWarnings(Setting setting)
-    {
-        if (setting.States.Count == 0)
-            return null;
-
-        return setting.States
-            .Select(state => state.Warning is { } warning ? new OptionWarning(Localized(warning), state.IsDetectOnly)
-                : state.RiskWarning is { } risk ? new OptionWarning(Localized(risk), Advisory: true, Always: true)
-                : null)
+    // Options that share one text (Manual and Disabled) print it once.
+    private IReadOnlyList<string> BuildCatalogOptionWarnings(Setting setting) =>
+        setting.States
+            .Select(state => state.RiskWarning)
+            .OfType<LocKey>()
+            .Select(risk => _localizationService.GetString(risk))
+            .Distinct()
             .ToList();
-    }
 
-    private string Localized(LocKey key) => _localizationService.GetStringOrDefault(key.Value, key.Value);
 }

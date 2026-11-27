@@ -6,45 +6,22 @@ using Winhance.Core.Features.Common.Selections;
 namespace Winhance.UI.Features.Common.ViewModels;
 
 // A DataTemplate can x:Bind only to its own data type, so every caption a field draws is localized onto the field.
-public sealed partial class ListFieldViewModel : ObservableObject
+public sealed partial class ListFieldViewModel(
+    Field definition,
+    string label,
+    string? tooltip,
+    IReadOnlyList<string> options,
+    string error,
+    string? value,
+    Action<ListFieldViewModel> changed) : ObservableObject
 {
-    private readonly Field _field;
-    private readonly Action<ListFieldViewModel> _changed;
+    private readonly Field _field = definition;
+    private readonly Action<ListFieldViewModel> _changed = changed;
 
-    private string _text = string.Empty;
-    private bool _checked;
-    private int _optionIndex;
-    private bool _isEnabled = true;
+    private bool _checked = definition.Kind == FieldKind.CheckBox && bool.TryParse(value, out var ticked) && ticked;
 
-    public ListFieldViewModel(
-        Field field,
-        string label,
-        string? tooltip,
-        IReadOnlyList<string> options,
-        string error,
-        string? value,
-        Action<ListFieldViewModel> changed)
-    {
-        _field = field;
-        Label = label;
-        Tooltip = tooltip;
-        Options = options;
-        Error = error;
-        _changed = changed;
-
-        switch (field.Kind)
-        {
-            case FieldKind.CheckBox:
-                _checked = bool.TryParse(value, out var ticked) && ticked;
-                break;
-            case FieldKind.Selection:
-                _optionIndex = int.TryParse(value, out var index) && index >= 0 && index < options.Count ? index : 0;
-                break;
-            default:
-                _text = value ?? string.Empty;
-                break;
-        }
-    }
+    private int _optionIndex = definition.Kind == FieldKind.Selection
+        && int.TryParse(value, out var index) && index >= 0 && index < options.Count ? index : 0;
 
     public string Key => _field.Key;
 
@@ -56,32 +33,26 @@ public sealed partial class ListFieldViewModel : ObservableObject
 
     internal FieldCondition? OnlyWhen => _field.OnlyWhen;
 
-    public string Label { get; }
+    public string Label { get; } = label;
 
-    public string? Tooltip { get; }
+    public string? Tooltip { get; } = tooltip;
 
-    public IReadOnlyList<string> Options { get; }
+    public IReadOnlyList<string> Options { get; } = options;
 
-    public string Error { get; }
+    public string Error { get; } = error;
 
-    public string Text
-    {
-        get => _text;
-        set
-        {
-            if (!SetProperty(ref _text, value ?? string.Empty))
-                return;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasError))]
+    public partial string Text { get; set; } =
+        definition.Kind is FieldKind.CheckBox or FieldKind.Selection ? string.Empty : value ?? string.Empty;
 
-            OnPropertyChanged(nameof(HasError));
-            _changed(this);
-        }
-    }
+    partial void OnTextChanged(string value) => _changed(this);
 
-    public bool HasError => _field.Rule is { } rule && HasText && !rule.Matches(_text);
+    public bool HasError => _field.Rule is { } rule && HasText && !rule.Matches(Text);
 
     internal bool HasText => _field.Rule is { } rule
-        ? rule.Normalize(_text).Length > 0
-        : _text.Trim().Length > 0;
+        ? rule.Normalize(Text).Length > 0
+        : Text.Trim().Length > 0;
 
     public bool Checked
     {
@@ -89,7 +60,7 @@ public sealed partial class ListFieldViewModel : ObservableObject
         set
         {
             // A disabled field refuses the tick, and raises anyway so the two-way bound checkbox snaps back off.
-            if (value && !_isEnabled)
+            if (value && !IsEnabled)
             {
                 OnPropertyChanged();
                 return;
@@ -117,11 +88,8 @@ public sealed partial class ListFieldViewModel : ObservableObject
         }
     }
 
-    public bool IsEnabled
-    {
-        get => _isEnabled;
-        internal set => SetProperty(ref _isEnabled, value);
-    }
+    [ObservableProperty]
+    public partial bool IsEnabled { get; internal set; } = true;
 
     // A password is recorded as typed: a space at either end is part of what the user will type at the sign-in screen.
     // What a field the user never touched holds: no text, the first option, no tick.
@@ -136,8 +104,8 @@ public sealed partial class ListFieldViewModel : ObservableObject
     {
         FieldKind.Selection => _optionIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
         FieldKind.CheckBox => _checked ? "true" : "false",
-        FieldKind.Password => _text,
-        _ => _field.Rule is { } rule ? rule.Normalize(_text) : _text.Trim(),
+        FieldKind.Password => Text,
+        _ => _field.Rule is { } rule ? rule.Normalize(Text) : Text.Trim(),
     };
 
     // No callback: the caller is the row, already inside a change, or the card, already inside a write.
@@ -152,8 +120,6 @@ public sealed partial class ListRowViewModel : ObservableObject
 {
     private readonly Action<ListRowViewModel> _changed;
     private readonly Action<ListRowViewModel> _remove;
-
-    private bool _canRemove = true;
 
     public ListRowViewModel(
         IReadOnlyList<Field> fields,
@@ -184,11 +150,8 @@ public sealed partial class ListRowViewModel : ObservableObject
 
     public string RemoveLabel { get; }
 
-    public bool CanRemove
-    {
-        get => _canRemove;
-        internal set => SetProperty(ref _canRemove, value);
-    }
+    [ObservableProperty]
+    public partial bool CanRemove { get; internal set; } = true;
 
     public void Remove() => _remove(this);
 

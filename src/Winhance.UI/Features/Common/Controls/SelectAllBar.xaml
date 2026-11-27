@@ -8,41 +8,35 @@
     IsTabStop="False">
 
     <UserControl.Resources>
-        <DataTemplate x:Key="SelectAllContentTemplate">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <Viewbox Width="20" Height="20" VerticalAlignment="Center">
-                    <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color"/>
-                </Viewbox>
-                <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+        <DataTemplate x:Key="SelectAllContentTemplate" x:DataType="x:String">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource IconLabelSpacing}">
+                <fluentIcons:FluentIcon Icon="Apps" IconVariant="Color" FontSize="{StaticResource StatusIconFontSize}" VerticalAlignment="Center"/>
+                <TextBlock Text="{x:Bind Mode=OneTime}" VerticalAlignment="Center"/>
             </StackPanel>
         </DataTemplate>
-        <DataTemplate x:Key="SelectInstalledContentTemplate">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <Viewbox Width="20" Height="20" VerticalAlignment="Center">
-                    <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"/>
-                </Viewbox>
-                <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+        <DataTemplate x:Key="SelectInstalledContentTemplate" x:DataType="x:String">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource IconLabelSpacing}">
+                <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color" FontSize="{StaticResource StatusIconFontSize}"
+                                        VerticalAlignment="Center"/>
+                <TextBlock Text="{x:Bind Mode=OneTime}" VerticalAlignment="Center"/>
             </StackPanel>
         </DataTemplate>
-        <DataTemplate x:Key="SelectUpdatesContentTemplate">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <Viewbox Width="20" Height="20" VerticalAlignment="Center">
-                    <fluentIcons:FluentIcon Icon="Clock" IconVariant="Color"/>
-                </Viewbox>
-                <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+        <DataTemplate x:Key="SelectUpdatesContentTemplate" x:DataType="x:String">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource IconLabelSpacing}">
+                <fluentIcons:FluentIcon Icon="Clock" IconVariant="Color" FontSize="{StaticResource StatusIconFontSize}" VerticalAlignment="Center"/>
+                <TextBlock Text="{x:Bind Mode=OneTime}" VerticalAlignment="Center"/>
             </StackPanel>
         </DataTemplate>
-        <DataTemplate x:Key="SelectNotInstalledContentTemplate">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <Viewbox Width="20" Height="20" VerticalAlignment="Center">
-                    <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color"/>
-                </Viewbox>
-                <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+        <DataTemplate x:Key="SelectNotInstalledContentTemplate" x:DataType="x:String">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource IconLabelSpacing}">
+                <fluentIcons:FluentIcon Icon="DismissCircle" IconVariant="Color" FontSize="{StaticResource StatusIconFontSize}"
+                                        VerticalAlignment="Center"/>
+                <TextBlock Text="{x:Bind Mode=OneTime}" VerticalAlignment="Center"/>
             </StackPanel>
         </DataTemplate>
     </UserControl.Resources>
 
-    <StackPanel Orientation="Horizontal" Spacing="12">
+    <StackPanel Orientation="Horizontal" Spacing="{StaticResource ControlGroupSpacing}">
         <CheckBox Content="{x:Bind Source.SelectAllLabel}" ContentTemplate="{StaticResource SelectAllContentTemplate}" MinWidth="0"
                   IsChecked="{x:Bind Source.IsAllSelected}"
                   Command="{x:Bind Source.ToggleSelectAllCommand}"/>

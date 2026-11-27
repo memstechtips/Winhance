@@ -1,3 +1,5 @@
+using Microsoft.UI.Composition.SystemBackdrops;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Documents;
@@ -8,8 +10,14 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Windows.Graphics;
+using Windows.Win32;
+using Windows.Win32.Foundation;
 using Winhance.UI.Features.Common.Helpers;
+using Winhance.UI.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Utilities;
 using Winhance.UI.Helpers;
+using WinRT.Interop;
 
 namespace Winhance.UI.Features.Common.Services;
 
@@ -21,26 +29,33 @@ public class DialogService : IDialogService
     private readonly ITaskProgressService _taskProgressService;
     private readonly ISponsorsService _sponsorsService;
     private readonly IInstallOptionsService _installOptions;
+    private readonly IThemeService _themeService;
+    private readonly IDispatcherService _dispatcherService;
     private readonly SemaphoreSlim _dialogSemaphore = new(1, 1);
+
+    public bool IsDialogOpen => _dialogSemaphore.CurrentCount == 0;
 
     // Must be set by MainWindow after content is loaded.
     public XamlRoot? XamlRoot { get; set; }
 
     public DialogService(ILocalizationService localization, ILogService logService, ITaskProgressService taskProgressService, ISponsorsService sponsorsService,
-        IInstallOptionsService installOptions)
+        IInstallOptionsService installOptions, IThemeService themeService, IDispatcherService dispatcherService)
     {
         _localization = localization;
         _logService = logService;
         _taskProgressService = taskProgressService;
         _sponsorsService = sponsorsService;
         _installOptions = installOptions;
+        _themeService = themeService;
+        _dispatcherService = dispatcherService;
     }
 
     private void ConfigureDialog(ContentDialog dialog)
     {
-        dialog.XamlRoot = XamlRoot;
+        var xamlRoot = XamlRoot;
+        dialog.XamlRoot = xamlRoot;
 
-        if (XamlRoot?.Content is FrameworkElement rootElement)
+        if (xamlRoot?.Content is FrameworkElement rootElement)
         {
             dialog.RequestedTheme = rootElement.ActualTheme == ElementTheme.Dark
                 ? ElementTheme.Dark
@@ -103,11 +118,6 @@ public class DialogService : IDialogService
         });
     }
 
-    public void ShowMessage(string message, string title = "")
-    {
-        _ = ShowInformationAsync(message, title);
-    }
-
     public async Task ShowInformationAsync(string message, string title = "", string buttonText = "")
         => await ShowSimpleDialogAsync(message,
             string.IsNullOrEmpty(title) ? _localization.GetString("Dialog_Information") : title,
@@ -131,11 +141,87 @@ public class DialogService : IDialogService
             // handles a null document gracefully.
             var data = await _sponsorsService.GetSponsorsAsync();
 
-            var builder = new Dialogs.SponsorsDialogBuilder(_localization, _sponsorsService);
+            var builder = new Dialogs.SponsorsDialogBuilder(_localization, _sponsorsService, _logService);
             var dialog = builder.Build(data, mode);
             ConfigureDialog(dialog);
             await dialog.ShowAsync();
         });
+    }
+
+    // Exit with no Winhance window on screen: a window the size of the dialog shows the ask at once, instead of the
+    // whole app loading or reappearing behind it. The list on disk is used, since a live fetch would hold it back.
+    public async Task ShowExitSupportWindowAsync()
+    {
+        await _dialogSemaphore.WaitAsync();
+        Window? window = null;
+        var closed = new TaskCompletionSource();
+        try
+        {
+            var data = await _sponsorsService.GetSnapshotAsync();
+            var content = new Dialogs.SponsorsDialogBuilder(_localization, _sponsorsService, _logService)
+                .BuildExitWindow(data, () => window?.Close());
+            var root = new Grid
+            {
+                RequestedTheme = _themeService.GetEffectiveTheme(),
+                FlowDirection = _localization.IsRightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight,
+                Opacity = 0,
+                Children = { content },
+            };
+            var supportWindow = new Window
+            {
+                Content = root,
+                Title = _localization.GetString("App_Title"),
+                ExtendsContentIntoTitleBar = true,
+                SystemBackdrop = MicaController.IsSupported() ? new MicaBackdrop() : new DesktopAcrylicBackdrop(),
+            };
+            window = supportWindow;
+            WindowIcon.Apply(supportWindow.AppWindow);
+            supportWindow.Closed += (_, _) => closed.TrySetResult();
+            // A border without a title bar keeps Windows 11's rounded corners and shadow, so the window reads as
+            // the dialog itself.
+            if (supportWindow.AppWindow.Presenter is OverlappedPresenter presenter)
+            {
+                presenter.SetBorderAndTitleBar(true, false);
+                presenter.IsResizable = false;
+                presenter.IsMaximizable = false;
+                presenter.IsMinimizable = false;
+            }
+
+            var hwnd = WindowNative.GetWindowHandle(supportWindow);
+            root.Loaded += (_, _) =>
+            {
+                content.Measure(new Windows.Foundation.Size(content.Width, double.PositiveInfinity));
+                SizeExitSupportWindow(supportWindow.AppWindow, hwnd, content.Width, content.DesiredSize.Height);
+                root.Opacity = 1;
+            };
+            SizeExitSupportWindow(supportWindow.AppWindow, hwnd, content.Width, content.Width);
+            supportWindow.Activate();
+            await closed.Task;
+        }
+        catch (Exception ex)
+        {
+            _logService.LogError("Could not show the exit support window", ex);
+        }
+        finally
+        {
+            if (!closed.Task.IsCompleted)
+                window?.Close();
+            _dialogSemaphore.Release();
+        }
+    }
+
+    private static void SizeExitSupportWindow(AppWindow appWindow, nint hwnd, double width, double height)
+    {
+        var dpi = PInvoke.GetDpiForWindow(new HWND(hwnd));
+        var scale = dpi > 0 ? dpi / 96.0 : 1.0;
+        var workArea = DisplayArea.GetFromWindowId(appWindow.Id, DisplayAreaFallback.Primary).WorkArea;
+        var pixelWidth = Math.Min((int)Math.Ceiling(width * scale), workArea.Width);
+        var pixelHeight = Math.Min((int)Math.Ceiling(height * scale), workArea.Height);
+        appWindow.MoveAndResize(new RectInt32(
+            workArea.X + (workArea.Width - pixelWidth) / 2,
+            workArea.Y + (workArea.Height - pixelHeight) / 2,
+            pixelWidth,
+            pixelHeight));
     }
 
     public async Task<(ImportOption? Option, ImportOptions Options, bool HideExplanation)> ShowConfigImportOptionsDialogAsync(ModeEntryNotes notes)
@@ -179,6 +265,7 @@ public class DialogService : IDialogService
         return await ExecuteDialogAsync(async () =>
         {
             var contentPanel = new StackPanel { Spacing = 12 };
+            ScrollViewer? itemList = null;
 
             if (!string.IsNullOrEmpty(confirmationRequest.Message))
             {
@@ -199,9 +286,10 @@ public class DialogService : IDialogService
                 foreach (var row in rows)
                     rowPanel.Children.Add(BuildItemRow(row));
 
+                itemList = new ScrollViewer { Content = rowPanel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
                 var listContainer = new Border
                 {
-                    Child = new ScrollViewer { Content = rowPanel, MaxHeight = 300 },
+                    Child = itemList,
                     CornerRadius = new CornerRadius(4),
                     Padding = new Thickness(8),
                     Style = CodeBuiltStyle.Named("CodeBuilt.CardSurface")
@@ -239,7 +327,7 @@ public class DialogService : IDialogService
                 Title = string.IsNullOrEmpty(confirmationRequest.Title)
                     ? _localization.GetString("Dialog_Confirmation")
                     : confirmationRequest.Title,
-                Content = contentPanel,
+                Content = Dialogs.DialogListLayout.Wrap(XamlRoot!, contentPanel, itemList, Dialogs.DialogListLayout.ConfirmationListLimit),
                 PrimaryButtonText = string.IsNullOrEmpty(confirmationRequest.ConfirmButtonText)
                     ? _localization.GetString("Button_OK")
                     : confirmationRequest.ConfirmButtonText,
@@ -347,7 +435,7 @@ public class DialogService : IDialogService
             var builder = new Dialogs.TaskOutputDialogBuilder(_localization, _taskProgressService);
             var dialog = builder.Build(XamlRoot!, title, logMessages);
             ConfigureDialog(dialog);
-            builder.StartLiveUpdates(Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread());
+            builder.StartLiveUpdates(_dispatcherService);
             try
             {
                 await dialog.ShowAsync();
@@ -359,17 +447,15 @@ public class DialogService : IDialogService
         });
     }
 
-    public async Task ShowCustomContentDialogAsync(string title, object content, string closeButtonText = "")
+    public async Task ShowGroupPolicyDialogAsync()
     {
         await ExecuteDialogAsync(async () =>
         {
             var dialog = new ContentDialog
             {
-                Title = title,
-                Content = content,
-                CloseButtonText = string.IsNullOrEmpty(closeButtonText)
-                    ? _localization.GetString("Button_Close")
-                    : closeButtonText,
+                Title = _localization.GetString("GroupPolicy_Link_Text"),
+                Content = Dialogs.GroupPolicyDialogBuilder.BuildContent(_localization),
+                CloseButtonText = _localization.GetString("Button_Close"),
                 DefaultButton = ContentDialogButton.Close
             };
             ConfigureDialog(dialog);

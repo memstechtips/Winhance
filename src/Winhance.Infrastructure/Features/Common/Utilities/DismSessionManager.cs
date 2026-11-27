@@ -102,11 +102,6 @@ internal static class DismSessionManager
             log?.LogDebug($"Operation cancelled/timed out in ExecuteAsync<T>");
             throw;
         }
-        catch (Exception ex)
-        {
-            log?.LogDebug($"EXCEPTION in ExecuteAsync<T>: {ex.GetType().Name}: {ex.Message}");
-            throw;
-        }
         finally
         {
             _lock.Release();

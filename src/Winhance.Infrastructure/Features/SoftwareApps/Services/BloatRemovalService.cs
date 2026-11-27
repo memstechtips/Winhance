@@ -206,7 +206,9 @@ internal class BloatRemovalService(
             });
 
             logService.LogWarning($"BloatRemoval script completed with warnings: {ex.Message}");
-            return RemovalOutcome.Success;
+            return ex.Message.Contains("App removal incomplete", StringComparison.OrdinalIgnoreCase)
+                || apps.Any(app => PhotosRemovalScript.Includes(app.AppxPackageName ?? []) || CopilotRemovalScript.Includes(app.AppxPackageName ?? []))
+                ? RemovalOutcome.Failed : RemovalOutcome.Success;
         }
         catch (Exception ex)
         {

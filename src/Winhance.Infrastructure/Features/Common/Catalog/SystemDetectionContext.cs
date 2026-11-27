@@ -17,6 +17,7 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
     private readonly IPowerSettingsQueryService _power;
     private readonly ILocalizationService _localization;
     private readonly ILogService _log;
+    private readonly ISystemParametersService _systemParameters;
 
     private Dictionary<string, bool?> _taskCache = new();
     private Dictionary<string, (int? acValue, int? dcValue)> _powerCache = new();
@@ -34,7 +35,8 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
         IScheduledTaskStateService tasks,
         IPowerSettingsQueryService power,
         ILocalizationService localization,
-        ILogService log)
+        ILogService log,
+        ISystemParametersService systemParameters)
     {
         _reg = reg;
         _restore = restore;
@@ -42,6 +44,7 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
         _power = power;
         _localization = localization;
         _log = log;
+        _systemParameters = systemParameters;
     }
 
     // Two registry reads, and every AppliesTo-gated target asks for it - so once per batch, not per target.
@@ -56,6 +59,9 @@ internal sealed class SystemDetectionContext : IPrefetchableDetectionContext
     }
 
     public object? GetValue(string keyPath, string? valueName) => _reg.GetValue(keyPath, valueName ?? "");
+
+    public object? GetMessageDuration(MessageDurationTarget target) => _systemParameters.GetMessageDuration()
+        ?? throw new InvalidOperationException("Cannot read the active user's notification duration.");
 
     public Microsoft.Win32.RegistryValueKind? GetValueKind(string keyPath, string? valueName) =>
         _reg.GetValueKind(keyPath, valueName ?? "");

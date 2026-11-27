@@ -45,30 +45,38 @@ internal static class WinGetProgressParser
         @"^0x[0-9a-fA-F]+\s*:\s*(.+)",
         RegexOptions.Compiled);
 
-    // Empty string = suppress the line entirely.
-    private static readonly Dictionary<string, string> ResourceKeyMap = new(StringComparer.OrdinalIgnoreCase)
+    // The bundled winget prints its resource keys instead of its text, so each one it can print maps to a
+    // Winhance key; an empty value suppresses the line.
+    internal static readonly IReadOnlyDictionary<string, string> ResourceKeyMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
         ["InstallationDisclaimer1"] = "",
         ["InstallationDisclaimer2"] = "",
-        ["PackageRequiresDependencies"] = "Installing dependencies...",
         ["PackageDependencies"] = "",
-        ["InstallerHashVerified"] = "Hash verified",
-        ["ExtractingArchive"] = "Extracting archive...",
-        ["ExtractArchiveSucceeded"] = "Archive extracted",
-        ["InstallFlowStartingPackageInstall"] = "Installing...",
-        ["InstallFlowInstallSuccess"] = "Installation successful",
-        ["InstallFlowRegistrationDeferred"] = "Installed, finishes when the app next starts",
-        ["SourceOpenFailedSuggestion"] = "WinGet source unavailable",
-        ["UnexpectedErrorExecutingCommand"] = "Unexpected error",
-        ["InstallingDependencies"] = "Installing dependencies...",
+        ["PackageRequiresDependencies"] = "Progress_WinGetLine_InstallingDependencies",
+        ["InstallingDependencies"] = "Progress_WinGetLine_InstallingDependencies",
+        ["InstallerHashVerified"] = "Progress_WinGetLine_HashVerified",
+        ["ExtractingArchive"] = "Progress_WinGetLine_ExtractingArchive",
+        ["ExtractArchiveSucceeded"] = "Progress_WinGetLine_ArchiveExtracted",
+        ["InstallFlowStartingPackageInstall"] = "Progress_WinGetLine_Installing",
+        ["InstallFlowInstallSuccess"] = "Progress_WinGetLine_InstallSuccess",
+        ["InstallFlowRegistrationDeferred"] = "Progress_WinGetLine_RegistrationDeferred",
+        ["InstallWaitingOnAnother"] = "Progress_WinGetLine_WaitingOnAnother",
+        ["UninstallFlowStartingPackageUninstall"] = "Progress_WinGetLine_Uninstalling",
+        ["UninstallFlowUninstallSuccess"] = "Progress_WinGetLine_UninstallSuccess",
+        ["UninstallAbandoned"] = "Progress_WinGetLine_UninstallAbandoned",
+        ["NoUninstallInfoFound"] = "Progress_WinGetLine_NoUninstallCommand",
+        ["NoInstalledPackageFound"] = "Progress_WinGetLine_NoInstalledPackage",
+        ["MultipleInstalledPackagesFound"] = "Progress_WinGetLine_MultipleInstalledPackages",
+        ["SourceOpenFailedSuggestion"] = "Progress_WinGetLine_SourceUnavailable",
+        ["UnexpectedErrorExecutingCommand"] = "Progress_WinGetLine_UnexpectedError",
     };
 
     // A translation that throws must not take the install down with it.
-    public static void Forward(string line, ITaskProgressService? progress, ILogService? log)
+    public static void Forward(string line, ITaskProgressService? progress, ILocalizationService localization, ILogService? log)
     {
         try
         {
-            var displayLine = TranslateLine(line);
+            var displayLine = TranslateLine(line, localization);
             progress?.UpdateDetailedProgress(new TaskProgressDetail
             {
                 TerminalOutput = displayLine ?? line,
@@ -81,7 +89,7 @@ internal static class WinGetProgressParser
         }
     }
 
-    public static string? TranslateLine(string? line)
+    public static string? TranslateLine(string? line, ILocalizationService localization)
     {
         if (string.IsNullOrWhiteSpace(line))
             return null;
@@ -94,23 +102,23 @@ internal static class WinGetProgressParser
             var n = stepMatch.Groups[1].Value;
             var m = stepMatch.Groups[2].Value;
             var rest = stepMatch.Groups[3].Value;
-            var translatedRest = TranslateCore(rest);
+            var translatedRest = TranslateCore(rest, localization);
             if (translatedRest == null)
                 return null;
             return string.IsNullOrEmpty(translatedRest) ? null : $"[{n}/{m}] {translatedRest}";
         }
 
-        return TranslateCore(trimmed);
+        return TranslateCore(trimmed, localization);
     }
 
-    private static string? TranslateCore(string trimmed)
+    private static string? TranslateCore(string trimmed, ILocalizationService localization)
     {
         var identityMatch = ReportIdentityRegex.Match(trimmed);
         if (identityMatch.Success)
         {
             var name = identityMatch.Groups[1].Value.Trim();
             var version = identityMatch.Groups[2].Value.Trim();
-            return $"Found: {name} v{version}";
+            return localization.GetString("Progress_WinGetLine_Found", name, version);
         }
 
         var downloadMatch = DownloadUrlRegex.Match(trimmed);
@@ -121,16 +129,14 @@ internal static class WinGetProgressParser
                 var uri = new System.Uri(downloadMatch.Groups[1].Value.Trim());
                 var filename = System.IO.Path.GetFileName(uri.LocalPath);
                 if (!string.IsNullOrEmpty(filename))
-                    return $"Downloading {filename}...";
+                    return localization.GetString("Progress_Downloading", filename);
             }
             catch { }
-            return "Downloading...";
+            return localization.GetString("Progress_WinGetLine_Downloading");
         }
 
-        if (ResourceKeyMap.TryGetValue(trimmed, out var mapped))
-        {
-            return string.IsNullOrEmpty(mapped) ? null : mapped;
-        }
+        if (ResourceKeyMap.TryGetValue(trimmed, out var key))
+            return key.Length == 0 ? null : localization.GetString(key);
 
         // Dependency detail lines (indented with "  - " or deep indent) — pass through
         if (trimmed.StartsWith("  - ") || trimmed.StartsWith("      "))
@@ -138,7 +144,7 @@ internal static class WinGetProgressParser
 
         var hexMatch = HexErrorRegex.Match(trimmed);
         if (hexMatch.Success)
-            return $"Error: {hexMatch.Groups[1].Value.Trim()}";
+            return localization.GetString("Progress_WinGetLine_Error", hexMatch.Groups[1].Value.Trim());
 
         return trimmed;
     }
@@ -199,6 +205,10 @@ internal static class WinGetProgressParser
         if (lower.Contains("installflowstartingpackageinstall"))
             return new WinGetProgressInfo(WinGetPhase.Installing, null);
         if (lower.Contains("installflowinstallsuccess"))
+            return new WinGetProgressInfo(WinGetPhase.Complete, 100);
+        if (lower == "uninstallflowstartingpackageuninstall")
+            return new WinGetProgressInfo(WinGetPhase.Uninstalling, null);
+        if (lower == "uninstallflowuninstallsuccess")
             return new WinGetProgressInfo(WinGetPhase.Complete, 100);
         if (lower == "extractingarchive" || lower == "extractarchivesucceeded")
             return new WinGetProgressInfo(WinGetPhase.Installing, null);

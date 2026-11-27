@@ -18,7 +18,7 @@ public record SettingItemViewModelConfig
     public required string Description { get; init; }
     public string GroupName { get; init; } = string.Empty;
     public string Icon { get; init; } = string.Empty;
-    public string IconPack { get; init; } = "Material";
+    public string IconPack { get; init; } = "Fluent";
     public required InputType InputType { get; init; }
     public bool IsSelected { get; init; }
 
@@ -27,10 +27,6 @@ public record SettingItemViewModelConfig
     public string OffText { get; init; } = "Off";
     public string ActionButtonText { get; init; } = "Apply";
 
-    // Index-aligned with the options; null entries = no warning.
-    public IReadOnlyList<OptionWarning?>? OptionWarnings { get; init; }
+    // Shown whichever option is selected.
+    public IReadOnlyList<string>? OptionWarnings { get; init; }
 }
-
-// Advisory: the warning sits on a detect-only state the user cannot choose, so the banner shows Warning, not Error.
-// Always: a risk warning, shown whichever option is selected (as a Warning) unless the selected option has its own.
-public sealed record OptionWarning(string Text, bool Advisory, bool Always = false);

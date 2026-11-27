@@ -52,18 +52,20 @@
                     MaxWidth="{StaticResource SettingsContentMaxWidth}"
                     Margin="{StaticResource SettingsContentMargin}">
                     <TextBlock
+                        x:Name="NoResultsMessage"
+                        x:Load="{x:Bind HasNoSearchResults, Mode=OneWay}"
                         Text="{x:Bind NoResultsText, Mode=OneWay}"
                         Style="{StaticResource BodyTextBlockStyle}"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                         HorizontalAlignment="Center"
-                        Margin="0,40,0,0"
-                        Visibility="{x:Bind HasNoSearchResults, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        Margin="0,40,0,0"/>
                     <HyperlinkButton
+                        x:Name="ShowAllLink"
+                        x:Load="{x:Bind IsShowAllVisible, Mode=OneWay}"
                         Content="{x:Bind ShowAllText, Mode=OneWay}"
                         Command="{x:Bind ShowAllCommand, Mode=OneWay}"
                         HorizontalAlignment="Center"
-                        Margin="0,8,0,0"
-                        Visibility="{x:Bind IsShowAllVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        Margin="0,8,0,0"/>
                 </StackPanel>
             </ListView.Footer>
 
@@ -80,7 +82,8 @@
 
             <ListView.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <ItemsStackPanel AreStickyGroupHeadersEnabled="False"/>
+                    <!-- A quarter screen of cards each side instead of the default two: the extra screens held about 40 MB. -->
+                    <ItemsStackPanel AreStickyGroupHeadersEnabled="False" CacheLength="0.5"/>
                 </ItemsPanelTemplate>
             </ListView.ItemsPanel>
 

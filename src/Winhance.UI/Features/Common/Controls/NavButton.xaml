@@ -5,14 +5,16 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Winhance.UI.Features.Common.Controls"
     xmlns:fluentIcons="using:FluentIcons.WinUI"
+    xmlns:helpers="using:Winhance.UI.Features.Common.Helpers"
     IsTabStop="True"
     UseSystemFocusVisuals="True"
     AutomationProperties.Name="{x:Bind Text, Mode=OneWay}">
 
     <Grid x:Name="RootGrid"
-          Width="{x:Bind ActualButtonWidth, Mode=OneWay}"
-          Height="{x:Bind ActualButtonHeight, Mode=OneWay}"
+          Width="{x:Bind local:NavButton.ButtonWidth(IsCompact), Mode=OneWay}"
+          Height="{x:Bind local:NavButton.ButtonHeight(IsCompact), Mode=OneWay}"
           PointerEntered="RootGrid_PointerEntered"
+          PointerMoved="RootGrid_PointerMoved"
           PointerExited="RootGrid_PointerExited"
           PointerPressed="RootGrid_PointerPressed"
           PointerReleased="RootGrid_PointerReleased">
@@ -46,14 +48,15 @@
         <StackPanel HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Spacing="2">
-            <!-- Colored Fluent System Icon (IconVariant=Color). The Icon name is set
-                 in code-behind from IconSymbol because Icon is an enum, not a string. -->
+            <!-- Colored Fluent System Icon (IconVariant=Color). Icon is an enum, so IconKindOf
+                 turns the IconSymbol string into one. -->
             <fluentIcons:FluentIcon x:Name="ButtonFluentIcon"
+                                    x:Load="{x:Bind local:NavButton.HasIcon(IconSymbol), Mode=OneWay}"
+                                    Icon="{x:Bind local:NavButton.IconKindOf(IconSymbol), Mode=OneWay}"
                                     IconVariant="Color"
-                                    FontSize="{x:Bind IconSize, Mode=OneWay}"
+                                    FontSize="{x:Bind local:NavButton.IconSizeFor(IsCompact), Mode=OneWay}"
                                     HorizontalAlignment="Center"
-                                    Margin="{x:Bind IconMargin, Mode=OneWay}"
-                                    Visibility="{x:Bind FluentIconVisibility, Mode=OneWay}"/>
+                                    Margin="{x:Bind IconMargin, Mode=OneWay}"/>
 
             <!-- Text (Hidden when compact).
                  Wrap to 2 lines so the default-scale rendering keeps the
@@ -67,34 +70,36 @@
                  full text for screen readers, so trimming loses no info for
                  accessibility (issue #668 iter3). -->
             <TextBlock x:Name="ButtonText"
+                       x:Load="{x:Bind helpers:LoadWhen.Not(IsCompact), Mode=OneWay}"
                        Text="{x:Bind Text, Mode=OneWay}"
+                       Loaded="ButtonText_Loaded"
                        FontSize="10"
-                       TextWrapping="Wrap"
+                       TextWrapping="WrapWholeWords"
                        TextTrimming="CharacterEllipsis"
                        MaxLines="2"
                        TextAlignment="Center"
                        MaxWidth="60"
-                       HorizontalAlignment="Center"
-                       Visibility="{x:Bind TextVisibility, Mode=OneWay}"/>
+                       HorizontalAlignment="Center"/>
         </StackPanel>
 
         <!-- Left Selection Indicator -->
         <Border x:Name="SelectionIndicator"
+                x:Load="{x:Bind IsSelected, Mode=OneWay}"
                 Width="3"
                 Height="16"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Center"
                 CornerRadius="2"
                 Margin="0,0,0,0"
-                Background="{ThemeResource AccentFillColorDefaultBrush}"
-                Visibility="{x:Bind IndicatorVisibility, Mode=OneWay}"/>
+                Background="{ThemeResource AccentFillColorDefaultBrush}"/>
 
         <!-- InfoBadge Overlay -->
         <InfoBadge x:Name="Badge"
+                   x:Load="{x:Bind local:NavButton.HasBadge(BadgeValue, BadgeStatus), Mode=OneWay}"
+                   Style="{x:Bind local:NavButton.BadgeStyleFor(BadgeStatus), Mode=OneWay}"
                    HorizontalAlignment="Right"
                    VerticalAlignment="Top"
                    Margin="0,2,-4,0"
-                   Visibility="{x:Bind BadgeVisibility, Mode=OneWay}"
                    Value="{x:Bind BadgeValue, Mode=OneWay}"/>
     </Grid>
 </UserControl>

@@ -6,6 +6,9 @@ using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Core.Features.SoftwareApps.Catalogs;
+using System.Xml.Linq;
+using Winhance.Infrastructure.Features.Autounattend;
 using Winhance.Infrastructure.Features.Autounattend.Services;
 using Xunit;
 
@@ -93,6 +96,198 @@ public class AutounattendReaderTests
 
         ConfigFileMapper.FromFile(read!.Config!, SettingCatalog.ByFeature).Files
             .Should().Equal(new CarriedFile(picture.Id, destination, "AAAA"));
+    }
+
+    [Theory]
+    [InlineData(@"C:\Wallpapers\Winhance", @"C:\Media\sources\$OEM$\$1\Wallpapers\Winhance")]
+    [InlineData(@"C:\Windows\Web\Wallpaper\Winhance", @"C:\Media\sources\$OEM$\$$\Web\Wallpaper\Winhance")]
+    public async Task MediaFile_WritesRawAssetsAndReopensThemForAStandaloneSave(string destination, string staged)
+    {
+        const string mediaFolder = @"C:\Media";
+        string picture = destination + @"\beach.jpg";
+        string album = destination + @"\Holiday";
+        var carried = new CarriedFile[]
+        {
+            new("theme-wallpaper-picture", picture, "AQID"),
+            new("theme-wallpaper-album", album + @"\one.jpg", "BAUG"),
+            new("theme-wallpaper-album", album + @"\two.png", "BwgJ"),
+        };
+        var onMedia = ArrangeMedia();
+        _registry.Setup(r => r.GetAll(It.IsAny<CatalogScope>())).Returns(SettingCatalog.ByFeature);
+        var set = new SelectionSet([
+            new SettingChoice("theme-wallpaper-picture", new ChoiceValue.Keyed(picture, "beach")),
+            new SettingChoice("theme-wallpaper-album", new ChoiceValue.Text(album)),
+        ], [], []) { Files = carried };
+        var writer = new AutounattendWriter(_registry.Object, _scripts.Object, _files.Object, _version.Object, _log.Object);
+        await writer.WriteMediaAsync(set, CatalogScope.CurrentMachine, FilePath, mediaFolder, _ => Task.CompletedTask, CancellationToken.None);
+
+        var extensions = XDocument.Parse(_written).Root!.Element(AutounattendDocument.WinhanceExtensions + "Extensions")!;
+        extensions.Elements(AutounattendDocument.WinhanceExtensions + "File").Should().BeEmpty();
+        extensions.Elements(AutounattendDocument.WinhanceExtensions + "StagedFile").Should().HaveCount(4);
+        onMedia[staged + @"\beach.jpg"].Should().Equal(1, 2, 3);
+        onMedia[staged + @"\Holiday\one.jpg"].Should().Equal(4, 5, 6);
+        onMedia[@"C:\Media\sources\$OEM$\$1\ProgramData\Winhance\Unattend\Scripts\Winhancements.ps1"].Should().StartWith(new byte[] { 0xef, 0xbb, 0xbf });
+
+        var read = await Sut().ReadAsync(FilePath);
+        var reopened = ConfigFileMapper.FromFile(read!.Config!, SettingCatalog.ByFeature);
+        reopened.Files.Should().BeEquivalentTo(carried);
+
+        string staleSlide = staged + @"\Holiday\two.png";
+        string unrelatedSlide = staged + @"\Holiday\user.jpg";
+        onMedia[unrelatedSlide] = [10];
+
+        await writer.WriteMediaAsync(set with { Files = carried[..2] }, CatalogScope.CurrentMachine, FilePath, mediaFolder, _ => Task.CompletedTask, CancellationToken.None);
+        onMedia.Should().NotContainKey(staleSlide);
+        onMedia.Should().ContainKey(unrelatedSlide);
+
+        await writer.WriteAsync(reopened, CatalogScope.CurrentMachine, FilePath);
+        XDocument.Parse(_written).Root!.Element(AutounattendDocument.WinhanceExtensions + "Extensions")!
+            .Elements(AutounattendDocument.WinhanceExtensions + "File").Should().HaveCount(2);
+        _written.Should().NotContain("BAUG").And.NotContain("BwgJ");
+        var standalone = ConfigFileMapper.FromFile((await Sut().ReadAsync(FilePath))!.Config!, SettingCatalog.ByFeature);
+        standalone.Files.Should().Equal(carried[0]);
+        standalone.Value("theme-wallpaper-album").Should().Be(new ChoiceValue.Text(album));
+    }
+
+    [Fact]
+    public async Task MediaFile_DifferingUnownedPayload_BlocksBeforePublication()
+    {
+        const string path = @"C:\Media\sources\$OEM$\$1\ProgramData\Winhance\Unattend\Scripts\Winhancements.ps1";
+        var media = ArrangeMedia();
+        media[path] = [1];
+        var writer = new AutounattendWriter(_registry.Object, _scripts.Object, _files.Object, _version.Object, _log.Object);
+
+        Func<Task> save = () => writer.WriteMediaAsync(SelectionSet.Empty, CatalogScope.CurrentMachine, FilePath, @"C:\Media", _ => Task.CompletedTask, CancellationToken.None);
+        await save.Should().ThrowAsync<IOException>().WithMessage("*not owned*");
+        media.Should().ContainSingle().Which.Value.Should().Equal(1);
+    }
+
+    private Dictionary<string, byte[]> ArrangeMedia()
+    {
+        var media = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+        _files.Setup(f => f.FileExists(It.IsAny<string>())).Returns((string path) => media.ContainsKey(path));
+        _files.Setup(f => f.OpenRead(It.IsAny<string>())).Returns((string path) => new MemoryStream(media[path]));
+        _files.Setup(f => f.ReadAllBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string path, CancellationToken _) => media[path]);
+        _files.Setup(f => f.WriteAllBytesAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .Callback<string, byte[], CancellationToken>((path, bytes, _) => media[path] = bytes).Returns(Task.CompletedTask);
+        _files.Setup(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, string, CancellationToken>((path, text, _) =>
+            {
+                media[path] = System.Text.Encoding.UTF8.GetBytes(text);
+                if (path == FilePath) _written = text;
+            }).Returns(Task.CompletedTask);
+        _files.Setup(f => f.CopyFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()))
+            .Callback<string, string, bool>((source, target, _) => media[target] = media[source]);
+        _files.Setup(f => f.MoveFileReplacing(It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string>((source, target) =>
+            {
+                media[target] = media[source];
+                media.Remove(source);
+                if (target == FilePath) _written = System.Text.Encoding.UTF8.GetString(media[target]);
+            });
+        _files.Setup(f => f.DeleteFile(It.IsAny<string>())).Callback<string>(path => media.Remove(path));
+        _files.Setup(f => f.DeleteDirectory(It.IsAny<string>(), true)).Callback<string, bool>((path, _) =>
+        {
+            foreach (var file in media.Keys.Where(p => p.StartsWith(path + @"\", StringComparison.OrdinalIgnoreCase)).ToList())
+                media.Remove(file);
+        });
+        return media;
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task MediaFile_FailurePreservesPreviousXmlAndAllSidecars(bool lateFailure, bool cancelled)
+    {
+        const string folder = @"C:\Media";
+        const string picture = @"C:\Wallpapers\Winhance\beach.jpg";
+        var media = ArrangeMedia();
+        var writer = new AutounattendWriter(_registry.Object, _scripts.Object, _files.Object, _version.Object, _log.Object);
+        var set = new SelectionSet([new SettingChoice("theme-wallpaper-picture", new ChoiceValue.Keyed(picture, "beach"))], [], [])
+        {
+            Files = [new CarriedFile("theme-wallpaper-picture", picture, "AQID")],
+        };
+        await writer.WriteMediaAsync(set, CatalogScope.CurrentMachine, FilePath, folder, _ => Task.CompletedTask, CancellationToken.None);
+        var previous = new Dictionary<string, byte[]>(media);
+        if (lateFailure)
+        {
+            bool fail = true;
+            _files.Setup(f => f.MoveFileReplacing(It.IsAny<string>(), FilePath)).Callback<string, string>((source, target) =>
+            {
+                if (fail)
+                {
+                    fail = false;
+                    throw new IOException("Publish failed");
+                }
+                media[target] = media[source];
+                media.Remove(source);
+            });
+        }
+        using var cts = new CancellationTokenSource();
+        Func<string, Task> validate = _ =>
+        {
+            if (cancelled) cts.Cancel();
+            return cancelled || lateFailure ? Task.CompletedTask : Task.FromException(new IOException("Invalid XML"));
+        };
+        Func<Task> change = () => writer.WriteMediaAsync(SelectionSet.Empty, CatalogScope.CurrentMachine, FilePath, folder, validate, cts.Token);
+        if (cancelled)
+            await change.Should().ThrowAsync<OperationCanceledException>();
+        else
+            await change.Should().ThrowAsync<IOException>();
+        media.Should().BeEquivalentTo(previous);
+    }
+
+    [Fact]
+    public async Task MediaFile_DeselectingEntirePayloadsRemovesOnlyUnmodifiedOwnedFiles()
+    {
+        const string folder = @"C:\Media";
+        const string picture = @"C:\Wallpapers\Winhance\beach.jpg";
+        const string album = @"C:\Wallpapers\Winhance\Holiday";
+        const string images = @"C:\Media\sources\$OEM$\$1\Wallpapers\Winhance";
+        const string custom = @"C:\Media\sources\$OEM$\$1\ProgramData\Winhance\Unattend\Scripts\Custom\System-1.ps1";
+        var media = ArrangeMedia();
+        var writer = new AutounattendWriter(_registry.Object, _scripts.Object, _files.Object, _version.Object, _log.Object);
+        var set = new SelectionSet([
+            new SettingChoice("theme-wallpaper-picture", new ChoiceValue.Keyed(picture, "beach")),
+            new SettingChoice("theme-wallpaper-album", new ChoiceValue.Text(album)),
+            new SettingChoice("autounattend-user-script-system", new ChoiceValue.List([
+                new ChoiceValue.ListRow(new Dictionary<string, string> { ["type"] = "0", ["script"] = "Write-Host 'hello'" })])),
+        ], [], [])
+        {
+            Files = [new CarriedFile("theme-wallpaper-picture", picture, "AQID"),
+                new CarriedFile("theme-wallpaper-album", album + @"\one.jpg", "BAUG"),
+                new CarriedFile("theme-wallpaper-album", album + @"\two.jpg", "BwgJ")],
+        };
+        await writer.WriteMediaAsync(set, CatalogScope.CurrentMachine, FilePath, folder, _ => Task.CompletedTask, CancellationToken.None);
+        media.Should().ContainKey(custom);
+        string modified = images + @"\Holiday\two.jpg";
+        string unrelated = images + @"\Holiday\user.jpg";
+        media[modified] = [12];
+        media[unrelated] = [13];
+        await writer.WriteMediaAsync(SelectionSet.Empty, CatalogScope.CurrentMachine, FilePath, folder, _ => Task.CompletedTask, CancellationToken.None);
+        media.Should().NotContainKey(custom).And.NotContainKey(images + @"\beach.jpg").And.NotContainKey(images + @"\Holiday\one.jpg");
+        media[modified].Should().Equal(12);
+        media[unrelated].Should().Equal(13);
+    }
+
+    [Fact]
+    public async Task CompactConfig_RestoresKnownAppIdentifiersAndPreservesDynamicChoices()
+    {
+        var app = WindowsAppDefinitions.GetWindowsApps().Items.First(a => a.AppxPackageName is { Length: > 0 });
+        var known = new AppChoice(app.Id, app.Name, app.AppxPackageName, null, null, null);
+        var dynamicApp = new AppChoice("winget-Example.Tool", "Example Tool", null, null, null, "Example.Tool");
+        await WriteAsync(new SelectionSet([], [known], [dynamicApp]));
+
+        var config = XDocument.Parse(_written).Root!.Element(AutounattendDocument.WinhanceExtensions + "Extensions")!
+            .Element(AutounattendDocument.WinhanceExtensions + "Config")!.Value;
+        config.Should().Contain("\"Id\":\"" + app.Id + "\",\"IsSelected\":true");
+        config.Should().NotContain("\"AppxPackageName\"");
+        config.Should().NotContain("\n");
+        var read = ConfigFileMapper.FromFile((await Sut().ReadAsync(FilePath))!.Config!, ParityCatalog.ByFeature);
+        read.WindowsApps.Should().BeEquivalentTo(new[] { known });
+        read.ExternalApps.Should().Equal(dynamicApp);
     }
 
     private static ChoiceValue SampleFor(Setting setting) => setting.Control switch

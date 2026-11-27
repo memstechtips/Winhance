@@ -240,7 +240,7 @@ public class ChocolateyServiceTests
     public async Task InstallPackageAsync_ChecksumFailureWithSavedPreference_RetriesWithFlagWithoutAsking()
     {
         SetupChecksumFailureThenSuccess();
-        _mockPrefs.Setup(p => p.GetPreferenceAsync(UserPreferenceKeys.ChocolateyIgnoreChecksums, false)).ReturnsAsync(true);
+        _mockPrefs.Setup(p => p.GetPreference(UserPreferenceKeys.ChocolateyIgnoreChecksums, false)).Returns(true);
 
         var result = await _sut.InstallPackageAsync("vlc", "VLC", InstallOptions.Default, CancellationToken.None);
 

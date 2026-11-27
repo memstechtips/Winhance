@@ -34,11 +34,11 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
 
     public event EventHandler<bool>? FilterStateChanged;
 
-    public async Task LoadFilterPreferenceAsync()
+    public void LoadFilterPreference()
     {
         try
         {
-            IsFilterEnabled = await _preferencesService.GetPreferenceAsync(
+            IsFilterEnabled = _preferencesService.GetPreference(
                 UserPreferenceKeys.EnableWindowsVersionFilter, defaultValue: true);
 
             _logService.Log(Core.Features.Common.Enums.LogLevel.Info,
@@ -59,7 +59,7 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
 
         try
         {
-            var dontShowAgain = await _preferencesService.GetPreferenceAsync(
+            var dontShowAgain = _preferencesService.GetPreference(
                 UserPreferenceKeys.DontShowFilterExplanation, defaultValue: false);
 
             if (!dontShowAgain)
@@ -122,9 +122,9 @@ public class WindowsVersionFilterService : IWindowsVersionFilterService
         }
     }
 
-    public async Task RestoreFilterPreferenceAsync()
+    public void RestoreFilterPreference()
     {
-        var savedPreference = await _preferencesService.GetPreferenceAsync(
+        var savedPreference = _preferencesService.GetPreference(
             UserPreferenceKeys.EnableWindowsVersionFilter, defaultValue: true);
         if (IsFilterEnabled != savedPreference)
         {

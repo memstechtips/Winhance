@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Winhance.TestSupport;
 using Xunit;
 
@@ -37,7 +38,7 @@ public class XamlTokensTests
         Assert.Equal("12,4", Theme.Styles["TechDetail.Table.HeaderBand"].Setters["Padding"]);
         Assert.Equal("40", Theme.Styles["TechDetail.Table.Cell"].Setters["MinHeight"]);
         Assert.Equal("12,0", Theme.Styles["TechDetail.Table.Cell"].Setters["Padding"]);
-        Assert.Equal("20", Theme.Styles["BadgePillBase"].Setters["Height"]);
+        Assert.Equal("20", Theme.Styles["BadgePillBase"].Setters["MinHeight"]);
         Assert.Equal("10", Theme.Styles["BadgePillBase"].Setters["CornerRadius"]);
         Assert.Equal("BadgePillBase", Theme.Styles["BadgeRecommendedStyle"].BasedOn);
         Assert.Equal("#FF0D1117", Theme.Styles["TechDetail.CodeBlock.PowerShell"].Setters["Background"]);
@@ -51,15 +52,27 @@ public class XamlTokensTests
         Assert.Equal("{ThemeResource TechDetail.Table.StrokeBrush}", Theme.Styles["TechDetail.Table.Cell"].Setters["BorderBrush"]);
     }
 
+    // The docs draw each pill's icon by this Fluent name.
     [Fact]
-    public void Geometries_ThreePillGeometries_AreExportedWithViewbox()
+    public void Styles_PillIcons_CarryTheirFluentIconName()
     {
-        foreach (var key in new[] { "BadgeRecommendedIconPath", "BadgeDefaultIconPath", "BadgePreferenceIconPath" })
-        {
-            Assert.StartsWith("M", Theme.Geometries[key].Data);
-            Assert.InRange(Theme.Geometries[key].ViewBox, 8, 32);
-        }
+        Assert.Equal("Star", Theme.Styles["BadgeRecommendedIcon"].Setters["Icon"]);
+        Assert.Equal("Apps", Theme.Styles["BadgeDefaultIcon"].Setters["Icon"]);
+        Assert.Equal("Person", Theme.Styles["BadgePreferenceIcon"].Setters["Icon"]);
+    }
+    // A setter's {StaticResource} to an icon size must resolve on the website, which only has the export.
+    [Fact]
+    public void Sizes_EveryIconSizeAStyleReferences_IsExported()
+    {
+        var referenced = Theme.Styles.Values
+            .SelectMany(s => s.Setters.Values)
+            .Select(v => Regex.Match(v, @"^\{StaticResource\s+(\w+IconFontSize)\}$"))
+            .Where(m => m.Success)
+            .Select(m => m.Groups[1].Value)
+            .ToList();
 
-        Assert.Equal(3, Theme.Geometries.Count);
+        Assert.NotEmpty(referenced);
+        Assert.All(referenced, key => Assert.True(Theme.Sizes.ContainsKey(key), key));
+        Assert.Equal("12", Theme.Sizes["CaptionIconFontSize"]);
     }
 }

@@ -84,7 +84,9 @@ function Run-TestProject {
 
     # The console logger is what prints a failed test's assertion message; --verbosity only controls
     # MSBuild, so without it the log records "Failed: 1" and not one word about which test or why.
-    $cmd = "dotnet test `"$ProjectPath`" --verbosity quiet --logger `"console;verbosity=normal`" $outArg $ExtraArgs"
+    # Without --blame-hang one hung test stalls the gate forever and unnamed. It kills the test host after 5 minutes
+    # with no test finishing and names the test that was running; no single test here needs that long.
+    $cmd = "dotnet test `"$ProjectPath`" --verbosity quiet --logger `"console;verbosity=normal`" --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none $outArg $ExtraArgs"
     # $ErrorActionPreference is Stop for the script, which turns a native command's stderr into a
     # TERMINATING error, which would kill the runner before it could parse, print or log anything.
     # Scope Continue to the call so stderr is just more output.
@@ -124,6 +126,8 @@ function Run-TestProject {
     # outrank the numbers.
     if ($failed -eq 0 -and ($exitCode -ne 0 -or $output -match 'Test Run Aborted\.')) {
         Write-Host "  FAILED: dotnet test exited with $exitCode or the run aborted, despite a zero failed-count" -ForegroundColor Red
+        [regex]::Matches($output, '(?m)^.*(?:inactivity time|active test|were not completed|Blame).*$') |
+            ForEach-Object { Write-Host "    $($_.Value.Trim())" -ForegroundColor Red }
         $failed = 1
     }
 
@@ -184,7 +188,7 @@ function Invoke-UITestProject {
     # failure - otherwise this gate would sit permanently red for a reason that is not a regression.
     # If the run DOES work, real test failures are fatal: that is what catches stale expectations.
     #
-    # Returns one of: nomsbuild | buildfailed | buildonly | pass | fail
+    # Returns one of: nomsbuild | buildfailed | warnings | buildonly | pass | fail
     #
     # Function-scoped so native tools writing to stderr under 2>&1 don't become terminating errors
     # (PowerShell 5.1 turns a redirected stderr line into a NativeCommandError when EAP is Stop).
@@ -216,6 +220,15 @@ function Invoke-UITestProject {
     if ($buildOutput -match 'NETSDK1233') {
         Write-Host "  WARNING NETSDK1233: built with VS 2022 MSBuild, which does not support .NET 10. Install Visual Studio 2026." -ForegroundColor Yellow
         Add-Log "WARNING NETSDK1233: $msbuildPath does not support .NET 10"
+    }
+    # The XAML compiler's WMC warnings show in a Visual Studio build but never in lint-solution.ps1's `dotnet build`,
+    # so this build is the only gate that sees them. Any warning but NETSDK1233 fails the gate.
+    $warnings = [regex]::Matches($buildOutput, '(?m)^.*\b(warning|error) (?!NETSDK1233)[A-Za-z]+[0-9]+:.*$') |
+        ForEach-Object { $_.Value.Trim() } | Sort-Object -Unique
+    if ($warnings) {
+        Write-Host "  BUILD WARNINGS - Winhance.UI compiles with warnings:" -ForegroundColor Red
+        $warnings | ForEach-Object { Write-Host "    $_" -ForegroundColor Yellow }
+        return "warnings"
     }
 
     # Locate the built assembly. When the repo is on a share, Use-LocalBuildOutputs.ps1 has
@@ -253,8 +266,11 @@ function Invoke-UITestProject {
     }
 
     Write-Host "  Attempting to run UI tests..." -ForegroundColor Cyan
-    $runOutput = & $vstestConsolePath $uiTestDll /Platform:x64 2>&1 | Out-String
+    # Same hang guard as the dotnet suites: a test that runs 5 minutes is killed and named.
+    $runOutput = & $vstestConsolePath $uiTestDll /Platform:x64 "/Blame:CollectHangDump;TestTimeout=5m;HangDumpType=None" 2>&1 | Out-String
     Add-Log $runOutput
+    if ($runOutput -match 'Test Run Aborted\.') { [regex]::Matches($runOutput, '(?m)^.*(?:inactivity time|active test|were not completed|Blame).*$') |
+        ForEach-Object { Write-Host "    $($_.Value.Trim())" -ForegroundColor Red } }
 
     # Two summary shapes, because two runners emit them:
     #   vstest.console.exe : "Test Run Failed." / "Total tests: N" / "Passed: N" / "Failed: N"
@@ -387,6 +403,12 @@ function Resolve-UIResult {
             Write-Host "  FAILED: UI Tests - compile error (see the MSBuild output above)" -ForegroundColor Red
             $script:totalFailed += 1
             $script:failedProjects += "UI Tests (build)"
+            return $false
+        }
+        "warnings" {
+            Write-Host "  FAILED: UI Tests - build warnings (listed above); tests not run" -ForegroundColor Red
+            $script:totalFailed += 1
+            $script:failedProjects += "UI Tests (build warnings)"
             return $false
         }
         "fail" {

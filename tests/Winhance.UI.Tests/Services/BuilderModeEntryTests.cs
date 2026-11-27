@@ -97,6 +97,37 @@ public class BuilderModeEntryTests
     }
 
     [Fact]
+    public async Task EnterFromProfile_InBuilderWithChanges_AsksToStartOver_NotToLeave()
+    {
+        var profile = new SettingsProfile("Gaming", "Gaming", ProfileKind.User, @"C:\p\Gaming.winhance");
+        _mode.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _mode.Setup(m => m.HasBuilderChanges).Returns(true);
+        ConfirmationRequest? asked = null;
+        _dialogs.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .Callback<ConfirmationRequest>(r => asked = r)
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
+
+        (await Sut().EnterFromProfileAsync(profile)).Should().BeFalse();
+
+        asked!.Title.Should().Be("Builder_Reseed_Title");
+        asked.ConfirmButtonText.Should().Be("Builder_Reseed_Confirm");
+        _profiles.Verify(p => p.LoadAsync(It.IsAny<SettingsProfile>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task EnterFromProfile_InBuilderWithNoChanges_DoesNotAsk()
+    {
+        var profile = new SettingsProfile("Gaming", "Gaming", ProfileKind.User, @"C:\p\Gaming.winhance");
+        _mode.Setup(m => m.CurrentMode).Returns(WinhanceMode.Builder);
+        _profiles.Setup(p => p.LoadAsync(profile)).ReturnsAsync((WinhanceConfigFile?)null);
+
+        await Sut().EnterFromProfileAsync(profile);
+
+        _dialogs.Verify(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()), Times.Never);
+        _profiles.Verify(p => p.LoadAsync(profile), Times.Once);
+    }
+
+    [Fact]
     public async Task EnteringIsOneDialog_ThatExplainsBuilder_WithNoReasonWhenChosenFromTheBar()
     {
         (await Sut().EnterAsync(BuilderTarget.Config, null)).Should().BeTrue();

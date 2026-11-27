@@ -10,6 +10,10 @@
     xmlns:selectors="using:Winhance.UI.Features.Common.TemplateSelectors"
     xmlns:local="using:Winhance.UI.Features.Common.Controls">
 
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="LayoutTokens.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
     <!-- WHEN A CONTROL GETS ITS OWN UserControl, AND WHEN IT STAYS INLINE
          (the rule, so the mix below reads as a decision rather than as drift)
 
@@ -54,16 +58,15 @@
     <!-- Power selection: the on-battery column only exists on a machine with a battery. The 120px pin
          stops two columns growing to their widest item and squeezing the badges out of the row. -->
     <DataTemplate x:Key="PowerSelectionSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-        <StackPanel Orientation="Horizontal" Spacing="12">
-            <StackPanel Spacing="4">
-                <TextBlock Text="{x:Bind PluggedInText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"
-                           Visibility="{x:Bind HasBattery, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource ControlGroupSpacing}">
+            <StackPanel Spacing="{StaticResource FieldLabelSpacing}">
+                <TextBlock x:Name="PluggedInLabel" x:Load="{x:Bind HasBattery, Mode=OneWay}"
+                           Text="{x:Bind PluggedInText}" FontSize="{StaticResource CaptionTextBlockFontSize}" Opacity="0.8" HorizontalAlignment="Center"/>
                 <local:SettingComboBox Setting="{x:Bind}" Mode="Ac"
                                        PinnedWidth="{x:Bind PowerColumnWidth(HasBattery), Mode=OneWay}"/>
             </StackPanel>
-            <StackPanel Spacing="4"
-                        Visibility="{x:Bind HasBattery, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <TextBlock Text="{x:Bind OnBatteryText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
+            <StackPanel x:Name="BatteryColumn" x:Load="{x:Bind HasBattery, Mode=OneWay}" Spacing="{StaticResource FieldLabelSpacing}">
+                <TextBlock Text="{x:Bind OnBatteryText}" FontSize="{StaticResource CaptionTextBlockFontSize}" Opacity="0.8" HorizontalAlignment="Center"/>
                 <local:SettingComboBox Setting="{x:Bind}" Mode="Dc"
                                        PinnedWidth="{x:Bind PowerColumnWidth(HasBattery), Mode=OneWay}"/>
             </StackPanel>
@@ -71,15 +74,14 @@
     </DataTemplate>
 
     <DataTemplate x:Key="PowerNumericSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
-        <StackPanel Orientation="Horizontal" Spacing="12">
-            <StackPanel Spacing="4">
-                <TextBlock Text="{x:Bind PluggedInText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"
-                           Visibility="{x:Bind HasBattery, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource ControlGroupSpacing}">
+            <StackPanel Spacing="{StaticResource FieldLabelSpacing}">
+                <TextBlock x:Name="PluggedInLabel" x:Load="{x:Bind HasBattery, Mode=OneWay}"
+                           Text="{x:Bind PluggedInText}" FontSize="{StaticResource CaptionTextBlockFontSize}" Opacity="0.8" HorizontalAlignment="Center"/>
                 <local:SettingNumberBox Setting="{x:Bind}" Mode="Ac"/>
             </StackPanel>
-            <StackPanel Spacing="4"
-                        Visibility="{x:Bind HasBattery, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <TextBlock Text="{x:Bind OnBatteryText}" FontSize="12" Opacity="0.8" HorizontalAlignment="Center"/>
+            <StackPanel x:Name="BatteryColumn" x:Load="{x:Bind HasBattery, Mode=OneWay}" Spacing="{StaticResource FieldLabelSpacing}">
+                <TextBlock Text="{x:Bind OnBatteryText}" FontSize="{StaticResource CaptionTextBlockFontSize}" Opacity="0.8" HorizontalAlignment="Center"/>
                 <local:SettingNumberBox Setting="{x:Bind}" Mode="Dc"/>
             </StackPanel>
         </StackPanel>
@@ -89,11 +91,14 @@
         <!-- The ONE input template with no outcome overlay, by design: an action button runs a task,
              it does not display a detected state, so there is nothing for detection to fail to place.
              CardTemplateOutcomeCoverageTests exempts this template by name. -->
-        <Button
-            Content="{x:Bind ActionButtonText}"
-            Command="{x:Bind RunActionCommand}"
-            Visibility="{x:Bind ShowActionButton, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
-            AutomationProperties.Name="{x:Bind A11yName(ActionButtonText), Mode=OneWay}"/>
+        <Grid>
+            <Button
+                x:Name="ActionButton"
+                x:Load="{x:Bind ShowActionButton, Mode=OneWay}"
+                Content="{x:Bind ActionButtonText}"
+                Command="{x:Bind RunActionCommand}"
+                AutomationProperties.Name="{x:Bind A11yName(ActionButtonText), Mode=OneWay}"/>
+        </Grid>
     </DataTemplate>
 
     <DataTemplate x:Key="TextBoxSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
@@ -107,6 +112,7 @@
     </DataTemplate>
 
     <DataTemplate x:Key="CheckListSettingTemplate" x:DataType="viewModels:SettingItemViewModel">
+        <!-- Bounded: the editions in the opened install image, one per Windows edition -->
         <ItemsControl ItemsSource="{x:Bind CheckItems}" IsTabStop="False">
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="commonViewModels:CheckListItemViewModel">

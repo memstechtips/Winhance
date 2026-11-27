@@ -102,12 +102,12 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
 
         // A mode that authors intent moves toggle/selection state on the shared settings VMs
         // without applying it, so any transition out of one leaves those positions stale and the
-        // settings must be reloaded from live system state. Safe during review entry too: the
+        // settings must be rebuilt from live system state. Safe during review entry too: the
         // recreated ViewModels get their review decoration from SettingViewModelFactory, which
         // applies the eagerly computed diffs against fresh discovery state.
         //
         // Asked as a capability rather than as "was that Builder?" so a second authoring mode
-        // inherits the reload by declaring its capabilities. Naming Builder here is how a future
+        // inherits the rebuild by declaring its capabilities. Naming Builder here is how a future
         // mode would silently keep showing values it never applied.
         bool leftAnAuthoringMode =
             ModeCapabilities.For(previous).AuthorsIntent && !ModeCapabilities.For(current).AuthorsIntent;
@@ -115,14 +115,15 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
         if (leftAnAuthoringMode)
         {
             // Authoring for other hardware is Builder-only: outside it a setting this PC cannot have would
-            // read as applicable and apply to nothing. Reset BEFORE the reload, because the reload reads the
-            // scope synchronously before its first await - and the FilterStateChangedEvent refresh that a later
-            // reset would raise no-ops while that first load still holds the loading semaphore.
+            // read as applicable and apply to nothing. Reset AFTER publishing: the event only marks each loaded
+            // feature stale, so the FilterStateChangedEvent a reset raises then skips them, where a reset first
+            // would reconcile every loaded feature against the narrowed scope only to rebuild it anyway. Every
+            // rebuild runs later (the page on screen enqueues its own), so all of them read the reset scope.
+            _eventBus.Publish(new AuthoringModeExitedEvent());
             _hardwareFilter.Reset();
             _targetWindows.Reset();
             _wimUtilSession.Reset();
-            _eventBus.Publish(new AuthoringModeExitedEvent());
-            _logService.Log(LogLevel.Info, "Published AuthoringModeExitedEvent to reload settings from system state");
+            _logService.Log(LogLevel.Info, "Published AuthoringModeExitedEvent to rebuild settings from system state");
         }
     }
 
@@ -134,7 +135,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             // Those VMs still show authored, un-applied positions, and the applier's fallback diff
             // would read them as system truth and register false diffs. ReviewModeChanged fires
             // before ModeChanged, so _previousMode still holds the authoring mode here; the
-            // ModeChanged handler then publishes AuthoringModeExitedEvent, and the reloaded
+            // ModeChanged handler then publishes AuthoringModeExitedEvent, and the rebuilt
             // ViewModels get their review decoration from SettingViewModelFactory.
             //
             // The capability, not the mode name: what makes the reapply wrong is that the values on
@@ -198,7 +199,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             _reviewSourcePath = null;
             _configReviewModeService.ExitReviewMode();
             _installOptions.EndSession();
-            _dialogService.ShowMessage(_localizationService.GetString("Config_Review_EnterError", ex.Message), _localizationService.GetString("Dialog_Error"));
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Config_Review_EnterError", ex.Message));
         }
     }
 
@@ -267,7 +268,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
 
             if (selectedSections.Count == 0)
             {
-                _dialogService.ShowMessage(
+                await _dialogService.ShowInformationAsync(
                     _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection", "There are no changes to apply."),
                     _localizationService.GetStringOrDefault("Config_Import_Error_NoSelection_Title", "Nothing to Apply"));
                 return;
@@ -348,7 +349,7 @@ public class ConfigReviewOrchestrationService : IConfigReviewOrchestrationServic
             _overlayService.HideOverlay();
             _reviewSourcePath = null;
             _configReviewModeService.ExitReviewMode();
-            _dialogService.ShowMessage(_localizationService.GetString("Config_Apply_Error", ex.Message), _localizationService.GetString("Dialog_Error"));
+            await _dialogService.ShowErrorAsync(_localizationService.GetString("Config_Apply_Error", ex.Message));
         }
         finally
         {

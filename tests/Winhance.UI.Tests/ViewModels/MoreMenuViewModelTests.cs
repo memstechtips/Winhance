@@ -250,7 +250,7 @@ public class MoreMenuViewModelTests
     }
 
     [Fact]
-    public async Task OpenLogsCommand_WhenExceptionThrown_LogsError()
+    public async Task OpenLogsCommand_WhenExceptionThrown_LogsAndShowsTheError()
     {
         _mockFileSystemService
             .Setup(fs => fs.DirectoryExists(It.IsAny<string>()))
@@ -263,6 +263,8 @@ public class MoreMenuViewModelTests
         _mockLogService.Verify(
             l => l.LogError(It.Is<string>(s => s.Contains("disk error")), It.IsAny<Exception>(), It.IsAny<string>()),
             Times.Once);
+        _mockDialogService.Verify(
+            d => d.ShowErrorAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

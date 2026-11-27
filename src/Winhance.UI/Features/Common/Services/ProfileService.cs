@@ -42,6 +42,7 @@ public sealed class ProfileService(
     // LoadAsync builds the built-ins outside _gate, so two writes of the same file take turns here instead.
     private readonly SemaphoreSlim _writeGate = new(1, 1);
     private IReadOnlyList<string> _pendingReboot = [];
+    private ParsedProfile? _driftProfile;
 
     public event EventHandler? Changed;
 
@@ -240,7 +241,7 @@ public sealed class ProfileService(
     {
         try
         {
-            if (ActiveProfileId is not { } id || FindById(id) is not { } active || await LoadAsync(active) is not { } loaded)
+            if (ActiveProfileId is not { } id || FindById(id) is not { } active || await LoadForDriftAsync(active) is not { } loaded)
                 return [];
             var plan = await PlanAsync(configLoad.FilterConfigForCurrentSystem(loaded));
             var comparison = await snapshot.CompareAsync(plan.Where(p => p.Choice is not null).Select(p => p.Choice!).ToList(), Carried(plan), CatalogScope.CurrentMachine);
@@ -254,6 +255,22 @@ public sealed class ProfileService(
             logService.Log(LogLevel.Warning, $"Could not check the active profile for drift: {ex.Message}");
             return [];
         }
+    }
+
+    private sealed record ParsedProfile(string Path, long Size, DateTime Written, WinhanceConfigFile Config);
+
+    // Settings checks drift on every visit, and a profile that carries a picture holds it as megabytes of base64, so a
+    // file is parsed again only when it has changed on disk.
+    private async Task<WinhanceConfigFile?> LoadForDriftAsync(SettingsProfile profile)
+    {
+        if (!HasFile(profile) || profile.FilePath is not { } path || !fileSystem.FileExists(path))
+            return await LoadAsync(profile);
+        var (size, written) = (fileSystem.GetFileSize(path), fileSystem.GetLastWriteTimeUtc(path));
+        if (_driftProfile is { } parsed && parsed.Path == path && parsed.Size == size && parsed.Written == written)
+            return parsed.Config;
+        var config = await LoadAsync(profile);
+        _driftProfile = config is null ? null : new ParsedProfile(path, size, written, config);
+        return config;
     }
 
     private async Task<ProfileSwitchResult?> ApplyAsync(SettingsProfile profile, bool reapply)

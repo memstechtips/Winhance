@@ -82,7 +82,7 @@ public class ConfigurationService : IConfigurationService
         }
     }
 
-    // Settings > Import and the mode switcher's Config Review both land here, from any mode.
+    // Settings > Import and the mode switcher's Config Import both land here, from any mode.
     public async Task ImportConfigurationAsync()
     {
         _logService.Log(LogLevel.Info, "Starting configuration import");

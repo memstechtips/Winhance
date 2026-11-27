@@ -7,7 +7,10 @@
     xmlns:viewModels="using:Winhance.UI.Features.Settings.ViewModels"
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:fluentIcons="using:FluentIcons.WinUI"
-    xmlns:commonControls="using:Winhance.UI.Features.Common.Controls">
+    xmlns:commonControls="using:Winhance.UI.Features.Common.Controls"
+    xmlns:helpers="using:Winhance.UI.Features.Common.Helpers"
+    xmlns:interfaces="using:Winhance.Core.Features.Common.Interfaces"
+    NavigationCacheMode="Disabled">
 
     <Page.Resources>
         <Style x:Key="ExpanderInfoBarStyle" TargetType="InfoBar"/>
@@ -39,7 +42,7 @@
                         IsOpen="True"
                         IsClosable="False"
                         Severity="Informational"
-                        Margin="16,8"
+                        Margin="{StaticResource ExpanderInfoBarMargin}"
                         Message="{x:Bind Message}">
                         <InfoBar.ActionButton>
                             <Button
@@ -58,7 +61,7 @@
                         IsOpen="True"
                         IsClosable="False"
                         Severity="Success"
-                        Margin="16,8"
+                        Margin="{StaticResource ExpanderInfoBarMargin}"
                         Message="{x:Bind Message}"/>
                 </DataTemplate>
             </local:BackgroundRowTemplateSelector.FolderSafeTemplate>
@@ -70,7 +73,7 @@
                         IsOpen="True"
                         IsClosable="False"
                         Severity="Warning"
-                        Margin="16,8"
+                        Margin="{StaticResource ExpanderInfoBarMargin}"
                         Message="{x:Bind Message}">
                         <InfoBar.ActionButton>
                             <Button
@@ -86,22 +89,38 @@
                     <controls:SettingsCard
                         Header="{x:Bind Title}"
                         Description="{x:Bind Detail}"
-                        Opacity="{x:Bind Opacity}"
-                        HeaderIcon="{x:Bind IconKey, Converter={StaticResource SectionIconConverter}}">
-                        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                            <Border Style="{StaticResource BadgeInstalledStyle}" Visibility="{x:Bind ShowHealthy}">
-                                <TextBlock Text="{x:Bind Pill}"
-                                           Style="{StaticResource BadgeTextStyle}"
-                                           Foreground="{ThemeResource BadgeRecommendedForeground}"/>
-                            </Border>
-                            <Border Style="{StaticResource BadgeNonReinstallableStyle}" Visibility="{x:Bind ShowUnhealthy}">
-                                <TextBlock Text="{x:Bind Pill}"
-                                           Style="{StaticResource BadgeTextStyle}"
-                                           Foreground="{ThemeResource BadgeDangerForeground}"/>
-                            </Border>
-                            <Button Content="{x:Bind RepairText}" Command="{x:Bind Repair}" IsEnabled="{x:Bind ButtonsEnabled}" Visibility="{x:Bind CanRepair}"/>
-                            <Button Content="{x:Bind RemoveText}" Command="{x:Bind Remove}" IsEnabled="{x:Bind ButtonsEnabled}" Visibility="{x:Bind CanRemove}"/>
-                            <Button Content="{x:Bind StopText}" Command="{x:Bind Stop}" IsEnabled="{x:Bind ButtonsEnabled}" Visibility="{x:Bind CanStop}"/>
+                        HeaderIcon="{x:Bind Converter={StaticResource IconConverter}}">
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource ControlGroupSpacing}" VerticalAlignment="Center">
+                            <StackPanel Spacing="{StaticResource BadgeRowSpacing}" VerticalAlignment="Center">
+                                <Border x:Name="ActivePill" x:Load="{x:Bind Active}" HorizontalAlignment="Right" Style="{StaticResource BadgeInstalledStyle}">
+                                    <TextBlock Text="{x:Bind TaskStatus}"
+                                               Style="{StaticResource BadgeTextStyle}"
+                                               Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                </Border>
+                                <Border x:Name="InactivePill" x:Load="{x:Bind Inactive}" HorizontalAlignment="Right" Style="{StaticResource BadgeDefaultStyle}">
+                                    <TextBlock Text="{x:Bind TaskStatus}" Style="{StaticResource BadgeTextStyle}"/>
+                                </Border>
+                                <Border x:Name="ScriptPresentPill" x:Load="{x:Bind ShowScriptPresent}" HorizontalAlignment="Right" Style="{StaticResource BadgeInstalledStyle}">
+                                    <TextBlock Text="{x:Bind ScriptStatus}"
+                                               Style="{StaticResource BadgeTextStyle}"
+                                               Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                </Border>
+                                <Border x:Name="ScriptMissingPill" x:Load="{x:Bind ShowScriptMissing}" HorizontalAlignment="Right" Style="{StaticResource BadgeDefaultStyle}">
+                                    <TextBlock Text="{x:Bind ScriptStatus}" Style="{StaticResource BadgeTextStyle}"/>
+                                </Border>
+                            </StackPanel>
+                            <DropDownButton x:Name="BackgroundTaskActionsButton" x:Load="{x:Bind HasTaskActions}" Content="{x:Bind ActionsText}" VerticalAlignment="Center">
+                                <DropDownButton.Flyout>
+                                    <Flyout>
+                                        <StackPanel Spacing="{StaticResource ControlRowSpacing}">
+                                            <Button x:Name="ToolToggleButton" x:Load="{x:Bind CanToggle}" Content="{x:Bind ToggleText}" Command="{x:Bind Toggle}" CommandParameter="{x:Bind}"/>
+                                            <Button x:Name="ToolRepairButton" x:Load="{x:Bind CanRepair}" Content="{x:Bind RepairText}" Command="{x:Bind Repair}" CommandParameter="{x:Bind}"/>
+                                            <Button x:Name="ToolRemoveButton" x:Load="{x:Bind CanRemove}" Content="{x:Bind RemoveText}" Command="{x:Bind Remove}" CommandParameter="{x:Bind}"/>
+                                        </StackPanel>
+                                    </Flyout>
+                                </DropDownButton.Flyout>
+                            </DropDownButton>
+                            <Button x:Name="ToolStopButton" x:Load="{x:Bind CanStop}" Content="{x:Bind StopText}" Command="{x:Bind Stop}" CommandParameter="{x:Bind}"/>
                         </StackPanel>
                     </controls:SettingsCard>
                 </DataTemplate>
@@ -109,9 +128,9 @@
             <local:BackgroundRowTemplateSelector.TaskTemplate>
                 <DataTemplate x:DataType="viewModels:TaskRow">
                     <controls:SettingsCard Header="{x:Bind Title}" Description="{x:Bind Detail}" Opacity="{x:Bind Opacity}">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button Content="{x:Bind PrimaryText}" Command="{x:Bind Primary}" Visibility="{x:Bind HasPrimary}"/>
-                            <Button Content="{x:Bind SecondaryText}" Command="{x:Bind Secondary}" Visibility="{x:Bind HasSecondary}"/>
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource ControlRowSpacing}">
+                            <Button x:Name="TaskPrimaryButton" x:Load="{x:Bind HasPrimary}" Content="{x:Bind PrimaryText}" Command="{x:Bind Primary}" CommandParameter="{x:Bind}"/>
+                            <Button x:Name="TaskSecondaryButton" x:Load="{x:Bind HasSecondary}" Content="{x:Bind SecondaryText}" Command="{x:Bind Secondary}"/>
                         </StackPanel>
                     </controls:SettingsCard>
                 </DataTemplate>
@@ -120,7 +139,7 @@
     </Page.Resources>
 
 
-    <Grid Padding="0,0,12,0">
+    <Grid Padding="{StaticResource PageRootPadding}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>  <!-- Header -->
             <RowDefinition Height="*"/>     <!-- Content -->
@@ -137,7 +156,7 @@
         <Border
             Grid.Row="1"
             Background="{ThemeResource SystemFillColorNeutralBackgroundBrush}"
-            CornerRadius="8"
+            CornerRadius="{StaticResource SectionBandCornerRadius}"
             Margin="0,16,0,12">
             <ScrollViewer
                 x:Name="PageScrollViewer"
@@ -171,8 +190,8 @@
                                 SelectedValuePath="Value"
                                 FlowDirection="LeftToRight">
                                 <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding DisplayText}" TextReadingOrder="UseFlowDirection"/>
+                                    <DataTemplate x:DataType="interfaces:ComboBoxDisplayOption">
+                                        <TextBlock Text="{x:Bind DisplayText, Mode=OneWay}" TextReadingOrder="UseFlowDirection"/>
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
@@ -205,15 +224,17 @@
                             <controls:SettingsCard.HeaderIcon>
                                 <fluentIcons:FluentIcon Icon="ShieldTask" IconVariant="Regular"/>
                             </controls:SettingsCard.HeaderIcon>
-                            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource ControlGroupSpacing}" VerticalAlignment="Center">
                                 <ProgressRing
-                                    IsActive="{x:Bind ViewModel.IsCreatingRestorePoint, Mode=OneWay}"
-                                    Visibility="{x:Bind ViewModel.IsCreatingRestorePoint, Mode=OneWay}"
+                                    x:Name="RestorePointRing"
+                                    x:Load="{x:Bind ViewModel.IsCreatingRestorePoint, Mode=OneWay}"
+                                    IsActive="True"
                                     Width="20" Height="20"/>
                                 <Button
+                                    x:Name="CreateRestorePointButton"
+                                    x:Load="{x:Bind helpers:LoadWhen.Not(ViewModel.IsCreatingRestorePoint), Mode=OneWay}"
                                     Content="{x:Bind ViewModel.CreateRestorePointButtonText, Mode=OneWay}"
-                                    Command="{x:Bind ViewModel.CreateRestorePointCommand}"
-                                    Visibility="{x:Bind ViewModel.IsCreatingRestorePoint, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                    Command="{x:Bind ViewModel.CreateRestorePointCommand}"/>
                             </StackPanel>
                         </controls:SettingsCard>
 
@@ -298,6 +319,21 @@
                                 AutomationProperties.Name="{x:Bind ViewModel.UpdateActionHeader, Mode=OneWay}"/>
                         </controls:SettingsCard>
 
+                        <controls:SettingsCard
+                            Header="{x:Bind ViewModel.WinhanceUpdateActionHeader, Mode=OneWay}"
+                            Description="{x:Bind ViewModel.WinhanceUpdateActionDescription, Mode=OneWay}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <fluentIcons:FluentIcon Icon="ArrowDownload" IconVariant="Regular"/>
+                            </controls:SettingsCard.HeaderIcon>
+                            <ComboBox
+                                x:Name="WinhanceUpdateActionComboBox"
+                                MinWidth="200"
+                                ItemsSource="{x:Bind ViewModel.WinhanceUpdateActionOptions}"
+                                SelectedItem="{x:Bind ViewModel.SelectedWinhanceUpdateActionOption, Mode=TwoWay}"
+                                DisplayMemberPath="DisplayText"
+                                AutomationProperties.Name="{x:Bind ViewModel.WinhanceUpdateActionHeader, Mode=OneWay}"/>
+                        </controls:SettingsCard>
+
                         <TextBlock
                             Text="{x:Bind ViewModel.ConfigsProfilesLabel, Mode=OneWay}"
                             Style="{StaticResource SettingsSectionHeaderTextBlockStyle}"/>
@@ -308,7 +344,7 @@
                             <controls:SettingsCard.HeaderIcon>
                                 <fluentIcons:FluentIcon Icon="ArrowSync" IconVariant="Regular"/>
                             </controls:SettingsCard.HeaderIcon>
-                            <StackPanel Orientation="Horizontal" Spacing="8">
+                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource ControlRowSpacing}">
                                 <Button
                                     Content="{x:Bind ViewModel.ImportButtonText, Mode=OneWay}"
                                     Command="{x:Bind ViewModel.ImportConfigCommand}">
@@ -334,18 +370,47 @@
                             <controls:SettingsExpander.HeaderIcon>
                                 <fluentIcons:FluentIcon Icon="PersonSettings" IconVariant="Regular"/>
                             </controls:SettingsExpander.HeaderIcon>
-                            <ProgressRing
-                                IsActive="{x:Bind ViewModel.IsProfileBusy, Mode=OneWay}"
-                                Visibility="{x:Bind ViewModel.IsProfileBusy, Mode=OneWay}"
-                                Width="20" Height="20"/>
+                            <Grid>
+                                <ProgressRing
+                                    x:Name="ProfileBusyRing"
+                                    x:Load="{x:Bind ViewModel.IsProfileBusy, Mode=OneWay}"
+                                    IsActive="True"
+                                    Width="20" Height="20"/>
+                            </Grid>
                             <controls:SettingsExpander.ItemTemplate>
                                 <DataTemplate x:DataType="viewModels:ProfileRow">
-                                    <controls:SettingsCard Header="{x:Bind Name}" Description="{x:Bind Status}">
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <Button Content="{x:Bind ApplyText}" Command="{x:Bind Apply}" Style="{StaticResource AccentButtonStyle}"/>
-                                            <Button Content="{x:Bind EditText}" Command="{x:Bind Edit}"/>
-                                            <Button Content="{x:Bind ExportText}" Command="{x:Bind Export}"/>
-                                            <Button Content="{x:Bind DeleteText}" Command="{x:Bind Delete}" Visibility="{x:Bind CanDelete}"/>
+                                    <controls:SettingsCard>
+                                        <controls:SettingsCard.Header>
+                                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource HeaderTagSpacing}">
+                                                <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center"/>
+                                                <Border x:Name="CleanBadge" x:Load="{x:Bind ShowCleanBadge}" Style="{StaticResource BadgeInstalledStyle}">
+                                                    <TextBlock Text="{x:Bind Badge}"
+                                                               Style="{StaticResource BadgeTextStyle}"
+                                                               Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                </Border>
+                                                <Border x:Name="AttentionBadge" x:Load="{x:Bind ShowAttentionBadge}" Style="{StaticResource BadgeWarningStyle}">
+                                                    <TextBlock Text="{x:Bind Badge}"
+                                                               Style="{StaticResource BadgeTextStyle}"
+                                                               Foreground="{ThemeResource BadgeCustomForeground}"/>
+                                                </Border>
+                                            </StackPanel>
+                                        </controls:SettingsCard.Header>
+                                        <controls:SettingsCard.Description>
+                                            <StackPanel>
+                                                <TextBlock x:Name="ProfileDescription" x:Load="{x:Bind HasDescription}" Text="{x:Bind Description}" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}"/>
+                                                <TextBlock x:Name="ProfileFailedText"
+                                                           x:Load="{x:Bind HasFailed}"
+                                                           Text="{x:Bind FailedText}"
+                                                           TextWrapping="Wrap"
+                                                           Style="{StaticResource CaptionTextBlockStyle}"
+                                                           Foreground="{ThemeResource SystemFillColorCriticalBrush}"/>
+                                            </StackPanel>
+                                        </controls:SettingsCard.Description>
+                                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource ControlRowSpacing}">
+                                            <Button Content="{x:Bind ApplyText}" Command="{x:Bind Apply}" CommandParameter="{x:Bind Profile}" Style="{StaticResource AccentButtonStyle}"/>
+                                            <Button Content="{x:Bind EditText}" Command="{x:Bind Edit}" CommandParameter="{x:Bind Profile}"/>
+                                            <Button Content="{x:Bind ExportText}" Command="{x:Bind Export}" CommandParameter="{x:Bind Profile}"/>
+                                            <Button x:Name="ProfileDeleteButton" x:Load="{x:Bind CanDelete}" Content="{x:Bind DeleteText}" Command="{x:Bind Delete}" CommandParameter="{x:Bind Profile}"/>
                                         </StackPanel>
                                     </controls:SettingsCard>
                                 </DataTemplate>
@@ -377,7 +442,7 @@
                             <controls:SettingsCard.HeaderIcon>
                                 <fluentIcons:FluentIcon Icon="DocumentSave" IconVariant="Regular"/>
                             </controls:SettingsCard.HeaderIcon>
-                            <StackPanel Orientation="Horizontal" Spacing="8">
+                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource ControlRowSpacing}">
                                 <TextBox
                                     MinWidth="200"
                                     MaxLength="{x:Bind ViewModel.ProfileNameMaxLength}"

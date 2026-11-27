@@ -7,10 +7,10 @@ namespace Winhance.Core.Features.Common.Interfaces;
 
 public interface IDialogService
 {
+    bool IsDialogOpen { get; }
+
     // An empty title or button text means the implementation supplies the localized default
     // (Information / Warning / Error, OK, Close) - never pass English literals here.
-    void ShowMessage(string message, string title = "");
-
     Task ShowInformationAsync(string message, string title = "", string buttonText = "");
 
     Task ShowWarningAsync(string message, string title = "", string buttonText = "");
@@ -19,6 +19,9 @@ public interface IDialogService
 
     // A Yes opens the store page from inside the dialog.
     Task ShowSponsorsDialogAsync(SponsorsDialogMode mode);
+
+    // The exit ask in a small window of its own, for an exit with no Winhance window on screen.
+    Task ShowExitSupportWindowAsync();
 
     // HideExplanation: the user ticked "don't show again" under the notes' explanation.
     Task<(ImportOption? Option, ImportOptions Options, bool HideExplanation)> ShowConfigImportOptionsDialogAsync(ModeEntryNotes notes);
@@ -40,5 +43,5 @@ public interface IDialogService
 
     Task ShowTaskOutputDialogAsync(string title, IReadOnlyList<string> logMessages);
 
-    Task ShowCustomContentDialogAsync(string title, object content, string closeButtonText = "");
+    Task ShowGroupPolicyDialogAsync();
 }

@@ -5,10 +5,11 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:primitives="using:Microsoft.UI.Xaml.Controls.Primitives"
     xmlns:local="using:Winhance.UI.Features.Common.Controls"
+    xmlns:helpers="using:Winhance.UI.Features.Common.Helpers"
     xmlns:fluentIcons="using:FluentIcons.WinUI">
 
     <Grid x:Name="SidebarGrid"
-          Width="{x:Bind ActualSidebarWidth, Mode=OneWay}"
+          Width="{x:Bind local:NavSidebar.SidebarWidth(IsPaneOpen), Mode=OneWay}"
           Background="Transparent"
           AutomationProperties.LandmarkType="Navigation">
 
@@ -21,8 +22,8 @@
         <!-- Top Navigation Buttons -->
         <StackPanel x:Name="TopNavPanel"
                     Grid.Row="0"
-                    Spacing="4"
-                    Padding="{x:Bind NavPanelPadding, Mode=OneWay}"
+                    Spacing="{StaticResource NavItemSpacing}"
+                    Padding="{x:Bind local:NavSidebar.PanelPadding(IsPaneOpen), Mode=OneWay}"
                     Margin="0,8,0,0">
 
             <local:NavButton x:Name="SoftwareAppsButton"
@@ -30,7 +31,7 @@
                              Text="{x:Bind ViewModel.NavSoftwareAppsText, Mode=OneWay}"
                              AutomationProperties.Name="{x:Bind ViewModel.NavSoftwareAppsText, Mode=OneWay}"
                              NavigationTag="SoftwareApps"
-                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             IsCompact="{x:Bind helpers:LoadWhen.Not(IsPaneOpen), Mode=OneWay}"
                              Clicked="NavButton_Clicked"/>
 
             <local:NavButton x:Name="OptimizeButton"
@@ -38,7 +39,7 @@
                              Text="{x:Bind ViewModel.NavOptimizeText, Mode=OneWay}"
                              AutomationProperties.Name="{x:Bind ViewModel.NavOptimizeText, Mode=OneWay}"
                              NavigationTag="Optimize"
-                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             IsCompact="{x:Bind helpers:LoadWhen.Not(IsPaneOpen), Mode=OneWay}"
                              Clicked="NavButton_Clicked"/>
 
             <local:NavButton x:Name="CustomizeButton"
@@ -46,15 +47,15 @@
                              Text="{x:Bind ViewModel.NavCustomizeText, Mode=OneWay}"
                              AutomationProperties.Name="{x:Bind ViewModel.NavCustomizeText, Mode=OneWay}"
                              NavigationTag="Customize"
-                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             IsCompact="{x:Bind helpers:LoadWhen.Not(IsPaneOpen), Mode=OneWay}"
                              Clicked="NavButton_Clicked"/>
         </StackPanel>
 
         <!-- Bottom Navigation Buttons -->
         <StackPanel x:Name="BottomNavPanel"
                     Grid.Row="2"
-                    Spacing="4"
-                    Padding="{x:Bind NavPanelPadding, Mode=OneWay}"
+                    Spacing="{StaticResource NavItemSpacing}"
+                    Padding="{x:Bind local:NavSidebar.PanelPadding(IsPaneOpen), Mode=OneWay}"
                     Margin="0,0,0,8">
 
             <local:NavButton x:Name="AutounattendButton"
@@ -62,7 +63,7 @@
                              Text="{x:Bind ViewModel.NavAutounattendText, Mode=OneWay}"
                              AutomationProperties.Name="{x:Bind ViewModel.NavAutounattendText, Mode=OneWay}"
                              NavigationTag="Autounattend"
-                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             IsCompact="{x:Bind helpers:LoadWhen.Not(IsPaneOpen), Mode=OneWay}"
                              Clicked="NavButton_Clicked"/>
 
             <local:NavButton x:Name="WimUtilButton"
@@ -70,7 +71,7 @@
                              Text="{x:Bind ViewModel.NavWimUtilText, Mode=OneWay}"
                              AutomationProperties.Name="{x:Bind ViewModel.NavWimUtilText, Mode=OneWay}"
                              NavigationTag="WimUtil"
-                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             IsCompact="{x:Bind helpers:LoadWhen.Not(IsPaneOpen), Mode=OneWay}"
                              Clicked="NavButton_Clicked"/>
 
             <local:NavButton x:Name="SettingsButton"
@@ -78,7 +79,7 @@
                              Text="{x:Bind ViewModel.NavSettingsText, Mode=OneWay}"
                              AutomationProperties.Name="{x:Bind ViewModel.NavSettingsText, Mode=OneWay}"
                              NavigationTag="Settings"
-                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             IsCompact="{x:Bind helpers:LoadWhen.Not(IsPaneOpen), Mode=OneWay}"
                              Clicked="NavButton_Clicked"/>
 
             <local:NavButton x:Name="MoreButton"
@@ -86,7 +87,7 @@
                              Text="{x:Bind ViewModel.NavMoreText, Mode=OneWay}"
                              AutomationProperties.Name="{x:Bind ViewModel.NavMoreText, Mode=OneWay}"
                              NavigationTag="More"
-                             IsCompact="{x:Bind IsCompact, Mode=OneWay}"
+                             IsCompact="{x:Bind helpers:LoadWhen.Not(IsPaneOpen), Mode=OneWay}"
                              Clicked="NavButton_Clicked">
                 <primitives:FlyoutBase.AttachedFlyout>
                     <MenuFlyout x:Name="MoreMenuFlyout" Placement="RightEdgeAlignedBottom">

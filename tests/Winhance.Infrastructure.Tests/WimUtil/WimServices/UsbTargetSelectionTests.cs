@@ -12,7 +12,7 @@ namespace Winhance.Infrastructure.Tests.WimUtil.WimServices;
 public class UsbTargetSelectionTests
 {
     private readonly Mock<IStorageOperations> _operations = new();
-    private static readonly RemovableDrive Stick = new(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false, HasRemovableMedia: true);
+    private static readonly RemovableDrive Stick = new(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false, HasRemovableMedia: true, UniqueId: "usb-a");
 
     private readonly Mock<IFileSystemService> _fileSystem = new();
 
@@ -121,17 +121,17 @@ public class UsbTargetSelectionTests
     [Fact]
     public void Write_UsbHardDriveTheUserOptedInTo_IsNotRefusedAsAnUnknownTarget()
     {
-        var hardDrive = new RemovableDrive(3, "WD Elements", 2_000_398_934_016L, "USB", IsSystemDisk: false, HasRemovableMedia: false);
+        var hardDrive = new RemovableDrive(3, "WD Elements", 2_000_398_934_016L, "USB", IsSystemDisk: false, HasRemovableMedia: false, UniqueId: "usb-a");
         GivenStick(hardDrive, (@"sources\install.wim", 3_000_000_000L));
         _operations.Setup(o => o.GetDriveLetters(3)).Returns([]);
-        _operations.Setup(o => o.CreateBootPartition(3, It.IsAny<long>())).Returns(1);
-        _operations.Setup(o => o.CreateInstallPartition(3)).Returns(2);
-        _operations.Setup(o => o.AssignDriveLetter(3, 1)).Returns('E');
-        _operations.Setup(o => o.AssignDriveLetter(3, 2)).Returns('F');
+        _operations.Setup(o => o.CreateBootPartition(3, "usb-a", It.IsAny<long>())).Returns(1);
+        _operations.Setup(o => o.CreateInstallPartition(3, "usb-a")).Returns(2);
+        _operations.Setup(o => o.AssignDriveLetter(3, "usb-a", 1)).Returns('E');
+        _operations.Setup(o => o.AssignDriveLetter(3, "usb-a", 2)).Returns('F');
 
         BuildWriter().Write(hardDrive, @"C:\work", BootFileReplacements.None, null, CancellationToken.None);
 
-        _operations.Verify(o => o.Clear(3, ""), Times.Once);
+        _operations.Verify(o => o.Clear(3, "usb-a"), Times.Once);
     }
 
     [Fact]
@@ -161,6 +161,16 @@ public class UsbTargetSelectionTests
     }
 
     [Fact]
+    public void Write_NoStableIdentity_RefusesBeforeErasing()
+    {
+        var stick = Stick with { UniqueId = "" };
+        GivenStick(stick, (@"sources\install.wim", 3_000_000_000L));
+        Action write = () => BuildWriter().Write(stick, @"C:\work", BootFileReplacements.None, null, CancellationToken.None);
+        write.Should().Throw<InvalidOperationException>().WithMessage("*no stable identity*");
+        _operations.Verify(o => o.Clear(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
     public void Write_SameModelDifferentUniqueId_Refuses()
     {
         GivenStick(Stick with { UniqueId = "usb-b" }, (@"sources\install.wim", 3_000_000_000L));
@@ -186,7 +196,7 @@ public class UsbTargetSelectionTests
     [Fact]
     public void Write_DriveTooSmallForBootPartitionPlusPayload_RefusesBeforeErasing()
     {
-        var stick = new RemovableDrive(2, "Small stick", 7_000_000_000L, "USB", IsSystemDisk: false, HasRemovableMedia: true);
+        var stick = new RemovableDrive(2, "Small stick", 7_000_000_000L, "USB", IsSystemDisk: false, HasRemovableMedia: true, UniqueId: "usb-a");
         GivenStick(stick, (@"sources\install.wim", 5_500_000_000L));
 
         Action act = () => BuildWriter().Write(stick, @"C:\work", BootFileReplacements.None, null, CancellationToken.None);
@@ -212,12 +222,12 @@ public class UsbTargetSelectionTests
         GivenStick(Stick, (@"sources\install.wim", 7_578_075_168L));
         GivenPartitions();
         var order = new List<string>();
-        _operations.Setup(o => o.Clear(2, "")).Callback(() => order.Add("Clear"));
-        _operations.Setup(o => o.EnsureMbr(2)).Callback(() => order.Add("EnsureMbr"));
-        _operations.Setup(o => o.CreateBootPartition(2, UsbWriteLayoutPlanner.BootPartitionBytes)).Returns(1).Callback(() => order.Add("CreateBoot"));
-        _operations.Setup(o => o.CreateInstallPartition(2)).Returns(2).Callback(() => order.Add("CreateInstall"));
-        _operations.Setup(o => o.Format(2, 1, "FAT32", "WINBOOT")).Callback(() => order.Add("FormatBoot"));
-        _operations.Setup(o => o.Format(2, 2, "NTFS", "WINSETUP")).Callback(() => order.Add("FormatInstall"));
+        _operations.Setup(o => o.Clear(2, "usb-a")).Callback(() => order.Add("Clear"));
+        _operations.Setup(o => o.EnsureMbr(2, "usb-a")).Callback(() => order.Add("EnsureMbr"));
+        _operations.Setup(o => o.CreateBootPartition(2, "usb-a", UsbWriteLayoutPlanner.BootPartitionBytes)).Returns(1).Callback(() => order.Add("CreateBoot"));
+        _operations.Setup(o => o.CreateInstallPartition(2, "usb-a")).Returns(2).Callback(() => order.Add("CreateInstall"));
+        _operations.Setup(o => o.Format(2, "usb-a", 1, "FAT32", "WINBOOT")).Callback(() => order.Add("FormatBoot"));
+        _operations.Setup(o => o.Format(2, "usb-a", 2, "NTFS", "WINSETUP")).Callback(() => order.Add("FormatInstall"));
         var copier = new Mock<IMediaCopier>();
         copier.Setup(c => c.CopyTree(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Func<string, bool>>(), It.IsAny<long?>(),
                   It.IsAny<long>(), It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
@@ -295,7 +305,7 @@ public class UsbTargetSelectionTests
     public void Write_StepFailsAfterTheErase_ReportsTheDriveAsErased()
     {
         GivenStick(Stick, (@"sources\install.wim", 3_000_000_000L));
-        _operations.Setup(o => o.Format(2, It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>()))
+        _operations.Setup(o => o.Format(2, "usb-a", It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>()))
                    .Throws(new InvalidOperationException("Could not format partition 1 on disk 2: The device is not ready."));
 
         Action act = () => BuildWriter().Write(Stick, @"C:\work", BootFileReplacements.None, null, CancellationToken.None);
@@ -304,14 +314,14 @@ public class UsbTargetSelectionTests
         erased.Target.Should().Be(Stick);
         erased.WasCancelled.Should().BeFalse();
         erased.Message.Should().Contain("not ready");
-        _operations.Verify(o => o.Clear(2, ""), Times.Once);
+        _operations.Verify(o => o.Clear(2, "usb-a"), Times.Once);
     }
 
     [Fact]
     public void Write_EraseItselfFails_ReportsTheDriveAsErased()
     {
         GivenStick(Stick, (@"sources\install.wim", 3_000_000_000L));
-        _operations.Setup(o => o.Clear(2, ""))
+        _operations.Setup(o => o.Clear(2, "usb-a"))
                    .Throws(new InvalidOperationException("Disk 2 still reports no free space after the wipe."));
 
         Action act = () => BuildWriter().Write(Stick, @"C:\work", BootFileReplacements.None, null, CancellationToken.None);
@@ -350,10 +360,10 @@ public class UsbTargetSelectionTests
 
     private void GivenPartitions()
     {
-        _operations.Setup(o => o.CreateBootPartition(2, It.IsAny<long>())).Returns(1);
-        _operations.Setup(o => o.CreateInstallPartition(2)).Returns(2);
-        _operations.Setup(o => o.AssignDriveLetter(2, 1)).Returns('E');
-        _operations.Setup(o => o.AssignDriveLetter(2, 2)).Returns('F');
+        _operations.Setup(o => o.CreateBootPartition(2, "usb-a", It.IsAny<long>())).Returns(1);
+        _operations.Setup(o => o.CreateInstallPartition(2, "usb-a")).Returns(2);
+        _operations.Setup(o => o.AssignDriveLetter(2, "usb-a", 1)).Returns('E');
+        _operations.Setup(o => o.AssignDriveLetter(2, "usb-a", 2)).Returns('F');
     }
 
     private StorageApiUsbMediaWriter BuildWriter(IMediaCopier? mediaCopier = null)

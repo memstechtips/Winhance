@@ -24,7 +24,7 @@ public interface IBackgroundTaskService
 
     // Folder locked and, in Scripts mode, every removal task points into it.
     Task<bool> IsTaskSafetyOkAsync();
-    Task RepairTaskSafetyAsync();
+    Task<OperationResult> RepairTaskSafetyAsync();
 
     IReadOnlyList<KeptApp> GetKeptApps();
     KeepRemovedStatus GetStatus();
@@ -33,10 +33,11 @@ public interface IBackgroundTaskService
     Task<OperationResult> AddKeptAppsAsync(IEnumerable<string> appIds);
     void RemoveKeptApp(string appId);
 
-    // Scripts mode: every removal script / task pair that exists, with what the task and the disk really say.
+    // Every removal script / task pair with at least one component present.
     Task<IReadOnlyList<RemovalTaskState>> GetRemovalTasksAsync();
     Task<OperationResult> RepairRemovalTaskAsync(string name);
     Task<OperationResult> RemoveRemovalTaskAsync(string name);
+    Task<OperationResult> SetBackgroundTaskEnabledAsync(string name, bool enabled);
 
     // Winhance mode: secure the folder, find kept apps that came back, remove them, write Status. Does nothing in
     // Scripts mode or while keeping is off.
@@ -48,8 +49,7 @@ public interface IBackgroundTaskService
     // Runs on every start: locks the folder, deletes the old SYSTEM task, settles the mode, folds the old sign-in tasks into one.
     Task InitializeAsync();
 
-    // The Edge link redirect Winhance's Edge removal leaves behind (its task and folder), or null when neither exists.
-    // Name is the task, ScriptPath the folder.
+    // The repair task and script, independent of the files that handle Edge links.
     Task<RemovalTaskState?> GetEdgeRedirectAsync();
 
     // Every task in Winhance's task folder except the sign-in task, the removal tasks and the Edge link redirect.

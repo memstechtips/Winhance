@@ -11,13 +11,14 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.WimUtil.Interfaces;
 using Winhance.Core.Features.WimUtil.Models;
+using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.WimUtil.Models;
 
 namespace Winhance.UI.Features.WimUtil.ViewModels;
 
-public partial class WimStep5IsoViewModel : ObservableObject
+public partial class WimStep5IsoViewModel : ObservableObject, IDisposable
 {
     private const string EditionId = "autounattend-edition";
     private const string MediaEditionsId = "autounattend-media-editions";
@@ -50,41 +51,28 @@ public partial class WimStep5IsoViewModel : ObservableObject
     private readonly IReadOnlyList<IMediaChoice> _choices;
     private ImageFormat? _mediaFormat;
     private bool _formatChosen;
+    private BootManagerOptions? _bootManagerOptions;
+    private string _usbDescriptionKey = "WIMUtil_Card_SelectUsb_Description";
+    private object[] _usbDescriptionArgs = [];
 
-    public string WorkingDirectory
-    {
-        get;
-        set
-        {
-            if (field != value)
-                _formatChosen = false;
-            field = value;
-            OnPropertyChanged(nameof(CanDeleteWorkingFolder));
-        }
-    } = string.Empty;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanDeleteWorkingFolder))]
+    public partial string WorkingDirectory { get; set; } = string.Empty;
 
-    public bool IsBuiltIntoImage
-    {
-        get;
-        set
-        {
-            field = value;
-            EditionNeedChanged();
-        }
-    }
+    partial void OnWorkingDirectoryChanged(string value) => _formatChosen = false;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NeedsEdition))]
+    [NotifyCanExecuteChangedFor(nameof(CreateMediaCommand))]
+    public partial bool IsBuiltIntoImage { get; set; }
 
     // The facade hands these over before Create, the way it hands over the working folder and the mode.
     public ImageCleanupOptions Cleanup { get; set; } = ImageCleanupOptions.None;
 
-    public int? EditionIndex
-    {
-        get;
-        set
-        {
-            field = value;
-            EditionNeedChanged();
-        }
-    }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NeedsEdition))]
+    [NotifyCanExecuteChangedFor(nameof(CreateMediaCommand))]
+    public partial int? EditionIndex { get; set; }
 
     // Without an edition to keep, servicing leaves a multi-edition image alone and nothing gets built into it.
     public bool NeedsEdition => IsBuiltIntoImage && EditionIndex is null && _session.Editions.Count > 1;
@@ -216,7 +204,7 @@ public partial class WimStep5IsoViewModel : ObservableObject
         _session = session;
         _wimImageService = wimImageService;
         _choices = choices;
-        _session.EditionsChanged += (_, _) => EditionNeedChanged();
+        _session.EditionsChanged += OnSessionEditionsChanged;
 
         OutputIsoPath = string.Empty;
         BootManagerDescription = string.Empty;
@@ -226,25 +214,25 @@ public partial class WimStep5IsoViewModel : ObservableObject
 
     private void CreateActionCards()
     {
-        SelectOutputCard = new WizardActionCard
-        {
-            Title = _localizationService.GetString("WIMUtil_Card_SelectOutput_Title"),
-            Description = _localizationService.GetString("WIMUtil_Label_NoLocation"),
-            ButtonText = _localizationService.GetString("WIMUtil_Card_SelectOutput_Button"),
-            ButtonCommand = SelectIsoOutputLocationCommand,
-            IsEnabled = true,
-            BusyReason = _localizationService.GetString("WIMUtil_Disabled_Busy")
-        };
+        SelectOutputCard = new WizardActionCard { ButtonCommand = SelectIsoOutputLocationCommand };
+        SelectUsbCard = new WizardActionCard { ButtonCommand = RefreshUsbTargetsCommand };
+        RelabelActionCards();
+    }
 
-        SelectUsbCard = new WizardActionCard
-        {
-            Title = _localizationService.GetString("WIMUtil_Card_SelectUsb_Title"),
-            Description = _localizationService.GetString("WIMUtil_Card_SelectUsb_Description"),
-            ButtonText = _localizationService.GetString("WIMUtil_Card_SelectUsb_Button"),
-            ButtonCommand = RefreshUsbTargetsCommand,
-            IsEnabled = true,
-            BusyReason = _localizationService.GetString("WIMUtil_Disabled_Busy")
-        };
+    // The page holds these card instances, so a language switch relabels them in place. The output card's description
+    // keeps how the last build went in the old language until the next one.
+    public void RelabelActionCards()
+    {
+        SelectOutputCard.Title = _localizationService.GetString("WIMUtil_Card_SelectOutput_Title");
+        SelectOutputCard.ButtonText = _localizationService.GetString("WIMUtil_Card_SelectOutput_Button");
+        SelectOutputCard.BusyReason = _localizationService.GetString("WIMUtil_Disabled_Busy");
+        SelectUsbCard.Title = _localizationService.GetString("WIMUtil_Card_SelectUsb_Title");
+        SelectUsbCard.ButtonText = _localizationService.GetString("WIMUtil_Card_SelectUsb_Button");
+        SelectUsbCard.BusyReason = _localizationService.GetString("WIMUtil_Disabled_Busy");
+        ShowUsbDescription(_usbDescriptionKey, _usbDescriptionArgs);
+
+        if (string.IsNullOrEmpty(OutputIsoPath))
+            SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Label_NoLocation");
     }
 
     // Run once the ISO is extracted. On failure the card stays hidden and the media keeps its own boot
@@ -255,28 +243,42 @@ public partial class WimStep5IsoViewModel : ObservableObject
         {
             var options = await _bootManagerService.InspectAsync(WorkingDirectory, CancellationToken.None);
 
-            BootManagerChoices.Clear();
-            if (options.Offers2023)
-            {
-                BootManagerChoices.Add(new BootManagerChoice(BootManager.Pca2011, _localizationService.GetString("WIMUtil_BootManager_Pca2011")));
-                BootManagerChoices.Add(new BootManagerChoice(BootManager.Ca2023, _localizationService.GetString("WIMUtil_BootManager_Ca2023")));
-            }
-
-            SelectedBootManager = BootManagerChoices.FirstOrDefault(choice => choice.Value == options.Default);
-            BootManagerDescription = _localizationService.GetString(options.Default == BootManager.Ca2023
-                ? "WIMUtil_Card_BootManager_DescriptionRevoked"
-                : "WIMUtil_Card_BootManager_Description");
+            _bootManagerOptions = options;
+            ShowBootManagerText(options, options.Default);
             ShowBootManagerChoice = options.Offers2023;
             IsBootManagerOutdated = options.IsOutdated;
         }
         catch (Exception ex)
         {
             _logService.LogWarning($"Could not read the media's boot manager: {ex.Message}");
+            _bootManagerOptions = null;
             BootManagerChoices.Clear();
             SelectedBootManager = null;
             ShowBootManagerChoice = false;
             IsBootManagerOutdated = false;
         }
+    }
+
+    // The choice labels and the description are built from the language at inspect time, so a switch rebuilds them.
+    public void RefreshBootManagerText()
+    {
+        if (_bootManagerOptions is { } options)
+            ShowBootManagerText(options, SelectedBootManager?.Value ?? options.Default);
+    }
+
+    private void ShowBootManagerText(BootManagerOptions options, BootManager selected)
+    {
+        BootManagerChoices.Clear();
+        if (options.Offers2023)
+        {
+            BootManagerChoices.Add(new BootManagerChoice(BootManager.Pca2011, _localizationService.GetString("WIMUtil_BootManager_Pca2011")));
+            BootManagerChoices.Add(new BootManagerChoice(BootManager.Ca2023, _localizationService.GetString("WIMUtil_BootManager_Ca2023")));
+        }
+
+        SelectedBootManager = BootManagerChoices.FirstOrDefault(choice => choice.Value == selected);
+        BootManagerDescription = _localizationService.GetString(options.Default == BootManager.Ca2023
+            ? "WIMUtil_Card_BootManager_DescriptionRevoked"
+            : "WIMUtil_Card_BootManager_Description");
     }
 
     private Task<BootFileReplacements> PrepareBootFilesAsync(CancellationToken cancellationToken) =>
@@ -318,40 +320,45 @@ public partial class WimStep5IsoViewModel : ObservableObject
     partial void OnShowUsbHardDrivesChanged(bool value)
     {
         if (IsUsbDestination)
-            _ = RefreshUsbTargetsCommand.ExecuteAsync(null);
+            RefreshUsbTargetsCommand.ExecuteAsync(null).FireAndForget(_logService);
     }
 
     [RelayCommand]
     private async Task RefreshUsbTargetsAsync()
     {
+        SelectUsbCard.IsProcessing = true;
         try
         {
-            SelectUsbCard.IsProcessing = true;
-            var previous = SelectedUsbTarget?.DiskNumber;
-            var includeHardDrives = ShowUsbHardDrives;
-            var targets = await Task.Run(() => _usbMediaWriter.GetCandidateTargets(includeHardDrives));
-
-            UsbTargets.Clear();
-            foreach (var target in targets)
-            {
-                UsbTargets.Add(target);
-            }
-
-            // Never a default on a USB hard drive: it is the likelier one to hold someone's backups.
-            SelectedUsbTarget = UsbTargets.FirstOrDefault(t => t.DiskNumber == previous) ?? UsbTargets.FirstOrDefault(t => t.HasRemovableMedia);
-            SelectUsbCard.Description = UsbTargets.Count == 0
-                ? _localizationService.GetString("WIMUtil_Label_NoUsbFound")
-                : _localizationService.GetString("WIMUtil_Card_SelectUsb_Description");
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Could not list USB drives: {ex.Message}", ex);
-            SelectUsbCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
+            await _dialogService.RunOrShowErrorAsync(_logService, ListUsbTargetsAsync, ex =>
+                ShowUsbDescription("WIMUtil_Status_ErrorPrefix", ex.Message));
         }
         finally
         {
             SelectUsbCard.IsProcessing = false;
         }
+    }
+
+    private async Task ListUsbTargetsAsync()
+    {
+        var previous = SelectedUsbTarget?.DiskNumber;
+        var includeHardDrives = ShowUsbHardDrives;
+        var targets = await Task.Run(() => _usbMediaWriter.GetCandidateTargets(includeHardDrives));
+
+        UsbTargets.ReplaceInPlace(targets);
+
+        // Never a default on a USB hard drive: it is the likelier one to hold someone's backups.
+        SelectedUsbTarget = UsbTargets.FirstOrDefault(t => t.DiskNumber == previous) ?? UsbTargets.FirstOrDefault(t => t.HasRemovableMedia);
+        ShowUsbDescription(UsbTargets.Count == 0 ? "WIMUtil_Label_NoUsbFound" : "WIMUtil_Card_SelectUsb_Description");
+    }
+
+    // Held as a key and its values so a language switch re-reads the text.
+    private string ShowUsbDescription(string key, params object[] args)
+    {
+        _usbDescriptionKey = key;
+        _usbDescriptionArgs = args;
+        return SelectUsbCard.Description = args.Length == 0
+            ? _localizationService.GetString(key)
+            : _localizationService.GetString(key, args);
     }
 
     [RelayCommand]
@@ -370,10 +377,16 @@ public partial class WimStep5IsoViewModel : ObservableObject
         }
     }
 
-    private void EditionNeedChanged()
+    private void OnSessionEditionsChanged(object? sender, EventArgs e)
     {
         OnPropertyChanged(nameof(NeedsEdition));
         CreateMediaCommand.NotifyCanExecuteChanged();
+    }
+
+    public void Dispose()
+    {
+        _session.EditionsChanged -= OnSessionEditionsChanged;
+        GC.SuppressFinalize(this);
     }
 
     private bool CanCreateMedia() => (!IsUsbDestination || SelectedUsbTarget is not null) && !NeedsEdition;
@@ -464,71 +477,75 @@ public partial class WimStep5IsoViewModel : ObservableObject
         var cancelled = false;
         try
         {
-            SelectOutputCard.IsEnabled = false;
-
-            _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_CreatingIso"), true);
-            var progress = _taskProgressService.CreateDetailedProgress();
-            var token = _taskProgressService.CurrentTaskCancellationSource!.Token;
-            answerFileChanged = await RunImageBuildAsync(plan, progress, token);
-            _mediaCard.IsProcessing = true;
-            var replacements = await PrepareBootFilesAsync(token);
-
-            var success = await _isoService.CreateIsoAsync(WorkingDirectory, OutputIsoPath, replacements, progress, token);
-            _taskProgressService.CompleteTask();
-
-            SelectOutputCard.IsEnabled = true;
-
-            if (success)
+            await _dialogService.RunOrShowErrorAsync(_logService, async () =>
             {
-                IsIsoCreated = true;
-                created = true;
-                _mediaCard.IsComplete = true;
-                SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreatedSuccess");
+                try
+                {
+                    SelectOutputCard.IsEnabled = false;
 
-                var openFolder = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
-                {
-                    Message = string.Format(_localizationService.GetString("WIMUtil_Msg_IsoCreatedSuccess"), OutputIsoPath),
-                    Title = _localizationService.GetString("WIMUtil_Desc_IsoCreatedSuccess"),
-                    ConfirmButtonText = _localizationService.GetString("WIMUtil_Button_OpenFolder"),
-                    CancelButtonText = _localizationService.GetString("Button_Close"),
-                })).Confirmed;
-                if (openFolder)
-                {
-                    _processExecutor.ShellExecuteAsync("explorer.exe", $"/select,\"{OutputIsoPath}\"").FireAndForget(_logService);
+                    _taskProgressService.StartTask(_localizationService.GetString("WIMUtil_Status_CreatingIso"), true);
+                    var progress = _taskProgressService.CreateDetailedProgress();
+                    var token = _taskProgressService.CurrentTaskCancellationSource!.Token;
+                    answerFileChanged = await RunImageBuildAsync(plan, progress, token);
+                    await EnsureFinalGeneratedAnswerFileAsync(plan, answerFileChanged);
+                    _mediaCard.IsProcessing = true;
+                    var replacements = await PrepareBootFilesAsync(token);
+
+                    var success = await _isoService.CreateIsoAsync(WorkingDirectory, OutputIsoPath, replacements, progress, token);
+                    _taskProgressService.CompleteTask();
+
+                    SelectOutputCard.IsEnabled = true;
+
+                    if (success)
+                    {
+                        IsIsoCreated = true;
+                        created = true;
+                        _mediaCard.IsComplete = true;
+                        SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreatedSuccess");
+
+                        var openFolder = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+                        {
+                            Message = string.Format(_localizationService.GetString("WIMUtil_Msg_IsoCreatedSuccess"), OutputIsoPath),
+                            Title = _localizationService.GetString("WIMUtil_Desc_IsoCreatedSuccess"),
+                            ConfirmButtonText = _localizationService.GetString("WIMUtil_Button_OpenFolder"),
+                            CancelButtonText = _localizationService.GetString("Button_Close"),
+                        })).Confirmed;
+                        if (openFolder)
+                        {
+                            _processExecutor.ShellExecuteAsync("explorer.exe", $"/select,\"{OutputIsoPath}\"").FireAndForget(_logService);
+                        }
+                    }
+                    else
+                    {
+                        _taskProgressService.FailTask();
+                        SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreateFailed");
+                        await _dialogService.ShowErrorAsync(
+                            _localizationService.GetString("WIMUtil_Msg_IsoCreationFailed"));
+                    }
                 }
-            }
-            else
+                catch (OperationCanceledException)
+                {
+                    cancelled = true;
+                    _taskProgressService.CancelTask();
+                    SelectOutputCard.IsEnabled = true;
+                    SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreateCancelled");
+                }
+                catch (InsufficientDiskSpaceException spaceEx)
+                {
+                    _taskProgressService.FailTask();
+                    SelectOutputCard.IsEnabled = true;
+                    SelectOutputCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace"), spaceEx.DriveName);
+                    await _dialogService.ShowWarningAsync(
+                        string.Format(_localizationService.GetString("WIMUtil_Msg_InsufficientSpace_Create"), spaceEx.DriveName, spaceEx.RequiredGB.ToString("F2"), spaceEx.AvailableGB.ToString("F2"), (spaceEx.RequiredGB - spaceEx.AvailableGB).ToString("F2")),
+                        string.Format(_localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace"), spaceEx.DriveName));
+                }
+            }, ex =>
             {
                 _taskProgressService.FailTask();
-                SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreateFailed");
-                await _dialogService.ShowErrorAsync(
-                    _localizationService.GetString("WIMUtil_Msg_IsoCreationFailed"));
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            cancelled = true;
-            _taskProgressService.CancelTask();
-            SelectOutputCard.IsEnabled = true;
-            try { if (_fileSystemService.FileExists(OutputIsoPath)) _fileSystemService.DeleteFile(OutputIsoPath); } catch (Exception ex) { _logService.LogDebug($"Best-effort incomplete ISO cleanup failed: {ex.Message}"); }
-            SelectOutputCard.Description = _localizationService.GetString("WIMUtil_Desc_IsoCreateCancelled");
-        }
-        catch (InsufficientDiskSpaceException spaceEx)
-        {
-            _taskProgressService.FailTask();
-            SelectOutputCard.IsEnabled = true;
-            SelectOutputCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace"), spaceEx.DriveName);
-            await _dialogService.ShowWarningAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_InsufficientSpace_Create"), spaceEx.DriveName, spaceEx.RequiredGB.ToString("F2"), spaceEx.AvailableGB.ToString("F2"), (spaceEx.RequiredGB - spaceEx.AvailableGB).ToString("F2")),
-                string.Format(_localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace"), spaceEx.DriveName));
-        }
-        catch (Exception ex)
-        {
-            _taskProgressService.FailTask();
-            SelectOutputCard.IsEnabled = true;
-            SelectOutputCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
-            await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_IsoCreationError"), ex.Message));
+                SelectOutputCard.IsEnabled = true;
+                SelectOutputCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
+                return string.Format(_localizationService.GetString("WIMUtil_Msg_IsoCreationError"), ex.Message);
+            });
         }
         finally
         {
@@ -536,7 +553,7 @@ public partial class WimStep5IsoViewModel : ObservableObject
             _taskProgressService.CompleteTask();
         }
 
-        if (answerFileChanged)
+        if (answerFileChanged && !plan.RequiresStrictAnswerFile)
             await RecheckServicedAnswerFileAsync();
         return created;
     }
@@ -545,6 +562,7 @@ public partial class WimStep5IsoViewModel : ObservableObject
         SelectionSet? Set, OfflineBuildRequest? Request, EditionPlan? Editions, bool RemoveSource)
     {
         public IReadOnlyList<StagedApp> Apps { get; set; } = [];
+        public bool RequiresStrictAnswerFile { get; set; } = Set is not null;
     }
 
     private sealed record EditionPlan(
@@ -590,8 +608,19 @@ public partial class WimStep5IsoViewModel : ObservableObject
 
         await EnsureInstallStepsAsync();
 
-        if (await GoAheadAsync(plan, usb))
-            return plan;
+        try
+        {
+            if (await GoAheadAsync(plan, usb))
+                return plan;
+        }
+        catch (Exception ex)
+        {
+            SettleBuildCards(failed: true);
+            _logService.LogError($"Error checking XML: {ex.Message}", ex);
+            await _dialogService.ShowErrorAsync(
+                string.Format(_localizationService.GetString("WIMUtil_Msg_XmlGenError"), ex.Message));
+            return null;
+        }
 
         SettleBuildCards(failed: false);
         return null;
@@ -630,23 +659,21 @@ public partial class WimStep5IsoViewModel : ObservableObject
 
     private List<WizardActionCard> ShowStageCards(BuildPlan plan, IReadOnlyList<IMediaChoice> pending)
     {
-        BuildCards.Clear();
         _phaseCards.Clear();
 
+        var shown = new List<WizardActionCard>();
         _answerFileCard = new WizardActionCard { Icon = Icon.DocumentText };
         if (plan.Set is not null)
         {
             _answerFileCard.Title = _localizationService.GetString("WIMUtil_Build_WriteAnswerFile");
-            BuildCards.Add(_answerFileCard);
+            shown.Add(_answerFileCard);
         }
 
-        var cards = new List<WizardActionCard>();
-        foreach (var choice in pending)
-        {
-            var card = new WizardActionCard { Title = _localizationService.GetString(choice.ApplyTitleKey), Icon = choice.ApplyIcon };
-            cards.Add(card);
-            BuildCards.Add(card);
-        }
+        var cards = pending
+            .Select(choice => new WizardActionCard { Title = _localizationService.GetString(choice.ApplyTitleKey), Icon = choice.ApplyIcon })
+            .ToList();
+        shown.AddRange(cards);
+        BuildCards.ReplaceInPlace(shown);
 
         HasBuildCards = true;
         return cards;
@@ -1007,6 +1034,17 @@ public partial class WimStep5IsoViewModel : ObservableObject
         }
     }
 
+    private async Task EnsureFinalGeneratedAnswerFileAsync(BuildPlan plan, bool answerFileChanged)
+    {
+        if (!answerFileChanged || !plan.RequiresStrictAnswerFile)
+            return;
+
+        var answerFile = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
+        var report = await _answerFileValidator.ValidateAsync(answerFile);
+        _checkState.Publish(answerFile, report);
+        report.ThrowIfInvalidGenerated();
+    }
+
     private Task RecheckServicedAnswerFileAsync() =>
         _checkState.RecheckAfterChangeAsync(
             _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml"),
@@ -1051,17 +1089,24 @@ public partial class WimStep5IsoViewModel : ObservableObject
     }
 
     // The last look at the file Setup will read, or null when there is nothing to decide: no finding, every installer
-    // on the media, and an edition choice that does what it says. A check that cannot run is logged and never stops the media.
+    // on the media, and an edition choice that does what it says. Only imported files remain advisory.
     private async Task<SummaryRequest?> AnswerFileReviewAsync(BuildPlan plan)
     {
         var answerFile = _fileSystemService.CombinePath(WorkingDirectory, "autounattend.xml");
         if (!_fileSystemService.FileExists(answerFile))
+        {
+            if (plan.Set is not null)
+                throw new FileNotFoundException("The generated answer file is missing", answerFile);
             return null;
+        }
 
         try
         {
             var report = await _answerFileValidator.ValidateAsync(answerFile);
             _checkState.Publish(answerFile, report);
+            plan.RequiresStrictAnswerFile |= report.IsWinhanceGenerated;
+            if (plan.RequiresStrictAnswerFile)
+                report.ThrowIfInvalidGenerated();
 
             var sections = new List<SummarySection>();
             if (plan.Apps.Count > 0)
@@ -1092,7 +1137,7 @@ public partial class WimStep5IsoViewModel : ObservableObject
                 ConfirmButtonText = _localizationService.GetString("WIMUtil_Button_ContinueAnyway"),
             };
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!plan.RequiresStrictAnswerFile)
         {
             _logService.LogWarning($"Could not check autounattend.xml: {ex.Message}");
             return null;
@@ -1160,6 +1205,7 @@ public partial class WimStep5IsoViewModel : ObservableObject
 
             // Before the writer erases the stick, so a servicing failure leaves the drive as it was.
             answerFileChanged = await RunImageBuildAsync(plan, progress, token);
+            await EnsureFinalGeneratedAnswerFileAsync(plan, answerFileChanged);
             _mediaCard.IsProcessing = true;
             var replacements = await PrepareBootFilesAsync(token);
 
@@ -1170,7 +1216,7 @@ public partial class WimStep5IsoViewModel : ObservableObject
             written = true;
             _mediaCard.IsComplete = true;
             SelectUsbCard.IsComplete = true;
-            SelectUsbCard.Description = _localizationService.GetString("WIMUtil_Desc_UsbWriteSuccess");
+            ShowUsbDescription("WIMUtil_Desc_UsbWriteSuccess");
 
             await _dialogService.ShowInformationAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_UsbWriteSuccess"), target.Model),
@@ -1180,7 +1226,7 @@ public partial class WimStep5IsoViewModel : ObservableObject
         {
             _taskProgressService.FailTask();
             SelectUsbCard.HasFailed = true;
-            SelectUsbCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace"), spaceEx.DriveName);
+            ShowUsbDescription("WIMUtil_Status_InsufficientDiskSpace", spaceEx.DriveName);
             await _dialogService.ShowWarningAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_InsufficientSpace_Create"), spaceEx.DriveName, spaceEx.RequiredGB.ToString("F2"), spaceEx.AvailableGB.ToString("F2"), (spaceEx.RequiredGB - spaceEx.AvailableGB).ToString("F2")),
                 string.Format(_localizationService.GetString("WIMUtil_Status_InsufficientDiskSpace"), spaceEx.DriveName));
@@ -1189,7 +1235,7 @@ public partial class WimStep5IsoViewModel : ObservableObject
         {
             cancelled = true;
             _taskProgressService.CancelTask();
-            SelectUsbCard.Description = _localizationService.GetString("WIMUtil_Desc_UsbWriteCancelled");
+            ShowUsbDescription("WIMUtil_Desc_UsbWriteCancelled");
             await _dialogService.ShowWarningAsync(
                 string.Format(_localizationService.GetString("WIMUtil_Msg_UsbDriveErased"), erased.Target?.Model),
                 _localizationService.GetString("WIMUtil_Desc_UsbWriteCancelled"));
@@ -1198,14 +1244,14 @@ public partial class WimStep5IsoViewModel : ObservableObject
         {
             cancelled = true;
             _taskProgressService.CancelTask();
-            SelectUsbCard.Description = _localizationService.GetString("WIMUtil_Desc_UsbWriteCancelled");
+            ShowUsbDescription("WIMUtil_Desc_UsbWriteCancelled");
         }
         catch (Exception ex)
         {
             _taskProgressService.FailTask();
             _logService.LogError($"Could not write the USB drive: {ex.Message}", ex);
             SelectUsbCard.HasFailed = true;
-            SelectUsbCard.Description = string.Format(_localizationService.GetString("WIMUtil_Status_ErrorPrefix"), ex.Message);
+            ShowUsbDescription("WIMUtil_Status_ErrorPrefix", ex.Message);
 
             // Once the drive has been wiped, "could not write" on its own reads as "nothing
             // happened", and the user unplugs a blank stick.
@@ -1225,7 +1271,7 @@ public partial class WimStep5IsoViewModel : ObservableObject
             _taskProgressService.CompleteTask();
         }
 
-        if (answerFileChanged)
+        if (answerFileChanged && !plan.RequiresStrictAnswerFile)
             await RecheckServicedAnswerFileAsync();
         return written;
     }

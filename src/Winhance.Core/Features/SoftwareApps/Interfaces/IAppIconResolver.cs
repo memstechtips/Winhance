@@ -14,4 +14,8 @@ public interface IAppIconResolver
         IEnumerable<ItemDefinition> definitions,
         bool applyThemeAdaptation = true,
         CancellationToken ct = default);
+
+    // The icon an earlier batch cached for this Windows Apps id, in the variant for the current theme, or null when
+    // Software & Apps has not resolved it yet. Reads the cache only; nothing is extracted or fetched.
+    string? CachedIconPath(string appId, bool lightTheme);
 }

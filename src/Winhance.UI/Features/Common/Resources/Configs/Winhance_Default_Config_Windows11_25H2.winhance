@@ -687,6 +687,12 @@
             "InputType": 0
           },
           {
+            "Id": "devices-nearby-sharing",
+            "Name": "Setting_devices-nearby-sharing_Name",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
             "Id": "explorer-snap-windows",
             "Name": "Setting_explorer-snap-windows_Name",
             "IsSelected": true,
@@ -720,6 +726,18 @@
             "Id": "explorer-snap-without-edge",
             "Name": "Setting_explorer-snap-without-edge_Name",
             "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-title-bar-window-shake",
+            "Name": "Setting_explorer-title-bar-window-shake_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "explorer-clipboard-history",
+            "Name": "Setting_explorer-clipboard-history_Name",
+            "IsSelected": false,
             "InputType": 0
           },
           {
@@ -1246,7 +1264,20 @@
       },
       "TimeRegionLanguage": {
         "IsIncluded": true,
-        "Items": []
+        "Items": [
+          {
+            "Id": "region-set-time-automatically",
+            "Name": "Setting_region-set-time-automatically_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "region-set-time-zone-automatically",
+            "Name": "Setting_region-set-time-zone-automatically_Name",
+            "IsSelected": false,
+            "InputType": 0
+          }
+        ]
       },
       "WindowsTheme": {
         "IsIncluded": true,
@@ -1267,6 +1298,18 @@
             "Id": "theme-mode-system",
             "Name": "Setting_theme-mode-system_Name",
             "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "theme-accent-color-start-taskbar",
+            "Name": "Setting_theme-accent-color-start-taskbar_Name",
+            "IsSelected": false,
+            "InputType": 0
+          },
+          {
+            "Id": "theme-accent-color-title-bars",
+            "Name": "Setting_theme-accent-color-title-bars_Name",
+            "IsSelected": false,
             "InputType": 0
           },
           {
@@ -1346,6 +1389,30 @@
             "InputType": 0
           },
           {
+            "Id": "gaming-storage-sense-frequency",
+            "Name": "Setting_gaming-storage-sense-frequency_Name",
+            "InputType": 1,
+            "SelectedIndex": 3
+          },
+          {
+            "Id": "gaming-storage-sense-recycle-bin",
+            "Name": "Setting_gaming-storage-sense-recycle-bin_Name",
+            "InputType": 1,
+            "SelectedIndex": 3
+          },
+          {
+            "Id": "gaming-storage-sense-downloads",
+            "Name": "Setting_gaming-storage-sense-downloads_Name",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
+            "Id": "gaming-archive-apps",
+            "Name": "Setting_gaming-archive-apps_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
             "Id": "gaming-performance-explorer-search",
             "Name": "Setting_gaming-performance-explorer-search_Name",
             "IsSelected": false,
@@ -1372,8 +1439,8 @@
           {
             "Id": "gaming-explorer-alt-tab-filter",
             "Name": "Setting_gaming-explorer-alt-tab-filter_Name",
-            "IsSelected": false,
-            "InputType": 0
+            "InputType": 1,
+            "SelectedIndex": 2
           },
           {
             "Id": "system-restore-protection",
@@ -2610,6 +2677,12 @@
             "SelectedIndex": 0
           },
           {
+            "Id": "security-app-install-source",
+            "Name": "Setting_security-app-install-source_Name",
+            "InputType": 1,
+            "SelectedIndex": 0
+          },
+          {
             "Id": "privacy-ads-promotional-master",
             "Name": "Setting_privacy-ads-promotional-master_Name",
             "InputType": 1,
@@ -2660,6 +2733,12 @@
           {
             "Id": "privacy-silent-installed-apps",
             "Name": "Setting_privacy-silent-installed-apps_Name",
+            "IsSelected": true,
+            "InputType": 0
+          },
+          {
+            "Id": "privacy-get-started",
+            "Name": "Setting_privacy-get-started_Name",
             "IsSelected": true,
             "InputType": 0
           },

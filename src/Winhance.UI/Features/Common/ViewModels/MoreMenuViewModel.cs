@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.Common.Constants;
@@ -11,6 +12,12 @@ namespace Winhance.UI.Features.Common.ViewModels;
 
 public partial class MoreMenuViewModel : ObservableObject, IDisposable
 {
+    private static readonly string[] LocalizedProperties =
+    [
+        nameof(MenuDocumentation), nameof(MenuReportBug), nameof(MenuCheckForUpdates), nameof(MenuWinhanceLogs),
+        nameof(MenuChangeHistory), nameof(MenuWinhanceScripts), nameof(MenuSupportWinhance), nameof(MenuCloseWinhance),
+    ];
+
     private bool _disposed;
     private readonly ILocalizationService _localizationService;
     private readonly IVersionService _versionService;
@@ -62,14 +69,8 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        OnPropertyChanged(nameof(MenuDocumentation));
-        OnPropertyChanged(nameof(MenuReportBug));
-        OnPropertyChanged(nameof(MenuCheckForUpdates));
-        OnPropertyChanged(nameof(MenuWinhanceLogs));
-        OnPropertyChanged(nameof(MenuChangeHistory));
-        OnPropertyChanged(nameof(MenuWinhanceScripts));
-        OnPropertyChanged(nameof(MenuSupportWinhance));
-        OnPropertyChanged(nameof(MenuCloseWinhance));
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
     }
 
     private void InitializeVersionInfo()
@@ -111,109 +112,44 @@ public partial class MoreMenuViewModel : ObservableObject, IDisposable
         _localizationService.GetStringOrDefault("Menu_CloseWinhance", "Close Winhance");
 
     [RelayCommand]
-    private async Task OpenDocsAsync(string? pageTag)
-    {
-        try
-        {
-            await Windows.System.Launcher.LaunchUriAsync(HelpLinks.DocsFor(pageTag));
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Failed to open documentation page: {ex.Message}", ex);
-        }
-    }
+    private Task OpenDocsAsync(string? pageTag) =>
+        RunAsync(async () => await Windows.System.Launcher.LaunchUriAsync(HelpLinks.DocsFor(pageTag)));
 
     [RelayCommand]
-    private async Task ReportBugAsync()
-    {
-        try
-        {
-            await Windows.System.Launcher.LaunchUriAsync(HelpLinks.BugReport);
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Failed to open bug report page: {ex.Message}", ex);
-        }
-    }
+    private Task ReportBugAsync() =>
+        RunAsync(async () => await Windows.System.Launcher.LaunchUriAsync(HelpLinks.BugReport));
 
     [RelayCommand]
-    private async Task OpenLogsAsync()
-    {
-        try
-        {
-            string logsFolder = Path.Combine(AppDataPaths.MachineRoot, "Logs");
-
-            if (!_fileSystemService.DirectoryExists(logsFolder))
-            {
-                _fileSystemService.CreateDirectory(logsFolder);
-            }
-
-            await _explorerWindowManager.OpenFolderAsync(logsFolder);
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error opening logs folder: {ex.Message}", ex);
-        }
-    }
+    private Task OpenLogsAsync() => RunAsync(() => OpenFolderAsync(Path.Combine(AppDataPaths.MachineRoot, "Logs")));
 
     [RelayCommand]
-    private async Task OpenChangeHistoryAsync()
-    {
-        try
-        {
-            var path = _changeHistoryService.GetFilePath();
-            await _processExecutor.ShellExecuteAsync(path);
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Failed to open change history file: {ex.Message}", ex);
-        }
-    }
+    private Task OpenChangeHistoryAsync() =>
+        RunAsync(() => _processExecutor.ShellExecuteAsync(_changeHistoryService.GetFilePath()));
 
     [RelayCommand]
-    private async Task OpenScriptsAsync()
-    {
-        try
-        {
-            string scriptsFolder = ScriptPaths.ScriptsDirectory;
-
-            if (!_fileSystemService.DirectoryExists(scriptsFolder))
-            {
-                _fileSystemService.CreateDirectory(scriptsFolder);
-            }
-
-            await _explorerWindowManager.OpenFolderAsync(scriptsFolder);
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error opening scripts folder: {ex.Message}", ex);
-        }
-    }
+    private Task OpenScriptsAsync() => RunAsync(() => OpenFolderAsync(ScriptPaths.ScriptsDirectory));
 
     [RelayCommand]
-    private async Task SupportWinhanceAsync()
-    {
-        try
-        {
-            await _dialogService.ShowSponsorsDialogAsync(SponsorsDialogMode.Normal);
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Failed to open sponsors dialog: {ex.Message}", ex);
-        }
-    }
+    private Task SupportWinhanceAsync() =>
+        RunAsync(() => _dialogService.ShowSponsorsDialogAsync(SponsorsDialogMode.Normal));
 
     [RelayCommand]
-    private async Task CloseApplicationAsync()
-    {
-        try
+    private Task CloseApplicationAsync() =>
+        RunAsync(() =>
         {
             _logService.LogInformation("User requested application close from More menu");
-            await _applicationCloseService.CheckOperationsAndCloseAsync();
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error closing application: {ex.Message}", ex);
-        }
+            return _applicationCloseService.CheckOperationsAndCloseAsync();
+        });
+
+    private async Task OpenFolderAsync(string folder)
+    {
+        if (!_fileSystemService.DirectoryExists(folder))
+            _fileSystemService.CreateDirectory(folder);
+
+        await _explorerWindowManager.OpenFolderAsync(folder);
     }
+
+    private Task RunAsync(Func<Task> action, [CallerMemberName] string callerName = "") =>
+        _dialogService.RunOrShowErrorAsync(_logService, action,
+            ex => _localizationService.GetString("Common_ActionFailed", ex.Message), callerName);
 }

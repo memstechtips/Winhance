@@ -3,7 +3,8 @@
     x:Class="Winhance.UI.Features.Common.Controls.SettingQuickSetButtons"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Winhance.UI.Features.Common.Controls">
+    xmlns:local="using:Winhance.UI.Features.Common.Controls"
+    xmlns:fluentIcons="using:FluentIcons.WinUI">
 
     <!--
     The green "Set to Recommended" / grey "Set to Windows Default" pair that precedes every input control.
@@ -11,23 +12,25 @@
     The icons carry their own Foreground so the default ButtonForegroundPointerOver override cannot wipe
     out the green/grey on hover; only the background hover tint renders.
     -->
-    <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
-                Visibility="{x:Bind ButtonsVisibility, Mode=OneWay}">
+    <StackPanel Orientation="Horizontal" Spacing="{StaticResource IconButtonRowSpacing}" VerticalAlignment="Center">
         <Button
+            x:Name="QuickSetRecommended"
+            x:Load="{x:Bind local:SettingQuickSetButtons.Shows(Setting, Kind, Mode, Setting.IsInfoBadgeGloballyVisible), Mode=OneWay}"
             Style="{StaticResource QuickSetRecommendedButtonStyle}"
-            Command="{x:Bind RecommendedCommand, Mode=OneWay}"
-            ToolTipService.ToolTip="{x:Bind RecommendedTooltip, Mode=OneWay}"
-            AutomationProperties.Name="{x:Bind RecommendedAutomationName, Mode=OneWay}">
-            <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE735;" FontSize="14"
-                      Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+            Command="{x:Bind local:SettingQuickSetButtons.RecommendedCommand(Setting, Kind, Mode), Mode=OneWay}"
+            ToolTipService.ToolTip="{x:Bind local:SettingQuickSetButtons.RecommendedTooltip(Setting, Kind, Mode, Setting.NewBadgeText, Setting.SelectedValue), Mode=OneWay}"
+            AutomationProperties.Name="{x:Bind local:SettingQuickSetButtons.RecommendedAutomationName(Setting, Kind, Mode, Setting.NewBadgeText, Setting.SelectedValue), Mode=OneWay}">
+            <fluentIcons:FluentIcon Icon="Star" IconVariant="Filled" FontSize="{StaticResource ButtonIconFontSize}"
+                                    Foreground="{ThemeResource BadgeRecommendedForeground}"/>
         </Button>
         <Button
+            x:Name="QuickSetDefault"
+            x:Load="{x:Bind local:SettingQuickSetButtons.Shows(Setting, Kind, Mode, Setting.IsInfoBadgeGloballyVisible), Mode=OneWay}"
             Style="{StaticResource QuickSetDefaultButtonStyle}"
-            Command="{x:Bind DefaultCommand, Mode=OneWay}"
-            ToolTipService.ToolTip="{x:Bind DefaultTooltip, Mode=OneWay}"
-            AutomationProperties.Name="{x:Bind DefaultAutomationName, Mode=OneWay}">
-            <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
-                      Foreground="{ThemeResource BadgeDefaultForeground}"/>
+            Command="{x:Bind local:SettingQuickSetButtons.DefaultCommand(Setting, Kind, Mode), Mode=OneWay}"
+            ToolTipService.ToolTip="{x:Bind local:SettingQuickSetButtons.DefaultTooltip(Setting, Kind, Mode, Setting.NewBadgeText, Setting.SelectedValue), Mode=OneWay}"
+            AutomationProperties.Name="{x:Bind local:SettingQuickSetButtons.DefaultAutomationName(Setting, Kind, Mode, Setting.NewBadgeText, Setting.SelectedValue), Mode=OneWay}">
+            <fluentIcons:FluentIcon Style="{StaticResource BadgeDefaultIcon}"/>
         </Button>
     </StackPanel>
 </local:SettingBoundControl>

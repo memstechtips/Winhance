@@ -36,11 +36,6 @@ internal class RegImportService(
 
             logService.Log(LogLevel.Info, "Registry import completed");
         }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Error, $"Failed to import registry content: {ex.Message}");
-            throw;
-        }
         finally
         {
             if (fileSystemService.FileExists(tempFile))

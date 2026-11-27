@@ -55,7 +55,7 @@ public class AutounattendPageShellTests
         drivers.Should().BeGreaterThan(0);
         Index("IsChecked", "Step2.IsBuilderChosen, Mode=OneWay").Should().BeInRange(0, drivers);
         elements.FindIndex(e => e.Name == Autounattend + "IncludedFromFeaturesView").Should().BeInRange(0, drivers);
-        Index("Command", "OpenAutounattendCommand").Should().BeInRange(0, drivers);
+        Index("Command", "Step2.OpenAutounattendCommand").Should().BeInRange(0, drivers);
         Index("Command", "GenerateWinhanceXmlCommand").Should().Be(-1);
         Index("Command", "StartAutounattendSessionCommand").Should().Be(-1);
     }

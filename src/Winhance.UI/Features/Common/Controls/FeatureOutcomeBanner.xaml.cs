@@ -5,6 +5,7 @@ using FluentIcons.WinUI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Documents;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
@@ -19,7 +20,7 @@ public sealed class FeatureOutcomeNavigationEventArgs : EventArgs
     public string? SettingName { get; set; }
 }
 
-public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyChanged
+public sealed partial class FeatureOutcomeBanner : UserControl
 {
     // Fallback if the resource dictionary is missing the key; keeps a bad merge from rendering an invisible icon.
     private const double OutcomeIconFontSizeFallback = 16;
@@ -72,9 +73,23 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
         set => SetValue(LocalizationProperty, value);
     }
 
-    public Visibility BannerVisibility { get; private set; } = Visibility.Collapsed;
-    public bool IsBannerOpen { get; private set; }
-    public string BannerMessage { get; private set; } = string.Empty;
+    public static readonly DependencyProperty IsBannerOpenProperty = DependencyProperty.Register(
+        nameof(IsBannerOpen), typeof(bool), typeof(FeatureOutcomeBanner), new PropertyMetadata(false));
+
+    public bool IsBannerOpen
+    {
+        get => (bool)GetValue(IsBannerOpenProperty);
+        private set => SetValue(IsBannerOpenProperty, value);
+    }
+
+    public static readonly DependencyProperty BannerMessageProperty = DependencyProperty.Register(
+        nameof(BannerMessage), typeof(string), typeof(FeatureOutcomeBanner), new PropertyMetadata(string.Empty));
+
+    public string BannerMessage
+    {
+        get => (string)GetValue(BannerMessageProperty);
+        private set => SetValue(BannerMessageProperty, value);
+    }
 
     // The banner subscribes to everything that can change what it shows rather than relying on the
     // host to call Refresh, which went stale silently whenever a caller was missed.
@@ -153,26 +168,23 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
 
     private void Refresh()
     {
-        FragmentHost.Children.Clear();
-
         var rows = FeatureOutcomeRowBuilder.Build(Feature);
         if (rows.Count == 0)
         {
-            BannerVisibility = Visibility.Collapsed;
             IsBannerOpen = false;
-            Notify(nameof(BannerVisibility), nameof(IsBannerOpen));
             return;
         }
 
-        foreach (var row in rows)
-            FragmentHost.Children.Add(BuildRow(row));
-
-        BannerMessage = Localize(
+        BannerMessage = Localization.GetStringOrDefault(
             "Overview_OutcomeBanner_Intro",
             "Winhance couldn't determine the state of some settings in this section.");
-        BannerVisibility = Visibility.Visible;
         IsBannerOpen = true;
-        Notify(nameof(BannerVisibility), nameof(IsBannerOpen), nameof(BannerMessage));
+
+        // The bar is built by x:Load; FindName builds it now when this runs before the bindings are live.
+        FindName(nameof(Bar));
+        FragmentHost.Children.Clear();
+        foreach (var row in rows)
+            FragmentHost.Children.Add(BuildRow(row));
     }
 
     // The names share one wrapping TextBlock so a long localized name reflows instead of overflowing; a horizontal
@@ -194,7 +206,7 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
         // Localizable separator: French puts a space before the colon, CJK uses a full-width one.
         text.Inlines.Add(new Run
         {
-            Text = Format(Localize("Overview_OutcomeBanner_Label", "{0}: "), row.Label),
+            Text = Format(Localization.GetStringOrDefault("Overview_OutcomeBanner_Label", "{0}: "), row.Label),
         });
 
         for (int i = 0; i < row.Names.Count; i++)
@@ -209,7 +221,7 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
             text.Inlines.Add(new Run { Text = ", " });
             // Null target: open the feature itself rather than pre-filtering to one setting.
             text.Inlines.Add(Link(
-                Format(Localize("Overview_OutcomeBanner_More", "+{0} more"), row.Remaining.ToString()),
+                Format(Localization.GetStringOrDefault("Overview_OutcomeBanner_More", "+{0} more"), row.Remaining.ToString()),
                 null));
         }
 
@@ -225,36 +237,13 @@ public sealed partial class FeatureOutcomeBanner : UserControl, INotifyPropertyC
             : OutcomeIconFontSizeFallback;
 
     // NavigateToSection pre-applies the text as a search filter, so the click lands on that setting already filtered.
-    private Hyperlink Link(string display, string? settingName)
-    {
-        var link = new Hyperlink { UnderlineStyle = UnderlineStyle.None };
-        link.Inlines.Add(new Run { Text = display });
-        link.Click += (_, _) => NavigationRequested?.Invoke(this, new FeatureOutcomeNavigationEventArgs
+    private Hyperlink Link(string display, string? settingName) =>
+        InlineLink.Create(display, () => NavigationRequested?.Invoke(this, new FeatureOutcomeNavigationEventArgs
         {
             SectionKey = SectionKey,
             SettingName = settingName,
-        });
-        return link;
-    }
+        }));
 
     // Without string.Format, so a translator's stray brace cannot throw.
     private static string Format(string pattern, string a) => pattern.Replace("{0}", a);
-
-    private string Localize(string key, string fallback) =>
-        Localization is { } loc && loc.TryGetString(key, out var text) && !string.IsNullOrEmpty(text)
-            ? text
-            : fallback;
-
-    // x:Bind OneWay needs a notification source; without one the compiler emits WMC1506.
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    private void Notify(params string[] names)
-    {
-        var handler = PropertyChanged;
-        if (handler is null)
-            return;
-        foreach (var name in names)
-            handler(this, new PropertyChangedEventArgs(name));
-    }
 }

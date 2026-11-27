@@ -16,13 +16,21 @@ internal class SystemBackupService : ISystemBackupService
     private readonly IWmiApi _wmiApi;
     private readonly ISystemRestorePointWriter _restorePointWriter;
 
-    private const int VerificationMaxRetries = 10;
+    private const int MaxRetries = 10;
     private static readonly TimeSpan VerificationRetryDelay = TimeSpan.FromSeconds(3);
+
+    // SRSetRestorePointW returns before System Restore registers the point, so removing it at once answers
+    // ERROR_FILE_NOT_FOUND. Measured on a VM: at once = not found, 500 ms later = removed.
+    private static readonly TimeSpan RemovalRetryDelay = TimeSpan.FromMilliseconds(500);
 
     // Below this free share of shadow storage, the max size is doubled before creating a restore point.
     private const double MinFreeStoragePercent = 15.0;
 
     private const string SystemRestoreNamespace = @"root\default";
+
+    // A Volume Shadow Copy error (0x800423xx is vsserror.h's range). SRSetRestorePointW hands it back in nStatus
+    // when the VSS service is disabled, although STATEMGRSTATUS documents no VSS codes.
+    private const int VssUnexpectedError = unchecked((int)0x80042302);
 
     public SystemBackupService(
         ILogService logService,
@@ -45,6 +53,7 @@ internal class SystemBackupService : ISystemBackupService
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        var turnedOn = false;
         try
         {
             var restorePointName = name
@@ -58,6 +67,7 @@ internal class SystemBackupService : ISystemBackupService
                 IsIndeterminate = true
             });
 
+            cancellationToken.ThrowIfCancellationRequested();
             var isEnabled = _systemRestoreService.IsEnabledForC();
             if (!isEnabled)
             {
@@ -73,76 +83,105 @@ internal class SystemBackupService : ISystemBackupService
                 if (!enabled)
                 {
                     _logService.Log(LogLevel.Error, "Failed to enable System Restore");
-                    return BackupResult.CreateFailure(
-                        "Failed to enable System Restore - cannot create restore point");
+                    return BackupResult.CreateFailure(_localization.GetString("RestorePoint_Error_EnableFailed"));
                 }
 
                 _logService.Log(LogLevel.Info, "System Restore enabled successfully");
+                turnedOn = true;
             }
 
-            await EnsureSufficientShadowStorageAsync().ConfigureAwait(false);
-
-            progress?.Report(new TaskProgressDetail
+            // Cancel means the machine is left as it was: the point this run made is removed and protection this run
+            // turned on goes back off. The native write cannot be interrupted, so a cancel during it lands once it returns.
+            uint? createdSequenceNumber = null;
+            try
             {
-                StatusText = _localization.GetString("Progress_CreatingRestorePoint"),
-                IsIndeterminate = true
-            });
+                cancellationToken.ThrowIfCancellationRequested();
+                await EnsureSufficientShadowStorageAsync().ConfigureAwait(false);
 
-            var (apiSuccess, statusCode) = await CreateRestorePointNativeAsync(restorePointName).ConfigureAwait(false);
+                progress?.Report(new TaskProgressDetail
+                {
+                    StatusText = _localization.GetString("Progress_CreatingRestorePoint"),
+                    IsIndeterminate = true
+                });
 
-            if (!apiSuccess)
-            {
-                var statusDesc = GetStatusDescription(statusCode);
-                _logService.Log(LogLevel.Error, $"Failed to create restore point. Status: {statusCode} ({statusDesc})");
-                return BackupResult.CreateFailure($"Failed to create system restore point: {statusDesc}");
-            }
+                cancellationToken.ThrowIfCancellationRequested();
 
-            if (statusCode != (int)WIN32_ERROR.ERROR_SUCCESS)
-            {
-                var statusDesc = GetStatusDescription(statusCode);
-                _logService.Log(LogLevel.Warning, $"SRSetRestorePointW returned success but status code is {statusCode} ({statusDesc})");
-            }
+                var (apiSuccess, statusCode, sequenceNumber) = await CreateRestorePointNativeAsync(restorePointName).ConfigureAwait(false);
+                createdSequenceNumber = sequenceNumber;
 
-            _logService.Log(LogLevel.Info, "Restore point API call succeeded, verifying creation...");
+                if (!apiSuccess)
+                {
+                    _logService.Log(LogLevel.Error, $"Failed to create restore point. Status: 0x{statusCode:X8}");
+                    return BackupResult.CreateFailure(DescribeStatus(statusCode), turnedOn);
+                }
 
-            var verifiedDate = await VerifyRestorePointCreatedAsync(restorePointName, cancellationToken).ConfigureAwait(false);
+                if (statusCode != (int)WIN32_ERROR.ERROR_SUCCESS)
+                {
+                    _logService.Log(LogLevel.Warning, $"SRSetRestorePointW returned success but status code is 0x{statusCode:X8}");
+                }
 
-            if (verifiedDate != null)
-            {
-                _logService.Log(LogLevel.Info, $"Successfully verified restore point '{restorePointName}' (created: {verifiedDate.Value})");
-                return BackupResult.CreateSuccess(
-                    restorePointDate: verifiedDate.Value,
-                    restorePointCreated: true);
-            }
-            else
-            {
+                _logService.Log(LogLevel.Info, "Restore point API call succeeded, verifying creation...");
+
+                var verifiedDate = await VerifyRestorePointCreatedAsync(restorePointName, cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (verifiedDate != null)
+                {
+                    _logService.Log(LogLevel.Info, $"Successfully verified restore point '{restorePointName}' (created: {verifiedDate.Value})");
+                    return BackupResult.CreateSuccess(
+                        restorePointDate: verifiedDate.Value,
+                        restorePointCreated: true);
+                }
+
                 _logService.Log(LogLevel.Error, $"Restore point '{restorePointName}' could not be verified after creation.");
-                return BackupResult.CreateFailure("System restore point creation could not be verified");
+                return BackupResult.CreateFailure(_localization.GetString("RestorePoint_Error_NotVerified"), turnedOn);
+            }
+            catch (OperationCanceledException)
+            {
+                if (createdSequenceNumber is uint created)
+                {
+                    await RemoveRestorePointAsync(created).ConfigureAwait(false);
+                }
+
+                if (turnedOn)
+                {
+                    await TurnOffSystemRestoreAsync().ConfigureAwait(false);
+                }
+
+                throw;
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logService.Log(LogLevel.Error, $"Error creating restore point: {ex.Message}");
-            return BackupResult.CreateFailure(ex.Message);
+            return BackupResult.CreateFailure(DescribeStatus(ex.HResult), turnedOn);
         }
     }
 
-    private async Task<DateTime?> VerifyRestorePointCreatedAsync(string description, CancellationToken cancellationToken)
+    private Task<DateTime?> VerifyRestorePointCreatedAsync(string description, CancellationToken cancellationToken) =>
+        RetryUntilAnsweredAsync(VerificationRetryDelay, async attempt =>
+        {
+            var found = await FindRestorePointAsync(description).ConfigureAwait(false);
+            _logService.Log(LogLevel.Info, found != null
+                ? $"Restore point verified on attempt {attempt}/{MaxRetries}"
+                : $"Restore point not yet visible (attempt {attempt}/{MaxRetries}), retrying...");
+            return found;
+        }, cancellationToken);
+
+    private static async Task<T?> RetryUntilAnsweredAsync<T>(
+        TimeSpan delay, Func<int, Task<T?>> attempt, CancellationToken cancellationToken)
+        where T : struct
     {
-        for (int attempt = 1; attempt <= VerificationMaxRetries; attempt++)
+        for (int i = 1; i <= MaxRetries; i++)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            await Task.Delay(VerificationRetryDelay, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
 
-            var found = await FindRestorePointAsync(description).ConfigureAwait(false);
-            if (found != null)
+            if (await attempt(i).ConfigureAwait(false) is T answer)
             {
-                _logService.Log(LogLevel.Info, $"Restore point verified on attempt {attempt}/{VerificationMaxRetries}");
-                return found;
+                return answer;
             }
-
-            _logService.Log(LogLevel.Info, $"Restore point not yet visible (attempt {attempt}/{VerificationMaxRetries}), retrying...");
         }
 
         return null;
@@ -189,39 +228,45 @@ internal class SystemBackupService : ISystemBackupService
         }).ConfigureAwait(false);
     }
 
-    private async Task<(bool Success, int StatusCode)> CreateRestorePointNativeAsync(string description)
+    private Task<(bool Success, int StatusCode, uint? SequenceNumber)> CreateRestorePointNativeAsync(string description) =>
+        Task.Run(() => _restorePointWriter.CreateRestorePoint(description));
+
+    private async Task RemoveRestorePointAsync(uint sequenceNumber)
     {
-        return await Task.Run(() =>
+        try
         {
-            try
+            var status = await RetryUntilAnsweredAsync(RemovalRetryDelay, async _ =>
             {
-                var (success, statusCode) = _restorePointWriter.CreateRestorePoint(description);
-                if (!success)
-                {
-                    _logService.Log(LogLevel.Error, $"Failed to create restore point. Status: {statusCode} ({GetStatusDescription(statusCode)})");
-                }
-                return (success, statusCode);
-            }
-            catch (Exception ex)
+                var removal = await Task.Run(() => _restorePointWriter.RemoveRestorePoint(sequenceNumber)).ConfigureAwait(false);
+                return removal == (int)WIN32_ERROR.ERROR_FILE_NOT_FOUND ? null : (int?)removal;
+            }, CancellationToken.None).ConfigureAwait(false) ?? (int)WIN32_ERROR.ERROR_FILE_NOT_FOUND;
+
+            if (status == (int)WIN32_ERROR.ERROR_SUCCESS)
             {
-                _logService.Log(LogLevel.Error, $"Failed to create restore point: {ex.Message}");
-                return (false, -1);
+                _logService.Log(LogLevel.Info, $"Restore point cancelled, removed restore point {sequenceNumber}");
             }
-        }).ConfigureAwait(false);
+            else
+            {
+                _logService.Log(LogLevel.Error, $"Failed to remove restore point {sequenceNumber} after cancel. Status: {status}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Failed to remove restore point {sequenceNumber} after cancel: {ex.Message}");
+        }
     }
 
-    private static string GetStatusDescription(int statusCode)
+    // The nStatus codes STATEMGRSTATUS documents, plus the VSS code a disabled shadow copy service gives.
+    internal string DescribeStatus(int statusCode) => statusCode switch
     {
-        return statusCode switch
-        {
-            (int)WIN32_ERROR.ERROR_SUCCESS => "Success",
-            (int)WIN32_ERROR.ERROR_SERVICE_DISABLED => "System Restore service is disabled",
-            (int)WIN32_ERROR.ERROR_DISK_FULL => "Insufficient disk space for restore point",
-            (int)WIN32_ERROR.ERROR_INTERNAL_ERROR => "Internal error in System Restore service",
-            (int)WIN32_ERROR.ERROR_TIMEOUT => "Operation timed out",
-            _ => $"Unknown status code ({statusCode})"
-        };
-    }
+        (int)WIN32_ERROR.ERROR_SERVICE_DISABLED => _localization.GetString("RestorePoint_Error_ServiceDisabled"),
+        (int)WIN32_ERROR.ERROR_DISK_FULL => _localization.GetString("RestorePoint_Error_DiskFull"),
+        (int)WIN32_ERROR.ERROR_BAD_ENVIRONMENT => _localization.GetString("RestorePoint_Error_SafeMode"),
+        (int)WIN32_ERROR.ERROR_TIMEOUT => _localization.GetString("RestorePoint_Error_Timeout"),
+        (int)WIN32_ERROR.ERROR_INTERNAL_ERROR => _localization.GetString("RestorePoint_Error_Internal"),
+        VssUnexpectedError => _localization.GetString("RestorePoint_Error_ShadowCopy"),
+        _ => _localization.GetString("RestorePoint_Error_WindowsCode", $"0x{statusCode:X8}"),
+    };
 
     private async Task EnsureSufficientShadowStorageAsync()
     {
@@ -350,6 +395,26 @@ internal class SystemBackupService : ISystemBackupService
         {
             _logService.Log(LogLevel.Error, $"Failed to enable System Restore: {ex.Message}");
             return false;
+        }
+    }
+
+    public async Task TurnOffSystemRestoreAsync()
+    {
+        try
+        {
+            var systemDrive = Environment.GetEnvironmentVariable("SystemDrive") ?? "C:";
+            await Task.Run(() =>
+            {
+                using var result = _wmiApi.InvokeClassMethod(
+                    SystemRestoreNamespace, "SystemRestore", "Disable",
+                    new Dictionary<string, object> { ["Drive"] = systemDrive + "\\" });
+            }).ConfigureAwait(false);
+
+            _logService.Log(LogLevel.Info, "System Restore turned back off");
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Failed to turn System Restore back off: {ex.Message}");
         }
     }
 }

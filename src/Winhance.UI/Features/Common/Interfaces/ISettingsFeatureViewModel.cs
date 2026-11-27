@@ -17,6 +17,9 @@ public interface ISettingsFeatureViewModel : INotifyPropertyChanged, IDisposable
 
     bool IsLoading { get; }
 
+    // Set when an authoring mode is left; the cards still show authored values until the feature is rebuilt.
+    bool NeedsRebuild { get; }
+
     int SettingsCount { get; }
 
     string GroupDescriptionText { get; }
@@ -28,6 +31,8 @@ public interface ISettingsFeatureViewModel : INotifyPropertyChanged, IDisposable
     Task RefreshSettingsAsync();
 
     Task RefreshSettingStatesAsync();
+
+    Task RefreshOnNavigationAsync();
 
     void ApplySearchFilter(string searchText);
 

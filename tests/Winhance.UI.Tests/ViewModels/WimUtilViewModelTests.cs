@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using FluentAssertions;
 using Microsoft.UI.Xaml.Controls;
 using Moq;
@@ -191,7 +192,7 @@ public class WimUtilViewModelTests : IDisposable
     [Fact]
     public void Constructor_StepStates_CarryTheirIcons()
     {
-        _sut.Step1State.Glyph.Should().Be("\uE958");
+        _sut.Step1State.Icon.Should().Be(FluentIcons.Common.Icon.Target);
         _sut.Step2State.Icon.Should().Be(FluentIcons.Common.Icon.WrenchScrewdriver);
         _sut.Step3State.Icon.Should().Be(FluentIcons.Common.Icon.Options);
         _sut.Step4State.Icon.Should().Be(FluentIcons.Common.Icon.Rocket);
@@ -344,15 +345,15 @@ public class WimUtilViewModelTests : IDisposable
     [Fact]
     public void WriteToUsb_IsDisabledUntilADriveIsPicked()
     {
-        _sut.CreateMediaCommand.CanExecute(null).Should().BeTrue();
+        _sut.Step5.CreateMediaCommand.CanExecute(null).Should().BeTrue();
 
         _sut.Step5.Destination = WimOutputDestination.Usb;
 
-        _sut.CreateMediaCommand.CanExecute(null).Should().BeFalse();
+        _sut.Step5.CreateMediaCommand.CanExecute(null).Should().BeFalse();
 
         _sut.Step5.SelectedUsbTarget = new RemovableDrive(2, "SanDisk Ultra", 61_530_439_680L, "USB", IsSystemDisk: false, HasRemovableMedia: true);
 
-        _sut.CreateMediaCommand.CanExecute(null).Should().BeTrue();
+        _sut.Step5.CreateMediaCommand.CanExecute(null).Should().BeTrue();
     }
 
     [Fact]
@@ -407,16 +408,52 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step1State.IsExpanded.Should().BeTrue();
     }
 
-    [Fact]
-    public void NavigateToStepCommand_Step1_TogglesExpansion()
+    [Theory]
+    [InlineData("1", true)]
+    [InlineData("2", false)]
+    [InlineData("3", false)]
+    [InlineData("4", false)]
+    public void NavigateToStepCommand_ReopeningKeepsTheBodyLoaded(string step, bool initiallyExpanded)
     {
-        _sut.Step1State.IsExpanded.Should().BeTrue();
+        var state = _sut.Steps[int.Parse(step, System.Globalization.CultureInfo.InvariantCulture) - 1];
+        state.HasBeenExpanded.Should().Be(initiallyExpanded);
+        _sut.Step1.IsExtractionComplete = true;
 
-        _sut.NavigateToStepCommand.Execute("1");
-        _sut.Step1State.IsExpanded.Should().BeFalse();
+        if (!state.IsExpanded)
+            _sut.NavigateToStepCommand.Execute(step);
+        state.IsExpanded.Should().BeTrue();
+        state.HasBeenExpanded.Should().BeTrue();
 
-        _sut.NavigateToStepCommand.Execute("1");
-        _sut.Step1State.IsExpanded.Should().BeTrue();
+        for (var cycle = 0; cycle < 2; cycle++)
+        {
+            _sut.NavigateToStepCommand.Execute(step);
+            state.IsExpanded.Should().BeFalse();
+            state.HasBeenExpanded.Should().BeTrue();
+
+            _sut.NavigateToStepCommand.Execute(step);
+            state.IsExpanded.Should().BeTrue();
+            state.HasBeenExpanded.Should().BeTrue();
+        }
+    }
+
+    [Fact]
+    public void WizardStepMarkup_HidesBodiesWithoutUnloadingThemOnCollapse()
+    {
+        XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var control = XDocument.Load(RepoPaths.SourceFiles("WizardStep.xaml").Single());
+        var host = control.Descendants().Single(e => (string?)e.Attribute(xaml + "Name") == "BodyCard");
+        host.Attribute(xaml + "Load").Should().BeNull();
+        ((string?)host.Attribute("Visibility")).Should().Be("{x:Bind State.IsExpanded}");
+
+        XNamespace wizard = "using:Winhance.UI.Features.WimUtil.Controls";
+        var page = XDocument.Load(RepoPaths.SourceFiles("WimUtilPage.xaml").Single());
+        var bodies = page.Descendants(wizard + "WizardStep.Body").ToList();
+        bodies.Should().HaveCount(4);
+        for (var step = 1; step <= bodies.Count; step++)
+        {
+            var body = bodies[step - 1].Descendants().Single(e => (string?)e.Attribute(xaml + "Name") == $"Step{step}Body");
+            ((string?)body.Attribute(xaml + "Load")).Should().Be($"{{x:Bind ViewModel.Step{step}State.HasBeenExpanded, Mode=OneWay}}");
+        }
     }
 
     [Fact]
@@ -430,33 +467,6 @@ public class WimUtilViewModelTests : IDisposable
 
 
     [Fact]
-    public void WorkingDirectory_ForwardsToStep1()
-    {
-        _sut.WorkingDirectory.Should().Be(_sut.Step1.WorkingDirectory);
-    }
-
-    [Fact]
-    public void ShowBuildDetailsCommand_ForwardsToStep5()
-    {
-        _sut.ShowBuildDetailsCommand.Should().BeSameAs(_sut.Step5.ShowBuildDetailsCommand);
-    }
-
-    [Fact]
-    public void DeleteWorkingFolderAfterBuild_ReadsAndWritesStep5()
-    {
-        _sut.DeleteWorkingFolderAfterBuild = true;
-
-        _sut.Step5.DeleteWorkingFolderAfterBuild.Should().BeTrue();
-        _sut.BuildCards.Should().BeSameAs(_sut.Step5.BuildCards);
-    }
-
-    [Fact]
-    public void CreateMediaCommand_ForwardsToStep5()
-    {
-        _sut.CreateMediaCommand.Should().BeSameAs(_sut.Step5.CreateMediaCommand);
-    }
-
-    [Fact]
     public void WhenStep1WorkingDirectoryChanges_PropagatesWorkingDirectoryToAllSubViewModels()
     {
         _sut.Step1.WorkingDirectory = "C:\\NewWorkDir";
@@ -466,32 +476,6 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step3.WorkingDirectory.Should().Be("C:\\NewWorkDir");
         _sut.Step4.WorkingDirectory.Should().Be("C:\\NewWorkDir");
         _sut.Step5.WorkingDirectory.Should().Be("C:\\NewWorkDir");
-    }
-
-    [Fact]
-    public void WhenStep1WorkingDirectoryChanges_RaisesPropertyChangedOnParent()
-    {
-        var raised = false;
-        _sut.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(WimUtilViewModel.WorkingDirectory))
-                raised = true;
-        };
-
-        _sut.Step1.WorkingDirectory = "C:\\Changed";
-
-        raised.Should().BeTrue();
-    }
-
-    [Fact]
-    public void WhenTheModeChanges_RaisesIsAutounattendSessionOnParent()
-    {
-        var raised = new List<string?>();
-        _sut.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
-
-        _mockApplicationModeService.Raise(m => m.ModeChanged += null, this, EventArgs.Empty);
-
-        raised.Should().Contain(nameof(WimUtilViewModel.IsAutounattendSession));
     }
 
     private void ArrangeAutounattendSession()
@@ -520,8 +504,8 @@ public class WimUtilViewModelTests : IDisposable
     public void WithoutASession_NoAnswerFileIsChosenAndStepThreeShowsNothingForIt()
     {
         _sut.Step2.Choice.Should().Be(AnswerFileChoice.None);
-        _sut.ShowsSummaryCards.Should().BeFalse();
-        _sut.ShowsAnswerFileCard.Should().BeFalse();
+        _sut.Step2.IsBuilderChosen.Should().BeFalse();
+        _sut.Step2.HasAnswerFileChoice.Should().BeFalse();
     }
 
     [Fact]
@@ -531,8 +515,8 @@ public class WimUtilViewModelTests : IDisposable
         _mockApplicationModeService.Raise(m => m.ModeChanged += null, this, EventArgs.Empty);
 
         _sut.Step2.Choice.Should().Be(AnswerFileChoice.Builder);
-        _sut.ShowsSummaryCards.Should().BeTrue();
-        _sut.ShowsAnswerFileCard.Should().BeTrue();
+        _sut.Step2.IsBuilderChosen.Should().BeTrue();
+        _sut.Step2.HasAnswerFileChoice.Should().BeTrue();
     }
 
     [Fact]
@@ -542,22 +526,10 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step2.SelectedXmlPath = file;
         _sut.Step2.Choice = AnswerFileChoice.OwnXml;
 
-        _sut.ShowsSummaryCards.Should().BeFalse();
-        _sut.ShowsAnswerFileCard.Should().BeTrue();
+        _sut.Step2.IsBuilderChosen.Should().BeFalse();
+        _sut.Step2.HasAnswerFileChoice.Should().BeTrue();
         _sut.AnswerFileCardTitle.Should().Be("mine.xml");
         _sut.AnswerFileCardDescription.Should().Be("WIMUtil_Step3_AnswerFile_OwnFile");
-    }
-
-    [Fact]
-    public void TheCleanupCard_AppearsOnlyWhenBuiltIntoTheImage()
-    {
-        _sut.ShowsCleanupCard.Should().BeFalse();
-
-        _sut.SelectBuiltIntoImage();
-        _sut.ShowsCleanupCard.Should().BeTrue();
-
-        _sut.SelectDuringSetup();
-        _sut.ShowsCleanupCard.Should().BeFalse();
     }
 
     [Fact]
@@ -591,32 +563,9 @@ public class WimUtilViewModelTests : IDisposable
     {
         _sut.Dispose();
 
-        var raised = false;
-        _sut.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(WimUtilViewModel.WorkingDirectory))
-                raised = true;
-        };
-
         _sut.Step1.WorkingDirectory = "C:\\AfterDispose";
 
-        raised.Should().BeFalse();
-    }
-
-    [Fact]
-    public void HasExtractedIsoAlready_SetOnParent_SetsOnStep1()
-    {
-        _sut.HasExtractedIsoAlready = true;
-
-        _sut.Step1.HasExtractedIsoAlready.Should().BeTrue();
-    }
-
-    [Fact]
-    public void HasExtractedIsoAlready_GetFromParent_ReturnsStep1Value()
-    {
-        _sut.Step1.HasExtractedIsoAlready = true;
-
-        _sut.HasExtractedIsoAlready.Should().BeTrue();
+        _sut.ImageFormat.WorkingDirectory.Should().NotBe("C:\\AfterDispose");
     }
 
     [Fact]
@@ -806,16 +755,14 @@ public class WimUtilViewModelTests : IDisposable
     public void SelectBuiltIntoImage_ForwardsToImageFormatAndRaisesTheModeProperties()
     {
         var raised = new List<string?>();
-        _sut.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+        _sut.ImageFormat.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
 
         _sut.SelectBuiltIntoImage();
 
         _sut.ImageFormat.IsBuiltIntoImage.Should().BeTrue();
-        _sut.IsBuiltIntoImage.Should().BeTrue();
-        _sut.IsDuringSetup.Should().BeFalse();
-        raised.Should().Contain(nameof(WimUtilViewModel.IsBuiltIntoImage))
-            .And.Contain(nameof(WimUtilViewModel.IsDuringSetup))
-;
+        _sut.ImageFormat.IsDuringSetup.Should().BeFalse();
+        raised.Should().Contain(nameof(WimImageFormatViewModel.IsBuiltIntoImage))
+            .And.Contain(nameof(WimImageFormatViewModel.IsDuringSetup));
     }
 
     [Fact]
@@ -825,8 +772,8 @@ public class WimUtilViewModelTests : IDisposable
 
         _sut.SelectDuringSetup();
 
-        _sut.IsBuiltIntoImage.Should().BeFalse();
-        _sut.IsDuringSetup.Should().BeTrue();
+        _sut.ImageFormat.IsBuiltIntoImage.Should().BeFalse();
+        _sut.ImageFormat.IsDuringSetup.Should().BeTrue();
     }
 
     [Fact]
@@ -836,18 +783,18 @@ public class WimUtilViewModelTests : IDisposable
 
         _sut.SelectBuiltIntoImage();
 
-        _sut.IsBuiltIntoImage.Should().BeFalse();
+        _sut.ImageFormat.IsBuiltIntoImage.Should().BeFalse();
     }
 
     [Fact]
     public void ImageMode_ShowsTheEditionCardOnlyBuiltIn()
     {
         _sut.ImageFormat.ShowConversionCard = true;
-        _sut.ShowEditionCard.Should().BeFalse();
+        _sut.ImageFormat.ShowEditionCard.Should().BeFalse();
 
         _sut.SelectBuiltIntoImage();
 
-        _sut.ShowEditionCard.Should().BeTrue();
+        _sut.ImageFormat.ShowEditionCard.Should().BeTrue();
         _sut.EditionCardDescription.Should().Be("WIMUtil_Card_Edition_Description");
     }
 
@@ -898,6 +845,55 @@ public class WimUtilViewModelTests : IDisposable
         _sut.Step1State.IsAvailable.Should().BeTrue();
         _sut.CanChangeServicing.Should().BeTrue();
         _sut.ImageFormat.IsImageLocked.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task LanguageChanged_RelabelsTheBootManagerCard()
+    {
+        _mockBootManagerService
+            .Setup(b => b.InspectAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BootManagerOptions(Offers2023: true, BootManager.Pca2011, IsOutdated: false));
+        await _sut.Step5.InspectBootManagerAsync();
+        _mockLocalizationService.Setup(l => l.GetString(It.IsAny<string>())).Returns((string key) => "de:" + key);
+
+        _mockLocalizationService.Raise(l => l.LanguageChanged += null, this, EventArgs.Empty);
+
+        _sut.Step5.BootManagerDescription.Should().Be("de:WIMUtil_Card_BootManager_Description");
+    }
+
+    [Fact]
+    public void LanguageChanged_RelabelsTheActionCardsAndKeepsTheirState()
+    {
+        _sut.Step1.SelectIsoCard.IsEnabled = false;
+        _sut.Step5.SelectOutputCard.IsEnabled = false;
+        _mockLocalizationService.Setup(l => l.GetString(It.IsAny<string>())).Returns((string key) => "de:" + key);
+
+        _mockLocalizationService.Raise(l => l.LanguageChanged += null, this, EventArgs.Empty);
+
+        _sut.Step1.SelectIsoCard.Title.Should().Be("de:WIMUtil_Card_SelectISO_Title");
+        _sut.Step1.SelectIsoCard.ButtonText.Should().Be("de:WIMUtil_Card_SelectISO_Button");
+        _sut.Step1.SelectIsoCard.IsEnabled.Should().BeFalse();
+        _sut.Step1.SelectIsoCard.DisabledReason.Should().Be("de:WIMUtil_Disabled_Busy");
+        _sut.Step1.SelectDirectoryCard.Title.Should().Be("de:WIMUtil_Card_SelectDirectory_Title");
+        _sut.Step1.SelectDirectoryCard.ButtonText.Should().Be("de:WIMUtil_Card_SelectDirectory_Button");
+        _sut.Step5.SelectOutputCard.Title.Should().Be("de:WIMUtil_Card_SelectOutput_Title");
+        _sut.Step5.SelectOutputCard.ButtonText.Should().Be("de:WIMUtil_Card_SelectOutput_Button");
+        _sut.Step5.SelectOutputCard.IsEnabled.Should().BeFalse();
+        _sut.Step5.SelectOutputCard.DisabledReason.Should().Be("de:WIMUtil_Disabled_Busy");
+        _sut.Step5.SelectUsbCard.Title.Should().Be("de:WIMUtil_Card_SelectUsb_Title");
+        _sut.Step5.SelectUsbCard.ButtonText.Should().Be("de:WIMUtil_Card_SelectUsb_Button");
+    }
+
+    [Fact]
+    public void LanguageChanged_NothingChosenYet_RelabelsTheCardDescriptions()
+    {
+        _mockLocalizationService.Setup(l => l.GetString(It.IsAny<string>())).Returns((string key) => "de:" + key);
+
+        _mockLocalizationService.Raise(l => l.LanguageChanged += null, this, EventArgs.Empty);
+
+        _sut.Step1.SelectIsoCard.Description.Should().Be("de:WIMUtil_Label_NoSelection");
+        _sut.Step1.SelectDirectoryCard.Description.Should().Be("de:WIMUtil_Card_SelectDirectory_Description_Default");
+        _sut.Step5.SelectOutputCard.Description.Should().Be("de:WIMUtil_Label_NoLocation");
     }
 
     [Fact]
@@ -986,7 +982,7 @@ public class WimUtilViewModelTests : IDisposable
             .Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
             .ReturnsAsync(new ConfirmationResponse { Confirmed = false });
 
-        await _sut.CreateMediaCommand.ExecuteAsync(null);
+        await _sut.Step5.CreateMediaCommand.ExecuteAsync(null);
 
         _sut.Step3.HasDriverChoice.Should().Be(driversStillOnMedia);
         _sut.Step4.AddUpdate.Should().BeFalse();

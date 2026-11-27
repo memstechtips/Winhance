@@ -91,6 +91,7 @@ public sealed partial class SettingsListView : UserControl
 
     private ICollectionView? _pendingSource;
     private int _framesBeforeSource;
+    private TaskCompletionSource? _shown;
 
     public bool HasNoSearchResults
     {
@@ -122,7 +123,7 @@ public sealed partial class SettingsListView : UserControl
         set => SetValue(ShowAllCommandProperty, value);
     }
 
-    // Inside this control's scroller: a page that wraps its own ScrollView around the list gets two fighting over the wheel.
+    // Inside this control's scroller: a page that wraps its own scroller around the list gets two fighting over the wheel.
     public object? Header
     {
         get => GetValue(HeaderProperty);
@@ -138,10 +139,6 @@ public sealed partial class SettingsListView : UserControl
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
-
-    // Set by a host that scrolls the list with the rest of its page (the WIMUtil wizard): a second scroller would
-    // fight it for the wheel, so the list then gets unbounded height and realizes every card.
-    public bool ScrollsWithPage { get; set; }
 
     // Set by a host on an uncached page, so a return visit opens where the user left the list.
     public string? ScrollMemoryKey { get; set; }
@@ -165,19 +162,11 @@ public sealed partial class SettingsListView : UserControl
             return;
         _scrollerSetUp = true;
 
-        if (ScrollsWithPage)
-        {
-            ScrollViewer.SetVerticalScrollMode(SettingsListViewControl, ScrollMode.Disabled);
-            ScrollViewer.SetVerticalScrollBarVisibility(SettingsListViewControl, ScrollBarVisibility.Disabled);
-        }
-        else
-        {
-            // Listening on the UserControl root lets us see the key even after the
-            // ListView marks it handled during focus traversal (issue #581).
-            PageScrollHelper.Attach(this, scroller);
-            if (ScrollMemoryKey is { } key)
-                ScrollMemory.Track(key, SettingsListViewControl, scroller);
-        }
+        // Listening on the UserControl root lets us see the key even after the
+        // ListView marks it handled during focus traversal (issue #581).
+        PageScrollHelper.Attach(this, scroller);
+        if (ScrollMemoryKey is { } key)
+            ScrollMemory.Track(key, SettingsListViewControl, scroller);
     }
 
     // The cards' x:Bind trackers stay subscribed to the long-lived setting view models until their containers are
@@ -193,6 +182,27 @@ public sealed partial class SettingsListView : UserControl
         SettingsListViewControl.ItemsSource = null;
         _revealing = false;
         ShowLoadingState();
+        _shown?.TrySetResult();
+        _shown = null;
+    }
+
+    // Done once the cards are on screen or there is nothing to show, so a host can keep its whole page hidden until then.
+    public Task WhenShownAsync()
+    {
+        if (!IsLoaded || IsShown)
+            return Task.CompletedTask;
+        _shown ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        return _shown.Task;
+    }
+
+    private bool IsShown => !IsLoading && !_revealing && _framesBeforeSource == 0;
+
+    private void CompleteShownIfDone()
+    {
+        if (_shown is not { } shown || !IsShown)
+            return;
+        _shown = null;
+        shown.SetResult();
     }
 
     // The ListView's TabFocusNavigation=Once forces Tab to exit after one stop; this redirects it to the
@@ -282,7 +292,7 @@ public sealed partial class SettingsListView : UserControl
 
         vm.ToggleTechnicalDetails();
 
-        var localizationService = App.Services.GetService<ILocalizationService>();
+        var localizationService = App.Services.GetRequiredService<ILocalizationService>();
         var stateText = vm.IsTechnicalDetailsExpanded
             ? localizationService.GetStringOrDefault("TechnicalDetails_On", "Technical Details: On")
             : localizationService.GetStringOrDefault("TechnicalDetails_Off", "Technical Details: Off");
@@ -342,6 +352,7 @@ public sealed partial class SettingsListView : UserControl
         if (_revealing)
             SettingsListViewControl.LayoutUpdated += ListView_LayoutUpdated;
         ScheduleFocusFirstSetting();
+        CompleteShownIfDone();
     }
 
     private static void OnIsLoadingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -370,6 +381,7 @@ public sealed partial class SettingsListView : UserControl
         SettingsListViewControl.Opacity = _revealing ? 0 : 1;
         if (!_scrollerSetUp && !IsLoading && IsLoaded)
             SetUpScroller();
+        CompleteShownIfDone();
     }
 
     private void ListView_LayoutUpdated(object? sender, object e)

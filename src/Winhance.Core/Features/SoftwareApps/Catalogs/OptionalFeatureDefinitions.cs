@@ -1,4 +1,5 @@
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Core.Features.SoftwareApps.Catalogs;
@@ -19,6 +20,7 @@ public static class OptionalFeatureDefinitions
                     Name = "Subsystem for Linux",
                     Description = "Allows running Linux binary executables natively on Windows",
                     GroupName = "Development",
+                    Kind = WindowsAppKind.OptionalFeature,
                     OptionalFeatureName = "Microsoft-Windows-Subsystem-Linux",
                     RequiresReboot = true,
                     CanBeReinstalled = true
@@ -29,6 +31,7 @@ public static class OptionalFeatureDefinitions
                     Name = "Windows Hypervisor Platform",
                     Description = "Core virtualization platform without Hyper-V management tools",
                     GroupName = "Virtualization",
+                    Kind = WindowsAppKind.OptionalFeature,
                     OptionalFeatureName = "Microsoft-Hyper-V-Hypervisor",
                     RequiresReboot = true,
                     CanBeReinstalled = true
@@ -39,6 +42,7 @@ public static class OptionalFeatureDefinitions
                     Name = "Hyper-V",
                     Description = "Virtualization platform for running multiple operating systems",
                     GroupName = "Virtualization",
+                    Kind = WindowsAppKind.OptionalFeature,
                     OptionalFeatureName = "Microsoft-Hyper-V-All",
                     RequiresReboot = true,
                     CanBeReinstalled = true
@@ -49,6 +53,7 @@ public static class OptionalFeatureDefinitions
                     Name = "Hyper-V Management Tools",
                     Description = "Tools for managing Hyper-V virtual machines",
                     GroupName = "Virtualization",
+                    Kind = WindowsAppKind.OptionalFeature,
                     OptionalFeatureName = "Microsoft-Hyper-V-Tools-All",
                     RequiresReboot = false,
                     CanBeReinstalled = true
@@ -59,6 +64,7 @@ public static class OptionalFeatureDefinitions
                     Name = ".NET Framework 3.5",
                     Description = "Legacy .NET Framework for older applications",
                     GroupName = "Development",
+                    Kind = WindowsAppKind.OptionalFeature,
                     OptionalFeatureName = "NetFx3",
                     RequiresReboot = true,
                     CanBeReinstalled = true
@@ -69,6 +75,7 @@ public static class OptionalFeatureDefinitions
                     Name = "Windows Sandbox",
                     Description = "Throwaway isolated desktop for running suspicious or untrusted apps",
                     GroupName = "Security",
+                    Kind = WindowsAppKind.OptionalFeature,
                     OptionalFeatureName = "Containers-DisposableClientVM",
                     RequiresReboot = true,
                     CanBeReinstalled = true
@@ -79,6 +86,7 @@ public static class OptionalFeatureDefinitions
                     Name = "Recall",
                     Description = "Windows 11 AI feature that takes periodic screenshots of activity to make them searchable",
                     GroupName = "System",
+                    Kind = WindowsAppKind.OptionalFeature,
                     OptionalFeatureName = "Recall",
                     RequiresReboot = false,
                     CanBeReinstalled = true

@@ -1,0 +1,5 @@
+src/Winhance.UI/Features/SoftwareApps/ViewModels/SoftwareAppsViewModel.cs	1	specific-failure
+src/Winhance.UI/ViewModels/UpdateCheckViewModel.cs	2	own-failure-state
+src/Winhance.UI/Features/WimUtil/ViewModels/WimStep5IsoViewModel.cs	1	specific-failure
+src/Winhance.UI/Features/WimUtil/ViewModels/WimStep1ViewModel.cs	1	failure-is-answer
+src/Winhance.UI/Features/WimUtil/ViewModels/WimImageFormatViewModel.cs	1	failure-is-answer

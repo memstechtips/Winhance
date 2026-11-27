@@ -15,13 +15,81 @@ public static class ExplorerCustomizationsCatalog
     {
         new()
         {
+            Id = "explorer-taskbar-all-desktops",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerTaskbarAllDesktops.Name,
+                Description = LocKey.Setting.ExplorerTaskbarAllDesktops.Description,
+                GroupName = LocKey.SettingGroup.Desktop,
+                Icon = FluentIcons.Desktop,
+                AddedInVersion = "26.11.24",
+                IsSubjectivePreference = true,
+            },
+            Availability = new() { Builds = new[] { BuildRange.Between(26300, int.MaxValue) } },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("VirtualDesktopTaskbarFilter", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "VirtualDesktopTaskbarFilter", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue> { ["VirtualDesktopTaskbarFilter"] = Of(0) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Between(26300, 26300) } } },
+                    Set = new Dictionary<string, StateValue> { ["VirtualDesktopTaskbarFilter"] = Of(1).OrAbsent() },
+                    ResetSet = new Dictionary<string, StateValue> { ["VirtualDesktopTaskbarFilter"] = Absent },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-alt-tab-all-desktops",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerAltTabAllDesktops.Name,
+                Description = LocKey.Setting.ExplorerAltTabAllDesktops.Description,
+                GroupName = LocKey.SettingGroup.Desktop,
+                Icon = FluentIcons.WindowMultiple,
+                AddedInVersion = "26.11.24",
+                IsSubjectivePreference = true,
+            },
+            Availability = new() { Builds = new[] { BuildRange.Between(26300, int.MaxValue) } },
+            Apply = new() { Restart = new RestartProcess("Explorer") },
+            Targets = new Target[]
+            {
+                new RegTarget("VirtualDesktopAltTabFilter", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "VirtualDesktopAltTabFilter", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue> { ["VirtualDesktopAltTabFilter"] = Of(0) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { new StateRole(RoleKind.WindowsDefault) { AppliesTo = new[] { BuildRange.Between(26300, 26300) } } },
+                    Set = new Dictionary<string, StateValue> { ["VirtualDesktopAltTabFilter"] = Of(1).OrAbsent() },
+                    ResetSet = new Dictionary<string, StateValue> { ["VirtualDesktopAltTabFilter"] = Absent },
+                },
+            },
+        },
+        new()
+        {
             Id = "explorer-customization-shortcut-suffix",
             Display = new()
             {
                 Name = LocKey.Setting.ExplorerCustomizationShortcutSuffix.Name,
                 Description = LocKey.Setting.ExplorerCustomizationShortcutSuffix.Description,
                 GroupName = LocKey.SettingGroup.Desktop,
-                Icon = MaterialIcons.LinkVariant,
+                Icon = FluentIcons.Link,
                 IsSubjectivePreference = true,
             },
             Apply = new() { Restart = new RestartProcess("Explorer") },
@@ -53,7 +121,7 @@ public static class ExplorerCustomizationsCatalog
                 Name = LocKey.Setting.ExplorerCustomizationShortcutArrow.Name,
                 Description = LocKey.Setting.ExplorerCustomizationShortcutArrow.Description,
                 GroupName = LocKey.SettingGroup.Desktop,
-                Icon = MaterialIcons.ArrowTopLeftBoldOutline,
+                Icon = FluentIcons.ArrowUpLeft,
                 AddedInVersion = "26.03.26",
                 IsSubjectivePreference = true,
             },
@@ -98,7 +166,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.ExplorerCustomizationDesktopIconThisPc.Name,
                 Description = LocKey.Setting.ExplorerCustomizationDesktopIconThisPc.Description,
                 GroupName = LocKey.SettingGroup.Desktop,
-                Icon = MaterialIcons.Monitor,
+                Icon = FluentIcons.Desktop,
                 AddedInVersion = "26.06.01",
                 IsSubjectivePreference = true,
             },
@@ -132,7 +200,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.ExplorerCustomizationDesktopIconRecycleBin.Name,
                 Description = LocKey.Setting.ExplorerCustomizationDesktopIconRecycleBin.Description,
                 GroupName = LocKey.SettingGroup.Desktop,
-                Icon = MaterialIcons.TrashCanOutline,
+                Icon = FluentIcons.Delete,
                 AddedInVersion = "26.06.01",
                 IsSubjectivePreference = true,
             },
@@ -165,7 +233,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.ExplorerCustomizationDesktopIconUsersFiles.Name,
                 Description = LocKey.Setting.ExplorerCustomizationDesktopIconUsersFiles.Description,
                 GroupName = LocKey.SettingGroup.Desktop,
-                Icon = MaterialIcons.FolderAccount,
+                Icon = FluentIcons.FolderPerson,
                 AddedInVersion = "26.06.01",
                 IsSubjectivePreference = true,
             },
@@ -199,7 +267,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.ExplorerCustomizationDesktopIconControlPanel.Name,
                 Description = LocKey.Setting.ExplorerCustomizationDesktopIconControlPanel.Description,
                 GroupName = LocKey.SettingGroup.Desktop,
-                Icon = MaterialIcons.ViewGrid,
+                Icon = FluentIcons.Grid,
                 AddedInVersion = "26.06.01",
                 IsSubjectivePreference = true,
             },
@@ -233,7 +301,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.ExplorerCustomizationDesktopIconNetwork.Name,
                 Description = LocKey.Setting.ExplorerCustomizationDesktopIconNetwork.Description,
                 GroupName = LocKey.SettingGroup.Desktop,
-                Icon = MaterialIcons.NetworkOutline,
+                Icon = FluentIcons.NetworkCheck,
                 AddedInVersion = "26.06.01",
                 IsSubjectivePreference = true,
             },
@@ -267,7 +335,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.DevicesDynamicLightingAmbient.Name,
                 Description = LocKey.Setting.DevicesDynamicLightingAmbient.Description,
                 GroupName = LocKey.SettingGroup.DevicesAndPeripherals,
-                Icon = MaterialIcons.TelevisionAmbientLight,
+                Icon = FluentIcons.LightbulbFilament,
                 IsSubjectivePreference = true,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
@@ -300,7 +368,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.DevicesDynamicLightingForegroundApp.Name,
                 Description = LocKey.Setting.DevicesDynamicLightingForegroundApp.Description,
                 GroupName = LocKey.SettingGroup.DevicesAndPeripherals,
-                Icon = MaterialIcons.StringLightsOff,
+                Icon = FluentIcons.LightbulbCircle,
                 IsSubjectivePreference = true,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
@@ -333,7 +401,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.DevicesDefaultPrinterManagement.Name,
                 Description = LocKey.Setting.DevicesDefaultPrinterManagement.Description,
                 GroupName = LocKey.SettingGroup.DevicesAndPeripherals,
-                Icon = MaterialIcons.PrinterOff,
+                Icon = FluentIcons.Print,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -365,7 +433,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.DevicesNumlockAtStartup.Name,
                 Description = LocKey.Setting.DevicesNumlockAtStartup.Description,
                 GroupName = LocKey.SettingGroup.DevicesAndPeripherals,
-                Icon = MaterialIcons.Numeric,
+                Icon = FluentIcons.Keyboard123,
                 AddedInVersion = "26.10.15",
                 IsSubjectivePreference = true,
             },
@@ -400,7 +468,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.ExplorerAutoplay.Name,
                 Description = LocKey.Setting.ExplorerAutoplay.Description,
                 GroupName = LocKey.SettingGroup.DevicesAndPeripherals,
-                Icon = MaterialIcons.PlayBox,
+                Icon = FluentIcons.PlayCircle,
                 AddedInVersion = "26.04.24",
             },
             Targets = new Target[]
@@ -434,13 +502,67 @@ if (-not (Test-Path $icoPath)) {
         },
         new()
         {
+            Id = "devices-nearby-sharing",
+            Display = new()
+            {
+                Name = LocKey.Setting.DevicesNearbySharing.Name,
+                Description = LocKey.Setting.DevicesNearbySharing.Description,
+                GroupName = LocKey.SettingGroup.DevicesAndPeripherals,
+                Icon = FluentIcons.Share,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            Targets = new Target[]
+            {
+                new RegTarget("NearShareChannelUserAuthzPolicy", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CDP" }, "NearShareChannelUserAuthzPolicy", RegistryValueKind.DWord),
+                new RegTarget("SettingsPageNearShare", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CDP\SettingsPage" }, "NearShareChannelUserAuthzPolicy", RegistryValueKind.DWord) { ApplyOnly = true },
+                new RegTarget("CdpSessionUserAuthzPolicy", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CDP" }, "CdpSessionUserAuthzPolicy", RegistryValueKind.DWord) { ApplyOnly = true },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Setting.DevicesNearbySharing.Option0,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["NearShareChannelUserAuthzPolicy"] = Of(0).OrAbsent(),
+                        ["SettingsPageNearShare"] = Of(0),
+                        ["CdpSessionUserAuthzPolicy"] = Of(1),
+                    },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.DevicesNearbySharing.Option1,
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["NearShareChannelUserAuthzPolicy"] = Of(1),
+                        ["SettingsPageNearShare"] = Of(1),
+                        ["CdpSessionUserAuthzPolicy"] = Of(1),
+                    },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.DevicesNearbySharing.Option2,
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["NearShareChannelUserAuthzPolicy"] = Of(2),
+                        ["SettingsPageNearShare"] = Of(2),
+                        ["CdpSessionUserAuthzPolicy"] = Of(2),
+                    },
+                },
+            },
+        },
+        new()
+        {
             Id = "explorer-snap-windows",
             Display = new()
             {
                 Name = LocKey.Setting.ExplorerSnapWindows.Name,
                 Description = LocKey.Setting.ExplorerSnapWindows.Description,
                 GroupName = LocKey.SettingGroup.Multitasking,
-                Icon = MaterialIcons.DockWindow,
+                Icon = FluentIcons.LayoutCellFour,
                 AddedInVersion = "26.10.02",
                 IsSubjectivePreference = true,
             },
@@ -473,7 +595,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.ExplorerSnapSuggestions.Name,
                 Description = LocKey.Setting.ExplorerSnapSuggestions.Description,
                 GroupName = LocKey.SettingGroup.Multitasking,
-                Icon = MaterialIcons.ViewDashboard,
+                Icon = FluentIcons.LayoutColumnTwoSplitRight,
                 AddedInVersion = "26.10.02",
                 IsSubjectivePreference = true,
             },
@@ -508,7 +630,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.ExplorerSnapLayoutsMaximizeButton.Name,
                 Description = LocKey.Setting.ExplorerSnapLayoutsMaximizeButton.Description,
                 GroupName = LocKey.SettingGroup.Multitasking,
-                Icon = MaterialIcons.WindowRestore,
+                Icon = FluentIcons.WindowMultiple,
                 AddedInVersion = "26.10.02",
                 IsSubjectivePreference = true,
             },
@@ -544,7 +666,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.ExplorerSnapLayoutsTopOfScreen.Name,
                 Description = LocKey.Setting.ExplorerSnapLayoutsTopOfScreen.Description,
                 GroupName = LocKey.SettingGroup.Multitasking,
-                Icon = MaterialIcons.DockBottom,
+                Icon = FluentIcons.PanelBottom,
                 AddedInVersion = "26.10.02",
                 IsSubjectivePreference = true,
             },
@@ -580,7 +702,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.ExplorerSnapGroupsInSwitchers.Name,
                 Description = LocKey.Setting.ExplorerSnapGroupsInSwitchers.Description,
                 GroupName = LocKey.SettingGroup.Multitasking,
-                Icon = MaterialIcons.Tab,
+                Icon = FluentIcons.Tab,
                 AddedInVersion = "26.10.02",
                 IsSubjectivePreference = true,
             },
@@ -616,7 +738,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.ExplorerSnapWithoutEdge.Name,
                 Description = LocKey.Setting.ExplorerSnapWithoutEdge.Description,
                 GroupName = LocKey.SettingGroup.Multitasking,
-                Icon = MaterialIcons.DockRight,
+                Icon = FluentIcons.PanelRight,
                 AddedInVersion = "26.10.02",
                 IsSubjectivePreference = true,
             },
@@ -641,6 +763,117 @@ if (-not (Test-Path $icoPath)) {
                     Label = LocKey.Common.Disabled,
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["DITest"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-open-apps-maximized",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerOpenAppsMaximized.Name,
+                Description = LocKey.Setting.ExplorerOpenAppsMaximized.Description,
+                GroupName = LocKey.SettingGroup.Multitasking,
+                Icon = FluentIcons.FullScreenMaximize,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            // The October 2026 update (26100.9711 and 26200.9711) brought this to 24H2 and 25H2.
+            Availability = new()
+            {
+                Builds = new[]
+                {
+                    new BuildRange(new WinBuild(26100, 9711), new WinBuild(26100, int.MaxValue)),
+                    new BuildRange(new WinBuild(26200, 9711), new WinBuild(26200, int.MaxValue)),
+                    new BuildRange(new WinBuild(26300), new WinBuild(int.MaxValue, int.MaxValue)),
+                },
+            },
+            Targets = new Target[]
+            {
+                new RegTarget("MaximizeWindowsByDefault", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Accessibility" }, "MaximizeWindowsByDefault", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue> { ["MaximizeWindowsByDefault"] = Of(1) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["MaximizeWindowsByDefault"] = Of(0).OrAbsent() },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-title-bar-window-shake",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerTitleBarWindowShake.Name,
+                Description = LocKey.Setting.ExplorerTitleBarWindowShake.Description,
+                GroupName = LocKey.SettingGroup.Multitasking,
+                Icon = FluentIcons.Drag,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            // Windows 11 22H2 turned shake-to-minimize off by default; Windows 10 leaves it on with no value.
+            Availability = new() { Builds = new[] { BuildRange.Between(22621, int.MaxValue) } },
+            Targets = new Target[]
+            {
+                new RegTarget("DisallowShaking", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "DisallowShaking", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Set = new Dictionary<string, StateValue> { ["DisallowShaking"] = Of(0) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["DisallowShaking"] = Of(1).OrAbsent() },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-clipboard-history",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerClipboardHistory.Name,
+                Description = LocKey.Setting.ExplorerClipboardHistory.Description,
+                GroupName = LocKey.SettingGroup.Multitasking,
+                Icon = FluentIcons.ClipboardClock,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            Targets = new Target[]
+            {
+                new RegTarget("EnableClipboardHistory", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Clipboard" }, "EnableClipboardHistory", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    // Win+V is drawn by the text input host, so the panel never opens while the touch keyboard service is disabled.
+                    // No reverse cascade: Automatic serves Win+V as well as Manual does, so moving the service there must not switch history off.
+                    Links = new[] { new Link("gaming-touch-keyboard-service", LinkKind.Requires, LocKey.ServiceOption.ManualRecommended) { ReverseCascade = false } },
+                    Set = new Dictionary<string, StateValue> { ["EnableClipboardHistory"] = Of(1) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["EnableClipboardHistory"] = Of(0).OrAbsent() },
                 },
             },
         },
@@ -682,6 +915,56 @@ if (-not (Test-Path $icoPath)) {
                 {
                     Label = LocKey.Setting.ExplorerCustomizationLaunchTo.Option3,
                     Set = new Dictionary<string, StateValue> { ["LaunchTo"] = Of(4) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "explorer-customization-prelaunch",
+            Display = new()
+            {
+                Name = LocKey.Setting.ExplorerCustomizationPrelaunch.Name,
+                Description = LocKey.Setting.ExplorerCustomizationPrelaunch.Description,
+                GroupName = LocKey.SettingGroup.General,
+                Icon = FluentIcons.Rocket,
+                AddedInVersion = "26.11.17",
+            },
+            // The September 2026 update (26100.9445 and 26200.9445) brought this to 24H2 and 25H2.
+            Availability = new()
+            {
+                Builds = new[]
+                {
+                    new BuildRange(new WinBuild(26100, 9445), new WinBuild(26100, int.MaxValue)),
+                    new BuildRange(new WinBuild(26200, 9445), new WinBuild(26200, int.MaxValue)),
+                    new BuildRange(new WinBuild(26300), new WinBuild(int.MaxValue, int.MaxValue)),
+                },
+            },
+            Targets = new Target[]
+            {
+                new RegTarget("ShouldPrelaunchFileExplorer", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "ShouldPrelaunchFileExplorer", RegistryValueKind.DWord),
+                new RegTarget("DisableFileExplorerPrelaunch", new[] { @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Explorer" }, "DisableFileExplorerPrelaunch", RegistryValueKind.DWord) { IsGroupPolicy = true },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["ShouldPrelaunchFileExplorer"] = Of(1).OrAbsent(),
+                        ["DisableFileExplorerPrelaunch"] = Absent,
+                    },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue>
+                    {
+                        ["ShouldPrelaunchFileExplorer"] = Of(0),
+                        ["DisableFileExplorerPrelaunch"] = Of(1),
+                    },
                 },
             },
         },
@@ -813,7 +1096,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.ExplorerCustomizationShowFrequentFolders.Name,
                 Description = LocKey.Setting.ExplorerCustomizationShowFrequentFolders.Description,
                 GroupName = LocKey.SettingGroup.General,
-                Icon = MaterialIcons.FolderClockOutline,
+                Icon = FluentIcons.History,
             },
             Targets = new Target[]
             {
@@ -844,7 +1127,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.ExplorerCustomizationShowOfficeFiles.Name,
                 Description = LocKey.Setting.ExplorerCustomizationShowOfficeFiles.Description,
                 GroupName = LocKey.SettingGroup.General,
-                Icon = MaterialIcons.FileCloud,
+                Icon = FluentIcons.DocumentGlobe,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
             Targets = new Target[]
@@ -876,7 +1159,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.ExplorerCustomizationShowThumbnails.Name,
                 Description = LocKey.Setting.ExplorerCustomizationShowThumbnails.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.ImageOff,
+                Icon = FluentIcons.ImageOff,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -939,7 +1222,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.ExplorerCustomizationItemSpace.Name,
                 Description = LocKey.Setting.ExplorerCustomizationItemSpace.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.ViewCompact,
+                Icon = FluentIcons.TextDensity,
                 IsSubjectivePreference = true,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
@@ -1002,7 +1285,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.ExplorerCustomizationIconCacheSize.Name,
                 Description = LocKey.Setting.ExplorerCustomizationIconCacheSize.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.Cached,
+                Icon = FluentIcons.ArrowSync,
                 AddedInVersion = "26.06.08",
                 IsSubjectivePreference = true,
             },
@@ -1072,7 +1355,7 @@ if (-not (Test-Path $icoPath)) {
                 Name = LocKey.Setting.ExplorerCustomizationFolderView.Name,
                 Description = LocKey.Setting.ExplorerCustomizationFolderView.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.FolderTable,
+                Icon = FluentIcons.FolderList,
                 IsSubjectivePreference = true,
                 AddedInVersion = "26.10.14",
             },
@@ -1244,7 +1527,7 @@ Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", Ru
                 Name = LocKey.Setting.ExplorerCustomizationShowHiddenFiles.Name,
                 Description = LocKey.Setting.ExplorerCustomizationShowHiddenFiles.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.FileEyeOutline,
+                Icon = FluentIcons.Eye,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1279,7 +1562,7 @@ Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", Ru
                 Name = LocKey.Setting.ExplorerCustomizationHideEmptyDrives.Name,
                 Description = LocKey.Setting.ExplorerCustomizationHideEmptyDrives.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.HarddiskRemove,
+                Icon = FluentIcons.HardDrive,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1376,7 +1659,7 @@ Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", Ru
                 Name = LocKey.Setting.ExplorerCustomizationHideMergeConflicts.Name,
                 Description = LocKey.Setting.ExplorerCustomizationHideMergeConflicts.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.FolderAlert,
+                Icon = FluentIcons.FolderSwap,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1408,7 +1691,7 @@ Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", Ru
                 Name = LocKey.Setting.ExplorerCustomizationHideProtectedFiles.Name,
                 Description = LocKey.Setting.ExplorerCustomizationHideProtectedFiles.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.FileHidden,
+                Icon = FluentIcons.EyeOff,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1439,7 +1722,7 @@ Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", Ru
                 Name = LocKey.Setting.ExplorerCustomizationSeparateProcess.Name,
                 Description = LocKey.Setting.ExplorerCustomizationSeparateProcess.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.WindowRestore,
+                Icon = FluentIcons.WindowMultiple,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1502,7 +1785,7 @@ Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", Ru
                 Name = LocKey.Setting.ExplorerCustomizationShowDriveLetters.Name,
                 Description = LocKey.Setting.ExplorerCustomizationShowDriveLetters.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.AlphaCBox,
+                Icon = FluentIcons.HardDrive,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1565,7 +1848,7 @@ Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", Ru
                 Name = LocKey.Setting.ExplorerCustomizationPopupDescriptions.Name,
                 Description = LocKey.Setting.ExplorerCustomizationPopupDescriptions.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.TooltipText,
+                Icon = FluentIcons.TooltipQuote,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1596,7 +1879,7 @@ Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", Ru
                 Name = LocKey.Setting.ExplorerCustomizationPreviewHandlers.Name,
                 Description = LocKey.Setting.ExplorerCustomizationPreviewHandlers.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.TableEye,
+                Icon = FluentIcons.PreviewLink,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1628,7 +1911,7 @@ Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", Ru
                 Name = LocKey.Setting.ExplorerCustomizationStatusBar.Name,
                 Description = LocKey.Setting.ExplorerCustomizationStatusBar.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.DockBottom,
+                Icon = FluentIcons.PanelBottom,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1659,7 +1942,7 @@ Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", Ru
                 Name = LocKey.Setting.ExplorerCustomizationDisableSyncProviderNotifications.Name,
                 Description = LocKey.Setting.ExplorerCustomizationDisableSyncProviderNotifications.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.CloudSync,
+                Icon = FluentIcons.CloudSync,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1691,7 +1974,7 @@ Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", Ru
                 Name = LocKey.Setting.ExplorerCustomizationCheckboxSelect.Name,
                 Description = LocKey.Setting.ExplorerCustomizationCheckboxSelect.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.CheckboxMarked,
+                Icon = FluentIcons.CheckboxChecked,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1754,7 +2037,7 @@ Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", Ru
                 Name = LocKey.Setting.ExplorerCustomizationTypingBehavior.Name,
                 Description = LocKey.Setting.ExplorerCustomizationTypingBehavior.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.KeyboardOutline,
+                Icon = FluentIcons.Keyboard,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1784,7 +2067,7 @@ Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", Ru
                 Name = LocKey.Setting.ExplorerLongFilePaths.Name,
                 Description = LocKey.Setting.ExplorerLongFilePaths.Description,
                 GroupName = LocKey.SettingGroup.FilesAndFolders,
-                Icon = MaterialIcons.ScriptTextOutline,
+                Icon = FluentIcons.Script,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -1816,7 +2099,7 @@ Remove-Item ""$shell\BagMRU"" -Recurse -Force -ErrorAction SilentlyContinue", Ru
                 Name = LocKey.Setting.ExplorerEnablePhotoViewer.Name,
                 Description = LocKey.Setting.ExplorerEnablePhotoViewer.Description,
                 GroupName = LocKey.SettingGroup.FileAssociations,
-                Icon = MaterialIcons.ImageOutline,
+                Icon = FluentIcons.Image,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -2012,7 +2295,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationNotepadWordWrap.Name,
                 Description = LocKey.Setting.ExplorerCustomizationNotepadWordWrap.Description,
                 GroupName = LocKey.SettingGroup.FileAssociations,
-                Icon = MaterialIcons.Wrap,
+                Icon = FluentIcons.TextWrap,
                 AddedInVersion = "26.10.14",
                 IsSubjectivePreference = true,
             },
@@ -2047,7 +2330,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationNotepadStatusBar.Name,
                 Description = LocKey.Setting.ExplorerCustomizationNotepadStatusBar.Description,
                 GroupName = LocKey.SettingGroup.FileAssociations,
-                Icon = MaterialIcons.DockBottom,
+                Icon = FluentIcons.PanelBottom,
                 AddedInVersion = "26.10.14",
                 IsSubjectivePreference = true,
             },
@@ -2082,7 +2365,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationThispcFolderDesktop.Name,
                 Description = LocKey.Setting.ExplorerCustomizationThispcFolderDesktop.Description,
                 GroupName = LocKey.SettingGroup.ThisPCFolders,
-                Icon = MaterialIcons.Monitor,
+                Icon = FluentIcons.Desktop,
                 AddedInVersion = "26.06.01",
                 IsSubjectivePreference = true,
             },
@@ -2120,7 +2403,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationThispcFolderDocuments.Name,
                 Description = LocKey.Setting.ExplorerCustomizationThispcFolderDocuments.Description,
                 GroupName = LocKey.SettingGroup.ThisPCFolders,
-                Icon = MaterialIcons.FileDocument,
+                Icon = FluentIcons.Document,
                 AddedInVersion = "26.06.01",
                 IsSubjectivePreference = true,
             },
@@ -2158,7 +2441,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationThispcFolderDownloads.Name,
                 Description = LocKey.Setting.ExplorerCustomizationThispcFolderDownloads.Description,
                 GroupName = LocKey.SettingGroup.ThisPCFolders,
-                Icon = MaterialIcons.Download,
+                Icon = FluentIcons.ArrowDownload,
                 AddedInVersion = "26.06.01",
                 IsSubjectivePreference = true,
             },
@@ -2196,7 +2479,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationThispcFolderMusic.Name,
                 Description = LocKey.Setting.ExplorerCustomizationThispcFolderMusic.Description,
                 GroupName = LocKey.SettingGroup.ThisPCFolders,
-                Icon = MaterialIcons.Music,
+                Icon = FluentIcons.MusicNote1,
                 AddedInVersion = "26.06.01",
                 IsSubjectivePreference = true,
             },
@@ -2234,7 +2517,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationThispcFolderPictures.Name,
                 Description = LocKey.Setting.ExplorerCustomizationThispcFolderPictures.Description,
                 GroupName = LocKey.SettingGroup.ThisPCFolders,
-                Icon = MaterialIcons.Image,
+                Icon = FluentIcons.Image,
                 AddedInVersion = "26.06.01",
                 IsSubjectivePreference = true,
             },
@@ -2272,7 +2555,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationThispcFolderVideos.Name,
                 Description = LocKey.Setting.ExplorerCustomizationThispcFolderVideos.Description,
                 GroupName = LocKey.SettingGroup.ThisPCFolders,
-                Icon = MaterialIcons.Video,
+                Icon = FluentIcons.Video,
                 AddedInVersion = "26.06.01",
                 IsSubjectivePreference = true,
             },
@@ -2310,7 +2593,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomization3dObjects.Name,
                 Description = LocKey.Setting.ExplorerCustomization3dObjects.Description,
                 GroupName = LocKey.SettingGroup.ThisPCFolders,
-                Icon = MaterialIcons.Printer3d,
+                Icon = FluentIcons.Cube,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows10 } },
             Targets = new Target[]
@@ -2342,7 +2625,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationHomeFolder.Name,
                 Description = LocKey.Setting.ExplorerCustomizationHomeFolder.Description,
                 GroupName = LocKey.SettingGroup.NavigationPane,
-                Icon = MaterialIcons.Home,
+                Icon = FluentIcons.Home,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
             Targets = new Target[]
@@ -2392,7 +2675,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationGallery.Name,
                 Description = LocKey.Setting.ExplorerCustomizationGallery.Description,
                 GroupName = LocKey.SettingGroup.NavigationPane,
-                Icon = MaterialIcons.ImageMultiple,
+                Icon = FluentIcons.ImageMultiple,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
             Targets = new Target[]
@@ -2442,7 +2725,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationShowAvailabilityStatus.Name,
                 Description = LocKey.Setting.ExplorerCustomizationShowAvailabilityStatus.Description,
                 GroupName = LocKey.SettingGroup.NavigationPane,
-                Icon = MaterialIcons.ArchiveSync,
+                Icon = FluentIcons.CloudSync,
             },
             Targets = new Target[]
             {
@@ -2473,7 +2756,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationNavExpandCurrent.Name,
                 Description = LocKey.Setting.ExplorerCustomizationNavExpandCurrent.Description,
                 GroupName = LocKey.SettingGroup.NavigationPane,
-                Icon = MaterialIcons.FileTree,
+                Icon = FluentIcons.TextBulletListTree,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -2504,7 +2787,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationNavShowAllFolders.Name,
                 Description = LocKey.Setting.ExplorerCustomizationNavShowAllFolders.Description,
                 GroupName = LocKey.SettingGroup.NavigationPane,
-                Icon = MaterialIcons.FolderMultiple,
+                Icon = FluentIcons.FolderMultiple,
                 IsSubjectivePreference = true,
             },
             Apply = new() { Restart = new RestartProcess("Explorer") },
@@ -2547,7 +2830,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationNavSafDesktop.Name,
                 Description = LocKey.Setting.ExplorerCustomizationNavSafDesktop.Description,
                 GroupName = LocKey.SettingGroup.NavigationPane,
-                Icon = MaterialIcons.Monitor,
+                Icon = FluentIcons.Desktop,
                 AddedInVersion = "26.04.07",
                 IsSubjectivePreference = true,
             },
@@ -2589,7 +2872,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationNavSafDocuments.Name,
                 Description = LocKey.Setting.ExplorerCustomizationNavSafDocuments.Description,
                 GroupName = LocKey.SettingGroup.NavigationPane,
-                Icon = MaterialIcons.FileDocument,
+                Icon = FluentIcons.Document,
                 AddedInVersion = "26.04.07",
                 IsSubjectivePreference = true,
             },
@@ -2631,7 +2914,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationNavSafDownloads.Name,
                 Description = LocKey.Setting.ExplorerCustomizationNavSafDownloads.Description,
                 GroupName = LocKey.SettingGroup.NavigationPane,
-                Icon = MaterialIcons.Download,
+                Icon = FluentIcons.ArrowDownload,
                 AddedInVersion = "26.04.07",
                 IsSubjectivePreference = true,
             },
@@ -2673,7 +2956,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationNavSafMusic.Name,
                 Description = LocKey.Setting.ExplorerCustomizationNavSafMusic.Description,
                 GroupName = LocKey.SettingGroup.NavigationPane,
-                Icon = MaterialIcons.Music,
+                Icon = FluentIcons.MusicNote1,
                 AddedInVersion = "26.04.07",
                 IsSubjectivePreference = true,
             },
@@ -2715,7 +2998,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationNavSafPictures.Name,
                 Description = LocKey.Setting.ExplorerCustomizationNavSafPictures.Description,
                 GroupName = LocKey.SettingGroup.NavigationPane,
-                Icon = MaterialIcons.Image,
+                Icon = FluentIcons.Image,
                 AddedInVersion = "26.04.07",
                 IsSubjectivePreference = true,
             },
@@ -2757,7 +3040,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationNavSafVideos.Name,
                 Description = LocKey.Setting.ExplorerCustomizationNavSafVideos.Description,
                 GroupName = LocKey.SettingGroup.NavigationPane,
-                Icon = MaterialIcons.Video,
+                Icon = FluentIcons.Video,
                 AddedInVersion = "26.04.07",
                 IsSubjectivePreference = true,
             },
@@ -2799,7 +3082,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationNavShowLibraries.Name,
                 Description = LocKey.Setting.ExplorerCustomizationNavShowLibraries.Description,
                 GroupName = LocKey.SettingGroup.NavigationPane,
-                Icon = MaterialIcons.FolderTable,
+                Icon = FluentIcons.Library,
                 IsSubjectivePreference = true,
             },
             Apply = new() { Restart = new RestartProcess("Explorer") },
@@ -2849,7 +3132,7 @@ if (Test-Path $appPathsKey) {
                 Name = LocKey.Setting.ExplorerCustomizationDuplicateRemovableDrives.Name,
                 Description = LocKey.Setting.ExplorerCustomizationDuplicateRemovableDrives.Description,
                 GroupName = LocKey.SettingGroup.NavigationPane,
-                Icon = MaterialIcons.Usb,
+                Icon = FluentIcons.Usb,
                 AddedInVersion = "26.04.09",
                 IsSubjectivePreference = true,
             },

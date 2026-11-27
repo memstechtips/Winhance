@@ -7,6 +7,7 @@ using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.TestSupport;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.SoftwareApps.Services;
 using Winhance.UI.Features.SoftwareApps.ViewModels;
@@ -28,6 +29,7 @@ public class AppUpdateMonitorTests
     private readonly List<AppUpdateNotice> _notices = [];
     private readonly Dictionary<string, object?> _saved = [];
     private readonly List<ItemDefinition> _windowsItems = [];
+    private readonly LaterClock _clock = new();
 
     public AppUpdateMonitorTests()
     {
@@ -53,7 +55,9 @@ public class AppUpdateMonitorTests
             .ReturnsAsync(OperationResult<bool>.Succeeded(true));
     }
 
-    private AppUpdateMonitor CreateSut(params InstalledApp[] apps)
+    private AppUpdateMonitor CreateSut(params InstalledApp[] apps) => CreateSut(_clock, apps);
+
+    private AppUpdateMonitor CreateSut(TimeProvider clock, InstalledApp[] apps)
     {
         _service.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => new InstalledAppsScan(apps, true, _windowsItems.ToDictionary(d => d.Id, _ => true)));
         var externalApps = new ExternalAppsViewModel(
@@ -79,7 +83,7 @@ public class AppUpdateMonitorTests
             _localization.Object,
             _dispatcher.Object,
             new Mock<IThemeService>().Object);
-        var sut = new AppUpdateMonitor(externalApps, windowsApps, _preferences.Object, _localization.Object, _version.Object, _log.Object);
+        var sut = new AppUpdateMonitor(externalApps, windowsApps, _preferences.Object, _localization.Object, _version.Object, clock, _log.Object);
         sut.NoticeRaised += (_, notice) => _notices.Add(notice);
         return sut;
     }
@@ -131,13 +135,15 @@ public class AppUpdateMonitorTests
         AppUpdateMonitor.IsDue(_preferences.Object, now.AddDays(1)).Should().BeTrue();
     }
 
-    [Fact]
-    public async Task CheckWinhanceAsync_WhenChecksAreOnOrOff_ChecksOnceADayAndNeverWhenOff()
+    [Theory]
+    [InlineData(AppUpdateCheckFrequency.Off)]
+    [InlineData(AppUpdateCheckFrequency.Daily)]
+    [InlineData(AppUpdateCheckFrequency.Weekly)]
+    public async Task CheckWinhanceAsync_WhateverTheSoftwareSchedule_ChecksOnceADay(AppUpdateCheckFrequency frequency)
     {
         var now = new DateTime(2026, 11, 9, 12, 0, 0, DateTimeKind.Utc);
-        var frequency = AppUpdateCheckFrequency.Weekly;
         _preferences.Setup(p => p.GetPreference(UserPreferenceKeys.AppUpdateCheckFrequency, It.IsAny<AppUpdateCheckFrequency>()))
-            .Returns(() => frequency);
+            .Returns(frequency);
         _version.Setup(v => v.CheckForUpdateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new VersionInfo { Version = "v26.11.20", IsUpdateAvailable = true });
 
@@ -148,8 +154,75 @@ public class AppUpdateMonitorTests
         version.Should().Be("v26.11.20");
         AppUpdateMonitor.WinhanceCheckIsDue(_preferences.Object, now.AddHours(23)).Should().BeFalse();
         AppUpdateMonitor.WinhanceCheckIsDue(_preferences.Object, now.AddHours(25)).Should().BeTrue();
-        frequency = AppUpdateCheckFrequency.Off;
-        AppUpdateMonitor.WinhanceCheckIsDue(_preferences.Object, now.AddDays(5)).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(AppUpdateAction.Notify, "v26.11.20", "", false)]
+    [InlineData(AppUpdateAction.Install, null, "", false)]
+    [InlineData(AppUpdateAction.Install, "v26.11.20", "", true)]
+    [InlineData(AppUpdateAction.Install, "v26.11.20", "v26.11.20", false)]
+    [InlineData(AppUpdateAction.Install, "v26.12.01", "v26.11.20", true)]
+    public void WinhanceAutoInstallIsDue_OnlyWhenSetToInstallAndThisVersionWasNotTried(AppUpdateAction action, string? version, string tried, bool due)
+    {
+        _preferences.Setup(p => p.GetPreference(UserPreferenceKeys.WinhanceUpdateAction, It.IsAny<AppUpdateAction>())).Returns(action);
+        _saved[UserPreferenceKeys.LastWinhanceAutoInstall] = tried;
+
+        AppUpdateMonitor.WinhanceAutoInstallIsDue(_preferences.Object, version).Should().Be(due);
+    }
+
+    [Fact]
+    public void WinhanceAutoInstallIsDue_IgnoresTheSoftwareUpdateSettings()
+    {
+        _preferences.Setup(p => p.GetPreference(UserPreferenceKeys.WinhanceUpdateAction, It.IsAny<AppUpdateAction>())).Returns(AppUpdateAction.Install);
+        _preferences.Setup(p => p.GetPreference(UserPreferenceKeys.AppUpdateCheckFrequency, It.IsAny<AppUpdateCheckFrequency>())).Returns(AppUpdateCheckFrequency.Off);
+
+        AppUpdateMonitor.WinhanceAutoInstallIsDue(_preferences.Object, "v26.11.20").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task StartWinhanceInstallAsync_WhenTheDownloadWorks_StartsTheInstallerAndComesBackInTheTray()
+    {
+        var started = await AppUpdateMonitor.StartWinhanceInstallAsync(_version.Object, _preferences.Object, "v26.11.20", _log.Object);
+
+        started.Should().BeTrue();
+        _version.Verify(v => v.LaunchInstallerAndRestart(true), Times.Once);
+        _saved[UserPreferenceKeys.LastWinhanceAutoInstall].Should().Be("v26.11.20");
+    }
+
+    [Fact]
+    public async Task StartWinhanceInstallAsync_WhenTheDownloadFails_IsNotTriedAgainForThatVersion()
+    {
+        _preferences.Setup(p => p.GetPreference(UserPreferenceKeys.WinhanceUpdateAction, It.IsAny<AppUpdateAction>())).Returns(AppUpdateAction.Install);
+        _version.Setup(v => v.DownloadAndInstallUpdateAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new HttpRequestException("offline"));
+
+        var started = await AppUpdateMonitor.StartWinhanceInstallAsync(_version.Object, _preferences.Object, "v26.11.20", _log.Object);
+
+        started.Should().BeFalse();
+        _version.Verify(v => v.LaunchInstallerAndRestart(It.IsAny<bool>()), Times.Never);
+        AppUpdateMonitor.WinhanceAutoInstallIsDue(_preferences.Object, "v26.11.20").Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Start_ChecksOnlyAfterTheFirstDelayThenOnEveryTick()
+    {
+        var clock = new ManualTimeProvider();
+        using var checks = new SemaphoreSlim(0);
+        _preferences.Setup(p => p.GetPreference(UserPreferenceKeys.AppUpdateCheckFrequency, It.IsAny<AppUpdateCheckFrequency>()))
+            .Returns(AppUpdateCheckFrequency.Off);
+        _version.Setup(v => v.CheckForUpdateAsync(It.IsAny<CancellationToken>()))
+            .Callback(() => checks.Release())
+            .ReturnsAsync(new VersionInfo());
+        using var sut = CreateSut(clock, []);
+
+        sut.Start();
+        clock.Advance(AppUpdateMonitor.FirstCheckDelay - TimeSpan.FromSeconds(1));
+        (await checks.WaitAsync(TimeSpan.FromMilliseconds(200))).Should().BeFalse();
+        clock.Advance(TimeSpan.FromSeconds(1));
+        (await checks.WaitAsync(TimeSpan.FromSeconds(10))).Should().BeTrue();
+        clock.Advance(AppUpdateMonitor.Tick - TimeSpan.FromSeconds(1));
+        (await checks.WaitAsync(TimeSpan.FromMilliseconds(200))).Should().BeFalse();
+        clock.Advance(TimeSpan.FromSeconds(1));
+        (await checks.WaitAsync(TimeSpan.FromSeconds(10))).Should().BeTrue();
     }
 
     [Fact]
@@ -226,6 +299,24 @@ public class AppUpdateMonitorTests
         _notices.Should().ContainSingle().Which.Kind.Should().Be(AppUpdateNoticeKind.Available);
         _notices[0].Message.Should().Be("Notify_UpdatesAvailable_Message: 1");
         _saved.Should().ContainKey(UserPreferenceKeys.LastAppUpdateCheck);
+    }
+
+    [Fact]
+    public async Task CheckAsync_ScheduledCheckSoonAfterTheTabsReadThePc_DoesNotReadItAgain()
+    {
+        var sut = CreateSut(App("Git", "2.46.0"));
+        await sut.CheckAsync(manual: false);
+        _service.Invocations.Clear();
+
+        await sut.CheckAsync(manual: false);
+        _service.Verify(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>()), Times.Never);
+
+        _clock.Later = AppUpdateMonitor.Tick;
+        await sut.CheckAsync(manual: false);
+        _service.Verify(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()), Times.Once);
+
+        await sut.CheckAsync(manual: true);
+        _service.Verify(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]
@@ -307,6 +398,7 @@ public class AppUpdateMonitorTests
     {
         var sut = CreateSut(App("Git", "2.46.0"));
         await sut.CheckAsync(manual: false);
+        _clock.Later = AppUpdateMonitor.Tick;
         _notices.Clear();
         _service.Invocations.Clear();
         var scan = new TaskCompletionSource<InstalledAppsScan>();
@@ -328,6 +420,7 @@ public class AppUpdateMonitorTests
     {
         var sut = CreateSut(App("Git", "2.46.0"));
         await sut.CheckAsync(manual: false);
+        _clock.Later = AppUpdateMonitor.Tick;
         _notices.Clear();
         var scan = new TaskCompletionSource<InstalledAppsScan>();
         _service.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>())).Returns(scan.Task);
@@ -417,6 +510,7 @@ public class AppUpdateMonitorTests
     {
         var sut = CreateSut(App("Git", "2.46.0"));
         await sut.CheckAsync(manual: false);
+        _clock.Later = AppUpdateMonitor.Tick;
         _service.Invocations.Clear();
         var scan = new TaskCompletionSource<InstalledAppsScan>();
         _service.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>())).Returns(scan.Task);
@@ -428,5 +522,12 @@ public class AppUpdateMonitorTests
         await Task.WhenAll(scheduled, refresh);
 
         _service.Verify(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    private sealed class LaterClock : TimeProvider
+    {
+        public TimeSpan Later { get; set; }
+
+        public override DateTimeOffset GetUtcNow() => base.GetUtcNow() + Later;
     }
 }

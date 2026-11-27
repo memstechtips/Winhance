@@ -96,6 +96,7 @@ internal class WindowsAppUninstallService(
                 logService.LogInformation($"  Item: '{a.Name}' Id={a.Id} AppX={(a.AppxPackageName != null ? string.Join(", ", a.AppxPackageName) : "null")} Cap={a.CapabilityName ?? "null"} Feat={a.OptionalFeatureName ?? "null"} IsInstalled={a.IsInstalled}");
 
             var anyDeferred = false;
+            var anyFailed = false;
 
             if (scriptApps.Count > 0)
             {
@@ -112,6 +113,7 @@ internal class WindowsAppUninstallService(
                     if (outcome == RemovalOutcome.Success)
                         RaiseExplorerRestartIfNeeded(removed);
                     if (outcome == RemovalOutcome.DeferredToScheduledTask) anyDeferred = true;
+                    if (outcome == RemovalOutcome.Failed) anyFailed = true;
                 }
                 logService.LogInformation("Step 2 DONE");
             }
@@ -129,6 +131,7 @@ internal class WindowsAppUninstallService(
                 if (regularOutcome == RemovalOutcome.Success)
                     RaiseExplorerRestartIfNeeded(regularApps);
                 if (regularOutcome == RemovalOutcome.DeferredToScheduledTask) anyDeferred = true;
+                if (regularOutcome == RemovalOutcome.Failed) anyFailed = true;
                 logService.LogInformation("Step 3 DONE");
             }
 
@@ -143,6 +146,9 @@ internal class WindowsAppUninstallService(
                 await StopKeepingRemovedAsync(apps).ConfigureAwait(false);
             }
             logService.LogInformation("Step 4 DONE");
+
+            if (anyFailed)
+                return OperationResult<int>.Failed("Some apps could not be removed. Check the removal logs for details.");
 
             if (anyDeferred)
             {
@@ -262,6 +268,9 @@ internal class WindowsAppUninstallService(
                     await StopKeepingRemovedAsync(apps).ConfigureAwait(false);
                 }
 
+                if (results.Any(r => r == RemovalOutcome.Failed))
+                    return OperationResult<int>.Failed("Some apps could not be removed. Check the removal logs for details.");
+
                 var anyDeferred = results.Any(r => r == RemovalOutcome.DeferredToScheduledTask);
                 if (anyDeferred)
                 {
@@ -333,7 +342,24 @@ internal class WindowsAppUninstallService(
             backgroundTaskService.RemoveKeptApp(app.Id);
 
         if (backgroundTaskService.GetMode() == KeepRemovedMode.Scripts)
-            await bloatRemovalService.CleanupAllRemovalArtifactsAsync().ConfigureAwait(false);
+        {
+            if (backgroundTaskService.GetKeptApps().Count == 0)
+                await bloatRemovalService.CleanupAllRemovalArtifactsAsync().ConfigureAwait(false);
+            else
+            {
+                // A dedicated script is shared by its category (Edge and WebView2, for example).
+                // Remove that category, not every other user's selected script.
+                foreach (var name in apps.Where(a => a.RemovalScriptName is not null)
+                             .Select(a => a.RemovalScriptName!).Distinct(StringComparer.Ordinal))
+                {
+                    var result = await backgroundTaskService.RemoveRemovalTaskAsync(name).ConfigureAwait(false);
+                    if (!result.Success)
+                        logService.LogWarning($"Could not stop keeping '{name}' removed: {result.ErrorMessage}");
+                }
+
+                await bloatRemovalService.RemoveItemsFromScriptAsync(apps.Where(a => a.RemovalScriptName is null).ToList()).ConfigureAwait(false);
+            }
+        }
     }
 
     // A deferred removal has not happened yet, so only a finished one raises the bar.

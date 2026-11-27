@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using Windows.Win32;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 
@@ -224,6 +225,82 @@ internal static class FolderLock
             log.LogWarning($"Could not make {path} private: {ex.Message}");
             return false;
         }
+    }
+
+    public static bool EnsureProtectedPictureDestination(string path, ILogService log)
+    {
+        try
+        {
+            var root = new DirectoryInfo(PictureFileConstants.CarriedPictureFolder);
+            string fullPath = Path.GetFullPath(path);
+            if (!string.Equals(path, fullPath, StringComparison.OrdinalIgnoreCase)
+                || !fullPath.StartsWith(root.FullName + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+                || !PictureFileConstants.IsPicture(fullPath))
+                return false;
+            var parts = Path.GetRelativePath(root.FullName, fullPath).Split(Path.DirectorySeparatorChar);
+            if (parts.Length > 2 || parts.Any(part => part.Length == 0 || part.EndsWith('.') || part.EndsWith(' ')
+                || part.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || WindowsFileNames.IsReservedDeviceName(part)))
+                return false;
+
+            var parent = root.Parent!;
+            var drive = parent.Parent!;
+            if (!IsDirectoryWithoutLink(drive.FullName) || !CanProtectChild(drive.GetAccessControl()))
+                return false;
+
+            // Do not change the permissions of a pre-existing shared folder or take ownership of its contents.
+            if (!EnsureOwnedDirectory(parent) || !EnsureOwnedDirectory(root))
+                return false;
+
+            var folder = new DirectoryInfo(Path.GetDirectoryName(fullPath)!);
+            if (!string.Equals(folder.FullName, root.FullName, StringComparison.OrdinalIgnoreCase)
+                && (!string.Equals(folder.Parent?.FullName, root.FullName, StringComparison.OrdinalIgnoreCase)
+                    || !EnsureOwnedDirectory(folder)))
+                return false;
+
+            var attributes = ExistingAttributes(fullPath);
+            return attributes is null || ((attributes.Value & (FileAttributes.Directory | FileAttributes.ReparsePoint)) == 0
+                && CanWriteProtectedPicture(new FileInfo(fullPath).GetAccessControl())
+                && ExistingAttributes(fullPath) is { } current
+                && (current & (FileAttributes.Directory | FileAttributes.ReparsePoint)) == 0);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or ArgumentException)
+        {
+            log.LogWarning($"Could not protect wallpaper destination '{path}': {ex.Message}");
+            return false;
+        }
+    }
+
+    // Windows allows users to create directories on the system drive, not to change or remove protected children.
+    internal static bool CanProtectChild(DirectorySecurity security) => HasDacl(security) && OwnerIsTrusted(security)
+        && UnsafeRules(security, includeInherited: true).All(rule => (rule.FileSystemRights & (WriteRights & ~FileSystemRights.AppendData)) == 0);
+
+    private static bool HasDacl(FileSystemSecurity security) =>
+        new RawSecurityDescriptor(security.GetSecurityDescriptorBinaryForm(), 0).DiscretionaryAcl is not null;
+
+    private static bool CanWriteProtectedPicture(FileSecurity security) => HasDacl(security) && OwnerIsTrusted(security)
+        && UnsafeRules(security, includeInherited: true).Count == 0
+        && security.GetAccessRules(true, true, typeof(SecurityIdentifier)).Cast<FileSystemAccessRule>()
+            .Any(rule => rule.AccessControlType == AccessControlType.Allow && rule.IdentityReference == Users
+                && (rule.FileSystemRights & FileSystemRights.ReadAndExecute) == FileSystemRights.ReadAndExecute)
+        && !security.GetAccessRules(true, true, typeof(SecurityIdentifier)).Cast<FileSystemAccessRule>()
+            .Any(rule => rule.AccessControlType == AccessControlType.Deny);
+
+    private static FileAttributes? ExistingAttributes(string path)
+    {
+        try { return File.GetAttributes(path); }
+        catch (FileNotFoundException) { return null; }
+        catch (DirectoryNotFoundException) { return null; }
+    }
+
+    private static bool IsDirectoryWithoutLink(string path) => ExistingAttributes(path) is { } attributes
+        && (attributes & (FileAttributes.Directory | FileAttributes.ReparsePoint)) == FileAttributes.Directory;
+
+    private static bool EnsureOwnedDirectory(DirectoryInfo directory)
+    {
+        if (ExistingAttributes(directory.FullName) is null)
+            directory.Create(BuildRootSecurity());
+        return IsDirectoryWithoutLink(directory.FullName) && RootMatches(directory.GetAccessControl())
+            && IsDirectoryWithoutLink(directory.FullName);
     }
 
     private static bool IsPrivate(DirectoryInfo info)

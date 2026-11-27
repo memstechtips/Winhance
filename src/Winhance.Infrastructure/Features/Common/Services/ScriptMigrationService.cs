@@ -86,7 +86,7 @@ internal class ScriptMigrationService : IScriptMigrationService
     {
         try
         {
-            var alreadyMigrated = await _prefsService.GetPreferenceAsync("ScriptMigrationCompleted", false).ConfigureAwait(false);
+            var alreadyMigrated = _prefsService.GetPreference("ScriptMigrationCompleted", false);
             if (alreadyMigrated)
             {
                 _logService.Log(LogLevel.Info, "Script migration already completed previously");

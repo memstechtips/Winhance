@@ -1,6 +1,8 @@
+using Microsoft.Win32;
 using Winhance.Core.Features.Autounattend.Catalogs;
 using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Localization;
 using Winhance.Core.Features.Customize.Catalogs;
 using Winhance.Core.Features.Optimize.Catalogs;
 using Xunit;
@@ -9,8 +11,6 @@ namespace Winhance.Core.Tests.Catalog;
 
 public class SettingCatalogTests
 {
-    private static readonly string[] OutcomeNoteSettings = ["start-recommended-section", "theme-wallpaper"];
-
     [Fact]
     public void All_Always_IsTheSumOfEveryCatalogWithNoDrops()
     {
@@ -44,6 +44,31 @@ public class SettingCatalogTests
         Assert.DoesNotContain(ExplorerCustomizationsCatalog.All, s => s.Id.Contains("context-menu"));
     }
 
+    [Theory]
+    [InlineData(22631)]
+    [InlineData(26300)]
+    public void ClassicContextMenu_OnAndOff_ApplyBothShellOverrides(int build)
+    {
+        var setting = Assert.Single(ContextMenuCustomizationsCatalog.All, s => s.Id == "context-menu-classic");
+        var version = new WinBuild(build);
+        string[] paths =
+        [
+            @"HKEY_CURRENT_USER\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32",
+            @"HKEY_CURRENT_USER\Software\Classes\CLSID\{51668040-5e31-4023-bbe3-149163bd80f1}\InprocServer32",
+        ];
+
+        var writes = ApplyPlanBuilder.Build(setting, LocKey.Common.Enabled, version).OfType<RegistryWriteOp>().ToArray();
+        Assert.Equal(paths, writes.Select(op => op.Path).ToArray());
+        Assert.All(writes, op =>
+        {
+            Assert.Equal("", op.Target.ValueName);
+            Assert.Equal(RegistryValueKind.String, op.Target.Type);
+            Assert.Equal("", op.Value);
+        });
+        var deletes = ApplyPlanBuilder.Build(setting, LocKey.Common.Disabled, version).OfType<RegistryDeleteOp>();
+        Assert.Equal(paths, deletes.Select(op => op.Path).ToArray());
+    }
+
     [Fact]
     public void All_Always_IsNotEmpty()
     {
@@ -60,30 +85,5 @@ public class SettingCatalogTests
             .ToList();
 
         Assert.Empty(duplicates);
-    }
-
-    // A Warning shows only once its option is chosen, so it is for outcome notes. Anything that warns of harm
-    // is a RiskWarning and shows before the choice.
-    [Fact]
-    public void All_Always_UsesWarningOnlyOnTheTwoOutcomeNotes()
-    {
-        var outcomeNotes = SettingCatalog.All
-            .Where(s => s.States.Any(st => st.Warning is not null))
-            .Select(s => s.Id)
-            .Order()
-            .ToList();
-
-        Assert.Equal(OutcomeNoteSettings, outcomeNotes);
-    }
-
-    [Fact]
-    public void All_Always_NeverCarriesBothAWarningAndARiskWarningOnOneState()
-    {
-        var both = SettingCatalog.All
-            .Where(s => s.States.Any(st => st.Warning is not null && st.RiskWarning is not null))
-            .Select(s => s.Id)
-            .ToList();
-
-        Assert.Empty(both);
     }
 }

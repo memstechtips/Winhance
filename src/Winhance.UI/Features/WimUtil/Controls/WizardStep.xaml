@@ -18,12 +18,8 @@
                 AutomationProperties.Name="{x:Bind State.AccessibleName}"
                 AutomationProperties.HelpText="{x:Bind State.StatusText}"
                 MinHeight="72"
-                CornerRadius="{x:Bind local:WizardStep.HeaderCornerRadius(State.IsExpanded)}">
-                <commonControls:ClickableSettingsCard.Resources>
-                    <x:Double x:Key="SettingsCardActionIconMaxSize">0</x:Double>
-                    <Thickness x:Key="SettingsCardActionIconMargin">0</Thickness>
-                </commonControls:ClickableSettingsCard.Resources>
-
+                CornerRadius="{x:Bind local:WizardStep.HeaderCornerRadius(State.IsExpanded)}"
+                ShowsActionIcon="False">
                 <commonControls:ClickableSettingsCard.Header>
                     <Grid ColumnSpacing="12"
                           Opacity="{x:Bind local:WizardStep.AvailableOpacity(State.IsAvailable)}">
@@ -31,15 +27,11 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <fluentIcons:FluentIcon Icon="{x:Bind State.Icon}"
+                        <fluentIcons:FluentIcon x:Name="StepFluentIcon"
+                                                Icon="{x:Bind State.Icon}"
                                                 IconVariant="Regular"
                                                 FontSize="36"
-                                                VerticalAlignment="Center"
-                                                Visibility="{x:Bind State.UsesFluentIcon}"/>
-                        <FontIcon Glyph="{x:Bind State.Glyph}"
-                                  FontSize="36"
-                                  VerticalAlignment="Center"
-                                  Visibility="{x:Bind State.HasGlyph}"/>
+                                                VerticalAlignment="Center"/>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock Text="{x:Bind State.AccessibleName}"
                                        Style="{StaticResource SubtitleTextBlockStyle}"
@@ -53,28 +45,29 @@
                 </commonControls:ClickableSettingsCard.Header>
 
                 <Grid Width="20" Height="20">
-                    <fluentIcons:FluentIcon Icon="LockClosed" IconVariant="Color" FontSize="16"
-                                            Visibility="{x:Bind State.IsLocked}"/>
-                    <fluentIcons:FluentIcon Icon="CheckmarkCircle" IconVariant="Color"
-                                            FontSize="{StaticResource StatusIconFontSize}"
-                                            Visibility="{x:Bind local:WizardStep.CompleteVisibility(State.IsComplete, State.IsLocked)}"/>
-                    <Grid Visibility="{x:Bind local:WizardStep.ChevronVisibility(State.IsComplete, State.IsLocked)}">
-                        <FontIcon Glyph="&#xE70E;" FontSize="{StaticResource CardExpanderChevronFontSize}"
-                                  Visibility="{x:Bind State.IsExpanded}"
-                                  Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-                        <FontIcon Glyph="&#xE70D;" FontSize="{StaticResource CardExpanderChevronFontSize}"
-                                  Visibility="{x:Bind State.IsExpanded, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
-                                  Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-                    </Grid>
+                    <fluentIcons:FluentIcon x:Name="LockIcon"
+                                            x:Load="{x:Bind State.IsLocked}"
+                                            Icon="LockClosed" IconVariant="Color" FontSize="{StaticResource CardIconFontSize}"/>
+                    <fluentIcons:FluentIcon x:Name="CompleteIcon"
+                                            x:Load="{x:Bind local:WizardStep.ShowsCheck(State.IsComplete, State.IsLocked)}"
+                                            Icon="CheckmarkCircle" IconVariant="Color"
+                                            FontSize="{StaticResource StatusIconFontSize}"/>
+                    <fluentIcons:FluentIcon x:Name="ExpandChevronIcon"
+                                            x:Load="{x:Bind local:WizardStep.ShowsChevron(State.IsComplete, State.IsLocked)}"
+                                            Icon="{x:Bind local:WizardStep.ChevronIcon(State.IsExpanded)}"
+                                            IconVariant="Regular"
+                                            FontSize="{StaticResource CardExpanderChevronFontSize}"
+                                            Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                 </Grid>
             </commonControls:ClickableSettingsCard>
         </Grid>
 
-        <Border Visibility="{x:Bind State.IsExpanded}"
+        <Border x:Name="BodyCard"
+                Visibility="{x:Bind State.IsExpanded}"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1,0,1,1"
-                CornerRadius="0,0,4,4"
+                CornerRadius="{StaticResource JoinedCardCornerRadius}"
                 Padding="60,16,16,16">
             <ContentControl Content="{x:Bind Body}"
                             IsEnabled="{x:Bind State.IsAvailable}"

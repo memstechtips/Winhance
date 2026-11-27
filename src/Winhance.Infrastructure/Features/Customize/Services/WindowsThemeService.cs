@@ -23,8 +23,7 @@ internal sealed class WindowsThemeService : IWindowsThemeService, IOptionProvide
 
     private const int RecentPictureCount = 5;
 
-    // Machine-wide, beside Windows' own pictures, so whatever account exists on the target PC can read it.
-    private const string CarriedPictureFolder = @"C:\Windows\Web\Wallpaper\Winhance";
+    private const string CarriedPictureFolder = PictureFileConstants.CarriedPictureFolder;
 
     private const int CachePathOffset = 24;
 

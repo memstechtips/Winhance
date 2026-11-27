@@ -1,6 +1,8 @@
+using CommunityToolkit.WinUI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.UI.Features.Common.Controls;
@@ -44,6 +46,7 @@ internal class SponsorsDialogBuilder
 
     private readonly ILocalizationService _localization;
     private readonly ISponsorsService _sponsorsService;
+    private readonly ILogService _logService;
 
     private bool _supportClicked;
 
@@ -52,11 +55,13 @@ internal class SponsorsDialogBuilder
     private int _countdownRemaining = CountdownSeconds;
     private Microsoft.UI.Dispatching.DispatcherQueueTimer? _countdownTimer;
     private ContentDialog _dialog = null!;
+    private Action<string, bool> _setNoButton = null!;
 
-    public SponsorsDialogBuilder(ILocalizationService localization, ISponsorsService sponsorsService)
+    public SponsorsDialogBuilder(ILocalizationService localization, ISponsorsService sponsorsService, ILogService logService)
     {
         _localization = localization;
         _sponsorsService = sponsorsService;
+        _logService = logService;
     }
 
     public ContentDialog Build(SponsorsDocument? data, SponsorsDialogMode mode)
@@ -71,28 +76,127 @@ internal class SponsorsDialogBuilder
         };
         _dialog.Resources["ContentDialogMaxWidth"] = DialogMaxWidth;
         _dialog.PrimaryButtonClick += (_, _) => OnSupportClicked();
+        _setNoButton = (text, enabled) =>
+        {
+            _dialog.SecondaryButtonText = text;
+            _dialog.IsSecondaryButtonEnabled = enabled;
+        };
 
-        var root = new StackPanel { Spacing = 14 };
-        root.Children.Add(BuildHeader());
+        ConfigureMode();
 
+        _dialog.Content = BuildBody(data);
+        return _dialog;
+    }
+
+    // The exit ask with no app window open: the dialog's body and buttons are the whole window, so no window
+    // frame shows around a dialog. Same countdown on No as the ContentDialog.
+    public FrameworkElement BuildExitWindow(SponsorsDocument? data, Action close)
+    {
+        _mode = SponsorsDialogMode.Exit;
+
+        var yes = new Button
+        {
+            Content = _localization.GetString("Button_Yes"),
+            Style = Named("AccentButtonStyle"),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+        var no = new Button { HorizontalAlignment = HorizontalAlignment.Stretch };
+        yes.Click += (_, _) =>
+        {
+            OnSupportClicked();
+            close();
+        };
+        no.Click += (_, _) => close();
+        _setNoButton = (text, enabled) =>
+        {
+            no.Content = text;
+            no.IsEnabled = enabled;
+        };
+        _setNoButton(_localization.GetString("Support_NoCountdown", CountdownSeconds), false);
+
+        var buttons = new Grid { ColumnSpacing = 8 };
+        buttons.ColumnDefinitions.Add(new ColumnDefinition());
+        buttons.ColumnDefinitions.Add(new ColumnDefinition());
+        Grid.SetColumn(no, 1);
+        buttons.Children.Add(yes);
+        buttons.Children.Add(no);
+
+        var body = new Border
+        {
+            Style = Named("CodeBuilt.DialogBody"),
+            Padding = new Thickness(24),
+            Child = BuildBody(data),
+        };
+        var root = new Grid { Width = DialogMaxWidth };
+        root.RowDefinitions.Add(new RowDefinition());
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        var footer = new Border { Padding = new Thickness(24), Child = buttons };
+        Grid.SetRow(footer, 1);
+        root.Children.Add(body);
+        root.Children.Add(footer);
+
+        var escape = new Microsoft.UI.Xaml.Input.KeyboardAccelerator { Key = Windows.System.VirtualKey.Escape };
+        escape.Invoked += (_, e) =>
+        {
+            e.Handled = true;
+            if (_countdownDone)
+                close();
+        };
+        root.KeyboardAccelerators.Add(escape);
+        root.Loaded += (_, _) =>
+        {
+            yes.Focus(FocusState.Programmatic);
+            StartCountdown();
+        };
+        root.Unloaded += (_, _) => StopCountdown();
+        return root;
+    }
+
+    // The header and the question stay put and only the walls scroll, so on a short screen the question still
+    // sits right above Yes/No. ContentDialog wraps its content in its own ScrollViewer, which measures with
+    // infinite height; with that one's vertical scrolling off, the dialog's max height reaches this Grid.
+    private Grid BuildBody(SponsorsDocument? data)
+    {
+        var walls = new StackPanel { Spacing = 14 };
         var cards = SponsorRow.Pick(data?.Sponsors);
         if (cards.Count > 0)
-            root.Children.Add(BuildSponsorsSection(cards));
+            walls.Children.Add(BuildSponsorsSection(cards));
+        walls.Children.Add(BuildSupportersCard(data));
 
-        root.Children.Add(BuildSupportersCard(data));
-
-        root.Children.Add(new TextBlock
+        var scroller = new ScrollViewer
+        {
+            Content = walls,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            HorizontalScrollMode = ScrollMode.Disabled
+        };
+        var question = new TextBlock
         {
             Text = _localization.GetString("Support_Question"),
             FontSize = 15,
             FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
             TextWrapping = TextWrapping.Wrap
-        });
+        };
 
-        ConfigureMode();
+        var root = new Grid { RowSpacing = 14 };
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        Grid.SetRow(scroller, 1);
+        Grid.SetRow(question, 2);
+        root.Children.Add(BuildHeader());
+        root.Children.Add(scroller);
+        root.Children.Add(question);
 
-        _dialog.Content = root;
-        return _dialog;
+        root.Loaded += (_, _) =>
+        {
+            if (root.FindAscendant<ScrollViewer>() is { Name: "ContentScrollViewer" } dialogScroller)
+            {
+                dialogScroller.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
+                dialogScroller.VerticalScrollMode = ScrollMode.Disabled;
+            }
+        };
+        return root;
     }
 
     private Grid BuildHeader()
@@ -477,7 +581,7 @@ internal class SponsorsDialogBuilder
     {
         _supportClicked = true;
         string source = _mode == SponsorsDialogMode.Exit ? "app-exit" : "app";
-        _ = Windows.System.Launcher.LaunchUriAsync(new Uri(SupportUrl + source));
+        Windows.System.Launcher.LaunchUriAsync(new Uri(SupportUrl + source)).AsTask().FireAndForget(_logService);
     }
 
     private void ConfigureMode()
@@ -487,8 +591,7 @@ internal class SponsorsDialogBuilder
 
         // No is held back until the countdown elapses, so the ask is read before it is declined.
         // Yes closes straight away because _supportClicked is set before Closing runs.
-        _dialog.IsSecondaryButtonEnabled = false;
-        _dialog.SecondaryButtonText = _localization.GetString("Support_NoCountdown", CountdownSeconds);
+        _setNoButton(_localization.GetString("Support_NoCountdown", CountdownSeconds), false);
         _dialog.Closing += (_, e) =>
         {
             if (!_countdownDone && !_supportClicked)
@@ -510,13 +613,12 @@ internal class SponsorsDialogBuilder
             _countdownRemaining--;
             if (_countdownRemaining > 0)
             {
-                _dialog.SecondaryButtonText = _localization.GetString("Support_NoCountdown", _countdownRemaining);
+                _setNoButton(_localization.GetString("Support_NoCountdown", _countdownRemaining), false);
             }
             else
             {
                 _countdownDone = true;
-                _dialog.SecondaryButtonText = _localization.GetString("Button_No");
-                _dialog.IsSecondaryButtonEnabled = true;
+                _setNoButton(_localization.GetString("Button_No"), true);
                 StopCountdown();
             }
         };

@@ -21,7 +21,7 @@ public static class StartMenuCustomizationsCatalog
                 Name = LocKey.Setting.StartMenuClean10.Name,
                 Description = LocKey.Setting.StartMenuClean10.Description,
                 GroupName = LocKey.SettingGroup.Layout,
-                Icon = MaterialIcons.Broom,
+                Icon = FluentIcons.Broom,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows10 } },
             Apply = new() { RequiresConfirmation = true },
@@ -69,7 +69,7 @@ if ($me) {
                 Name = LocKey.Setting.StartMenuClean11.Name,
                 Description = LocKey.Setting.StartMenuClean11.Description,
                 GroupName = LocKey.SettingGroup.Layout,
-                Icon = MaterialIcons.Broom,
+                Icon = FluentIcons.Broom,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
             Apply = new() { RequiresConfirmation = true },
@@ -181,7 +181,7 @@ Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinu
                 Name = LocKey.Setting.StartRecommendedSection.Name,
                 Description = LocKey.Setting.StartRecommendedSection.Description,
                 GroupName = LocKey.SettingGroup.Layout,
-                Icon = MaterialIcons.TableStar,
+                Icon = FluentIcons.TableSparkle,
                 IsSubjectivePreference = true,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
@@ -204,7 +204,226 @@ Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinu
                     Label = LocKey.Setting.StartRecommendedSection.Option1,
                     Roles = new[] { StateRole.Recommended },
                     Set = new Dictionary<string, StateValue> { ["HideRecommendedSection"] = Of(1), ["IsEducationEnvironment"] = Of(1) },
-                    Warning = LocKey.Setting.StartRecommendedSection.OptionWarning1,
+                    RiskWarning = LocKey.Setting.StartRecommendedSection.OptionWarning1,
+                },
+            },
+        },
+        new()
+        {
+            Id = "start-menu-size",
+            Display = new()
+            {
+                Name = LocKey.Setting.StartMenuSize.Name,
+                Description = LocKey.Setting.StartMenuSize.Description,
+                GroupName = LocKey.SettingGroup.Layout,
+                Icon = FluentIcons.Resize,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            // The September 2026 update (26100.9445 and 26200.9445) brought this to 24H2 and 25H2.
+            Availability = new()
+            {
+                Builds = new[]
+                {
+                    new BuildRange(new WinBuild(26100, 9445), new WinBuild(26100, int.MaxValue)),
+                    new BuildRange(new WinBuild(26200, 9445), new WinBuild(26200, int.MaxValue)),
+                    new BuildRange(new WinBuild(26300), new WinBuild(int.MaxValue, int.MaxValue)),
+                },
+            },
+            Apply = new() { Restart = new RestartProcess("StartMenuExperienceHost") },
+            Targets = new Target[]
+            {
+                new RegTarget("StartMenuSize", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start" }, "StartMenuSize", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Setting.StartMenuSize.Option0,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["StartMenuSize"] = Of(0).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.StartMenuSize.Option1,
+                    Set = new Dictionary<string, StateValue> { ["StartMenuSize"] = Of(1) },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Setting.StartMenuSize.Option2,
+                    Set = new Dictionary<string, StateValue> { ["StartMenuSize"] = Of(2) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "start-show-pinned-section",
+            Display = new()
+            {
+                Name = LocKey.Setting.StartShowPinnedSection.Name,
+                Description = LocKey.Setting.StartShowPinnedSection.Description,
+                GroupName = LocKey.SettingGroup.Layout,
+                Icon = FluentIcons.Pin,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            // The September 2026 update (26100.9445 and 26200.9445) brought this to 24H2 and 25H2.
+            Availability = new()
+            {
+                Builds = new[]
+                {
+                    new BuildRange(new WinBuild(26100, 9445), new WinBuild(26100, int.MaxValue)),
+                    new BuildRange(new WinBuild(26200, 9445), new WinBuild(26200, int.MaxValue)),
+                    new BuildRange(new WinBuild(26300), new WinBuild(int.MaxValue, int.MaxValue)),
+                },
+            },
+            Apply = new() { Restart = new RestartProcess("StartMenuExperienceHost") },
+            Targets = new Target[]
+            {
+                new RegTarget("ShowPinnedSection", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start" }, "ShowPinnedSection", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["ShowPinnedSection"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["ShowPinnedSection"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "start-show-recent-section",
+            Display = new()
+            {
+                Name = LocKey.Setting.StartShowRecentSection.Name,
+                Description = LocKey.Setting.StartShowRecentSection.Description,
+                GroupName = LocKey.SettingGroup.Layout,
+                Icon = FluentIcons.History,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            // The September 2026 update (26100.9445 and 26200.9445) brought this to 24H2 and 25H2.
+            Availability = new()
+            {
+                Builds = new[]
+                {
+                    new BuildRange(new WinBuild(26100, 9445), new WinBuild(26100, int.MaxValue)),
+                    new BuildRange(new WinBuild(26200, 9445), new WinBuild(26200, int.MaxValue)),
+                    new BuildRange(new WinBuild(26300), new WinBuild(int.MaxValue, int.MaxValue)),
+                },
+            },
+            Apply = new() { Restart = new RestartProcess("StartMenuExperienceHost") },
+            Targets = new Target[]
+            {
+                new RegTarget("ShowRecentSection", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start" }, "ShowRecentSection", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["ShowRecentSection"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["ShowRecentSection"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "start-show-all-apps-section",
+            Display = new()
+            {
+                Name = LocKey.Setting.StartShowAllAppsSection.Name,
+                Description = LocKey.Setting.StartShowAllAppsSection.Description,
+                GroupName = LocKey.SettingGroup.Layout,
+                Icon = FluentIcons.AppsListDetail,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            // The September 2026 update (26100.9445 and 26200.9445) brought this to 24H2 and 25H2.
+            Availability = new()
+            {
+                Builds = new[]
+                {
+                    new BuildRange(new WinBuild(26100, 9445), new WinBuild(26100, int.MaxValue)),
+                    new BuildRange(new WinBuild(26200, 9445), new WinBuild(26200, int.MaxValue)),
+                    new BuildRange(new WinBuild(26300), new WinBuild(int.MaxValue, int.MaxValue)),
+                },
+            },
+            Apply = new() { Restart = new RestartProcess("StartMenuExperienceHost") },
+            Targets = new Target[]
+            {
+                new RegTarget("ShowAllAppsSection", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start" }, "ShowAllAppsSection", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["ShowAllAppsSection"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["ShowAllAppsSection"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "start-show-user-info",
+            Display = new()
+            {
+                Name = LocKey.Setting.StartShowUserInfo.Name,
+                Description = LocKey.Setting.StartShowUserInfo.Description,
+                GroupName = LocKey.SettingGroup.Layout,
+                Icon = FluentIcons.PersonInfo,
+                AddedInVersion = "26.11.17",
+                IsSubjectivePreference = true,
+            },
+            // The September 2026 update (26100.9445 and 26200.9445) brought this to 24H2 and 25H2.
+            Availability = new()
+            {
+                Builds = new[]
+                {
+                    new BuildRange(new WinBuild(26100, 9445), new WinBuild(26100, int.MaxValue)),
+                    new BuildRange(new WinBuild(26200, 9445), new WinBuild(26200, int.MaxValue)),
+                    new BuildRange(new WinBuild(26300), new WinBuild(int.MaxValue, int.MaxValue)),
+                },
+            },
+            Apply = new() { Restart = new RestartProcess("StartMenuExperienceHost") },
+            Targets = new Target[]
+            {
+                new RegTarget("HideUserInformation", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start" }, "HideUserInformation", RegistryValueKind.DWord),
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Set = new Dictionary<string, StateValue> { ["HideUserInformation"] = Of(0).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["HideUserInformation"] = Of(1) },
                 },
             },
         },
@@ -216,7 +435,7 @@ Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinu
                 Name = LocKey.Setting.StartShowRecentlyAddedApps.Name,
                 Description = LocKey.Setting.StartShowRecentlyAddedApps.Description,
                 GroupName = LocKey.SettingGroup.StartMenuSettings,
-                Icon = MaterialIcons.StarBoxMultipleOutline,
+                Icon = FluentIcons.AppsAddIn,
             },
             Targets = new Target[]
             {
@@ -310,7 +529,7 @@ Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinu
                 Name = LocKey.Setting.StartShowSuggestions.Name,
                 Description = LocKey.Setting.StartShowSuggestions.Description,
                 GroupName = LocKey.SettingGroup.StartMenuSettings,
-                Icon = MaterialIcons.LightbulbOnOutline,
+                Icon = FluentIcons.Lightbulb,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows10 } },
             Targets = new Target[]
@@ -342,7 +561,68 @@ Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinu
                 Name = LocKey.Setting.StartShowRecommendedFiles.Name,
                 Description = LocKey.Setting.StartShowRecommendedFiles.Description,
                 GroupName = LocKey.SettingGroup.StartMenuSettings,
-                Icon = MaterialIcons.FileStarFourPointsOutline,
+                Icon = FluentIcons.DocumentSparkle,
+            },
+            // From 26100.9445 and 26200.9445 Start has its own value; Start_TrackDocs then only drives jump lists and File Explorer.
+            Targets = new Target[]
+            {
+                new RegTarget("Start_TrackDocs", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" }, "Start_TrackDocs", RegistryValueKind.DWord)
+                {
+                    AppliesTo = new[]
+                    {
+                        new BuildRange(new WinBuild(0), new WinBuild(26100, 9444)),
+                        new BuildRange(new WinBuild(26101), new WinBuild(26200, 9444)),
+                        new BuildRange(new WinBuild(26201), new WinBuild(26299, int.MaxValue)),
+                    },
+                },
+                new RegTarget("ShowSuggestedFiles", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start" }, "ShowSuggestedFiles", RegistryValueKind.DWord)
+                {
+                    AppliesTo = new[]
+                    {
+                        new BuildRange(new WinBuild(26100, 9445), new WinBuild(26100, int.MaxValue)),
+                        new BuildRange(new WinBuild(26200, 9445), new WinBuild(26200, int.MaxValue)),
+                        new BuildRange(new WinBuild(26300), new WinBuild(int.MaxValue, int.MaxValue)),
+                    },
+                },
+            },
+            States = new[]
+            {
+                new SettingState
+                {
+                    Label = LocKey.Common.Enabled,
+                    Roles = new[] { StateRole.WindowsDefault },
+                    Links = new[] { new Link("start-recommended-section", LinkKind.Requires, LocKey.Setting.StartRecommendedSection.Option0) },
+                    Set = new Dictionary<string, StateValue> { ["Start_TrackDocs"] = Of(1).OrAbsent(), ["ShowSuggestedFiles"] = Of(1).OrAbsent() },
+                },
+                new SettingState
+                {
+                    Label = LocKey.Common.Disabled,
+                    Roles = new[] { StateRole.Recommended },
+                    IsFallback = true,
+                    Set = new Dictionary<string, StateValue> { ["Start_TrackDocs"] = Of(0), ["ShowSuggestedFiles"] = Of(0) },
+                },
+            },
+        },
+        new()
+        {
+            Id = "start-jump-list-recent-items",
+            Display = new()
+            {
+                Name = LocKey.Setting.StartJumpListRecentItems.Name,
+                Description = LocKey.Setting.StartJumpListRecentItems.Description,
+                GroupName = LocKey.SettingGroup.StartMenuSettings,
+                Icon = FluentIcons.WindowMultiple,
+                AddedInVersion = "26.11.17",
+            },
+            // The September 2026 update (26100.9445 and 26200.9445) split this out of the Start menu's recommended files.
+            Availability = new()
+            {
+                Builds = new[]
+                {
+                    new BuildRange(new WinBuild(26100, 9445), new WinBuild(26100, int.MaxValue)),
+                    new BuildRange(new WinBuild(26200, 9445), new WinBuild(26200, int.MaxValue)),
+                    new BuildRange(new WinBuild(26300), new WinBuild(int.MaxValue, int.MaxValue)),
+                },
             },
             Targets = new Target[]
             {
@@ -354,13 +634,11 @@ Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinu
                 {
                     Label = LocKey.Common.Enabled,
                     Roles = new[] { StateRole.WindowsDefault },
-                    Links = new[] { new Link("start-recommended-section", LinkKind.Requires, LocKey.Setting.StartRecommendedSection.Option0) },
                     Set = new Dictionary<string, StateValue> { ["Start_TrackDocs"] = Of(1).OrAbsent() },
                 },
                 new SettingState
                 {
                     Label = LocKey.Common.Disabled,
-                    Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
                     Set = new Dictionary<string, StateValue> { ["Start_TrackDocs"] = Of(0) },
                 },
@@ -374,7 +652,7 @@ Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinu
                 Name = LocKey.Setting.StartMenuRecommendations.Name,
                 Description = LocKey.Setting.StartMenuRecommendations.Description,
                 GroupName = LocKey.SettingGroup.StartMenuSettings,
-                Icon = MaterialIcons.CreationOutline,
+                Icon = FluentIcons.Sparkle,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
             Targets = new Target[]
@@ -406,7 +684,7 @@ Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinu
                 Name = LocKey.Setting.StartShowAccountNotifications.Name,
                 Description = LocKey.Setting.StartShowAccountNotifications.Description,
                 GroupName = LocKey.SettingGroup.StartMenuSettings,
-                Icon = MaterialIcons.BellRingOutline,
+                Icon = FluentIcons.AlertOn,
             },
             Availability = new() { Builds = new[] { BuildRange.Windows11 } },
             Targets = new Target[]
@@ -438,12 +716,22 @@ Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinu
                 Name = LocKey.Setting.StartDisableBingSearchResults.Name,
                 Description = LocKey.Setting.StartDisableBingSearchResults.Description,
                 GroupName = LocKey.SettingGroup.StartMenuSettings,
-                Icon = MaterialIcons.MicrosoftBing,
+                Icon = FluentIcons.GlobeSearch,
             },
             Targets = new Target[]
             {
                 new RegTarget("DisableSearchBoxSuggestions", new[] { @"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer", @"HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer" }, "DisableSearchBoxSuggestions", RegistryValueKind.DWord) { IsGroupPolicy = true },
                 new RegTarget("BingSearchEnabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search" }, "BingSearchEnabled", RegistryValueKind.DWord),
+                // The Settings toggle 26100.9445 and 26200.9445 added; the two values above still apply there too.
+                new RegTarget("IsWebSuggestionsEnabled", new[] { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings" }, "IsWebSuggestionsEnabled", RegistryValueKind.DWord)
+                {
+                    AppliesTo = new[]
+                    {
+                        new BuildRange(new WinBuild(26100, 9445), new WinBuild(26100, int.MaxValue)),
+                        new BuildRange(new WinBuild(26200, 9445), new WinBuild(26200, int.MaxValue)),
+                        new BuildRange(new WinBuild(26300), new WinBuild(int.MaxValue, int.MaxValue)),
+                    },
+                },
             },
             States = new[]
             {
@@ -451,14 +739,14 @@ Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinu
                 {
                     Label = LocKey.Common.Enabled,
                     Roles = new[] { StateRole.WindowsDefault },
-                    Set = new Dictionary<string, StateValue> { ["DisableSearchBoxSuggestions"] = Absent, ["BingSearchEnabled"] = Of(1).OrAbsent() },
+                    Set = new Dictionary<string, StateValue> { ["DisableSearchBoxSuggestions"] = Absent, ["BingSearchEnabled"] = Of(1).OrAbsent(), ["IsWebSuggestionsEnabled"] = Of(1).OrAbsent() },
                 },
                 new SettingState
                 {
                     Label = LocKey.Common.Disabled,
                     Roles = new[] { StateRole.Recommended },
                     IsFallback = true,
-                    Set = new Dictionary<string, StateValue> { ["DisableSearchBoxSuggestions"] = Of(1), ["BingSearchEnabled"] = Of(0) },
+                    Set = new Dictionary<string, StateValue> { ["DisableSearchBoxSuggestions"] = Of(1), ["BingSearchEnabled"] = Of(0), ["IsWebSuggestionsEnabled"] = Of(0) },
                 },
             },
         },
@@ -470,7 +758,7 @@ Stop-Process -Name 'StartMenuExperienceHost' -Force -ErrorAction SilentlyContinu
                 Name = LocKey.Setting.StartShutDownDialogDefault.Name,
                 Description = LocKey.Setting.StartShutDownDialogDefault.Description,
                 GroupName = LocKey.SettingGroup.StartMenuSettings,
-                Icon = MaterialIcons.PowerSettings,
+                Icon = FluentIcons.Power,
                 AddedInVersion = "26.10.02",
                 IsSubjectivePreference = true,
             },

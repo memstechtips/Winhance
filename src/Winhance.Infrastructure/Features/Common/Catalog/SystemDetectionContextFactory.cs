@@ -10,6 +10,7 @@ internal sealed class SystemDetectionContextFactory : ISystemDetectionContextFac
     private readonly IPowerSettingsQueryService _power;
     private readonly ILocalizationService _localization;
     private readonly ILogService _log;
+    private readonly ISystemParametersService _systemParameters;
 
     public SystemDetectionContextFactory(
         IWindowsRegistryService reg,
@@ -17,7 +18,8 @@ internal sealed class SystemDetectionContextFactory : ISystemDetectionContextFac
         IScheduledTaskStateService tasks,
         IPowerSettingsQueryService power,
         ILocalizationService localization,
-        ILogService log)
+        ILogService log,
+        ISystemParametersService systemParameters)
     {
         _reg = reg;
         _restore = restore;
@@ -25,8 +27,9 @@ internal sealed class SystemDetectionContextFactory : ISystemDetectionContextFac
         _power = power;
         _localization = localization;
         _log = log;
+        _systemParameters = systemParameters;
     }
 
     public IPrefetchableDetectionContext Create() =>
-        new SystemDetectionContext(_reg, _restore, _tasks, _power, _localization, _log);
+        new SystemDetectionContext(_reg, _restore, _tasks, _power, _localization, _log, _systemParameters);
 }

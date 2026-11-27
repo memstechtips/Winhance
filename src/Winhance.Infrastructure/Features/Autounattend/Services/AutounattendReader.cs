@@ -1,10 +1,13 @@
 using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
+using Winhance.Core.Features.Common.Catalog;
 using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Core.Features.Common.Selections;
+using Winhance.Infrastructure.Features.Autounattend.Helpers;
 
 namespace Winhance.Infrastructure.Features.Autounattend.Services;
 
@@ -49,7 +52,8 @@ internal sealed class AutounattendReader : IAutounattendReader
             if (config is not null)
             {
                 _migration.MigrateConfig(config);
-                AttachCarriedPictures(config, extensions);
+                AnswerFileConfig.Restore(config);
+                await AttachCarriedPicturesAsync(config, extensions, Path.GetDirectoryName(Path.GetFullPath(path))!).ConfigureAwait(false);
             }
             return new WinhanceAnswerFile(version, config);
         }
@@ -61,20 +65,35 @@ internal sealed class AutounattendReader : IAutounattendReader
     }
 
     // The writer carries each picture once, as a File element, so the choice that names it gets its bytes from there.
-    private static void AttachCarriedPictures(WinhanceConfigFile config, XElement extensions)
+    private async Task AttachCarriedPicturesAsync(WinhanceConfigFile config, XElement extensions, string mediaFolder)
     {
         var pictures = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var file in extensions.Elements(X + "File").Where(f => (string?)f.Attribute("encoding") == "base64"))
             pictures[(string?)file.Attribute("path") ?? string.Empty] = file.Value.Trim();
 
+        foreach (var file in MediaPayloads.List(extensions).Where(f => (string?)f.Attribute("encoding") == "base64"))
+        {
+            var bytes = await MediaPayloads.ReadAsync(_files, mediaFolder, file).ConfigureAwait(false);
+            pictures[(string?)file.Attribute("path") ?? string.Empty] = Convert.ToBase64String(bytes);
+        }
+
         var items = config.Optimize.Features.Values
             .Concat(config.Customize.Features.Values)
             .Concat(config.Autounattend.Features.Values)
             .SelectMany(section => section.Items);
+        var albums = new List<CarriedFile>();
         foreach (var item in items)
         {
             if (item.File is null && item.SelectedKey is { } key && pictures.TryGetValue(key, out var base64))
                 item.File = new CarriedFileItem { Destination = key, Base64 = base64 };
+            if (item.Text is not { Length: > 0 } folder || SettingCatalog.Find(item.Id)?.Targets.OfType<DesktopSlideshowTarget>().Any() != true)
+                continue;
+            foreach (var (path, picture) in pictures)
+            {
+                if (string.Equals(Path.GetDirectoryName(path), folder, StringComparison.OrdinalIgnoreCase) && PictureFileConstants.IsPicture(path))
+                    albums.Add(new CarriedFile(item.Id, path, picture));
+            }
         }
+        config.CarriedAlbumFiles = albums;
     }
 }

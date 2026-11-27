@@ -16,6 +16,8 @@ public interface ISelectAllSource : INotifyPropertyChanged
     bool IsAllSelectedWithUpdates { get; }
     bool HasUpdates { get; }
 
+    void ChangeSelection(Action change);
+
     IRelayCommand ToggleSelectAllCommand { get; }
     IRelayCommand ToggleSelectAllInstalledCommand { get; }
     IRelayCommand ToggleSelectAllNotInstalledCommand { get; }

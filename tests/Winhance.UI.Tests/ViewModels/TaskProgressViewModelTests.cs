@@ -2,6 +2,7 @@ using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.Infrastructure.Features.Common.Services;
 using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.ViewModels;
 using Xunit;
@@ -10,10 +11,14 @@ namespace Winhance.UI.Tests.ViewModels;
 
 public class TaskProgressViewModelTests : IDisposable
 {
+    private static readonly string[] ErrorOutput = ["error"];
+
     private readonly Mock<ITaskProgressService> _mockTaskProgressService = new();
     private readonly Mock<IDispatcherService> _mockDispatcherService = new();
     private readonly Mock<IDialogService> _mockDialogService = new();
     private readonly Mock<ILocalizationService> _mockLocalizationService = new();
+    private readonly Mock<IDebounceTimer> _hideTimer = new();
+    private Action? _hideTick;
 
     private readonly TaskProgressViewModel _sut;
 
@@ -25,11 +30,16 @@ public class TaskProgressViewModelTests : IDisposable
         _mockDispatcherService
             .Setup(d => d.RunOnUIThreadAsync(It.IsAny<Func<Task>>()))
             .Returns<Func<Task>>(f => f());
+        _mockDispatcherService
+            .Setup(d => d.CreateDebounceTimer(It.IsAny<TimeSpan>(), It.IsAny<Action>()))
+            .Callback<TimeSpan, Action>((_, tick) => _hideTick = tick)
+            .Returns(_hideTimer.Object);
 
         // Default localization returns null so fallbacks are used
         _mockLocalizationService
             .Setup(l => l.GetString(It.IsAny<string>()))
             .Returns((string key) => null!);
+        _mockTaskProgressService.Setup(s => s.GetTerminalOutputLines()).Returns(Array.Empty<string>());
 
         _sut = new TaskProgressViewModel(
             _mockTaskProgressService.Object,
@@ -126,16 +136,16 @@ public class TaskProgressViewModelTests : IDisposable
     }
 
     [Fact]
-    public void OnProgressUpdated_TaskRunning_ProgressZeroWithStatusText_SetsTaskFailed()
+    public void OnProgressUpdated_TaskRunning_ProgressZero_DoesNotMarkTheTaskFailed()
     {
         _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(true);
 
         _mockTaskProgressService.Raise(
             s => s.ProgressUpdated += null,
             this,
-            new TaskProgressDetail { Progress = 0, StatusText = "Error occurred" });
+            new TaskProgressDetail { Progress = 0, StatusText = "Starting" });
 
-        _sut.IsTaskFailed.Should().BeTrue();
+        _sut.IsTaskFailed.Should().BeFalse();
     }
 
     [Fact]
@@ -170,25 +180,35 @@ public class TaskProgressViewModelTests : IDisposable
     }
 
     [Fact]
-    public void OnProgressUpdated_TaskJustStopped_Failed_KeepsLoadingTrue()
+    public void OnProgressUpdated_TaskEndsFailedWithoutOutput_EndsLikeAnyOtherTask()
     {
         _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(true);
-
-        _mockTaskProgressService.Raise(
-            s => s.ProgressUpdated += null,
-            this,
-            new TaskProgressDetail { Progress = 0, StatusText = "Error" });
-
-        _sut.IsTaskFailed.Should().BeTrue();
-        _sut.IsLoading.Should().BeTrue();
+        _mockTaskProgressService.Raise(s => s.ProgressUpdated += null, this, new TaskProgressDetail { Progress = 0, StatusText = "Creating restore point" });
 
         _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(false);
-        _mockTaskProgressService.Raise(
-            s => s.ProgressUpdated += null,
-            this,
-            new TaskProgressDetail { StatusText = "" });
+        _mockTaskProgressService.Raise(s => s.ProgressUpdated += null, this, new TaskProgressDetail { Progress = 0, StatusText = "Creating restore point" });
 
-        _sut.IsLoading.Should().BeTrue();
+        _sut.IsTaskFailed.Should().BeFalse();
+        _hideTimer.Verify(t => t.Restart(), Times.Once);
+
+        _hideTick!();
+
+        _sut.IsLoading.Should().BeFalse();
+    }
+
+    [Fact]
+    public void FailTask_OnTheRealService_LeavesNoTaskRunningAndHidesTheBar()
+    {
+        var service = new TaskProgressService(Mock.Of<ILogService>());
+        using var sut = new TaskProgressViewModel(service, _mockDispatcherService.Object, _mockDialogService.Object, _mockLocalizationService.Object);
+
+        service.StartTask("Creating restore point");
+        service.FailTask();
+
+        service.IsTaskRunning.Should().BeFalse();
+        sut.IsTaskFailed.Should().BeFalse();
+        _hideTick!();
+        sut.IsLoading.Should().BeFalse();
     }
 
     [Fact]
@@ -201,9 +221,8 @@ public class TaskProgressViewModelTests : IDisposable
         _mockTaskProgressService.Raise(
             s => s.ProgressUpdated += null,
             this,
-            new TaskProgressDetail { Progress = 0, StatusText = "Cancelled" });
+            new TaskProgressDetail { Progress = 0, StatusText = "Working" });
 
-        _sut.IsTaskFailed.Should().BeTrue();
         _sut.IsLoading.Should().BeTrue();
 
         cts.Cancel();
@@ -212,33 +231,60 @@ public class TaskProgressViewModelTests : IDisposable
         _mockTaskProgressService.Raise(
             s => s.ProgressUpdated += null,
             this,
-            new TaskProgressDetail { StatusText = "" });
+            new TaskProgressDetail { Progress = 0, StatusText = "Working" });
 
         _sut.IsLoading.Should().BeFalse();
         _sut.IsTaskFailed.Should().BeFalse();
     }
 
     [Fact]
-    public void OnProgressUpdated_TaskJustStopped_FailedNotCancelled_ShowsClickToSeeDetails()
+    public void OnProgressUpdated_TaskJustStopped_Succeeded_HidesWhenTheTimerFires()
     {
-        var cts = new CancellationTokenSource();
         _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(true);
-        _mockTaskProgressService.Setup(s => s.CurrentTaskCancellationSource).Returns(cts);
-
-        _mockTaskProgressService.Raise(
-            s => s.ProgressUpdated += null,
-            this,
-            new TaskProgressDetail { Progress = 0, StatusText = "Error occurred" });
-
-        _sut.IsTaskFailed.Should().BeTrue();
+        _mockTaskProgressService.Raise(s => s.ProgressUpdated += null, this, new TaskProgressDetail { StatusText = "Working" });
 
         _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(false);
-        _mockTaskProgressService.Raise(
-            s => s.ProgressUpdated += null,
-            this,
-            new TaskProgressDetail { StatusText = "" });
+        _mockTaskProgressService.Raise(s => s.ProgressUpdated += null, this, new TaskProgressDetail { StatusText = "Done" });
 
         _sut.IsLoading.Should().BeTrue();
+        _hideTimer.Verify(t => t.Restart(), Times.Once);
+
+        _hideTick!();
+
+        _sut.IsLoading.Should().BeFalse();
+    }
+
+    [Fact]
+    public void OnProgressUpdated_TaskEndsFailedWithOutput_OffersCloseAndTheDetails()
+    {
+        _mockLocalizationService.Setup(l => l.GetString("Progress_ClickToSeeDetails")).Returns("Click to see details");
+        _mockTaskProgressService.Setup(s => s.GetTerminalOutputLines()).Returns(ErrorOutput);
+        _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(true);
+        _mockTaskProgressService.Raise(s => s.ProgressUpdated += null, this, new TaskProgressDetail { StatusText = "Installing" });
+
+        _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(false);
+        _mockTaskProgressService.Raise(s => s.ProgressUpdated += null, this, new TaskProgressDetail { Progress = 0, StatusText = "Installing" });
+
+        _sut.IsTaskFailed.Should().BeTrue();
+        _sut.IsLoading.Should().BeTrue();
+        _sut.LastTerminalLine.Should().Be("Click to see details");
+        _hideTimer.Verify(t => t.Restart(), Times.Never);
+    }
+
+    [Fact]
+    public void LanguageChanged_WhileFailed_RelocalizesTheClickToSeeDetailsLine()
+    {
+        _mockLocalizationService.Setup(l => l.GetString("Progress_ClickToSeeDetails")).Returns("Klicken Sie hier");
+        _mockTaskProgressService.Setup(s => s.GetTerminalOutputLines()).Returns(ErrorOutput);
+        _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(true);
+        _mockTaskProgressService.Raise(s => s.ProgressUpdated += null, this, new TaskProgressDetail { StatusText = "Installing" });
+        _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(false);
+        _mockTaskProgressService.Raise(s => s.ProgressUpdated += null, this, new TaskProgressDetail { Progress = 0, StatusText = "Installing" });
+
+        _mockLocalizationService.Setup(l => l.GetString("Progress_ClickToSeeDetails")).Returns("Click to see details");
+        _mockLocalizationService.Raise(l => l.LanguageChanged += null, this, EventArgs.Empty);
+
+        _sut.LastTerminalLine.Should().Be("Click to see details");
     }
 
     [Fact]
@@ -352,21 +398,42 @@ public class TaskProgressViewModelTests : IDisposable
     }
 
     [Fact]
-    public void CancelCommand_DelegatesToTaskProgressService()
+    public void CancelCommand_WhileRunning_CancelsAndShowsCancellingUntilTheTaskEnds()
     {
+        _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(true);
+        _mockTaskProgressService.Raise(s => s.ProgressUpdated += null, this, new TaskProgressDetail { StatusText = "Creating restore point" });
+
         _sut.CancelCommand.Execute(null);
 
         _mockTaskProgressService.Verify(s => s.CancelCurrentTask(), Times.Once);
+        _sut.IsCancelling.Should().BeTrue();
+        _sut.IsLoading.Should().BeTrue();
+
+        _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(false);
+        _mockTaskProgressService.Raise(s => s.ProgressUpdated += null, this, new TaskProgressDetail { Progress = 0, StatusText = "Creating restore point" });
+
+        _sut.IsCancelling.Should().BeFalse();
+        _sut.IsLoading.Should().BeFalse();
+        _sut.IsTaskFailed.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CancelCommand_WithNoTaskRunning_DoesNothing()
+    {
+        _sut.CancelCommand.Execute(null);
+
+        _mockTaskProgressService.Verify(s => s.CancelCurrentTask(), Times.Never);
+        _sut.IsCancelling.Should().BeFalse();
     }
 
     [Fact]
     public void CloseFailedTaskCommand_ResetsLoadingAndFailedState()
     {
+        _mockTaskProgressService.Setup(s => s.GetTerminalOutputLines()).Returns(ErrorOutput);
         _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(true);
-        _mockTaskProgressService.Raise(
-            s => s.ProgressUpdated += null,
-            this,
-            new TaskProgressDetail { Progress = 0, StatusText = "Error" });
+        _mockTaskProgressService.Raise(s => s.ProgressUpdated += null, this, new TaskProgressDetail { StatusText = "Installing" });
+        _mockTaskProgressService.Setup(s => s.IsTaskRunning).Returns(false);
+        _mockTaskProgressService.Raise(s => s.ProgressUpdated += null, this, new TaskProgressDetail { Progress = 0, StatusText = "Installing" });
 
         _sut.IsTaskFailed.Should().BeTrue();
         _sut.IsLoading.Should().BeTrue();
@@ -390,6 +457,12 @@ public class TaskProgressViewModelTests : IDisposable
     }
 
     [Fact]
+    public void CancellingLabel_ReturnsFallbackWhenLocalizationReturnsNull()
+    {
+        _sut.CancellingLabel.Should().Be("Cancelling...");
+    }
+
+    [Fact]
     public void LanguageChanged_NotifiesButtonLabels()
     {
         var changedProperties = new List<string>();
@@ -399,6 +472,7 @@ public class TaskProgressViewModelTests : IDisposable
 
         changedProperties.Should().Contain(nameof(_sut.CancelButtonLabel));
         changedProperties.Should().Contain(nameof(_sut.CloseButtonLabel));
+        changedProperties.Should().Contain(nameof(_sut.CancellingLabel));
     }
 
     [Fact]

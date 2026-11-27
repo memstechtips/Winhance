@@ -1,4 +1,5 @@
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.SoftwareApps.Enums;
 using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Core.Features.SoftwareApps.Catalogs;
@@ -19,6 +20,7 @@ public static class CapabilityDefinitions
                     Name = "Internet Explorer",
                     Description = "Legacy web browser",
                     GroupName = "Browser",
+                    Kind = WindowsAppKind.Capability,
                     CapabilityName = "Browser.InternetExplorer",
                     CanBeReinstalled = false
                 },
@@ -28,6 +30,7 @@ public static class CapabilityDefinitions
                     Name = "PowerShell ISE",
                     Description = "Legacy script editor for Windows PowerShell with debugger and IntelliSense",
                     GroupName = "Development",
+                    Kind = WindowsAppKind.Capability,
                     CapabilityName = "Microsoft.Windows.PowerShell.ISE",
                     CanBeReinstalled = true
                 },
@@ -37,6 +40,7 @@ public static class CapabilityDefinitions
                     Name = "Quick Assist (Legacy)",
                     Description = "Older Quick Assist remote help app, replaced by the Microsoft Store version",
                     GroupName = "System",
+                    Kind = WindowsAppKind.Capability,
                     CapabilityName = "App.Support.QuickAssist",
                     CanBeReinstalled = false
                 },
@@ -46,6 +50,7 @@ public static class CapabilityDefinitions
                     Name = "Steps Recorder",
                     Description = "Captures screenshots of each click for documenting steps in a problem report",
                     GroupName = "Utilities",
+                    Kind = WindowsAppKind.Capability,
                     CapabilityName = "App.StepsRecorder",
                     CanBeReinstalled = true
                 },
@@ -55,6 +60,7 @@ public static class CapabilityDefinitions
                     Name = "Windows Media Player",
                     Description = "Classic media player for music, video, CDs, and DVDs",
                     GroupName = "Media",
+                    Kind = WindowsAppKind.Capability,
                     CapabilityName = "Media.WindowsMediaPlayer",
                     CanBeReinstalled = true
                 },
@@ -64,6 +70,7 @@ public static class CapabilityDefinitions
                     Name = "WordPad",
                     Description = "Rich text editor for RTF and DOC files; removed by default in Windows 11 24H2",
                     GroupName = "Productivity",
+                    Kind = WindowsAppKind.Capability,
                     CapabilityName = "Microsoft.Windows.WordPad",
                     CanBeReinstalled = false
                 },
@@ -73,6 +80,7 @@ public static class CapabilityDefinitions
                     Name = "Notepad (Legacy)",
                     Description = "Original Notepad without tabs, AI rewrite, or autosave",
                     GroupName = "Productivity",
+                    Kind = WindowsAppKind.Capability,
                     CapabilityName = "Microsoft.Windows.Notepad",
                     CanBeReinstalled = false
                 },
@@ -82,6 +90,7 @@ public static class CapabilityDefinitions
                     Name = "Paint (Legacy)",
                     Description = "Original Win32 Paint binary, kept for users who prefer the old interface",
                     GroupName = "Graphics",
+                    Kind = WindowsAppKind.Capability,
                     CapabilityName = "Microsoft.Windows.MSPaint",
                     CanBeReinstalled = false
                 },
@@ -91,6 +100,7 @@ public static class CapabilityDefinitions
                     Name = "OpenSSH Client",
                     Description = "Secure Shell client for remote connections",
                     GroupName = "Networking",
+                    Kind = WindowsAppKind.Capability,
                     CapabilityName = "OpenSSH.Client",
                     CanBeReinstalled = true
                 },
@@ -100,6 +110,7 @@ public static class CapabilityDefinitions
                     Name = "OpenSSH Server",
                     Description = "Secure Shell server for remote connections",
                     GroupName = "Networking",
+                    Kind = WindowsAppKind.Capability,
                     CapabilityName = "OpenSSH.Server",
                     CanBeReinstalled = true
                 }

@@ -46,6 +46,9 @@ TranslateMessage
 DispatchMessage
 PostQuitMessage
 SetTimer
+KillTimer
+SetProcessWorkingSetSize
+GetCurrentProcess
 WM_TIMER
 WM_CLOSE
 
@@ -62,3 +65,16 @@ SHCreateItemFromParsingName
 COMDLG_FILTERSPEC
 FILEOPENDIALOGOPTIONS
 SIGDN
+
+// --diag's native memory breakdown: committed regions, process heaps, and each adapter's video memory for the process
+VirtualQuery
+GetProcessHeaps
+HeapSummary
+CreateDXGIFactory1
+IDXGIFactory1
+IDXGIAdapter3
+
+// Hands the heaps' cached free blocks back to Windows after Software & Apps drops its view
+HeapSetInformation
+HEAP_OPTIMIZE_RESOURCES_INFORMATION
+HEAP_OPTIMIZE_RESOURCES_CURRENT_VERSION

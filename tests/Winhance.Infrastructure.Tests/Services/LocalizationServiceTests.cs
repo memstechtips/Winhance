@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Interfaces;
@@ -257,7 +258,98 @@ public sealed class LocalizationServiceTests : IDisposable
         sut.GetString("SettingGroup_Other").Should().Be("[Sonstige]");
     }
 
-    private static LocalizationService ServiceWith(params (string Lang, string Json)[] files)
+    [Fact]
+    public void GetAvailableLanguages_ReadsTheLanguageFilesOnce()
+    {
+        var sut = ServiceWith(
+            ("en", """{ "_Meta_LanguageDisplayName": "English" }"""),
+            ("de", """{ "_Meta_LanguageDisplayName": "Deutsch (German)" }"""));
+
+        var first = sut.GetAvailableLanguages();
+
+        first.Select(l => l.DisplayName).Should().Equal("English", "Deutsch (German)");
+        sut.GetAvailableLanguages().Should().BeSameAs(first);
+    }
+
+    [Fact]
+    public void English_IsParsedOnceAcrossStartupAndTheLanguageList()
+    {
+        var mockFs = new Mock<IFileSystemService>();
+        mockFs.Setup(f => f.CombinePath(It.IsAny<string[]>()))
+            .Returns((string[] parts) => string.Join("\\", parts));
+        mockFs.Setup(f => f.DirectoryExists(It.IsAny<string>()))
+            .Returns(true);
+        mockFs.Setup(f => f.GetFiles(It.IsAny<string>(), "*.json"))
+            .Returns(EnglishOnly);
+        mockFs.Setup(f => f.GetFileNameWithoutExtension(It.IsAny<string>()))
+            .Returns((string path) => Path.GetFileNameWithoutExtension(path));
+        mockFs.Setup(f => f.FileExists(It.Is<string>(s => s.EndsWith("en.json"))))
+            .Returns(true);
+        mockFs.Setup(f => f.ReadAllText(It.Is<string>(s => s.EndsWith("en.json"))))
+            .Returns("{\"Greeting\": \"Hello\"}");
+
+        var sut = new LocalizationService(mockFs.Object);
+        sut.SetLanguage("en");
+        sut.GetAvailableLanguages();
+
+        sut.GetString("Greeting").Should().Be("Hello");
+        mockFs.Verify(f => f.ReadAllText(It.Is<string>(s => s.EndsWith("en.json"))), Times.Once);
+    }
+
+    // Each language file is about 300 KB of JSON, so listing the languages must not parse the ones not shown.
+    [Fact]
+    public void LanguageList_ParsesNoLanguageButEnglishAndTheCurrentOne()
+    {
+        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
+        var sut = ServiceWith(
+            out var files,
+            ("en", """{ "Greeting": "Hello", "_Meta_LanguageDisplayName": "English" }"""),
+            ("de", """{ "Greeting": "Hallo", "_Meta_LanguageDisplayName": "Deutsch (German)" }"""),
+            ("fr", "{ \"Long\": \"" + new string('x', 10_000) + "\", \"_Meta_LanguageDisplayName\": \"Fran\u00e7ais (French)\" }"),
+            ("sv", """{ "Greeting": "Hej" }"""));
+        sut.SetLanguage("de");
+
+        sut.GetAvailableLanguages().Select(l => l.DisplayName).Should()
+            .Equal("English", "Deutsch (German)", "Fran\u00e7ais (French)", CultureInfo.GetCultureInfo("sv").NativeName);
+
+        files.Verify(f => f.ReadAllText(It.Is<string>(s => s.EndsWith("en.json"))), Times.Once);
+        files.Verify(f => f.ReadAllText(It.Is<string>(s => s.EndsWith("de.json"))), Times.Once);
+        files.Verify(f => f.ReadAllText(It.Is<string>(s => s.EndsWith("fr.json") || s.EndsWith("sv.json"))), Times.Never);
+    }
+
+    [Fact]
+    public void KeepOnly_DropsOtherKeysFromEnglishAndTheCurrentLanguage()
+    {
+        var sut = ServiceWith(
+            ("en", """{ "Tray_Open": "Open", "Other": "Other", "Profiles_X": "X" }"""),
+            ("de", """{ "Tray_Open": "\u00d6ffnen", "Other": "Andere" }"""));
+        sut.SetLanguage("de");
+
+        sut.KeepOnly("Tray_", "Profiles_");
+
+        sut.GetString("Tray_Open").Should().Be("\u00d6ffnen");
+        sut.GetString("Profiles_X").Should().Be("X", "the English fallback keeps the kept keys");
+        sut.TryGetString("Other", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public void KeepOnly_AlsoFiltersALanguageLoadedLater()
+    {
+        var sut = ServiceWith(
+            ("en", """{ "Tray_Open": "Open", "Other": "Other" }"""),
+            ("de", """{ "Tray_Open": "\u00d6ffnen", "Other": "Andere" }"""));
+        sut.SetLanguage("en");
+        sut.KeepOnly("Tray_");
+
+        sut.SetLanguage("de");
+
+        sut.GetString("Tray_Open").Should().Be("\u00d6ffnen");
+        sut.TryGetString("Other", out _).Should().BeFalse();
+    }
+
+    private static LocalizationService ServiceWith(params (string Lang, string Json)[] files) => ServiceWith(out _, files);
+
+    private static LocalizationService ServiceWith(out Mock<IFileSystemService> fileSystem, params (string Lang, string Json)[] files)
     {
         var mockFs = new Mock<IFileSystemService>();
         mockFs.Setup(f => f.CombinePath(It.IsAny<string[]>()))
@@ -275,8 +367,11 @@ public sealed class LocalizationServiceTests : IDisposable
                 .Returns(true);
             mockFs.Setup(f => f.ReadAllText(It.Is<string>(s => s.EndsWith($"{lang}.json"))))
                 .Returns(json);
+            mockFs.Setup(f => f.OpenRead(It.Is<string>(s => s.EndsWith($"{lang}.json"))))
+                .Returns(() => new MemoryStream(Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(json)).ToArray()));
         }
 
+        fileSystem = mockFs;
         return new LocalizationService(mockFs.Object);
     }
 }

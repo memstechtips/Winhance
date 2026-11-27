@@ -27,6 +27,8 @@
       <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2</dpiAwareness>
       <!-- Enable long path support -->
       <longPathAware xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">true</longPathAware>
+      <!-- The segment heap hands freed memory back to Windows; the default heap keeps it committed (Windows 10 2004+) -->
+      <heapType xmlns="http://schemas.microsoft.com/SMI/2020/WindowsSettings">SegmentHeap</heapType>
     </asmv3:windowsSettings>
   </asmv3:application>
 </assembly>

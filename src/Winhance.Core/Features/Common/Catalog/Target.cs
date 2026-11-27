@@ -14,7 +14,7 @@ public abstract record Target(string Key)
 }
 
 // Multiple Paths = a mirror (write all, read the first non-null).
-public sealed record RegTarget(
+public record RegTarget(
     string Key,
     IReadOnlyList<string> Paths,
     string? ValueName,
@@ -42,6 +42,10 @@ public sealed record RegTarget(
     public static bool IsPolicyPath(string path) =>
         path.Contains(@"\SOFTWARE\Policies\", StringComparison.OrdinalIgnoreCase);
 }
+
+// Settings reads this value through SystemParametersInfo, not the registry, until the next sign-in.
+public sealed record MessageDurationTarget() : RegTarget(
+    "MessageDuration", [@"HKEY_CURRENT_USER\Control Panel\Accessibility"], "MessageDuration", RegistryValueKind.DWord);
 
 public sealed record PowerCfgTarget(
     string Key,

@@ -11,6 +11,8 @@ public interface IDetectionContext
     // Only used to describe a malformed value in the log; detection never branches on it.
     Microsoft.Win32.RegistryValueKind? GetValueKind(string keyPath, string? valueName) => null;
 
+    object? GetMessageDuration(MessageDurationTarget target) => GetValue(target.Paths[0], target.ValueName);
+
     string[] GetSubKeyNames(string keyPath);
 
     bool KeyExists(string keyPath);

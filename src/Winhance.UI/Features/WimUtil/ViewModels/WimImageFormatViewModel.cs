@@ -3,8 +3,10 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Winhance.Core.Features.WimUtil.Interfaces;
 using Winhance.Core.Features.WimUtil.Models;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
+using Winhance.UI.Features.Common.Helpers;
 using Winhance.UI.Features.Common.Interfaces;
 
 namespace Winhance.UI.Features.WimUtil.ViewModels;
@@ -38,7 +40,11 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
     public bool IsImageLocked { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDuringSetup), nameof(ShowEditionCard))]
     public partial bool IsBuiltIntoImage { get; set; }
+
+    public bool IsDuringSetup => !IsBuiltIntoImage;
+    public bool ShowEditionCard => IsBuiltIntoImage && ShowConversionCard;
 
     public ObservableCollection<ImageEdition> EditionChoices { get; } = [];
 
@@ -52,6 +58,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
     public partial ImageFormatInfo? CurrentImageFormat { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowEditionCard))]
     public partial bool ShowConversionCard { get; set; }
 
     [ObservableProperty]
@@ -95,9 +102,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
     partial void OnCurrentImageFormatChanged(ImageFormatInfo? value)
     {
         var kept = SelectedEdition?.Name;
-        EditionChoices.Clear();
-        foreach (var edition in value?.Editions ?? [])
-            EditionChoices.Add(edition);
+        EditionChoices.ReplaceInPlace(value?.Editions ?? []);
         SelectedEdition = EditionChoices.FirstOrDefault(e => e.Name == kept) ?? EditionChoices.FirstOrDefault();
     }
 
@@ -126,18 +131,6 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
         }
     }
 
-    public async Task SafeDetectImageFormatAsync()
-    {
-        try
-        {
-            await DetectImageFormatAsync();
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Unhandled error in image format detection: {ex.Message}", ex);
-        }
-    }
-
     [RelayCommand]
     private async Task DeleteWimAsync()
     {
@@ -150,7 +143,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
             return;
         }
 
-        try
+        await _dialogService.RunOrShowErrorAsync(_logService, async () =>
         {
             var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
             {
@@ -183,13 +176,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_DeleteFailed"));
             }
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error deleting WIM: {ex.Message}", ex);
-            await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_DeleteError"), ex.Message));
-        }
+        }, ex => _localizationService.GetString("WIMUtil_Msg_DeleteError", ex.Message));
     }
 
     [RelayCommand]
@@ -204,7 +191,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
             return;
         }
 
-        try
+        await _dialogService.RunOrShowErrorAsync(_logService, async () =>
         {
             var confirmed = (await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
             {
@@ -237,13 +224,7 @@ public partial class WimImageFormatViewModel : ObservableObject, IDisposable
                 await _dialogService.ShowErrorAsync(
                     _localizationService.GetString("WIMUtil_Msg_DeleteFailed"));
             }
-        }
-        catch (Exception ex)
-        {
-            _logService.LogError($"Error deleting ESD: {ex.Message}", ex);
-            await _dialogService.ShowErrorAsync(
-                string.Format(_localizationService.GetString("WIMUtil_Msg_DeleteError"), ex.Message));
-        }
+        }, ex => _localizationService.GetString("WIMUtil_Msg_DeleteError", ex.Message));
     }
 
     public void Dispose()

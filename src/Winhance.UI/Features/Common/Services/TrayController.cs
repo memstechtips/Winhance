@@ -306,13 +306,20 @@ public sealed class TrayController(
         trayIcon.ShowNotification(title, message);
     }
 
-    // The same close as the window's X: the running-operation check, the daily support dialog, then shutdown.
+    // The same close as the window's X: the running-operation check, the daily support dialog, then shutdown. With
+    // the window hidden and nothing running, the support ask gets its own small window rather than the whole app.
     public async Task ExitAsync()
     {
         if (_exiting)
             return;
 
         _exiting = true;
+        if (_window is { AppWindow.IsVisible: false } && !taskProgress.IsTaskRunning)
+        {
+            await closeService.ExitWithoutWindowAsync();
+            return;
+        }
+
         ShowWindow();
         var result = await closeService.CheckOperationsAndCloseAsync();
         if (!result.Success)

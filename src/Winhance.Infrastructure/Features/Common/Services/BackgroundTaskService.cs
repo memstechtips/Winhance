@@ -17,6 +17,7 @@ namespace Winhance.Infrastructure.Features.Common.Services;
 internal partial class BackgroundTaskService(
     ILogService logService,
     IScheduledTaskService scheduledTaskService,
+    IScheduledTaskStateService scheduledTaskState,
     IWindowsRegistryService registry,
     IInstalledAppsService installedAppsService,
     IBloatRemovalService bloatRemovalService,
@@ -34,6 +35,9 @@ internal partial class BackgroundTaskService(
     internal const string StatusKey = KeptKey + @"\Status";
 
     private const string ReturnCountSuffix = ".ReturnCount";
+
+    private const string LegacyOneNoteTask = "OneNoteRemoval";
+    private const string LegacyPerAppTaskPrefix = "Remove_";
 
     [GeneratedRegex(@"ReadAllText\('(?<path>(?:[^']|'')*)'\)")]
     private static partial Regex ScriptPathInArguments();
@@ -127,7 +131,7 @@ internal partial class BackgroundTaskService(
     public async Task<bool> IsKeepRemovedOnAsync() =>
         GetMode() == KeepRemovedMode.Winhance
             ? IsWinhanceEnabled()
-            : (await GetRemovalTasksAsync().ConfigureAwait(false)).Count > 0 || (!KeptIds().Any() && IsWinhanceEnabled());
+            : await HasScriptsAsync().ConfigureAwait(false) || (!KeptIds().Any() && IsWinhanceEnabled());
 
     public async Task<OperationResult> SetKeepRemovedOnAsync(bool on)
     {
@@ -162,7 +166,7 @@ internal partial class BackgroundTaskService(
         }
         else
         {
-            hadScripts = (await GetRemovalTasksAsync().ConfigureAwait(false)).Count > 0;
+            hadScripts = await HasScriptsAsync().ConfigureAwait(false);
             converted = await ImportAndDeleteScriptsAsync().ConfigureAwait(false);
         }
 
@@ -187,19 +191,13 @@ internal partial class BackgroundTaskService(
         foreach (var name in KeepRemovedModeStore.RemovalTaskNames)
         {
             var task = tasks.FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-            var scriptPath = task is not null && ScriptPathInArguments().Match(task.Arguments) is { Success: true } match
-                ? match.Groups["path"].Value.Replace("''", "'")
-                : KeepRemovedModeStore.ScriptPath(fileSystem, name);
+            var scriptPath = RegisteredScriptPath(task) ?? KeepRemovedModeStore.ScriptPath(fileSystem, name);
             var scriptExists = fileSystem.FileExists(scriptPath);
             if (task is null && !scriptExists)
                 continue;
 
-            var health = task is null ? RemovalTaskHealth.NoTask
-                : !scriptExists ? RemovalTaskHealth.ScriptMissing
-                : !task.Enabled ? RemovalTaskHealth.TaskDisabled
-                : RemovalTaskHealth.Active;
             var content = scriptExists ? await fileSystem.ReadAllTextAsync(scriptPath).ConfigureAwait(false) : string.Empty;
-            states.Add(new RemovalTaskState(name, health, scriptPath, task?.LastRun, task?.LastResult, ItemsOf(name, content)));
+            states.Add(new RemovalTaskState(name, task?.Enabled, scriptExists, scriptPath, task?.LastRun, task?.LastResult, ItemsOf(name, content)));
         }
 
         return states;
@@ -207,6 +205,9 @@ internal partial class BackgroundTaskService(
 
     public async Task<OperationResult> RepairRemovalTaskAsync(string name)
     {
+        if (!IsFolderSecure())
+            return OperationResult.Failed("The Winhance script folder is not protected from non-administrators.");
+
         var state = (await GetRemovalTasksAsync().ConfigureAwait(false))
             .FirstOrDefault(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
         if (state is null)
@@ -224,21 +225,32 @@ internal partial class BackgroundTaskService(
         }
 
         await bloatRemovalService.PersistRemovalScriptsAsync(items).ConfigureAwait(false);
-        return OperationResult.Succeeded();
+        var repaired = (await GetRemovalTasksAsync().ConfigureAwait(false))
+            .FirstOrDefault(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        return repaired?.Health == RemovalTaskHealth.Active
+            ? OperationResult.Succeeded()
+            : OperationResult.Failed("The removal task could not be repaired.");
     }
 
     public async Task<OperationResult> RemoveRemovalTaskAsync(string name)
     {
+        if (!KeepRemovedModeStore.RemovalTaskNames.Contains(name, StringComparer.Ordinal))
+            return OperationResult.Failed($"'{name}' is not a Winhance removal task.");
+
         var scriptPath = KeepRemovedModeStore.ScriptPath(fileSystem, name);
         var content = fileSystem.FileExists(scriptPath)
             ? await fileSystem.ReadAllTextAsync(scriptPath).ConfigureAwait(false)
             : string.Empty;
+        var result = await DeleteTaskAndScriptAsync(name).ConfigureAwait(false);
+        if (!result.Success)
+            return result;
+
         var ids = ScriptMigrationService.ResolveKeptIds(name, content)
-            .Concat(Catalog.Value.Values.Where(item => item.RemovalScriptName == name).Select(item => item.Id));
+            .Concat(ResolveKeptItems().Where(item => BelongsTo(item, name)).Select(item => item.Id));
         foreach (var id in ids.Distinct(StringComparer.OrdinalIgnoreCase))
             RemoveKeptApp(id);
 
-        return await DeleteTaskAndScriptAsync(name).ConfigureAwait(false);
+        return result;
     }
 
     public async Task<bool> IsTaskSafetyOkAsync()
@@ -249,17 +261,23 @@ internal partial class BackgroundTaskService(
         if (GetMode() != KeepRemovedMode.Scripts)
             return true;
 
-        var folder = Path.GetFullPath(ScriptPaths.ScriptsDirectory).TrimEnd('\\') + '\\';
-        return (await GetRemovalTasksAsync().ConfigureAwait(false))
-            .Where(state => state.Health != RemovalTaskHealth.NoTask)
-            .All(state => Path.GetFullPath(state.ScriptPath).StartsWith(folder, StringComparison.OrdinalIgnoreCase));
+        return (await scheduledTaskService.GetWinhanceTasksAsync().ConfigureAwait(false))
+            .Where(task => KeepRemovedModeStore.RemovalTaskNames.Contains(task.Name, StringComparer.OrdinalIgnoreCase))
+            .All(task => string.Equals(RegisteredScriptPath(task),
+                KeepRemovedModeStore.ScriptPath(fileSystem, task.Name), StringComparison.OrdinalIgnoreCase));
     }
 
-    public async Task RepairTaskSafetyAsync()
+    public async Task<OperationResult> RepairTaskSafetyAsync()
     {
         SecureFolder();
-        if (GetMode() == KeepRemovedMode.Scripts)
-            await bloatRemovalService.PersistRemovalScriptsAsync([.. Catalog.Value.Values]).ConfigureAwait(false);
+        if (!IsFolderSecure())
+            return OperationResult.Failed("The Winhance script folder could not be protected from non-administrators.");
+
+        // Locking existing files does not prove their contents are safe to execute. Do not
+        // re-register scripts from an installation that just failed a safety check.
+        return await IsTaskSafetyOkAsync().ConfigureAwait(false)
+            ? OperationResult.Succeeded()
+            : OperationResult.Failed("The Winhance background tasks could not be made safe.");
     }
 
     public async Task<KeepRemovedStatus> MaintainAsync(CancellationToken ct = default)
@@ -342,9 +360,12 @@ internal partial class BackgroundTaskService(
                 logService.LogInformation("Deleted the old Keep removed apps SYSTEM task");
             }
 
-            if (registry.GetValue(KeptKey, KeepRemovedModeStore.ModeValue) is not string)
+            // An older Winhance run on the same PC can add scripts after Winhance mode was chosen. The mode follows what is
+            // there, so the page shows them and turning keeping off or switching to Winhance mode deletes them.
+            var scripts = await HasScriptsAsync().ConfigureAwait(false);
+            if (registry.GetValue(KeptKey, KeepRemovedModeStore.ModeValue) is not string
+                || (scripts && GetMode() == KeepRemovedMode.Winhance))
             {
-                var scripts = (await GetRemovalTasksAsync().ConfigureAwait(false)).Count > 0;
                 if (scripts)
                     RecordKeptApps(await ScriptKeptIdsAsync().ConfigureAwait(false));
 
@@ -354,6 +375,7 @@ internal partial class BackgroundTaskService(
 
             await FoldOldSignInTasksAsync().ConfigureAwait(false);
             await SyncSignInTaskAsync().ConfigureAwait(false);
+            await EnsureEdgeRedirectRepairAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -365,17 +387,82 @@ internal partial class BackgroundTaskService(
     {
         var tasks = await scheduledTaskService.GetWinhanceTasksAsync().ConfigureAwait(false);
         var task = tasks.FirstOrDefault(t => t.Name.Equals(ScriptPaths.OpenWebSearchTaskName, StringComparison.OrdinalIgnoreCase));
-        var folder = ScriptPaths.OpenWebSearchDirectoryLiteral;
-        var folderExists = fileSystem.DirectoryExists(folder);
-        if (task is null && !folderExists)
-            return null;
-
-        var health = task is null ? RemovalTaskHealth.NoTask
-            : !folderExists ? RemovalTaskHealth.ScriptMissing
-            : !task.Enabled ? RemovalTaskHealth.TaskDisabled
-            : RemovalTaskHealth.Active;
-        return new RemovalTaskState(ScriptPaths.OpenWebSearchTaskName, health, folder, task?.LastRun, task?.LastResult, []);
+        var script = EdgeRedirectRepairScriptPath();
+        var scriptExists = fileSystem.FileExists(script);
+        return task is null && !scriptExists && !HasManagedEdgeRedirect()
+            ? null
+            : new RemovalTaskState(ScriptPaths.OpenWebSearchTaskName, task?.Enabled, scriptExists, script, task?.LastRun, task?.LastResult, []);
     }
+
+    private bool HasManagedEdgeRedirect()
+    {
+        var folder = ScriptPaths.OpenWebSearchDirectoryLiteral;
+        var stub = fileSystem.CombinePath(folder, EdgeRemovalScript.RedirectStubName);
+        return registry.GetValue(EdgeRemovalScript.RedirectFilterKey, "FilterFullPath") is string target
+            && stub.Equals(target, StringComparison.OrdinalIgnoreCase)
+            && fileSystem.FileExists(stub)
+            && fileSystem.FileExists(fileSystem.CombinePath(folder, EdgeRemovalScript.RedirectCommandName));
+    }
+
+    internal async Task EnsureEdgeRedirectRepairAsync()
+    {
+        if (!HasManagedEdgeRedirect() || !IsFolderSecure())
+            return;
+
+        var name = ScriptPaths.OpenWebSearchTaskName;
+        var script = EdgeRedirectRepairScriptPath();
+        var tasks = await scheduledTaskService.GetWinhanceTasksAsync().ConfigureAwait(false);
+        var task = tasks.FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        if (task is { Enabled: true } && script.Equals(RegisteredScriptPath(task), StringComparison.OrdinalIgnoreCase)
+            && fileSystem.FileExists(script))
+            return;
+
+        var content = EdgeRemovalScript.GetRepairScript();
+        await fileSystem.WriteAllTextAsync(script, content).ConfigureAwait(false);
+        var result = await scheduledTaskService.RegisterScheduledTaskAsync(new RemovalScript
+        {
+            Name = name,
+            TargetScheduledTaskName = name,
+            ActualScriptPath = script,
+            Content = content,
+        }).ConfigureAwait(false);
+
+        if (result.Success && task is { Enabled: false })
+            result = await SetTaskEnabledAsync(name, true).ConfigureAwait(false);
+        if (!result.Success)
+            logService.LogWarning($"Could not restore the Edge link repair task: {result.ErrorMessage}");
+    }
+
+    public async Task<OperationResult> SetBackgroundTaskEnabledAsync(string name, bool enabled)
+    {
+        if (!KeepRemovedModeStore.RemovalTaskNames.Contains(name, StringComparer.Ordinal))
+            return OperationResult.Failed($"'{name}' is not a managed Winhance background task.");
+
+        if (enabled)
+        {
+            var tasks = await scheduledTaskService.GetWinhanceTasksAsync().ConfigureAwait(false);
+            var task = tasks.FirstOrDefault(task => task.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            var script = KeepRemovedModeStore.ScriptPath(fileSystem, name);
+            if (task is null || !fileSystem.FileExists(script))
+                return OperationResult.Failed("The task and its script must both exist before it can be enabled.");
+
+            if (!script.Equals(RegisteredScriptPath(task), StringComparison.OrdinalIgnoreCase) || !IsFolderSecure())
+                return OperationResult.Failed("The task must use its Winhance script in a folder protected from non-administrators.");
+        }
+
+        return await SetTaskEnabledAsync(name, enabled).ConfigureAwait(false);
+    }
+
+    private Task<OperationResult> SetTaskEnabledAsync(string name, bool enabled) =>
+        Task.Run(() => scheduledTaskState.SetTaskEnabled($@"{ScriptPaths.TaskFolder}\{name}", enabled));
+
+    private static string? RegisteredScriptPath(WinhanceTaskInfo? task) =>
+        task is not null && ScriptPathInArguments().Match(task.Arguments) is { Success: true } match
+            ? match.Groups["path"].Value.Replace("''", "'")
+            : null;
+
+    private string EdgeRedirectRepairScriptPath() =>
+        fileSystem.CombinePath(ScriptPaths.OpenWebSearchDirectoryLiteral, ScriptPaths.OpenWebSearchTaskName + ".ps1");
 
     public async Task<IReadOnlyList<WinhanceTaskInfo>> GetOtherTasksAsync() =>
         (await scheduledTaskService.GetWinhanceTasksAsync().ConfigureAwait(false))
@@ -449,39 +536,78 @@ internal partial class BackgroundTaskService(
                 return deleted;
         }
 
+        foreach (var task in await LegacyRemovalTasksAsync().ConfigureAwait(false))
+        {
+            var deleted = await scheduledTaskService.UnregisterScheduledTaskAsync(task.Name).ConfigureAwait(false);
+            if (!deleted.Success)
+                return deleted;
+        }
+
         logService.LogInformation($"Moved {ids.Count} kept app(s) from the removal scripts to the kept list");
         return OperationResult.Succeeded();
     }
 
     private async Task<HashSet<string>> ScriptKeptIdsAsync()
     {
+        // Only tasks or scripts that exist: an Edge or OneDrive name alone resolves to its app, which would then be removed.
         var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var name in KeepRemovedModeStore.RemovalTaskNames)
+        foreach (var state in await GetRemovalTasksAsync().ConfigureAwait(false))
         {
-            var scriptPath = KeepRemovedModeStore.ScriptPath(fileSystem, name);
+            var scriptPath = KeepRemovedModeStore.ScriptPath(fileSystem, state.Name);
             var content = fileSystem.FileExists(scriptPath)
                 ? await fileSystem.ReadAllTextAsync(scriptPath).ConfigureAwait(false)
                 : string.Empty;
-            ids.UnionWith(ScriptMigrationService.ResolveKeptIds(name, content));
+            ids.UnionWith(ScriptMigrationService.ResolveKeptIds(state.Name, content));
         }
+
+        foreach (var task in await LegacyRemovalTasksAsync().ConfigureAwait(false))
+            ids.UnionWith(LegacyTaskIds(task.Name)!);
 
         return ids;
     }
 
-    private async Task<OperationResult> DeleteTaskAndScriptAsync(string name)
+    private async Task<bool> HasScriptsAsync() =>
+        (await GetRemovalTasksAsync().ConfigureAwait(false)).Count > 0
+        || (await LegacyRemovalTasksAsync().ConfigureAwait(false)).Count > 0;
+
+    private async Task<List<WinhanceTaskInfo>> LegacyRemovalTasksAsync() =>
+        [.. (await scheduledTaskService.GetWinhanceTasksAsync().ConfigureAwait(false)).Where(t => LegacyTaskIds(t.Name) is not null)];
+
+    // The WPF releases (25.05 and earlier) kept OneNote in a task of its own and every other app in Remove_<package name,
+    // dots as underscores>, running scripts from Program Files. Those tasks still run on PCs that never removed them.
+    // Null for any other name.
+    internal static IReadOnlyList<string>? LegacyTaskIds(string taskName)
     {
-        if (await scheduledTaskService.IsTaskRegisteredAsync(name).ConfigureAwait(false))
+        if (taskName.Equals(LegacyOneNoteTask, StringComparison.OrdinalIgnoreCase))
+            return ["windows-app-onenote"];
+
+        if (!taskName.StartsWith(LegacyPerAppTaskPrefix, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var package = taskName[LegacyPerAppTaskPrefix.Length..];
+        return [.. Catalog.Value.Values
+            .Where(item => (item.AppxPackageName ?? []).Any(name => name.Replace('.', '_').Equals(package, StringComparison.OrdinalIgnoreCase)))
+            .Select(item => item.Id)];
+    }
+
+    private async Task<OperationResult> DeleteTaskAndScriptAsync(string name, string? scriptPath = null)
+    {
+        var result = await scheduledTaskService.UnregisterScheduledTaskAsync(name).ConfigureAwait(false);
+        if (!result.Success)
+            return result;
+
+        scriptPath ??= KeepRemovedModeStore.ScriptPath(fileSystem, name);
+        try
         {
-            var result = await scheduledTaskService.UnregisterScheduledTaskAsync(name).ConfigureAwait(false);
-            if (!result.Success)
-                return result;
+            if (fileSystem.FileExists(scriptPath))
+                fileSystem.DeleteFile(scriptPath);
+
+            return OperationResult.Succeeded();
         }
-
-        var scriptPath = KeepRemovedModeStore.ScriptPath(fileSystem, name);
-        if (fileSystem.FileExists(scriptPath))
-            fileSystem.DeleteFile(scriptPath);
-
-        return OperationResult.Succeeded();
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return OperationResult.Failed(ex.Message, ex);
+        }
     }
 
     private IReadOnlyList<string> ItemsOf(string taskName, string scriptContent)

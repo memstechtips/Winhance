@@ -64,7 +64,11 @@ internal class ConfigImportDialogBuilder
             : "ms-appx:///Assets/AppIcons/winhance-rocket-black-transparent-bg.png";
         var recIcon = new Image
         {
-            Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new System.Uri(logoUri)),
+            Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new System.Uri(logoUri))
+            {
+                DecodePixelWidth = 24,
+                DecodePixelType = Microsoft.UI.Xaml.Media.Imaging.DecodePixelType.Logical,
+            },
             Width = 24,
             Height = 24,
             VerticalAlignment = VerticalAlignment.Center

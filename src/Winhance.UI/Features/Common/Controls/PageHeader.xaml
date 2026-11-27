@@ -22,7 +22,7 @@
                     <VisualState.Setters>
                         <Setter Target="IconBox.Width" Value="32"/>
                         <Setter Target="IconBox.Height" Value="32"/>
-                        <Setter Target="TitleStack.Spacing" Value="10"/>
+                        <Setter Target="TitleRow.ColumnSpacing" Value="10"/>
                         <Setter Target="TitleText.FontSize" Value="20"/>
                         <Setter Target="DescriptionText.Visibility" Value="Collapsed"/>
                     </VisualState.Setters>
@@ -34,26 +34,34 @@
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
-        <StackPanel x:Name="TitleStack" Grid.Column="0" Orientation="Horizontal" Spacing="16">
+        <Grid x:Name="TitleRow" Grid.Column="0" ColumnSpacing="{StaticResource PageHeaderSpacing}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
             <Viewbox x:Name="IconBox" Width="64" Height="64" Stretch="Uniform">
                 <fluentIcons:FluentIcon Icon="{x:Bind Icon}" IconVariant="Color"/>
             </Viewbox>
-            <StackPanel VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
                 <TextBlock
                     x:Name="TitleText"
                     Text="{x:Bind Title}"
                     Style="{StaticResource TitleTextBlockStyle}"
                     FontWeight="Bold"
                     FontSize="30"
+                    TextWrapping="WrapWholeWords"
+                    TextTrimming="CharacterEllipsis"
+                    MaxLines="2"
+                    IsTextTrimmedChanged="TitleText_IsTextTrimmedChanged"
                     AutomationProperties.HeadingLevel="Level1"/>
                 <TextBlock
                     x:Name="DescriptionText"
                     Text="{x:Bind Description}"
                     Style="{StaticResource CaptionTextBlockStyle}"
                     Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                    Margin="0,2,0,0"/>
+                    Margin="{StaticResource DescriptionTopMargin}"/>
             </StackPanel>
-        </StackPanel>
+        </Grid>
         <ContentPresenter Grid.Column="1" VerticalAlignment="Bottom" Content="{x:Bind Actions}"/>
     </Grid>
 </UserControl>

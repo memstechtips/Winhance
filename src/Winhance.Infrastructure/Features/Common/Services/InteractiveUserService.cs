@@ -12,6 +12,7 @@ using Windows.Win32.Security;
 using Windows.Win32.System.RemoteDesktop;
 using Windows.Win32.System.Threading;
 using Winhance.Core.Features.Common.Enums;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Infrastructure.Features.SoftwareApps.Services.WinGet.Utilities;
 
@@ -337,7 +338,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
     {
         if (!_isOtsElevation || _interactiveUserToken.IsNull)
         {
-            _ = _processExecutor.ShellExecuteAsync(fileName, arguments);
+            _processExecutor.ShellExecuteAsync(fileName, arguments).FireAndForget(_logService);
             return;
         }
 
@@ -362,7 +363,7 @@ internal class InteractiveUserService : IInteractiveUserService, IDisposable
                 var error = Marshal.GetLastWin32Error();
                 _logService.Log(LogLevel.Warning,
                     $"LaunchProcessAsInteractiveUser: CreateProcessWithTokenW failed (error {error}), falling back to ShellExecuteAsync");
-                _ = _processExecutor.ShellExecuteAsync(fileName, arguments);
+                _processExecutor.ShellExecuteAsync(fileName, arguments).FireAndForget(_logService);
                 return;
             }
 

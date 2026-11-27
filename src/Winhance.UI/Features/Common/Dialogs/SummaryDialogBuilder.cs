@@ -25,6 +25,7 @@ internal class SummaryDialogBuilder(ILocalizationService localization)
             Width = Math.Clamp(xamlRoot.Size.Width - 96, 320, 680),
         };
 
+        ScrollViewer? itemList = null;
         if (!string.IsNullOrEmpty(request.Message))
             content.Children.Add(new TextBlock { Text = request.Message, TextWrapping = TextWrapping.Wrap });
 
@@ -62,18 +63,13 @@ internal class SummaryDialogBuilder(ILocalizationService localization)
                     sections.Children.Add(BuildTableGroup(group));
             }
 
-            content.Children.Add(new ScrollViewer
+            itemList = new ScrollViewer
             {
                 Content = sections,
-                // The dialog does not scroll its own content, so the list gives up the height of everything else
-                // in the window or the checkbox below it is squeezed flat (measured on a 722 DIP window).
-                MaxHeight = Math.Max(160, xamlRoot.Size.Height - 300
-                    - (request.Verdict is null ? 0 : 72)
-                    - (request.Table is null ? 0 : 28)
-                    - (string.IsNullOrEmpty(request.CheckboxText) ? 0 : 44)),
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 Padding = new Thickness(0, 0, 16, 0),
-            });
+            };
+            content.Children.Add(itemList);
         }
 
         if (!string.IsNullOrEmpty(request.CheckboxText))
@@ -86,7 +82,7 @@ internal class SummaryDialogBuilder(ILocalizationService localization)
         var dialog = new ContentDialog
         {
             Title = request.Title,
-            Content = content,
+            Content = DialogListLayout.Wrap(xamlRoot, content, itemList, DialogListLayout.SummaryListLimit),
             PrimaryButtonText = asks ? request.ConfirmButtonText : string.Empty,
             CloseButtonText = !string.IsNullOrEmpty(request.CancelButtonText)
                 ? request.CancelButtonText

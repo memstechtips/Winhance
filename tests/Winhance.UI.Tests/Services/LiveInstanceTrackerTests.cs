@@ -66,7 +66,7 @@ public class LiveInstanceTrackerTests
     }
 
     [Fact]
-    public void Shared_UntilDiagMemoryTurnsItOn_IsDisabled() =>
+    public void Shared_UntilDiagTurnsItOn_IsDisabled() =>
         LiveInstanceTracker.Shared.Enabled.Should().BeFalse();
 
     [Fact]

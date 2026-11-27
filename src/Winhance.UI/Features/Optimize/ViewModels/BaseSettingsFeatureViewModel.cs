@@ -20,6 +20,8 @@ namespace Winhance.UI.Features.Optimize.ViewModels;
 
 public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISettingsFeatureViewModel
 {
+    private static readonly string[] LocalizedProperties = [nameof(DisplayName)];
+
     protected readonly ISettingsLoadingService _settingsLoadingService;
     protected readonly ILogService _logService;
     protected readonly ILocalizationService _localizationService;
@@ -31,7 +33,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     private bool _isSubscribed = false;
     private readonly SemaphoreSlim _loadingSemaphore = new(1, 1);
     private const int SearchDebounceMs = 150;
-    private CancellationTokenSource? _searchDebounceTokenSource;
+    private IDebounceTimer? _searchDebounceTimer;
     private ISubscriptionToken? _settingAppliedSubscription;
     private ISubscriptionToken? _filterStateChangedSubscription;
     private ISubscriptionToken? _reviewModeExitedSubscription;
@@ -49,6 +51,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     private IDebounceTimer? _relatedRefreshTimer;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasVisibleSettings), nameof(SettingsCount), nameof(GroupDescriptionText))]
     public partial ObservableCollection<SettingItemViewModel> Settings { get; set; }
 
     [ObservableProperty]
@@ -59,6 +62,8 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     [ObservableProperty]
     public partial string SearchText { get; set; }
+
+    public bool NeedsRebuild { get; private set; }
 
     public abstract string ModuleId { get; }
     public virtual string DisplayName => GetDisplayName();
@@ -127,7 +132,7 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         _settingAppliedSubscription = _eventBus.Subscribe<SettingAppliedEvent>(OnSettingApplied);
         _filterStateChangedSubscription = _eventBus.SubscribeAsync<FilterStateChangedEvent>(OnFilterStateChangedAsync);
         _reviewModeExitedSubscription = _eventBus.Subscribe<ReviewModeExitedEvent>(OnReviewModeExited);
-        _authoringModeExitedSubscription = _eventBus.SubscribeAsync<AuthoringModeExitedEvent>(OnAuthoringModeExitedAsync);
+        _authoringModeExitedSubscription = _eventBus.Subscribe<AuthoringModeExitedEvent>(OnAuthoringModeExited);
         _builderSeededSubscription = _eventBus.Subscribe<BuilderSeededEvent>(OnBuilderSeeded);
     }
 
@@ -282,7 +287,8 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         {
             _settingsLoaded = false;
 
-            OnPropertyChanged(nameof(DisplayName));
+            foreach (var name in LocalizedProperties)
+                OnPropertyChanged(name);
             await LoadSettingsAsync();
 
             // Notify pages that settings were recreated so they can re-apply view state (badges, etc.)
@@ -310,18 +316,14 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         });
     }
 
-    private async Task OnAuthoringModeExitedAsync(AuthoringModeExitedEvent e)
-    {
-        // The mode we just left moved the toggles to authored, un-applied positions on the shared
-        // VMs. Reload from live system state so what is on screen is the truth again. Only touch
-        // features that are actually loaded — unopened ones read fresh system state on first open.
-        //
-        // A total rebuild rather than a per-field reset, and that is why this side needs no overlay
-        // the way review state does: the ViewModels are disposed and recreated, so a newly added
-        // field cannot survive the transition. There is no cleanup list here to fall out of date.
-        if (Settings?.Any() != true) return;
-        await RefreshSettingsAsync();
-    }
+    // The mode we just left moved the toggles to authored, un-applied positions on the shared VMs, so they are
+    // rebuilt from live system state before they are shown again. A total rebuild rather than a per-field reset,
+    // and that is why this side needs no overlay the way review state does: the ViewModels are disposed and
+    // recreated, so a newly added field cannot survive the transition. The rebuild runs on the feature's next
+    // navigation (RefreshOnNavigationAsync) rather than here, where rebuilding every loaded feature inside the
+    // publish blocks the UI thread; the page on screen rebuilds what it shows straight away. Only loaded features
+    // subscribe, and unopened ones read live state on first open.
+    private void OnAuthoringModeExited(AuthoringModeExitedEvent e) => NeedsRebuild = true;
 
     // The seed records its edits after these cards were built from live state, so their toggles still show the
     // machine. Cards built after the seed pick it up in SettingViewModelFactory instead.
@@ -343,11 +345,12 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
     // settings, all of them in Power, so nine of the ten features reconcile to "nothing moved" and never
     // touch the visual tree - which is where the saving is, since the cost the user sees is the WinUI layout
     // pass, not the managed work. Authoring exit deliberately does NOT come through here; see
-    // OnAuthoringModeExitedAsync for why that one still tears everything down.
+    // OnAuthoringModeExited for why that one still tears the feature down.
     private async Task ApplyFilterScopeChangeAsync()
     {
-        // An unopened feature reads fresh state when it is first opened, so there is nothing to reconcile.
-        if (!_settingsLoaded || Settings is null || Settings.Count == 0)
+        // An unopened feature reads fresh state when it is first opened, and a stale one is rebuilt against the
+        // scope current then, so neither has anything to reconcile.
+        if (!_settingsLoaded || NeedsRebuild || Settings is null || Settings.Count == 0)
             return;
 
         try
@@ -436,24 +439,13 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     partial void OnSearchTextChanged(string value)
     {
-        var newCts = new CancellationTokenSource();
-        var oldCts = Interlocked.Exchange(ref _searchDebounceTokenSource, newCts);
-        oldCts?.Cancel();
-        oldCts?.Dispose();
-        var token = newCts.Token;
+        // Before the first load there is nothing to filter; the load applies SearchText itself.
+        if (Settings.Count == 0)
+            return;
 
-        Task.Run(async () =>
-        {
-            try
-            {
-                // Filters once typing pauses, so a fast typist re-lays out the list once rather than per key.
-                await Task.Delay(SearchDebounceMs, token).ConfigureAwait(false);
-                _dispatcherService.RunOnUIThread(ApplyVisibility);
-            }
-            catch (OperationCanceledException)
-            {
-            }
-        });
+        // Filters once typing pauses, so a fast typist re-lays out the list once rather than per key.
+        _searchDebounceTimer ??= _dispatcherService.CreateDebounceTimer(TimeSpan.FromMilliseconds(SearchDebounceMs), ApplyVisibility);
+        _searchDebounceTimer.Restart();
     }
 
     public virtual async Task LoadSettingsAsync()
@@ -471,6 +463,9 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 return;
 
             IsLoading = true;
+
+            // Cleared before the read, so an authoring exit that lands while this load is in flight still counts.
+            NeedsRebuild = false;
 
             if (Settings?.Any() == true)
             {
@@ -492,18 +487,8 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             RebuildSettingIndexes();
             RebuildGroupedSettings();
 
-            OnPropertyChanged(nameof(HasVisibleSettings));
-            OnPropertyChanged(nameof(SettingsCount));
-            OnPropertyChanged(nameof(GroupDescriptionText));
-
             _settingsLoaded = true;
             _logService.Log(LogLevel.Info, $"{ModuleId}: Successfully loaded {Settings.Count} settings, HasVisibleSettings={HasVisibleSettings}");
-        }
-        catch (Exception ex)
-        {
-            _settingsLoaded = false;
-            _logService.Log(LogLevel.Error, $"Error loading {DisplayName} settings: {ex.Message}");
-            throw;
         }
         finally
         {
@@ -541,19 +526,22 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
         }
         catch (Exception ex)
         {
-            _logService.Log(LogLevel.Error, $"Error refreshing settings: {ex.Message}");
+            _logService.Log(LogLevel.Error, $"Error refreshing {DisplayName} settings: {ex.Message}");
         }
     }
+
+    // Before the first load there is nothing to refresh: the page's own load reads live state, so a first open
+    // reads the system once.
+    public Task RefreshOnNavigationAsync() => NeedsRebuild ? RefreshSettingsAsync() : RefreshSettingStatesAsync();
 
     public virtual async Task RefreshSettingStatesAsync()
     {
         if (!_settingsLoaded || Settings == null || Settings.Count == 0)
             return;
 
-        // Builder mode authors un-applied state into these ViewModels. The section pages
-        // call this on every navigation to keep Normal mode truthful, but re-reading the
-        // system here would clobber the authored Builder values — skip until Builder exit,
-        // which reloads from live state anyway (AuthoringModeExitedEvent).
+        // Builder mode authors un-applied state into these ViewModels. A navigation refresh
+        // keeps Normal mode truthful, but re-reading the system here would clobber the authored
+        // Builder values - skip until Builder exit, which has the feature rebuilt from live state.
         if (_applicationModeService.Capabilities().AuthorsIntent)
             return;
 
@@ -707,14 +695,11 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     private void RefreshLastChild()
     {
-        foreach (var (parentId, children) in _childrenByParentId)
+        foreach (var children in _childrenByParentId.Values)
         {
             var last = children.LastOrDefault(child => child.EffectiveIsVisible);
             foreach (var child in children)
                 child.IsLastChild = ReferenceEquals(child, last);
-
-            if (_settingsById.TryGetValue(parentId, out var parent))
-                parent.HasVisibleChildren = last is not null;
         }
     }
 
@@ -843,11 +828,6 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
 
     private void RebuildGroupedSettings()
     {
-        GroupedSettings.Clear();
-
-        if (Settings == null || Settings.Count == 0)
-            return;
-
         var otherGroupName = _localizationService.TryGetString("SettingGroup_General", out var localizedOther)
             ? localizedOther
             : "General";
@@ -873,11 +853,11 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
             groupSettings.Add(setting);
         }
 
+        // Clear then Add, not ReplaceInPlace: the grouped CollectionViewSource over this takes Reset and Add, and an
+        // indexed Replace of a group crashes XAML natively (0xc000027b).
+        GroupedSettings.Clear();
         foreach (var groupName in groupOrder)
-        {
-            var group = new SettingsGroup(groupName, groupedDict[groupName]);
-            GroupedSettings.Add(group);
-        }
+            GroupedSettings.Add(new SettingsGroup(groupName, groupedDict[groupName]));
     }
 
     protected override void Dispose(bool disposing)
@@ -913,9 +893,8 @@ public abstract partial class BaseSettingsFeatureViewModel : BaseViewModel, ISet
                 Settings.Clear();
             }
 
-            var cts = Interlocked.Exchange(ref _searchDebounceTokenSource, null);
-            cts?.Cancel();
-            cts?.Dispose();
+            _searchDebounceTimer?.Stop();
+            _searchDebounceTimer = null;
 
             _settingsById = new Dictionary<string, SettingItemViewModel>();
             _childrenByParentId = new Dictionary<string, List<SettingItemViewModel>>();

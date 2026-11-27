@@ -10,7 +10,6 @@ public class DocsCatalogExportShapeTests
 {
     private static readonly EnJsonLocalization Loc = EnJsonLocalization.Load();
     private static readonly DocsExport Export = DocsCatalogExport.Build(Loc, "0.0.0");
-    private static readonly string[] IconPacks = { "Material", "Fluent", "AppAsset" };
 
     private static DocsSetting Find(string id) =>
         Export.Features.SelectMany(f => f.Settings).Single(s => s.Id == id);
@@ -84,9 +83,9 @@ public class DocsCatalogExportShapeTests
     {
         var settings = Export.Features.SelectMany(f => f.Settings).ToList();
         Assert.All(settings, s => Assert.False(string.IsNullOrEmpty(s.Icon?.Name), $"{s.Id} has no icon"));
-        Assert.All(settings, s => Assert.Contains(s.Icon!.Pack, IconPacks));
-        Assert.Equal("MonitorSpeaker", Find("sound-startup").Icon!.Name);
-        Assert.Equal(new DocsIcon("AppAsset", "winhance-rocket-card.png"), Find("autounattend-desktop-shortcut").Icon);
+        Assert.All(settings, s => Assert.Equal("Fluent", s.Icon!.Pack));
+        Assert.Equal("DesktopSpeaker", Find("sound-startup").Icon!.Name);
+        Assert.Equal(new DocsIcon("Fluent", "Rocket"), Find("autounattend-desktop-shortcut").Icon);
     }
 
     [Fact]
@@ -211,13 +210,14 @@ public class DocsCatalogExportShapeTests
     {
         var feature = Export.Features.Single(f => f.Id == "TimeRegionLanguage");
 
-        feature.Settings.Should().HaveCount(12);
-        // The region cards lead the page and are all keyed; the moved format ones follow. Counting keyed settings
-        // across the whole feature would not say that, since the short date is keyed too.
+        feature.Settings.Should().HaveCount(14);
+        // The region cards lead the page and are all keyed, beside the two automatic-time toggles; the moved format
+        // ones follow. Counting keyed settings across the whole feature would not say that, since the short date is
+        // keyed too.
         var formats = Loc.GetString("SettingGroup_Formats");
         var region = feature.Settings.TakeWhile(s => s.Group != formats).ToList();
-        region.Should().HaveCount(6);
-        region.Select(s => s.Control).Should().AllBe("KeyedSelection");
+        region.Should().HaveCount(8);
+        region.Where(s => s.Control != "Toggle").Select(s => s.Control).Should().HaveCount(6).And.AllBe("KeyedSelection");
         feature.Settings.Should().Contain(s => s.Id == "region-short-date"
             && s.Group == formats);
     }

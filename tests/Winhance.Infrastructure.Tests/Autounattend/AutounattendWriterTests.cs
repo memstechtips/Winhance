@@ -72,6 +72,6 @@ public class AutounattendWriterTests
         await Sut().WriteAsync(SelectionSet.Empty, CatalogScope.CurrentMachine with { TargetBuild = target }, OutputPath);
 
         _builder.Verify(b => b.BuildAsync(SelectionSet.Empty, ParityCatalog.ByFeature, target), Times.Once);
-        _written.Should().Contain("\"TargetBuild\": 26300");
+        _written.Should().Contain("\"TargetBuild\":26300");
     }
 }

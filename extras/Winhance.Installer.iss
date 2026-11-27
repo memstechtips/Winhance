@@ -103,14 +103,15 @@ begin
       end;
     end;
     
-    // Delete all subdirectories except Scripts
+    // Preserve scripts and portable user data
     if FindFirst(OldInstallPath + '\*.*', FindRec) then
     begin
       try
         repeat
           if ((FindRec.Attributes and FILE_ATTRIBUTE_DIRECTORY) <> 0) and
              (FindRec.Name <> '.') and (FindRec.Name <> '..') and
-             (CompareText(FindRec.Name, 'Scripts') <> 0) then
+             (CompareText(FindRec.Name, 'Scripts') <> 0) and
+             (CompareText(FindRec.Name, 'Data') <> 0) then
             DelTree(OldInstallPath + '\' + FindRec.Name, True, True, True);
         until not FindNext(FindRec);
       finally

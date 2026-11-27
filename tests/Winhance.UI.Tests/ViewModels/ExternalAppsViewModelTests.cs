@@ -333,6 +333,39 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
+    public async Task StatusText_OnALanguageSwitch_IsReadAgainInTheNewLanguage()
+    {
+        var sut = CreateSut();
+        await sut.RecheckInstallationStatusAsync();
+        var changed = new List<string?>();
+        sut.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+        _localizationService.Setup(l => l.GetString(It.IsAny<string>())).Returns<string>(k => $"fr:{k}");
+
+        _localizationService.Raise(l => l.LanguageChanged += null, EventArgs.Empty);
+
+        changed.Should().Contain(nameof(sut.StatusText));
+        sut.StatusText.Should().Be("fr:Progress_WaitForInitialLoad");
+    }
+
+    [Fact]
+    public async Task RecheckInstallationStatusAsync_AfterALanguageSwitch_ShowsTheLoaderInTheNewLanguage()
+    {
+        _externalAppsService.Setup(s => s.GetAppsAsync()).ReturnsAsync(Enumerable.Empty<ItemDefinition>());
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        string? loaderText = null;
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), It.IsAny<StatusRules>(), It.IsAny<CancellationToken>()))
+            .Callback(() => loaderText = sut.StatusText)
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool>()));
+        _localizationService.Setup(l => l.GetString(It.IsAny<string>())).Returns<string>(k => $"fr:{k}");
+        _localizationService.Raise(l => l.LanguageChanged += null, EventArgs.Empty);
+
+        await sut.RecheckInstallationStatusAsync();
+
+        loaderText.Should().Be("fr:Progress_LoadingExternalApps");
+    }
+
+    [Fact]
     public async Task RecheckInstallationStatusAsync_WhenInitialized_InvalidatesCacheAndRefreshes()
     {
         _externalAppsService.Setup(s => s.GetAppsAsync())
@@ -403,6 +436,130 @@ public class ExternalAppsViewModelTests
         _dialogService.Verify(d => d.ShowWarningAsync(
             It.Is<string>(s => s.Contains("ExternalApps_NoSelection_Uninstall")),
             It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UninstallAppsAsync_WhenTheUninstallThrows_ShowsTheErrorAndFailsTheTask()
+    {
+        _externalAppsService.Setup(s => s.GetAppsAsync())
+            .ReturnsAsync(new[] { CreateTestItem("app1") });
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { ["app1"] = true }));
+        _dialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true, CheckboxChecked = false });
+        _externalAppsService.Setup(s => s.UninstallAppAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+        _progressService.Setup(p => p.CreateDetailedProgress())
+            .Returns(new Progress<TaskProgressDetail>());
+        _localizationService.Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Returns<string, object[]>((key, args) => $"{key}: {string.Join(", ", args)}");
+
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        sut.Items[0].IsSelected = true;
+
+        await sut.UninstallAppsAsync();
+
+        _dialogService.Verify(d => d.ShowErrorAsync(
+            It.Is<string>(s => s.StartsWith("Progress_WinGet_UninstallationError") && s.Contains("boom")),
+            It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _progressService.Verify(p => p.FailTask(), Times.Once);
+        sut.IsTaskRunning.Should().BeFalse();
+    }
+
+    private void GivenUninstallFails(ItemDefinition app, bool stillInstalled)
+    {
+        GivenCatalogForInstall(app);
+        _installedAppsService.Setup(s => s.GetInstalledAppsAsync(It.IsAny<IReadOnlyList<ItemDefinition>>(), StatusRules.External, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InstalledAppsScan([], true, new Dictionary<string, bool> { [app.Id] = stillInstalled }));
+        _dialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true, CheckboxChecked = false });
+        _externalAppsService.Setup(s => s.UninstallAppAsync(It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>>()))
+            .ReturnsAsync(OperationResult<bool>.Failed("uninstall failed"));
+    }
+
+    [Fact]
+    public async Task UninstallAppsAsync_AppNotOnThisPc_SaysSoInOneWarning()
+    {
+        GivenUninstallFails(CreateTestItem("app1", "7-Zip"), stillInstalled: false);
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        sut.Items[0].IsSelected = true;
+
+        await sut.UninstallAppsAsync();
+
+        _dialogService.Verify(d => d.ShowWarningAsync(
+            It.Is<string>(m => m.Contains("ExternalApps_UninstallNotFound") && m.Contains("7-Zip") && !m.Contains("ExternalApps_UninstallFailed")),
+            It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _dialogService.Verify(d => d.ShowWarningAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UninstallAppsAsync_AppStillInstalledAfterTheRun_NamesItAsNotRemoved()
+    {
+        GivenUninstallFails(CreateTestItem("app1", "Brave"), stillInstalled: true);
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        sut.Items[0].IsSelected = true;
+
+        await sut.UninstallAppsAsync();
+
+        _dialogService.Verify(d => d.ShowWarningAsync(
+            It.Is<string>(m => m.Contains("ExternalApps_UninstallFailed") && m.Contains("Brave") && !m.Contains("ExternalApps_UninstallNotFound")),
+            It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UninstallAppsAsync_CancelledRun_WarnsOfNothing()
+    {
+        GivenUninstallFails(CreateTestItem("app1", "Brave"), stillInstalled: true);
+        var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        _progressService.Setup(p => p.StartTask(It.IsAny<string>(), It.IsAny<bool>())).Returns(cancelled);
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        sut.Items[0].IsSelected = true;
+
+        await sut.UninstallAppsAsync();
+
+        _dialogService.Verify(d => d.ShowWarningAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task InstallAppsAsync_WhenTheInstallThrows_ShowsTheErrorAndFailsTheTask()
+    {
+        GivenCatalogForInstall(CreateTestItem("app1", "Alpha"));
+        _dialogService.Setup(d => d.ShowConfirmationAsync(It.IsAny<ConfirmationRequest>()))
+            .ReturnsAsync(new ConfirmationResponse { Confirmed = true });
+        _appInstallationService.Setup(s => s.InstallAppAsync(
+                It.IsAny<ItemDefinition>(), It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<bool>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        sut.Items[0].IsSelected = true;
+
+        await sut.InstallAppsAsync();
+
+        _dialogService.Verify(d => d.ShowErrorAsync(
+            It.Is<string>(s => s.StartsWith("Progress_WinGet_InstallationError") && s.Contains("Alpha") && s.Contains("boom")),
+            It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _progressService.Verify(p => p.FailTask(), Times.Once);
+        sut.IsTaskRunning.Should().BeFalse();
+        sut.Items[0].IsSelected.Should().BeTrue("an app that did not install stays ticked for another try");
+    }
+
+    [Fact]
+    public async Task RecheckInstallationStatusAsync_WhenTheRecheckThrows_ThrowsAndClearsLoading()
+    {
+        var sut = CreateSut();
+        await sut.LoadAppsAndCheckInstallationStatusAsync();
+        _installedAppsService.Setup(s => s.Invalidate()).Throws(new InvalidOperationException("boom"));
+
+        var recheck = () => sut.RecheckInstallationStatusAsync();
+
+        await recheck.Should().ThrowAsync<InvalidOperationException>();
+        sut.IsLoading.Should().BeFalse();
     }
 
     [Fact]
@@ -789,6 +946,62 @@ public class ExternalAppsViewModelTests
     }
 
     [Fact]
+    public async Task SelectAllInstalled_WhenTheSearchShowsNoTickedInstalledApp_IsUnticked()
+    {
+        var sut = await CreateScannedSut();
+        var boxes = new SelectAllBoxes(sut);
+        sut.Items.Single(i => i.Id == "app1").IsSelected = true;
+
+        sut.SearchText = "7-";
+
+        sut.IsAllSelectedInstalled.Should().BeFalse();
+        boxes.ShouldShowWhatTheRowsSay();
+    }
+
+    [Fact]
+    public async Task ToggleSelectAll_WhileSearching_TicksOnlyTheShownRows()
+    {
+        var sut = await CreateScannedSut();
+        sut.SearchText = "7-";
+
+        sut.ToggleSelectAllCommand.Execute(null);
+
+        sut.Items.Single(i => i.Id == "app2").IsSelected.Should().BeTrue();
+        sut.Items.Single(i => i.Id == "app1").IsSelected.Should().BeFalse();
+        sut.IsAllSelected.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SelectAllBoxes_WhenAnUntickedRowTurnsOutInstalled_FollowTheRows()
+    {
+        var sut = await CreateScannedSut();
+        sut.Items.Single(i => i.Id == "app1").IsSelected = true;
+        var boxes = new SelectAllBoxes(sut);
+
+        sut.Items.Single(i => i.Id == "app2").IsInstalled = true;
+
+        sut.IsAllSelectedInstalled.Should().BeFalse();
+        boxes.ShouldShowWhatTheRowsSay();
+    }
+
+    [Fact]
+    public async Task SelectAll_WhenANewSearchDropsTheOnlyUntickedRow_FollowsTheRows()
+    {
+        var sut = await CreateScannedSut();
+        GivenWinGetSearch("player", WinGetPackageItem.Create("Contoso.Player", "Contoso Player"));
+        await sut.SearchPackagesAsync("player", CancellationToken.None);
+        sut.Items.Single(i => i.Id == "app1").IsSelected = true;
+        sut.Items.Single(i => i.Id == "app2").IsSelected = true;
+        var boxes = new SelectAllBoxes(sut);
+        GivenWinGetSearch("zzz");
+
+        await sut.SearchPackagesAsync("zzz", CancellationToken.None);
+
+        sut.IsAllSelected.Should().BeTrue();
+        boxes.ShouldShowWhatTheRowsSay();
+    }
+
+    [Fact]
     public async Task SelectAllWithUpdates_Notifies_WhenAnAppGainsAnUpdate()
     {
         var sut = await CreateScannedSut(FirefoxScan());
@@ -847,7 +1060,80 @@ public class ExternalAppsViewModelTests
         await sut.SearchPackagesAsync("player", CancellationToken.None);
 
         sut.Items.Should().NotContain(i => i.Id == "winget-VideoLAN.VLC").And.Contain(i => i.Id == "winget-Contoso.Player");
-        sut.PackageSearchStatus.Should().Be("ExternalApps_PackageSearch_Found: 1");
+        sut.PackageSearchStatus.Should().Be("ExternalApps_PackageSearch_Found_One: 1");
+    }
+
+    [Fact]
+    public async Task SearchPackagesAsync_KeepsEarlierTickedResultsAndCountsThemApart()
+    {
+        var sut = await CreateScannedSut();
+        GivenWinGetSearch("player", WinGetPackageItem.Create("VideoLAN.VLC", "VLC media player"), WinGetPackageItem.Create("Contoso.Player", "Contoso Player"));
+        await sut.SearchPackagesAsync("player", CancellationToken.None);
+        sut.Items.Single(i => i.Id == "winget-VideoLAN.VLC").IsSelected = true;
+        sut.Items.Single(i => i.Id == "winget-Contoso.Player").IsSelected = true;
+        GivenWinGetSearch("aimp", WinGetPackageItem.Create("Saurik.CydiaImpactor", "Cydia Impactor"), WinGetPackageItem.Create("Contoso.Player", "Contoso Player"));
+
+        await sut.SearchPackagesAsync("aimp", CancellationToken.None);
+
+        sut.Items.Where(i => i.Id.StartsWith("winget-", StringComparison.Ordinal)).Select(i => i.Id)
+            .Should().BeEquivalentTo("winget-VideoLAN.VLC", "winget-Contoso.Player", "winget-Saurik.CydiaImpactor");
+        sut.PackageSearchStatus.Should().Be("ExternalApps_PackageSearch_FoundWithPicks_OnePick: 2, 1");
+    }
+
+    [Fact]
+    public async Task SearchPackagesAsync_NoResultsButEarlierTickedOnes_SaysWhyTheyShow()
+    {
+        var sut = await CreateScannedSut();
+        GivenWinGetSearch("player", WinGetPackageItem.Create("VideoLAN.VLC", "VLC media player"));
+        await sut.SearchPackagesAsync("player", CancellationToken.None);
+        sut.Items.Single(i => i.Id == "winget-VideoLAN.VLC").IsSelected = true;
+        GivenWinGetSearch("zzz");
+
+        await sut.SearchPackagesAsync("zzz", CancellationToken.None);
+
+        sut.Items.Should().Contain(i => i.Id == "winget-VideoLAN.VLC");
+        sut.PackageSearchStatus.Should().Be("ExternalApps_PackageSearch_NoneWithPicks_One: 1");
+    }
+
+    [Theory]
+    [InlineData(0, 0, "ExternalApps_PackageSearch_None")]
+    [InlineData(1, 0, "ExternalApps_PackageSearch_Found_One: 1")]
+    [InlineData(2, 0, "ExternalApps_PackageSearch_Found: 2")]
+    [InlineData(0, 1, "ExternalApps_PackageSearch_NoneWithPicks_One: 1")]
+    [InlineData(0, 2, "ExternalApps_PackageSearch_NoneWithPicks: 2")]
+    [InlineData(1, 1, "ExternalApps_PackageSearch_FoundWithPicks_One_OnePick: 1, 1")]
+    [InlineData(1, 2, "ExternalApps_PackageSearch_FoundWithPicks_One: 1, 2")]
+    [InlineData(2, 1, "ExternalApps_PackageSearch_FoundWithPicks_OnePick: 2, 1")]
+    [InlineData(2, 2, "ExternalApps_PackageSearch_FoundWithPicks: 2, 2")]
+    public async Task PackageSearchStatus_EveryFoundAndKeptCount_ReadsWithItsSingularOrPluralKey(int found, int kept, string expected)
+    {
+        var sut = await CreateScannedSut();
+        GivenWinGetSearch("first", [.. Enumerable.Range(1, kept).Select(i => WinGetPackageItem.Create($"Kept.App{i}", $"Kept {i}"))]);
+        await sut.SearchPackagesAsync("first", CancellationToken.None);
+        foreach (var item in sut.Items.Where(i => i.Id.StartsWith("winget-Kept.", StringComparison.Ordinal)))
+            item.IsSelected = true;
+        GivenWinGetSearch("second", [.. Enumerable.Range(1, found).Select(i => WinGetPackageItem.Create($"New.App{i}", $"New {i}"))]);
+
+        await sut.SearchPackagesAsync("second", CancellationToken.None);
+
+        sut.PackageSearchStatus.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task PackageSearchStatus_OnALanguageSwitch_IsReadAgainInTheNewLanguage()
+    {
+        var sut = await CreateScannedSut();
+        GivenWinGetSearch("player", WinGetPackageItem.Create("Contoso.Player", "Contoso Player"));
+        await sut.SearchPackagesAsync("player", CancellationToken.None);
+        var changed = new List<string?>();
+        sut.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+        _localizationService.Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Returns<string, object[]>((key, args) => $"de:{key}: {string.Join(", ", args)}");
+
+        _localizationService.Raise(l => l.LanguageChanged += null, EventArgs.Empty);
+
+        changed.Should().Contain(nameof(sut.PackageSearchStatus));
+        sut.PackageSearchStatus.Should().Be("de:ExternalApps_PackageSearch_Found_One: 1");
     }
 
     [Fact]
@@ -865,6 +1151,21 @@ public class ExternalAppsViewModelTests
         tool.IsSelected.Should().BeFalse();
         sut.Items.Single(i => i.Id == "reg:machine:git").IsSelected.Should().BeTrue();
         sut.IsAllSelected.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AuthorsIntent_NotifiesSelectabilityOnlyOnRowsThatCanLock()
+    {
+        var sut = await CreateScannedSut(Scanned("reg:machine:tool", "Tool") with { WinGetId = null }, Scanned("reg:machine:git", "Git"));
+        var categories = sut.Categories;
+        var notified = new List<string>();
+        foreach (var item in sut.Items)
+            item.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(AppItemViewModel.IsSelectable)) notified.Add(item.Id); };
+
+        sut.AuthorsIntent = true;
+
+        notified.Should().Equal("reg:machine:tool");
+        sut.Categories.Should().BeSameAs(categories);
     }
 
     [Fact]

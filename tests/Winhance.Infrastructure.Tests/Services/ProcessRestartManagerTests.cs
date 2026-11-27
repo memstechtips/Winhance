@@ -55,6 +55,33 @@ public class ProcessRestartManagerTests
         _mockPendingRestart.Verify(p => p.Register(It.IsAny<string>()), Times.Never);
     }
 
+    [Fact]
+    public async Task ScrollbarPreference_SendsOneAccessibilityNoticeWithoutRefreshingTheShell()
+    {
+        var setting = SettingCatalog.ById["explorer-always-show-scrollbars"];
+        using (_sut.CoalesceBroadcasts())
+        {
+            await _sut.HandleProcessAndServiceRestartsAsync(setting);
+            await _sut.HandleProcessAndServiceRestartsAsync(setting);
+            _mockUiManagement.Verify(u => u.BroadcastAccessibilitySettingChange(), Times.Never);
+        }
+        await _sut.LastBroadcastTask;
+
+        _mockUiManagement.Verify(u => u.BroadcastAccessibilitySettingChange(), Times.Once);
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Never);
+        _mockPendingRestart.Verify(p => p.Register(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GenericNotice_DoesNotBroadcastAnAccessibilityChange()
+    {
+        await _sut.HandleProcessAndServiceRestartsAsync(CreateCatalogSetting("generic", notify: WindowsChange.Settings));
+        await _sut.LastBroadcastTask;
+
+        _mockExplorerRestart.Verify(e => e.BroadcastShellRefresh(), Times.Once);
+        _mockUiManagement.Verify(u => u.BroadcastAccessibilitySettingChange(), Times.Never);
+    }
+
     // Explorer: broadcast + register, NEVER kill. Applying a setting must not take the shell down -
     // several toggles in a row could otherwise leave the user with no shell.
 

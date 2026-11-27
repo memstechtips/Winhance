@@ -19,7 +19,7 @@ public sealed record LaunchOptions(IReadOnlyList<string> InstallApps, string? In
 
     public bool StartInTray { get; init; }
 
-    public bool DiagMemory { get; init; }
+    public bool Diagnostics { get; init; }
 
     // Opens the window and closes it the way its X does, so the daily support dialog shows. The tray host passes it
     // when its Exit item is chosen and that dialog is due.
@@ -80,9 +80,9 @@ internal static class LaunchCommandLine
         Description = "Wait in the system tray. The sign-in task passes it. With a background job, wait there once it is done.",
     };
 
-    private static readonly Option<bool> DiagMemory = new("--diag-memory")
+    private static readonly Option<bool> Diagnostics = new("--diag")
     {
-        Description = "Force a full GC before each memory log line so the live-instance counts are exact. For leak hunting.",
+        Description = "Log memory, CPU time and live-object counts on every navigation, mode change and minute. For performance hunting.",
     };
 
     private static readonly Option<bool> ExitFromTray = new(TrayController.ExitFlag)
@@ -110,7 +110,7 @@ internal static class LaunchCommandLine
         Description = "Check for app updates in the background, then exit unless --tray is also given. The tray passes it.",
     };
 
-    private static readonly RootCommand Root = new("Winhance") { Options = { InstallApps, InstallFolder, InstallOptionsArgument, ConfigFile, Tray, DiagMemory, ExitFromTray, Maintain, SwitchProfile, Reapply, CheckAppUpdates } };
+    private static readonly RootCommand Root = new("Winhance") { Options = { InstallApps, InstallFolder, InstallOptionsArgument, ConfigFile, Tray, Diagnostics, ExitFromTray, Maintain, SwitchProfile, Reapply, CheckAppUpdates } };
 
     // A second launch hands its command line to the running instance as one string, starting with the exe.
     internal static LaunchOptions ParseRedirected(string commandLine, Action<string> logError)
@@ -139,7 +139,7 @@ internal static class LaunchCommandLine
         return new LaunchOptions(ids, result.GetValue(InstallFolder), result.GetValue(ConfigFile))
         {
             StartInTray = result.GetValue(Tray),
-            DiagMemory = result.GetValue(DiagMemory),
+            Diagnostics = result.GetValue(Diagnostics),
             ExitFromTray = result.GetValue(ExitFromTray),
             Maintain = result.GetValue(Maintain),
             Profile = result.GetValue(SwitchProfile),

@@ -101,6 +101,16 @@ internal sealed class SettingSnapshotSource : ISettingSnapshotSource
             && setting.States.ElementAtOrDefault(index) is { Set.Count: 0, Effects.Count: 0, ResetSet: null })
             return SettingMatch.Unknown;
 
+        // A raw DWORD write can leave the session and the next sign-in on different durations.
+        if (wanted is ChoiceValue.Option duration && setting.Targets.OfType<MessageDurationTarget>().FirstOrDefault() is { } target)
+        {
+            if (setting.States.ElementAtOrDefault(duration.Index) is not { } selected
+                || !selected.Set.TryGetValue(target.Key, out var value) || value.WritePayload is not int seconds)
+                return SettingMatch.Unknown;
+            return Equals(state.CurrentValue, duration.Index) && Equals(_contexts.Create().GetValue(target.Paths[0], target.ValueName), seconds)
+                ? SettingMatch.Matches : SettingMatch.Differs;
+        }
+
         var reading = Choose(setting, state);
         // PowerCfgApplier writes no DC value on a machine without a battery, so the DC half reads back whatever the
         // plan already held.

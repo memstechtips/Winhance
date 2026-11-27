@@ -34,6 +34,8 @@ public interface IWindowsUIManagementService
     // (WindowsChange.Appearance) and after a shell relaunch.
     void BroadcastThemeRefresh();
 
+    void BroadcastAccessibilitySettingChange();
+
     void BroadcastRegionalSettingChange();
 
     // Tells Explorer to re-read the environment, so a program started from it sees a new PATH entry.

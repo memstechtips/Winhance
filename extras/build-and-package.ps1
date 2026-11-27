@@ -234,10 +234,10 @@ function Set-FileSignature {
 # so Winhance.UI's publish output lands under <root>\Winhance.UI\bin\...
 # instead of in-tree. Match whichever location the build actually used.
 if ($repoIsRemote) {
-    $publishOutputPath = "$localBuildRoot\Winhance.UI\bin\x64\Release\$tfm\win-x64"
+    $publishOutputPath = "$localBuildRoot\Winhance.UI\bin\x64\Release\$tfm\win-x64\publish"
 }
 else {
-    $publishOutputPath = "$solutionDir\src\Winhance.UI\bin\x64\Release\$tfm\win-x64"
+    $publishOutputPath = "$solutionDir\src\Winhance.UI\bin\x64\Release\$tfm\win-x64\publish"
 }
 $innoSetupScript = "$scriptRoot\Winhance.Installer.iss"
 $tempInnoScript = "$env:TEMP\Winhance.Installer.temp.iss"
@@ -400,11 +400,28 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# Step 2: Build the solution (self-contained: .NET runtime + Windows App SDK bundled with the app)
+# Step 2: Build and publish (self-contained, ReadyToRun: precompiled code ships in publish\)
+# Clean does not empty publish\, and the installer packages that folder alone, so a file left by an older publish would ship.
+if (Test-Path $publishOutputPath) { Remove-Item -Path $publishOutputPath -Recurse -Force }
 Write-Host "Building solution..." -ForegroundColor Green
-& $msbuildPath "$projectPath" /p:Configuration=Release /p:Platform=x64 -restore
+& $msbuildPath "$projectPath" /t:Publish /p:Configuration=Release /p:Platform=x64 -restore
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to build solution" -ForegroundColor Red
+    exit 1
+}
+
+# Publish copies only what MSBuild marks for publish; a file missing there (the .pri, a page's .xbf, an image) installs
+# an app that dies on its first window. The build folder beside it is the full set, so every file in it must be in publish\.
+$buildOutputPath = Split-Path -Parent $publishOutputPath
+$publishedFiles = @{}
+Get-ChildItem -Path $publishOutputPath -Recurse -File | ForEach-Object { $publishedFiles[$_.FullName.Substring($publishOutputPath.Length)] = $true }
+$notPublished = @(Get-ChildItem -Path $buildOutputPath -Recurse -File |
+    Where-Object { -not $_.FullName.StartsWith($publishOutputPath + "\") } |
+    ForEach-Object { $_.FullName.Substring($buildOutputPath.Length) } |
+    Where-Object { -not $publishedFiles.ContainsKey($_) })
+if ($notPublished.Count -gt 0) {
+    Write-Host "These build files are missing from the publish folder:" -ForegroundColor Red
+    $notPublished | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
     exit 1
 }
 

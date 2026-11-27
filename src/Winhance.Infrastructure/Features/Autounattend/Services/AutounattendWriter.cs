@@ -1,10 +1,9 @@
-using System.Text.Json;
 using Winhance.Core.Features.Autounattend.Interfaces;
 using Winhance.Core.Features.Common.Catalog;
-using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Selections;
+using Winhance.Infrastructure.Features.Autounattend.Helpers;
 
 namespace Winhance.Infrastructure.Features.Autounattend.Services;
 
@@ -30,8 +29,42 @@ internal sealed class AutounattendWriter : IAutounattendWriter
         _log = log;
     }
 
-    public async Task<string> WriteAsync(SelectionSet set, CatalogScope scope, string outputPath)
+    public Task<string> WriteAsync(SelectionSet set, CatalogScope scope, string outputPath) =>
+        WriteCoreAsync(set, scope, outputPath, null);
+
+    public async Task<string> WriteMediaAsync(SelectionSet set, CatalogScope scope, string outputPath, string mediaFolder,
+        Func<string, Task> validate, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
+        string scratch = Path.Combine(mediaFolder, ".winhance-media-" + Guid.NewGuid().ToString("N"));
+        string stagedXml = Path.Combine(scratch, "autounattend.xml");
+        MediaPayloads.CheckNotRedirected(_files, scratch);
+        _files.CreateDirectory(scratch);
+        bool keepRecovery = false;
+        try
+        {
+            await WriteCoreAsync(set, scope, stagedXml, scratch).ConfigureAwait(false);
+            ct.ThrowIfCancellationRequested();
+            await validate(stagedXml).ConfigureAwait(false);
+            await MediaPayloads.PublishAsync(_files, stagedXml, outputPath, mediaFolder, scratch, ct).ConfigureAwait(false);
+            return outputPath;
+        }
+        catch (MediaRollbackException)
+        {
+            keepRecovery = true;
+            throw;
+        }
+        finally
+        {
+            if (!keepRecovery)
+                _files.DeleteDirectory(scratch, recursive: true);
+        }
+    }
+
+    private async Task<string> WriteCoreAsync(SelectionSet set, CatalogScope scope, string outputPath, string? mediaFolder)
+    {
+        if (mediaFolder is null)
+            set = set.WithOnlySelectedPicture();
         await _registry.InitializeAsync().ConfigureAwait(false);
         var byFeature = _registry.GetAll(scope);
 
@@ -45,9 +78,14 @@ internal sealed class AutounattendWriter : IAutounattendWriter
         var context = new AutounattendRenderContext(
             script, _version.GetCurrentVersion().Version.TrimStart('v'), set)
         {
-            Config = JsonSerializer.Serialize(config, ConfigFileConstants.JsonOptions),
+            Config = AnswerFileConfig.Serialize(config),
         };
-        var xml = AutounattendDocumentBuilder.Serialize(AutounattendDocumentBuilder.Build(context));
+        var doc = AutounattendDocumentBuilder.Build(context);
+        if (mediaFolder is not null)
+        {
+            await MediaPayloads.StageAsync(_files, doc, mediaFolder).ConfigureAwait(false);
+        }
+        var xml = AutounattendDocumentBuilder.Serialize(doc);
 
         // Windows Setup requires UTF-8 without a BOM; File.WriteAllTextAsync's default encoding writes none.
         await _files.WriteAllTextAsync(outputPath, xml).ConfigureAwait(false);

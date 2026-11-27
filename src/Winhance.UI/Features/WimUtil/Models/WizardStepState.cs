@@ -9,13 +9,6 @@ public partial class WizardStepState : ObservableObject
     [ObservableProperty]
     public partial FluentIcons.Common.Icon Icon { get; set; }
 
-    // A Segoe Fluent Icons glyph, shown instead of Icon for a symbol the Fluent icon set lacks (it has no optical disc).
-    public string? Glyph { get; set; }
-
-    public bool HasGlyph => !string.IsNullOrEmpty(Glyph);
-
-    public bool UsesFluentIcon => !HasGlyph;
-
     [ObservableProperty]
     public partial string Title { get; set; } = string.Empty;
 
@@ -32,6 +25,16 @@ public partial class WizardStepState : ObservableObject
 
     [ObservableProperty]
     public partial bool IsExpanded { get; set; }
+
+    [ObservableProperty]
+    public partial bool HasBeenExpanded { get; private set; }
+
+    // Let the body load on first use without unloading it on later collapses.
+    partial void OnIsExpandedChanged(bool value)
+    {
+        if (value)
+            HasBeenExpanded = true;
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLocked))]

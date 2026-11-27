@@ -391,20 +391,21 @@ public class ConfigFileMapperTests
     [Fact]
     public void ToFile_CarriesAFileBesideTheChoiceThatNamesIt()
     {
-        var setting = Toggle("t");
-        var byFeature = new Dictionary<string, IReadOnlyList<Setting>> { [FeatureIds.Privacy] = new[] { setting } };
+        const string pictureId = "theme-wallpaper-picture";
+        const string destination = @"C:\Windows\Web\Wallpaper\Winhance\lake.jpg";
+        var byFeature = SettingCatalog.ByFeature;
         var set = new SelectionSet(
-            [new SettingChoice("t", new ChoiceValue.Toggle(true))],
+            [new SettingChoice(pictureId, new ChoiceValue.Keyed(destination, "lake"))],
             [],
             [])
         {
-            Files = [new CarriedFile("t", @"C:\Windows\Web\Wallpaper\Winhance\lake.jpg", "QUJD")],
+            Files = [new CarriedFile(pictureId, destination, "QUJD")],
         };
 
         var file = ConfigFileMapper.ToFile(set, byFeature);
 
-        var item = file.Optimize.Features[FeatureIds.Privacy].Items.Single();
-        item.File!.Destination.Should().Be(@"C:\Windows\Web\Wallpaper\Winhance\lake.jpg");
+        var item = file.Customize.Features.Values.SelectMany(section => section.Items).Single();
+        item.File!.Destination.Should().Be(destination);
         item.File.Base64.Should().Be("QUJD");
 
         ConfigFileMapper.FromFile(file, byFeature).Files.Should().Equal(set.Files);

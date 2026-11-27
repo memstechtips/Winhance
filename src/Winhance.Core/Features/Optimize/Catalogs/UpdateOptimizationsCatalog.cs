@@ -29,7 +29,7 @@ public static class UpdateOptimizationsCatalog
                 Name = LocKey.Setting.UpdatesPolicyMode.Name,
                 Description = LocKey.Setting.UpdatesPolicyMode.Description,
                 GroupName = LocKey.SettingGroup.UpdatePolicy,
-                Icon = MaterialIcons.BookSync,
+                Icon = FluentIcons.DocumentMultipleSync,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -223,7 +223,7 @@ public static class UpdateOptimizationsCatalog
                 Name = LocKey.Setting.UpdatesDeliveryOptimization.Name,
                 Description = LocKey.Setting.UpdatesDeliveryOptimization.Description,
                 GroupName = LocKey.SettingGroup.DeliveryStore,
-                Icon = MaterialIcons.ShareVariant,
+                Icon = FluentIcons.ShareAndroid,
             },
             Targets = new Target[]
             {
@@ -294,7 +294,7 @@ public static class UpdateOptimizationsCatalog
                 Name = LocKey.Setting.UpdatesLatestUpdates.Name,
                 Description = LocKey.Setting.UpdatesLatestUpdates.Description,
                 GroupName = LocKey.SettingGroup.UpdateBehavior,
-                Icon = MaterialIcons.BullhornVariant,
+                Icon = FluentIcons.Megaphone,
             },
             Targets = new Target[]
             {
@@ -325,7 +325,7 @@ public static class UpdateOptimizationsCatalog
                 Name = LocKey.Setting.UpdatesOtherProducts.Name,
                 Description = LocKey.Setting.UpdatesOtherProducts.Description,
                 GroupName = LocKey.SettingGroup.UpdateBehavior,
-                Icon = MaterialIcons.ArchiveSync,
+                Icon = FluentIcons.ArrowSync,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -357,7 +357,7 @@ public static class UpdateOptimizationsCatalog
                 Name = LocKey.Setting.UpdatesRestartAsap.Name,
                 Description = LocKey.Setting.UpdatesRestartAsap.Description,
                 GroupName = LocKey.SettingGroup.UpdateBehavior,
-                Icon = MaterialIcons.Restart,
+                Icon = FluentIcons.ArrowClockwise,
             },
             Targets = new Target[]
             {
@@ -387,7 +387,7 @@ public static class UpdateOptimizationsCatalog
                 Name = LocKey.Setting.UpdatesRestartOptions.Name,
                 Description = LocKey.Setting.UpdatesRestartOptions.Description,
                 GroupName = LocKey.SettingGroup.UpdateBehavior,
-                Icon = MaterialIcons.RestartOff,
+                Icon = FluentIcons.ArrowSyncOff,
             },
             Targets = new Target[]
             {
@@ -418,7 +418,7 @@ public static class UpdateOptimizationsCatalog
                 Name = LocKey.Setting.UpdatesNotificationLevel.Name,
                 Description = LocKey.Setting.UpdatesNotificationLevel.Description,
                 GroupName = LocKey.SettingGroup.UpdateBehavior,
-                Icon = MaterialIcons.BellPlus,
+                Icon = FluentIcons.Alert,
                 IsSubjectivePreference = true,
             },
             // "Display options for update notifications" (WindowsUpdate.admx) writes THREE values and the names
@@ -484,7 +484,7 @@ public static class UpdateOptimizationsCatalog
                 Name = LocKey.Setting.UpdatesRestartNotification.Name,
                 Description = LocKey.Setting.UpdatesRestartNotification.Description,
                 GroupName = LocKey.SettingGroup.UpdateBehavior,
-                Icon = MaterialIcons.RestartAlert,
+                Icon = FluentIcons.ArrowCounterclockwiseInfo,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -516,7 +516,7 @@ public static class UpdateOptimizationsCatalog
                 Name = LocKey.Setting.UpdatesMeteredConnection.Name,
                 Description = LocKey.Setting.UpdatesMeteredConnection.Description,
                 GroupName = LocKey.SettingGroup.UpdateBehavior,
-                Icon = MaterialIcons.Connection,
+                Icon = FluentIcons.DataUsage,
             },
             Targets = new Target[]
             {
@@ -546,7 +546,7 @@ public static class UpdateOptimizationsCatalog
                 Name = LocKey.Setting.UpdatesDriverControls.Name,
                 Description = LocKey.Setting.UpdatesDriverControls.Description,
                 GroupName = LocKey.SettingGroup.UpdateBehavior,
-                Icon = MaterialIcons.PackageVariantClosedMinus,
+                Icon = FluentIcons.BoxDismiss,
                 IsSubjectivePreference = true,
             },
             Targets = new Target[]
@@ -578,7 +578,7 @@ public static class UpdateOptimizationsCatalog
                 Name = LocKey.Setting.UpdatesDriverCoinstallers.Name,
                 Description = LocKey.Setting.UpdatesDriverCoinstallers.Description,
                 GroupName = LocKey.SettingGroup.UpdateBehavior,
-                Icon = MaterialIcons.PackageVariantRemove,
+                Icon = FluentIcons.BoxDismiss,
                 AddedInVersion = "25.04.08",
                 IsSubjectivePreference = true,
             },

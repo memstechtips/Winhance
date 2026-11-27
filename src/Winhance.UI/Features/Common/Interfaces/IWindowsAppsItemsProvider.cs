@@ -8,5 +8,6 @@ public interface IWindowsAppsItemsProvider
     bool IsInitialized { get; }
     Task LoadItemsAsync();
     ObservableCollection<AppItemViewModel> Items { get; }
+    void ChangeSelection(Action change);
     Task<(bool Confirmed, bool SaveScripts)> ShowRemovalSummaryAndConfirm();
 }

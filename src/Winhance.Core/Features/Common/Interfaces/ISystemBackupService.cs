@@ -9,4 +9,6 @@ public interface ISystemBackupService
         string? name = null,
         IProgress<TaskProgressDetail>? progress = null,
         CancellationToken cancellationToken = default);
+
+    Task TurnOffSystemRestoreAsync();
 }

@@ -93,12 +93,7 @@ internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) 
 
     public void Clear(int diskNumber, string uniqueId)
     {
-        using var disk = GetDisk(diskNumber);
-        var currentId = disk.Get("UniqueId") as string ?? "";
-        if (!string.Equals(currentId, uniqueId, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException($"Disk {diskNumber} is no longer the drive that was picked, so it was not erased.");
-        }
+        using var disk = GetConfirmedDisk(diskNumber, uniqueId);
 
         Invoke(disk, "Clear", new Dictionary<string, object>
         {
@@ -108,7 +103,7 @@ internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) 
         }, $"clear disk {diskNumber}").Dispose();
         logService.LogInformation($"Cleared disk {diskNumber}");
 
-        DeleteSurvivingPartitions(diskNumber);
+        DeleteSurvivingPartitions(diskNumber, uniqueId);
     }
 
     // Clear reports success on a stick Windows formatted as a super floppy and changes nothing: the
@@ -116,12 +111,13 @@ internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) 
     // CreatePartition has nowhere to go (40000, not enough free space). Deleting the partition Windows
     // synthesises for that volume is what frees the extent. Measured on a SanDisk Cruzer Blade,
     // 2026-08-27: Clear left one partition at offset 0 and LargestFreeExtent at 0 for 30 seconds.
-    private void DeleteSurvivingPartitions(int diskNumber)
+    private void DeleteSurvivingPartitions(int diskNumber, string uniqueId)
     {
         foreach (var partition in GetPartitions(diskNumber))
         {
             using (partition)
             {
+                VerifyDisk(diskNumber, uniqueId);
                 Invoke(partition, "DeleteObject", null, $"delete a partition on disk {diskNumber}",
                     DeletedButAccessPathsRemain).Dispose();
                 logService.LogInformation($"Deleted a partition that survived clearing disk {diskNumber}");
@@ -130,7 +126,7 @@ internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) 
 
         // Cheaper to say so here than to let CreatePartition fail with a bare 40000, which is what
         // three rounds of this bug looked like from the outside.
-        var free = ReadLargestFreeExtent(diskNumber);
+        var free = ReadLargestFreeExtent(diskNumber, uniqueId);
         if (free == 0)
         {
             throw new InvalidOperationException(
@@ -144,9 +140,9 @@ internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) 
     // did nothing at all, so the disk still read MBR here. Initialize takes a RAW disk only and fails
     // with 41001 on anything else, and Microsoft's own diskpart sequence for a bootable USB has no
     // initialize step at all. So ask the disk what it is rather than telling it.
-    public void EnsureMbr(int diskNumber)
+    public void EnsureMbr(int diskNumber, string uniqueId)
     {
-        var style = ReadPartitionStyle(diskNumber);
+        var style = ReadPartitionStyle(diskNumber, uniqueId);
         if (style == PartitionStyleMbr)
         {
             logService.LogInformation($"Disk {diskNumber} is already MBR");
@@ -157,7 +153,7 @@ internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) 
         // partitions (41013), which is why Clear runs first.
         var method = style == PartitionStyleGpt ? "ConvertStyle" : "Initialize";
 
-        using var disk = GetDisk(diskNumber);
+        using var disk = GetConfirmedDisk(diskNumber, uniqueId);
 
         // Windows can initialize the disk between the read above and this call - it does so on its
         // own for removable media - so 41001 from Initialize is tolerated. It says nothing about
@@ -166,11 +162,11 @@ internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) 
         Invoke(disk, method, new Dictionary<string, object> { ["PartitionStyle"] = PartitionStyleMbr },
             $"make disk {diskNumber} MBR", benign).Dispose();
 
-        var after = ReadPartitionStyle(diskNumber);
+        var after = ReadPartitionStyle(diskNumber, uniqueId);
         if (after != PartitionStyleMbr)
         {
             Invoke(disk, "Refresh", null, $"refresh disk {diskNumber}").Dispose();
-            after = ReadPartitionStyle(diskNumber);
+            after = ReadPartitionStyle(diskNumber, uniqueId);
         }
 
         // IsActive is only honoured on MBR, so anything else here is a stick that boots on UEFI
@@ -184,24 +180,26 @@ internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) 
         logService.LogInformation($"Disk {diskNumber} is MBR");
     }
 
-    public int CreateBootPartition(int diskNumber, long sizeBytes) =>
-        CreatePartition(diskNumber, "boot", new Dictionary<string, object>
+    public int CreateBootPartition(int diskNumber, string uniqueId, long sizeBytes) =>
+        CreatePartition(diskNumber, uniqueId, "boot", new Dictionary<string, object>
         {
             ["MbrType"] = MbrTypeFat32,
             ["IsActive"] = true,
             ["Size"] = (ulong)sizeBytes,
         });
 
-    public int CreateInstallPartition(int diskNumber) =>
-        CreatePartition(diskNumber, "install", new Dictionary<string, object>
+    public int CreateInstallPartition(int diskNumber, string uniqueId) =>
+        CreatePartition(diskNumber, uniqueId, "install", new Dictionary<string, object>
         {
             ["MbrType"] = MbrTypeIfs,
             ["UseMaximumSize"] = true,
         });
 
-    public void Format(int diskNumber, int partitionNumber, string fileSystem, string label)
+    public void Format(int diskNumber, string uniqueId, int partitionNumber, string fileSystem, string label)
     {
+        VerifyDisk(diskNumber, uniqueId);
         using var volume = GetVolume(diskNumber, partitionNumber);
+        VerifyDisk(diskNumber, uniqueId);
 
         // A full format zeroes the whole stick, which on a 64 GB drive is minutes of nothing.
         Invoke(volume, "Format", new Dictionary<string, object>
@@ -213,17 +211,20 @@ internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) 
         logService.LogInformation($"Formatted partition {partitionNumber} on disk {diskNumber} as {fileSystem}");
     }
 
-    public char AssignDriveLetter(int diskNumber, int partitionNumber)
+    public char AssignDriveLetter(int diskNumber, string uniqueId, int partitionNumber)
     {
         // Windows may already have mounted the volume with a letter of its own; only ask when
         // it has not.
+        VerifyDisk(diskNumber, uniqueId);
         using var partition = GetPartition(diskNumber, partitionNumber);
+        VerifyDisk(diskNumber, uniqueId);
         var letter = ReadDriveLetter(partition);
         if (!char.IsLetter(letter))
         {
             Invoke(partition, "AddAccessPath", new Dictionary<string, object> { ["AssignDriveLetter"] = true },
                 $"assign a drive letter to partition {partitionNumber} on disk {diskNumber}").Dispose();
 
+            VerifyDisk(diskNumber, uniqueId);
             using var refreshed = GetPartition(diskNumber, partitionNumber);
             letter = ReadDriveLetter(refreshed);
         }
@@ -238,22 +239,22 @@ internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) 
         return letter;
     }
 
-    private ushort ReadPartitionStyle(int diskNumber)
+    private ushort ReadPartitionStyle(int diskNumber, string uniqueId)
     {
-        using var disk = GetDisk(diskNumber);
+        using var disk = GetConfirmedDisk(diskNumber, uniqueId);
         return Convert.ToUInt16(disk.Get("PartitionStyle"), CultureInfo.InvariantCulture);
     }
 
-    private ulong ReadLargestFreeExtent(int diskNumber)
+    private ulong ReadLargestFreeExtent(int diskNumber, string uniqueId)
     {
-        using var disk = GetDisk(diskNumber);
+        using var disk = GetConfirmedDisk(diskNumber, uniqueId);
         return Convert.ToUInt64(disk.Get("LargestFreeExtent"), CultureInfo.InvariantCulture);
     }
 
     // No AssignDriveLetter: the letter is assigned after the format.
-    private int CreatePartition(int diskNumber, string role, Dictionary<string, object> parameters)
+    private int CreatePartition(int diskNumber, string uniqueId, string role, Dictionary<string, object> parameters)
     {
-        using var disk = GetDisk(diskNumber);
+        using var disk = GetConfirmedDisk(diskNumber, uniqueId);
         using var result = Invoke(disk, "CreatePartition", parameters, $"create the {role} partition on disk {diskNumber}");
 
         // The method page types CreatedPartition as a String; the wire carries the embedded
@@ -272,8 +273,24 @@ internal sealed class WmiStorageService(IWmiApi wmiApi, ILogService logService) 
     private IReadOnlyList<IWmiInstance> GetPartitions(int diskNumber) =>
         wmiApi.Query(StorageNamespace, "MSFT_Partition", $"DiskNumber = {diskNumber}");
 
-    private IWmiInstance GetDisk(int diskNumber) =>
-        Single("MSFT_Disk", $"Number = {diskNumber}", $"Disk {diskNumber}");
+    public void VerifyDisk(int diskNumber, string uniqueId)
+    {
+        using var disk = GetConfirmedDisk(diskNumber, uniqueId);
+    }
+
+    private IWmiInstance GetConfirmedDisk(int diskNumber, string uniqueId)
+    {
+        var disk = Single("MSFT_Disk", $"Number = {diskNumber}", $"Disk {diskNumber}");
+        if (!string.IsNullOrWhiteSpace(uniqueId)
+            && string.Equals(disk.Get("UniqueId") as string, uniqueId, StringComparison.Ordinal)
+            && !Convert.ToBoolean(disk.Get("IsSystem"), CultureInfo.InvariantCulture)
+            && !Convert.ToBoolean(disk.Get("IsBoot"), CultureInfo.InvariantCulture)
+            && Convert.ToUInt16(disk.Get("BusType"), CultureInfo.InvariantCulture) == 7)
+            return disk;
+
+        disk.Dispose();
+        throw new InvalidOperationException($"Disk {diskNumber} is no longer the drive that was picked, or has no stable identity.");
+    }
 
     private IWmiInstance GetPartition(int diskNumber, int partitionNumber) =>
         Single("MSFT_Partition", $"DiskNumber = {diskNumber} AND PartitionNumber = {partitionNumber}",

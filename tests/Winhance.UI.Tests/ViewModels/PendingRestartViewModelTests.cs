@@ -21,6 +21,7 @@ public class PendingRestartViewModelTests
     private readonly Mock<IConfigImportState> _mockImportState = new();
     private readonly Mock<ITaskProgressService> _mockTaskProgress = new();
     private readonly Mock<IDispatcherService> _mockDispatcher = new();
+    private readonly Mock<IDialogService> _mockDialog = new();
     private readonly Mock<ILogService> _mockLog = new();
 
     public PendingRestartViewModelTests()
@@ -47,6 +48,7 @@ public class PendingRestartViewModelTests
         _mockImportState.Object,
         _mockTaskProgress.Object,
         _mockDispatcher.Object,
+        _mockDialog.Object,
         _mockLog.Object);
 
     [Fact]
@@ -67,6 +69,20 @@ public class PendingRestartViewModelTests
 
         vm.IsBarVisible.Should().BeTrue();
         vm.CanRestart.Should().BeTrue();
+    }
+
+    [Fact]
+    public void LanguageChanged_RelabelsTheBar()
+    {
+        _mockPending.Setup(p => p.IsPending).Returns(true);
+        var vm = Create();
+        _mockLocalization.Setup(l => l.GetString(It.IsAny<string>())).Returns((string k) => "de:" + k);
+
+        _mockLocalization.Raise(l => l.LanguageChanged += null, this, EventArgs.Empty);
+
+        vm.Message.Should().Be("de:PendingRestart_Message");
+        vm.ButtonText.Should().Be("de:PendingRestart_Button");
+        vm.RestartingText.Should().Be("de:PendingRestart_Restarting");
     }
 
     [Fact]
@@ -230,7 +246,7 @@ public class PendingRestartViewModelTests
     }
 
     [Fact]
-    public async Task RestartCommand_WhenTheServiceThrows_LogsAndLeavesTheBarUsable()
+    public async Task RestartCommand_WhenTheServiceThrows_LogsShowsTheErrorAndLeavesTheBarUsable()
     {
         _mockPending.Setup(p => p.IsPending).Returns(true);
         _mockRestart.Setup(r => r.RestartAsync()).ThrowsAsync(new InvalidOperationException("boom"));
@@ -242,7 +258,8 @@ public class PendingRestartViewModelTests
         await execute.Should().NotThrowAsync();
 
         _mockLog.Verify(l => l.LogError(It.IsAny<string>(), It.IsAny<Exception>(), It.IsAny<string>()), Times.Once);
-        vm.IsRestarting.Should().BeFalse("the finally block clears it or the button stays a spinner");
+        _mockDialog.Verify(d => d.ShowErrorAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        vm.IsRestarting.Should().BeFalse("a failed restart must clear it or the button stays a spinner");
         vm.IsBarVisible.Should().BeTrue("a failed restart must leave the user a way to retry");
     }
 

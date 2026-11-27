@@ -24,7 +24,7 @@ public static class RegTargetReader
         object? raw = null;
         foreach (var path in OrderHklmFirst(target.Paths))
         {
-            var v = ctx.GetValue(path, target.ValueName);
+            var v = ReadValue(target, path, ctx);
             if (v != null)
             {
                 raw = v;
@@ -101,6 +101,9 @@ public static class RegTargetReader
         // PerNetworkInterface / PerMonitor are not handled here yet.
         return TargetReading.Of(raw);
     }
+
+    public static object? ReadValue(RegTarget target, string path, IDetectionContext ctx) =>
+        target is MessageDurationTarget duration ? ctx.GetMessageDuration(duration) : ctx.GetValue(path, target.ValueName);
 
     // Null when the value does not start with the prefix, so a writer can leave a list it does not own alone.
     public static List<string>? ListItems(string value, string prefix) =>

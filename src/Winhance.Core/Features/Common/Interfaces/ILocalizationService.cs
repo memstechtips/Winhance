@@ -17,6 +17,10 @@ public interface ILocalizationService
 
     bool SetLanguage(string languageCode);
 
+    // Drops every string whose key starts with none of the prefixes, now and in any language loaded later. For the tray
+    // host, which runs for days and shows a handful of strings from a table of thousands.
+    void KeepOnly(params string[] keyPrefixes);
+
     event EventHandler? LanguageChanged;
 
     IReadOnlyList<LanguageOption> GetAvailableLanguages();

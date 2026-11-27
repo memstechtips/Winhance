@@ -18,6 +18,8 @@ public partial class WimStep3DriversViewModel : ObservableObject, IMediaChoice
     private readonly IFilePickerService _filePickerService;
     private readonly ILogService _logService;
 
+    private static readonly string[] LocalizedProperties = [nameof(SystemDriversDescription), nameof(FolderDriversDescription)];
+
     // What the media already holds, so Create does not stage it twice.
     private bool _systemOnMedia;
     private string? _stagedFolder;
@@ -41,17 +43,10 @@ public partial class WimStep3DriversViewModel : ObservableObject, IMediaChoice
         }
     } = string.Empty;
 
-    public bool IsBuiltIntoImage
-    {
-        get;
-        set
-        {
-            if (field == value)
-                return;
-            field = value;
-            RefreshText();
-        }
-    }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SystemDriversDescription))]
+    [NotifyPropertyChangedFor(nameof(FolderDriversDescription))]
+    public partial bool IsBuiltIntoImage { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasDriverChoice))]
@@ -124,21 +119,14 @@ public partial class WimStep3DriversViewModel : ObservableObject, IMediaChoice
         AddSystemDrivers = false;
         AddFolderDrivers = false;
         CustomDriversFolder = string.Empty;
-        OnPropertyChanged(nameof(NeedsApply));
     }
 
     // The descriptions follow the mode and the language.
     public void RefreshText()
     {
-        OnPropertyChanged(nameof(SystemDriversDescription));
-        OnPropertyChanged(nameof(FolderDriversDescription));
+        foreach (var name in LocalizedProperties)
+            OnPropertyChanged(name);
     }
-
-    partial void OnAddSystemDriversChanged(bool value) => OnPropertyChanged(nameof(NeedsApply));
-
-    partial void OnAddFolderDriversChanged(bool value) => OnPropertyChanged(nameof(NeedsApply));
-
-    partial void OnCustomDriversFolderChanged(string value) => OnPropertyChanged(nameof(NeedsApply));
 
     // Records the folder and nothing else. Create adds its drivers.
     [RelayCommand]
@@ -195,7 +183,6 @@ public partial class WimStep3DriversViewModel : ObservableObject, IMediaChoice
             _stagedFolder = CustomDriversFolder;
         }
 
-        OnPropertyChanged(nameof(NeedsApply));
         return null;
     }
 

@@ -1,5 +1,6 @@
 using Winhance.Core.Features.Common.Localization;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using FluentAssertions;
 using Moq;
 using Winhance.Core.Features.Common.Enums;
@@ -47,7 +48,7 @@ public class BaseSettingsFeatureViewModelTests
     private readonly Mock<IEventBus> _mockEventBus;
     private readonly Mock<IApplicationModeService> _mockApplicationModeService;
     private Func<FilterStateChangedEvent, Task>? _filterStateChangedHandler;
-    private Func<AuthoringModeExitedEvent, Task>? _authoringModeExitedHandler;
+    private Action<AuthoringModeExitedEvent>? _authoringModeExitedHandler;
 
     public BaseSettingsFeatureViewModelTests()
     {
@@ -75,6 +76,15 @@ public class BaseSettingsFeatureViewModelTests
         _mockDispatcherService
             .Setup(d => d.Enqueue(It.IsAny<Action>()))
             .Callback<Action>(action => action());
+        // Fires the tick on Restart, so a debounced search filters at once.
+        _mockDispatcherService
+            .Setup(d => d.CreateDebounceTimer(It.IsAny<TimeSpan>(), It.IsAny<Action>()))
+            .Returns<TimeSpan, Action>((_, tick) =>
+            {
+                var timer = new Mock<IDebounceTimer>();
+                timer.Setup(t => t.Restart()).Callback(tick);
+                return timer.Object;
+            });
 
         _mockEventBus
             .Setup(e => e.Subscribe(It.IsAny<Action<SettingAppliedEvent>>()))
@@ -85,8 +95,8 @@ public class BaseSettingsFeatureViewModelTests
             .Callback<Func<FilterStateChangedEvent, Task>>(handler => _filterStateChangedHandler = handler)
             .Returns(new Mock<ISubscriptionToken>().Object);
         _mockEventBus
-            .Setup(e => e.SubscribeAsync(It.IsAny<Func<AuthoringModeExitedEvent, Task>>()))
-            .Callback<Func<AuthoringModeExitedEvent, Task>>(handler => _authoringModeExitedHandler = handler)
+            .Setup(e => e.Subscribe(It.IsAny<Action<AuthoringModeExitedEvent>>()))
+            .Callback<Action<AuthoringModeExitedEvent>>(handler => _authoringModeExitedHandler = handler)
             .Returns(new Mock<ISubscriptionToken>().Object);
         _mockEventBus
             .Setup(e => e.Subscribe(It.IsAny<Action<ReviewModeExitedEvent>>()))
@@ -163,7 +173,7 @@ public class BaseSettingsFeatureViewModelTests
             InputType = inputType,
             IsSelected = isSelected,
             Icon = "TestIcon",
-            IconPack = "Material",
+            IconPack = "Fluent",
         };
 
         var mockSettingAppService = new Mock<ISettingApplicationService>();
@@ -533,6 +543,30 @@ public class BaseSettingsFeatureViewModelTests
 
         vm.Settings.Should().HaveCount(1);
         vm.Settings[0].Name.Should().Be("Second");
+    }
+
+    // The groups feed a grouped CollectionViewSource, which takes Reset and Add only: an indexed Replace of a group
+    // crashed XAML natively (0xc000027b).
+    [Fact]
+    public async Task RefreshSettingsAsync_ChangesTheGroupsByResetAndAddOnly()
+    {
+        var vm = CreateViewModel();
+        var callCount = 0;
+        _mockSettingsLoadingService
+            .Setup(s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
+            .ReturnsAsync(() => ++callCount == 1
+                ? CreateSettingsCollection(("s1", "First", "G1"), ("s2", "Second", "G2"))
+                : CreateSettingsCollection(("s3", "Third", "G1"), ("s4", "Fourth", "G3")));
+        await vm.LoadSettingsAsync();
+        var actions = new List<NotifyCollectionChangedAction>();
+        vm.GroupedSettings.CollectionChanged += (_, e) => actions.Add(e.Action);
+
+        await vm.RefreshSettingsAsync();
+
+        actions.Should().NotBeEmpty()
+            .And.OnlyContain(a => a == NotifyCollectionChangedAction.Reset || a == NotifyCollectionChangedAction.Add);
+        vm.GroupedSettings.Select(g => g.Key).Should().Equal("G1", "G3");
     }
 
     [Fact]
@@ -1740,10 +1774,10 @@ public class BaseSettingsFeatureViewModelTests
         return _filterStateChangedHandler!(new FilterStateChangedEvent(false));
     }
 
-    private Task FireAuthoringModeExitedAsync()
+    private void FireAuthoringModeExited()
     {
         _authoringModeExitedHandler.Should().NotBeNull();
-        return _authoringModeExitedHandler!(new AuthoringModeExitedEvent());
+        _authoringModeExitedHandler!(new AuthoringModeExitedEvent());
     }
 
     private void VerifyNoSubsetLoad() =>
@@ -1848,34 +1882,105 @@ public class BaseSettingsFeatureViewModelTests
             Times.Once);
     }
 
-    [Fact]
-    public async Task AuthoringModeExited_StillRebuildsEveryCard()
+    private TestableSettingsFeatureViewModel CreateRebuildableViewModel()
     {
-        // Builder left authored, un-applied values on these cards. Disposing and recreating them is what
-        // clears every field of that, so this path must not be routed through the incremental refresh.
         var vm = CreateViewModel();
-        var firstLoad = CreateSettingsCollection(("s1", "S1", "G1"), ("s2", "S2", "G1"));
-        var secondLoad = CreateSettingsCollection(("s1", "S1", "G1"), ("s2", "S2", "G1"));
-        var callCount = 0;
-
         _mockSettingsLoadingService
             .Setup(s => s.LoadConfiguredSettingsAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()))
-            .ReturnsAsync(() =>
-            {
-                callCount++;
-                return callCount == 1 ? firstLoad : secondLoad;
-            });
+            .ReturnsAsync(() => CreateSettingsCollection(("s1", "S1", "G1"), ("s2", "S2", "G1")));
+        _mockSettingsLoadingService
+            .Setup(s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()))
+            .ReturnsAsync(new Dictionary<string, SettingStateResult>());
+        return vm;
+    }
 
+    private void VerifyLoads(int times) =>
+        _mockSettingsLoadingService.Verify(
+            s => s.LoadConfiguredSettingsAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ISettingsFeatureViewModel>()),
+            Times.Exactly(times));
+
+    [Fact]
+    public async Task AuthoringModeExited_MarksStaleWithoutRebuilding()
+    {
+        // The rebuild inside the publish is what froze the UI; the exit only flags the feature.
+        var vm = CreateRebuildableViewModel();
+        await vm.LoadSettingsAsync();
+        var beforeExit = vm.Settings[0];
+
+        FireAuthoringModeExited();
+
+        vm.NeedsRebuild.Should().BeTrue();
+        vm.Settings[0].Should().BeSameAs(beforeExit);
+        VerifyLoads(1);
+    }
+
+    [Fact]
+    public async Task RefreshOnNavigationAsync_WhenStale_RebuildsEveryCard()
+    {
+        // Builder left authored, un-applied values on these cards. Disposing and recreating them is what
+        // clears every field of that, so this path must not be routed through the incremental refresh.
+        var vm = CreateRebuildableViewModel();
         await vm.LoadSettingsAsync();
         var beforeExit = vm.Settings[0];
         SetupMembership("s1", "s2");
+        FireAuthoringModeExited();
 
-        await FireAuthoringModeExitedAsync();
+        await vm.RefreshOnNavigationAsync();
 
+        VerifyLoads(2);
+        vm.NeedsRebuild.Should().BeFalse();
         vm.Settings.Should().HaveCount(2);
         vm.Settings[0].Should().NotBeSameAs(beforeExit);
         VerifyNoSubsetLoad();
+        _mockSettingsLoadingService.Verify(
+            s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RefreshOnNavigationAsync_WhenFresh_RereadsStatesOnly()
+    {
+        var vm = CreateRebuildableViewModel();
+        await vm.LoadSettingsAsync();
+        var before = vm.Settings[0];
+
+        await vm.RefreshOnNavigationAsync();
+
+        VerifyLoads(1);
+        vm.Settings[0].Should().BeSameAs(before);
+        _mockSettingsLoadingService.Verify(
+            s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RefreshOnNavigationAsync_BeforeFirstLoad_ReadsNothing()
+    {
+        // The page's own load is the first read; refreshing here as well would read the system twice.
+        var vm = CreateRebuildableViewModel();
+
+        await vm.RefreshOnNavigationAsync();
+
+        VerifyLoads(0);
+        _mockSettingsLoadingService.Verify(
+            s => s.RefreshSettingStatesAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task FilterStateChanged_WhenStale_LeavesTheCardsForTheRebuild()
+    {
+        // Reconciling authored cards would keep them; the rebuild on next navigation replaces them all anyway.
+        var vm = CreateRebuildableViewModel();
+        await vm.LoadSettingsAsync();
+        SetupMembership("s1");
+        FireAuthoringModeExited();
+
+        await FireFilterStateChangedAsync();
+
+        vm.Settings.Should().HaveCount(2);
+        VerifyNoSubsetLoad();
+        _mockSettingsLoadingService.Verify(
+            s => s.RefreshScopeDerivedStateAsync(It.IsAny<IEnumerable<SettingItemViewModel>>()), Times.Never);
     }
 
     private SettingItemViewModel AtRecommended(string id, string name) =>

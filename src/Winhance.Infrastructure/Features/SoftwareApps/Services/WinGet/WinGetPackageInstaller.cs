@@ -116,6 +116,32 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
         return arguments;
     }
 
+    internal static string UninstallArguments(string packageId, string? source, InstallScope scope = InstallScope.Default)
+    {
+        var arguments = $"uninstall --id {packageId} --exact --silent --accept-source-agreements --force --disable-interactivity";
+        if (!string.IsNullOrEmpty(source))
+            arguments += $" --source {source}";
+        return arguments + scope switch
+        {
+            InstallScope.Machine => " --scope machine",
+            InstallScope.User => " --scope user",
+            _ => "",
+        };
+    }
+
+    internal static string ListArguments(string packageId, string? source)
+    {
+        var arguments = $"list --id {packageId} --exact --accept-source-agreements --disable-interactivity";
+        return string.IsNullOrEmpty(source) ? arguments : arguments + $" --source {source}";
+    }
+
+    // Each scope's run on its own: a scope with nothing installed reports PackageNotFound, which is not a failure.
+    internal static int CombineScopedUninstalls(int machineExitCode, int userExitCode)
+    {
+        bool Removed(int code) => WinGetExitCodes.IsSuccess(code) || code == WinGetExitCodes.PackageNotFound;
+        return !Removed(machineExitCode) ? machineExitCode : !Removed(userExitCode) ? userExitCode : WinGetExitCodes.Ok;
+    }
+
     // --skip-dependencies: the staged installer runs on its own on the new PC, so dependency installers would never
     // run. An app that needs them fails its staged install and the online route installs it with them.
     internal static string DownloadArguments(string packageId, string architecture, bool forAllUsers, string destinationFolder)
@@ -268,15 +294,11 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
         {
             _taskProgressService?.UpdateProgress(20, _localization.GetString("Progress_WinGet_StartingUninstallation", displayName));
 
-            var arguments = $"uninstall --id {packageId} --silent --accept-source-agreements --force --disable-interactivity";
-            if (!string.IsNullOrEmpty(source))
-                arguments += $" --source {source}";
-
             var wingetExe = WinGetCliRunner.GetWinGetExePath(_interactiveUserService) ?? "winget";
             var output = new WinGetOutputStream(
                 WinGetOperation.Uninstall, displayName, _taskProgressService, _localization, _logService);
 
-            async Task<WinGetCliRunner.WinGetCliResult> RunUninstallAsync(bool asShellUser)
+            async Task<WinGetCliRunner.WinGetCliResult> RunUninstallAsync(string arguments, bool asShellUser)
             {
                 output.WriteHeader(wingetExe, arguments);
                 var run = await WinGetCliRunner.RunAsync(
@@ -293,11 +315,24 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
                 return run;
             }
 
-            var result = await RunUninstallAsync(asShellUser: false).ConfigureAwait(false);
-            if (result.ExitCode == WinGetExitCodes.NoAdminUninstallForUserScope)
+            async Task<WinGetCliRunner.WinGetCliResult> UninstallScopeAsync(InstallScope scope)
             {
+                var arguments = UninstallArguments(packageId, source, scope);
+                var run = await RunUninstallAsync(arguments, asShellUser: false).ConfigureAwait(false);
+                if (run.ExitCode != WinGetExitCodes.NoAdminUninstallForUserScope)
+                    return run;
                 _logService?.LogInformation($"{packageId} is installed for the signed-in user only - retrying the uninstall unelevated");
-                result = await RunUninstallAsync(asShellUser: true).ConfigureAwait(false);
+                return await RunUninstallAsync(arguments, asShellUser: true).ConfigureAwait(false);
+            }
+
+            var result = await UninstallScopeAsync(InstallScope.Default).ConfigureAwait(false);
+            // winget refuses an id that matches a per-machine and a per-user install; one scope at a time matches one each.
+            if (result.ExitCode == WinGetExitCodes.MultiplePackagesFound)
+            {
+                _logService?.LogInformation($"{packageId} is installed more than once - uninstalling the machine and the user install in turn");
+                var machine = await UninstallScopeAsync(InstallScope.Machine).ConfigureAwait(false);
+                var user = await UninstallScopeAsync(InstallScope.User).ConfigureAwait(false);
+                result = result with { ExitCode = CombineScopedUninstalls(machine.ExitCode, user.ExitCode) };
             }
 
             if (WinGetExitCodes.IsSuccess(result.ExitCode))
@@ -411,12 +446,8 @@ internal class WinGetPackageInstaller : IWinGetPackageInstaller
     {
         try
         {
-            var arguments = $"list --id {packageId} --accept-source-agreements --disable-interactivity";
-            if (!string.IsNullOrEmpty(source))
-                arguments += $" --source {source}";
-
             var result = await WinGetCliRunner.RunAsync(
-                arguments,
+                ListArguments(packageId, source),
                 cancellationToken: cancellationToken,
                 timeoutMs: 10_000,
                 interactiveUserService: _interactiveUserService).ConfigureAwait(false);

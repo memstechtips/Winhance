@@ -128,7 +128,7 @@ public class ConfigApplicationExecutionServiceTests
         var service = CreateService();
         await service.ExecuteConfigImportAsync(config, options, null);
 
-        _mockDialogService.Verify(d => d.ShowMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _mockDialogService.Verify(d => d.ShowInformationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
@@ -403,7 +403,7 @@ public class ConfigApplicationExecutionServiceTests
 
         _mockOverlayService.Verify(o => o.HideOverlay(), Times.Once);
         _mockDialogService.Verify(
-            d => d.ShowMessage(It.Is<string>(s => s.Contains("Test error")), It.IsAny<string>()),
+            d => d.ShowErrorAsync(It.Is<string>(s => s.Contains("Test error")), It.IsAny<string>(), It.IsAny<string>()),
             Times.Once);
     }
 

@@ -1,8 +1,12 @@
 {
   "schemaVersion": 1,
   "themes": {
-    "light": {},
-    "dark": {}
+    "light": {
+      "LockedSettingIconBrush": "#FFA500"
+    },
+    "dark": {
+      "LockedSettingIconBrush": "#FFA500"
+    }
   },
   "aliases": {
     "light": {
@@ -42,12 +46,30 @@
       "TechDetail.Table.StrokeBrush": "ControlStrokeColorDefaultBrush"
     }
   },
+  "sizes": {
+    "OutcomeIconFontSize": "16",
+    "BreadcrumbSeparatorFontSize": "12",
+    "TechnicalDetailsIconFontSize": "12",
+    "TechnicalDetailsChevronFontSize": "9",
+    "CardExpanderChevronFontSize": "16",
+    "StatusIconFontSize": "20",
+    "StatusChipIconFontSize": "18",
+    "StepRailIconFontSize": "18",
+    "ButtonIconFontSize": "14",
+    "CaptionIconFontSize": "12",
+    "CardIconFontSize": "16",
+    "NavIconFontSize": "20",
+    "TitleBarIconFontSize": "20",
+    "TitleBarNavIconFontSize": "16",
+    "SupportHeartFontSize": "22",
+    "ActionBarIconFontSize": "18"
+  },
   "styles": {
     "BadgePillBase": {
       "target": "Border",
       "basedOn": null,
       "setters": {
-        "Height": "20",
+        "MinHeight": "20",
         "CornerRadius": "10",
         "Padding": "7,0,9,0",
         "VerticalAlignment": "Center",
@@ -131,24 +153,34 @@
         "Margin": "0,0,0,2"
       }
     },
-    "TechDetail.Table.BadgeRecommendedIcon": {
-      "target": "PathIcon",
+    "BadgeRecommendedIcon": {
+      "target": "fluentIcons:FluentIcon",
       "basedOn": null,
       "setters": {
-        "Width": "12",
-        "Height": "12",
+        "Icon": "Star",
+        "FontSize": "{StaticResource CaptionIconFontSize}",
         "VerticalAlignment": "Center",
         "Foreground": "{ThemeResource BadgeRecommendedForeground}"
       }
     },
-    "TechDetail.Table.BadgeDefaultIcon": {
-      "target": "PathIcon",
+    "BadgeDefaultIcon": {
+      "target": "fluentIcons:FluentIcon",
       "basedOn": null,
       "setters": {
-        "Width": "12",
-        "Height": "12",
+        "Icon": "Apps",
+        "FontSize": "{StaticResource CaptionIconFontSize}",
         "VerticalAlignment": "Center",
         "Foreground": "{ThemeResource BadgeDefaultForeground}"
+      }
+    },
+    "BadgePreferenceIcon": {
+      "target": "fluentIcons:FluentIcon",
+      "basedOn": null,
+      "setters": {
+        "Icon": "Person",
+        "FontSize": "{StaticResource CaptionIconFontSize}",
+        "VerticalAlignment": "Center",
+        "Foreground": "{ThemeResource BadgePreferenceForeground}"
       }
     },
     "TechDetail.Table.BadgeRecommendedText": {
@@ -176,7 +208,8 @@
         "Height": "28",
         "MinWidth": "28",
         "VerticalAlignment": "Center",
-        "HorizontalAlignment": "Center"
+        "HorizontalAlignment": "Center",
+        "CornerRadius": "{ThemeResource ControlCornerRadius}"
       }
     },
     "QuickSetRecommendedButtonStyle": {
@@ -284,7 +317,8 @@
         "BorderThickness": "0",
         "Padding": "4,0",
         "MinWidth": "0",
-        "VerticalAlignment": "Center"
+        "VerticalAlignment": "Center",
+        "CornerRadius": "{ThemeResource ControlCornerRadius}"
       }
     },
     "TechDetail.Table.HeaderText": {
@@ -419,20 +453,6 @@
         "Padding": "8,2",
         "Margin": "0"
       }
-    }
-  },
-  "geometries": {
-    "BadgeDefaultIconPath": {
-      "data": "M0,0 H5 V5 H0 Z M6,0 H11 V5 H6 Z M0,6 H5 V11 H0 Z M6,6 H11 V11 H6 Z",
-      "viewBox": 11
-    },
-    "BadgeRecommendedIconPath": {
-      "data": "M5.28347 1.54556C5.57692 0.95096 6.42479 0.950961 6.71825 1.54556L7.82997 3.79817L10.3159 4.15939C10.9721 4.25474 11.2341 5.06112 10.7592 5.52394L8.96043 7.27736L9.38507 9.75321C9.49716 10.4067 8.81122 10.9051 8.22431 10.5966L6.00086 9.42761L3.7774 10.5966C3.19049 10.9051 2.50455 10.4067 2.61664 9.75321L3.04128 7.27736L1.24246 5.52394C0.767651 5.06111 1.02966 4.25474 1.68584 4.15939L4.17174 3.79817L5.28347 1.54556ZM6.00086 2.35152L5.02194 4.33502C4.90541 4.57114 4.68016 4.73479 4.41959 4.77265L2.23067 5.09072L3.81459 6.63466C4.00313 6.81845 4.08917 7.08325 4.04466 7.34277L3.67075 9.52285L5.62858 8.49355C5.86164 8.37103 6.14007 8.37103 6.37313 8.49355L8.33096 9.52285L7.95705 7.34277C7.91254 7.08325 7.99858 6.81845 8.18713 6.63466L9.77105 5.09072L7.58212 4.77265C7.32156 4.73479 7.0963 4.57114 6.97977 4.33502L6.00086 2.35152Z",
-      "viewBox": 12
-    },
-    "BadgePreferenceIconPath": {
-      "data": "M6 1C4.89543 1 4 1.89543 4 3C4 4.10457 4.89543 5 6 5C7.10457 5 8 4.10457 8 3C8 1.89543 7.10457 1 6 1ZM5 3C5 2.44772 5.44772 2 6 2C6.55228 2 7 2.44772 7 3C7 3.55228 6.55228 4 6 4C5.44772 4 5 3.55228 5 3ZM8.5 6L3.49998 6C2.67156 6 2 6.67161 2 7.5C2 8.61608 2.45897 9.51027 3.21215 10.1148C3.95342 10.7098 4.94692 11 6 11C7.05308 11 8.04658 10.7098 8.78785 10.1148C9.54103 9.51027 10 8.61608 10 7.5C10 6.67157 9.32843 6 8.5 6ZM3.49998 7L8.5 7C8.77614 7 9 7.22386 9 7.5C9 8.31691 8.67547 8.92273 8.1619 9.33495C7.63642 9.75673 6.87992 10 6 10C5.12008 10 4.36358 9.75673 3.8381 9.33495C3.32453 8.92273 3 8.31691 3 7.5C3 7.22387 3.22387 7 3.49998 7Z",
-      "viewBox": 12
     }
   }
 }

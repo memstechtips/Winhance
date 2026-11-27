@@ -67,7 +67,7 @@ public class SettingIncludeInFileTests
         Description = "",
         InputType = InputType.Toggle,
         Icon = "Cog",
-        IconPack = "Material",
+        IconPack = "Fluent",
     };
 
     private static SettingStateResult LiveState(bool isEnabled = false) => new()
@@ -97,6 +97,22 @@ public class SettingIncludeInFileTests
                 data.Add(mode);
         }
         return data;
+    }
+
+    [Fact]
+    public void WallpaperExportNote_IsShownOnlyWhileAuthoringWallpaper()
+    {
+        using var wallpaper = CreateSut("theme-wallpaper");
+        using var other = CreateSut("other-card");
+        wallpaper.ShowWallpaperExportBanner.Should().BeTrue();
+        wallpaper.WallpaperExportNote.Should().Be("Builder_Wallpaper_StandaloneExportNote");
+        other.ShowWallpaperExportBanner.Should().BeFalse();
+        wallpaper.ShowsCardBanners(false, false, wallpaper.ShowWallpaperExportBanner).Should().BeTrue();
+
+        _modeService.SetupGet(m => m.CurrentMode).Returns(WinhanceMode.Normal);
+        _modeService.Raise(m => m.ModeChanged += null, EventArgs.Empty);
+        wallpaper.ShowWallpaperExportBanner.Should().BeFalse();
+        wallpaper.ShowsCardBanners(false, false, wallpaper.ShowWallpaperExportBanner).Should().BeFalse();
     }
 
     [Fact]

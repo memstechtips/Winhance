@@ -56,10 +56,8 @@ public sealed class SelectionSaveService(
                 && !string.Equals(Path.GetFileName(path), AutounattendFileName, StringComparison.OrdinalIgnoreCase);
         }
 
-        string? media = target == BuilderTarget.Autounattend ? options.MediaFolder ?? session.WorkingDirectory : null;
-
-        // Staged before the writer reads the set: the file has to name where the album lands, not where it was authored.
-        var toWrite = media is { Length: > 0 } ? StageAlbumOnMedia(selections, media) : selections;
+        string? media = target == BuilderTarget.Autounattend ? options.MediaFolder : null;
+        string? appMedia = target == BuilderTarget.Autounattend ? media ?? session.WorkingDirectory : null;
 
         // Generating and checking an answer file takes seconds, so the progress bar covers both.
         bool xml = target == BuilderTarget.Autounattend;
@@ -68,36 +66,57 @@ public sealed class SelectionSaveService(
 
         string written;
         AnswerFileReport? report = null;
+        // Validate a replacement beside the existing file before publishing it. Sidecar paths stay relative to the same folder.
+        bool mediaBound = media is { Length: > 0 };
+        string writePath = xml && !mediaBound && files.FileExists(path) ? path + ".tmp-" + Guid.NewGuid().ToString("N") : path;
         try
         {
-            written = await WriteAsync(target, toWrite, path);
+            written = await WriteAsync(target, selections, writePath, media, async staged =>
+            {
+                await AddMediaStepsAsync(staged, media!);
+                report = await answerFileValidator.ValidateAsync(staged, progress.GetCurrentCancellationToken());
+                report.ThrowIfInvalidGenerated();
+            });
             logService.Log(LogLevel.Info, $"{target} saved to {written}");
 
-            if (media is { Length: > 0 })
-                await AddMediaStepsAsync(written, media);
-
             // Checked before the apps are staged: staging writes beside the file, never into it.
-            if (xml && options.ReportSuccessInDialog)
-                report = await CheckAnswerFileAsync(written, progress.GetCurrentCancellationToken());
+            if (xml && !mediaBound)
+            {
+                report = await answerFileValidator.ValidateAsync(written, progress.GetCurrentCancellationToken());
+                report.ThrowIfInvalidGenerated();
+                if (writePath != path)
+                {
+                    files.SetFileAttributes(path, FileAttributes.Normal);
+                    files.CopyFile(writePath, path, overwrite: true);
+                    written = path;
+                }
+            }
         }
         catch
         {
             if (xml)
                 progress.FailTask();
+            if (xml && !mediaBound && writePath == path && files.FileExists(writePath))
+                files.DeleteFile(writePath);
             throw;
+        }
+        finally
+        {
+            if (writePath != path && files.FileExists(writePath))
+                files.DeleteFile(writePath);
         }
 
         if (xml)
             progress.CompleteTask();
 
-        IReadOnlyList<StagedApp>? staged = media is { Length: > 0 }
-            ? await StageAppsAsync(selections, media, options.ReportSuccessInDialog)
+        IReadOnlyList<StagedApp>? staged = appMedia is { Length: > 0 }
+            ? await StageAppsAsync(selections, appMedia, options.ReportSuccessInDialog)
             : [];
 
         if (options.ReportSuccessInDialog)
         {
             // The file names the installers either way; only a save onto media copies them.
-            bool ownInstallersNotOnMedia = media is not { Length: > 0 } && OwnInstaller.From(selections).Count > 0;
+            bool ownInstallersNotOnMedia = appMedia is not { Length: > 0 } && OwnInstaller.From(selections).Count > 0;
             await ReportSuccessAsync(target, written, report, misnamed, selections.WindowsApps.Count == 0, ownInstallersNotOnMedia);
         }
 
@@ -215,61 +234,67 @@ public sealed class SelectionSaveService(
                 $"Winhance_Config_{DateTime.Now:yyyyMMdd}{ConfigFileConstants.FileExtension}",
                 "winhance");
 
-    // Setup copies sources\$OEM$\$$ into %WINDIR%, so an album staged there lands where AlbumDestinationFor says.
-    // Rewritten on the set being saved, never on the edit store, where it would come back as the user's own choice.
-    private SelectionSet StageAlbumOnMedia(SelectionSet set, string workingDirectory)
+    private async Task<SelectionSet> CarryAlbumsAsync(SelectionSet set)
     {
         List<SettingChoice>? rewritten = null;
-
+        List<CarriedFile>? carried = null;
         for (int i = 0; i < set.Settings.Count; i++)
         {
             var choice = set.Settings[i];
-
             if (choice.Value is not ChoiceValue.Text { Value.Length: > 0 } typed
                 || SettingCatalog.Find(choice.SettingId) is not { } setting
                 || !setting.Targets.OfType<DesktopSlideshowTarget>().Any())
                 continue;
 
             if (!files.DirectoryExists(typed.Value))
-            {
-                // Still a correct choice on a PC that has the folder, so it travels as it was authored.
-                logService.Log(LogLevel.Warning,
-                    $"Slideshow album '{typed.Value}' is not on this PC; it was not copied onto the media.");
-                continue;
-            }
+                throw new IOException($"Slideshow album '{typed.Value}' is not available to copy onto the media.");
 
+            var pictures = files.GetFiles(typed.Value).Where(PictureFileConstants.IsPicture).ToList();
+            if (pictures.Count == 0)
+                throw new IOException($"Slideshow album '{typed.Value}' contains no pictures to copy onto the media.");
             string landing = theme.AlbumDestinationFor(typed.Value);
-            string staged = files.CombinePath(
-                workingDirectory, "sources", "$OEM$", "$$", "Web", "Wallpaper", "Winhance", files.GetFileName(landing));
-            files.CreateDirectory(staged);
-
-            foreach (var picture in files.GetFiles(typed.Value))
+            carried ??= [.. set.Files];
+            foreach (var picture in pictures)
             {
-                if (PictureFileConstants.IsPicture(picture))
-                    files.CopyFile(picture, files.CombinePath(staged, files.GetFileName(picture)), overwrite: true);
+                var bytes = await files.ReadAllBytesAsync(picture);
+                carried.Add(new CarriedFile(choice.SettingId, files.CombinePath(landing, files.GetFileName(picture)), Convert.ToBase64String(bytes)));
             }
-
             rewritten ??= [.. set.Settings];
             rewritten[i] = choice with { Value = new ChoiceValue.Text(landing) };
         }
-
-        return rewritten is null ? set : set with { Settings = rewritten };
+        return rewritten is null ? set : set with { Settings = rewritten, Files = carried! };
     }
 
-    private async Task<string> WriteAsync(BuilderTarget target, SelectionSet selections, string path)
+    private async Task<string> WriteAsync(BuilderTarget target, SelectionSet selections, string path, string? media, Func<string, Task> validateMedia)
     {
-        var carried = await fileStore.LoadAsync(selections);
-
+        var carried = (await fileStore.LoadAsync(selections)).WithOnlySelectedPicture();
         if (target == BuilderTarget.Autounattend)
-            return await autounattend.WriteAsync(carried, selectionSetBuilder.CurrentScope, path);
+        {
+            bool mediaBound = media is { Length: > 0 };
+            if (mediaBound)
+            {
+                foreach (var choice in selections.Settings)
+                {
+                    if (choice.Value is ChoiceValue.Keyed { Key.Length: > 0 } keyed
+                        && SettingCatalog.Find(choice.SettingId)?.Options?.Source == OptionSource.Pictures
+                        && theme.Travels(keyed.Key)
+                        && !carried.Files.Any(file => file.SettingId == choice.SettingId && file.Base64.Length > 0))
+                        throw new IOException($"Wallpaper '{keyed.Key}' is not available to copy onto the media.");
+                }
+                carried = await CarryAlbumsAsync(carried);
+            }
+            return media is { Length: > 0 }
+                ? await autounattend.WriteMediaAsync(carried, selectionSetBuilder.CurrentScope, path, media, validateMedia, progress.GetCurrentCancellationToken())
+                : await autounattend.WriteAsync(carried, selectionSetBuilder.CurrentScope, path);
+        }
 
         await configFiles.WriteAsync(carried, selectionSetBuilder.CurrentScope, path);
         return path;
     }
 
     // The XML message names the file and spells out the steps to WIMUtil; it never offers to go there, so every
-    // entry point reports the same save the same way. Neither an empty app list nor a finding stops the save: both
-    // are shown on the one dialog and the user decides.
+    // entry point reports the same save the same way. An empty app list and advisory findings
+    // are shown on the one dialog. Blocking findings have already stopped the save.
     private async Task ReportSuccessAsync(BuilderTarget target, string path, AnswerFileReport? report, bool misnamed, bool noWindowsApps, bool ownInstallersNotOnMedia)
     {
         bool xml = target == BuilderTarget.Autounattend;
@@ -324,17 +349,4 @@ public sealed class SelectionSaveService(
         });
     }
 
-    // Null when the check could not run, or the user cancelled it from the progress bar.
-    private async Task<AnswerFileReport?> CheckAnswerFileAsync(string path, CancellationToken cancellationToken)
-    {
-        try
-        {
-            return await answerFileValidator.ValidateAsync(path, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            logService.Log(LogLevel.Warning, $"Could not check {path}: {ex.Message}");
-            return null;
-        }
-    }
 }

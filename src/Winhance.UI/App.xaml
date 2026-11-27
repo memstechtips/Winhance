@@ -10,8 +10,12 @@
             <ResourceDictionary.MergedDictionaries>
                 <!-- WinUI 3 native controls resources -->
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <!-- Every CheckBox: WinUI's template with a still check instead of an AnimatedIcon -->
+                <ResourceDictionary Source="ms-appx:///Features/Common/Resources/CheckBoxStyle.xaml" />
                 <!-- Icon sizes, keyed by concept. Merged first so later dictionaries can use them. -->
                 <ResourceDictionary Source="ms-appx:///Features/Common/Resources/IconSizes.xaml" />
+                <!-- Layout and text tokens, keyed by role. Merged before the dictionaries that use them. -->
+                <ResourceDictionary Source="ms-appx:///Features/Common/Resources/LayoutTokens.xaml" />
                 <!-- Value converters -->
                 <ResourceDictionary Source="ms-appx:///Features/Common/Resources/Converters.xaml" />
                 <!-- Shared setting templates and styles (code-behind enabled for x:Bind) -->

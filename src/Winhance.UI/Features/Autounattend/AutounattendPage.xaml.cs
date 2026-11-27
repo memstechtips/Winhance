@@ -28,4 +28,10 @@ public sealed partial class AutounattendPage : SectionPage
             Mode = BindingMode.OneWay,
         });
     }
+
+    public override async Task WhenReadyAsync()
+    {
+        await base.WhenReadyAsync();
+        await SettingsView.WhenReadyAsync();
+    }
 }

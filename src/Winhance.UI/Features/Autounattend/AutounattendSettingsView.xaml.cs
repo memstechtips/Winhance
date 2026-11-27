@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
+using Winhance.Core.Features.Common.Extensions;
+using Winhance.Core.Features.Common.Interfaces;
 using Winhance.UI.Features.Autounattend.ViewModels;
 
 namespace Winhance.UI.Features.Autounattend;
@@ -23,15 +25,12 @@ public sealed partial class AutounattendSettingsView : UserControl
 
     public AutounattendViewModel ViewModel { get; }
 
-    public bool ScrollsWithPage
-    {
-        get => SettingsList.ScrollsWithPage;
-        set => SettingsList.ScrollsWithPage = value;
-    }
+    private readonly ILogService _logService;
 
     public AutounattendSettingsView()
     {
         ViewModel = App.Services.GetRequiredService<AutounattendViewModel>();
+        _logService = App.Services.GetRequiredService<ILogService>();
 
         // Before the first layout, so the loader is built with the page: turned on from Loaded it showed half a
         // second late, and the page sat blank until then.
@@ -40,8 +39,18 @@ public sealed partial class AutounattendSettingsView : UserControl
     }
 
     private CollectionViewSource? _groupedSource;
+    private readonly TaskCompletionSource _loaded = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private async void OnLoaded(object sender, RoutedEventArgs e)
+    // Waits for the list too: the included cards above it are ready after the first load, well before the settings.
+    public async Task WhenReadyAsync()
+    {
+        await _loaded.Task;
+        await SettingsList.WhenShownAsync();
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e) => LoadAsync().FireAndForget(_logService);
+
+    private async Task LoadAsync()
     {
         _groupedSource = new CollectionViewSource
         {
@@ -64,12 +73,14 @@ public sealed partial class AutounattendSettingsView : UserControl
         finally
         {
             ViewModel.IsLoading = false;
+            _loaded.TrySetResult();
         }
     }
 
     // The view model is a singleton, so a view left subscribed to its collection is never collected.
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        _loaded.TrySetResult();
         ViewModel.ReleaseIncluded();
         SettingsList.GroupedSettingsSource = null;
         if (_groupedSource is not null)

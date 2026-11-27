@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
+using Winhance.Core.Features.Common.Constants;
 using Winhance.Core.Features.Common.Enums;
 using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
@@ -255,7 +256,23 @@ internal class VersionService : IVersionService
         }
     }
 
-    public void LaunchInstallerAndRestart()
+    public bool IsUpdateDownloaded => !string.IsNullOrEmpty(_downloadedInstallerPath) && !string.IsNullOrEmpty(_expectedInstallerSha256);
+
+    public void LaunchInstallerAndRestart(bool relaunchInTray = false)
+    {
+        string appExePath = _fileSystemService.CombinePath(AppContext.BaseDirectory, "Winhance.exe");
+        var relaunchArgs = relaunchInTray ? " " + SignInTask.TrayFlag : string.Empty;
+        _logService.Log(LogLevel.Info, "Launching installer, app will restart after install...");
+        LaunchInstaller($" && start \"\" \"{appExePath}\"{relaunchArgs}");
+    }
+
+    public void LaunchInstallerOnExit()
+    {
+        _logService.Log(LogLevel.Info, "Launching installer on exit, app stays closed after install...");
+        LaunchInstaller(string.Empty);
+    }
+
+    private void LaunchInstaller(string afterInstall)
     {
         if (string.IsNullOrEmpty(_downloadedInstallerPath) || string.IsNullOrEmpty(_expectedInstallerSha256))
             throw new InvalidOperationException("No update has been downloaded.");
@@ -265,15 +282,10 @@ internal class VersionService : IVersionService
 
         string appDir = AppContext.BaseDirectory;
         bool isPortable = _fileSystemService.FileExists(_fileSystemService.CombinePath(appDir, AppDataPaths.PortableMarkerFileName));
-        string appExePath = _fileSystemService.CombinePath(appDir, "Winhance.exe");
-
         string installerArgs = BuildInstallerArgs(appDir, isPortable);
 
-        _logService.Log(LogLevel.Info, $"Launching installer (portable: {isPortable}), app will restart after install...");
-
-        // Use cmd /c to: run installer (wait for it to finish) then relaunch the app.
-        // The caller should exit the application immediately after this call.
-        var cmdArgs = $"/c start /wait \"\" \"{_downloadedInstallerPath}\" {installerArgs} && start \"\" \"{appExePath}\"";
+        // cmd /c waits for the installer, then runs whatever follows it (the relaunch, when there is one).
+        var cmdArgs = $"/c start /wait \"\" \"{_downloadedInstallerPath}\" {installerArgs}{afterInstall}";
         Process.Start(new ProcessStartInfo
         {
             FileName = "cmd.exe",

@@ -51,11 +51,20 @@ public enum AnswerFileVerdict
     WillFail
 }
 
-// The verdict is derived, never stored, and nothing gates on it: the user always decides.
+// Imported files are advisory; generated files must pass the strict check before use.
 public sealed record AnswerFileReport(IReadOnlyList<AnswerFileFinding> Findings)
 {
+    public bool IsWinhanceGenerated { get; init; }
+
     public AnswerFileVerdict Verdict =>
         Findings.Any(f => f.Severity == AnswerFileSeverity.Error) ? AnswerFileVerdict.WillFail
         : Findings.Count > 0 ? AnswerFileVerdict.MayFail
         : AnswerFileVerdict.Clean;
+
+    public void ThrowIfInvalidGenerated()
+    {
+        var blocking = Findings.Where(f => f.Severity == AnswerFileSeverity.Error || f.Rule == AnswerFileRule.ParserUnavailable).ToList();
+        if (blocking.Count > 0)
+            throw new InvalidOperationException(string.Join(Environment.NewLine, blocking.Select(f => $"{f.Location}: {f.Detail}")));
+    }
 }

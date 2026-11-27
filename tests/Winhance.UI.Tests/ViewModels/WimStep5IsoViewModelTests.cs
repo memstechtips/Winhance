@@ -260,6 +260,34 @@ public class WimStep5IsoViewModelTests
     }
 
     [Fact]
+    public async Task CreateMediaCommand_WhenTheIsoWriteThrows_LogsAndShowsTheErrorOnTheCardAndInADialog()
+    {
+        _sut.OutputIsoPath = "D:\\Output\\test.iso";
+        _sut.WorkingDirectory = "C:\\WorkDir";
+        _mockTaskProgressService
+            .Setup(t => t.CurrentTaskCancellationSource)
+            .Returns(new CancellationTokenSource());
+        _mockTaskProgressService
+            .Setup(t => t.CreateDetailedProgress())
+            .Returns(new Progress<TaskProgressDetail>());
+        _mockIsoService
+            .Setup(i => i.CreateIsoAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
+                It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _sut.IsIsoCreated.Should().BeFalse();
+        _sut.IsCreatingMedia.Should().BeFalse();
+        _sut.SelectOutputCard.IsEnabled.Should().BeTrue();
+        _sut.SelectOutputCard.Description.Should().Be("WIMUtil_Status_ErrorPrefix");
+        _mockTaskProgressService.Verify(t => t.FailTask(), Times.Once);
+        _mockDialogService.Verify(d => d.ShowErrorAsync("WIMUtil_Msg_IsoCreationError", It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        _mockLogService.Verify(l => l.LogError(It.Is<string>(s => s.Contains("boom")), It.IsAny<Exception>(), It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
     public async Task CreateMediaCommand_AlwaysCallsCompleteTask()
     {
         _sut.OutputIsoPath = "D:\\Output\\test.iso";
@@ -480,6 +508,48 @@ public class WimStep5IsoViewModelTests
         _sut.ShowUsbHardDrives = true;
 
         _mockUsbMediaWriter.Verify(w => w.GetCandidateTargets(It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public void RelabelActionCards_BeforeAnyDriveList_ReReadsTheUsbCardDescription()
+    {
+        SwitchLanguageToGerman();
+
+        _sut.RelabelActionCards();
+
+        _sut.SelectUsbCard.Description.Should().Be("de:WIMUtil_Card_SelectUsb_Description");
+    }
+
+    [Fact]
+    public async Task RelabelActionCards_NoUsbDriveFound_ReReadsTheNoDriveText()
+    {
+        _mockUsbMediaWriter.Setup(w => w.GetCandidateTargets(It.IsAny<bool>())).Returns([]);
+        await _sut.SelectUsbDestinationCommand.ExecuteAsync(null);
+        SwitchLanguageToGerman();
+
+        _sut.RelabelActionCards();
+
+        _sut.SelectUsbCard.Description.Should().Be("de:WIMUtil_Label_NoUsbFound");
+    }
+
+    [Fact]
+    public async Task RelabelActionCards_DriveListFailed_ReReadsTheErrorWithItsMessage()
+    {
+        _mockUsbMediaWriter.Setup(w => w.GetCandidateTargets(It.IsAny<bool>())).Throws(new InvalidOperationException("WMI down"));
+        await _sut.SelectUsbDestinationCommand.ExecuteAsync(null);
+        SwitchLanguageToGerman();
+
+        _sut.RelabelActionCards();
+
+        _sut.SelectUsbCard.Description.Should().Be("de:WIMUtil_Status_ErrorPrefix|WMI down");
+    }
+
+    private void SwitchLanguageToGerman()
+    {
+        _mockLocalizationService.Setup(l => l.GetString(It.IsAny<string>())).Returns((string key) => "de:" + key);
+        _mockLocalizationService
+            .Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Returns((string key, object[] args) => "de:" + key + "|" + string.Join("|", args));
     }
 
     [Fact]
@@ -961,6 +1031,24 @@ public class WimStep5IsoViewModelTests
     }
 
     [Fact]
+    public async Task RefreshBootManagerText_AfterALanguageSwitch_RelabelsTheChoicesAndKeepsThePick()
+    {
+        _mockBootManagerService
+            .Setup(b => b.InspectAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BootManagerOptions(Offers2023: true, BootManager.Pca2011, IsOutdated: false));
+        await _sut.InspectBootManagerAsync();
+        _sut.SelectedBootManager = _sut.BootManagerChoices[1];
+        _mockLocalizationService.Setup(l => l.GetString(It.IsAny<string>())).Returns((string key) => "de:" + key);
+
+        _sut.RefreshBootManagerText();
+
+        _sut.BootManagerChoices.Select(c => c.DisplayText)
+            .Should().Equal("de:WIMUtil_BootManager_Pca2011", "de:WIMUtil_BootManager_Ca2023");
+        _sut.SelectedBootManager!.Value.Should().Be(BootManager.Ca2023);
+        _sut.BootManagerDescription.Should().Be("de:WIMUtil_Card_BootManager_Description");
+    }
+
+    [Fact]
     public async Task InspectBootManagerAsync_ThisPcRevokes2011_Selects2023AndSaysWhy()
     {
         _mockBootManagerService
@@ -1338,6 +1426,73 @@ public class WimStep5IsoViewModelTests
         _sut.BuildCards.Should().Contain(c => c.Title == "WIMUtil_Build_WriteAnswerFile" && c.IsComplete);
     }
 
+    [Theory]
+    [InlineData(AnswerFileRule.PowerShellParse, AnswerFileSeverity.Error)]
+    [InlineData(AnswerFileRule.ParserUnavailable, AnswerFileSeverity.Warning)]
+    public async Task CreateMediaCommand_GeneratedAnswerFileFailsValidation_DoesNotCreateIso(AnswerFileRule rule, AnswerFileSeverity severity)
+    {
+        ArrangeIsoRun(new AnswerFileReport([new(rule, severity, "Winhancements.ps1", "broken script")]));
+        ArrangeSet();
+        _mockDialogService.Setup(d => d.ShowSummaryAsync(It.IsAny<SummaryRequest>())).ReturnsAsync(true);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockIsoService.Verify(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _sut.IsIsoCreated.Should().BeFalse();
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r => r.Title == AnswerFileTitle)), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_GeneratedAnswerFileBreaksAfterServicing_DoesNotCreateIso()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        ArrangeSet();
+        ArrangeImageMode();
+        _mockAnswerFileValidator.SetupSequence(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AnswerFileReport([]))
+            .ReturnsAsync(OneError());
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockIsoService.Verify(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _sut.IsIsoCreated.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_ImportedWinhanceFileWithBrokenSidecar_DoesNotCreateIso()
+    {
+        ArrangeIsoRun(new AnswerFileReport([new(AnswerFileRule.FileUnreadable, AnswerFileSeverity.Error, "StagedFile", "Missing payload")])
+        {
+            IsWinhanceGenerated = true,
+        });
+        _mockDialogService.Setup(d => d.ShowSummaryAsync(It.IsAny<SummaryRequest>())).ReturnsAsync(true);
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockIsoService.Verify(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _sut.IsIsoCreated.Should().BeFalse();
+        _mockDialogService.Verify(d => d.ShowSummaryAsync(It.Is<SummaryRequest>(r => r.Title == AnswerFileTitle)), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateMediaCommand_ImportedWinhanceFileBreaksAfterServicing_DoesNotCreateIso()
+    {
+        ArrangeIsoRun(new AnswerFileReport([]));
+        ArrangeImageMode();
+        _mockAnswerFileValidator.SetupSequence(v => v.ValidateAsync("C:\\WorkDir\\autounattend.xml", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AnswerFileReport([]) { IsWinhanceGenerated = true })
+            .ReturnsAsync(OneError());
+
+        await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockIsoService.Verify(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
+            It.IsAny<IProgress<TaskProgressDetail>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _sut.IsIsoCreated.Should().BeFalse();
+    }
+
     [Fact]
     public async Task CreateMediaCommand_NoAutounattendSession_WritesNoAnswerFile()
     {
@@ -1637,8 +1792,11 @@ public class WimStep5IsoViewModelTests
             .Setup(w => w.KeepEditionsAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
                 It.IsAny<IProgress<TaskProgressDetail>?>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new OperationCanceledException());
+        _mockFileSystemService.Setup(f => f.FileExists(_sut.OutputIsoPath)).Returns(true);
 
         await _sut.CreateMediaCommand.ExecuteAsync(null);
+
+        _mockFileSystemService.Verify(f => f.DeleteFile(_sut.OutputIsoPath), Times.Never);
 
         _mockTaskProgressService.Verify(t => t.CancelTask(), Times.Once);
         _mockIsoService.Verify(i => i.CreateIsoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BootFileReplacements>(),
@@ -1775,6 +1933,39 @@ public class WimStep5IsoViewModelTests
         _sut.EditionIndex = editionIndex;
 
         _sut.CreateMediaCommand.CanExecute(null).Should().Be(canCreate);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ModeOrEditionChange_RaisesNeedsEditionAndRequeriesCreate(bool changeMode)
+    {
+        var raised = new List<string?>();
+        var requeried = 0;
+        _sut.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+        _sut.CreateMediaCommand.CanExecuteChanged += (_, _) => requeried++;
+
+        if (changeMode)
+            _sut.IsBuiltIntoImage = true;
+        else
+            _sut.EditionIndex = 2;
+
+        raised.Should().Contain(nameof(WimStep5IsoViewModel.NeedsEdition));
+        requeried.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public void SessionEditionsChange_RaisesNeedsEditionAndRequeriesCreate()
+    {
+        var raised = new List<string?>();
+        var requeried = 0;
+        _sut.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+        _sut.CreateMediaCommand.CanExecuteChanged += (_, _) => requeried++;
+
+        _session.Editions = [new(1, "Windows 11 Home", "Core"), new(2, "Windows 11 Pro", "Professional")];
+
+        raised.Should().Contain(nameof(WimStep5IsoViewModel.NeedsEdition));
+        requeried.Should().BeGreaterThan(0);
     }
 
     [Fact]

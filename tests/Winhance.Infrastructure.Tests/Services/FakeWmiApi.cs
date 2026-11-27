@@ -13,11 +13,16 @@ internal sealed class FakeWmiApi : IWmiApi
         ClassInvocations
     { get; } = [];
 
+    public Action? OnQuery { get; set; }
+
     public List<FakeWmiInstance> For(string className) =>
         _instances.TryGetValue(className, out var list) ? list : _instances[className] = [];
 
-    public IReadOnlyList<IWmiInstance> Query(string scope, string className, string? condition) =>
-        _instances.TryGetValue(className, out var list) ? list : [];
+    public IReadOnlyList<IWmiInstance> Query(string scope, string className, string? condition)
+    {
+        OnQuery?.Invoke();
+        return _instances.TryGetValue(className, out var list) ? list : [];
+    }
 
     public WmiMethodResult InvokeClassMethod(
         string scope, string className, string method, IReadOnlyDictionary<string, object>? parameters)

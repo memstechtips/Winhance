@@ -9,15 +9,16 @@ using Winhance.UI.Features.Optimize;
 using Winhance.UI.Features.Settings;
 using Winhance.UI.Features.SoftwareApps;
 using Winhance.UI.Features.WimUtil;
-using Microsoft.UI.Dispatching;
 
 namespace Winhance.UI.Helpers;
 
 internal sealed class NavigationRouter
 {
-    private readonly IConfigReviewService? _configReviewService;
-    private readonly INavBadgeService? _navBadgeService;
-    private readonly DispatcherQueue _dispatcherQueue;
+    private readonly IConfigReviewService _configReviewService;
+    private readonly INavBadgeService _navBadgeService;
+    private readonly IDispatcherService _dispatcherService;
+    private readonly PageCurtain _curtain;
+    private Type? _pendingPageType;
 
     internal static readonly Dictionary<string, Type> TagToPageType = new()
     {
@@ -40,29 +41,46 @@ internal sealed class NavigationRouter
     };
 
     public NavigationRouter(
-        IConfigReviewService? configReviewService,
-        INavBadgeService? navBadgeService,
-        DispatcherQueue dispatcherQueue)
+        IConfigReviewService configReviewService,
+        INavBadgeService navBadgeService,
+        IDispatcherService dispatcherService,
+        PageCurtain curtain)
     {
         _configReviewService = configReviewService;
         _navBadgeService = navBadgeService;
-        _dispatcherQueue = dispatcherQueue;
+        _dispatcherService = dispatcherService;
+        _curtain = curtain;
     }
 
-    public void NavigateToPage(Frame frame, string? tag, object? parameter = null, Action? applyNavBadges = null)
+    public Task NavigateToPage(Frame frame, string? tag, object? parameter = null, Action? applyNavBadges = null)
     {
         StartupLogger.Log($"NavigateToPage called with tag: {tag}");
 
         if (tag == null || !TagToPageType.TryGetValue(tag, out var pageType))
         {
             StartupLogger.Log($"Skipping navigation - unknown tag: {tag}");
-            return;
+            return Task.CompletedTask;
         }
 
         StartupLogger.Log($"Resolved page type: {pageType.Name}");
 
-        if (frame.CurrentSourcePageType != pageType)
+        if (pageType == (_pendingPageType ?? frame.CurrentSourcePageType))
         {
+            StartupLogger.Log($"Skipping navigation - already on page");
+            return Task.CompletedTask;
+        }
+
+        if (pageType == frame.CurrentSourcePageType)
+        {
+            _pendingPageType = null;
+            _curtain.Cancel();
+            return Task.CompletedTask;
+        }
+
+        _pendingPageType = pageType;
+        return _curtain.NavigateAsync(tag, () =>
+        {
+            _pendingPageType = null;
             try
             {
                 StartupLogger.Log($"Navigating to {pageType.Name}...");
@@ -71,23 +89,19 @@ internal sealed class NavigationRouter
                     : frame.Navigate(pageType);
                 StartupLogger.Log($"Navigate result: {result}");
 
-                if (tag == "SoftwareApps" && _configReviewService?.IsInReviewMode == true)
+                if (tag == "SoftwareApps" && _configReviewService.IsInReviewMode)
                 {
                     _configReviewService.MarkFeatureVisited(FeatureIds.WindowsApps);
                     _configReviewService.MarkFeatureVisited(FeatureIds.ExternalApps);
-                    _navBadgeService?.SubscribeToSoftwareAppsChanges(() =>
-                        _dispatcherQueue.TryEnqueue(() => applyNavBadges?.Invoke()));
+                    _navBadgeService.SubscribeToSoftwareAppsChanges(() =>
+                        _dispatcherService.Enqueue(() => applyNavBadges?.Invoke()));
                 }
             }
             catch (Exception ex)
             {
                 StartupLogger.Log($"Navigation EXCEPTION: {ex}");
             }
-        }
-        else
-        {
-            StartupLogger.Log($"Skipping navigation - already on page");
-        }
+        });
     }
 
     public string? GetTagForCurrentPage(Type? pageType)

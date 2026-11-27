@@ -9,7 +9,8 @@
         <!-- Pill colours alias WinUI's status pairs (Recommended = Success, Default = Neutral,
              Custom = Caution, Preference = Attention, Danger = Critical), so they follow the
              theme, the accent colour and High Contrast. Each theme repeats the aliases because a
-             StaticResource only re-resolves per theme dictionary. -->
+             StaticResource only re-resolves per theme dictionary. The lock icon is orange in Light and
+             Dark because WinUI's caution brush turns yellow in Dark. -->
         <ResourceDictionary x:Key="Dark">
             <StaticResource x:Key="BadgeRecommendedBackground" ResourceKey="SystemFillColorSuccessBackgroundBrush"/>
             <StaticResource x:Key="BadgeRecommendedBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
@@ -26,6 +27,7 @@
             <StaticResource x:Key="BadgeDangerBackground" ResourceKey="SystemFillColorCriticalBackgroundBrush"/>
             <StaticResource x:Key="BadgeDangerBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
             <StaticResource x:Key="BadgeDangerForeground" ResourceKey="SystemFillColorCriticalBrush"/>
+            <SolidColorBrush x:Key="LockedSettingIconBrush" Color="#FFA500"/>
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Light">
@@ -44,6 +46,7 @@
             <StaticResource x:Key="BadgeDangerBackground" ResourceKey="SystemFillColorCriticalBackgroundBrush"/>
             <StaticResource x:Key="BadgeDangerBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
             <StaticResource x:Key="BadgeDangerForeground" ResourceKey="SystemFillColorCriticalBrush"/>
+            <SolidColorBrush x:Key="LockedSettingIconBrush" Color="#FFA500"/>
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="HighContrast">
@@ -62,20 +65,19 @@
             <StaticResource x:Key="BadgeDangerBackground" ResourceKey="SystemFillColorCriticalBackgroundBrush"/>
             <StaticResource x:Key="BadgeDangerBorder"     ResourceKey="ControlStrokeColorDefaultBrush"/>
             <StaticResource x:Key="BadgeDangerForeground" ResourceKey="SystemFillColorCriticalBrush"/>
+            <SolidColorBrush x:Key="LockedSettingIconBrush" Color="{ThemeResource SystemColorWindowTextColor}"/>
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 
 
     <!-- Pill Border Base -->
     <!--
-    Height is pinned so CornerRadius can match half of it and produce a true
-    capsule shape. WinUI 3 Border.CornerRadius does not always clamp large
-    values (e.g. 999) to half the rendered height — especially with a 1px
-    BorderThickness — so fixing both values explicitly is the reliable way
-    to guarantee a pill look.
+    MinHeight 20 with CornerRadius 10 is a true capsule at the default text size. WinUI 3 Border.CornerRadius does
+    not always clamp large values (e.g. 999) to half the rendered height, so the radius is half of 20 explicitly.
+    Larger Windows text grows the pill instead of cutting its text, and the ends stay round.
     -->
     <Style x:Key="BadgePillBase" TargetType="Border">
-        <Setter Property="Height" Value="20"/>
+        <Setter Property="MinHeight" Value="20"/>
         <Setter Property="CornerRadius" Value="10"/>
         <Setter Property="Padding" Value="7,0,9,0"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
@@ -139,22 +141,31 @@
         <Setter Property="Margin" Value="0,0,0,2"/>
     </Style>
 
-    <!-- Technical Details table badges. Here rather than in TechnicalDetailsStyles.xaml
-         because they need the Badge*Foreground brushes and BadgeTextStyle defined above,
-         and that dictionary is merged into App.xaml before this one. -->
-    <Style x:Key="TechDetail.Table.BadgeRecommendedIcon" TargetType="PathIcon">
-        <Setter Property="Width" Value="12"/>
-        <Setter Property="Height" Value="12"/>
+    <!-- The pill icons, shared by every pill. The winhance.net docs read the Icon names from here. -->
+    <Style x:Key="BadgeRecommendedIcon" TargetType="fluentIcons:FluentIcon">
+        <Setter Property="Icon" Value="Star"/>
+        <Setter Property="FontSize" Value="{StaticResource CaptionIconFontSize}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Foreground" Value="{ThemeResource BadgeRecommendedForeground}"/>
     </Style>
 
-    <Style x:Key="TechDetail.Table.BadgeDefaultIcon" TargetType="PathIcon">
-        <Setter Property="Width" Value="12"/>
-        <Setter Property="Height" Value="12"/>
+    <Style x:Key="BadgeDefaultIcon" TargetType="fluentIcons:FluentIcon">
+        <Setter Property="Icon" Value="Apps"/>
+        <Setter Property="FontSize" Value="{StaticResource CaptionIconFontSize}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Foreground" Value="{ThemeResource BadgeDefaultForeground}"/>
     </Style>
+
+    <Style x:Key="BadgePreferenceIcon" TargetType="fluentIcons:FluentIcon">
+        <Setter Property="Icon" Value="Person"/>
+        <Setter Property="FontSize" Value="{StaticResource CaptionIconFontSize}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{ThemeResource BadgePreferenceForeground}"/>
+    </Style>
+
+    <!-- Technical Details table badges. Here rather than in TechnicalDetailsStyles.xaml
+         because they need the Badge*Foreground brushes and BadgeTextStyle defined above,
+         and that dictionary is merged into App.xaml before this one. -->
 
     <Style x:Key="TechDetail.Table.BadgeRecommendedText" TargetType="TextBlock"
            BasedOn="{StaticResource BadgeTextStyle}">
@@ -188,6 +199,7 @@
         <Setter Property="MinWidth" Value="28"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}"/>
     </Style>
 
     <Style x:Key="QuickSetRecommendedButtonStyle" TargetType="Button"

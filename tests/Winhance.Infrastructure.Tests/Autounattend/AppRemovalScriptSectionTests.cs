@@ -1,8 +1,10 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using FluentAssertions;
 using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.SoftwareApps.Catalogs;
 using Winhance.Core.Features.SoftwareApps.Models;
+using Winhance.Core.Features.SoftwareApps.Utilities;
 using Winhance.Infrastructure.Features.Autounattend.ScriptSections;
 using Xunit;
 
@@ -120,7 +122,9 @@ public class AppRemovalScriptSectionTests
 
         var output = sb.ToString();
         output.Split("# Create EdgeRemoval.ps1 script").Should().HaveCount(2);
-        output.Should().Contain(removesWebView2 ? "$RemoveWebView2 = $true" : "$RemoveWebView2 = $false");
+        var encoded = Regex.Match(output, @"\$edgeRemovalContent = \[Convert\]::FromBase64String\('([^']+)'\)");
+        var script = encoded.Success ? Encoding.UTF8.GetString(Convert.FromBase64String(encoded.Groups[1].Value)) : output;
+        script.Should().Contain(removesWebView2 ? "$RemoveWebView2 = $true" : "$RemoveWebView2 = $false");
     }
 
     [Fact]
@@ -287,7 +291,9 @@ public class AppRemovalScriptSectionTests
     {
         var output = await RemovalFor(Enum.Parse<AppRemovalMode>(modeName));
 
-        output.Should().Contain("$appsRemovedInImage = Test-Path '");
+        output.Should().Contain("$imageRemovalState = (Get-ItemProperty -LiteralPath 'Registry::HKEY_LOCAL_MACHINE\\SOFTWARE\\Winhance'");
+        output.Should().Contain("$appsRemovedInImage = if ($null -eq $imageRemovalState)");
+        output.Should().Contain("Remove-ItemProperty -LiteralPath 'Registry::HKEY_LOCAL_MACHINE\\SOFTWARE\\Winhance' -Name 'AppsRemovedInImage'");
         output.Should().Contain("if (-not $appsRemovedInImage -or $script.AfterImage) {");
     }
 
@@ -345,6 +351,48 @@ public class AppRemovalScriptSectionTests
             .Should().Contain("AfterImage = $true");
         (await BloatEntry(new AppChoice("windows-app-cortana", "Cortana", CortanaPackage, null, null, null)))
             .Should().NotContain("AfterImage");
+    }
+
+    [Theory]
+    [InlineData(nameof(AppRemovalMode.Once), true)]
+    [InlineData(nameof(AppRemovalMode.Winhance), true)]
+    [InlineData(nameof(AppRemovalMode.Scripts), false)]
+    public async Task AppendBloatRemovalScriptAsync_Photos_CleansTheCompanionAfterImageAndFirstLogon(string modeName, bool oneShot)
+    {
+        var mode = Enum.Parse<AppRemovalMode>(modeName);
+        var sb = new StringBuilder();
+        var apps = new[] { new AppChoice("windows-app-photos", "Photos", ["Microsoft.Windows.Photos"], null, null, null) };
+        await _sut.AppendBloatRemovalScriptAsync(sb, apps, "    ", mode);
+        var output = sb.ToString();
+        output.Should().Contain("Microsoft.OneDrive.Photos");
+        output.Should().Contain(AppRemovalPlan.For(apps).ImageFingerprint());
+        output.Split('\n').Single(l => l.Contains("$scriptsToExecute += ")).Should().Contain("AfterImage = $true");
+        if (oneShot)
+        {
+            output.Should().Contain("Register-ScheduledTask -TaskName 'WinhanceRemoveAppsAfterLogon'");
+            output.Should().Contain("Unregister-ScheduledTask -TaskName 'WinhanceRemoveAppsAfterLogon'");
+        }
+        else
+            output.Should().NotContain("WinhanceRemoveAppsAfterLogon");
+    }
+
+    [Fact]
+    public async Task AppendBloatRemovalScriptAsync_FirstLogonRunsBothHybridCleanupsEvenIfOneFails()
+    {
+        var sb = new StringBuilder();
+        AppChoice[] apps =
+        [
+            new("windows-app-photos", "Photos", ["Microsoft.Windows.Photos"], null, null, null),
+            new("windows-app-copilot", "Copilot", ["Microsoft.Copilot"], null, null, null)
+        ];
+        await _sut.AppendBloatRemovalScriptAsync(sb, apps, "    ", AppRemovalMode.Once);
+        var output = sb.ToString();
+        var photosFailure = output.IndexOf("Photos cleanup failed: $($_.Exception.Message)", StringComparison.Ordinal);
+        var copilotFailure = output.IndexOf("Copilot cleanup failed: $($_.Exception.Message)", StringComparison.Ordinal);
+        photosFailure.Should().BeGreaterThan(-1);
+        copilotFailure.Should().BeGreaterThan(photosFailure);
+        output[photosFailure..copilotFailure].Should().Contain("try {").And.Contain("catch {").And.Contain("$succeeded = $false");
+        output.ReplaceLineEndings("\n").Should().Contain("foreach ($attempt in 1..3) {\n    $succeeded = $true");
     }
 
     [Fact]

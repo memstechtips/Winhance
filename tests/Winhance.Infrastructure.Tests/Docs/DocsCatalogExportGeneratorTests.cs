@@ -43,7 +43,7 @@ public class DocsCatalogExportGeneratorTests
         var themePath = Path.Combine(dir, "theme.json");
         var themeChanged = GeneratedFile.WriteIfChanged(themePath, Crlf(themeJson));
 
-        _output.WriteLine($"tokens          : {theme.Themes["dark"].Count} colors, {theme.Styles.Count} styles, {theme.Geometries.Count} geometries");
+        _output.WriteLine($"tokens          : {theme.Themes["dark"].Count} colors, {theme.Styles.Count} styles");
         _output.WriteLine($"{(themeChanged ? "wrote" : "unchanged")}           : {themePath}");
     }
 

@@ -9,8 +9,7 @@ public sealed record SelectionSaveOptions
     // Set by a caller that already owns a destination (WIMUtil's extracted-ISO working directory): no picker opens.
     public string? FixedPath { get; init; }
 
-    // Null from the bar's Save, where the WIMUtil session decides; Generate names it so the album, the driver
-    // step and the installers land on the media being built.
+    // Only WIMUtil Generate names a media folder. The bar's Save stays self-contained even with an open media session.
     public string? MediaFolder { get; init; }
 
     // WIMUtil gathers the whole run into one summary of its own, so it takes neither the success dialog nor the

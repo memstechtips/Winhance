@@ -188,6 +188,46 @@ public class WinGetPackageInstallerTests
             .Should().StartWith("upgrade --id Git.Git --exact ").And.EndWith(" --source winget");
     }
 
+    // Without --exact the id is a substring query, so Brave.Brave would also match Brave.Brave.Beta.
+    [Fact]
+    public void UninstallArguments_MatchTheIdExactlyAndNameTheSource()
+    {
+        WinGetPackageInstaller.UninstallArguments("Brave.Brave", "winget")
+            .Should().StartWith("uninstall --id Brave.Brave --exact ").And.EndWith(" --source winget");
+    }
+
+    [Theory]
+    [InlineData(InstallScope.Machine, " --scope machine")]
+    [InlineData(InstallScope.User, " --scope user")]
+    public void UninstallArguments_Scope_NamesTheScope(InstallScope scope, string flag)
+    {
+        WinGetPackageInstaller.UninstallArguments("Brave.Brave", "winget", scope).Should().EndWith(flag);
+    }
+
+    [Fact]
+    public void UninstallArguments_DefaultScope_AddsNoScopeFlag()
+    {
+        WinGetPackageInstaller.UninstallArguments("Brave.Brave", "winget").Should().NotContain("--scope");
+    }
+
+    [Theory]
+    [InlineData(0, 0, 0)]
+    [InlineData(0, unchecked((int)0x8A150014), 0)]
+    [InlineData(unchecked((int)0x8A150014), 0, 0)]
+    [InlineData(0, unchecked((int)0x8A150030), unchecked((int)0x8A150030))]
+    [InlineData(unchecked((int)0x8A150030), 0, unchecked((int)0x8A150030))]
+    public void CombineScopedUninstalls_ReportsTheFirstScopeThatFailed(int machine, int user, int expected)
+    {
+        WinGetPackageInstaller.CombineScopedUninstalls(machine, user).Should().Be(expected);
+    }
+
+    [Fact]
+    public void ListArguments_MatchTheIdExactlyAndNameTheSource()
+    {
+        WinGetPackageInstaller.ListArguments("Brave.Brave", "winget")
+            .Should().StartWith("list --id Brave.Brave --exact ").And.EndWith(" --source winget");
+    }
+
     [Fact]
     public void InstallArguments_DefaultOptions_MatchTheIdExactlyAndAddNoOptionFlags()
     {

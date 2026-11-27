@@ -1,8 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
 using Winhance.UI.Features.Common.Extensions.DI;
@@ -18,12 +17,12 @@ public partial class App : Application
     private const int LayoutCycleHResult = unchecked((int)0x802B0014);
 
     private Window? _mainWindow;
-    private IHost? _host;
+    private ServiceProvider? _services;
     private ILogService? _logService;
 
     public static Window? MainWindow => (Current as App)?._mainWindow;
 
-    public static IServiceProvider Services => (Current as App)?._host?.Services
+    public static IServiceProvider Services => (Current as App)?._services
         ?? throw new InvalidOperationException("Host not initialized");
 
     public App()
@@ -83,21 +82,10 @@ public partial class App : Application
         StartupLogger.Log("OnLaunched starting");
         try
         {
-            // Every CheckBox: its check glyph is an AnimatedIcon that mirrors AnimatedIcon.State from the nearest
-            // ancestor that sets one. A toolkit SettingsCard sets its own on hover, and the accept animation has no
-            // "PointerOver" frame, so an unticked box inside a card drew a ghost check. Pinning the state on the
-            // CheckBox makes it the nearest ancestor. Built here because the same Setter written in XAML fails at
-            // runtime with "Failed to assign to property AnimatedIcon.FallbackIconSource".
-            Resources[typeof(CheckBox)] = new Style(typeof(CheckBox))
-            {
-                BasedOn = (Style)Resources["DefaultCheckBoxStyle"],
-                Setters = { new Setter(AnimatedIcon.StateProperty, "NormalOff") },
-            };
-
             StartupLogger.Log("Building DI host...");
             var launch = LaunchCommandLine.Parse(Environment.GetCommandLineArgs()[1..], message => StartupLogger.Log(message));
-            LiveInstanceTracker.Shared.Enabled = launch.DiagMemory;
-            _host = CompositionRoot.CreateWinhanceHost(launch).Build();
+            LiveInstanceTracker.Shared.Enabled = launch.Diagnostics;
+            _services = CompositionRoot.BuildWinhanceServices(launch);
             StartupLogger.Log("DI host built successfully");
 
             // Before anything reads preferences, so a portable copy's first run starts from the installed settings.
@@ -115,24 +103,18 @@ public partial class App : Application
 
             try
             {
-                _logService = Services.GetService<ILogService>();
+                var logService = Services.GetRequiredService<ILogService>();
+                _logService = logService;
                 StartupLogger.Log("LogService obtained");
 
                 try
                 {
-                    if (_logService is Winhance.Core.Features.Common.Services.LogService concreteLogService)
-                    {
-                        var systemInfoProvider = Services.GetService<ISystemInfoProvider>();
-                        if (systemInfoProvider != null)
-                        {
-                            concreteLogService.SetSystemInfoProvider(systemInfoProvider);
-                        }
-                    }
-                    _logService?.StartLog();
+                    if (logService is Winhance.Core.Features.Common.Services.LogService concreteLogService)
+                        concreteLogService.SetSystemInfoProvider(Services.GetRequiredService<ISystemInfoProvider>());
+                    logService.StartLog();
                     StartupLogger.Log("LogService.StartLog() called - file logging initialized");
-                    var logPath = _logService?.GetLogPath();
-                    StartupLogger.Log($"Log file path: {logPath}");
-                    _logService?.LogInformation("Winhance application starting...");
+                    StartupLogger.Log($"Log file path: {logService.GetLogPath()}");
+                    logService.LogInformation("Winhance application starting...");
                 }
                 catch (Exception startLogEx)
                 {
@@ -149,6 +131,15 @@ public partial class App : Application
             StartupLogger.Log("Initializing localization...");
             InitializeLocalization();
             StartupLogger.Log("Localization initialized");
+
+            // The tray host's Exit when the support ask is due: only the ask, never the main window and its startup.
+            if (launch.ExitFromTray)
+            {
+                TrayHost.SignalQuit();
+                InitializeTheme();
+                Services.GetRequiredService<IApplicationCloseService>().ExitWithoutWindowAsync().FireAndForget(Services.GetRequiredService<ILogService>());
+                return;
+            }
 
             StartupLogger.Log("Creating MainWindow...");
             _mainWindow = new MainWindow();

@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.Core.Features.Common.Extensions;
@@ -10,6 +9,7 @@ using Winhance.Core.Features.SoftwareApps.Interfaces;
 using Winhance.UI.Features.Common.Controls;
 using Winhance.UI.Features.Common.Dialogs;
 using Winhance.UI.Features.Common.Helpers;
+using Winhance.UI.Features.Common.Interfaces;
 using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Features.SoftwareApps;
 using Winhance.UI.ViewModels;
@@ -18,8 +18,8 @@ namespace Winhance.UI.Helpers;
 
 internal sealed class StartupUiCoordinator
 {
-    private readonly DispatcherQueue _dispatcherQueue;
-    private readonly ILogService? _logService;
+    private readonly IDispatcherService _dispatcherService;
+    private readonly ILogService _logService;
 
     private const int MaxLoadingSponsors = 3;
     private const double LoadingSponsorLogoSize = 28d;
@@ -35,9 +35,9 @@ internal sealed class StartupUiCoordinator
 
     public bool IsFirstLaunch { get; private set; }
 
-    public StartupUiCoordinator(DispatcherQueue dispatcherQueue, ILogService? logService)
+    public StartupUiCoordinator(IDispatcherService dispatcherService, ILogService logService)
     {
-        _dispatcherQueue = dispatcherQueue;
+        _dispatcherService = dispatcherService;
         _logService = logService;
     }
 
@@ -48,25 +48,22 @@ internal sealed class StartupUiCoordinator
     {
         try
         {
-            var localizationService = App.Services.GetService<ILocalizationService>();
-            if (localizationService != null)
-            {
-                loadingTitleText.Text = localizationService.GetString("App_Title");
-                loadingTaglineText.Text = localizationService.GetString("App_Tagline");
-                loadingStatusText.Text = localizationService.GetString("Loading_PreparingApp");
-            }
+            var localizationService = App.Services.GetRequiredService<ILocalizationService>();
+            loadingTitleText.Text = localizationService.GetString("App_Title");
+            loadingTaglineText.Text = localizationService.GetString("App_Tagline");
+            loadingStatusText.Text = localizationService.GetString("Loading_PreparingApp");
         }
         catch (Exception ex)
         {
-            App.Services.GetService<ILogService>()?.LogDebug($"Failed to set loading overlay text: {ex.Message}");
+            _logService.LogDebug($"Failed to set loading overlay text: {ex.Message}");
         }
     }
 
     // Real gold and emerald sponsors on the splash, read from the offline snapshot so the overlay never waits on the
     // network. The block stays invisible until every logo has loaded, then fades in whole, so nothing pops in late.
-    public void ShowLoadingSponsors(StackPanel loadingSponsors, TextBlock loadingSponsorsHeading, StackPanel loadingSponsorPills)
+    public void ShowLoadingSponsors(Panel host)
     {
-        _sponsorsShown = ShowLoadingSponsorsAsync(loadingSponsors, loadingSponsorsHeading, loadingSponsorPills);
+        _sponsorsShown = ShowLoadingSponsorsAsync(host);
     }
 
     // Off the UI thread, so it never holds up the window; the Background tasks page refreshes when it finishes.
@@ -78,17 +75,14 @@ internal sealed class StartupUiCoordinator
         }
         catch (Exception ex)
         {
-            _logService?.LogError("Keeping the removed apps removed failed", ex);
+            _logService.LogError("Keeping the removed apps removed failed", ex);
         }
     }
 
-    private static async Task ShowLoadingSponsorsAsync(StackPanel loadingSponsors, TextBlock loadingSponsorsHeading, StackPanel loadingSponsorPills)
+    private static async Task ShowLoadingSponsorsAsync(Panel host)
     {
-        var sponsorsService = App.Services.GetService<ISponsorsService>();
-        var localizationService = App.Services.GetService<ILocalizationService>();
-        if (sponsorsService == null || localizationService == null)
-            return;
-
+        var sponsorsService = App.Services.GetRequiredService<ISponsorsService>();
+        var localizationService = App.Services.GetRequiredService<ILocalizationService>();
         var snapshot = await sponsorsService.GetSnapshotAsync();
         var sponsors = SponsorRow.Pick(snapshot?.Sponsors).Take(MaxLoadingSponsors).ToList();
         if (sponsors.Count == 0)
@@ -102,14 +96,14 @@ internal sealed class StartupUiCoordinator
                 logosReady.TrySetResult();
         }
 
-        loadingSponsorsHeading.Text = localizationService.GetString("Support_ThankBusinessSponsors");
-        foreach (var sponsor in sponsors)
-            loadingSponsorPills.Children.Add(BuildSponsorPill(sponsorsService, sponsor, LogoSettled));
+        var block = new SplashSponsors(
+            localizationService.GetString("Support_ThankBusinessSponsors"),
+            [.. sponsors.Select(sponsor => BuildSponsorPill(sponsorsService, sponsor, LogoSettled))]);
 
-        // Visible at opacity 0 rather than collapsed: an Image outside the live tree never decodes, so it would never open.
-        loadingSponsors.Visibility = Visibility.Visible;
+        // In the tree at opacity 0 while the logos load: an Image outside the live tree never decodes, so it would never open.
+        host.Children.Add(block);
         await Task.WhenAny(logosReady.Task, Task.Delay(LoadingSponsorsMaxWaitMs));
-        loadingSponsors.Opacity = 1;
+        block.Opacity = 1;
         await Task.Delay(LoadingSponsorsMinShownMs);
     }
 
@@ -140,10 +134,7 @@ internal sealed class StartupUiCoordinator
 
     private static async Task PrewarmSponsorsAsync()
     {
-        var sponsorsService = App.Services.GetService<ISponsorsService>();
-        if (sponsorsService == null)
-            return;
-
+        var sponsorsService = App.Services.GetRequiredService<ISponsorsService>();
         await sponsorsService.GetSponsorsAsync();
         await sponsorsService.CacheLogosAsync();
     }
@@ -162,11 +153,11 @@ internal sealed class StartupUiCoordinator
 
             var statusProgress = new Progress<string>(localizationKey =>
             {
-                _dispatcherQueue.TryEnqueue(() =>
+                _dispatcherService.RunOnUIThread(() =>
                 {
                     try
                     {
-                        var localizationService = App.Services.GetService<ILocalizationService>();
+                        var localizationService = App.Services.GetRequiredService<ILocalizationService>();
                         loadingStatusText.Text = localizationService.GetStringOrDefault(localizationKey, localizationKey);
                     }
                     catch
@@ -180,13 +171,12 @@ internal sealed class StartupUiCoordinator
             {
                 if (!string.IsNullOrEmpty(detail.StatusText))
                 {
-                    _dispatcherQueue.TryEnqueue(() =>
+                    _dispatcherService.RunOnUIThread(() =>
                     {
                         try { loadingStatusText.Text = detail.StatusText; }
                         catch (Exception ex)
                         {
-                            App.Services.GetService<ILogService>()?.LogDebug(
-                                $"Failed to update loading status text: {ex.Message}");
+                            _logService.LogDebug($"Failed to update loading status text: {ex.Message}");
                         }
                     });
                 }
@@ -201,23 +191,9 @@ internal sealed class StartupUiCoordinator
             StartupLogger.Log($"RunStartupAndCompleteAsync EXCEPTION: {ex}");
         }
 
-        // Always complete startup on the UI thread so the app is usable.
-        // A bare DispatcherQueue.TryEnqueue callback runs on the UI thread but
-        // installs no SynchronizationContext — so every `await` of background
-        // work inside CompleteStartupAsync (SoftwareApps load, icon resolution)
-        // would resume on a thread-pool thread and mutate bound UI off-thread,
-        // leaving the Windows/External Apps lists with stale install status. Install the dispatcher SynchronizationContext
-        // so continuations marshal back to the UI thread for the whole chain.
-        _dispatcherQueue.TryEnqueue(() =>
-        {
-            if (SynchronizationContext.Current is null)
-            {
-                SynchronizationContext.SetSynchronizationContext(
-                    new DispatcherQueueSynchronizationContext(_dispatcherQueue));
-            }
-
-            _ = CompleteStartupAsync(contentFrame, navSidebar, loadingOverlay, getViewModel, markStartupComplete);
-        });
+        // Every await inside has to come back to the UI thread: it mutates bound UI after background work.
+        await _dispatcherService.RunOnUIThreadWithContextAsync(
+            () => CompleteStartupAsync(contentFrame, navSidebar, loadingOverlay, getViewModel, markStartupComplete));
     }
 
     private async Task CompleteStartupAsync(
@@ -244,7 +220,7 @@ internal sealed class StartupUiCoordinator
             {
                 if (launch.InstallsApps || launch.ConfigFile is not null)
                 {
-                    page.ViewModel.InitializeExternalAppsAsync().FireAndForget(_logService!);
+                    page.ViewModel.InitializeExternalAppsAsync().FireAndForget(_logService);
                     StartupLogger.Log("Awaiting Windows Apps initialization...");
                     await page.ViewModel.InitializeWindowsAppsAsync();
                     StartupLogger.Log("Windows Apps initialization complete");
@@ -252,14 +228,14 @@ internal sealed class StartupUiCoordinator
                 else
                 {
                     StartupLogger.Log("Loading the app lists in the background");
-                    page.ViewModel.InitializeAsync().FireAndForget(_logService!);
+                    page.ViewModel.InitializeAsync().FireAndForget(_logService);
                 }
             }
         }
         catch (Exception ex)
         {
             StartupLogger.Log($"SoftwareApps initialization failed: {ex.Message}");
-            _logService?.LogWarning($"SoftwareApps init failed: {ex.Message}");
+            _logService.LogWarning($"SoftwareApps init failed: {ex.Message}");
         }
 
         try
@@ -268,11 +244,10 @@ internal sealed class StartupUiCoordinator
         }
         catch (Exception ex)
         {
-            _logService?.LogWarning($"Showing the splash sponsors failed: {ex.Message}");
+            _logService.LogWarning($"Showing the splash sponsors failed: {ex.Message}");
         }
 
         markStartupComplete();
-        loadingOverlay.Visibility = Visibility.Collapsed;
 
         // Out of the tree for good: it is never shown again, and leaving stops the rocket on it.
         if (loadingOverlay.Parent is Panel host)
@@ -281,7 +256,7 @@ internal sealed class StartupUiCoordinator
         StartupLogger.Log("Startup complete, overlay hidden");
 
         if (!launch.RunsInBackground)
-            _ = MaintainAsync();
+            MaintainAsync().FireAndForget(_logService);
         else
         {
             try
@@ -292,7 +267,7 @@ internal sealed class StartupUiCoordinator
             }
             catch (Exception ex)
             {
-                _logService?.LogError("The background launch failed", ex);
+                _logService.LogError("The background launch failed", ex);
             }
         }
 
@@ -305,7 +280,7 @@ internal sealed class StartupUiCoordinator
             catch (Exception ex)
             {
                 StartupLogger.Log($"Applying the command-line config failed: {ex.Message}");
-                _logService?.LogError("Applying the command-line config failed", ex);
+                _logService.LogError("Applying the command-line config failed", ex);
             }
         }
 
@@ -321,7 +296,7 @@ internal sealed class StartupUiCoordinator
             catch (Exception ex)
             {
                 StartupLogger.Log($"Installing the apps for this PC failed: {ex.Message}");
-                _logService?.LogError("Installing the apps for this PC failed", ex);
+                _logService.LogError("Installing the apps for this PC failed", ex);
             }
             finally
             {
@@ -344,12 +319,12 @@ internal sealed class StartupUiCoordinator
         }
 
         // Pre-warm the sponsors cache so the exit dialog opens instantly even offline, and the next splash has the logos.
-        PrewarmSponsorsAsync().FireAndForget(_logService!);
+        PrewarmSponsorsAsync().FireAndForget(_logService);
 
         var viewModel = getViewModel();
         if (viewModel != null)
         {
-            _ = viewModel.UpdateCheck.CheckForUpdatesOnStartupAsync();
+            viewModel.UpdateCheck.CheckForUpdatesOnStartupAsync(windowShown: !launch.StartsHidden).FireAndForget(_logService);
         }
     }
 }

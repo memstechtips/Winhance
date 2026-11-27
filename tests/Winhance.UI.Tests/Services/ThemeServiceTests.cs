@@ -17,6 +17,8 @@ public class ThemeServiceTests
     private readonly Mock<IInteractiveUserService> _mockInteractiveUserService = new();
     private readonly Mock<IEventBus> _mockEventBus = new();
     private readonly Mock<IMainWindowProvider> _mockMainWindowProvider = new();
+    private readonly Mock<IDispatcherService> _mockDispatcherService = new();
+    private readonly Mock<ILogService> _mockLogService = new();
 
     public ThemeServiceTests()
     {
@@ -33,7 +35,9 @@ public class ThemeServiceTests
             _mockRegistryService.Object,
             _mockInteractiveUserService.Object,
             _mockEventBus.Object,
-            _mockMainWindowProvider.Object);
+            _mockMainWindowProvider.Object,
+            _mockDispatcherService.Object,
+            _mockLogService.Object);
     }
 
     [Fact]

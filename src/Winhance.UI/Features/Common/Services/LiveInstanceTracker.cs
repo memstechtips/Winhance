@@ -12,7 +12,7 @@ public sealed class LiveInstanceTracker
     private readonly Dictionary<string, int> _pruneAt = [];
     private readonly ConditionalWeakTable<object, object?> _seen = new();
 
-    // Off for the shared tracker until --diag-memory turns it on: nothing is held or counted otherwise.
+    // Off for the shared tracker until --diag turns it on: nothing is held or counted otherwise.
     public static LiveInstanceTracker Shared { get; } = new() { Enabled = false };
 
     public bool Enabled { get; set; } = true;

@@ -209,12 +209,12 @@ public sealed class BuilderModeEntry : IBuilderModeEntry
 
     public async Task<bool> EnterFromProfileAsync(SettingsProfile profile)
     {
-        if (_mode.CurrentMode == WinhanceMode.Builder && !(await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
+        // Already in Builder, the profile starts a new session in place of this one rather than leaving Builder.
+        if (_mode.CurrentMode == WinhanceMode.Builder && _mode.HasBuilderChanges && !(await _dialogService.ShowConfirmationAsync(new ConfirmationRequest
             {
-                Title = _localizationService.GetString("Builder_Mode_Cancel_Confirmation_Title"),
-                Message = _localizationService.GetString("Builder_Mode_Cancel_Confirmation"),
-                ConfirmButtonText = _localizationService.GetString("Button_Leave"),
-                CancelButtonText = _localizationService.GetString("Button_Stay"),
+                Title = _localizationService.GetString("Builder_Reseed_Title"),
+                Message = _localizationService.GetString("Builder_OpenProfile_Message", profile.Name),
+                ConfirmButtonText = _localizationService.GetString("Builder_Reseed_Confirm"),
             })).Confirmed)
             return false;
 

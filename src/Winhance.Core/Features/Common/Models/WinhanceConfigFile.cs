@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using Winhance.Core.Features.Common.Selections;
 using Winhance.Core.Features.SoftwareApps.Models;
 
 namespace Winhance.Core.Features.Common.Models;
@@ -20,6 +22,10 @@ public class WinhanceConfigFile
     public FeatureGroupSection Customize { get; set; } = new FeatureGroupSection();
     public FeatureGroupSection Optimize { get; set; } = new FeatureGroupSection();
     public FeatureGroupSection Autounattend { get; set; } = new FeatureGroupSection();
+
+    // Only answer files carry a whole album; its pictures live beside the Config element, not in .winhance JSON.
+    [JsonIgnore]
+    public IReadOnlyList<CarriedFile> CarriedAlbumFiles { get; set; } = [];
 
     // Migration drops a hand-edited file's null sections and items; this walk skips them too, because coverage reads
     // the file unmigrated.

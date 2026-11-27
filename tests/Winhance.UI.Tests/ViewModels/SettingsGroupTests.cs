@@ -55,7 +55,7 @@ public class SettingsGroupTests
             InputType = InputType.Toggle,
             IsSelected = false,
             Icon = "Icon",
-            IconPack = "Material",
+            IconPack = "Fluent",
         };
 
         var item = new SettingItemViewModel(

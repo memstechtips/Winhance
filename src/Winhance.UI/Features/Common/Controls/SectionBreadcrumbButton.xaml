@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Winhance.UI.Features.Common.Controls.SectionBreadcrumbButton"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:Winhance.UI.Features.Common.ViewModels"
+    x:DefaultBindMode="OneWay">
+
+    <DropDownButton
+        x:Name="SectionButton"
+        AutomationProperties.AutomationId="BreadcrumbSection"
+        AutomationProperties.Name="{x:Bind ViewModel.CurrentSectionName}"
+        Padding="{StaticResource BreadcrumbButtonPadding}">
+            <DropDownButton.Content>
+                <StackPanel Orientation="Horizontal" Spacing="{StaticResource IconLabelSpacing}">
+                    <Viewbox Width="16" Height="16" VerticalAlignment="Center" Margin="0,-2,0,0">
+                        <ContentControl Content="{x:Bind ViewModel.CurrentSectionItem.IconResourceKey, Mode=OneWay, Converter={StaticResource IconConverter}, ConverterParameter=FeatureIcon}"/>
+                    </Viewbox>
+                    <TextBlock x:Name="BreadcrumbSectionText" Text="{x:Bind ViewModel.CurrentSectionName}" VerticalAlignment="Center"/>
+                    <InfoBadge x:Name="BreadcrumbReviewedBadge" VerticalAlignment="Center" Style="{StaticResource SuccessIconInfoBadgeStyle}"
+                               x:Load="{x:Bind ViewModel.CurrentSectionItem.IsReviewSuccessBadgeVisible, Mode=OneWay}"/>
+                    <InfoBadge x:Name="BreadcrumbPendingBadge" VerticalAlignment="Center" Style="{StaticResource AttentionValueInfoBadgeStyle}"
+                               Value="{x:Bind ViewModel.CurrentSectionItem.ReviewPendingCount, Mode=OneWay}"
+                               x:Load="{x:Bind ViewModel.CurrentSectionItem.IsReviewPendingBadgeVisible, Mode=OneWay}"/>
+                </StackPanel>
+            </DropDownButton.Content>
+            <DropDownButton.Flyout>
+                <Flyout Placement="BottomEdgeAlignedLeft">
+                    <Flyout.FlyoutPresenterStyle>
+                        <Style TargetType="FlyoutPresenter">
+                            <Setter Property="Padding" Value="4"/>
+                            <Setter Property="CornerRadius" Value="8"/>
+                        </Style>
+                    </Flyout.FlyoutPresenterStyle>
+                    <!-- Bounded: one entry per section the page defines -->
+                    <ItemsControl ItemsSource="{x:Bind ViewModel.OverviewItems}" MinWidth="180">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SectionOverviewItemViewModel">
+                                <Button Click="SectionFlyoutItem_Click" Tag="{x:Bind SectionKey, Mode=OneTime}"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                        Background="Transparent" BorderThickness="0" Padding="8,5">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Viewbox Grid.Column="0" Width="16" Height="16" Margin="{StaticResource LeadingIconMargin}" VerticalAlignment="Center">
+                                            <ContentControl Content="{x:Bind IconResourceKey, Mode=OneTime, Converter={StaticResource IconConverter}, ConverterParameter=FeatureIcon}"/>
+                                        </Viewbox>
+                                        <TextBlock Grid.Column="1" VerticalAlignment="Center"
+                                                   Text="{x:Bind Feature.DisplayName, Mode=OneWay}"/>
+                                        <InfoBadge Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                   Style="{StaticResource SuccessIconInfoBadgeStyle}"
+                                                   x:Name="FlyoutReviewedBadge"
+                                                   x:Load="{x:Bind IsReviewSuccessBadgeVisible, Mode=OneWay}"/>
+                                        <InfoBadge Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                   Style="{StaticResource AttentionValueInfoBadgeStyle}"
+                                                   Value="{x:Bind ReviewPendingCount, Mode=OneWay}"
+                                                   x:Name="FlyoutPendingBadge"
+                                                   x:Load="{x:Bind IsReviewPendingBadgeVisible, Mode=OneWay}"/>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Flyout>
+            </DropDownButton.Flyout>
+        </DropDownButton>
+
+</UserControl>

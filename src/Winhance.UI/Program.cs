@@ -5,6 +5,7 @@ using Microsoft.UI.Dispatching;
 using Microsoft.Windows.AppLifecycle;
 using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Interfaces;
+using Winhance.UI.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Services;
 using Winhance.UI.Features.Common.Services;
 using Winhance.UI.Helpers;
@@ -142,10 +143,12 @@ public static class Program
         var launch = args.Data is ILaunchActivatedEventArgs launched
             ? LaunchCommandLine.ParseRedirected(launched.Arguments ?? string.Empty, message => StartupLogger.Log(message))
             : LaunchOptions.None;
-        App.MainWindow?.DispatcherQueue.TryEnqueue(() =>
+        // The dispatcher service is bound to the main window's thread when the window is built.
+        if (App.MainWindow is null)
+            return;
+        App.Services.GetRequiredService<IDispatcherService>().Enqueue(() =>
         {
-            if (App.Services.GetService<TrayController>() is not { } tray)
-                return;
+            var tray = App.Services.GetRequiredService<TrayController>();
             if (launch.ExitFromTray)
                 tray.ExitAsync().FireAndForget(App.Services.GetRequiredService<ILogService>());
             else if (launch.RunsInBackground)

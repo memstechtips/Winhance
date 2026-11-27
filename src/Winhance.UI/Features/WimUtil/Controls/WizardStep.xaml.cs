@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using FluentIcons.Common;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Winhance.UI.Features.WimUtil.Models;
@@ -71,11 +72,11 @@ public sealed partial class WizardStep : UserControl
         isExpanded ? new CornerRadius(4, 4, 0, 0) : new CornerRadius(4);
 
     // A locked step shows only the padlock; a finished one swaps the chevron for the check.
-    public static Visibility CompleteVisibility(bool isComplete, bool isLocked) =>
-        isComplete && !isLocked ? Visibility.Visible : Visibility.Collapsed;
+    public static bool ShowsCheck(bool isComplete, bool isLocked) => isComplete && !isLocked;
 
-    public static Visibility ChevronVisibility(bool isComplete, bool isLocked) =>
-        !isComplete && !isLocked ? Visibility.Visible : Visibility.Collapsed;
+    public static bool ShowsChevron(bool isComplete, bool isLocked) => !isComplete && !isLocked;
+
+    public static Icon ChevronIcon(bool isExpanded) => isExpanded ? Icon.ChevronUp : Icon.ChevronDown;
 
     private void OnHeaderInvoked(object sender, RoutedEventArgs e) => Command?.Execute(CommandParameter);
 }

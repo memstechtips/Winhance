@@ -9,7 +9,6 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Winhance.Core.Features.Common.Events;
 using Winhance.Core.Features.Common.TechnicalDetails;
-using Winhance.UI.Features.Common.Helpers;
 using static Winhance.UI.Features.Common.Helpers.CodeBuiltStyle;
 using WrapPanel = CommunityToolkit.WinUI.Controls.WrapPanel;
 
@@ -46,6 +45,8 @@ public sealed partial class OptionMatrixView : UserControl
     private bool _gridIsLastElement = true;
 
     private readonly List<Button> _regeditButtons = [];
+
+    private bool _scrollSyncPending;
 
     public OptionMatrixView()
     {
@@ -484,7 +485,7 @@ public sealed partial class OptionMatrixView : UserControl
                 {
                     Width = 14,
                     Height = 14,
-                    Children = { new FontIcon { Glyph = "", FontSize = 12 } },
+                    Children = { new FluentIcon { Icon = Icon.Open, FontSize = 12 } },
                 },
             };
             // A consumer that binds Matrix and forgets RegeditCommand would render a button that looks
@@ -652,11 +653,7 @@ public sealed partial class OptionMatrixView : UserControl
     private static Border Badge(string text, string tooltip, bool recommended)
     {
         var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
-        content.Children.Add(new PathIcon
-        {
-            Data = GeometryHelper.FromResource(recommended ? "BadgeRecommendedIconPath" : "BadgeDefaultIconPath"),
-            Style = Named(recommended ? "TechDetail.Table.BadgeRecommendedIcon" : "TechDetail.Table.BadgeDefaultIcon"),
-        });
+        content.Children.Add(new FluentIcon { Style = Named(recommended ? "BadgeRecommendedIcon" : "BadgeDefaultIcon") });
         content.Children.Add(new TextBlock
         {
             Text = text,
@@ -730,7 +727,7 @@ public sealed partial class OptionMatrixView : UserControl
             Content = new TextBlock { Text = chip.LinkText, Style = Named("TechDetail.ChipLinkText") },
             Style = Named("TechDetail.ChipLink"),
         };
-        link.Click += (_, _) => App.Services?.GetService<IEventBus>()?.Publish(
+        link.Click += (_, _) => App.Services.GetRequiredService<IEventBus>().Publish(
             new SettingLinkRequestedEvent { SettingId = chip.LinkSettingId, SettingName = chip.LinkText });
         AutomationProperties.SetName(link, chip.LinkText);
         line.Children.Add(link);
@@ -794,32 +791,53 @@ public sealed partial class OptionMatrixView : UserControl
     // A spanning header reaches the edge when its LAST column does, not its first.
     private bool IsLastColumn(int column, int columnSpan) => column + columnSpan - 1 >= _lastColumn;
 
+    // Building or dropping the bar changes a child collection, which WinUI refuses inside a measure pass
+    // (0x800F1000), so the measure only books a sync for when the layout pass is over.
     private void OnTableMeasured(object? sender, EventArgs e)
     {
-        // ViewportWidth, not ActualWidth: this runs inside the measure pass, where ActualWidth still
-        // holds the previous layout's value -- zero on the first one, which made every table look
-        // like it overflowed and put a scrollbar under tables that fit.
+        if (_scrollSyncPending)
+            return;
+
+        _scrollSyncPending = true;
+        Table.LayoutUpdated += OnTableLaidOut;
+    }
+
+    private void OnTableLaidOut(object? sender, object e)
+    {
+        Table.LayoutUpdated -= OnTableLaidOut;
+        _scrollSyncPending = false;
+        SyncScrollBar();
+    }
+
+    private void SyncScrollBar()
+    {
         var viewport = Table.ViewportWidth;
         var frozen = Table.FrozenWidth;
         var max = Math.Max(0, Table.TotalColumnWidth - viewport);
         var scrollable = Math.Max(0, viewport - frozen);
 
-        HorizontalScroll.Maximum = max;
-
-        // Sized and positioned against the scrolling region only. The frozen columns never move, so
-        // a track that spanned them would offer to scroll something that cannot scroll. The extra
-        // pixel is the table border the track has to clear.
-        HorizontalScroll.ViewportSize = scrollable;
-        HorizontalScroll.LargeChange = Math.Max(24, scrollable);
-        HorizontalScroll.Margin = new Thickness(frozen + 1, 2, 1, 0);
-
         // Overflow alone is not enough. If the frozen columns already fill the viewport there
         // is no track to draw: the bar comes out zero-wide, positioned past the right edge, and
         // still reserves the height it would have taken -- a gap under the table with nothing
         // in it, between the grid and whatever follows.
-        HorizontalScroll.Visibility = max > 0.5 && scrollable > 0.5
-            ? Visibility.Visible
-            : Visibility.Collapsed;
+        if (max > 0.5 && scrollable > 0.5)
+        {
+            var bar = HorizontalScroll ?? (ScrollBar)FindName(nameof(HorizontalScroll));
+            bar.Maximum = max;
+            // A bar built again after a drop starts at zero, wherever the table was left.
+            bar.Value = Math.Min(Table.HorizontalOffset, max);
+
+            // Sized and positioned against the scrolling region only. The frozen columns never move, so
+            // a track that spanned them would offer to scroll something that cannot scroll. The extra
+            // pixel is the table border the track has to clear.
+            bar.ViewportSize = scrollable;
+            bar.LargeChange = Math.Max(24, scrollable);
+            bar.Margin = new Thickness(frozen + 1, 2, 1, 0);
+        }
+        else if (HorizontalScroll is { } built)
+        {
+            UnloadObject(built);
+        }
 
         if (Table.HorizontalOffset > max) Table.HorizontalOffset = max;
     }
@@ -833,16 +851,16 @@ public sealed partial class OptionMatrixView : UserControl
         var shift = point.Properties.IsHorizontalMouseWheel
             || (Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Shift)
                 & Windows.UI.Core.CoreVirtualKeyStates.Down) == Windows.UI.Core.CoreVirtualKeyStates.Down;
-        if (!shift || HorizontalScroll.Visibility != Visibility.Visible)
+        if (!shift || HorizontalScroll is not { } bar)
         {
             base.OnPointerWheelChanged(e);
             return;
         }
 
         var delta = point.Properties.MouseWheelDelta;
-        var next = Math.Clamp(Table.HorizontalOffset - delta, 0, HorizontalScroll.Maximum);
+        var next = Math.Clamp(Table.HorizontalOffset - delta, 0, bar.Maximum);
         Table.HorizontalOffset = next;
-        HorizontalScroll.Value = next;
+        bar.Value = next;
         e.Handled = true;
     }
 }

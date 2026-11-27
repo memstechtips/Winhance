@@ -272,6 +272,18 @@ public class WimStep3DriversViewModelTests
     }
 
     [Fact]
+    public void IsBuiltIntoImage_RaisesBothDescriptions()
+    {
+        var raised = new List<string?>();
+        _sut.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        _sut.IsBuiltIntoImage = true;
+
+        raised.Should().Contain(nameof(WimStep3DriversViewModel.SystemDriversDescription))
+            .And.Contain(nameof(WimStep3DriversViewModel.FolderDriversDescription));
+    }
+
+    [Fact]
     public async Task FolderDriversDescription_NamesTheChosenFolder()
     {
         _mockFilePickerService.Setup(p => p.PickFolder(It.IsAny<string>())).Returns(Folder);

@@ -62,15 +62,11 @@ public class SettingsLoadingService : ISettingsLoadingService
             var settingViewModels = await BuildViewModelsAsync(featureModuleId, settingsList, parentViewModel);
 
             _logService.Log(LogLevel.Info, $"Finished loading {settingViewModels.Count} settings for '{featureModuleId}'");
-            _initializationService.CompleteFeatureInitialization(featureModuleId);
-
             return settingViewModels;
         }
-        catch (Exception ex)
+        finally
         {
             _initializationService.CompleteFeatureInitialization(featureModuleId);
-            _logService.Log(LogLevel.Error, $"Error loading settings for {featureModuleId}: {ex.Message}");
-            throw;
         }
     }
 
@@ -142,11 +138,13 @@ public class SettingsLoadingService : ISettingsLoadingService
     {
         var settingViewModels = new ObservableCollection<SettingItemViewModel>();
 
-        var showTechnicalDetails = await _userPreferencesService.GetPreferenceAsync(
+        var showTechnicalDetails = _userPreferencesService.GetPreference(
             Core.Features.Common.Constants.UserPreferenceKeys.ShowTechnicalDetails, false);
 
         _logService.Log(LogLevel.Debug, $"Getting batch states for {settingsList.Count} settings in {featureModuleId}");
-        var batchStates = await _settingStateProvider.GetStatesAsync(settingsList);
+        // Detection reads the registry synchronously, so it runs on the pool; the await brings the view model
+        // build back onto the UI thread.
+        var batchStates = await Task.Run(() => _settingStateProvider.GetStatesAsync(settingsList));
 
         var liveBuild = LiveBuild();
         var scope = _scopeProvider.Current;
@@ -193,9 +191,7 @@ public class SettingsLoadingService : ISettingsLoadingService
         if (catalogSettings.Count == 0)
             return new Dictionary<string, SettingStateResult>();
 
-        var batchStates = await _settingStateProvider.GetStatesAsync(catalogSettings);
-
-        return batchStates;
+        return await Task.Run(() => _settingStateProvider.GetStatesAsync(catalogSettings));
     }
 
     // The compatibility message arrives raw from the catalog derivation

@@ -58,4 +58,7 @@ public sealed partial class PageHeader : UserControl
     {
         InitializeComponent();
     }
+
+    private void TitleText_IsTextTrimmedChanged(TextBlock sender, IsTextTrimmedChangedEventArgs args) =>
+        ToolTipService.SetToolTip(sender, sender.IsTextTrimmed ? sender.Text : null);
 }

@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
 using Winhance.Core.Features.Common.Constants;
+using Winhance.Core.Features.Common.Extensions;
 using Winhance.Core.Features.Common.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 
@@ -70,7 +71,7 @@ public class UiZoomManager
         }
         _factor = snapped;
         Apply();
-        Persist();
+        _preferences.SetPreferenceAsync(UserPreferenceKeys.UiZoomFactor, _factor).FireAndForget(_logService);
     }
 
     public void Apply()
@@ -84,17 +85,5 @@ public class UiZoomManager
         _zoomHost.Height = h / _factor;
         _scale.ScaleX = _factor;
         _scale.ScaleY = _factor;
-    }
-
-    private async void Persist()
-    {
-        try
-        {
-            await _preferences.SetPreferenceAsync(UserPreferenceKeys.UiZoomFactor, _factor);
-        }
-        catch (Exception ex)
-        {
-            _logService.LogDebug($"UiZoomManager: failed to persist zoom. {ex.Message}");
-        }
     }
 }

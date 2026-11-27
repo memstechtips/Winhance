@@ -1,3 +1,5 @@
+using System.Xml.Linq;
+using Winhance.Infrastructure.Features.Autounattend.Helpers;
 using Winhance.Core.Features.Common.Interfaces;
 using Winhance.Core.Features.Common.Models;
 using Winhance.Core.Features.WimUtil.Interfaces;
@@ -154,49 +156,81 @@ internal class WimCustomizationService : IWimCustomizationService
 
             var destPath = _fileSystemService.CombinePath(workingDirectory, "autounattend.xml");
 
+            MediaPayloads.CheckNotRedirected(_fileSystemService, xmlPath);
+            string sourceFolder = Path.GetDirectoryName(Path.GetFullPath(xmlPath))!;
+            XDocument doc;
+            using (var input = _fileSystemService.OpenRead(xmlPath))
+                doc = XDocument.Load(input);
+            var manifest = MediaPayloads.Manifest(doc);
             if (string.Equals(Path.GetFullPath(xmlPath), Path.GetFullPath(destPath), StringComparison.OrdinalIgnoreCase))
             {
+                foreach (var entry in manifest)
+                    await MediaPayloads.ReadAsync(_fileSystemService, sourceFolder, entry).ConfigureAwait(false);
                 _logService.LogInformation($"autounattend.xml is already in the image: {destPath}");
+                await EnsureInstallStepsAsync(destPath, workingDirectory).ConfigureAwait(false);
             }
             else
             {
-                // An autounattend.xml that came off the ISO is read-only and blocks the overwrite.
-                if (_fileSystemService.FileExists(destPath))
+                var scratch = Path.Combine(workingDirectory, ".winhance-media-" + Guid.NewGuid().ToString("N"));
+                var stagedXml = Path.Combine(scratch, "autounattend.xml");
+                MediaPayloads.CheckNotRedirected(_fileSystemService, scratch);
+                _fileSystemService.CreateDirectory(scratch);
+                bool keepRecovery = false;
+                try
                 {
-                    _fileSystemService.SetFileAttributes(destPath, FileAttributes.Normal);
+                    // Keep the original XML encoding; importing must not rewrite the user's declaration.
+                    _fileSystemService.CopyFile(xmlPath, stagedXml);
+                    _fileSystemService.SetFileAttributes(stagedXml, FileAttributes.Normal);
+                    foreach (var entry in manifest)
+                    {
+                        var bytes = await MediaPayloads.ReadAsync(_fileSystemService, sourceFolder, entry).ConfigureAwait(false);
+                        var path = MediaPayloads.MediaPath(scratch, (string?)entry.Attribute("path") ?? string.Empty)!;
+                        _fileSystemService.CreateDirectory(Path.GetDirectoryName(path)!);
+                        await _fileSystemService.WriteAllBytesAsync(path, bytes).ConfigureAwait(false);
+                    }
+                    await EnsureInstallStepsAsync(stagedXml, workingDirectory).ConfigureAwait(false);
+                    await MediaPayloads.PublishAsync(_fileSystemService, stagedXml, destPath, workingDirectory, scratch, CancellationToken.None).ConfigureAwait(false);
                 }
-
-                // A byte copy, not a read-then-write: the user's file may declare windows-1252 or
-                // utf-16, and writing the decoded string back as UTF-8 leaves that declaration lying
-                // about the bytes underneath it.
-                _fileSystemService.CopyFile(xmlPath, destPath, overwrite: true);
-
+                catch (MediaRollbackException)
+                {
+                    keepRecovery = true;
+                    throw;
+                }
+                finally
+                {
+                    if (!keepRecovery)
+                        _fileSystemService.DeleteDirectory(scratch, recursive: true);
+                }
                 _logService.LogInformation($"Added autounattend.xml to image: {destPath}");
             }
 
-            try
-            {
-                await _driverInstallStep.EnsureAsync(workingDirectory).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                _logService.LogWarning($"Could not add the driver install step to autounattend.xml: {ex.Message}");
-            }
-
-            try
-            {
-                await _updateInstallStep.EnsureAsync(workingDirectory).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                _logService.LogWarning($"Could not add the update install step to autounattend.xml: {ex.Message}");
-            }
             return OperationResult.Succeeded();
         }
         catch (Exception ex)
         {
             _logService.LogError($"Error adding XML to image: {ex.Message}", ex);
             return OperationResult.Failed(ex.Message, ex);
+        }
+    }
+
+    private async Task EnsureInstallStepsAsync(string xmlPath, string workingDirectory)
+    {
+        try
+        {
+            await _driverInstallStep.EnsureAsync(xmlPath, workingDirectory).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"Could not add the driver install step to autounattend.xml: {ex.Message}");
+        }
+
+        try
+        {
+            await _updateInstallStep.EnsureAsync(xmlPath, workingDirectory).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logService.LogWarning($"Could not add the update install step to autounattend.xml: {ex.Message}");
         }
     }
 

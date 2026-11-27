@@ -83,12 +83,14 @@ public class StartupNotificationService : IStartupNotificationService
                     else
                     {
                         _taskProgressService.FailTask();
-                        var failMsg = _localizationService.GetString("Startup_Backup_RestoreCreatedFail")
-                            + (result.ErrorMessage != null ? $"\n\n{result.ErrorMessage}" : "");
-                        await _dialogService.ShowWarningAsync(
-                            failMsg,
+                        await _dialogService.ShowRestorePointFailureAsync(_localizationService, _backupService, result,
+                            _localizationService.GetString("Startup_Backup_RestoreCreatedFail"),
                             _localizationService.GetString("Startup_Backup_Title_Fail"));
                     }
+                }
+                catch (OperationCanceledException)
+                {
+                    _taskProgressService.CancelTask();
                 }
                 catch
                 {

@@ -421,7 +421,7 @@ public class ReviewModeBarViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task ApplyReviewedConfigCommand_ServiceThrows_DoesNotRethrow()
+    public async Task ApplyReviewedConfigCommand_ServiceThrows_ShowsTheErrorWithoutRethrowing()
     {
         _mockConfigurationService
             .Setup(c => c.ApplyReviewedConfigAsync())
@@ -430,6 +430,7 @@ public class ReviewModeBarViewModelTests : IDisposable
         var act = async () => await _sut.ApplyReviewedConfigCommand.ExecuteAsync(null);
 
         await act.Should().NotThrowAsync();
+        _mockDialogService.Verify(d => d.ShowErrorAsync(It.Is<string>(m => m.Contains("Apply failed")), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

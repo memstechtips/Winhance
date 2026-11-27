@@ -7,4 +7,5 @@ namespace Winhance.Core.Features.Common.Interfaces;
 public interface IAutounattendWriter
 {
     Task<string> WriteAsync(SelectionSet set, CatalogScope scope, string outputPath);
+    Task<string> WriteMediaAsync(SelectionSet set, CatalogScope scope, string outputPath, string mediaFolder, Func<string, Task> validate, CancellationToken ct);
 }

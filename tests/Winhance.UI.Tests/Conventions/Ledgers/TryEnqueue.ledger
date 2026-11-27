@@ -1,0 +1,3 @@
+src/Winhance.UI/Features/Common/Controls/SettingsListView.xaml.cs	2	after-layout
+src/Winhance.UI/Features/SoftwareApps/SoftwareAppsPage.xaml.cs	1	after-layout
+src/Winhance.UI/Features/WimUtil/WimUtilPage.xaml.cs	2	after-layout

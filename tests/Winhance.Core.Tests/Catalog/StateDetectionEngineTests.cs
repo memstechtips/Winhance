@@ -27,6 +27,24 @@ public class StateDetectionEngineTests
     private static SettingState Fallback(LocKey label, Dictionary<string, StateValue>? set = null) =>
         new() { Label = label, Set = set ?? new Dictionary<string, StateValue>(), IsFallback = true };
 
+    [Theory]
+    [InlineData(true, false, false, true)]
+    [InlineData(false, true, false, true)]
+    [InlineData(true, true, true, false)]
+    [InlineData(false, false, false, false)]
+    public void ClassicContextMenu_Match_RequiresBothShellOverrides(bool legacy, bool redesigned, bool enabled, bool catchAll)
+    {
+        var setting = SettingCatalog.Find("context-menu-classic")!;
+        var readings = new Dictionary<string, object?>();
+        if (legacy)
+            readings[""] = "";
+        if (redesigned)
+            readings["Redesigned"] = "";
+
+        Assert.Equal((enabled ? LocKey.Common.Enabled.Value : LocKey.Common.Disabled.Value, catchAll),
+            StateDetectionEngine.Match(setting.States, new FakeReadings(readings)));
+    }
+
     [Fact]
     public void Detect_OneMatchingState_ReturnsThatState()
     {

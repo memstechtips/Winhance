@@ -145,6 +145,23 @@ public class SettingReviewDiffApplierTests
     }
 
     [Fact]
+    public void ApplyReviewDiffToViewModel_AppliedTwice_ForwardsEachApprovalOnce()
+    {
+        _mockConfigReviewModeService.Setup(r => r.ActiveConfig).Returns(new WinhanceConfigFile());
+        _mockConfigReviewDiffService
+            .Setup(d => d.GetDiffForSetting("test-setting"))
+            .Returns(new ConfigReviewDiff { SettingId = "test-setting", CurrentValueDisplay = "Off", ConfigValueDisplay = "On" });
+        var vm = CreateSettingViewModel();
+        var service = CreateService();
+
+        service.ApplyReviewDiffToViewModel(vm, new SettingStateResult());
+        service.ApplyReviewDiffToViewModel(vm, new SettingStateResult());
+        vm.IsReviewApproved = true;
+
+        _mockConfigReviewDiffService.Verify(d => d.SetSettingApproval("test-setting", true), Times.Once);
+    }
+
+    [Fact]
     public void ApplyReviewDiffToViewModel_WithExistingDiff_ActionSetting_ShowsActionMessage()
     {
         var activeConfig = new WinhanceConfigFile();

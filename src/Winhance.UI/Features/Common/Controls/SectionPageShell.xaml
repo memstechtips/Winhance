@@ -11,7 +11,7 @@
     xmlns:helpers="using:Winhance.UI.Features.Common.Helpers"
     x:DefaultBindMode="OneWay">
 
-    <Grid Padding="0,0,12,0">
+    <Grid Padding="{StaticResource PageRootPadding}">
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="WindowHeightStates">
                 <VisualState x:Name="TallState">
@@ -79,8 +79,8 @@
                 <Button
                     x:Name="BreadcrumbRoot"
                     AutomationProperties.Name="{x:Bind ViewModel.BreadcrumbRootText}"
-                    Padding="8,4">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
+                    Padding="{StaticResource BreadcrumbButtonPadding}">
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource IconLabelSpacing}">
                         <Viewbox Width="16" Height="16" VerticalAlignment="Center" Margin="0,-2,0,0">
                             <fluentIcons:FluentIcon Icon="{x:Bind PageIcon}" IconVariant="Color" />
                         </Viewbox>
@@ -88,89 +88,42 @@
                     </StackPanel>
                 </Button>
 
-                <!-- Separator (visible only on detail pages) -->
+                <!-- Separator (built only on detail pages) -->
                 <fluentIcons:FluentIcon
                     x:Name="BreadcrumbSeparator"
+                    x:Load="{x:Bind ViewModel.IsInDetailPage, Mode=OneWay}"
                     Icon="ChevronRight"
                     IconVariant="Regular"
                     FontSize="{StaticResource BreadcrumbSeparatorFontSize}"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    VerticalAlignment="Center"
-                    Visibility="Collapsed"/>
+                    VerticalAlignment="Center"/>
 
-                <!-- Current section dropdown with icon (visible only on detail pages) -->
-                <DropDownButton
+                <!-- Current section dropdown with icon (built only on detail pages) -->
+                <winControls:SectionBreadcrumbButton
                     x:Name="BreadcrumbSection"
-                    Visibility="Collapsed"
-                    Padding="8,4">
-                    <DropDownButton.Content>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Viewbox Width="16" Height="16" VerticalAlignment="Center" Margin="0,-2,0,0">
-                                <ContentControl Content="{x:Bind ViewModel.CurrentSectionItem.IconResourceKey, Mode=OneWay, Converter={StaticResource SectionIconConverter}}"/>
-                            </Viewbox>
-                            <TextBlock x:Name="BreadcrumbSectionText" VerticalAlignment="Center"/>
-                            <InfoBadge VerticalAlignment="Center" Style="{StaticResource SuccessIconInfoBadgeStyle}"
-                                       Visibility="{x:Bind ViewModel.CurrentSectionItem.IsReviewSuccessBadgeVisible, Mode=OneWay}"/>
-                            <InfoBadge VerticalAlignment="Center" Style="{StaticResource AttentionValueInfoBadgeStyle}"
-                                       Value="{x:Bind ViewModel.CurrentSectionItem.ReviewPendingCount, Mode=OneWay}"
-                                       Visibility="{x:Bind ViewModel.CurrentSectionItem.IsReviewPendingBadgeVisible, Mode=OneWay}"/>
-                        </StackPanel>
-                    </DropDownButton.Content>
-                    <DropDownButton.Flyout>
-                        <Flyout x:Name="BreadcrumbFlyout" Placement="BottomEdgeAlignedLeft">
-                            <Flyout.FlyoutPresenterStyle>
-                                <Style TargetType="FlyoutPresenter">
-                                    <Setter Property="Padding" Value="4"/>
-                                    <Setter Property="CornerRadius" Value="8"/>
-                                </Style>
-                            </Flyout.FlyoutPresenterStyle>
-                            <ItemsControl ItemsSource="{x:Bind ViewModel.OverviewItems}" MinWidth="180">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:SectionOverviewItemViewModel">
-                                        <Button Click="SectionFlyoutItem_Click" Tag="{x:Bind SectionKey, Mode=OneTime}"
-                                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                                                Background="Transparent" BorderThickness="0" Padding="8,5">
-                                            <Grid ColumnDefinitions="Auto,*,Auto">
-                                                <Viewbox Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
-                                                    <ContentControl Content="{x:Bind IconResourceKey, Mode=OneTime, Converter={StaticResource SectionIconConverter}}"/>
-                                                </Viewbox>
-                                                <TextBlock Grid.Column="1" VerticalAlignment="Center"
-                                                           Text="{x:Bind Feature.DisplayName, Mode=OneWay}"/>
-                                                <InfoBadge Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center"
-                                                           Style="{StaticResource SuccessIconInfoBadgeStyle}"
-                                                           Visibility="{x:Bind IsReviewSuccessBadgeVisible, Mode=OneWay}"/>
-                                                <InfoBadge Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center"
-                                                           Style="{StaticResource AttentionValueInfoBadgeStyle}"
-                                                           Value="{x:Bind ReviewPendingCount, Mode=OneWay}"
-                                                           Visibility="{x:Bind IsReviewPendingBadgeVisible, Mode=OneWay}"/>
-                                            </Grid>
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </Flyout>
-                    </DropDownButton.Flyout>
-                </DropDownButton>
+                    x:Load="{x:Bind ViewModel.IsInDetailPage, Mode=OneWay}"
+                    ViewModel="{x:Bind ViewModel}"
+                    ItemClicked="SectionFlyoutItem_Click"/>
             </StackPanel>
 
             <!-- The View filter hides cards from a menu the user may not reopen, so its state stays in sight here -->
-            <Button x:Name="ActiveStateFilterButton" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,4,0"
-                    Visibility="{x:Bind ViewModel.IsStateFilterActive}"
+            <Button x:Name="ActiveStateFilterButton" Grid.Column="1" VerticalAlignment="Center" Margin="{StaticResource ToolbarButtonMargin}"
+                    x:Load="{x:Bind ViewModel.IsStateFilterActive, Mode=OneWay}"
                     Command="{x:Bind ViewModel.ShowAllSettingsCommand}"
                     ToolTipService.ToolTip="{x:Bind ViewModel.ClearStateFilterTooltip}"
                     AutomationProperties.Name="{x:Bind ViewModel.ActiveStateFilterText}"
                     AutomationProperties.HelpText="{x:Bind ViewModel.ClearStateFilterTooltip}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <fluentIcons:FluentIcon Icon="FilterDismiss" IconVariant="Regular" FontSize="14"/>
+                <StackPanel Orientation="Horizontal" Spacing="{StaticResource CompactIconLabelSpacing}">
+                    <fluentIcons:FluentIcon Icon="FilterDismiss" IconVariant="Regular" FontSize="{StaticResource ButtonIconFontSize}"/>
                     <TextBlock Text="{x:Bind ViewModel.ActiveStateFilterText}" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
 
             <!-- Quick Actions dropdown -->
-            <DropDownButton x:Name="QuickActionsButton" Grid.Column="2" VerticalAlignment="Center" Margin="0,0,4,0">
+            <DropDownButton x:Name="QuickActionsButton" Grid.Column="2" VerticalAlignment="Center" Margin="{StaticResource ToolbarButtonMargin}">
                 <DropDownButton.Content>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <FontIcon Glyph="&#xE945;" FontSize="14"/>
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource CompactIconLabelSpacing}">
+                        <fluentIcons:FluentIcon Icon="Flash" IconVariant="Regular" FontSize="{StaticResource ButtonIconFontSize}"/>
                         <TextBlock x:Name="QuickActionsLabel" VerticalAlignment="Center"/>
                     </StackPanel>
                 </DropDownButton.Content>
@@ -178,23 +131,23 @@
                     <MenuFlyout Placement="BottomEdgeAlignedRight">
                         <MenuFlyoutItem x:Name="ApplyRecommendedItem">
                             <MenuFlyoutItem.Icon>
-                                <FontIcon x:Name="ApplyRecommendedIcon" Glyph="&#xE735;" FontSize="14"/>
+                                <fluentIcons:FluentIcon x:Name="ApplyRecommendedIcon" Icon="Star" IconVariant="Filled" FontSize="{StaticResource ButtonIconFontSize}"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem x:Name="ResetDefaultsItem">
                             <MenuFlyoutItem.Icon>
-                                <PathIcon x:Name="ResetDefaultsIcon" Data="{StaticResource WindowsLogoIconPath}"/>
+                                <fluentIcons:FluentIcon Icon="Apps" IconVariant="Regular" FontSize="{StaticResource ButtonIconFontSize}"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                         <MenuFlyoutSeparator x:Name="IncludeActionsSeparator" Visibility="Collapsed"/>
                         <MenuFlyoutItem x:Name="IncludeAllItem" Visibility="Collapsed">
                             <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xE73E;" FontSize="14"/>
+                                <fluentIcons:FluentIcon Icon="Checkmark" IconVariant="Regular" FontSize="{StaticResource ButtonIconFontSize}"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                         <MenuFlyoutItem x:Name="ExcludeAllItem" Visibility="Collapsed">
                             <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xE711;" FontSize="14"/>
+                                <fluentIcons:FluentIcon Icon="Dismiss" IconVariant="Regular" FontSize="{StaticResource ButtonIconFontSize}"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                     </MenuFlyout>
@@ -204,8 +157,8 @@
             <!-- View dropdown -->
             <DropDownButton x:Name="ViewMenuButton" Grid.Column="3" VerticalAlignment="Center" Margin="0,0,0,0">
                 <DropDownButton.Content>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <FontIcon Glyph="&#xE7B3;" FontSize="14"/>
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource CompactIconLabelSpacing}">
+                        <fluentIcons:FluentIcon Icon="Eye" IconVariant="Regular" FontSize="{StaticResource ButtonIconFontSize}"/>
                         <TextBlock x:Name="ViewMenuLabel" VerticalAlignment="Center"/>
                     </StackPanel>
                 </DropDownButton.Content>
@@ -218,12 +171,12 @@
                         </ToggleMenuFlyoutItem>
                         <ToggleMenuFlyoutItem x:Name="InfoBadgesToggleItem">
                             <ToggleMenuFlyoutItem.Icon>
-                                <PathIcon Data="{StaticResource BookInformationVariantIconPath}"/>
+                                <fluentIcons:FluentIcon Icon="BookInformation" IconVariant="Regular"/>
                             </ToggleMenuFlyoutItem.Icon>
                         </ToggleMenuFlyoutItem>
                         <ToggleMenuFlyoutItem x:Name="NewBadgesToggleItem">
                             <ToggleMenuFlyoutItem.Icon>
-                                <PathIcon Data="{StaticResource NewBoxIconPath}"/>
+                                <fluentIcons:FluentIcon Icon="New" IconVariant="Regular"/>
                             </ToggleMenuFlyoutItem.Icon>
                         </ToggleMenuFlyoutItem>
                         <MenuFlyoutSeparator x:Name="StateFilterSeparator"/>
@@ -234,7 +187,7 @@
                         <MenuFlyoutSeparator x:Name="ShowOnlyChangesSeparator" Visibility="Collapsed"/>
                         <ToggleMenuFlyoutItem x:Name="ShowOnlyChangesToggleItem" Visibility="Collapsed">
                             <ToggleMenuFlyoutItem.Icon>
-                                <PathIcon Data="{StaticResource CogTransferIconPath}"/>
+                                <fluentIcons:FluentIcon Icon="ArrowSwap" IconVariant="Regular"/>
                             </ToggleMenuFlyoutItem.Icon>
                         </ToggleMenuFlyoutItem>
                     </MenuFlyout>
@@ -247,18 +200,18 @@
         <Border
             Grid.Row="2"
             Background="{ThemeResource SystemFillColorNeutralBackgroundBrush}"
-            CornerRadius="8"
+            CornerRadius="{StaticResource SectionBandCornerRadius}"
             Margin="0,0,0,12">
             <Grid>
-                <!-- Overview Content (visible when not on detail page) -->
-                <Grid x:Name="OverviewContent">
+                <!-- Overview Content (built only when not on detail page) -->
+                <Grid x:Name="OverviewContent" x:Load="{x:Bind helpers:LoadWhen.Not(ViewModel.IsInDetailPage)}">
                     <!-- A page with one section sets SectionContent, which is drawn here in place of the cards. -->
                     <ContentPresenter
                         Content="{x:Bind SectionContent}"
                         HorizontalContentAlignment="Stretch"
                         VerticalContentAlignment="Stretch"/>
 
-                    <Grid x:Name="OverviewCards">
+                    <Grid x:Name="OverviewCards" x:Load="{x:Bind HasNoSectionContent(SectionContent)}">
                     <!-- Loading State -->
                     <winControls:RocketLoader
                         IsActive="{x:Bind ViewModel.IsLoading}"
@@ -266,53 +219,52 @@
                         VerticalAlignment="Center"/>
 
                     <!-- Overview Cards -->
-                    <ScrollView x:Name="OverviewScrollView" Visibility="{x:Bind ViewModel.IsNotLoading}">
+                    <ScrollViewer x:Name="OverviewScrollViewer" Visibility="{x:Bind ViewModel.IsNotLoading}" Loaded="OverviewScrollViewer_Loaded">
                         <!-- Wrap StackPanel in Grid to avoid visual glitches with MaxWidth -->
                         <Grid>
-                        <StackPanel Spacing="8" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch" Padding="0,12,0,12">
+                        <StackPanel Spacing="{StaticResource ItemStackSpacing}" MaxWidth="{StaticResource SettingsContentMaxWidth}" Margin="{StaticResource SettingsContentMargin}" HorizontalAlignment="Stretch" Padding="0,12,0,12">
+                            <!-- Bounded: one card per section the page defines -->
                             <ItemsControl ItemsSource="{x:Bind ViewModel.OverviewItems}"
                                           HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:SectionOverviewItemViewModel">
-                                        <StackPanel Spacing="8" Margin="0,0,0,8" HorizontalAlignment="Stretch">
+                                        <StackPanel Spacing="{StaticResource ItemStackSpacing}" Margin="{StaticResource BlockBottomMargin}" HorizontalAlignment="Stretch">
                                             <Grid>
                                                 <winControls:ClickableSettingsCard
                                                     Description="{x:Bind Feature.GroupDescriptionText, Mode=OneWay}"
                                                     AutomationProperties.Name="{x:Bind Feature.DisplayName, Mode=OneWay}"
                                                     AutomationProperties.AutomationId="{x:Bind SectionKey}"
-                                                    HeaderIcon="{x:Bind IconResourceKey, Mode=OneTime, Converter={StaticResource SectionIconConverter}}"
+                                                    HeaderIcon="{x:Bind IconResourceKey, Mode=OneTime, Converter={StaticResource IconConverter}, ConverterParameter=FeatureIcon}"
                                                     Padding="{x:Bind CardPadding, Mode=OneWay}"
                                                     Tag="{x:Bind SectionKey, Mode=OneTime}"
                                                     Invoked="SectionCard_Click">
                                                     <winControls:ClickableSettingsCard.Header>
-                                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource HeaderTagSpacing}">
                                                             <TextBlock Text="{x:Bind Feature.DisplayName, Mode=OneWay}" VerticalAlignment="Center"/>
-                                                            <Border Style="{StaticResource NewBadgeBorderStyle}"
-                                                                    Visibility="{x:Bind IsNewBadgeVisible, Mode=OneWay}">
+                                                            <Border x:Name="OverviewNewBadge" Style="{StaticResource NewBadgeBorderStyle}"
+                                                                    x:Load="{x:Bind IsNewBadgeVisible, Mode=OneWay}">
                                                                 <TextBlock Text="{x:Bind NewBadgeText, Mode=OneWay}" Style="{StaticResource NewBadgeTextStyle}"/>
                                                             </Border>
                                                         </StackPanel>
                                                     </winControls:ClickableSettingsCard.Header>
-                                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                                        <InfoBadge Style="{StaticResource SuccessIconInfoBadgeStyle}"
-                                                                   Visibility="{x:Bind IsReviewSuccessBadgeVisible, Mode=OneWay}"/>
-                                                        <InfoBadge Style="{StaticResource AttentionValueInfoBadgeStyle}"
+                                                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource BadgeRowSpacing}">
+                                                        <InfoBadge x:Name="OverviewReviewedBadge" Style="{StaticResource SuccessIconInfoBadgeStyle}"
+                                                                   x:Load="{x:Bind IsReviewSuccessBadgeVisible, Mode=OneWay}"/>
+                                                        <InfoBadge x:Name="OverviewPendingBadge" Style="{StaticResource AttentionValueInfoBadgeStyle}"
                                                                    Value="{x:Bind ReviewPendingCount, Mode=OneWay}"
-                                                                   Visibility="{x:Bind IsReviewPendingBadgeVisible, Mode=OneWay}"/>
-                                                        <StackPanel Orientation="Horizontal" Spacing="4"
-                                                                    Visibility="{x:Bind ArePillsVisible, Mode=OneWay}">
+                                                                   x:Load="{x:Bind IsReviewPendingBadgeVisible, Mode=OneWay}"/>
+                                                        <StackPanel x:Name="OverviewPills" Orientation="Horizontal" Spacing="{StaticResource PillSpacing}"
+                                                                    x:Load="{x:Bind ArePillsVisible, Mode=OneWay}">
                                                             <Border Style="{StaticResource BadgeRecommendedStyle}" Opacity="{x:Bind RecommendedOpacity, Mode=OneWay}">
-                                                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                                                    <PathIcon Data="{StaticResource BadgeRecommendedIconPath}" Height="12" Width="12"
-                                                                              VerticalAlignment="Center" Foreground="{ThemeResource BadgeRecommendedForeground}"/>
+                                                                <StackPanel Orientation="Horizontal" Spacing="{StaticResource PillSpacing}">
+                                                                    <fluentIcons:FluentIcon Style="{StaticResource BadgeRecommendedIcon}"/>
                                                                     <TextBlock Text="{x:Bind RecommendedText, Mode=OneWay}" Style="{StaticResource BadgeTextStyle}"
                                                                                Foreground="{ThemeResource BadgeRecommendedForeground}"/>
                                                                 </StackPanel>
                                                             </Border>
                                                             <Border Style="{StaticResource BadgeDefaultStyle}" Opacity="{x:Bind DefaultOpacity, Mode=OneWay}">
-                                                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                                                    <PathIcon Data="{StaticResource BadgeDefaultIconPath}" Height="12" Width="12"
-                                                                              VerticalAlignment="Center" Foreground="{ThemeResource BadgeDefaultForeground}"/>
+                                                                <StackPanel Orientation="Horizontal" Spacing="{StaticResource PillSpacing}">
+                                                                    <fluentIcons:FluentIcon Style="{StaticResource BadgeDefaultIcon}"/>
                                                                     <TextBlock Text="{x:Bind DefaultText, Mode=OneWay}" Style="{StaticResource BadgeTextStyle}"
                                                                                Foreground="{ThemeResource BadgeDefaultForeground}"/>
                                                                 </StackPanel>
@@ -322,9 +274,9 @@
                                                 </winControls:ClickableSettingsCard>
                                                 <!-- Declared after the card so it sits above it: a click lands on the box, not on
                                                      the card's navigation. -->
-                                                <StackPanel Orientation="Horizontal" Spacing="8"
-                                                            Visibility="{x:Bind ShowIncludeBox, Mode=OneWay}"
-                                                            HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,0,0">
+                                                <StackPanel x:Name="OverviewIncludeBox" Orientation="Horizontal" Spacing="{StaticResource IconLabelSpacing}"
+                                                            x:Load="{x:Bind ShowIncludeBox, Mode=OneWay}"
+                                                            HorizontalAlignment="Left" VerticalAlignment="Center" Margin="{StaticResource IncludeBoxMargin}">
                                                     <CheckBox
                                                         IsChecked="{x:Bind IncludeState, Mode=TwoWay}"
                                                         IsThreeState="False"
@@ -333,15 +285,10 @@
                                                         MinWidth="0"
                                                         Padding="0"
                                                         VerticalAlignment="Center"/>
-                                                    <Grid Width="16" Height="16" VerticalAlignment="Center"
-                                                          Opacity="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource BoolToDimOpacityConverter}}">
-                                                        <fluentIcons:FluentIcon Icon="Link" IconVariant="Regular" FontSize="16"
-                                                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                                Visibility="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                        <fluentIcons:FluentIcon Icon="LinkOff" IconVariant="Regular" FontSize="16"
-                                                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                                Visibility="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
-                                                    </Grid>
+                                                    <fluentIcons:FluentIcon Icon="{x:Bind IncludeIcon, Mode=OneWay}" IconVariant="Regular" FontSize="{StaticResource CardIconFontSize}"
+                                                                            Width="16" Height="16" VerticalAlignment="Center"
+                                                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                            Opacity="{x:Bind IsIncluded, Mode=OneWay, Converter={StaticResource BoolToDimOpacityConverter}}"/>
                                                 </StackPanel>
                                             </Grid>
                                             <winControls:FeatureOutcomeBanner SectionKey="{x:Bind SectionKey, Mode=OneTime}"
@@ -353,14 +300,13 @@
                             </ItemsControl>
                         </StackPanel>
                         </Grid>
-                    </ScrollView>
+                    </ScrollViewer>
                     </Grid>
                 </Grid>
 
-                <!-- Detail Page Frame (visible when on detail page) -->
-                <Frame
-                    x:Name="InnerContentFrame"
-                    Visibility="Collapsed"/>
+                <!-- Empty, so it draws and hit-tests nothing, until a section is navigated into it; the overview is
+                     unloaded while it holds one. -->
+                <Frame x:Name="InnerContentFrame"/>
             </Grid>
         </Border>
     </Grid>

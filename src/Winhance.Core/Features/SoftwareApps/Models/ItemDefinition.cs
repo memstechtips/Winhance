@@ -5,6 +5,9 @@ namespace Winhance.Core.Features.SoftwareApps.Models;
 
 public record ItemDefinition : BaseDefinition
 {
+    // What the Windows Apps table shows in its Type column. Every Windows Apps & Features item states it; external
+    // apps leave it null.
+    public WindowsAppKind? Kind { get; init; }
     public string[]? AppxPackageName { get; init; }
     public string[]? WinGetPackageId { get; init; }
     public string? MsStoreId { get; init; }
